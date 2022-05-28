@@ -28,14 +28,14 @@ void CommonRtpDecoder::obtainFrame() {
 }
 
 bool CommonRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool){
-    auto payload = rtp->getPayload();
-    auto size = rtp->getPayloadSize();
-    auto stamp = rtp->getStampMS();
-    auto seq = rtp->getSeq();
-    if (size <= 0) {
+    auto payload_size = rtp->getPayloadSize();
+    if (payload_size <= 0) {
         //无实际负载
         return false;
     }
+    auto payload = rtp->getPayload();
+    auto stamp = rtp->getStampMS();
+    auto seq = rtp->getSeq();
 
     if (_frame->_dts != stamp || _frame->_buffer.size() > _max_frame_size) {
         //时间戳发生变化或者缓存超过MAX_FRAME_SIZE，则清空上帧数据
@@ -56,7 +56,7 @@ bool CommonRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool){
     }
 
     if (!_drop_flag) {
-        _frame->_buffer.append((char *)payload, size);
+        _frame->_buffer.append((char *)payload, payload_size);
     }
 
     _last_seq = seq;

@@ -141,8 +141,12 @@ bool H264RtpDecoder::mergeFu(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssiz
 }
 
 bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtp) {
+    auto payload_size = rtp->getPayloadSize();
+    if (payload_size <= 0) {
+        //无实际负载
+        return false;
+    }
     auto frame = rtp->getPayload();
-    auto length = rtp->getPayloadSize();
     auto stamp = rtp->getStampMS();
     auto seq = rtp->getSeq();
     int nal = H264_TYPE(frame[0]);
@@ -150,16 +154,16 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtp) {
     switch (nal) {
         case 24:
             // 24 STAP-A Single-time aggregation packet 5.7.1
-            return unpackStapA(rtp, frame + 1, length - 1, stamp);
+            return unpackStapA(rtp, frame + 1, payload_size - 1, stamp);
 
         case 28:
             // 28 FU-A Fragmentation unit
-            return mergeFu(rtp, frame, length, stamp, seq);
+            return mergeFu(rtp, frame, payload_size, stamp, seq);
 
         default: {
             if (nal < 24) {
                 //Single NAL Unit Packets
-                return singleFrame(rtp, frame, length, stamp);
+                return singleFrame(rtp, frame, payload_size, stamp);
             }
             _gop_dropped = true;
             WarnL << "不支持该类型的264 RTP包, nal type:" << nal << ", rtp:\r\n" << rtp->dumpString();

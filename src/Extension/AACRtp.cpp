@@ -80,11 +80,17 @@ void AACRtpDecoder::obtainFrame() {
 }
 
 bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
+    auto payload_size = rtp->getPayloadSize();
+    if (payload_size <= 0) {
+        //无实际负载
+        return false;
+    }
+
     auto stamp = rtp->getStampMS();
     //rtp数据开始部分
     auto ptr = rtp->getPayload();
     //rtp数据末尾
-    auto end = ptr + rtp->getPayloadSize();
+    auto end = ptr + payload_size;
     //首2字节表示Au-Header的个数，单位bit，所以除以16得到Au-Header个数
     auto au_header_count = ((ptr[0] << 8) | ptr[1]) >> 4;
     //记录au_header起始指针
