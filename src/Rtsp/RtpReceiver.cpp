@@ -15,7 +15,8 @@ namespace mediakit {
 
 RtpTrack::RtpTrack() {
     setOnSort([this](uint16_t seq, RtpPacket::Ptr &packet) {
-        onRtpSorted(std::move(packet));
+        if (packet->getPayloadSize())
+            onRtpSorted(std::move(packet));
     });
 }
 
@@ -49,7 +50,8 @@ RtpPacket::Ptr RtpTrack::inputRtp(TrackType type, int sample_rate, uint8_t *ptr,
     }
     if (!header->getPayloadSize(len)) {
         //无有效负载的rtp包
-        return nullptr;
+        InfoL << "收到rtp空包:" << len << " seq:" << ntohs(header->seq);
+        //return nullptr;
     }
 
     //比对缓存ssrc
