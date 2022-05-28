@@ -8,6 +8,9 @@ if (IOS)
     return()
 endif ()
 
+add_definitions(-DGENERATE_EXPORT)
+include_directories(${CMAKE_BINARY_DIR})
+
 if (ENABLE_API_STATIC_LIB)
     add_definitions(-DMediaKitApi_STATIC)
     add_library(mk_api STATIC ${api_src_list})
@@ -21,8 +24,6 @@ else ()
     target_link_libraries(mk_api jsoncpp ${LINK_LIB_LIST})
 endif ()
 
-add_definitions(-DGENERATE_EXPORT)
-include_directories(${CMAKE_BINARY_DIR})
 generate_export_header(mk_api
         EXPORT_MACRO_NAME API_EXPORT
         BASE_NAME MK_API
