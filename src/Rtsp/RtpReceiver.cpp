@@ -15,8 +15,7 @@ namespace mediakit {
 
 RtpTrack::RtpTrack() {
     setOnSort([this](uint16_t seq, RtpPacket::Ptr &packet) {
-        if (packet->getPayloadSize())
-            onRtpSorted(std::move(packet));
+        onRtpSorted(std::move(packet));
     });
 }
 
@@ -32,8 +31,7 @@ void RtpTrack::clear() {
 
 RtpPacket::Ptr RtpTrack::inputRtp(TrackType type, int sample_rate, uint8_t *ptr, size_t len) {
     if (len < RtpPacket::kRtpHeaderSize) {
-        WarnL << "rtp包太小:" << len;
-        return nullptr;
+        throw BadRtpException("rtp size less than 12");
     }
     GET_CONFIG(uint32_t, rtpMaxSize, Rtp::kRtpMaxSize);
     if (len > 1024 * rtpMaxSize) {
@@ -46,12 +44,11 @@ RtpPacket::Ptr RtpTrack::inputRtp(TrackType type, int sample_rate, uint8_t *ptr,
     }
     RtpHeader *header = (RtpHeader *) ptr;
     if (header->version != RtpPacket::kRtpVersion) {
-        throw BadRtpException("非法的rtp，version字段非法");
+        throw BadRtpException("invalid rtp version");
     }
-    if (!header->getPayloadSize(len)) {
-        //无有效负载的rtp包
-        InfoL << "收到rtp空包:" << len << " seq:" << ntohs(header->seq);
-        //return nullptr;
+    if (header->getPayloadSize(len) < 0) {
+        //rtp有效负载小于0，非法
+        throw BadRtpException("invalid rtp payload size");
     }
 
     //比对缓存ssrc
@@ -60,7 +57,7 @@ RtpPacket::Ptr RtpTrack::inputRtp(TrackType type, int sample_rate, uint8_t *ptr,
     if (_pt == 0xFF) {
         _pt = header->pt;
     } else if (header->pt != _pt) {
-        TraceL << "rtp pt 不匹配:" << (int) header->pt << " !=" << (int) _pt;
+        //TraceL << "rtp pt mismatch:" << (int) header->pt << " !=" << (int) _pt;
         return nullptr;
     }
 
@@ -75,10 +72,10 @@ RtpPacket::Ptr RtpTrack::inputRtp(TrackType type, int sample_rate, uint8_t *ptr,
         //ssrc错误
         if (_ssrc_alive.elapsedTime() < 3 * 1000) {
             //接受正确ssrc的rtp在10秒内，那么我们认为存在多路rtp,忽略掉ssrc不匹配的rtp
-            WarnL << "ssrc不匹配,rtp已丢弃:" << ssrc << " != " << _ssrc;
+            WarnL << "ssrc mismatch, rtp dropped:" << ssrc << " != " << _ssrc;
             return nullptr;
         }
-        InfoL << "rtp流ssrc切换:" << _ssrc << " -> " << ssrc;
+        InfoL << "rtp ssrc changed:" << _ssrc << " -> " << ssrc;
         _ssrc = ssrc;
         _ssrc_alive.resetTime();
     }

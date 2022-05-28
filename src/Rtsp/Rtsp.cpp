@@ -513,12 +513,9 @@ size_t RtpHeader::getPaddingSize(size_t rtp_size) const {
     return *end;
 }
 
-size_t RtpHeader::getPayloadSize(size_t rtp_size) const {
+ssize_t RtpHeader::getPayloadSize(size_t rtp_size) const {
     auto invalid_size = getPayloadOffset() + getPaddingSize(rtp_size);
-    if (invalid_size + RtpPacket::kRtpHeaderSize >= rtp_size) {
-        return 0;
-    }
-    return rtp_size - invalid_size - RtpPacket::kRtpHeaderSize;
+    return (ssize_t)rtp_size - invalid_size - RtpPacket::kRtpHeaderSize;
 }
 
 string RtpHeader::dumpString(size_t rtp_size) const {
