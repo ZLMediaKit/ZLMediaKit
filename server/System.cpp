@@ -147,6 +147,8 @@ void System::systemSetup(){
 #ifndef ANDROID
     signal(SIGSEGV, sig_crash);
     signal(SIGABRT, sig_crash);
+    //忽略挂起信号
+    signal(SIGHUP, SIG_IGN);
     NoticeCenter::Instance().addListener(nullptr,kBroadcastOnCrashDump,[](BroadcastOnCrashDumpArgs){
         stringstream ss;
         ss << "## crash date:" << getTimeStr("%Y-%m-%d %H:%M:%S") << endl;
