@@ -212,6 +212,7 @@ static void inline checkHost(std::string &host) {
 }
 
 void splitUrl(const std::string &url, std::string &host, uint16_t &port) {
+    CHECK(!url.empty(), "empty url");
     auto pos = url.rfind(':');
     if (pos == string::npos || url.back() == ']') {
         //没有冒号，未指定端口;或者是纯粹的ipv6地址
