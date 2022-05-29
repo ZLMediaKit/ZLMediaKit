@@ -48,7 +48,8 @@ void API_CALL on_mk_play_event_func(void *user_data, int err_code, const char *e
     if (err_code == 0) {
         //success
         log_debug("play success!");
-        for (int i = 0; i < track_count; ++i) {
+        int i;
+        for (i = 0; i < track_count; ++i) {
             if (mk_track_is_video(tracks[i])) {
                 log_info("got video track: %s", mk_track_codec_name(tracks[i]));
                 ctx->video_decoder = mk_decoder_create(tracks[i], 0);

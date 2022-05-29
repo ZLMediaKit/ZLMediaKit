@@ -90,7 +90,8 @@ void API_CALL on_mk_play_event_func(void *user_data, int err_code, const char *e
         //success
         log_debug("play success!");
         ctx->media = mk_media_create("__defaultVhost__", "live", "test", 0, 0, 0);
-        for (int i = 0; i < track_count; ++i) {
+        int i;
+        for (i = 0; i < track_count; ++i) {
             mk_media_init_track(ctx->media, tracks[i]);
             mk_track_add_delegate(tracks[i], on_track_frame_out, user_data);
         }
