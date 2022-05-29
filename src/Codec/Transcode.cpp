@@ -249,11 +249,8 @@ void FFmpegFrame::fillPicture(AVPixelFormat target_format, int target_width, int
 
 ///////////////////////////////////////////////////////////////////////////
 
-template<bool decoder = true, typename ...ARGS>
-AVCodec *getCodec(ARGS ...names);
-
 template<bool decoder = true>
-AVCodec *getCodec(const char *name) {
+static inline AVCodec *getCodec_l(const char *name) {
     auto codec = decoder ? avcodec_find_decoder_by_name(name) : avcodec_find_encoder_by_name(name);
     if (codec) {
         InfoL << (decoder ? "got decoder:" : "got encoder:") << name;
@@ -264,7 +261,7 @@ AVCodec *getCodec(const char *name) {
 }
 
 template<bool decoder = true>
-AVCodec *getCodec(enum AVCodecID id) {
+static inline AVCodec *getCodec_l(enum AVCodecID id) {
     auto codec = decoder ? avcodec_find_decoder(id) : avcodec_find_encoder(id);
     if (codec) {
         InfoL << (decoder ? "got decoder:" : "got encoder:") << avcodec_get_name(id);
@@ -274,13 +271,34 @@ AVCodec *getCodec(enum AVCodecID id) {
     return codec;
 }
 
-template<bool decoder = true, typename First, typename ...ARGS>
-AVCodec *getCodec(First first, ARGS ...names) {
-    auto codec = getCodec<decoder>(names...);
-    if (codec) {
-        return codec;
+class CodecName {
+public:
+    CodecName(string name) : _codec_name(std::move(name)) {}
+    CodecName(enum AVCodecID id) : _id(id) {}
+
+    template <bool decoder>
+    AVCodec *getCodec() const {
+        if (!_codec_name.empty()) {
+            return getCodec_l<decoder>(_codec_name.data());
+        }
+        return getCodec_l<decoder>(_id);
     }
-    return getCodec<decoder>(first);
+
+private:
+    string _codec_name;
+    enum AVCodecID _id;
+};
+
+template <bool decoder = true>
+static inline AVCodec *getCodec(const std::initializer_list<CodecName> &codec_list) {
+    AVCodec *ret = nullptr;
+    for (int i = codec_list.size(); i >= 1; --i) {
+        ret = codec_list.begin()[i - 1].getCodec<decoder>();
+        if (ret) {
+            return ret;
+        }
+    }
+    return ret;
 }
 
 FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num) {
@@ -289,38 +307,38 @@ FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num) {
     AVCodec *codec_default = nullptr;
     switch (track->getCodecId()) {
         case CodecH264:
-            codec_default = getCodec(AV_CODEC_ID_H264);
+            codec_default = getCodec({AV_CODEC_ID_H264});
             if (checkIfSupportedNvidia()) {
-                codec = getCodec("libopenh264", AV_CODEC_ID_H264, "h264_qsv", "h264_videotoolbox", "h264_cuvid", "h264_nvmpi");
+                codec = getCodec({{"libopenh264"}, {AV_CODEC_ID_H264}, {"h264_qsv"}, {"h264_videotoolbox"}, {"h264_cuvid"}, {"h264_nvmpi"}});
             } else {
-                codec = getCodec("libopenh264", AV_CODEC_ID_H264, "h264_qsv", "h264_videotoolbox", "h264_nvmpi");
+                codec = getCodec({{"libopenh264"}, {AV_CODEC_ID_H264}, {"h264_qsv"}, {"h264_videotoolbox"}, {"h264_nvmpi"}});
             }
             break;
         case CodecH265:
-            codec_default = getCodec(AV_CODEC_ID_HEVC);
+            codec_default = getCodec({AV_CODEC_ID_HEVC});
             if (checkIfSupportedNvidia()) {
-                codec = getCodec(AV_CODEC_ID_HEVC, "hevc_qsv", "hevc_videotoolbox", "hevc_cuvid", "hevc_nvmpi");
+                codec = getCodec({{AV_CODEC_ID_HEVC}, {"hevc_qsv"}, {"hevc_videotoolbox"}, {"hevc_cuvid"}, {"hevc_nvmpi"}});
             } else {
-                codec = getCodec(AV_CODEC_ID_HEVC, "hevc_qsv", "hevc_videotoolbox", "hevc_nvmpi");
+                codec = getCodec({{AV_CODEC_ID_HEVC}, {"hevc_qsv"}, {"hevc_videotoolbox"}, {"hevc_nvmpi"}});
             }
             break;
         case CodecAAC:
-            codec = getCodec(AV_CODEC_ID_AAC);
+            codec = getCodec({AV_CODEC_ID_AAC});
             break;
         case CodecG711A:
-            codec = getCodec(AV_CODEC_ID_PCM_ALAW);
+            codec = getCodec({AV_CODEC_ID_PCM_ALAW});
             break;
         case CodecG711U:
-            codec = getCodec(AV_CODEC_ID_PCM_MULAW);
+            codec = getCodec({AV_CODEC_ID_PCM_MULAW});
             break;
         case CodecOpus:
-            codec = getCodec(AV_CODEC_ID_OPUS);
+            codec = getCodec({AV_CODEC_ID_OPUS});
             break;
         case CodecVP8:
-            codec = getCodec(AV_CODEC_ID_VP8);
+            codec = getCodec({AV_CODEC_ID_VP8});
             break;
         case CodecVP9:
-            codec = getCodec(AV_CODEC_ID_VP9);
+            codec = getCodec({AV_CODEC_ID_VP9});
             break;
         default:
             break;
