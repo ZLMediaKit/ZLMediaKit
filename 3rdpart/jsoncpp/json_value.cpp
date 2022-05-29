@@ -361,6 +361,9 @@ Value::Value(double value) {
 
 Value::Value(const char* value) {
 	initBasic(stringValue, true);
+    if(value == nullptr) {
+        value = "";
+    }
 	value_.string_ = duplicateAndPrefixStringValue(value,
 			static_cast<unsigned>(strlen(value)));
 }
