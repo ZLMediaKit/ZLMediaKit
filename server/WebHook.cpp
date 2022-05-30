@@ -80,7 +80,7 @@ const string kRetryCount = CLUSTER_FIELD "retry_count";
 static onceToken token([]() {
     mINI::Instance()[kOriginUrl] = "";
     mINI::Instance()[kTimeoutSec] = 15;
-    mINI::Instance()[kTimeoutSec] = 3;
+    mINI::Instance()[kRetryCount] = 3;
 });
 
 }//namespace Cluster
