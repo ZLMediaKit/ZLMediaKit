@@ -33,7 +33,14 @@ foreach(TEST_SRC ${TEST_SRC_LIST})
     endif()
   endif()
 
-  message(STATUS "add test: ${TEST_EXE_NAME}")
+  if (NOT ENABLE_FFMPEG)
+    # 暂时过滤掉依赖 WebRTC 的测试模块
+    if ("${TEST_EXE_NAME}" MATCHES "test_audio_transcode")
+      continue()
+    endif ()
+  endif ()
+
+  message(STATUS "add test:${TEST_EXE_NAME}")
   add_executable(${TEST_EXE_NAME} ${TEST_SRC})
   target_compile_options(${TEST_EXE_NAME}
     PRIVATE ${COMPILE_OPTIONS_DEFAULT})
