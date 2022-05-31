@@ -99,15 +99,17 @@ private:
 class FFmpegDecoder : public TaskManager {
 public:
     using Ptr = std::shared_ptr<FFmpegDecoder>;
-    using onDec = std::function<void(const FFmpegFrame::Ptr &)>;
 
     FFmpegDecoder(const Track::Ptr &track, int thread_num = 2);
     ~FFmpegDecoder() override;
 
     bool inputFrame(const Frame::Ptr &frame, bool live, bool async, bool enable_merge = true);
+
+    using onDec = std::function<void(const FFmpegFrame::Ptr &)>;
     void setOnDecode(onDec cb);
+
     void flush();
-    const AVCodecContext *getContext() const;
+    const AVCodecContext *getContext() const { return _context.get(); }
 
 private:
     void onDecode(const FFmpegFrame::Ptr &frame);
@@ -130,12 +132,53 @@ public:
     ~FFmpegSws();
     FFmpegFrame::Ptr inputFrame(const FFmpegFrame::Ptr &frame);
     int inputFrame(const FFmpegFrame::Ptr &frame, uint8_t *data);
-
 private:
     int _target_width;
     int _target_height;
     SwsContext *_ctx = nullptr;
     AVPixelFormat _target_format;
+};
+
+class FFmpegEncoder : public TaskManager, public CodecInfo {
+public:
+    using Ptr = std::shared_ptr<FFmpegEncoder>;
+
+    FFmpegEncoder(const Track::Ptr &track, int thread_num = 2);
+    ~FFmpegEncoder() override;
+
+    void flush();
+    CodecId getCodecId() const {return _codecId;}
+    const AVCodecContext *getContext() const { return _context.get(); }
+
+    using onEnc = std::function<void(const Frame::Ptr &)>;
+    void setOnEncode(onEnc cb) {_cb = std::move(cb);}
+    
+    bool inputFrame(const FFmpegFrame::Ptr& frame, bool async);
+private:
+    bool inputFrame_l(FFmpegFrame::Ptr frame);
+    bool encodeFrame(AVFrame* frame);
+    void onEncode(AVPacket* packet);
+
+    onEnc _cb;
+    CodecId _codecId;
+    AVCodec* _codec = nullptr;
+    AVDictionary* _dict = nullptr;
+    std::shared_ptr<AVCodecContext> _context;
+    bool openVideoCodec(int width, int height, int bitrate, AVCodec* codec);
+    bool openAudioCodec(int samplerate, int channel, int bitrate, AVCodec* codec);
+
+    std::unique_ptr<FFmpegSws> _sws;
+    std::unique_ptr<FFmpegSwr> _swr;
+    bool var_frame_size = false;
+    // use for encodeAudioFrame
+    FFmpegFrame::Ptr _audio_frame;
+    // 一个采样所占字节数= bytes_per_sample * channel
+    int _sample_bytes = 2;
+    // audio buffer hold for frame_size
+    std::vector<uint8_t> _audio_buffer;
+    // _audio_buffer采样数
+    int _audio_samples = 0;
+
 };
 
 }//namespace mediakit
