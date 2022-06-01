@@ -22,7 +22,7 @@ namespace mediakit{
 class G711Track : public AudioTrackImp{
 public:
     using Ptr = std::shared_ptr<G711Track>;
-    G711Track(CodecId codecId, int sample_rate, int channels, int sample_bit) : AudioTrackImp(codecId, 8000, 1, 16) {}
+    G711Track(CodecId codecId, int sample_rate = 8000, int channels = 1, int sample_bit = 16) : AudioTrackImp(codecId, sample_rate, channels, sample_bit) {}
 
 private:
     Sdp::Ptr getSdp() override;
