@@ -9,7 +9,7 @@
  */
 
 #include "Nack.h"
-
+#include <algorithm>
 using namespace std;
 using namespace toolkit;
 

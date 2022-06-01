@@ -181,6 +181,8 @@ extern const std::string kWaitTrackReadyMS;
 extern const std::string kWaitAddTrackMS;
 // 如果track未就绪，我们先缓存帧数据，但是有最大个数限制(100帧时大约4秒)，防止内存溢出
 extern const std::string kUnreadyFrameCache;
+extern const std::string kOpusBitrate;
+extern const std::string kAacBitrate;
 } // namespace General
 
 namespace Protocol {
@@ -211,6 +213,8 @@ extern const std::string kEnableRtmp;
 extern const std::string kEnableTS;
 //是否开启转换为http-fmp4/ws-fmp4
 extern const std::string kEnableFMP4;
+extern const std::string kEnableRtc;
+extern const std::string kAudioTranscode;
 
 //是否将mp4录制当做观看者
 extern const std::string kMP4AsPlayer;
@@ -223,6 +227,7 @@ extern const std::string kMP4SavePath;
 extern const std::string kHlsSavePath;
 
 // 按需转协议的开关
+extern const std::string kRtcDemand;
 extern const std::string kHlsDemand;
 extern const std::string kRtspDemand;
 extern const std::string kRtmpDemand;

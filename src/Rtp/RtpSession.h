@@ -17,6 +17,7 @@
 #include "RtpSplitter.h"
 #include "RtpProcess.h"
 #include "Util/TimeTicker.h"
+#include "Util/mini.h"
 
 namespace mediakit{
 

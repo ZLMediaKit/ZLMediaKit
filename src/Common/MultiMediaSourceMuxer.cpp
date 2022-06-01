@@ -11,7 +11,20 @@
 #include <math.h>
 #include "Common/config.h"
 #include "MultiMediaSourceMuxer.h"
+#include "Extension/AAC.h"
+#include "Extension/Opus.h"
+#include "Extension/G711.h"
+#include "Rtp/RtpSender.h"
+#include "Record/HlsRecorder.h"
+#include "Record/HlsMediaSource.h"
+#include "Rtsp/RtspMediaSourceMuxer.h"
+#include "Rtmp/RtmpMediaSourceMuxer.h"
+#include "TS/TSMediaSourceMuxer.h"
+#include "FMP4/FMP4MediaSourceMuxer.h"
 
+#ifdef ENABLE_FFMPEG
+#include "Codec/Transcode.h"
+#endif
 using namespace std;
 using namespace toolkit;
 
@@ -107,6 +120,11 @@ MultiMediaSourceMuxer::MultiMediaSourceMuxer(const MediaTuple& tuple, float dur_
     if (option.enable_rtsp) {
         _rtsp = std::make_shared<RtspMediaSourceMuxer>(_tuple, option, std::make_shared<TitleSdp>(dur_sec));
     }
+    if (option.enable_rtc) {
+#if defined(ENABLE_WEBRTC)
+        _rtc = std::make_shared<RtspMediaSourceMuxer>(_tuple, option, std::make_shared<TitleSdp>(dur_sec), RTC_SCHEMA);
+#endif
+    }
     if (option.enable_hls) {
         _hls = dynamic_pointer_cast<HlsRecorder>(Recorder::createRecorder(Recorder::type_hls, _tuple, option));
     }
@@ -119,6 +137,15 @@ MultiMediaSourceMuxer::MultiMediaSourceMuxer(const MediaTuple& tuple, float dur_
     if (option.enable_ts) {
         _ts = dynamic_pointer_cast<TSMediaSourceMuxer>(Recorder::createRecorder(Recorder::type_ts, _tuple, option));
     }
+    if (option.audio_transcode) {
+#if defined(ENABLE_FFMPEG)
+        _audio_transcode = option.audio_transcode;
+        InfoL << "enable audio_transcode";
+#else
+        InfoL << "without ffmpeg disable audio_transcode";
+#endif
+    }
+
     if (option.enable_fmp4) {
         _fmp4 = dynamic_pointer_cast<FMP4MediaSourceMuxer>(Recorder::createRecorder(Recorder::type_fmp4, _tuple, option));
     }
@@ -142,6 +169,10 @@ void MultiMediaSourceMuxer::setMediaListener(const std::weak_ptr<MediaSourceEven
     if (_ts) {
         _ts->setListener(self);
     }
+    if (_rtc) {
+        _rtc->setListener(self);
+    }
+
     if (_fmp4) {
         _fmp4->setListener(self);
     }
@@ -160,6 +191,7 @@ void MultiMediaSourceMuxer::setTrackListener(const std::weak_ptr<Listener> &list
 int MultiMediaSourceMuxer::totalReaderCount() const {
     return (_rtsp ? _rtsp->readerCount() : 0) +
            (_rtmp ? _rtmp->readerCount() : 0) +
+           (_rtc ? _rtc->readerCount() : 0) +
            (_ts ? _ts->readerCount() : 0) +
            (_fmp4 ? _fmp4->readerCount() : 0) +
            (_mp4 ? _option.mp4_as_player : 0) +
@@ -375,15 +407,73 @@ std::shared_ptr<MultiMediaSourceMuxer> MultiMediaSourceMuxer::getMuxer(MediaSour
 
 bool MultiMediaSourceMuxer::onTrackReady(const Track::Ptr &track) {
     bool ret = false;
-    if (_rtmp) {
-        ret = _rtmp->addTrack(track) ? true : ret;
+    auto rtmp = _rtmp;
+    auto rtc = _rtc;
+#if defined(ENABLE_FFMPEG)
+    if (_audio_transcode) {
+        if (track->getCodecId() == CodecAAC) {
+            if (rtmp) {
+                rtmp->addTrack(track);
+                rtmp = nullptr;
+            }
+            _audio_dec = nullptr;
+            _audio_enc = nullptr;
+            if (rtc) {
+                Track::Ptr newTrack(new OpusTrack());
+                GET_CONFIG(int, bitrate, General::kOpusBitrate);
+                newTrack->setBitRate(bitrate);
+                rtc->addTrack(newTrack);
+                rtc = nullptr;
+
+                // aac to opus
+                _audio_dec.reset(new FFmpegDecoder(track));
+                _audio_enc.reset(new FFmpegEncoder(newTrack));
+                _audio_dec->setOnDecode([this](const FFmpegFrame::Ptr & frame) {
+                    _audio_enc->inputFrame(frame, false);
+                });
+                _audio_enc->setOnEncode([this](const Frame::Ptr& frame) {
+                    // fill data to _rtc
+                    if (_rtc && _rtc->isEnabled())
+                        _rtc->inputFrame(frame);
+                });
+            }
+        }
+        else if (track->getTrackType() == TrackAudio) {
+            if (rtc) {
+                rtc->addTrack(track);
+                rtc = nullptr;
+            }
+            _audio_dec = nullptr;
+            _audio_enc = nullptr;
+            if (rtmp) {
+                Track::Ptr newTrack(new AACTrack(44100, std::dynamic_pointer_cast<AudioTrack>(track)->getAudioChannel()));
+                GET_CONFIG(int, bitrate, General::kAacBitrate);
+                newTrack->setBitRate(bitrate);
+                rtmp->addTrack(newTrack);
+                rtmp = nullptr;
+
+                _audio_dec.reset(new FFmpegDecoder(track));
+                _audio_enc.reset(new FFmpegEncoder(newTrack));
+                _audio_dec->setOnDecode([this](const FFmpegFrame::Ptr & frame) {
+                    _audio_enc->inputFrame(frame, false);
+                });
+                _audio_enc->setOnEncode([this](const Frame::Ptr& frame) {
+                    // fill aac frame to rtmp
+                    if (_rtmp && _rtmp->isEnabled())
+                        _rtmp->inputFrame(frame);
+                });
+            }
+        }
     }
-    if (_rtsp) {
-        ret = _rtsp->addTrack(track) ? true : ret;
-    }
-    if (_ts) {
-        ret = _ts->addTrack(track) ? true : ret;
-    }
+#endif
+    if (rtc && rtc->addTrack(track))
+        ret = true;
+    if (rtmp && rtmp->addTrack(track))
+        ret = true;
+    if (_rtsp && _rtsp->addTrack(track))
+        ret = true;
+    if (_ts && _ts->addTrack(track))
+        ret = true;
     if (_fmp4) {
         ret = _fmp4->addTrack(track) ? true : ret;
     }
@@ -417,6 +507,9 @@ void MultiMediaSourceMuxer::onAllTrackReady() {
     }
     if (_fmp4) {
         _fmp4->addTrackCompleted();
+    }
+    if (_rtc) {
+        _rtc->addTrackCompleted();
     }
     if (_hls) {
         _hls->addTrackCompleted();
@@ -472,6 +565,13 @@ void MultiMediaSourceMuxer::resetTracks() {
     if (_ts) {
         _ts->resetTracks();
     }
+    if (_rtc) {
+        _rtc->resetTracks();
+    }
+#if defined(ENABLE_FFMPEG)
+    _audio_dec = nullptr;
+    _audio_dec = nullptr;
+#endif
     if (_fmp4) {
         _fmp4->resetTracks();
     }
@@ -494,18 +594,47 @@ bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
     }
 
     bool ret = false;
-    if (_rtmp) {
-        ret = _rtmp->inputFrame(frame) ? true : ret;
+    RtspMediaSourceMuxer::Ptr rtc;
+    RtmpMediaSourceMuxer::Ptr rtmp;
+    if (_rtc && _rtc->isEnabled())
+        rtc = _rtc;
+    if (_rtmp && _rtmp->isEnabled())
+        rtmp = _rtmp;
+#if defined(ENABLE_FFMPEG)
+    if (_audio_transcode) {
+        if (frame->getCodecId() == CodecAAC) {
+            if (rtc) {
+                if (_audio_dec && rtc->readerCount())
+                    _audio_dec->inputFrame(frame, true, false, false);
+                rtc = nullptr;
+            }
+        }
+        else if (frame->getTrackType() == TrackAudio) {
+            if (rtmp) {
+                if (_audio_dec && rtmp->readerCount())
+                    _audio_dec->inputFrame(frame, true, false, false);
+                rtmp = nullptr;
+            }
+        }
     }
-    if (_rtsp) {
-        ret = _rtsp->inputFrame(frame) ? true : ret;
-    }
-    if (_ts) {
-        ret = _ts->inputFrame(frame) ? true : ret;
-    }
+#endif
+    if (rtc && rtc->inputFrame(frame))
+      ret = true;
 
-    if (_hls) {
-        ret = _hls->inputFrame(frame) ? true : ret;
+    if (rtmp && rtmp->inputFrame(frame))
+      ret = true;
+
+    if (_rtsp && _rtsp->inputFrame(frame))
+        ret =  true;
+
+    if (_ts && _ts->inputFrame(frame))
+        ret = true;
+
+    //拷贝智能指针，目的是为了防止跨线程调用设置录像相关api导致的线程竞争问题
+    //此处使用智能指针拷贝来确保线程安全，比互斥锁性能更优
+    auto hls = _hls;
+    if (hls) {
+        ret = hls->inputFrame(frame) ? true : ret;
     }
 
     if (_hls_fmp4) {
@@ -541,6 +670,7 @@ bool MultiMediaSourceMuxer::isEnabled(){
         //有人观看时，则延迟一定时间检查一遍是否无人观看了(节省性能)
         _is_enable = (_rtmp ? _rtmp->isEnabled() : false) ||
                      (_rtsp ? _rtsp->isEnabled() : false) ||
+                     (_rtc ? _rtc->isEnabled() : false) ||
                      (_ts ? _ts->isEnabled() : false) ||
                      (_fmp4 ? _fmp4->isEnabled() : false) ||
                      (_ring ? (bool)_ring->readerCount() : false)  ||

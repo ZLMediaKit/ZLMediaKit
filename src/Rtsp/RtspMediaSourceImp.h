@@ -12,12 +12,11 @@
 #define SRC_RTSP_RTSPTORTMPMEDIASOURCE_H_
 
 #include "RtspMediaSource.h"
-#include "RtspDemuxer.h"
 #include "Common/MultiMediaSourceMuxer.h"
 
 namespace mediakit {
 class RtspDemuxer;
-class RtspMediaSourceImp final : public RtspMediaSource, private TrackListener, public MultiMediaSourceMuxer::Listener  {
+class RtspMediaSourceImp : public RtspMediaSource, private TrackListener, public MultiMediaSourceMuxer::Listener {
 public:
     using Ptr = std::shared_ptr<RtspMediaSourceImp>;
 
@@ -28,7 +27,7 @@ public:
      * @param id 流id
      * @param ringSize 环形缓存大小
      */
-    RtspMediaSourceImp(const MediaTuple& tuple, int ringSize = RTP_GOP_SIZE);
+    RtspMediaSourceImp(const MediaTuple& tuple, const std::string &schema = RTSP_SCHEMA, int ringSize = RTP_GOP_SIZE);
 
     ~RtspMediaSourceImp() override = default;
 
@@ -61,30 +60,14 @@ public:
     /**
      * _demuxer触发的添加Track事件
      */
-    bool addTrack(const Track::Ptr &track) override {
-        if (_muxer) {
-            if (_muxer->addTrack(track)) {
-                track->addDelegate(_muxer);
-                return true;
-            }
-        }
-        return false;
-    }
+    bool addTrack(const Track::Ptr &track) override;
 
     /**
      * _demuxer触发的Track添加完毕事件
      */
-    void addTrackCompleted() override {
-        if (_muxer) {
-            _muxer->addTrackCompleted();
-        }
-    }
+    void addTrackCompleted() override;
 
-    void resetTracks() override {
-        if (_muxer) {
-            _muxer->resetTracks();
-        }
-    }
+    void resetTracks() override;
 
     /**
      * _muxer触发的所有Track就绪的事件
@@ -97,21 +80,13 @@ public:
      * 设置事件监听器
      * @param listener 监听器
      */
-    void setListener(const std::weak_ptr<MediaSourceEvent> &listener) override{
-        if (_muxer) {
-            //_muxer对象不能处理的事件再给listener处理
-            _muxer->setMediaListener(listener);
-        } else {
-            //未创建_muxer对象，事件全部给listener处理
-            MediaSource::setListener(listener);
-        }
-    }
+    void setListener(const std::weak_ptr<MediaSourceEvent> &listener) override;
 
     RtspMediaSource::Ptr clone(const std::string& stream) override;
-private:
+protected:
     bool _all_track_ready = false;
     ProtocolOption _option;
-    RtspDemuxer::Ptr _demuxer;
+    std::shared_ptr<RtspDemuxer> _demuxer;
     MultiMediaSourceMuxer::Ptr _muxer;
 };
 } /* namespace mediakit */

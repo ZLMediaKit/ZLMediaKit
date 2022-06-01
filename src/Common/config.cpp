@@ -76,12 +76,16 @@ const string kEnableFFmpegLog = GENERAL_FIELD "enable_ffmpeg_log";
 const string kWaitTrackReadyMS = GENERAL_FIELD "wait_track_ready_ms";
 const string kWaitAddTrackMS = GENERAL_FIELD "wait_add_track_ms";
 const string kUnreadyFrameCache = GENERAL_FIELD "unready_frame_cache";
+const string kOpusBitrate = GENERAL_FIELD"opusBitrate";
+const string kAacBitrate = GENERAL_FIELD"aacBitrate";
 
 static onceToken token([]() {
     mINI::Instance()[kFlowThreshold] = 1024;
     mINI::Instance()[kStreamNoneReaderDelayMS] = 20 * 1000;
     mINI::Instance()[kMaxStreamWaitTimeMS] = 15 * 1000;
     mINI::Instance()[kEnableVhost] = 0;
+    mINI::Instance()[kOpusBitrate] = 64000;
+    mINI::Instance()[kAacBitrate] = 64000;
     mINI::Instance()[kResetWhenRePlay] = 1;
     mINI::Instance()[kMergeWriteMS] = 0;
     mINI::Instance()[kMediaServerId] = makeRandStr(16);
@@ -109,6 +113,8 @@ const string kEnableRtsp = PROTOCOL_FIELD "enable_rtsp";
 const string kEnableRtmp = PROTOCOL_FIELD "enable_rtmp";
 const string kEnableTS = PROTOCOL_FIELD "enable_ts";
 const string kEnableFMP4 = PROTOCOL_FIELD "enable_fmp4";
+const string kEnableRtc = PROTOCOL_FIELD "enable_rtc";
+const string kAudioTranscode = PROTOCOL_FIELD "audio_transcode";
 
 const string kMP4AsPlayer = PROTOCOL_FIELD "mp4_as_player";
 const string kMP4MaxSecond = PROTOCOL_FIELD "mp4_max_second";
@@ -116,6 +122,7 @@ const string kMP4SavePath = PROTOCOL_FIELD "mp4_save_path";
 
 const string kHlsSavePath = PROTOCOL_FIELD "hls_save_path";
 
+const string kRtcDemand = PROTOCOL_FIELD "rtc_demand";
 const string kHlsDemand = PROTOCOL_FIELD "hls_demand";
 const string kRtspDemand = PROTOCOL_FIELD "rtsp_demand";
 const string kRtmpDemand = PROTOCOL_FIELD "rtmp_demand";
@@ -136,6 +143,8 @@ static onceToken token([]() {
     mINI::Instance()[kEnableRtmp] = 1;
     mINI::Instance()[kEnableTS] = 1;
     mINI::Instance()[kEnableFMP4] = 1;
+    mINI::Instance()[kEnableRtc] = 1;
+    mINI::Instance()[kAudioTranscode] = 1;
 
     mINI::Instance()[kMP4AsPlayer] = 0;
     mINI::Instance()[kMP4MaxSecond] = 3600;
@@ -143,6 +152,7 @@ static onceToken token([]() {
 
     mINI::Instance()[kHlsSavePath] = "./www";
 
+    mINI::Instance()[kRtcDemand] = 0;
     mINI::Instance()[kHlsDemand] = 0;
     mINI::Instance()[kRtspDemand] = 0;
     mINI::Instance()[kRtmpDemand] = 0;

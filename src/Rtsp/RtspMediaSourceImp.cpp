@@ -74,7 +74,7 @@ void RtspMediaSource::onWrite(RtpPacket::Ptr rtp, bool keyPos) {
     PacketCache<RtpPacket>::inputPacket(stamp, is_video, std::move(rtp), keyPos);
 }
 
-RtspMediaSourceImp::RtspMediaSourceImp(const MediaTuple& tuple, int ringSize): RtspMediaSource(tuple, ringSize)
+RtspMediaSourceImp::RtspMediaSourceImp(const MediaTuple& tuple, const std::string& schema, int ringSize): RtspMediaSource(tuple, schema, ringSize)
 {
     _demuxer = std::make_shared<RtspDemuxer>();
     _demuxer->setTrackListener(this);
@@ -112,7 +112,12 @@ void RtspMediaSourceImp::setProtocolOption(const ProtocolOption &option)
     //开启直接代理模式时，rtsp直接代理，不重复产生；但是有些rtsp推流端，由于sdp中已有sps pps，rtp中就不再包括sps pps,
     //导致rtc无法播放，所以在rtsp推流rtc播放时，建议关闭直接代理模式
     _option = option;
-    _option.enable_rtsp = !direct_proxy;
+    if (direct_proxy) {
+		if (getSchema() == RTC_SCHEMA)
+             _option.enable_rtc = false;
+		if (getSchema() == RTSP_SCHEMA)
+             _option.enable_rtsp = false;
+    }
     _muxer = std::make_shared<MultiMediaSourceMuxer>(_tuple, _demuxer->getDuration(), _option);
     _muxer->setMediaListener(getListener());
     _muxer->setTrackListener(std::static_pointer_cast<RtspMediaSourceImp>(shared_from_this()));
@@ -128,10 +133,47 @@ void RtspMediaSourceImp::setProtocolOption(const ProtocolOption &option)
 RtspMediaSource::Ptr RtspMediaSourceImp::clone(const std::string &stream) {
     auto tuple = _tuple;
     tuple.stream = stream;
-    auto src_imp = std::make_shared<RtspMediaSourceImp>(tuple);
+    auto src_imp = std::make_shared<RtspMediaSourceImp>(tuple, getSchema());
     src_imp->setSdp(getSdp());
     src_imp->setProtocolOption(getProtocolOption());
     return src_imp;
+}
+
+bool RtspMediaSourceImp::addTrack(const Track::Ptr &track)
+{
+    if (_muxer) {
+        if (_muxer->addTrack(track)) {
+            track->addDelegate(_muxer);
+            return true;
+        }
+    }
+    return false;
+}
+
+void RtspMediaSourceImp::addTrackCompleted()
+{
+    if (_muxer) {
+        _muxer->addTrackCompleted();
+    }
+}
+
+void RtspMediaSourceImp::resetTracks()
+{
+    if (_muxer) {
+        _muxer->resetTracks();
+    }
+}
+
+void RtspMediaSourceImp::setListener(const std::weak_ptr<MediaSourceEvent> &listener)
+{
+    if (_muxer) {
+        //_muxer对象不能处理的事件再给listener处理
+        _muxer->setMediaListener(listener);
+    }
+    else {
+        //未创建_muxer对象，事件全部给listener处理
+        MediaSource::setListener(listener);
+    }
 }
 
 }
