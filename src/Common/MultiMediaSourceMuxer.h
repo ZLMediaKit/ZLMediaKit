@@ -20,7 +20,9 @@
 #include "Rtmp/RtmpMediaSourceMuxer.h"
 #include "TS/TSMediaSourceMuxer.h"
 #include "FMP4/FMP4MediaSourceMuxer.h"
-
+#ifdef ENABLE_FFMPEG
+#include "Codec/Transcode.h"
+#endif
 namespace mediakit {
 
 class ProtocolOption {
@@ -33,6 +35,8 @@ public:
     bool enable_mp4 = false;
     //是否开启转换为rtsp/webrtc
     bool enable_rtsp = true;
+    //是否开启转换为webrtc
+    bool enable_rtc = true;
     //是否开启转换为rtmp/flv
     bool enable_rtmp = true;
     //是否开启转换为http-ts/ws-ts
@@ -44,7 +48,8 @@ public:
     bool enable_audio = true;
     //添加静音音频，在关闭音频时，此开关无效
     bool add_mute_audio = true;
-
+    // 音频转码
+    bool audio_transcode = true;
     //mp4录制保存路径
     std::string mp4_save_path;
     //mp4切片大小，单位秒
@@ -186,6 +191,12 @@ private:
 #endif
     RtmpMediaSourceMuxer::Ptr _rtmp;
     RtspMediaSourceMuxer::Ptr _rtsp;
+    RtspMediaSourceMuxer::Ptr _rtc;
+#if defined(ENABLE_FFMPEG)
+    bool _audio_transcode = false;
+    std::shared_ptr<FFmpegDecoder> _audio_dec;
+    std::shared_ptr<FFmpegEncoder> _audio_enc;
+#endif
     TSMediaSourceMuxer::Ptr _ts;
     MediaSinkInterface::Ptr _mp4;
     HlsRecorder::Ptr _hls;

@@ -24,8 +24,9 @@ public:
     RtspMediaSourceMuxer(const std::string &vhost,
                          const std::string &strApp,
                          const std::string &strId,
+                         const std::string &schema = RTSP_SCHEMA,
                          const TitleSdp::Ptr &title = nullptr) : RtspMuxer(title){
-        _media_src = std::make_shared<RtspMediaSource>(vhost,strApp,strId);
+        _media_src = std::make_shared<RtspMediaSource>(vhost, strApp, strId, schema);
         getRtpRing()->setDelegate(_media_src);
     }
 

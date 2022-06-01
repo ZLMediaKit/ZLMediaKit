@@ -163,6 +163,8 @@ extern const std::string kMaxStreamWaitTimeMS;
 extern const std::string kEnableVhost;
 //拉流代理时是否添加静音音频
 extern const std::string kAddMuteAudio;
+//启用aac和opus音频自动转码
+extern const std::string kTranscodeAudio;
 //拉流代理时如果断流再重连成功是否删除前一次的媒体流数据，如果删除将重新开始，
 //如果不删除将会接着上一次的数据继续写(录制hls/mp4时会继续在前一个文件后面写)
 extern const std::string kResetWhenRePlay;

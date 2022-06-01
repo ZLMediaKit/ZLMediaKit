@@ -28,7 +28,8 @@ public:
      * @param id 流id
      * @param ringSize 环形缓存大小
      */
-    RtspMediaSourceImp(const std::string &vhost, const std::string &app, const std::string &id, int ringSize = RTP_GOP_SIZE) : RtspMediaSource(vhost, app, id,ringSize) {
+    RtspMediaSourceImp(const std::string &vhost, const std::string &app, const std::string &id, const std::string &schema = RTSP_SCHEMA, int ringSize = RTP_GOP_SIZE) 
+        : RtspMediaSource(vhost, app, id, schema, ringSize) {
         _demuxer = std::make_shared<RtspDemuxer>();
         _demuxer->setTrackListener(this);
     }
@@ -81,6 +82,8 @@ public:
         //导致rtc无法播放，所以在rtsp推流rtc播放时，建议关闭直接代理模式
         _option = option;
         _option.enable_rtsp = !direct_proxy;
+        _option.enable_rtc = this->getSchema() != RTC_SCHEMA;
+        _option.enable_rtsp = this->getSchema() != RTSP_SCHEMA;
         _muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(), getApp(), getId(), _demuxer->getDuration(), _option);
         _muxer->setMediaListener(getListener());
         _muxer->setTrackListener(std::static_pointer_cast<RtspMediaSourceImp>(shared_from_this()));

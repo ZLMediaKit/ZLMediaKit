@@ -53,8 +53,9 @@ public:
     RtspMediaSource(const std::string &vhost,
                     const std::string &app,
                     const std::string &stream_id,
+                    const std::string &schema = RTSP_SCHEMA,
                     int ring_size = RTP_GOP_SIZE) :
-            MediaSource(RTSP_SCHEMA, vhost, app, stream_id), _ring_size(ring_size) {}
+            MediaSource(schema, vhost, app, stream_id), _ring_size(ring_size) {}
 
     ~RtspMediaSource() override{}
 

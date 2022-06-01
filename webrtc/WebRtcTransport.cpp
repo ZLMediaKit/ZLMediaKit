@@ -1052,10 +1052,10 @@ void push_plugin(Session &sender, const string &offer_sdp, const WebRtcArgs &arg
             cb(WebRtcException(SockException(Err_other, err)));
             return;
         }
-
+        std::string schema = RTC_SCHEMA;
         RtspMediaSourceImp::Ptr push_src;
         std::shared_ptr<void> push_src_ownership;
-        auto src = MediaSource::find(RTSP_SCHEMA, info._vhost, info._app, info._streamid);
+        auto src = MediaSource::find(schema, info._vhost, info._app, info._streamid);
         auto push_failed = (bool)src;
 
         while (src) {
@@ -1082,7 +1082,7 @@ void push_plugin(Session &sender, const string &offer_sdp, const WebRtcArgs &arg
         }
 
         if (!push_src) {
-            push_src = std::make_shared<RtspMediaSourceImp>(info._vhost, info._app, info._streamid);
+            push_src = std::make_shared<RtspMediaSourceImp>(info._vhost, info._app, info._streamid, schema);
             push_src_ownership = push_src->getOwnership();
             push_src->setProtocolOption(option);
         }
@@ -1107,9 +1107,8 @@ void play_plugin(Session &sender, const string &offer_sdp, const WebRtcArgs &arg
             cb(WebRtcException(SockException(Err_other, err)));
             return;
         }
-
         //webrtc播放的是rtsp的源
-        info._schema = RTSP_SCHEMA;
+        info._schema = RTC_SCHEMA;
         MediaSource::findAsync(info, session_ptr, [=](const MediaSource::Ptr &src_in) mutable {
             auto src = dynamic_pointer_cast<RtspMediaSource>(src_in);
             if (!src) {
