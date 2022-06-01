@@ -15,15 +15,17 @@
 #include "Common/MediaSource.h"
 #include "Common/MediaSink.h"
 #include "Record/Recorder.h"
-#include "Rtp/RtpSender.h"
-#include "Record/HlsRecorder.h"
-#include "Record/HlsMediaSource.h"
-#include "Rtsp/RtspMediaSourceMuxer.h"
-#include "Rtmp/RtmpMediaSourceMuxer.h"
-#include "TS/TSMediaSourceMuxer.h"
-#include "FMP4/FMP4MediaSourceMuxer.h"
-
 namespace mediakit {
+class HlsRecorder;
+class RtspMediaSourceMuxer;
+class RtmpMediaSourceMuxer;
+class TSMediaSourceMuxer;
+class FMP4MediaSourceMuxer;
+class RtpSender;
+#ifdef ENABLE_FFMPEG
+class FFmpegDecoder;
+class FFmpegEncoder;
+#endif
 
 class MultiMediaSourceMuxer : public MediaSourceEventInterceptor, public MediaSink, public std::enable_shared_from_this<MultiMediaSourceMuxer>{
 public:
@@ -162,17 +164,23 @@ private:
     Stamp _stamp[2];
     std::weak_ptr<Listener> _track_listener;
 #if defined(ENABLE_RTPPROXY)
-    std::unordered_map<std::string, RtpSender::Ptr> _rtp_sender;
+    std::unordered_map<std::string, std::shared_ptr<RtpSender>> _rtp_sender;
 #endif //ENABLE_RTPPROXY
 
 #if defined(ENABLE_MP4)
-    FMP4MediaSourceMuxer::Ptr _fmp4;
+    std::shared_ptr<FMP4MediaSourceMuxer> _fmp4;
 #endif
-    RtmpMediaSourceMuxer::Ptr _rtmp;
-    RtspMediaSourceMuxer::Ptr _rtsp;
-    TSMediaSourceMuxer::Ptr _ts;
+    std::shared_ptr<RtmpMediaSourceMuxer> _rtmp;
+    std::shared_ptr<RtspMediaSourceMuxer> _rtsp;
+    std::shared_ptr<TSMediaSourceMuxer> _ts;
+    std::shared_ptr<RtspMediaSourceMuxer> _rtc;
+#if defined(ENABLE_FFMPEG)
+    bool _audio_transcode = false;
+    std::shared_ptr<FFmpegDecoder> _audio_dec;
+    std::shared_ptr<FFmpegEncoder> _audio_enc;
+#endif
     MediaSinkInterface::Ptr _mp4;
-    HlsRecorder::Ptr _hls;
+    std::shared_ptr<HlsRecorder> _hls;
     toolkit::EventPoller::Ptr _poller;
 
     //对象个数统计

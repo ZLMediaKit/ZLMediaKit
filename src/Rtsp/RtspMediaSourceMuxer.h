@@ -16,7 +16,7 @@
 
 namespace mediakit {
 
-class RtspMediaSourceMuxer final : public RtspMuxer, public MediaSourceEventInterceptor,
+class RtspMediaSourceMuxer : public RtspMuxer, public MediaSourceEventInterceptor,
                                    public std::enable_shared_from_this<RtspMediaSourceMuxer> {
 public:
     using Ptr = std::shared_ptr<RtspMediaSourceMuxer>;
@@ -25,9 +25,12 @@ public:
                          const std::string &strApp,
                          const std::string &strId,
                          const ProtocolOption &option,
-                         const TitleSdp::Ptr &title = nullptr) : RtspMuxer(title) {
+                         const TitleSdp::Ptr &title = nullptr,
+                         const std::string &schema = RTSP_SCHEMA
+                         ): RtspMuxer(title) {
         _option = option;
-        _media_src = std::make_shared<RtspMediaSource>(vhost,strApp,strId);
+        _on_demand = schema == RTSP_SCHEMA ? option.rtsp_demand : option.rtc_demand;
+        _media_src = std::make_shared<RtspMediaSource>(vhost, strApp, strId, schema);
         getRtpRing()->setDelegate(_media_src);
     }
 
@@ -51,19 +54,19 @@ public:
     }
 
     void onReaderChanged(MediaSource &sender, int size) override {
-        _enabled = _option.rtsp_demand ? size : true;
-        if (!size && _option.rtsp_demand) {
+        _enabled = _on_demand ? size : true;
+        if (!size && _on_demand) {
             _clear_cache = true;
         }
         MediaSourceEventInterceptor::onReaderChanged(sender, size);
     }
 
     bool inputFrame(const Frame::Ptr &frame) override {
-        if (_clear_cache && _option.rtsp_demand) {
+        if (_clear_cache && _on_demand) {
             _clear_cache = false;
             _media_src->clearCache();
         }
-        if (_enabled || !_option.rtsp_demand) {
+        if (_enabled || !_on_demand) {
             return RtspMuxer::inputFrame(frame);
         }
         return false;
@@ -71,12 +74,13 @@ public:
 
     bool isEnabled() {
         //缓存尚未清空时，还允许触发inputFrame函数，以便及时清空缓存
-        return _option.rtsp_demand ? (_clear_cache ? true : _enabled) : true;
+        return _on_demand ? (_clear_cache ? true : _enabled) : true;
     }
 
-private:
+protected:
     bool _enabled = true;
     bool _clear_cache = false;
+    bool _on_demand = false;
     ProtocolOption _option;
     RtspMediaSource::Ptr _media_src;
 };

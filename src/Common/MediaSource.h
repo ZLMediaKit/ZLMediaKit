@@ -146,7 +146,7 @@ public:
     bool enable_hls;
     //是否开启MP4录制
     bool enable_mp4;
-    //是否开启转换为rtsp/webrtc
+    //是否开启转换为rtsp
     bool enable_rtsp;
     //是否开启转换为rtmp/flv
     bool enable_rtmp;
@@ -154,7 +154,11 @@ public:
     bool enable_ts;
     //是否开启转换为http-fmp4/ws-fmp4
     bool enable_fmp4;
-
+    //是否开启转换为webrtc
+    bool enable_rtc;
+    // 是否启用音频转码
+    bool audio_transcode;
+    bool rtc_demand;
     // hls协议是否按需生成，如果hls.segNum配置为0(意味着hls录制)，那么hls将一直生成(不管此开关)
     bool hls_demand;
     // rtsp[s]协议是否按需生成
@@ -190,6 +194,9 @@ public:
         GET_OPT_VALUE(enable_rtmp);
         GET_OPT_VALUE(enable_ts);
         GET_OPT_VALUE(enable_fmp4);
+        GET_OPT_VALUE(enable_rtc);
+        GET_OPT_VALUE(audio_transcode);
+        GET_OPT_VALUE(rtc_demand);
 
         GET_OPT_VALUE(hls_demand);
         GET_OPT_VALUE(rtsp_demand);
