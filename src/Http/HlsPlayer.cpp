@@ -378,18 +378,22 @@ void HlsPlayerImp::onPlayResult(const SockException &ex) {
 }
 
 void HlsPlayerImp::onShutdown(const SockException &ex) {
-    if (_demuxer) {
-        std::weak_ptr<HlsPlayerImp> weak_self = static_pointer_cast<HlsPlayerImp>(shared_from_this());
-        static_pointer_cast<HlsDemuxer>(_demuxer)->pushTask([weak_self, ex]() {
-            auto strong_self = weak_self.lock();
-            if (strong_self) {
-                strong_self->_demuxer = nullptr;
-                strong_self->onShutdown(ex);
-            }
-        });
-    } else {
-        PlayerImp<HlsPlayer, PlayerBase>::onShutdown(ex);
+    while (_demuxer) {
+        try {
+            std::weak_ptr<HlsPlayerImp> weak_self = static_pointer_cast<HlsPlayerImp>(shared_from_this());
+            static_pointer_cast<HlsDemuxer>(_demuxer)->pushTask([weak_self, ex]() {
+                auto strong_self = weak_self.lock();
+                if (strong_self) {
+                    strong_self->_demuxer = nullptr;
+                    strong_self->onShutdown(ex);
+                }
+            });
+            return;
+        } catch (...) {
+            break;
+        }
     }
+    PlayerImp<HlsPlayer, PlayerBase>::onShutdown(ex);
 }
 
 vector<Track::Ptr> HlsPlayerImp::getTracks(bool ready) const {
