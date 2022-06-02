@@ -62,6 +62,22 @@ private:
     SwrContext *_ctx = nullptr;
 };
 
+class FFmpegAudioFifo {
+    int _channels = 0;
+    int _samplerate = 0;
+    int64_t _tsp = 0;
+    float _timebase = 0;
+    AVSampleFormat _format = AV_SAMPLE_FMT_NONE;
+    AVAudioFifo* _fifo = nullptr;
+public:
+    FFmpegAudioFifo() = default;
+    ~FFmpegAudioFifo();
+
+    bool Write(const AVFrame* frame);
+    bool Read(AVFrame* frame, int sample_size);
+    int size() const;
+};
+
 class TaskManager {
 public:
     TaskManager() = default;
@@ -169,16 +185,8 @@ private:
 
     std::unique_ptr<FFmpegSws> _sws;
     std::unique_ptr<FFmpegSwr> _swr;
+    std::unique_ptr<FFmpegAudioFifo> _fifo;
     bool var_frame_size = false;
-    // use for encodeAudioFrame
-    FFmpegFrame::Ptr _audio_frame;
-    // 一个采样所占字节数= bytes_per_sample * channel
-    int _sample_bytes = 2;
-    // audio buffer hold for frame_size
-    std::vector<uint8_t> _audio_buffer;
-    // _audio_buffer采样数
-    int _audio_samples = 0;
-
 };
 
 }//namespace mediakit
