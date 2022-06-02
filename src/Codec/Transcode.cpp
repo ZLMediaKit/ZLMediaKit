@@ -366,21 +366,23 @@ FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num) {
         _context->flags |= AV_CODEC_FLAG_LOW_DELAY;
         _context->flags2 |= AV_CODEC_FLAG2_FAST;
         if (track->getTrackType() == TrackVideo) {
-            _context->width = static_pointer_cast<VideoTrack>(track)->getVideoWidth();
-            _context->height = static_pointer_cast<VideoTrack>(track)->getVideoHeight();
-        }
-
-        switch (track->getCodecId()) {
-            case CodecG711A:
-            case CodecG711U: {
-                AudioTrack::Ptr audio = static_pointer_cast<AudioTrack>(track);
-                _context->channels = audio->getAudioChannel();
-                _context->sample_rate = audio->getAudioSampleRate();
-                _context->channel_layout = av_get_default_channel_layout(_context->channels);
-                break;
+            auto video = static_pointer_cast<VideoTrack>(track);
+            _context->width = video->getVideoWidth();
+            _context->height = video->getVideoHeight();
+            InfoL << "decode video " << video->getCodecName() << " " << _context->width << "x" << _context->height;
+        } else {
+            auto audio = static_pointer_cast<AudioTrack>(track);
+            InfoL << "decode audio " << audio->getCodecName() << " " << audio->getAudioSampleRate() << "x" << audio->getAudioChannel();
+            switch (track->getCodecId()) {
+                case CodecG711A:
+                case CodecG711U: {
+                    _context->channels = audio->getAudioChannel();
+                    _context->sample_rate = audio->getAudioSampleRate();
+                    _context->channel_layout = av_get_default_channel_layout(_context->channels);
+                    break;
+                }
+                default: break;
             }
-            default:
-                break;
         }
         AVDictionary *dict = nullptr;
         if (thread_num <= 0) {
@@ -523,6 +525,79 @@ void FFmpegDecoder::onDecode(const FFmpegFrame::Ptr &frame) {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+FFmpegAudioFifo::~FFmpegAudioFifo() {
+    if (_fifo) {
+        av_audio_fifo_free(_fifo);
+        _fifo = nullptr;
+    }
+}
+
+int FFmpegAudioFifo::size() const {
+    return _fifo ? av_audio_fifo_size(_fifo) : 0;
+}
+
+bool FFmpegAudioFifo::Write(const AVFrame *frame) {
+    _format = (AVSampleFormat)frame->format;
+    if (!_fifo) {
+        _fifo = av_audio_fifo_alloc(_format, frame->channels, frame->nb_samples);
+        if (!_fifo) {
+            WarnL << "av_audio_fifo_alloc " << frame->channels << "x" << frame->nb_samples << "error";
+            return false;
+        }
+    }
+
+    _channels = frame->channels;
+    if (_samplerate != frame->sample_rate) {
+        _samplerate = frame->sample_rate;
+        // 假定传入frame的时间戳是以ms为单位的
+        _timebase = 1000.0 / _samplerate;
+    }
+    if (frame->pts != AV_NOPTS_VALUE) {
+        // 计算fifo audio第一个采样的时间戳
+        int64_t tsp = frame->pts - _timebase * av_audio_fifo_size(_fifo);
+        // flv.js和webrtc对音频时间戳增量有要求, rtc要求更加严格！
+        // 得尽量保证时间戳是按照sample_size累加，否则容易出现破音或杂音等问题
+        if (_tsp == AV_NOPTS_VALUE || abs(tsp - _tsp) > 200) {
+            InfoL << "reset base_tsp " << _tsp << "->" << tsp;
+            _tsp = tsp;
+        }
+    } else {
+        _tsp = AV_NOPTS_VALUE;
+    }
+
+    av_audio_fifo_write(_fifo, (void **)frame->data, frame->nb_samples);
+    return true;
+}
+
+bool FFmpegAudioFifo::Read(AVFrame *frame, int sample_size) {
+    assert(_fifo);
+    int fifo_size = av_audio_fifo_size(_fifo);
+    if (fifo_size < sample_size)
+        return false;
+    // fill linedata
+    av_samples_get_buffer_size(frame->linesize, _channels, sample_size, _format, 0);
+    frame->nb_samples = sample_size;
+    frame->format = _format;
+    frame->channel_layout = av_get_default_channel_layout(_channels);
+    frame->sample_rate = _samplerate;
+    frame->pts = _tsp;
+    if (_tsp != AV_NOPTS_VALUE) {
+        // advance tsp by sample_size
+        _tsp += sample_size * _timebase;
+    }
+
+    int ret = av_frame_get_buffer(frame, 0);
+    if (ret < 0) {
+        WarnL << "av_frame_get_buffer error " << ffmpeg_err(ret);
+        return false;
+    }
+
+    av_audio_fifo_read(_fifo, (void **)frame->data, sample_size);
+    return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 FFmpegSwr::FFmpegSwr(AVSampleFormat output, int channel, int channel_layout, int samplerate) {
     _target_format = output;
     _target_channels = channel;
@@ -656,380 +731,332 @@ FFmpegFrame::Ptr FFmpegSws::inputFrame(const FFmpegFrame::Ptr &frame) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
-// 解码器
-void setupContext(AVCodecContext* _context, int bitrate)
-{
-  //保存AVFrame的引用
-  _context->refcounted_frames = 1;
-  _context->flags |= AV_CODEC_FLAG_LOW_DELAY;
-  _context->flags2 |= AV_CODEC_FLAG2_FAST;
-  _context->strict_std_compliance = FF_COMPLIANCE_EXPERIMENTAL;
-  _context->time_base.num = 1;
-  _context->time_base.den = 1000; // {1, 1000}
-  _context->bit_rate = bitrate;
+
+void setupContext(AVCodecContext *_context, int bitrate) {
+    //保存AVFrame的引用
+    _context->refcounted_frames = 1;
+    _context->flags |= AV_CODEC_FLAG_LOW_DELAY;
+    _context->flags2 |= AV_CODEC_FLAG2_FAST;
+    _context->strict_std_compliance = FF_COMPLIANCE_EXPERIMENTAL;
+    _context->time_base.num = 1;
+    _context->time_base.den = 1000; // {1, 1000}
+    _context->bit_rate = bitrate;
 }
 
-FFmpegEncoder::FFmpegEncoder(const Track::Ptr &track, int thread_num)
-{
-  setupFFmpeg();
-  AVCodec *codec = nullptr;
-  AVCodec *codec_default = nullptr;
-  _codecId = track->getCodecId();
-  switch (_codecId) {
-  case CodecH264:
-    codec_default = getCodec<false>({ AV_CODEC_ID_H264 });
-    if (checkIfSupportedNvidia()) {
-      codec = getCodec<false>({ {"libopenh264"}, {AV_CODEC_ID_H264}, {"h264_qsv"}, {"h264_videotoolbox"}, {"h264_cuvid"}, {"h264_nvmpi"} });
-    }
-    else {
-      codec = getCodec<false>({ {"libopenh264"}, {AV_CODEC_ID_H264}, {"h264_qsv"}, {"h264_videotoolbox"}, {"h264_nvmpi"} });
-    }
-    break;
-  case CodecH265:
-    codec_default = getCodec<false>({ AV_CODEC_ID_HEVC });
-    if (checkIfSupportedNvidia()) {
-      codec = getCodec<false>({ {AV_CODEC_ID_HEVC}, {"hevc_qsv"}, {"hevc_videotoolbox"}, {"hevc_cuvid"}, {"hevc_nvmpi"} });
-    }
-    else {
-      codec = getCodec<false>({ {AV_CODEC_ID_HEVC}, {"hevc_qsv"}, {"hevc_videotoolbox"}, {"hevc_nvmpi"} });
-    }
-    break;
-  case CodecAAC:
-    codec = getCodec<false>({ AV_CODEC_ID_AAC });
-    break;
-  case CodecG711A:
-    codec = getCodec<false>({ AV_CODEC_ID_PCM_ALAW });
-    break;
-  case CodecG711U:
-    codec = getCodec<false>({ AV_CODEC_ID_PCM_MULAW });
-    break;
-  case CodecOpus:
-    codec = getCodec<false>({ AV_CODEC_ID_OPUS });
-    break;
-  case CodecVP8:
-    codec = getCodec<false>({ AV_CODEC_ID_VP8 });
-    break;
-  case CodecVP9:
-    codec = getCodec<false>({ AV_CODEC_ID_VP9 });
-    break;
-  default:
-    break;
-  }
-
-  if (!codec) {
-    throw std::runtime_error("未找到编码器");
-  }
-
-  if (thread_num <= 0) {
-    av_dict_set(&_dict, "threads", "auto", 0);
-  }
-  else {
-    av_dict_set(&_dict, "threads", to_string(MIN(thread_num, thread::hardware_concurrency())).data(), 0);
-  }
-  av_dict_set(&_dict, "zerolatency", "1", 0);
-
-  while (true) {
-    bool ret = false;
-    if (getTrackType() == TrackVideo) {
-      // 不设置时，仅第一个I帧前存一次sps和pps
-      // 设置后，I帧钱不会存储sps和pps, 但_context->extradata会有数据，需要手动处理
-      // _context->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-      VideoTrack::Ptr video = static_pointer_cast<VideoTrack>(track);
-      ret = openVideoCodec(video->getVideoWidth(), video->getVideoHeight(), track->getBitRate(), codec);
-    }
-    else {
-      AudioTrack::Ptr audio = static_pointer_cast<AudioTrack>(track);
-      ret = openAudioCodec(audio->getAudioSampleRate(), audio->getAudioChannel(), track->getBitRate(), codec);
-    }
-
-    if (ret) {
-      _codec = codec;
-      //成功
-      InfoL << "打开编码器成功:" << codec->name << ", frameSize " << _context->frame_size;
-      _audio_frame = nullptr;
-      // we do not send complete frames, check this 
-      if (getTrackType() == TrackAudio) {
-        var_frame_size = codec->capabilities & AV_CODEC_CAP_VARIABLE_FRAME_SIZE;
-        if (var_frame_size) {
-            InfoL << codec->name << " support var frame_size";
+FFmpegEncoder::FFmpegEncoder(const Track::Ptr &track, int thread_num) {
+    setupFFmpeg();
+    AVCodec *codec = nullptr;
+    AVCodec *codec_default = nullptr;
+    _codecId = track->getCodecId();
+    switch (_codecId) {
+    case CodecH264:
+        codec_default = getCodec<false>({ AV_CODEC_ID_H264 });
+        if (checkIfSupportedNvidia()) {
+            codec = getCodec<false>({ { "libopenh264" },
+                                      { AV_CODEC_ID_H264 },
+                                      { "h264_qsv" },
+                                      { "h264_videotoolbox" },
+                                      { "h264_cuvid" },
+                                      { "h264_nvmpi" } });
+        } else {
+            codec = getCodec<false>({ { "libopenh264" }, { AV_CODEC_ID_H264 }, { "h264_qsv" }, { "h264_videotoolbox" }, { "h264_nvmpi" } });
         }
-        else if (_context->frame_size) {
-            _audio_frame.reset(new FFmpegFrame());
-            AVFrame* frame = _audio_frame->get();
-            frame->format = _context->sample_fmt;
-            frame->channel_layout = _context->channel_layout;
-            frame->channels = _context->channels;
-            frame->sample_rate = _context->sample_rate;
-            frame->nb_samples = _context->frame_size;
-            frame->linesize[0] = _context->frame_size * _sample_bytes;
-            frame->pts = 0;
+        break;
+    case CodecH265:
+        codec_default = getCodec<false>({ AV_CODEC_ID_HEVC });
+        if (checkIfSupportedNvidia()) {
+            codec = getCodec<false>({ { AV_CODEC_ID_HEVC }, { "hevc_qsv" }, { "hevc_videotoolbox" }, { "hevc_cuvid" }, { "hevc_nvmpi" } });
+        } else {
+            codec = getCodec<false>({ { AV_CODEC_ID_HEVC }, { "hevc_qsv" }, { "hevc_videotoolbox" }, { "hevc_nvmpi" } });
         }
-      }
-      break;
+        break;
+    case CodecAAC:
+        codec = getCodec<false>({ AV_CODEC_ID_AAC });
+        break;
+    case CodecG711A:
+        codec = getCodec<false>({ AV_CODEC_ID_PCM_ALAW });
+        break;
+    case CodecG711U:
+        codec = getCodec<false>({ AV_CODEC_ID_PCM_MULAW });
+        break;
+    case CodecOpus:
+        codec = getCodec<false>({ AV_CODEC_ID_OPUS });
+        break;
+    case CodecVP8:
+        codec = getCodec<false>({ AV_CODEC_ID_VP8 });
+        break;
+    case CodecVP9:
+        codec = getCodec<false>({ AV_CODEC_ID_VP9 });
+        break;
+    default:
+        break;
     }
 
-    if (codec_default && codec_default != codec) {
-      //硬件编解码器打开失败，尝试软件的
-      WarnL << "打开编码器" << codec->name << "失败，原因是:" << ffmpeg_err(ret) << ", 再尝试打开编码器" << codec_default->name;
-      codec = codec_default;
-      continue;
+    if (!codec) {
+        throw std::runtime_error("未找到编码器");
     }
-    throw std::runtime_error(StrPrinter << "打开编码器" << codec->name << "失败:" << ffmpeg_err(ret));
-  }
-}
 
-FFmpegEncoder::~FFmpegEncoder()
-{
-  stopThread(true);
-  flush();
-  av_dict_free(&_dict);
-}
+    if (thread_num <= 0) {
+        av_dict_set(&_dict, "threads", "auto", 0);
+    } else {
+        av_dict_set(&_dict, "threads", to_string(MIN(thread_num, thread::hardware_concurrency())).data(), 0);
+    }
+    av_dict_set(&_dict, "zerolatency", "1", 0);
+    if (strcmp(codec->name, "libx264") == 0 || strcmp(codec->name, "libx265") == 0) {
+        av_dict_set(&_dict, "preset", "ultrafast", 0);
+    }
 
-bool FFmpegEncoder::openVideoCodec(int width, int height, int bitrate, AVCodec* codec)
-{
-  _context.reset(avcodec_alloc_context3(codec), [](AVCodecContext *ctx) {
-    avcodec_free_context(&ctx);
-   });
-
-  if (_context) {
-    setupContext(_context.get(), bitrate);
-
-    // 不设置时，仅第一个I帧前存一次sps和pps
-    // 设置后，I帧钱不会存储sps和pps, 但_context->extradata会有数据，需要手动处理
-    // _context->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-    _context->width = width;
-    _context->height = height;
-    InfoL << "openVideoCodec " << codec->name << " " << _context->width << "x" << _context->height;
-    _context->pix_fmt = AV_PIX_FMT_YUV420P;// codec->pix_fmts[0];
-    // sws_.reset(new FFmpegSws(_context->pix_fmt, _context->width, _context->height));
-    return avcodec_open2(_context.get(), codec, &_dict) >=0;
-  }
-  return false;
-}
-
-bool FFmpegEncoder::openAudioCodec(int samplerate, int channel, int bitrate, AVCodec* codec)
-{
-  _context.reset(avcodec_alloc_context3(codec), [](AVCodecContext *ctx) {
-    avcodec_free_context(&ctx);
-  });
-
-  if (_context) {
-    setupContext(_context.get(), bitrate);
-
-    _context->sample_fmt = codec->sample_fmts[0];
-    _context->sample_rate = samplerate;
-    _context->channels = channel;
-    _context->channel_layout = av_get_default_channel_layout(_context->channels);
-
-    if (getCodecId() == CodecOpus)
-      _context->compression_level = 1;
-
-    _sample_bytes = av_get_bytes_per_sample(_context->sample_fmt) * _context->channels;
-    _swr.reset(new FFmpegSwr(_context->sample_fmt, _context->channels, _context->channel_layout, _context->sample_rate));
-
-    InfoL << "openAudioCodec " << codec->name << " " << _context->sample_rate << "x" << _context->channels;
-    return avcodec_open2(_context.get(), codec, &_dict) >= 0;
-  }
-  return false;
-}
-
-void FFmpegEncoder::flush()
-{
-  AVPacket* packet = av_packet_alloc();
-  while (true) {
-    auto ret = avcodec_receive_packet(_context.get(), packet);
-    if (ret == AVERROR(EAGAIN)) {
-      if (_audio_samples && _audio_frame) {
-        int samples = _context->frame_size - _audio_samples;
-        if (samples>0) {
-           if(_audio_buffer.size() < _context->frame_size * _sample_bytes)
-             _audio_buffer.resize(_context->frame_size * _sample_bytes);
-           memset(&_audio_buffer[_audio_samples * _sample_bytes], 0, samples * _sample_bytes);
+    while (true) {
+        bool ret = false;
+        if (getTrackType() == TrackVideo) {
+            // 不设置时，仅第一个I帧前存一次sps和pps
+            // 设置后，I帧钱不会存储sps和pps, 但_context->extradata会有数据，需要手动处理
+            // _context->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+            VideoTrack::Ptr video = static_pointer_cast<VideoTrack>(track);
+            ret = openVideoCodec(video->getVideoWidth(), video->getVideoHeight(), track->getBitRate(), codec);
+        } else {
+            AudioTrack::Ptr audio = static_pointer_cast<AudioTrack>(track);
+            ret = openAudioCodec(audio->getAudioSampleRate(), audio->getAudioChannel(), track->getBitRate(), codec);
         }
-        AVFrame* frame = _audio_frame->get();
-        frame->data[0] = &_audio_buffer[0];
-        avcodec_send_frame(_context.get(), frame);
-        _audio_samples = 0;
-        continue;
-      }
-      avcodec_send_frame(_context.get(), nullptr);
-      continue;
-    }
-    if (ret == AVERROR_EOF) {
-      break;
-    }
-    if (ret < 0) {
-      WarnL << "avcodec_receive_frame failed:" << ffmpeg_err(ret);
-      break;
-    }
-    onEncode(packet);
-  }
-  av_packet_free(&packet);
-}
 
-bool FFmpegEncoder::inputFrame(const FFmpegFrame::Ptr& frame, bool async)
-{
-  if (async && !TaskManager::isEnabled() && getContext()->codec_type == AVMEDIA_TYPE_VIDEO) {
-    //开启异步编码，且为视频，尝试启动异步解码线程
-    startThread("encoder thread");
-  }
-
-  if (!async || !TaskManager::isEnabled()) {
-    return inputFrame_l(frame);
-  }
-
-  return addEncodeTask([this, frame]() {
-    inputFrame_l(frame);
-  });
-}
-
-bool FFmpegEncoder::inputFrame_l(FFmpegFrame::Ptr input)
-{
-  AVFrame* frame = input->get();
-  AVCodecContext* context = _context.get();
-  if (getTrackType() == TrackAudio) {
-    if (_swr) {
-      // 转成同样采样率和通道
-      input = _swr->inputFrame(input);
-      frame = input->get();
-      // 保证每次塞给解码器的都是一帧音频
-      if (_audio_frame && _context->frame_size && frame->nb_samples != _context->frame_size) {
-        // add this frame to _audio_buffer
-        int samples = _audio_samples + frame->nb_samples;
-        if (_audio_buffer.size() < samples * _sample_bytes)
-          _audio_buffer.resize(samples * _sample_bytes);
-        memcpy(&_audio_buffer[_audio_samples * _sample_bytes], frame->data[0], frame->nb_samples * _sample_bytes);
-        _audio_samples = samples;
-
-        // try decode _audio_buffer with frame_size
-        AVFrame* audioFrame = _audio_frame->get();
-        uint8_t* pos = &_audio_buffer[0];
-        while (_audio_samples >= _context->frame_size) {
-          // audioFrame->linesize[0] = _context->frame_size * _audio_uint;
-          audioFrame->data[0] = pos;
-          audioFrame->pts = frame->pts - _audio_samples * 1000 / _context->sample_rate;
-
-          pos += _context->frame_size * _sample_bytes;
-          _audio_samples -= _context->frame_size;
-          if (!encodeFrame(audioFrame));
+        if (ret) {
+            _codec = codec;
+            //成功
+            InfoL << "打开编码器成功:" << codec->name << ", frameSize " << _context->frame_size;
+            // we do not send complete frames, check this
+            if (getTrackType() == TrackAudio) {
+                var_frame_size = codec->capabilities & AV_CODEC_CAP_VARIABLE_FRAME_SIZE;
+                if (var_frame_size) {
+                    InfoL << codec->name << " support var frame_size";
+                }
+            }
             break;
         }
-        audioFrame->pts = frame->pts;
-        // move pending
-        if (_audio_samples) {
-          memcpy(&_audio_buffer[0], pos, _audio_samples * _sample_bytes);
+
+        if (codec_default && codec_default != codec) {
+            //硬件编解码器打开失败，尝试软件的
+            WarnL << "打开编码器" << codec->name << "失败，原因是:" << ffmpeg_err(ret) << ", 再尝试打开编码器"
+                  << codec_default->name;
+            codec = codec_default;
+            continue;
         }
-        return true;
-      }
+        throw std::runtime_error(StrPrinter << "打开编码器" << codec->name << "失败:" << ffmpeg_err(ret));
     }
-  }
-  else 
-  {
-    if (frame->format != context->pix_fmt ||
-      frame->width != context->width || frame->height != context->height) {
-      if (_sws) {
-        input = _sws->inputFrame(input);
-        frame = input->get();
-      }
-      else {
-        // @todo reopen videocodec?
-        openVideoCodec(frame->width, frame->height, 512000, _codec);
-      }
-    }
-  }
-  return encodeFrame(frame);
 }
 
-bool FFmpegEncoder::encodeFrame(AVFrame* frame)
-{
-  int ret = avcodec_send_frame(_context.get(), frame);
-  if (ret < 0) {
-    WarnL << "Error sending a frame " << frame->pts << " to the encoder: " << ffmpeg_err(ret);
+FFmpegEncoder::~FFmpegEncoder() {
+    stopThread(true);
+    flush();
+    av_dict_free(&_dict);
+}
+
+bool FFmpegEncoder::openVideoCodec(int width, int height, int bitrate, AVCodec *codec) {
+    _context.reset(avcodec_alloc_context3(codec), [](AVCodecContext *ctx) { avcodec_free_context(&ctx); });
+    if (_context) {
+        setupContext(_context.get(), bitrate);
+
+        // 不设置时，仅第一个I帧前存一次sps和pps
+        // 设置后，I帧钱不会存储sps和pps, 但_context->extradata会有数据，需要手动处理
+        // _context->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+        _context->width = width;
+        _context->height = height;
+        // gop
+        _context->gop_size = 200;
+        // 禁用b帧
+        _context->max_b_frames = 0;
+        _context->has_b_frames = 0;
+        InfoL << "openVideoCodec " << codec->name << " " << _context->width << "x" << _context->height;
+        _context->pix_fmt = AV_PIX_FMT_YUV420P; // codec->pix_fmts[0];
+        // sws_.reset(new FFmpegSws(_context->pix_fmt, _context->width, _context->height));
+        return avcodec_open2(_context.get(), codec, &_dict) >= 0;
+    }
     return false;
-  }
-
-  AVPacket* packet = av_packet_alloc();
-  while (ret >= 0) {
-    ret = avcodec_receive_packet(_context.get(), packet);
-    if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
-      break;
-    else if (ret < 0) {
-      WarnL << "Error encoding a frame: " << ffmpeg_err(ret);
-      av_packet_free(&packet);
-      return false;
-    }
-    onEncode(packet);
-  }
-  av_packet_free(&packet);
-  return true;
 }
 
-void FFmpegEncoder::onEncode(AVPacket* packet)
-{
-  // process frame
-  if(!_cb) return ;
-  switch (_codecId)
-  {
-  case CodecH264:
-  {
-    auto frame = FrameImp::create<H264Frame>();
-    frame->_dts = packet->dts;
-    frame->_pts = packet->pts;
-    frame->_buffer.assign((const char*)packet->data, packet->size);
-    frame->_prefix_size = prefixSize((const char*)packet->data, packet->size);
-    _cb(frame);
-    break;
-  }
-  case CodecH265:
-  {
-    auto frame = FrameImp::create<H265Frame>();
-    frame->_dts = packet->dts;
-    frame->_pts = packet->pts;
-    frame->_buffer.assign((const char*)packet->data, packet->size);
-    frame->_prefix_size = prefixSize((const char*)packet->data, packet->size);
-    _cb(frame);
-    break;
-  }
-  case CodecAAC:
-  {
-    auto frame = FrameImp::create<>();
-    frame->_codec_id = _codecId;
-    frame->_dts = packet->dts;
-    frame->_pts = packet->pts;
-    frame->_buffer.assign((const char*)packet->data, packet->size);
-    // 正常是没带adts头部的
-    if (packet->size >= ADTS_HEADER_LEN && packet->data[0] == 0xFF && (packet->data[1] & 0xF0) == 0xF0) {
-      frame->_prefix_size = ADTS_HEADER_LEN;
+bool FFmpegEncoder::openAudioCodec(int samplerate, int channel, int bitrate, AVCodec *codec) {
+    _context.reset(avcodec_alloc_context3(codec), [](AVCodecContext *ctx) { avcodec_free_context(&ctx); });
+
+    if (_context) {
+        setupContext(_context.get(), bitrate);
+
+        _context->sample_fmt = codec->sample_fmts[0];
+        _context->sample_rate = samplerate;
+        _context->channels = channel;
+        _context->channel_layout = av_get_default_channel_layout(_context->channels);
+
+        if (getCodecId() == CodecOpus)
+            _context->compression_level = 1;
+
+        //_sample_bytes = av_get_bytes_per_sample(_context->sample_fmt) * _context->channels;
+        _swr.reset(
+            new FFmpegSwr(_context->sample_fmt, _context->channels, _context->channel_layout, _context->sample_rate));
+
+        InfoL << "openAudioCodec " << codec->name << " " << _context->sample_rate << "x" << _context->channels;
+        return avcodec_open2(_context.get(), codec, &_dict) >= 0;
     }
-    _cb(frame);
-    break;
-  }
-  case CodecOpus:
-  case CodecG711A:
-  case CodecG711U:
-  {
-    auto frame = FrameImp::create<>();
-    frame->_codec_id = _codecId;
-    frame->_dts = packet->dts;
-    frame->_pts = packet->pts;
-    frame->_buffer.assign((const char*)packet->data, packet->size);
-    _cb(frame);
-    break;
-  }
-  case CodecVP8:
-  case CodecVP9:
-  {
-    auto frame = FrameImp::create<>();
-    frame->_codec_id = _codecId;
-    frame->_dts = packet->dts;
-    frame->_pts = packet->pts;
-    frame->_buffer.assign((const char*)packet->data, packet->size);
-    _cb(frame);
-    break;
-  }
-  default:
-    break;
-  }
+    return false;
 }
+
+void FFmpegEncoder::flush() {
+    AVPacket *packet = av_packet_alloc();
+    while (true) {
+        auto ret = avcodec_receive_packet(_context.get(), packet);
+        if (ret == AVERROR(EAGAIN)) {
+            avcodec_send_frame(_context.get(), nullptr);
+            continue;
+        }
+        if (ret == AVERROR_EOF) {
+            break;
+        }
+        if (ret < 0) {
+            WarnL << "avcodec_receive_frame failed:" << ffmpeg_err(ret);
+            break;
+        }
+        onEncode(packet);
+    }
+    av_packet_free(&packet);
+}
+
+bool FFmpegEncoder::inputFrame(const FFmpegFrame::Ptr &frame, bool async) {
+    if (async && !TaskManager::isEnabled() && getContext()->codec_type == AVMEDIA_TYPE_VIDEO) {
+        //开启异步编码，且为视频，尝试启动异步解码线程
+        startThread("encoder thread");
+    }
+
+    if (!async || !TaskManager::isEnabled()) {
+        return inputFrame_l(frame);
+    }
+
+    return addEncodeTask([this, frame]() { inputFrame_l(frame); });
+}
+
+bool FFmpegEncoder::inputFrame_l(FFmpegFrame::Ptr input) {
+    AVFrame *frame = input->get();
+    AVCodecContext *context = _context.get();
+    if (getTrackType() == TrackAudio) {
+        if (_swr) {
+            // 转成同样采样率和通道
+            input = _swr->inputFrame(input);
+            frame = input->get();
+            // 保证每次塞给解码器的都是一帧音频
+            if (!var_frame_size && _context->frame_size && frame->nb_samples != _context->frame_size) {
+                // add this frame to _audio_buffer
+                if (!_fifo)
+                    _fifo.reset(new FFmpegAudioFifo());
+                // TraceL << "in " << frame->pts << ",samples " << frame->nb_samples;
+                _fifo->Write(frame);
+                FFmpegFrame audio_frame;
+                while (_fifo->Read(audio_frame.get(), _context->frame_size)) {
+                    if (!encodeFrame(audio_frame.get())) {
+                        break;
+                    }
+                }
+                return true;
+            }
+        }
+    } else {
+        if (frame->format != context->pix_fmt || frame->width != context->width || frame->height != context->height) {
+            if (_sws) {
+                input = _sws->inputFrame(input);
+                frame = input->get();
+            } else {
+                // @todo reopen videocodec?
+                openVideoCodec(frame->width, frame->height, 512000, _codec);
+            }
+        }
+    }
+    return encodeFrame(frame);
+}
+
+bool FFmpegEncoder::encodeFrame(AVFrame *frame) {
+    // TraceL << "enc " << frame->pts;
+    int ret = avcodec_send_frame(_context.get(), frame);
+    if (ret < 0) {
+        WarnL << "Error sending a frame " << frame->pts << " to the encoder: " << ffmpeg_err(ret);
+        return false;
+    }
+
+    AVPacket *packet = av_packet_alloc();
+    while (ret >= 0) {
+        ret = avcodec_receive_packet(_context.get(), packet);
+        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
+            break;
+        else if (ret < 0) {
+            WarnL << "Error encoding a frame: " << ffmpeg_err(ret);
+            av_packet_free(&packet);
+            return false;
+        }
+        // TraceL << "out " << packet->pts << "," << packet->dts << ", size: " << packet->size;
+        onEncode(packet);
+    }
+    av_packet_free(&packet);
+    return true;
+}
+
+void FFmpegEncoder::onEncode(AVPacket *packet) {
+    // process frame
+    if (!_cb)
+        return;
+    switch (_codecId) {
+        case CodecH264: {
+            auto frame = FrameImp::create<H264Frame>();
+            frame->_dts = packet->dts;
+            frame->_pts = packet->pts;
+            frame->_buffer.assign((const char *)packet->data, packet->size);
+            frame->_prefix_size = prefixSize((const char *)packet->data, packet->size);
+            _cb(frame);
+            break;
+        }
+        case CodecH265: {
+            auto frame = FrameImp::create<H265Frame>();
+            frame->_dts = packet->dts;
+            frame->_pts = packet->pts;
+            frame->_buffer.assign((const char *)packet->data, packet->size);
+            frame->_prefix_size = prefixSize((const char *)packet->data, packet->size);
+            _cb(frame);
+            break;
+        }
+        case CodecAAC: {
+            auto frame = FrameImp::create<>();
+            frame->_codec_id = _codecId;
+            frame->_dts = packet->dts;
+            frame->_pts = packet->pts;
+            frame->_buffer.reserve(ADTS_HEADER_LEN + packet->size);
+            if (_context && _context->extradata && _context->extradata_size) {
+                uint8_t adts[ADTS_HEADER_LEN];
+                auto cfg = std::string((const char *)_context->extradata, _context->extradata_size);
+                dumpAacConfig(cfg, packet->size, adts, ADTS_HEADER_LEN);
+                frame->_prefix_size = ADTS_HEADER_LEN;
+                frame->_buffer.append((char*)adts, ADTS_HEADER_LEN);
+            }
+            frame->_buffer.append((const char *)packet->data, packet->size);
+            _cb(frame);
+            break;
+        }
+        case CodecOpus:
+        case CodecG711A:
+        case CodecG711U: {
+            auto frame = FrameImp::create<>();
+            frame->_codec_id = _codecId;
+            frame->_dts = packet->dts;
+            frame->_pts = packet->pts;
+            frame->_buffer.assign((const char *)packet->data, packet->size);
+            _cb(frame);
+            break;
+        }
+        case CodecVP8:
+        case CodecVP9: {
+            auto frame = FrameImp::create<>();
+            frame->_codec_id = _codecId;
+            frame->_dts = packet->dts;
+            frame->_pts = packet->pts;
+            frame->_buffer.assign((const char *)packet->data, packet->size);
+            _cb(frame);
+            break;
+        }
+        default: break;
+    }
+}
+
 } //namespace mediakit
 #endif//ENABLE_FFMPEG
