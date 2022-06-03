@@ -263,6 +263,10 @@ void SrtTransport::handlePeerError(uint8_t *buf, int len, struct sockaddr_storag
 }
 
 void SrtTransport::sendACKPacket() {
+     if(_last_ack_pkt_seq_num == _recv_buf->getExpectedSeq()){
+        return;
+    }
+
     ACKPacket::Ptr pkt=std::make_shared<ACKPacket>();
     auto now = SteadyClock::now();
     pkt->dst_socket_id = _peer_socket_id;
@@ -277,9 +281,14 @@ void SrtTransport::sendACKPacket() {
     pkt->recv_rate = _recv_rate_context.getRecvRate();
     pkt->storeToData();
     _ack_send_timestamp[pkt->ack_number] = now;
+     _last_ack_pkt_seq_num = pkt->last_ack_pkt_seq_number;
     sendControlPacket(pkt,true);
+    TraceL<<"send  ack";
 }
 void SrtTransport::sendLightACKPacket() {
+    if(_last_ack_pkt_seq_num == _recv_buf->getExpectedSeq()){
+        return;
+    }
     ACKPacket::Ptr pkt=std::make_shared<ACKPacket>();
     auto now = SteadyClock::now();
     pkt->dst_socket_id = _peer_socket_id;
@@ -293,8 +302,9 @@ void SrtTransport::sendLightACKPacket() {
     pkt->estimated_link_capacity = 0;
     pkt->recv_rate = 0;
     pkt->storeToData();
+    _last_ack_pkt_seq_num = pkt->last_ack_pkt_seq_number;
     sendControlPacket(pkt,true);
-    
+    TraceL<<"send  light ack";
 }
 
 void SrtTransport::sendNAKPacket(std::list<PacketQueue::LostPair>& lost_list){
@@ -307,27 +317,12 @@ void SrtTransport::sendNAKPacket(std::list<PacketQueue::LostPair>& lost_list){
 
     pkt->storeToData();
 
-    //TraceL<<"send NAK "<<pkt->dump();
+    TraceL<<"send NAK "<<pkt->dump();
     sendControlPacket(pkt,true);
 }
 void SrtTransport::handleDataPacket(uint8_t *buf, int len, struct sockaddr_storage *addr){
     DataPacket::Ptr pkt = std::make_shared<DataPacket>();
     pkt->loadFromData(buf,len);
-    if(_ack_ticker.elapsedTime()>=10){
-        _light_ack_pkt_count = 0;
-        _ack_ticker.resetTime();
-        // send a ack per 10 ms for receiver 
-        sendACKPacket();
-    }else{
-        if(_light_ack_pkt_count >= 64){
-            // for high bitrate stream send light ack
-            // TODO 
-            sendLightACKPacket();
-        }
-        _light_ack_pkt_count = 0;
-    }
-    
-    _light_ack_pkt_count++;
    
     //TraceL<<" seq="<< pkt->packet_seq_number<<" ts="<<pkt->timestamp<<" size="<<pkt->payloadSize()<<\
     " PP="<<(int)pkt->PP<<" O="<<(int)pkt->O<<" kK="<<(int)pkt->KK<<" R="<<(int)pkt->R;
@@ -343,6 +338,11 @@ void SrtTransport::handleDataPacket(uint8_t *buf, int len, struct sockaddr_stora
     }
 #endif
     //TraceL<<" data number size "<<list.size();
+    auto list = _recv_buf->tryGetPacket();
+
+    for(auto data : list){
+        onSRTData(std::move(data),addr);
+    }
 
     auto nak_interval = (_rtt+_rtt_variance*4)/2/1000;
     if(_nak_ticker.elapsedTime()>20 && _nak_ticker.elapsedTime()>nak_interval){
@@ -353,11 +353,22 @@ void SrtTransport::handleDataPacket(uint8_t *buf, int len, struct sockaddr_stora
         }
         _nak_ticker.resetTime();
     }
-    auto list = _recv_buf->tryGetPacket();
 
-    for(auto data : list){
-        onSRTData(std::move(data),addr);
+     if(_ack_ticker.elapsedTime()>=10){
+        _light_ack_pkt_count = 0;
+        _ack_ticker.resetTime();
+        // send a ack per 10 ms for receiver 
+        sendACKPacket();
+    }else{
+        if(_light_ack_pkt_count >= 64){
+            // for high bitrate stream send light ack
+            // TODO 
+            sendLightACKPacket();
+            TraceL<<"send light ack";
+        }
+        _light_ack_pkt_count = 0;
     }
+    _light_ack_pkt_count++;
 }
 
 void SrtTransport::sendDataPacket(DataPacket::Ptr pkt,char* buf,int len, bool flush) { 

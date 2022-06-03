@@ -41,8 +41,13 @@ uint32_t EstimatedLinkCapacityContext::getEstimatedLinkCapacity() {
    }
    std::sort(tmp.begin(),tmp.end());
    if(tmp.empty()){
-       return 0;
+       return 1000;
    }
+
+   if(tmp.size()<16){
+       return 1000;
+   }
+   return 1000;
 
    double dur =DurationCountMicroseconds(tmp[tmp.size()/2])/1e6;
 
