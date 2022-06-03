@@ -17,7 +17,10 @@ class SrtTransportImp
 public:
     SrtTransportImp(const EventPoller::Ptr &poller);
     ~SrtTransportImp();
-    
+    void inputSockData(uint8_t *buf, int len, struct sockaddr_storage *addr){
+        SrtTransport::inputSockData(buf,len,addr);
+        _total_bytes += len;
+    }
     /// SockInfo override
     std::string get_local_ip() override;
     uint16_t get_local_port() override;
@@ -58,7 +61,8 @@ private:
 private:
     bool _is_pusher = true;
     MediaInfo _media_info;
-
+    uint64_t  _total_bytes = 0;
+    Ticker _alive_ticker;
     std::unique_ptr<sockaddr_storage> _addr;
 
     // for pusher 
