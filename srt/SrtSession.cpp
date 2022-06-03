@@ -47,7 +47,9 @@ EventPoller::Ptr SrtSession::queryPoller(const Buffer::Ptr &buffer) {
     }
     return nullptr;
 }
-
+void SrtSession::attachServer(const toolkit::Server &server){
+    SockUtil::setRecvBuf(getSock()->rawFD(),1024 * 1024);
+}
 void SrtSession::onRecv(const Buffer::Ptr &buffer) {
     uint8_t* data = (uint8_t*)buffer->data();
     size_t size = buffer->size();

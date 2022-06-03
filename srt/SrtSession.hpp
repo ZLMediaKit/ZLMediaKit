@@ -16,7 +16,7 @@ public:
     void onRecv(const Buffer::Ptr &) override;
     void onError(const SockException &err) override;
     void onManager() override;
-
+    void attachServer(const toolkit::Server &server) override;
     static EventPoller::Ptr queryPoller(const Buffer::Ptr &buffer);
 
 private:
