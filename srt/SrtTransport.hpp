@@ -8,7 +8,6 @@
 
 #include "Network/Session.h"
 #include "Poller/EventPoller.h"
-#include "Util/TimeTicker.h"
 
 #include "Common.hpp"
 #include "Packet.hpp"
@@ -72,6 +71,7 @@ private:
     void sendNAKPacket(std::list<PacketQueue::LostPair>& lost_list);
     void sendACKPacket();
     void sendLightACKPacket();
+    void sendKeepLivePacket();
 protected:
     void sendDataPacket(DataPacket::Ptr pkt,char* buf,int len,bool flush = false);
     void sendControlPacket(ControlPacket::Ptr pkt,bool  flush = true);
@@ -87,6 +87,7 @@ private:
     uint32_t _peer_socket_id;
     uint32_t _socket_id = 0;
 
+    TimePoint _now;
     TimePoint _start_timestamp;
 
     uint32_t _mtu = 1500;
@@ -102,14 +103,14 @@ private:
     uint32_t _light_ack_pkt_count = 0;
     uint32_t _ack_number_count = 0;
     uint32_t _last_ack_pkt_seq_num = 0;
-    Ticker _ack_ticker;
+    UTicker _ack_ticker;
     std::map<uint32_t,TimePoint> _ack_send_timestamp;
 
-    PacketRecvRateContext _pkt_recv_rate_context;
-    EstimatedLinkCapacityContext _estimated_link_capacity_context;
-    RecvRateContext _recv_rate_context;
+    std::shared_ptr<PacketRecvRateContext> _pkt_recv_rate_context;
+    std::shared_ptr<EstimatedLinkCapacityContext> _estimated_link_capacity_context;
+    std::shared_ptr<RecvRateContext> _recv_rate_context;
 
-    Ticker _nak_ticker;
+    UTicker _nak_ticker;
 
     //保持发送的握手消息，防止丢失重发
     HandshakePacket::Ptr _handleshake_res;

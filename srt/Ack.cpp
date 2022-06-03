@@ -71,4 +71,13 @@ bool ACKPacket::storeToData() {
 
     return true;
 }
+
+std::string ACKPacket::dump(){
+    _StrPrinter printer;
+    printer << "last_ack_pkt_seq_number="<<last_ack_pkt_seq_number<<\
+    " rtt="<<rtt<<" rtt_variance="<<rtt_variance<<\
+    " pkt_recv_rate="<<pkt_recv_rate<<" available_buf_size="<<available_buf_size<<\
+    " estimated_link_capacity="<<estimated_link_capacity<<" recv_rate="<<recv_rate;
+    return std::move(printer);
+}
 } // namespace

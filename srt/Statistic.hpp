@@ -8,33 +8,36 @@
 namespace SRT {
 class PacketRecvRateContext {
 public:
-    PacketRecvRateContext() = default;
+    PacketRecvRateContext(TimePoint start):_start(start){};
     ~PacketRecvRateContext() = default;
-    void inputPacket(TimePoint ts);
+    void inputPacket(TimePoint& ts);
     uint32_t getPacketRecvRate();
 private:
-    std::map<TimePoint,TimePoint> _pkt_map;
+    std::map<int64_t,int64_t> _pkt_map;
+    TimePoint _start;
     
 };
 
 class EstimatedLinkCapacityContext {
 public:
-    EstimatedLinkCapacityContext() = default;
+    EstimatedLinkCapacityContext(TimePoint start):_start(start){};
     ~EstimatedLinkCapacityContext() = default;
-    void inputPacket(TimePoint ts);
+    void inputPacket(TimePoint& ts);
     uint32_t getEstimatedLinkCapacity();
 private:
-    std::map<TimePoint,TimePoint> _pkt_map;
+    std::map<int64_t,int64_t> _pkt_map;
+    TimePoint _start;
 };
 
 class RecvRateContext {
 public:
-    RecvRateContext() = default;
+    RecvRateContext(TimePoint start):_start(start){};
     ~RecvRateContext() = default;
-    void inputPacket(TimePoint ts,size_t size);
+    void inputPacket(TimePoint& ts,size_t size);
     uint32_t getRecvRate();
 private:
-    std::map<TimePoint,size_t> _pkt_map;
+    std::map<int64_t,size_t> _pkt_map;
+     TimePoint _start;
 };
 
 
