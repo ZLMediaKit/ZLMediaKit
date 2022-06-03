@@ -32,6 +32,11 @@
 #include "../webrtc/WebRtcSession.h"
 #endif
 
+#if defined(ENABLE_SRT)
+#include "../srt/SrtSession.hpp"
+#include "../srt/SrtTransport.hpp"
+#endif
+
 #if defined(ENABLE_VERSION)
 #include "version.h"
 #endif
@@ -284,6 +289,24 @@ int start_main(int argc,char *argv[]) {
         uint16_t rtcPort = mINI::Instance()[RTC::kPort];
 #endif//defined(ENABLE_WEBRTC)
 
+
+#if defined(ENABLE_SRT)
+        auto srtSrv = std::make_shared<UdpServer>();
+        srtSrv->setOnCreateSocket([](const EventPoller::Ptr &poller, const Buffer::Ptr &buf, struct sockaddr *, int) {
+            if (!buf) {
+                return Socket::createSocket(poller, false);
+            }
+            auto new_poller = SRT::SrtSession::queryPoller(buf);
+            if (!new_poller) {
+                //握手第一阶段
+                return Socket::createSocket(poller, false);
+            }
+            return Socket::createSocket(new_poller, false);
+        });
+
+        uint16_t srtPort = mINI::Instance()[SRT::kPort];
+#endif //defined(ENABLE_SRT)
+
         try {
             //rtsp服务器，端口默认554
             if (rtspPort) { rtspSrv->start<RtspSession>(rtspPort); }
@@ -312,6 +335,14 @@ int start_main(int argc,char *argv[]) {
             //webrtc udp服务器
             if (rtcPort) { rtcSrv->start<WebRtcSession>(rtcPort); }
 #endif//defined(ENABLE_WEBRTC)
+
+
+#if defined(ENABLE_SRT)
+        // srt udp服务器
+        if(srtPort){
+            srtSrv->start<SRT::SrtSession>(srtPort);
+        }
+#endif//defined(ENABLE_SRT)
 
         } catch (std::exception &ex) {
             WarnL << "端口占用或无权限:" << ex.what() << endl;
