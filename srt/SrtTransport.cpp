@@ -189,7 +189,7 @@ void SrtTransport::handleHandshakeConclusion(HandshakePacket &pkt, struct sockad
         sendControlPacket(res, true);
         TraceL<<" buf size = "<<res->max_flow_window_size<<" init seq ="<<_init_seq_number<<" lantency="<<req->recv_tsbpd_delay;
         _recv_buf = std::make_shared<PacketQueue>(res->max_flow_window_size,_init_seq_number, req->recv_tsbpd_delay*1e6);
-        onHandShakeFinished(_stream_id);
+        onHandShakeFinished(_stream_id,addr);
     } else {
         TraceL << getIdentifier() << " CONCLUSION handle repeate ";
         sendControlPacket(_handleshake_res, true);
@@ -356,7 +356,7 @@ void SrtTransport::handleDataPacket(uint8_t *buf, int len, struct sockaddr_stora
     auto list = _recv_buf->tryGetPacket();
 
     for(auto data : list){
-        onSRTData(std::move(data));
+        onSRTData(std::move(data),addr);
     }
 }
 
