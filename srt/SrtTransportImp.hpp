@@ -1,9 +1,11 @@
 ﻿#ifndef ZLMEDIAKIT_SRT_TRANSPORT_IMP_H
 #define ZLMEDIAKIT_SRT_TRANSPORT_IMP_H
-
+#include <mutex>
 #include "Common/MultiMediaSourceMuxer.h"
 #include "Rtp/Decoder.h"
+#include "TS/TSMediaSource.h"
 #include "SrtTransport.hpp"
+
 
 namespace SRT {
     using namespace toolkit;
@@ -64,7 +66,8 @@ private:
     uint64_t  _total_bytes = 0;
     Ticker _alive_ticker;
     std::unique_ptr<sockaddr_storage> _addr;
-
+    // for player 
+    TSMediaSource::RingType::RingReader::Ptr _ts_reader;
     // for pusher 
     MultiMediaSourceMuxer::Ptr _muxer;
     DecoderImp::Ptr _decoder;

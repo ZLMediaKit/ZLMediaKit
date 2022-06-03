@@ -192,6 +192,8 @@ void SrtTransport::handleHandshakeConclusion(HandshakePacket &pkt, struct sockad
         sendControlPacket(res, true);
         TraceL<<" buf size = "<<res->max_flow_window_size<<" init seq ="<<_init_seq_number<<" lantency="<<req->recv_tsbpd_delay;
         _recv_buf = std::make_shared<PacketQueue>(res->max_flow_window_size,_init_seq_number, req->recv_tsbpd_delay*1e6);
+        _send_buf = std::make_shared<PacketQueue>(res->max_flow_window_size,_init_seq_number, req->recv_tsbpd_delay*1e6);
+        _send_packet_seq_number = _init_seq_number;
         onHandShakeFinished(_stream_id,addr);
     } else {
         TraceL << getIdentifier() << " CONCLUSION handle repeate ";
@@ -235,10 +237,33 @@ void SrtTransport::handleACK(uint8_t *buf, int len, struct sockaddr_storage *add
     pkt->timestamp = DurationCountMicroseconds(_now -_start_timestamp);
     pkt->ack_number = ack.ack_number;
     pkt->storeToData();
+    _send_buf->dropForSend(ack.last_ack_pkt_seq_number);
     sendControlPacket(pkt,true);
+}
+void SrtTransport::sendMsgDropReq(uint32_t first ,uint32_t last){
+    
 }
 void SrtTransport::handleNAK(uint8_t *buf, int len, struct sockaddr_storage *addr){
     TraceL;
+    NAKPacket pkt;
+    pkt.loadFromData(buf,len);
+    bool empty = false;
+
+    for(auto it : pkt.lost_list){
+        empty = true;
+        for(uint32_t i=it.first;i<it.second;++i){
+            auto data = _send_buf->findPacketBySeq(i);
+            if(data){
+                data->R = 1;
+                data->storeToHeader();
+                sendPacket(data,true);
+                empty = false;
+            }
+        }
+        if(empty){
+            sendMsgDropReq(it.first,it.second-1);
+        }
+    }
 }
 void SrtTransport::handleCongestionWarning(uint8_t *buf, int len, struct sockaddr_storage *addr){
     TraceL;
@@ -391,6 +416,7 @@ void SrtTransport::handleDataPacket(uint8_t *buf, int len, struct sockaddr_stora
 void SrtTransport::sendDataPacket(DataPacket::Ptr pkt,char* buf,int len, bool flush) { 
     pkt->storeToData((uint8_t*)buf,len);
     sendPacket(pkt,flush);
+    _send_buf->inputPacket(pkt);
 }
 void SrtTransport::sendControlPacket(ControlPacket::Ptr pkt, bool flush) { 
     sendPacket(pkt,flush);
@@ -441,6 +467,48 @@ void SrtTransport::onShutdown(const SockException &ex){
             session->shutdown(ex);
         }
     }
+}
+size_t SrtTransport::getPayloadSize(){
+    size_t ret = (_mtu - 28 -16)/188*188;
+    return ret;
+}
+void SrtTransport::onSendData(const Buffer::Ptr &buffer, bool flush){
+    DataPacket::Ptr pkt;
+    size_t payloadSize = getPayloadSize();
+    size_t  size = buffer->size();
+    char* ptr = buffer->data();
+    char* end = buffer->data()+size;
+
+    while(ptr < end && size >=payloadSize){
+        pkt = std::make_shared<DataPacket>();
+        pkt->f = 0;
+        pkt->packet_seq_number = _send_packet_seq_number++;
+        pkt->PP = 3;
+        pkt->O = 0;
+        pkt->KK = 0;
+        pkt->R = 0;
+        pkt->msg_number = _send_msg_number++;
+        pkt->dst_socket_id = _peer_socket_id;
+        pkt->timestamp = DurationCountMicroseconds(SteadyClock::now() - _start_timestamp);
+        sendDataPacket(pkt,ptr,(int)payloadSize,flush);
+        ptr += payloadSize;
+        size -= payloadSize;
+    }
+
+    if(size >0 && ptr <end){
+        pkt = std::make_shared<DataPacket>();
+        pkt->f = 0;
+        pkt->packet_seq_number = _send_packet_seq_number++;
+        pkt->PP = 3;
+        pkt->O = 0;
+        pkt->KK = 0;
+        pkt->R = 0;
+        pkt->msg_number = _send_msg_number++;
+        pkt->dst_socket_id = _peer_socket_id;
+        pkt->timestamp = DurationCountMicroseconds(SteadyClock::now() - _start_timestamp);
+        sendDataPacket(pkt,ptr,(int)size,flush);
+    }
+
 }
 ////////////  SrtTransportManager //////////////////////////
 SrtTransportManager &SrtTransportManager::Instance() {

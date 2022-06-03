@@ -43,6 +43,7 @@ public:
     static uint32_t getSocketID(uint8_t *buf, size_t len);
     bool loadFromData(uint8_t *buf, size_t len);
     bool storeToData(uint8_t *buf, size_t len);
+    bool storeToHeader();
 
     ///////Buffer override///////
     char *data() const override;

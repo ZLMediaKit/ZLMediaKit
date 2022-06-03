@@ -61,7 +61,35 @@ bool DataPacket::loadFromData(uint8_t *buf, size_t len) {
     _data->assign((char *)(buf), len);
     return true;
 }
+bool DataPacket::storeToHeader(){
+    if (!_data || _data->size() < HEADER_SIZE) {
+        WarnL << "data size less " << HEADER_SIZE;
+        return false;
+    }
+    uint8_t *ptr = (uint8_t *)_data->data();
 
+    ptr[0] = packet_seq_number >> 24;
+    ptr[1] = (packet_seq_number >> 16) & 0xff;
+    ptr[2] = (packet_seq_number >> 8) & 0xff;
+    ptr[3] = packet_seq_number & 0xff;
+    ptr += 4;
+
+    ptr[0] = PP << 6;
+    ptr[0] |= O << 5;
+    ptr[0] |= KK << 3;
+    ptr[0] |= R << 2;
+    ptr[0] |= (msg_number & 0xff000000) >> 24;
+    ptr[1] = (msg_number & 0xff0000) >> 16;
+    ptr[2] = (msg_number & 0xff00) >> 8;
+    ptr[3] = msg_number & 0xff;
+    ptr += 4;
+
+    storeUint32(ptr, timestamp);
+    ptr += 4;
+
+    storeUint32(ptr, dst_socket_id);
+    ptr += 4;
+}
 bool DataPacket::storeToData(uint8_t *buf, size_t len) {
     _data = BufferRaw::create();
     _data->setCapacity(len + HEADER_SIZE);
