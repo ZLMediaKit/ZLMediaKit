@@ -36,7 +36,7 @@ public:
      * @param len 数据长度
      * @param addr 数据来源地址
      */
-    void inputSockData(uint8_t *buf, int len, struct sockaddr_storage *addr);
+    virtual void inputSockData(uint8_t *buf, int len, struct sockaddr_storage *addr);
 
     std::string getIdentifier();
     
@@ -72,6 +72,7 @@ private:
     void sendACKPacket();
     void sendLightACKPacket();
     void sendKeepLivePacket();
+    void sendShutDown();
 protected:
     void sendDataPacket(DataPacket::Ptr pkt,char* buf,int len,bool flush = false);
     void sendControlPacket(ControlPacket::Ptr pkt,bool  flush = true);

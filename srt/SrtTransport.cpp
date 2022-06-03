@@ -329,6 +329,14 @@ void SrtTransport::sendNAKPacket(std::list<PacketQueue::LostPair>& lost_list){
     TraceL<<"send NAK "<<pkt->dump();
     sendControlPacket(pkt,true);
 }
+
+void SrtTransport::sendShutDown(){
+    ShutDownPacket::Ptr pkt = std::make_shared<ShutDownPacket>();
+    pkt->dst_socket_id = _peer_socket_id;
+    pkt->timestamp = DurationCountMicroseconds(_now - _start_timestamp);
+    pkt->storeToData();
+    sendControlPacket(pkt,true);
+}
 void SrtTransport::handleDataPacket(uint8_t *buf, int len, struct sockaddr_storage *addr){
     DataPacket::Ptr pkt = std::make_shared<DataPacket>();
     pkt->loadFromData(buf,len);
@@ -423,6 +431,7 @@ void SrtTransport::unregisterSelf() {
 }
 
 void SrtTransport::onShutdown(const SockException &ex){
+    sendShutDown();
     WarnL << ex.what();
     unregisterSelfHandshake();
     unregisterSelf();

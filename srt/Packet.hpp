@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "Network/Buffer.h"
+#include "Util/logger.h"
 
 #include "Common.hpp"
 #include "HSExt.hpp"
@@ -312,6 +313,32 @@ class MsgDropReqPacket : public ControlPacket
     uint32_t last_pkt_seq_num;
 };
 
+class ShutDownPacket : public ControlPacket
+{
+public:
+    using Ptr = std::shared_ptr<ShutDownPacket>;
+    ShutDownPacket() = default;
+    ~ShutDownPacket() = default;
+     ///////ControlPacket override///////
+    bool loadFromData(uint8_t *buf, size_t len) override {
+        if (len < HEADER_SIZE) {
+            WarnL << "data size" << len << " less " << HEADER_SIZE;
+            return false;
+        }
+        _data = BufferRaw::create();
+        _data->assign((char *)buf, len);
+
+        return loadHeader();
+    };
+    bool storeToData() override {
+        control_type = ControlPacket::SHUTDOWN;
+        sub_type = 0;
+        _data = BufferRaw::create();
+        _data->setCapacity(HEADER_SIZE);
+        _data->setSize(HEADER_SIZE);
+        return storeToHeader();
+    };
+};
 } // namespace SRT
 
 #endif //ZLMEDIAKIT_SRT_PACKET_H
