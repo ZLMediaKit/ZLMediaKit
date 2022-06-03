@@ -49,6 +49,42 @@ inline uint32_t srtVersion(int major, int minor, int patch)
 {
     return patch + minor*0x100 + major*0x10000;
 }
+
+class UTicker {
+public:
+    UTicker() {
+        _created = _begin = SteadyClock::now();
+    }
+
+    ~UTicker() {
+    }
+
+    /**
+     * 获取创建时间，单位微妙
+     */
+    int64_t elapsedTime(TimePoint now) const {
+        return DurationCountMicroseconds(now - _begin);
+    }
+
+    /**
+     * 获取上次resetTime后至今的时间，单位毫秒
+     */
+    int64_t createdTime(TimePoint now) const {
+        return DurationCountMicroseconds(now - _created);
+    }
+
+    /**
+     * 重置计时器
+     */
+    void resetTime(TimePoint now) {
+        _begin = now;
+    }
+
+private:
+    TimePoint _begin;
+    TimePoint _created;
+};
+
 } // namespace SRT
 
 #endif //ZLMEDIAKIT_SRT_COMMON_H

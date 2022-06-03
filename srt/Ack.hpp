@@ -43,7 +43,7 @@ public:
     enum{
         ACK_CIF_SIZE = 7*4
     };
-    
+    std::string dump();
     ///////ControlPacket override///////
     bool loadFromData(uint8_t *buf, size_t len) override;
     bool storeToData() override;
