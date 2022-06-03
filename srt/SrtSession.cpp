@@ -1,6 +1,6 @@
 ﻿#include "SrtSession.hpp"
 #include "Packet.hpp"
-#include "SrtTransport.hpp"
+#include "SrtTransportImp.hpp"
 
 #include "Common/config.h"
 
@@ -70,7 +70,7 @@ void SrtSession::onRecv(const Buffer::Ptr &buffer) {
             auto type = HandshakePacket::getHandshakeType(data, size);
             if (type == HandshakePacket::HS_TYPE_INDUCTION) {
                 // 握手第一阶段
-                _transport = std::make_shared<SrtTransport>(getPoller());
+                _transport = std::make_shared<SrtTransportImp>(getPoller());
 
             } else if (type == HandshakePacket::HS_TYPE_CONCLUSION) {
                 // 握手第二阶段

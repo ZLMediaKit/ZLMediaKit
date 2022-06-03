@@ -44,8 +44,8 @@ public:
     void unregisterSelfHandshake();
     void unregisterSelf();
 protected:
-    virtual void onHandShakeFinished(std::string& streamid){};
-    virtual void onSRTData(DataPacket::Ptr pkt){};
+    virtual void onHandShakeFinished(std::string& streamid,struct sockaddr_storage *addr){};
+    virtual void onSRTData(DataPacket::Ptr pkt,struct sockaddr_storage *addr){};
     virtual void onShutdown(const SockException &ex);
 
 private:
