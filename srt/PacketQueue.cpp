@@ -51,11 +51,38 @@ bool PacketQueue::dropForRecv(uint32_t first,uint32_t last){
     }
 
     if(_pkt_expected_seq <= last){
-        _pkt_expected_seq = last+1;
+        for(uint32_t i =first;i<=last;++i){
+            if(_pkt_map.find(i) != _pkt_map.end()){
+                _pkt_map.erase(i);
+            }
+        }
+         _pkt_expected_seq = last+1;
         return true;
     }
 
     return false;
+}
+
+bool PacketQueue::dropForSend(uint32_t num){
+    if(num <= _pkt_expected_seq){
+        return false;
+    }
+
+    for(uint32_t i =_pkt_expected_seq;i< num;++i){
+            if(_pkt_map.find(i) != _pkt_map.end()){
+                _pkt_map.erase(i);
+            }
+    }
+    _pkt_expected_seq = num;
+    return true;
+}
+
+DataPacket::Ptr PacketQueue::findPacketBySeq(uint32_t seq){
+    auto it = _pkt_map.find(seq);
+    if(it != _pkt_map.end()){
+        return it->second;
+    }
+    return nullptr;
 }
 uint32_t PacketQueue::timeLantency() {
     if (_pkt_map.empty()) {

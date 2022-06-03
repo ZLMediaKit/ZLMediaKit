@@ -145,7 +145,72 @@ void SrtTransportImp::emitOnPlay(){
     }
 }
 void SrtTransportImp::doPlay(){
+    //鉴权结果回调
+    weak_ptr<SrtTransportImp> weak_self = dynamic_pointer_cast<SrtTransportImp>(shared_from_this());
+    auto onRes = [weak_self](const string &err) {
+        auto strong_self = weak_self.lock();
+        if (!strong_self) {
+            //本对象已经销毁
+            return;
+        }
 
+        if (!err.empty()) {
+            //播放鉴权失败
+            strong_self->onShutdown(SockException(Err_refused, err));
+            return;
+        }
+
+        //异步查找直播流
+        MediaInfo info = strong_self->_media_info;
+        info._schema = TS_SCHEMA;
+        MediaSource::findAsync(info, strong_self->getSession(), [weak_self](const MediaSource::Ptr &src) {
+            auto strong_self = weak_self.lock();
+            if (!strong_self) {
+                //本对象已经销毁
+                return;
+            }
+            if (!src) {
+                //未找到该流
+                strong_self->onShutdown(SockException(Err_shutdown));
+            } else {
+                auto ts_src = dynamic_pointer_cast<TSMediaSource>(src);
+                assert(ts_src);
+                ts_src->pause(false);
+                strong_self->_ts_reader = ts_src->getRing()->attach(strong_self->getPoller());
+                strong_self->_ts_reader->setDetachCB([weak_self]() {
+                    auto strong_self = weak_self.lock();
+                    if (!strong_self) {
+                        //本对象已经销毁
+                        return;
+                    }
+                   strong_self->onShutdown(SockException(Err_shutdown));
+                });
+                strong_self->_ts_reader->setReadCB([weak_self](const TSMediaSource::RingDataType &ts_list) {
+                    auto strong_self = weak_self.lock();
+                    if (!strong_self) {
+                        //本对象已经销毁
+                        return;
+                    }
+                    size_t i = 0;
+                    auto size = ts_list->size();
+                    ts_list->for_each([&](const TSPacket::Ptr &ts) { strong_self->onSendData(ts, ++i == size); });
+                });
+            };
+
+        });
+    };
+
+    Broadcast::AuthInvoker invoker = [weak_self, onRes](const string &err) {
+        if (auto strongSelf = weak_self.lock()) {
+            strongSelf->getPoller()->async([onRes, err]() { onRes(err); });
+        }
+    };
+
+    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed, _media_info, invoker, static_cast<SockInfo &>(*this));
+    if (!flag) {
+        //该事件无人监听,默认不鉴权
+        onRes("");
+    }
 }
 std::string SrtTransportImp::get_peer_ip() {
     if (!_addr) {

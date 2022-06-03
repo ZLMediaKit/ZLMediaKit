@@ -37,6 +37,7 @@ public:
      * @param addr 数据来源地址
      */
     virtual void inputSockData(uint8_t *buf, int len, struct sockaddr_storage *addr);
+    virtual void onSendData(const Buffer::Ptr &buffer, bool flush);
 
     std::string getIdentifier();
     
@@ -73,6 +74,9 @@ private:
     void sendLightACKPacket();
     void sendKeepLivePacket();
     void sendShutDown();
+    void sendMsgDropReq(uint32_t first ,uint32_t last);
+
+    size_t getPayloadSize();
 protected:
     void sendDataPacket(DataPacket::Ptr pkt,char* buf,int len,bool flush = false);
     void sendControlPacket(ControlPacket::Ptr pkt,bool  flush = true);
@@ -97,7 +101,10 @@ private:
 
     std::string _stream_id;
     uint32_t _sync_cookie = 0;
+    uint32_t _send_packet_seq_number = 0;
+    uint32_t _send_msg_number = 1;
 
+    PacketQueue::Ptr _send_buf;
     PacketQueue::Ptr _recv_buf;
     uint32_t _rtt = 100*1000;
     uint32_t _rtt_variance =50*1000;

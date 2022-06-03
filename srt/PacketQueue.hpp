@@ -29,6 +29,10 @@ public:
     uint32_t getExpectedSeq();
 
     bool dropForRecv(uint32_t first,uint32_t last);
+
+    bool dropForSend(uint32_t num);
+
+    DataPacket::Ptr findPacketBySeq(uint32_t seq);
     
     
 private:
