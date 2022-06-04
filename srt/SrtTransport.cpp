@@ -201,12 +201,40 @@ void SrtTransport::handleHandshakeConclusion(HandshakePacket &pkt, struct sockad
         _recv_buf = std::make_shared<PacketQueue>(res->max_flow_window_size,_init_seq_number, delay*1e6);
         _send_buf = std::make_shared<PacketQueue>(res->max_flow_window_size,_init_seq_number, delay*1e6);
         _send_packet_seq_number = _init_seq_number;
+        _buf_delay = delay;
         onHandShakeFinished(_stream_id,addr);
     } else {
         TraceL << getIdentifier() << " CONCLUSION handle repeate ";
         sendControlPacket(_handleshake_res, true);
     }
     _last_ack_pkt_seq_num = _init_seq_number;
+}
+void SrtTransport::bufCheckInterval(){
+    if(isPusher()){
+        if(_recv_buf->timeLantencyFrom(_now) > (_buf_delay*1e6)){
+            auto list = _recv_buf->tryGetPacketByNow(_now);
+            for(auto data : list){
+                onSRTData(std::move(data));
+            }
+            if(!list.empty()){
+                sendACKPacket();
+                _light_ack_pkt_count = 0;
+                _ack_ticker.resetTime(_now);
+            }
+
+            auto nak_interval = (_rtt+_rtt_variance*4)/2;
+            if(nak_interval >= 20*1000){
+                 nak_interval = 20*1000;
+            }
+            if(_nak_ticker.elapsedTime(_now)>nak_interval || list.empty()){
+                auto lost = _recv_buf->getLostSeq();
+                if(!lost.empty()){
+                    sendNAKPacket(lost);
+                }
+            _nak_ticker.resetTime(_now);
+            }
+        }
+    }
 }
 void SrtTransport::handleHandshake(uint8_t *buf, int len, struct sockaddr_storage *addr){
     HandshakePacket pkt;
@@ -223,7 +251,7 @@ void SrtTransport::handleHandshake(uint8_t *buf, int len, struct sockaddr_storag
     _nak_ticker.resetTime(_now);
 }
 void SrtTransport::handleKeeplive(uint8_t *buf, int len, struct sockaddr_storage *addr){
-    TraceL;
+    //TraceL;
     sendKeepLivePacket();
 }
 
@@ -260,7 +288,7 @@ void SrtTransport::sendMsgDropReq(uint32_t first ,uint32_t last){
     sendControlPacket(pkt,true);
 }
 void SrtTransport::handleNAK(uint8_t *buf, int len, struct sockaddr_storage *addr){
-    TraceL;
+    //TraceL;
     NAKPacket pkt;
     pkt.loadFromData(buf,len);
     bool empty = false;
@@ -291,7 +319,7 @@ void SrtTransport::handleShutDown(uint8_t *buf, int len, struct sockaddr_storage
 void SrtTransport::handleDropReq(uint8_t *buf, int len, struct sockaddr_storage *addr){
     MsgDropReqPacket pkt;
     pkt.loadFromData(buf,len);
-    TraceL<<"drop "<<pkt.first_pkt_seq_num<<" last "<<pkt.last_pkt_seq_num;
+    //TraceL<<"drop "<<pkt.first_pkt_seq_num<<" last "<<pkt.last_pkt_seq_num;
     _recv_buf->dropForRecv(pkt.first_pkt_seq_num,pkt.last_pkt_seq_num);
 }
 void SrtTransport::handleUserDefinedType(uint8_t *buf, int len, struct sockaddr_storage *addr){
@@ -315,10 +343,6 @@ void SrtTransport::handlePeerError(uint8_t *buf, int len, struct sockaddr_storag
 }
 
 void SrtTransport::sendACKPacket() {
-     if(_last_ack_pkt_seq_num == _recv_buf->getExpectedSeq()){
-        return;
-    }
-
     ACKPacket::Ptr pkt=std::make_shared<ACKPacket>();
     pkt->dst_socket_id = _peer_socket_id;
     pkt->timestamp = DurationCountMicroseconds(_now - _start_timestamp);
@@ -337,9 +361,6 @@ void SrtTransport::sendACKPacket() {
     //TraceL<<"send  ack "<<pkt->dump();
 }
 void SrtTransport::sendLightACKPacket() {
-    if(_last_ack_pkt_seq_num == _recv_buf->getExpectedSeq()){
-        return;
-    }
     ACKPacket::Ptr pkt=std::make_shared<ACKPacket>();
    
     pkt->dst_socket_id = _peer_socket_id;
@@ -367,7 +388,7 @@ void SrtTransport::sendNAKPacket(std::list<PacketQueue::LostPair>& lost_list){
 
     pkt->storeToData();
 
-    TraceL<<"send NAK "<<pkt->dump();
+    //TraceL<<"send NAK "<<pkt->dump();
     sendControlPacket(pkt,true);
 }
 
@@ -381,6 +402,8 @@ void SrtTransport::sendShutDown(){
 void SrtTransport::handleDataPacket(uint8_t *buf, int len, struct sockaddr_storage *addr){
     DataPacket::Ptr pkt = std::make_shared<DataPacket>();
     pkt->loadFromData(buf,len);
+
+    pkt->get_ts = _now;
    
     //TraceL<<" seq="<< pkt->packet_seq_number<<" ts="<<pkt->timestamp<<" size="<<pkt->payloadSize()<<\
     //" PP="<<(int)pkt->PP<<" O="<<(int)pkt->O<<" kK="<<(int)pkt->KK<<" R="<<(int)pkt->R;
@@ -399,11 +422,14 @@ void SrtTransport::handleDataPacket(uint8_t *buf, int len, struct sockaddr_stora
     auto list = _recv_buf->tryGetPacket();
 
     for(auto data : list){
-        onSRTData(std::move(data),addr);
+        onSRTData(std::move(data));
     }
 
     auto nak_interval = (_rtt+_rtt_variance*4)/2;
-    if(_nak_ticker.elapsedTime(_now)>20*1000 && _nak_ticker.elapsedTime(_now)>nak_interval){
+    if(nak_interval >= 20*1000){
+        nak_interval = 20*1000;
+    }
+    if(_nak_ticker.elapsedTime(_now)>nak_interval || list.empty()){
         auto lost = _recv_buf->getLostSeq();
         if(!lost.empty()){
              sendNAKPacket(lost);
@@ -427,6 +453,8 @@ void SrtTransport::handleDataPacket(uint8_t *buf, int len, struct sockaddr_stora
         _light_ack_pkt_count = 0;
     }
     _light_ack_pkt_count++;
+
+    bufCheckInterval();
 }
 
 void SrtTransport::sendDataPacket(DataPacket::Ptr pkt,char* buf,int len, bool flush) { 

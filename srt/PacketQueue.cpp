@@ -20,16 +20,20 @@ bool PacketQueue::inputPacket(DataPacket::Ptr pkt) {
 
 std::list<DataPacket::Ptr> PacketQueue::tryGetPacket() {
     std::list<DataPacket::Ptr> re;
-    while (_pkt_map.find(_pkt_expected_seq) != _pkt_map.end()) {
-        re.push_back(_pkt_map[_pkt_expected_seq]);
-        _pkt_map.erase(_pkt_expected_seq);
+    auto it = _pkt_map.find(_pkt_expected_seq);
+    while ( it != _pkt_map.end()) {
+        re.push_back(it->second);
+        _last_pop_ts = it->second->get_ts;
+        _pkt_map.erase(it);
         _pkt_expected_seq++;
+        it = _pkt_map.find(_pkt_expected_seq);
     }
 
     while (_pkt_map.size() > _pkt_cap) {
         // force pop some packet
-        auto it = _pkt_map.begin();
+        it = _pkt_map.begin();
         re.push_back(it->second);
+        _last_pop_ts = it->second->get_ts;
         _pkt_expected_seq = it->second->packet_seq_number + 1;
         _pkt_map.erase(it);
     }
@@ -37,11 +41,12 @@ std::list<DataPacket::Ptr> PacketQueue::tryGetPacket() {
     while (timeLantency() > _pkt_lantency) {
         auto it = _pkt_map.begin();
         re.push_back(it->second);
+        _last_pop_ts = it->second->get_ts;
         _pkt_expected_seq = it->second->packet_seq_number + 1;
         _pkt_map.erase(it);
     }
 
-    return std::move(re);
+    return re;
 }
 
 
@@ -67,10 +72,12 @@ bool PacketQueue::dropForSend(uint32_t num){
     if(num <= _pkt_expected_seq){
         return false;
     }
-
+    decltype(_pkt_map.end()) it;
     for(uint32_t i =_pkt_expected_seq;i< num;++i){
-            if(_pkt_map.find(i) != _pkt_map.end()){
-                _pkt_map.erase(i);
+            it = _pkt_map.find(i);
+            if(it != _pkt_map.end()){
+                _last_pop_ts = it->second->get_ts;
+                _pkt_map.erase(it);
             }
     }
     _pkt_expected_seq = num;
@@ -83,6 +90,24 @@ DataPacket::Ptr PacketQueue::findPacketBySeq(uint32_t seq){
         return it->second;
     }
     return nullptr;
+}
+uint32_t PacketQueue::timeLantencyFrom(TimePoint now){
+    return DurationCountMicroseconds(now - _last_pop_ts);
+}
+
+std::list<DataPacket::Ptr> PacketQueue::tryGetPacketByNow(TimePoint now){
+    std::list<DataPacket::Ptr> re;
+    auto it = _pkt_map.begin();
+    while(it !=_pkt_map.end()){
+        if(DurationCountMicroseconds(now-it->second->get_ts)>=_pkt_lantency){
+            re.push_back(it->second);
+            _pkt_expected_seq = it->second->packet_seq_number+1;
+            _last_pop_ts = it->second->get_ts;
+            _pkt_map.erase(it);
+        }
+        it++;
+    }
+    return re;
 }
 uint32_t PacketQueue::timeLantency() {
     if (_pkt_map.empty()) {

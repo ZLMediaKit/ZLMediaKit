@@ -48,13 +48,10 @@ void SrtTransportImp::onHandShakeFinished(std::string &streamid,struct sockaddr_
         emitOnPlay();
     }
 }
-void SrtTransportImp::onSRTData(DataPacket::Ptr pkt,struct sockaddr_storage *addr) {
+void SrtTransportImp::onSRTData(DataPacket::Ptr pkt) {
     if(!_is_pusher){
         WarnP(this)<<"this is a player data ignore";
         return;
-    }
-     if(!_addr){
-       _addr.reset(new sockaddr_storage(*((sockaddr_storage *)addr)));
     }
     if (_decoder) {
         _decoder->input(reinterpret_cast<const uint8_t *>(pkt->payloadData()), pkt->payloadSize());

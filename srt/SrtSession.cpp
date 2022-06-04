@@ -109,7 +109,7 @@ void SrtSession::onRecv(const Buffer::Ptr &buffer) {
     if(_transport){
         _transport->inputSockData(data,size,&_peer_addr);
     }else{
-        WarnL<< "ingore  data";
+        //WarnL<< "ingore  data";
     }
 }
 
