@@ -21,8 +21,6 @@ public:
     bool inputPacket(DataPacket::Ptr pkt);
     std::list<DataPacket::Ptr> tryGetPacket();
     uint32_t timeLantency();
-    uint32_t timeLantencyFrom(TimePoint now);
-    std::list<DataPacket::Ptr> tryGetPacketByNow(TimePoint now);
     std::list<LostPair> getLostSeq();
 
     size_t getSize();
@@ -35,8 +33,6 @@ public:
     bool dropForSend(uint32_t num);
 
     DataPacket::Ptr findPacketBySeq(uint32_t seq);
-    
-    
 private:
     std::map<uint32_t,DataPacket::Ptr> _pkt_map;
 
@@ -44,7 +40,7 @@ private:
     uint32_t _pkt_cap;
     uint32_t _pkt_lantency;
 
-    TimePoint _last_pop_ts;
+    
 };
 
 }

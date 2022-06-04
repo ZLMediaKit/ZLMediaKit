@@ -210,31 +210,6 @@ void SrtTransport::handleHandshakeConclusion(HandshakePacket &pkt, struct sockad
     _last_ack_pkt_seq_num = _init_seq_number;
 }
 void SrtTransport::bufCheckInterval(){
-    if(isPusher()){
-        if(_recv_buf->timeLantencyFrom(_now) > (_buf_delay*1e6)){
-            auto list = _recv_buf->tryGetPacketByNow(_now);
-            for(auto data : list){
-                onSRTData(std::move(data));
-            }
-            if(!list.empty()){
-                sendACKPacket();
-                _light_ack_pkt_count = 0;
-                _ack_ticker.resetTime(_now);
-            }
-
-            auto nak_interval = (_rtt+_rtt_variance*4)/2;
-            if(nak_interval >= 20*1000){
-                 nak_interval = 20*1000;
-            }
-            if(_nak_ticker.elapsedTime(_now)>nak_interval || list.empty()){
-                auto lost = _recv_buf->getLostSeq();
-                if(!lost.empty()){
-                    sendNAKPacket(lost);
-                }
-            _nak_ticker.resetTime(_now);
-            }
-        }
-    }
 }
 void SrtTransport::handleHandshake(uint8_t *buf, int len, struct sockaddr_storage *addr){
     HandshakePacket pkt;
@@ -454,7 +429,7 @@ void SrtTransport::handleDataPacket(uint8_t *buf, int len, struct sockaddr_stora
     }
     _light_ack_pkt_count++;
 
-    bufCheckInterval();
+    //bufCheckInterval();
 }
 
 void SrtTransport::sendDataPacket(DataPacket::Ptr pkt,char* buf,int len, bool flush) { 
