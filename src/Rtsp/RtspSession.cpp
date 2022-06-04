@@ -86,14 +86,13 @@ void RtspSession::onError(const SockException &err) {
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, _bytes_usage, duration, is_player, static_cast<SockInfo &>(*this));
     }
 
-    GET_CONFIG(uint32_t, continue_push_ms, General::kContinuePushMS);
     //如果是主动关闭的，那么不延迟注销
-    if (_push_src && continue_push_ms  && err.getErrCode() != Err_shutdown) {
+    if (_push_src && _continue_push_ms  && err.getErrCode() != Err_shutdown) {
         //取消所有权
         _push_src_ownership = nullptr;
         //延时10秒注销流
         auto push_src = std::move(_push_src);
-        getPoller()->doDelayTask(continue_push_ms, [push_src]() { return 0; });
+        getPoller()->doDelayTask(_continue_push_ms, [push_src]() { return 0; });
     }
 }
 
@@ -280,6 +279,7 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
         }
 
         _push_src->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
+        _continue_push_ms = option.continue_push_ms;
         sendRtspResponse("200 OK");
     };
 
