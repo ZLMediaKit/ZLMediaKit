@@ -10,7 +10,10 @@ using namespace mediakit;
 SrtSession::SrtSession(const Socket::Ptr &sock)
     : UdpSession(sock) {
     socklen_t addr_len = sizeof(_peer_addr);
+    memset(&_peer_addr,0,addr_len);
+    TraceL<<"before addr len "<<addr_len;
     getpeername(sock->rawFD(), (struct sockaddr *)&_peer_addr, &addr_len);
+    TraceL<<"after addr len "<<addr_len<<" family "<<_peer_addr.ss_family;
 }
 
 SrtSession::~SrtSession() {

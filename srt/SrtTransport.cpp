@@ -1,4 +1,5 @@
-﻿#include "Util/onceToken.h"
+﻿#include <stdlib.h>
+#include "Util/onceToken.h"
 
 #include "SrtTransport.hpp"
 #include "Packet.hpp"
@@ -297,7 +298,7 @@ void SrtTransport::handleACKACK(uint8_t *buf, int len, struct sockaddr_storage *
     pkt->loadFromData(buf,len);
 
     uint32_t rtt = DurationCountMicroseconds(_now - _ack_send_timestamp[pkt->ack_number]);
-    _rtt_variance  = (3*_rtt_variance+abs(_rtt - rtt))/4;
+    _rtt_variance  = (3*_rtt_variance+abs((long)(_rtt - rtt)))/4;
     _rtt = (7*rtt+_rtt)/8;
 
     _ack_send_timestamp.erase(pkt->ack_number);
