@@ -107,7 +107,7 @@
   - 支持rtp扩展解析
   - 支持GOP缓冲，webrtc播放秒开
   - 支持datachannel
-  
+- [SRT支持](./srt/srt.md)
 - 其他
   - 支持丰富的restful api以及web hook事件 
   - 支持简单的telnet调试
