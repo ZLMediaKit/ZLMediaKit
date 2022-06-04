@@ -37,7 +37,7 @@ public:
      * @param addr 数据来源地址
      */
     virtual void inputSockData(uint8_t *buf, int len, struct sockaddr_storage *addr);
-    virtual void onSendData(const Buffer::Ptr &buffer, bool flush);
+    virtual void onSendTSData(const Buffer::Ptr &buffer, bool flush);
 
     std::string getIdentifier();
     
@@ -80,7 +80,7 @@ private:
 protected:
     void sendDataPacket(DataPacket::Ptr pkt,char* buf,int len,bool flush = false);
     void sendControlPacket(ControlPacket::Ptr pkt,bool  flush = true);
-    void sendPacket(Buffer::Ptr pkt,bool flush =  true);
+    virtual void sendPacket(Buffer::Ptr pkt,bool flush =  true);
 private:
     //当前选中的udp链接
     Session::Ptr _selected_session;

@@ -23,6 +23,9 @@ public:
         SrtTransport::inputSockData(buf,len,addr);
         _total_bytes += len;
     }
+    void onSendTSData(const Buffer::Ptr &buffer, bool flush){
+        SrtTransport::onSendTSData(buffer,flush);
+    }
     /// SockInfo override
     std::string get_local_ip() override;
     uint16_t get_local_port() override;
@@ -35,6 +38,11 @@ protected:
     void onHandShakeFinished(std::string& streamid,struct sockaddr_storage *addr) override;
     void onSRTData(DataPacket::Ptr pkt,struct sockaddr_storage *addr) override;
     void onShutdown(const SockException &ex) override;
+
+    void sendPacket(Buffer::Ptr pkt,bool flush =  true) override{
+        _total_bytes += pkt->size();
+        SrtTransport::sendPacket(pkt,flush);
+    };
 
     ///////MediaSourceEvent override///////
     // 关闭
