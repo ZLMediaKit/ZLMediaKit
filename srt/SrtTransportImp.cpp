@@ -25,9 +25,15 @@ SrtTransportImp::~SrtTransportImp() {
 
 void SrtTransportImp::onHandShakeFinished(std::string &streamid,struct sockaddr_storage *addr) {
     
-    // TODO parse streamid like this zlmediakit.com/live/test?token=1213444&type=pusher
+    // TODO parse streamid like this zlmediakit.com/live/test?token=1213444&type=push
     if(!_addr){
         _addr.reset(new sockaddr_storage(*((sockaddr_storage *)addr)));
+    }
+     _is_pusher = false;
+    TraceL<<" stream id "<<streamid;
+    if(streamid.empty()){
+       onShutdown(SockException(Err_shutdown, "streamid not empty"));
+       return;
     }
 
     _media_info.parse("srt://"+streamid);
