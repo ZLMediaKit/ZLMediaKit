@@ -323,6 +323,9 @@ void installWebHook(){
                 if (obj.isMember("enable_fmp4")) {
                     option.enable_fmp4 = obj["enable_fmp4"].asBool();
                 }
+                if (obj.isMember("continue_push_ms")) {
+                    option.continue_push_ms = obj["continue_push_ms"].asUInt();
+                }
                 invoker(err, option);
             } else {
                 //推流鉴权失败

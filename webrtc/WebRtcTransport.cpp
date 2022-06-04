@@ -1086,7 +1086,7 @@ void push_plugin(Session &sender, const string &offer_sdp, const WebRtcArgs &arg
             push_src_ownership = push_src->getOwnership();
             push_src->setProtocolOption(option);
         }
-        auto rtc = WebRtcPusher::create(EventPollerPool::Instance().getPoller(), push_src, push_src_ownership, info);
+        auto rtc = WebRtcPusher::create(EventPollerPool::Instance().getPoller(), push_src, push_src_ownership, info, option);
         push_src->setListener(rtc);
         cb(*rtc);
     };
