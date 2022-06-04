@@ -89,6 +89,7 @@ bool DataPacket::storeToHeader(){
 
     storeUint32(ptr, dst_socket_id);
     ptr += 4;
+    return true;
 }
 bool DataPacket::storeToData(uint8_t *buf, size_t len) {
     _data = BufferRaw::create();
