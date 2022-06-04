@@ -16,8 +16,9 @@ using namespace mediakit;
 WebRtcPusher::Ptr WebRtcPusher::create(const EventPoller::Ptr &poller,
                                        const RtspMediaSourceImp::Ptr &src,
                                        const std::shared_ptr<void> &ownership,
-                                       const MediaInfo &info) {
-    WebRtcPusher::Ptr ret(new WebRtcPusher(poller, src, ownership, info), [](WebRtcPusher *ptr) {
+                                       const MediaInfo &info,
+                                       const mediakit::ProtocolOption &option) {
+    WebRtcPusher::Ptr ret(new WebRtcPusher(poller, src, ownership, info, option), [](WebRtcPusher *ptr) {
         ptr->onDestory();
         delete ptr;
     });
@@ -28,10 +29,12 @@ WebRtcPusher::Ptr WebRtcPusher::create(const EventPoller::Ptr &poller,
 WebRtcPusher::WebRtcPusher(const EventPoller::Ptr &poller,
                            const RtspMediaSourceImp::Ptr &src,
                            const std::shared_ptr<void> &ownership,
-                           const MediaInfo &info) : WebRtcTransportImp(poller) {
+                           const MediaInfo &info,
+                           const mediakit::ProtocolOption &option) : WebRtcTransportImp(poller) {
     _media_info = info;
     _push_src = src;
     _push_src_ownership = ownership;
+    _continue_push_ms = option.continue_push_ms;
     CHECK(_push_src);
 }
 
@@ -130,13 +133,12 @@ void WebRtcPusher::onDestory() {
         }
     }
 
-    GET_CONFIG(uint32_t, continue_push_ms, General::kContinuePushMS);
-    if (_push_src && continue_push_ms) {
+    if (_push_src && _continue_push_ms) {
         //取消所有权
         _push_src_ownership = nullptr;
         //延时10秒注销流
         auto push_src = std::move(_push_src);
-        getPoller()->doDelayTask(continue_push_ms, [push_src]() { return 0; });
+        getPoller()->doDelayTask(_continue_push_ms, [push_src]() { return 0; });
     }
 }
 

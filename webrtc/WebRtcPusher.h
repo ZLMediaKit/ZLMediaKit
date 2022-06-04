@@ -18,7 +18,7 @@ public:
     using Ptr = std::shared_ptr<WebRtcPusher>;
     ~WebRtcPusher() override = default;
     static Ptr create(const EventPoller::Ptr &poller, const mediakit::RtspMediaSourceImp::Ptr &src,
-                      const std::shared_ptr<void> &ownership, const mediakit::MediaInfo &info);
+                      const std::shared_ptr<void> &ownership, const mediakit::MediaInfo &info, const mediakit::ProtocolOption &option);
 
 protected:
     ///////WebRtcTransportImp override///////
@@ -42,10 +42,12 @@ protected:
 
 private:
     WebRtcPusher(const EventPoller::Ptr &poller, const mediakit::RtspMediaSourceImp::Ptr &src,
-                 const std::shared_ptr<void> &ownership, const mediakit::MediaInfo &info);
+                 const std::shared_ptr<void> &ownership, const mediakit::MediaInfo &info, const mediakit::ProtocolOption &option);
 
 private:
     bool _simulcast = false;
+    //断连续推延时
+    uint32_t _continue_push_ms = 0;
     //媒体相关元数据
     mediakit::MediaInfo _media_info;
     //推流的rtsp源

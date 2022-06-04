@@ -163,6 +163,9 @@ private:
 private:
     //是否已经触发on_play事件
     bool _emit_on_play = false;
+    bool _send_sr_rtcp[2] = {true, true};
+    //断连续推延时
+    uint32_t _continue_push_ms = 0;
     //推流或拉流客户端采用的rtp传输方式
     Rtsp::eRtpType _rtp_type = Rtsp::RTP_Invalid;
     //收到的seq，回复时一致
@@ -213,7 +216,6 @@ private:
     toolkit::Ticker _rtcp_send_tickers[2];
     //统计rtp并发送rtcp
     std::vector<RtcpContext::Ptr> _rtcp_context;
-    bool _send_sr_rtcp[2] = {true, true};
 };
 
 /**
