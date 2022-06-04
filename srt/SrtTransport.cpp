@@ -228,9 +228,11 @@ void SrtTransport::handleKeeplive(uint8_t *buf, int len, struct sockaddr_storage
     sendControlPacket(pkt,true);
  }
 void SrtTransport::handleACK(uint8_t *buf, int len, struct sockaddr_storage *addr){
-    TraceL;
+    //TraceL;
     ACKPacket ack;
-    ack.loadFromData(buf,len);
+    if(!ack.loadFromData(buf,len)){
+        return;
+    }
 
     ACKACKPacket::Ptr pkt = std::make_shared<ACKACKPacket>();
     pkt->dst_socket_id = _peer_socket_id;
@@ -239,9 +241,16 @@ void SrtTransport::handleACK(uint8_t *buf, int len, struct sockaddr_storage *add
     pkt->storeToData();
     _send_buf->dropForSend(ack.last_ack_pkt_seq_number);
     sendControlPacket(pkt,true);
+    //TraceL<<"ack number "<<ack.ack_number;
 }
 void SrtTransport::sendMsgDropReq(uint32_t first ,uint32_t last){
-    
+    MsgDropReqPacket::Ptr pkt = std::make_shared<MsgDropReqPacket>();
+    pkt->dst_socket_id = _peer_socket_id;
+    pkt->timestamp = DurationCountMicroseconds(_now -_start_timestamp);
+    pkt->first_pkt_seq_num = first;
+    pkt->last_pkt_seq_num = last;
+    pkt->storeToData();
+    sendControlPacket(pkt,true);
 }
 void SrtTransport::handleNAK(uint8_t *buf, int len, struct sockaddr_storage *addr){
     TraceL;
@@ -472,7 +481,8 @@ size_t SrtTransport::getPayloadSize(){
     size_t ret = (_mtu - 28 -16)/188*188;
     return ret;
 }
-void SrtTransport::onSendData(const Buffer::Ptr &buffer, bool flush){
+void SrtTransport::onSendTSData(const Buffer::Ptr &buffer, bool flush){
+    //TraceL;
     DataPacket::Ptr pkt;
     size_t payloadSize = getPayloadSize();
     size_t  size = buffer->size();
