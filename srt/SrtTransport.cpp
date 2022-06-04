@@ -153,6 +153,8 @@ void SrtTransport::handleHandshakeConclusion(HandshakePacket &pkt, struct sockad
         // first
         HSExtMessage::Ptr req;
         HSExtStreamID::Ptr sid;
+        uint32_t srt_flag = 0xbf;
+        uint16_t delay = 120;
 
         for (auto ext : pkt.ext_list) {
             //TraceL << getIdentifier() << " ext " << ext->dump();
@@ -165,6 +167,10 @@ void SrtTransport::handleHandshakeConclusion(HandshakePacket &pkt, struct sockad
         }
         if(sid){
             _stream_id = sid->streamid;
+        }
+        if(req){
+            srt_flag = req->srt_flag;
+            delay = req->recv_tsbpd_delay;
         }
         TraceL << getIdentifier() << " CONCLUSION Phase ";
         HandshakePacket::Ptr res = std::make_shared<HandshakePacket>();
@@ -183,17 +189,17 @@ void SrtTransport::handleHandshakeConclusion(HandshakePacket &pkt, struct sockad
         HSExtMessage::Ptr ext = std::make_shared<HSExtMessage>();
         ext->extension_type = HSExt::SRT_CMD_HSRSP;
         ext->srt_version = srtVersion(1, 5, 0);
-        ext->srt_flag = req->srt_flag;
-        ext->recv_tsbpd_delay = ext->send_tsbpd_delay = req->recv_tsbpd_delay;
+        ext->srt_flag = srt_flag;
+        ext->recv_tsbpd_delay = ext->send_tsbpd_delay = delay;
         res->ext_list.push_back(std::move(ext));
         res->storeToData();
         _handleshake_res = res;
         unregisterSelfHandshake();
         registerSelf();
         sendControlPacket(res, true);
-        TraceL<<" buf size = "<<res->max_flow_window_size<<" init seq ="<<_init_seq_number<<" lantency="<<req->recv_tsbpd_delay;
-        _recv_buf = std::make_shared<PacketQueue>(res->max_flow_window_size,_init_seq_number, req->recv_tsbpd_delay*1e6);
-        _send_buf = std::make_shared<PacketQueue>(res->max_flow_window_size,_init_seq_number, req->recv_tsbpd_delay*1e6);
+        TraceL<<" buf size = "<<res->max_flow_window_size<<" init seq ="<<_init_seq_number<<" lantency="<<delay;
+        _recv_buf = std::make_shared<PacketQueue>(res->max_flow_window_size,_init_seq_number, delay*1e6);
+        _send_buf = std::make_shared<PacketQueue>(res->max_flow_window_size,_init_seq_number, delay*1e6);
         _send_packet_seq_number = _init_seq_number;
         onHandShakeFinished(_stream_id,addr);
     } else {
