@@ -36,13 +36,17 @@ public:
 protected:
     ///////SrtTransport override///////
     void onHandShakeFinished(std::string& streamid,struct sockaddr_storage *addr) override;
-    void onSRTData(DataPacket::Ptr pkt,struct sockaddr_storage *addr) override;
+    void onSRTData(DataPacket::Ptr pkt) override;
     void onShutdown(const SockException &ex) override;
 
     void sendPacket(Buffer::Ptr pkt,bool flush =  true) override{
         _total_bytes += pkt->size();
         SrtTransport::sendPacket(pkt,flush);
     };
+
+    bool isPusher() override{
+        return _is_pusher;
+    }
 
     ///////MediaSourceEvent override///////
     // 关闭

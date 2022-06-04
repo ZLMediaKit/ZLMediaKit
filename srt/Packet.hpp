@@ -62,6 +62,8 @@ public:
     uint32_t timestamp;
     uint32_t dst_socket_id;
 
+    TimePoint get_ts; // recv or send time
+
 private:
     BufferRaw::Ptr _data;
 };

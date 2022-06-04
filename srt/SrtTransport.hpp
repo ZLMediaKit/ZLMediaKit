@@ -8,6 +8,7 @@
 
 #include "Network/Session.h"
 #include "Poller/EventPoller.h"
+#include "Poller/Timer.h"
 
 #include "Common.hpp"
 #include "Packet.hpp"
@@ -45,8 +46,11 @@ public:
     void unregisterSelf();
 protected:
     virtual void onHandShakeFinished(std::string& streamid,struct sockaddr_storage *addr){};
-    virtual void onSRTData(DataPacket::Ptr pkt,struct sockaddr_storage *addr){};
+    virtual void onSRTData(DataPacket::Ptr pkt){};
     virtual void onShutdown(const SockException &ex);
+    virtual bool isPusher(){
+        return true;
+    };
 
 private:
     void registerSelfHandshake();
@@ -75,6 +79,8 @@ private:
     void sendKeepLivePacket();
     void sendShutDown();
     void sendMsgDropReq(uint32_t first ,uint32_t last);
+
+    void bufCheckInterval();
 
     size_t getPayloadSize();
 protected:
@@ -105,6 +111,7 @@ private:
     uint32_t _send_msg_number = 1;
 
     PacketQueue::Ptr _send_buf;
+    uint32_t _buf_delay = 120;
     PacketQueue::Ptr _recv_buf;
     uint32_t _rtt = 100*1000;
     uint32_t _rtt_variance =50*1000;
