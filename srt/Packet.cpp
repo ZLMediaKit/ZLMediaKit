@@ -1,6 +1,16 @@
 ﻿
-#include "sys/socket.h"
-#include "netdb.h"
+#if defined(_WIN32)
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <Iphlpapi.h>
+#pragma comment (lib, "Ws2_32.lib")
+#pragma comment(lib,"Iphlpapi.lib")
+#else
+#include <sys/socket.h>
+#include <netdb.h>
+#endif // defined(_WIN32)
+
+
 
 #include <atomic>
 #include "Util/logger.h"
