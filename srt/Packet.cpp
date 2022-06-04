@@ -419,9 +419,15 @@ void HandshakePacket::assignPeerIP(struct sockaddr_storage* addr){
         struct sockaddr_in * ipv4 = (struct sockaddr_in *)addr;
         //抓包 奇怪好像是小头端？？？
        storeUint32LE(peer_ip_addr,ipv4->sin_addr.s_addr);
-    }else{
-        const sockaddr_in6* ipv6 = (struct sockaddr_in6 *)addr;
-        memcpy(peer_ip_addr,ipv6->sin6_addr.s6_addr,sizeof(peer_ip_addr)*sizeof(peer_ip_addr[0]));
+    }else if(addr->ss_family == AF_INET6){
+        if (IN6_IS_ADDR_V4MAPPED(&((struct sockaddr_in6 *)addr)->sin6_addr)) {
+                struct in_addr addr4;
+                memcpy(&addr4, 12 + (char *)&(((struct sockaddr_in6 *)addr)->sin6_addr), 4);
+                storeUint32LE(peer_ip_addr,addr4.s_addr);
+            }else{
+                const sockaddr_in6* ipv6 = (struct sockaddr_in6 *)addr;
+                memcpy(peer_ip_addr,ipv6->sin6_addr.s6_addr,sizeof(peer_ip_addr)*sizeof(peer_ip_addr[0]));
+            }
     }
 }
 uint32_t HandshakePacket::generateSynCookie(struct sockaddr_storage* addr,TimePoint ts,uint32_t current_cookie, int correction ){
