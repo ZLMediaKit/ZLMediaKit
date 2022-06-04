@@ -111,6 +111,7 @@ uint32_t PacketQueue::timeLantency() {
     }
 
     if(dur > 0x80000000){
+        //WarnL<<"cycle dur "<<dur;
         dur = 0xffffffff - dur;
     }
 
@@ -163,11 +164,17 @@ size_t PacketQueue::getExpectedSize() {
     if(_pkt_map.empty()){
         return 0;
     }
-    return _pkt_map.rbegin()->first - _pkt_expected_seq+1;
+    auto size =  _pkt_map.rbegin()->first - _pkt_expected_seq+1;
+    if(size >= _pkt_cap){
+        // 回环
+        //WarnL<<"cycle size "<<size;
+        size =  0xffffffff - size;
+    }
+    return size;
 }
 
 size_t PacketQueue::getAvailableBufferSize(){
-    return _pkt_cap - getExpectedSize();
+    return _pkt_cap - getSize();
 }
 
 uint32_t PacketQueue::getExpectedSeq(){
