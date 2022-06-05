@@ -13,6 +13,7 @@
 #include "Common.hpp"
 #include "Packet.hpp"
 #include "PacketQueue.hpp"
+#include "PacketSendQueue.hpp"
 #include "Statistic.hpp"
 
 namespace SRT {
@@ -110,7 +111,7 @@ private:
     uint32_t _send_packet_seq_number = 0;
     uint32_t _send_msg_number = 1;
 
-    PacketQueue::Ptr _send_buf;
+    PacketSendQueue::Ptr _send_buf;
     uint32_t _buf_delay = 120;
     PacketQueue::Ptr _recv_buf;
     uint32_t _rtt = 100*1000;
