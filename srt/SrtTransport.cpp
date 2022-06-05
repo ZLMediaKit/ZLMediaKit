@@ -117,7 +117,8 @@ void SrtTransport::handleHandshakeInduction(HandshakePacket &pkt, struct sockadd
         sendControlPacket(_handleshake_res, true);
         return;
     }
-
+     _induction_ts = _now;
+    _start_timestamp = _now;
     _init_seq_number = pkt.initial_packet_sequence_number;
     _max_window_size = pkt.max_flow_window_size;
     _mtu = pkt.mtu;
@@ -154,7 +155,7 @@ void SrtTransport::handleHandshakeConclusion(HandshakePacket &pkt, struct sockad
         HSExtMessage::Ptr req;
         HSExtStreamID::Ptr sid;
         uint32_t srt_flag = 0xbf;
-        uint16_t delay = 120;
+        uint16_t delay = DurationCountMicroseconds(_now - _induction_ts)*4/1000;
 
         for (auto ext : pkt.ext_list) {
             //TraceL << getIdentifier() << " ext " << ext->dump();
@@ -170,7 +171,7 @@ void SrtTransport::handleHandshakeConclusion(HandshakePacket &pkt, struct sockad
         }
         if(req){
             srt_flag = req->srt_flag;
-            delay = req->recv_tsbpd_delay;
+            delay = delay <= req->recv_tsbpd_delay ? req->recv_tsbpd_delay : delay;
         }
         TraceL << getIdentifier() << " CONCLUSION Phase ";
         HandshakePacket::Ptr res = std::make_shared<HandshakePacket>();
