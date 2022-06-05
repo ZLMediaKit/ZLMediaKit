@@ -308,7 +308,7 @@ void SrtTransport::handleDropReq(uint8_t *buf, int len, struct sockaddr_storage 
     }
 
     auto nak_interval = (_rtt+_rtt_variance*4)/2;
-    if(nak_interval >= 20*1000){
+    if(nak_interval <= 20*1000){
         nak_interval = 20*1000;
     }
     if(_nak_ticker.elapsedTime(_now)>nak_interval){
@@ -346,9 +346,11 @@ void SrtTransport::handleACKACK(uint8_t *buf, int len, struct sockaddr_storage *
     pkt->loadFromData(buf,len);
 
     uint32_t rtt = DurationCountMicroseconds(_now - _ack_send_timestamp[pkt->ack_number]);
-    _rtt_variance  = (3*_rtt_variance+abs((long)(_rtt - rtt)))/4;
+    _rtt_variance  = (3*_rtt_variance+abs((long)_rtt - (long)rtt))/4;
     _rtt = (7*rtt+_rtt)/8;
 
+
+    //TraceL<<" rtt:"<<_rtt<<" rtt variance:"<<_rtt_variance;
     _ack_send_timestamp.erase(pkt->ack_number);
 }
 
@@ -426,19 +428,22 @@ void SrtTransport::handleDataPacket(uint8_t *buf, int len, struct sockaddr_stora
         onSRTData(std::move(data));
     }
 
-    if(list.empty()){
-        //TraceL<<_recv_buf->dump();
-    }
-
     auto nak_interval = (_rtt+_rtt_variance*4)/2;
     if(nak_interval <= 20*1000){
         nak_interval = 20*1000;
     }
+
+    if(list.empty()){
+        //TraceL<<_recv_buf->dump()<<" nake interval:"<<nak_interval/1000<<" ticker:"<<_nak_ticker.elapsedTime(_now)/1000;
+    }
+
     if(_nak_ticker.elapsedTime(_now)>nak_interval){
         auto lost = _recv_buf->getLostSeq();
         if(!lost.empty()){
              sendNAKPacket(lost);
              //TraceL<<"send NAK";
+        }else{
+            //TraceL<<"lost is empty";
         }
         _nak_ticker.resetTime(_now);
     }
