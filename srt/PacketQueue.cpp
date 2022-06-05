@@ -49,7 +49,7 @@ void PacketQueue::tryInsertPkt(DataPacket::Ptr pkt){
              _pkt_map.emplace(pkt->packet_seq_number, pkt);
              TraceL<<" cycle packet "<<"expected seq=" << _pkt_expected_seq << " pkt seq=" << pkt->packet_seq_number;
         }else{
-            TraceL << "drop packet too later "<< "expected seq=" << _pkt_expected_seq << " pkt seq=" << pkt->packet_seq_number;
+            //TraceL << "drop packet too later "<< "expected seq=" << _pkt_expected_seq << " pkt seq=" << pkt->packet_seq_number;
         }
     }
 }

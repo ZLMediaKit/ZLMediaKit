@@ -102,6 +102,9 @@ private:
     TimePoint _now;
     TimePoint _start_timestamp;
 
+    // for calculate rtt for delay
+    TimePoint _induction_ts;
+
     uint32_t _mtu = 1500;
     uint32_t _max_window_size = 8192;
     uint32_t  _init_seq_number = 0;
