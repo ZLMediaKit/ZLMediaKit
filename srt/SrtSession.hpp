@@ -24,8 +24,7 @@ private:
     Ticker _ticker;
     struct sockaddr_storage _peer_addr;
     SrtTransport::Ptr _transport;
-
 };
 
 } // namespace SRT
-#endif //ZLMEDIAKIT_SRT_SESSION_H
+#endif // ZLMEDIAKIT_SRT_SESSION_H
