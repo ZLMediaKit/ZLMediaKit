@@ -62,8 +62,6 @@ public:
     uint32_t timestamp;
     uint32_t dst_socket_id;
 
-    TimePoint get_ts; // recv or send time
-
 private:
     BufferRaw::Ptr _data;
 };
@@ -171,7 +169,7 @@ class HandshakePacket : public ControlPacket {
 public:
     using Ptr = std::shared_ptr<HandshakePacket>;
     enum { NO_ENCRYPTION = 0, AES_128 = 1, AES_196 = 2, AES_256 = 3 };
-     static const size_t HS_CONTENT_MIN_SIZE = 48;
+    static const size_t HS_CONTENT_MIN_SIZE = 48;
     enum {
         HS_TYPE_DONE = 0xFFFFFFFD,
         HS_TYPE_AGREEMENT = 0xFFFFFFFE,
@@ -181,18 +179,17 @@ public:
     };
 
     enum { HS_EXT_FILED_HSREQ = 0x00000001, HS_EXT_FILED_KMREQ = 0x00000002, HS_EXT_FILED_CONFIG = 0x00000004 };
-    
-   
-    
+
     HandshakePacket() = default;
     ~HandshakePacket() = default;
 
     static bool isHandshakePacket(uint8_t *buf, size_t len);
     static uint32_t getHandshakeType(uint8_t *buf, size_t len);
     static uint32_t getSynCookie(uint8_t *buf, size_t len);
-    static uint32_t generateSynCookie(struct sockaddr_storage* addr,TimePoint ts,uint32_t current_cookie = 0, int correction = 0);
+    static uint32_t
+    generateSynCookie(struct sockaddr_storage *addr, TimePoint ts, uint32_t current_cookie = 0, int correction = 0);
 
-    void assignPeerIP(struct sockaddr_storage* addr);
+    void assignPeerIP(struct sockaddr_storage *addr);
     ///////ControlPacket override///////
     bool loadFromData(uint8_t *buf, size_t len) override;
     bool storeToData() override;
@@ -209,8 +206,9 @@ public:
     uint8_t peer_ip_addr[16];
 
     std::vector<HSExt::Ptr> ext_list;
+
 private:
-    bool loadExtMessage(uint8_t *buf,size_t len);
+    bool loadExtMessage(uint8_t *buf, size_t len);
     bool storeExtMessage();
     size_t getExtSize();
 };
@@ -229,13 +227,12 @@ private:
     Figure 12: Keep-Alive control packet
     https://haivision.github.io/srt-rfc/draft-sharabayko-srt.html#name-keep-alive
 */
-class KeepLivePacket : public ControlPacket
-{
+class KeepLivePacket : public ControlPacket {
 public:
     using Ptr = std::shared_ptr<KeepLivePacket>;
     KeepLivePacket() = default;
     ~KeepLivePacket() = default;
-     ///////ControlPacket override///////
+    ///////ControlPacket override///////
     bool loadFromData(uint8_t *buf, size_t len) override;
     bool storeToData() override;
 };
@@ -265,11 +262,10 @@ An SRT NAK packet is formatted as follows:
     Figure 14: NAK control packet
     https://haivision.github.io/srt-rfc/draft-sharabayko-srt.html#name-nak-control-packet
 */
-class NAKPacket : public ControlPacket 
-{
+class NAKPacket : public ControlPacket {
 public:
     using Ptr = std::shared_ptr<NAKPacket>;
-    using LostPair = std::pair<uint32_t,uint32_t>;
+    using LostPair = std::pair<uint32_t, uint32_t>;
     NAKPacket() = default;
     ~NAKPacket() = default;
     std::string dump();
@@ -278,10 +274,10 @@ public:
     bool storeToData() override;
 
     std::list<LostPair> lost_list;
+
 private:
     size_t getCIFSize();
 };
-
 
 /*
  0                   1                   2                   3
@@ -302,9 +298,8 @@ private:
     Figure 18: Drop Request control packet
     https://haivision.github.io/srt-rfc/draft-sharabayko-srt.html#name-message-drop-request
 */
-class MsgDropReqPacket : public ControlPacket 
-{
-    public:
+class MsgDropReqPacket : public ControlPacket {
+public:
     using Ptr = std::shared_ptr<MsgDropReqPacket>;
     MsgDropReqPacket() = default;
     ~MsgDropReqPacket() = default;
@@ -332,13 +327,12 @@ class MsgDropReqPacket : public ControlPacket
     https://haivision.github.io/srt-rfc/draft-sharabayko-srt.html#name-shutdown
 
 */
-class ShutDownPacket : public ControlPacket
-{
+class ShutDownPacket : public ControlPacket {
 public:
     using Ptr = std::shared_ptr<ShutDownPacket>;
     ShutDownPacket() = default;
     ~ShutDownPacket() = default;
-     ///////ControlPacket override///////
+    ///////ControlPacket override///////
     bool loadFromData(uint8_t *buf, size_t len) override {
         if (len < HEADER_SIZE) {
             WarnL << "data size" << len << " less " << HEADER_SIZE;
@@ -360,4 +354,4 @@ public:
 };
 } // namespace SRT
 
-#endif //ZLMEDIAKIT_SRT_PACKET_H
+#endif // ZLMEDIAKIT_SRT_PACKET_H

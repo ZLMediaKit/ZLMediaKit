@@ -16,9 +16,11 @@ public:
     ~PacketSendQueue() = default;
     bool drop(uint32_t num);
     bool inputPacket(DataPacket::Ptr pkt);
-    std::list<DataPacket::Ptr> findPacketBySeq(uint32_t start,uint32_t end);
+    std::list<DataPacket::Ptr> findPacketBySeq(uint32_t start, uint32_t end);
+
 private:
     uint32_t timeLantency();
+
 private:
     std::list<DataPacket::Ptr> _pkt_cache;
     uint32_t _pkt_cap;

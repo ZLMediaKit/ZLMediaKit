@@ -1,16 +1,26 @@
 ﻿#ifndef ZLMEDIAKIT_SRT_COMMON_H
 #define ZLMEDIAKIT_SRT_COMMON_H
+#if defined(_WIN32)
+#include <Iphlpapi.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#pragma comment(lib, "Ws2_32.lib")
+#pragma comment(lib, "Iphlpapi.lib")
+#else
+#include <netdb.h>
+#include <sys/socket.h>
+#endif // defined(_WIN32)
+
 #include <chrono>
 
-namespace SRT
-{
+namespace SRT {
 using SteadyClock = std::chrono::steady_clock;
 using TimePoint = std::chrono::time_point<SteadyClock>;
 
 using Microseconds = std::chrono::microseconds;
 using Milliseconds = std::chrono::milliseconds;
 
-inline int64_t DurationCountMicroseconds( SteadyClock::duration dur){
+inline int64_t DurationCountMicroseconds(SteadyClock::duration dur) {
     return std::chrono::duration_cast<std::chrono::microseconds>(dur).count();
 }
 
@@ -37,48 +47,38 @@ inline void storeUint32LE(uint8_t *buf, uint32_t val) {
     buf[0] = val & 0xff;
     buf[1] = (val >> 8) & 0xff;
     buf[2] = (val >> 16) & 0xff;
-    buf[3] = (val >>24) & 0xff;
+    buf[3] = (val >> 24) & 0xff;
 }
 
 inline void storeUint16LE(uint8_t *buf, uint16_t val) {
     buf[0] = val & 0xff;
-    buf[1] = (val>>8) & 0xff;
+    buf[1] = (val >> 8) & 0xff;
 }
 
-inline uint32_t srtVersion(int major, int minor, int patch)
-{
-    return patch + minor*0x100 + major*0x10000;
+inline uint32_t srtVersion(int major, int minor, int patch) {
+    return patch + minor * 0x100 + major * 0x10000;
 }
 
 class UTicker {
 public:
-    UTicker() {
-        _created = _begin = SteadyClock::now();
-    }
+    UTicker() { _created = _begin = SteadyClock::now(); }
 
-    ~UTicker() {
-    }
+    ~UTicker() {}
 
     /**
      * 获取创建时间，单位微妙
      */
-    int64_t elapsedTime(TimePoint now) const {
-        return DurationCountMicroseconds(now - _begin);
-    }
+    int64_t elapsedTime(TimePoint now) const { return DurationCountMicroseconds(now - _begin); }
 
     /**
      * 获取上次resetTime后至今的时间，单位毫秒
      */
-    int64_t createdTime(TimePoint now) const {
-        return DurationCountMicroseconds(now - _created);
-    }
+    int64_t createdTime(TimePoint now) const { return DurationCountMicroseconds(now - _created); }
 
     /**
      * 重置计时器
      */
-    void resetTime(TimePoint now) {
-        _begin = now;
-    }
+    void resetTime(TimePoint now) { _begin = now; }
 
 private:
     TimePoint _begin;
@@ -87,4 +87,4 @@ private:
 
 } // namespace SRT
 
-#endif //ZLMEDIAKIT_SRT_COMMON_H
+#endif // ZLMEDIAKIT_SRT_COMMON_H
