@@ -11,6 +11,8 @@ const std::string kTimeOutSec = SRT_FIELD"timeoutSec";
 //srt 单端口udp服务器
 const std::string kPort =  SRT_FIELD"port";
 
+const std::string kLantencyMul = SRT_FIELD"lantencyMul";
+
 static std::atomic<uint32_t> s_srt_socket_id_generate{125};
 ////////////  SrtTransport //////////////////////////
 SrtTransport::SrtTransport(const EventPoller::Ptr &poller)
@@ -155,7 +157,7 @@ void SrtTransport::handleHandshakeConclusion(HandshakePacket &pkt, struct sockad
         HSExtMessage::Ptr req;
         HSExtStreamID::Ptr sid;
         uint32_t srt_flag = 0xbf;
-        uint16_t delay = DurationCountMicroseconds(_now - _induction_ts)*4/1000;
+        uint16_t delay = DurationCountMicroseconds(_now - _induction_ts)*getLantencyMul()/1000;
 
         for (auto ext : pkt.ext_list) {
             //TraceL << getIdentifier() << " ext " << ext->dump();
@@ -209,8 +211,6 @@ void SrtTransport::handleHandshakeConclusion(HandshakePacket &pkt, struct sockad
         sendControlPacket(_handleshake_res, true);
     }
     _last_ack_pkt_seq_num = _init_seq_number;
-}
-void SrtTransport::bufCheckInterval(){
 }
 void SrtTransport::handleHandshake(uint8_t *buf, int len, struct sockaddr_storage *addr){
     HandshakePacket pkt;

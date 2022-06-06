@@ -38,6 +38,7 @@ protected:
     void onHandShakeFinished(std::string& streamid,struct sockaddr_storage *addr) override;
     void onSRTData(DataPacket::Ptr pkt) override;
     void onShutdown(const SockException &ex) override;
+    int getLantencyMul() override;
 
     void sendPacket(Buffer::Ptr pkt,bool flush =  true) override{
         _total_bytes += pkt->size();

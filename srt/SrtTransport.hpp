@@ -21,6 +21,7 @@ using namespace toolkit;
 
 extern const std::string kPort;
 extern const std::string kTimeOutSec;
+extern const std::string kLantencyMul;
 
 class SrtTransport : public std::enable_shared_from_this<SrtTransport> {
 public:
@@ -81,13 +82,14 @@ private:
     void sendShutDown();
     void sendMsgDropReq(uint32_t first ,uint32_t last);
 
-    void bufCheckInterval();
-
     size_t getPayloadSize();
 protected:
     void sendDataPacket(DataPacket::Ptr pkt,char* buf,int len,bool flush = false);
     void sendControlPacket(ControlPacket::Ptr pkt,bool  flush = true);
     virtual void sendPacket(Buffer::Ptr pkt,bool flush =  true);
+    virtual int getLantencyMul(){
+        return 4;
+    };
 private:
     //当前选中的udp链接
     Session::Ptr _selected_session;
