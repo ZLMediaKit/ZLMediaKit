@@ -273,5 +273,10 @@ void SrtTransportImp::doCachedFunc() {
     _cached_func.clear();
 }
 
+int SrtTransportImp::getLantencyMul(){
+    GET_CONFIG(int, lantencyMul, kLantencyMul);
+    return lantencyMul;
+}
+
 
 } // namespace SRT
