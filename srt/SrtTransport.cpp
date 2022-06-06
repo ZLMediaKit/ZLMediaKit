@@ -537,7 +537,8 @@ void SrtTransport::onSendTSData(const Buffer::Ptr &buffer, bool flush){
     while(ptr < end && size >=payloadSize){
         pkt = std::make_shared<DataPacket>();
         pkt->f = 0;
-        pkt->packet_seq_number = _send_packet_seq_number++;
+        pkt->packet_seq_number = _send_packet_seq_number&0x7fffffff;
+        _send_packet_seq_number = (_send_packet_seq_number+1)&0x7fffffff;
         pkt->PP = 3;
         pkt->O = 0;
         pkt->KK = 0;
@@ -553,7 +554,8 @@ void SrtTransport::onSendTSData(const Buffer::Ptr &buffer, bool flush){
     if(size >0 && ptr <end){
         pkt = std::make_shared<DataPacket>();
         pkt->f = 0;
-        pkt->packet_seq_number = _send_packet_seq_number++;
+        pkt->packet_seq_number = _send_packet_seq_number&0x7fffffff;
+        _send_packet_seq_number = (_send_packet_seq_number+1)&0x7fffffff;
         pkt->PP = 3;
         pkt->O = 0;
         pkt->KK = 0;
