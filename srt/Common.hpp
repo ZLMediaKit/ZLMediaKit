@@ -1,11 +1,11 @@
 ﻿#ifndef ZLMEDIAKIT_SRT_COMMON_H
 #define ZLMEDIAKIT_SRT_COMMON_H
 #if defined(_WIN32)
-#include <Iphlpapi.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#pragma comment(lib, "Ws2_32.lib")
-#pragma comment(lib, "Iphlpapi.lib")
+#include <Iphlpapi.h>
+#pragma comment (lib, "Ws2_32.lib")
+#pragma comment(lib,"Iphlpapi.lib")
 #else
 #include <netdb.h>
 #include <sys/socket.h>
