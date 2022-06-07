@@ -1,18 +1,7 @@
-﻿
-#if defined(_WIN32)
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <Iphlpapi.h>
-#pragma comment (lib, "Ws2_32.lib")
-#pragma comment(lib,"Iphlpapi.lib")
-#else
-#include <sys/socket.h>
-#include <netdb.h>
-#endif // defined(_WIN32)
-
-#include <atomic>
-#include "Util/logger.h"
 #include "Util/MD5.h"
+#include "Util/logger.h"
+#include <atomic>
+
 #include "Packet.hpp"
 
 namespace SRT {
@@ -342,7 +331,6 @@ size_t HandshakePacket::getExtSize() {
     }
     return size;
 }
-
 bool HandshakePacket::storeToData() {
     _data = BufferRaw::create();
     for (auto ex : ext_list) {
@@ -445,15 +433,11 @@ uint32_t HandshakePacket::generateSynCookie(
         // SYN cookie
         char clienthost[NI_MAXHOST];
         char clientport[NI_MAXSERV];
-        getnameinfo((struct sockaddr*)addr,
-                    sizeof(struct sockaddr_storage),
-                    clienthost,
-                    sizeof(clienthost),
-                    clientport,
-                    sizeof(clientport),
-                    NI_NUMERICHOST | NI_NUMERICSERV);
-        int64_t timestamp = (DurationCountMicroseconds(SteadyClock::now() - ts) / 60000000) + distractor.load() +
-                            correction; // secret changes every one minute
+        getnameinfo(
+            (struct sockaddr *)addr, sizeof(struct sockaddr_storage), clienthost, sizeof(clienthost), clientport,
+            sizeof(clientport), NI_NUMERICHOST | NI_NUMERICSERV);
+        int64_t timestamp = (DurationCountMicroseconds(SteadyClock::now() - ts) / 60000000) + distractor.load()
+            + correction; // secret changes every one minute
         std::stringstream cookiestr;
         cookiestr << clienthost << ":" << clientport << ":" << timestamp;
         union {

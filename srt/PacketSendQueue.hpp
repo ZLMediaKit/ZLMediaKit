@@ -25,7 +25,6 @@ public:
 
 private:
     uint32_t timeLatency();
-
 private:
     uint32_t _pkt_cap;
     uint32_t _pkt_latency;

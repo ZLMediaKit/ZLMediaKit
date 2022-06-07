@@ -68,7 +68,7 @@ uint32_t PacketSendQueue::timeLatency() {
     } else {
         dur = first - last;
     }
-    if (dur > (0x01 << 31)) {
+    if (dur > ((uint32_t)0x01 << 31)) {
         TraceL << "cycle timeLatency " << dur;
         dur = 0xffffffff - dur;
     }

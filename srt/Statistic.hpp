@@ -9,7 +9,8 @@ namespace SRT {
 
 class PacketRecvRateContext {
 public:
-    PacketRecvRateContext(TimePoint start): _start(start) {};
+    PacketRecvRateContext(TimePoint start)
+        : _start(start) {};
     ~PacketRecvRateContext() = default;
     void inputPacket(TimePoint &ts);
     uint32_t getPacketRecvRate();
@@ -33,7 +34,8 @@ private:
 
 class RecvRateContext {
 public:
-    RecvRateContext(TimePoint start): _start(start) {};
+    RecvRateContext(TimePoint start)
+        : _start(start) {};
     ~RecvRateContext() = default;
     void inputPacket(TimePoint &ts, size_t size);
     uint32_t getRecvRate();

@@ -63,8 +63,6 @@ public:
     uint32_t timestamp;
     uint32_t dst_socket_id;
 
-    TimePoint get_ts; // recv or send time
-
 private:
     BufferRaw::Ptr _data;
 };
@@ -189,7 +187,8 @@ public:
     static bool isHandshakePacket(uint8_t *buf, size_t len);
     static uint32_t getHandshakeType(uint8_t *buf, size_t len);
     static uint32_t getSynCookie(uint8_t *buf, size_t len);
-    static uint32_t generateSynCookie(struct sockaddr_storage *addr, TimePoint ts, uint32_t current_cookie = 0, int correction = 0);
+    static uint32_t
+    generateSynCookie(struct sockaddr_storage *addr, TimePoint ts, uint32_t current_cookie = 0, int correction = 0);
 
     void assignPeerIP(struct sockaddr_storage *addr);
     ///////ControlPacket override///////
@@ -358,4 +357,4 @@ public:
 
 } // namespace SRT
 
-#endif //ZLMEDIAKIT_SRT_PACKET_H
+#endif // ZLMEDIAKIT_SRT_PACKET_H
