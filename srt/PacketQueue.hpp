@@ -3,8 +3,8 @@
 #include "Packet.hpp"
 #include <algorithm>
 #include <list>
-#include <memory>
 #include <map>
+#include <memory>
 #include <tuple>
 #include <utility>
 
@@ -16,11 +16,11 @@ public:
     using Ptr = std::shared_ptr<PacketQueue>;
     using LostPair = std::pair<uint32_t, uint32_t>;
 
-    PacketQueue(uint32_t max_size, uint32_t init_seq, uint32_t lantency);
+    PacketQueue(uint32_t max_size, uint32_t init_seq, uint32_t latency);
     ~PacketQueue() = default;
-    bool inputPacket(DataPacket::Ptr pkt,std::list<DataPacket::Ptr>& out);
+    bool inputPacket(DataPacket::Ptr pkt, std::list<DataPacket::Ptr> &out);
 
-    uint32_t timeLantency();
+    uint32_t timeLatency();
     std::list<LostPair> getLostSeq();
 
     size_t getSize();
@@ -28,18 +28,17 @@ public:
     size_t getAvailableBufferSize();
     uint32_t getExpectedSeq();
 
-    bool drop(uint32_t first, uint32_t last,std::list<DataPacket::Ptr>& out);
-
     std::string dump();
+    bool drop(uint32_t first, uint32_t last, std::list<DataPacket::Ptr> &out);
+
 private:
     void tryInsertPkt(DataPacket::Ptr pkt);
+
 private:
-
-    std::map<uint32_t, DataPacket::Ptr> _pkt_map;
-
-    uint32_t _pkt_expected_seq = 0;
     uint32_t _pkt_cap;
-    uint32_t _pkt_lantency;
+    uint32_t _pkt_latency;
+    uint32_t _pkt_expected_seq = 0;
+    std::map<uint32_t, DataPacket::Ptr> _pkt_map;
 };
 
 } // namespace SRT

@@ -10,18 +10,12 @@
 #include <netdb.h>
 #endif // defined(_WIN32)
 
-
-
 #include <atomic>
 #include "Util/logger.h"
 #include "Util/MD5.h"
-
 #include "Packet.hpp"
 
-
-
 namespace SRT {
-
 
 const size_t DataPacket::HEADER_SIZE;
 const size_t ControlPacket::HEADER_SIZE;
@@ -38,7 +32,7 @@ bool DataPacket::isDataPacket(uint8_t *buf, size_t len) {
     return false;
 }
 
-uint32_t DataPacket::getSocketID(uint8_t *buf, size_t len){
+uint32_t DataPacket::getSocketID(uint8_t *buf, size_t len) {
     uint8_t *ptr = buf;
     ptr += 12;
     return loadUint32(ptr);
@@ -51,7 +45,7 @@ bool DataPacket::loadFromData(uint8_t *buf, size_t len) {
     }
     uint8_t *ptr = buf;
     f = ptr[0] >> 7;
-    packet_seq_number = loadUint32(ptr)&0x7fffffff;
+    packet_seq_number = loadUint32(ptr) & 0x7fffffff;
     ptr += 4;
 
     PP = ptr[0] >> 6;
@@ -71,7 +65,8 @@ bool DataPacket::loadFromData(uint8_t *buf, size_t len) {
     _data->assign((char *)(buf), len);
     return true;
 }
-bool DataPacket::storeToHeader(){
+
+bool DataPacket::storeToHeader() {
     if (!_data || _data->size() < HEADER_SIZE) {
         WarnL << "data size less " << HEADER_SIZE;
         return false;
@@ -101,6 +96,7 @@ bool DataPacket::storeToHeader(){
     ptr += 4;
     return true;
 }
+
 bool DataPacket::storeToData(uint8_t *buf, size_t len) {
     _data = BufferRaw::create();
     _data->setCapacity(len + HEADER_SIZE);
@@ -139,6 +135,7 @@ char *DataPacket::data() const {
         return nullptr;
     return _data->data();
 }
+
 size_t DataPacket::size() const {
     if (!_data) {
         return 0;
@@ -151,14 +148,13 @@ char *DataPacket::payloadData() {
         return nullptr;
     return _data->data() + HEADER_SIZE;
 }
+
 size_t DataPacket::payloadSize() {
     if (!_data) {
         return 0;
     }
     return _data->size() - HEADER_SIZE;
 }
-
-
 
 bool ControlPacket::isControlPacket(uint8_t *buf, size_t len) {
     if (len < HEADER_SIZE) {
@@ -199,6 +195,7 @@ bool ControlPacket::loadHeader() {
     ptr += 4;
     return true;
 }
+
 bool ControlPacket::storeToHeader() {
     uint8_t *ptr = (uint8_t *)_data->data();
     ptr[0] = 0x80;
@@ -228,17 +225,20 @@ char *ControlPacket::data() const {
         return nullptr;
     return _data->data();
 }
+
 size_t ControlPacket::size() const {
     if (!_data) {
         return 0;
     }
     return _data->size();
 }
-uint32_t ControlPacket::getSocketID(uint8_t *buf, size_t len){
-    return loadUint32(buf+12);
+
+uint32_t ControlPacket::getSocketID(uint8_t *buf, size_t len) {
+    return loadUint32(buf + 12);
 }
+
 bool HandshakePacket::loadFromData(uint8_t *buf, size_t len) {
-    if(HEADER_SIZE+HS_CONTENT_MIN_SIZE > len){
+    if (HEADER_SIZE + HS_CONTENT_MIN_SIZE > len) {
         ErrorL << "size too smalle " << encryption_field;
         return false;
     }
@@ -282,79 +282,75 @@ bool HandshakePacket::loadFromData(uint8_t *buf, size_t len) {
         ErrorL << "not support encryption " << encryption_field;
     }
 
-    if(extension_field == 0){
+    if (extension_field == 0) {
         return true;
     }
 
-    if(len ==  HEADER_SIZE+HS_CONTENT_MIN_SIZE){
-        //ErrorL << "extension filed not exist " << extension_field;
+    if (len == HEADER_SIZE + HS_CONTENT_MIN_SIZE) {
+        // ErrorL << "extension filed not exist " << extension_field;
         return true;
     }
 
-    return loadExtMessage(ptr,len-HS_CONTENT_MIN_SIZE-HEADER_SIZE);
+    return loadExtMessage(ptr, len - HS_CONTENT_MIN_SIZE - HEADER_SIZE);
 }
-bool HandshakePacket::loadExtMessage(uint8_t *buf,size_t len){
-   uint8_t* ptr = buf;
-   ext_list.clear();
-   uint16_t type;
-   uint16_t length;
-   HSExt::Ptr ext;
-   while(ptr<buf+len){
-       type = loadUint16(ptr);
-       length = loadUint16(ptr+2);
-       switch (type)
-       {
-       case HSExt::SRT_CMD_HSREQ:
-       case HSExt::SRT_CMD_HSRSP:
-            ext = std::make_shared<HSExtMessage>();
-            break;
-        case HSExt::SRT_CMD_SID:
-            ext = std::make_shared<HSExtStreamID>();
-            break;
+
+bool HandshakePacket::loadExtMessage(uint8_t *buf, size_t len) {
+    uint8_t *ptr = buf;
+    ext_list.clear();
+    uint16_t type;
+    uint16_t length;
+    HSExt::Ptr ext;
+    while (ptr < buf + len) {
+        type = loadUint16(ptr);
+        length = loadUint16(ptr + 2);
+        switch (type) {
+        case HSExt::SRT_CMD_HSREQ:
+        case HSExt::SRT_CMD_HSRSP: ext = std::make_shared<HSExtMessage>(); break;
+        case HSExt::SRT_CMD_SID: ext = std::make_shared<HSExtStreamID>(); break;
         default:
-            WarnL<<"not support ext "<<type;
+            WarnL << "not support ext " << type;
             break;
-       }
-       if(ext){
-           if(ext->loadFromData(ptr,length*4+4)){
-               ext_list.push_back(std::move(ext));
-           }else{
-               WarnL<<"parse HS EXT failed type="<<type<<" len="<<length;
-           }
-           ext = nullptr;
-       }
+        }
+        if (ext) {
+            if (ext->loadFromData(ptr, length * 4 + 4)) {
+                ext_list.push_back(std::move(ext));
+            } else {
+                WarnL << "parse HS EXT failed type=" << type << " len=" << length;
+            }
+            ext = nullptr;
+        }
 
-       ptr += length*4+4;
-   }
-   return true;
+        ptr += length * 4 + 4;
+    }
+    return true;
 }
 
-bool HandshakePacket::storeExtMessage()
-{
-       uint8_t* buf = (uint8_t*)_data->data()+HEADER_SIZE+48;
-       size_t len = _data->size()- HEADER_SIZE-48;
-       for(auto ex : ext_list){
-           memcpy(buf,ex->data(),ex->size());
-           buf += ex->size();
-       }
-       return true;
+bool HandshakePacket::storeExtMessage() {
+    uint8_t *buf = (uint8_t *)_data->data() + HEADER_SIZE + 48;
+    size_t len = _data->size() - HEADER_SIZE - 48;
+    for (auto ex : ext_list) {
+        memcpy(buf, ex->data(), ex->size());
+        buf += ex->size();
+    }
+    return true;
 }
 
- size_t HandshakePacket::getExtSize(){
-     size_t size = 0;
-     for(auto it : ext_list){
-         size += it->size();
-     }
-     return size;
- }
+size_t HandshakePacket::getExtSize() {
+    size_t size = 0;
+    for (auto it : ext_list) {
+        size += it->size();
+    }
+    return size;
+}
+
 bool HandshakePacket::storeToData() {
     _data = BufferRaw::create();
-    for(auto ex : ext_list){
+    for (auto ex : ext_list) {
         ex->storeToData();
     }
     auto ext_size = getExtSize();
-    _data->setCapacity(HEADER_SIZE + 48+ext_size);
-    _data->setSize(HEADER_SIZE + 48+ext_size);
+    _data->setCapacity(HEADER_SIZE + 48 + ext_size);
+    _data->setSize(HEADER_SIZE + 48 + ext_size);
 
     control_type = ControlPacket::HANDSHAKE;
     sub_type = 0;
@@ -399,54 +395,53 @@ bool HandshakePacket::storeToData() {
 
     assert(encryption_field == NO_ENCRYPTION);
 
-    
     return storeExtMessage();
 }
 
-bool HandshakePacket::isHandshakePacket(uint8_t *buf, size_t len){
-    if(!ControlPacket::isControlPacket(buf,len)){
+bool HandshakePacket::isHandshakePacket(uint8_t *buf, size_t len) {
+    if (!ControlPacket::isControlPacket(buf, len)) {
         return false;
     }
-    if(len < HEADER_SIZE+48){
+    if (len < HEADER_SIZE + 48) {
         return false;
     }
-    return ControlPacket::getControlType(buf,len) == HANDSHAKE;
+    return ControlPacket::getControlType(buf, len) == HANDSHAKE;
 }
 
-uint32_t HandshakePacket::getHandshakeType(uint8_t *buf, size_t len){
-    uint8_t *ptr = buf+HEADER_SIZE+5*4;
-
+uint32_t HandshakePacket::getHandshakeType(uint8_t *buf, size_t len) {
+    uint8_t *ptr = buf + HEADER_SIZE + 5 * 4;
     return loadUint32(ptr);
 }
 
-uint32_t HandshakePacket::getSynCookie(uint8_t *buf, size_t len){
-    uint8_t *ptr = buf+HEADER_SIZE+7*4;
+uint32_t HandshakePacket::getSynCookie(uint8_t *buf, size_t len) {
+    uint8_t *ptr = buf + HEADER_SIZE + 7 * 4;
     return loadUint32(ptr);
 }
-void HandshakePacket::assignPeerIP(struct sockaddr_storage* addr){
-    memset(peer_ip_addr,0,sizeof(peer_ip_addr)*sizeof(peer_ip_addr[0]));
-    if(addr->ss_family == AF_INET){
-        struct sockaddr_in * ipv4 = (struct sockaddr_in *)addr;
+
+void HandshakePacket::assignPeerIP(struct sockaddr_storage *addr) {
+    memset(peer_ip_addr, 0, sizeof(peer_ip_addr) * sizeof(peer_ip_addr[0]));
+    if (addr->ss_family == AF_INET) {
+        struct sockaddr_in *ipv4 = (struct sockaddr_in *)addr;
         //抓包 奇怪好像是小头端？？？
-       storeUint32LE(peer_ip_addr,ipv4->sin_addr.s_addr);
-    }else if(addr->ss_family == AF_INET6){
+        storeUint32LE(peer_ip_addr, ipv4->sin_addr.s_addr);
+    } else if (addr->ss_family == AF_INET6) {
         if (IN6_IS_ADDR_V4MAPPED(&((struct sockaddr_in6 *)addr)->sin6_addr)) {
-                struct in_addr addr4;
-                memcpy(&addr4, 12 + (char *)&(((struct sockaddr_in6 *)addr)->sin6_addr), 4);
-                storeUint32LE(peer_ip_addr,addr4.s_addr);
-            }else{
-                const sockaddr_in6* ipv6 = (struct sockaddr_in6 *)addr;
-                memcpy(peer_ip_addr,ipv6->sin6_addr.s6_addr,sizeof(peer_ip_addr)*sizeof(peer_ip_addr[0]));
-            }
+            struct in_addr addr4;
+            memcpy(&addr4, 12 + (char *)&(((struct sockaddr_in6 *)addr)->sin6_addr), 4);
+            storeUint32LE(peer_ip_addr, addr4.s_addr);
+        } else {
+            const sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)addr;
+            memcpy(peer_ip_addr, ipv6->sin6_addr.s6_addr, sizeof(peer_ip_addr) * sizeof(peer_ip_addr[0]));
+        }
     }
 }
-uint32_t HandshakePacket::generateSynCookie(struct sockaddr_storage* addr,TimePoint ts,uint32_t current_cookie, int correction ){
 
-    static std::atomic<uint32_t> distractor{0};
-    uint32_t    rollover   = distractor.load() + 10;
+uint32_t HandshakePacket::generateSynCookie(
+    struct sockaddr_storage *addr, TimePoint ts, uint32_t current_cookie, int correction) {
+    static std::atomic<uint32_t> distractor { 0 };
+    uint32_t rollover = distractor.load() + 10;
 
-    for (;;)
-    {
+    while (true) {
         // SYN cookie
         char clienthost[NI_MAXHOST];
         char clientport[NI_MAXSERV];
@@ -463,34 +458,36 @@ uint32_t HandshakePacket::generateSynCookie(struct sockaddr_storage* addr,TimePo
         cookiestr << clienthost << ":" << clientport << ":" << timestamp;
         union {
             unsigned char cookie[16];
-            uint32_t       cookie_val;
+            uint32_t cookie_val;
         };
         MD5 md5(cookiestr.str());
-        memcpy(cookie,md5.rawdigest().c_str(),16);
+        memcpy(cookie, md5.rawdigest().c_str(), 16);
 
-        if (cookie_val != current_cookie)
+        if (cookie_val != current_cookie) {
             return cookie_val;
+        }
 
         ++distractor;
 
         // This is just to make the loop formally breakable,
         // but this is virtually impossible to happen.
-        if (distractor == rollover)
+        if (distractor == rollover) {
             return cookie_val;
+        }
     }
 }
 
-bool KeepLivePacket::loadFromData(uint8_t *buf, size_t len){
+bool KeepLivePacket::loadFromData(uint8_t *buf, size_t len) {
     if (len < HEADER_SIZE) {
         WarnL << "data size" << len << " less " << HEADER_SIZE;
         return false;
     }
     _data = BufferRaw::create();
-    _data->assign((char*)buf,len);
-    
+    _data->assign((char *)buf, len);
+
     return loadHeader();
 }
-bool KeepLivePacket::storeToData(){
+bool KeepLivePacket::storeToData() {
     control_type = ControlPacket::KEEPALIVE;
     sub_type = 0;
 
@@ -506,22 +503,21 @@ bool NAKPacket::loadFromData(uint8_t *buf, size_t len) {
         return false;
     }
     _data = BufferRaw::create();
-    _data->assign((char*)buf,len);
+    _data->assign((char *)buf, len);
     loadHeader();
 
-    uint8_t* ptr = (uint8_t*)_data->data()+HEADER_SIZE;
-    uint8_t* end = (uint8_t*)_data->data()+_data->size();
+    uint8_t *ptr = (uint8_t *)_data->data() + HEADER_SIZE;
+    uint8_t *end = (uint8_t *)_data->data() + _data->size();
     LostPair lost;
-    while (ptr<end)
-    {
-        if((*ptr)&0x80){
-            lost.first = loadUint32(ptr)&0x7fffffff;
-            lost.second = loadUint32(ptr+4)&0x7fffffff;
+    while (ptr < end) {
+        if ((*ptr) & 0x80) {
+            lost.first = loadUint32(ptr) & 0x7fffffff;
+            lost.second = loadUint32(ptr + 4) & 0x7fffffff;
             lost.second += 1;
             ptr += 8;
-        }else{
+        } else {
             lost.first = loadUint32(ptr);
-            lost.second = lost.first +1;
+            lost.second = lost.first + 1;
             ptr += 4;
         }
         lost_list.push_back(lost);
@@ -534,62 +530,62 @@ bool NAKPacket::storeToData() {
     size_t cif_size = getCIFSize();
 
     _data = BufferRaw::create();
-    _data->setCapacity(HEADER_SIZE+cif_size);
-    _data->setSize(HEADER_SIZE+cif_size);
+    _data->setCapacity(HEADER_SIZE + cif_size);
+    _data->setSize(HEADER_SIZE + cif_size);
 
     storeToHeader();
 
-    uint8_t* ptr = (uint8_t*)_data->data()+HEADER_SIZE;
+    uint8_t *ptr = (uint8_t *)_data->data() + HEADER_SIZE;
 
-     for(auto it : lost_list){
-        if(it.first+1 ==it.second){
-           storeUint32(ptr,it.first);
-           ptr[0] = ptr[0]&0x7f;
-           ptr += 4;
-        }else{
-           storeUint32(ptr,it.first);
-           ptr[0] |= 0x80;
+    for (auto it : lost_list) {
+        if (it.first + 1 == it.second) {
+            storeUint32(ptr, it.first);
+            ptr[0] = ptr[0] & 0x7f;
+            ptr += 4;
+        } else {
+            storeUint32(ptr, it.first);
+            ptr[0] |= 0x80;
 
-           storeUint32(ptr+4,it.second-1);
-           //ptr[4] = ptr[4]&0x7f;
+            storeUint32(ptr + 4, it.second - 1);
+            // ptr[4] = ptr[4]&0x7f;
 
-           ptr += 8;
+            ptr += 8;
         }
     }
 
     return true;
 }
 
-size_t NAKPacket::getCIFSize(){
+size_t NAKPacket::getCIFSize() {
     size_t size = 0;
-    for(auto it : lost_list){
-        if(it.first+1 ==it.second){
+    for (auto it : lost_list) {
+        if (it.first + 1 == it.second) {
             size += 4;
-        }else{
+        } else {
             size += 8;
         }
     }
     return size;
 }
 
-std::string NAKPacket::dump(){
+std::string NAKPacket::dump() {
     _StrPrinter printer;
     for (auto it : lost_list) {
-        printer<<"[ "<<it.first<<" , "<<it.second-1<<" ]";
+        printer << "[ " << it.first << " , " << it.second - 1 << " ]";
     }
     return std::move(printer);
 }
 
 bool MsgDropReqPacket::loadFromData(uint8_t *buf, size_t len) {
-    if (len < HEADER_SIZE+8) {
+    if (len < HEADER_SIZE + 8) {
         WarnL << "data size" << len << " less " << HEADER_SIZE;
         return false;
     }
     _data = BufferRaw::create();
-    _data->assign((char*)buf,len);
+    _data->assign((char *)buf, len);
     loadHeader();
 
-    uint8_t* ptr = (uint8_t*)_data->data()+HEADER_SIZE;
+    uint8_t *ptr = (uint8_t *)_data->data() + HEADER_SIZE;
 
     first_pkt_seq_num = loadUint32(ptr);
     ptr += 4;
@@ -602,17 +598,17 @@ bool MsgDropReqPacket::storeToData() {
     control_type = DROPREQ;
     sub_type = 0;
     _data = BufferRaw::create();
-    _data->setCapacity(HEADER_SIZE+8);
-    _data->setSize(HEADER_SIZE+8);
+    _data->setCapacity(HEADER_SIZE + 8);
+    _data->setSize(HEADER_SIZE + 8);
 
     storeToHeader();
 
-    uint8_t* ptr = (uint8_t*)_data->data()+HEADER_SIZE;
+    uint8_t *ptr = (uint8_t *)_data->data() + HEADER_SIZE;
 
-    storeUint32(ptr,first_pkt_seq_num);
+    storeUint32(ptr, first_pkt_seq_num);
     ptr += 4;
 
-    storeUint32(ptr,last_pkt_seq_num);
+    storeUint32(ptr, last_pkt_seq_num);
     ptr += 4;
     return true;
 }

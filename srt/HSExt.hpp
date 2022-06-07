@@ -11,6 +11,7 @@ class HSExt : public Buffer {
 public:
     HSExt() = default;
     virtual ~HSExt() = default;
+
     enum {
         SRT_CMD_REJECT = 0,
         SRT_CMD_HSREQ = 1,
@@ -36,13 +37,13 @@ public:
             return _data->data();
         }
         return nullptr;
-    };
+    }
     size_t size() const override {
         if (_data) {
             return _data->size();
         }
         return 0;
-    };
+    }
 
 protected:
     void loadHeader() {
@@ -116,7 +117,7 @@ public:
 */
 class HSExtStreamID : public HSExt {
 public:
-    using Ptr =  std::shared_ptr<HSExtStreamID>;
+    using Ptr = std::shared_ptr<HSExtStreamID>;
     HSExtStreamID() = default;
     ~HSExtStreamID() = default;
     bool loadFromData(uint8_t *buf, size_t len) override;

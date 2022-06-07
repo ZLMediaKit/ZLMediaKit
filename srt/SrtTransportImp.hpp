@@ -1,16 +1,18 @@
 ﻿#ifndef ZLMEDIAKIT_SRT_TRANSPORT_IMP_H
 #define ZLMEDIAKIT_SRT_TRANSPORT_IMP_H
-#include <mutex>
-#include "Common/MultiMediaSourceMuxer.h"
-#include "Rtp/Decoder.h"
-#include "TS/TSMediaSource.h"
-#include "SrtTransport.hpp"
 
+#include <mutex>
+#include "Rtp/Decoder.h"
+#include "SrtTransport.hpp"
+#include "TS/TSMediaSource.h"
+#include "Common/MultiMediaSourceMuxer.h"
 
 namespace SRT {
-    using namespace toolkit;
-    using namespace mediakit;
-    using namespace std;
+
+using namespace std;
+using namespace toolkit;
+using namespace mediakit;
+
 class SrtTransportImp
     : public SrtTransport
     , public toolkit::SockInfo
@@ -19,13 +21,13 @@ class SrtTransportImp
 public:
     SrtTransportImp(const EventPoller::Ptr &poller);
     ~SrtTransportImp();
-    void inputSockData(uint8_t *buf, int len, struct sockaddr_storage *addr){
-        SrtTransport::inputSockData(buf,len,addr);
+
+    void inputSockData(uint8_t *buf, int len, struct sockaddr_storage *addr) override {
+        SrtTransport::inputSockData(buf, len, addr);
         _total_bytes += len;
     }
-    void onSendTSData(const Buffer::Ptr &buffer, bool flush){
-        SrtTransport::onSendTSData(buffer,flush);
-    }
+    void onSendTSData(const Buffer::Ptr &buffer, bool flush) override { SrtTransport::onSendTSData(buffer, flush); }
+
     /// SockInfo override
     std::string get_local_ip() override;
     uint16_t get_local_port() override;
@@ -35,19 +37,17 @@ public:
 
 protected:
     ///////SrtTransport override///////
-    void onHandShakeFinished(std::string& streamid,struct sockaddr_storage *addr) override;
+    int getLatencyMul() override;
     void onSRTData(DataPacket::Ptr pkt) override;
     void onShutdown(const SockException &ex) override;
-    int getLantencyMul() override;
+    void onHandShakeFinished(std::string &streamid, struct sockaddr_storage *addr) override;
 
-    void sendPacket(Buffer::Ptr pkt,bool flush =  true) override{
+    void sendPacket(Buffer::Ptr pkt, bool flush = true) override {
         _total_bytes += pkt->size();
-        SrtTransport::sendPacket(pkt,flush);
-    };
-
-    bool isPusher() override{
-        return _is_pusher;
+        SrtTransport::sendPacket(pkt, flush);
     }
+
+    bool isPusher() override { return _is_pusher; }
 
     ///////MediaSourceEvent override///////
     // 关闭
@@ -61,10 +61,11 @@ protected:
     // 获取媒体源客户端相关信息
     std::shared_ptr<SockInfo> getOriginSock(mediakit::MediaSource &sender) const override;
 
-    bool inputFrame(const Frame::Ptr &frame) override;
-    bool addTrack(const Track::Ptr & track) override;
-    void addTrackCompleted() override;
+    ///////MediaSinkInterface override///////
     void resetTracks() override {};
+    void addTrackCompleted() override;
+    bool addTrack(const Track::Ptr &track) override;
+    bool inputFrame(const Frame::Ptr &frame) override;
 
 private:
     void emitOnPublish();
@@ -76,12 +77,12 @@ private:
 private:
     bool _is_pusher = true;
     MediaInfo _media_info;
-    uint64_t  _total_bytes = 0;
+    uint64_t _total_bytes = 0;
     Ticker _alive_ticker;
     std::unique_ptr<sockaddr_storage> _addr;
-    // for player 
+    // for player
     TSMediaSource::RingType::RingReader::Ptr _ts_reader;
-    // for pusher 
+    // for pusher
     MultiMediaSourceMuxer::Ptr _muxer;
     DecoderImp::Ptr _decoder;
     std::recursive_mutex _func_mtx;

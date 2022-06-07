@@ -2,9 +2,10 @@
 
 namespace SRT {
 
-PacketSendQueue::PacketSendQueue(uint32_t max_size, uint32_t lantency)
+PacketSendQueue::PacketSendQueue(uint32_t max_size, uint32_t latency)
     : _pkt_cap(max_size)
-    , _pkt_lantency(lantency) {}
+    , _pkt_latency(latency) {}
+
 bool PacketSendQueue::drop(uint32_t num) {
     decltype(_pkt_cache.begin()) it;
     for (it = _pkt_cache.begin(); it != _pkt_cache.end(); ++it) {
@@ -17,12 +18,13 @@ bool PacketSendQueue::drop(uint32_t num) {
     }
     return true;
 }
+
 bool PacketSendQueue::inputPacket(DataPacket::Ptr pkt) {
     _pkt_cache.push_back(pkt);
     while (_pkt_cache.size() > _pkt_cap) {
         _pkt_cache.pop_front();
     }
-    while (timeLantency() > _pkt_lantency) {
+    while (timeLatency() > _pkt_latency) {
         _pkt_cache.pop_front();
     }
     return true;
@@ -53,7 +55,7 @@ std::list<DataPacket::Ptr> PacketSendQueue::findPacketBySeq(uint32_t start, uint
     return re;
 }
 
-uint32_t PacketSendQueue::timeLantency() {
+uint32_t PacketSendQueue::timeLatency() {
     if (_pkt_cache.empty()) {
         return 0;
     }
@@ -67,7 +69,7 @@ uint32_t PacketSendQueue::timeLantency() {
         dur = first - last;
     }
     if (dur > (0x01 << 31)) {
-        TraceL << "cycle timeLantency " << dur;
+        TraceL << "cycle timeLatency " << dur;
         dur = 0xffffffff - dur;
     }
 
