@@ -9,16 +9,15 @@ SrtTransportImp::SrtTransportImp(const EventPoller::Ptr &poller) : SrtTransport(
 SrtTransportImp::~SrtTransportImp() {
     InfoP(this);
     uint64_t duration = _alive_ticker.createdTime() / 1000;
-    WarnP(this) << (_is_pusher ? "srt 推流器(" : "srt 播放器(")
-                << _media_info._vhost << "/"
-                << _media_info._app << "/"
-                << _media_info._streamid
-                << ")断开,耗时(s):" << duration;
+    WarnP(this) << (_is_pusher ? "srt 推流器(" : "srt 播放器(") << _media_info._vhost << "/" << _media_info._app << "/"
+                << _media_info._streamid << ")断开,耗时(s):" << duration;
 
     //流量统计事件广播
     GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
     if (_total_bytes >= iFlowThreshold * 1024) {
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, _total_bytes, duration, false, static_cast<SockInfo &>(*this));
+        NoticeCenter::Instance().emitEvent(
+            Broadcast::kBroadcastFlowReport, _media_info, _total_bytes, duration, false,
+            static_cast<SockInfo &>(*this));
     }
 }
 
@@ -71,7 +70,6 @@ bool SrtTransportImp::close(mediakit::MediaSource &sender, bool force) {
                                  << sender.getVhost() << "/"
                                  << sender.getApp() << "/"
                                  << sender.getId() << " " << force;
-
     weak_ptr<SrtTransportImp> weak_self = static_pointer_cast<SrtTransportImp>(shared_from_this());
     getPoller()->async([weak_self, err]() {
         auto strong_self = weak_self.lock();
@@ -112,10 +110,9 @@ void SrtTransportImp::emitOnPublish() {
             return;
         }
         if (err.empty()) {
-            strong_self->_muxer = std::make_shared<MultiMediaSourceMuxer>(strong_self->_media_info._vhost,
-                                                                          strong_self->_media_info._app,
-                                                                          strong_self->_media_info._streamid, 0.0f,
-                                                                          option);
+            strong_self->_muxer = std::make_shared<MultiMediaSourceMuxer>(
+                strong_self->_media_info._vhost, strong_self->_media_info._app, strong_self->_media_info._streamid,
+                0.0f, option);
             strong_self->_muxer->setMediaListener(strong_self);
             strong_self->doCachedFunc();
             InfoP(strong_self) << "允许 srt 推流";
@@ -126,7 +123,9 @@ void SrtTransportImp::emitOnPublish() {
     };
 
     //触发推流鉴权事件
-    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish, MediaOriginType::srt_push, _media_info, invoker, static_cast<SockInfo &>(*this));
+    auto flag = NoticeCenter::Instance().emitEvent(
+        Broadcast::kBroadcastMediaPublish, MediaOriginType::srt_push, _media_info, invoker,
+        static_cast<SockInfo &>(*this));
     if (!flag) {
         //该事件无人监听,默认不鉴权
         invoker("", ProtocolOption());
@@ -149,7 +148,8 @@ void SrtTransportImp::emitOnPlay() {
         });
     };
 
-    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed, _media_info, invoker, static_cast<SockInfo &>(*this));
+    auto flag = NoticeCenter::Instance().emitEvent(
+        Broadcast::kBroadcastMediaPlayed, _media_info, invoker, static_cast<SockInfo &>(*this));
     if (!flag) {
         doPlay();
     }

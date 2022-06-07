@@ -12,7 +12,6 @@ namespace SRT {
 using namespace std;
 using namespace toolkit;
 using namespace mediakit;
-
 class SrtTransportImp
     : public SrtTransport
     , public toolkit::SockInfo
@@ -27,7 +26,6 @@ public:
         _total_bytes += len;
     }
     void onSendTSData(const Buffer::Ptr &buffer, bool flush) override { SrtTransport::onSendTSData(buffer, flush); }
-
     /// SockInfo override
     std::string get_local_ip() override;
     uint16_t get_local_port() override;
@@ -86,7 +84,7 @@ private:
     MultiMediaSourceMuxer::Ptr _muxer;
     DecoderImp::Ptr _decoder;
     std::recursive_mutex _func_mtx;
-    std::deque<std::function<void()> > _cached_func;
+    std::deque<std::function<void()>> _cached_func;
 };
 
 } // namespace SRT

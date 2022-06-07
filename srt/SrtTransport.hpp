@@ -45,7 +45,7 @@ public:
     virtual void onSendTSData(const Buffer::Ptr &buffer, bool flush);
 
     std::string getIdentifier();
-    void unregisterSelf();
+void unregisterSelf();
     void unregisterSelfHandshake();
 
 protected:

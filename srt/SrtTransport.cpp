@@ -1,8 +1,9 @@
 ﻿#include <stdlib.h>
+#include "Util/onceToken.h"
+
 #include "Ack.hpp"
 #include "Packet.hpp"
 #include "SrtTransport.hpp"
-#include "Util/onceToken.h"
 
 namespace SRT {
 #define SRT_FIELD "srt."
@@ -13,7 +14,6 @@ const std::string kPort = SRT_FIELD "port";
 const std::string kLatencyMul = SRT_FIELD "latencyMul";
 
 static std::atomic<uint32_t> s_srt_socket_id_generate { 125 };
-
 ////////////  SrtTransport //////////////////////////
 SrtTransport::SrtTransport(const EventPoller::Ptr &poller)
     : _poller(poller) {
@@ -432,7 +432,6 @@ void SrtTransport::handleDataPacket(uint8_t *buf, int len, struct sockaddr_stora
     DataPacket::Ptr pkt = std::make_shared<DataPacket>();
     pkt->loadFromData(buf, len);
 
-    pkt->get_ts = _now;
     std::list<DataPacket::Ptr> list;
     //TraceL<<" seq="<< pkt->packet_seq_number<<" ts="<<pkt->timestamp<<" size="<<pkt->payloadSize()<<\
     //" PP="<<(int)pkt->PP<<" O="<<(int)pkt->O<<" kK="<<(int)pkt->KK<<" R="<<(int)pkt->R;

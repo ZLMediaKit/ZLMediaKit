@@ -1,9 +1,19 @@
 ﻿#ifndef ZLMEDIAKIT_SRT_COMMON_H
 #define ZLMEDIAKIT_SRT_COMMON_H
+#if defined(_WIN32)
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <Iphlpapi.h>
+#pragma comment (lib, "Ws2_32.lib")
+#pragma comment(lib,"Iphlpapi.lib")
+#else
+#include <netdb.h>
+#include <sys/socket.h>
+#endif // defined(_WIN32)
+
 #include <chrono>
 
 namespace SRT {
-
 using SteadyClock = std::chrono::steady_clock;
 using TimePoint = std::chrono::time_point<SteadyClock>;
 
