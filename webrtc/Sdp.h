@@ -720,7 +720,7 @@ public:
     void setDefaultSetting(std::string ice_ufrag, std::string ice_pwd, RtpDirection direction, const SdpAttrFingerprint &fingerprint);
     void addCandidate(const SdpAttrCandidate &candidate, mediakit::TrackType type = mediakit::TrackInvalid);
 
-    std::shared_ptr<RtcSession> createAnswer(const RtcSession &offer);
+    std::shared_ptr<RtcSession> createAnswer(const RtcSession &offer) const;
 
     void setPlayRtspInfo(const std::string &sdp);
 
@@ -728,9 +728,9 @@ public:
     void enableREMB(bool enable = true, mediakit::TrackType type = mediakit::TrackInvalid);
 
 private:
-    void matchMedia(const std::shared_ptr<RtcSession> &ret, mediakit::TrackType type, const std::vector<RtcMedia> &medias, const RtcTrackConfigure &configure);
-    bool onCheckCodecProfile(const RtcCodecPlan &plan, mediakit::CodecId codec);
-    void onSelectPlan(RtcCodecPlan &plan, mediakit::CodecId codec);
+    void matchMedia(const std::shared_ptr<RtcSession> &ret, const RtcMedia &media) const;
+    bool onCheckCodecProfile(const RtcCodecPlan &plan, mediakit::CodecId codec) const;
+    void onSelectPlan(RtcCodecPlan &plan, mediakit::CodecId codec) const;
 
 private:
     RtcCodecPlan::Ptr _rtsp_video_plan;
