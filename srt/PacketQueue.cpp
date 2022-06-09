@@ -2,13 +2,6 @@
 
 namespace SRT {
 
-#define MAX_SEQ 0x7fffffff
-#define MAX_TS 0xffffffff
-
-static inline uint32_t genExpectedSeq(uint32_t seq) {
-    return MAX_SEQ & seq;
-}
-
 static inline bool isSeqEdge(uint32_t seq, uint32_t cap) {
     if (seq > (MAX_SEQ - cap)) {
         return true;
@@ -160,9 +153,9 @@ std::list<PacketQueue::LostPair> PacketQueue::getLostSeq() {
             if (finish) {
                 finish = false;
                 lost.first = i;
-                lost.second = i + 1;
+                lost.second = genExpectedSeq(i + 1);
             } else {
-                lost.second = i + 1;
+                lost.second = genExpectedSeq(i + 1);
             }
         } else {
             if (!finish) {

@@ -1,17 +1,19 @@
 ﻿#ifndef ZLMEDIAKIT_SRT_COMMON_H
 #define ZLMEDIAKIT_SRT_COMMON_H
 #if defined(_WIN32)
+#include <Iphlpapi.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#include <Iphlpapi.h>
-#pragma comment (lib, "Ws2_32.lib")
-#pragma comment(lib,"Iphlpapi.lib")
+#pragma comment(lib, "Ws2_32.lib")
+#pragma comment(lib, "Iphlpapi.lib")
 #else
 #include <netdb.h>
 #include <sys/socket.h>
 #endif // defined(_WIN32)
 
 #include <chrono>
+#define MAX_SEQ 0x7fffffff
+#define MAX_TS 0xffffffff
 
 namespace SRT {
 using SteadyClock = std::chrono::steady_clock;
@@ -58,6 +60,9 @@ static inline void storeUint16LE(uint8_t *buf, uint16_t val) {
 
 static inline uint32_t srtVersion(int major, int minor, int patch) {
     return patch + minor * 0x100 + major * 0x10000;
+}
+static inline uint32_t genExpectedSeq(uint32_t seq) {
+    return MAX_SEQ & seq;
 }
 
 class UTicker {
