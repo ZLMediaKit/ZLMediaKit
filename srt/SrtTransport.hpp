@@ -11,11 +11,11 @@
 #include "Poller/Timer.h"
 
 #include "Common.hpp"
+#include "NackContext.hpp"
 #include "Packet.hpp"
 #include "PacketQueue.hpp"
 #include "PacketSendQueue.hpp"
 #include "Statistic.hpp"
-
 namespace SRT {
 
 using namespace toolkit;
@@ -45,7 +45,7 @@ public:
     virtual void onSendTSData(const Buffer::Ptr &buffer, bool flush);
 
     std::string getIdentifier();
-void unregisterSelf();
+    void unregisterSelf();
     void unregisterSelfHandshake();
 
 protected:
@@ -91,9 +91,9 @@ protected:
     void sendControlPacket(ControlPacket::Ptr pkt, bool flush = true);
 
 private:
-    //当前选中的udp链接
+    // 当前选中的udp链接
     Session::Ptr _selected_session;
-    //链接迁移前后使用过的udp链接
+    // 链接迁移前后使用过的udp链接
     std::unordered_map<Session *, std::weak_ptr<Session>> _history_sessions;
 
     EventPoller::Ptr _poller;
@@ -119,6 +119,7 @@ private:
     PacketSendQueue::Ptr _send_buf;
     uint32_t _buf_delay = 120;
     PacketQueue::Ptr _recv_buf;
+    NackContext _recv_nack;
     uint32_t _rtt = 100 * 1000;
     uint32_t _rtt_variance = 50 * 1000;
     uint32_t _light_ack_pkt_count = 0;
@@ -133,7 +134,7 @@ private:
 
     UTicker _nak_ticker;
 
-    //保持发送的握手消息，防止丢失重发
+    // 保持发送的握手消息，防止丢失重发
     HandshakePacket::Ptr _handleshake_res;
 
     ResourcePool<BufferRaw> _packet_pool;
