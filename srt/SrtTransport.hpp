@@ -125,6 +125,8 @@ private:
     uint32_t _light_ack_pkt_count = 0;
     uint32_t _ack_number_count = 0;
     uint32_t _last_ack_pkt_seq_num = 0;
+
+    uint32_t _last_pkt_seq = 0;
     UTicker _ack_ticker;
     std::map<uint32_t, TimePoint> _ack_send_timestamp;
 

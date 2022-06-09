@@ -127,6 +127,8 @@ void SrtTransport::handleHandshakeInduction(HandshakePacket &pkt, struct sockadd
     _max_window_size = pkt.max_flow_window_size;
     _mtu = pkt.mtu;
 
+    _last_pkt_seq = _init_seq_number - 1;
+
     _peer_socket_id = pkt.srt_socket_id;
     HandshakePacket::Ptr res = std::make_shared<HandshakePacket>();
     res->dst_socket_id = _peer_socket_id;
@@ -318,6 +320,10 @@ void SrtTransport::handleDropReq(uint8_t *buf, int len, struct sockaddr_storage 
     uint32_t max_seq = 0;
     for (auto data : list) {
         max_seq = data->packet_seq_number;
+        if (_last_pkt_seq + 1 != data->packet_seq_number) {
+            TraceL << "pkt lost " << _last_pkt_seq + 1 << "->" << data->packet_seq_number;
+        }
+        _last_pkt_seq = data->packet_seq_number;
         onSRTData(std::move(data));
     }
     _recv_nack.drop(max_seq);
@@ -454,6 +460,10 @@ void SrtTransport::handleDataPacket(uint8_t *buf, int len, struct sockaddr_stora
         uint32_t last_seq;
         for (auto data : list) {
             last_seq = data->packet_seq_number;
+            if (_last_pkt_seq + 1 != data->packet_seq_number) {
+                TraceL << "pkt lost " << _last_pkt_seq + 1 << "->" << data->packet_seq_number;
+            }
+            _last_pkt_seq = data->packet_seq_number;
             onSRTData(std::move(data));
         }
         _recv_nack.drop(last_seq);
