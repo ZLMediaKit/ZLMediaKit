@@ -294,8 +294,12 @@ bool HandshakePacket::loadExtMessage(uint8_t *buf, size_t len) {
         length = loadUint16(ptr + 2);
         switch (type) {
         case HSExt::SRT_CMD_HSREQ:
-        case HSExt::SRT_CMD_HSRSP: ext = std::make_shared<HSExtMessage>(); break;
-        case HSExt::SRT_CMD_SID: ext = std::make_shared<HSExtStreamID>(); break;
+        case HSExt::SRT_CMD_HSRSP:
+            ext = std::make_shared<HSExtMessage>();
+            break;
+        case HSExt::SRT_CMD_SID:
+            ext = std::make_shared<HSExtStreamID>();
+            break;
         default:
             WarnL << "not support ext " << type;
             break;
@@ -410,7 +414,7 @@ void HandshakePacket::assignPeerIP(struct sockaddr_storage *addr) {
     memset(peer_ip_addr, 0, sizeof(peer_ip_addr) * sizeof(peer_ip_addr[0]));
     if (addr->ss_family == AF_INET) {
         struct sockaddr_in *ipv4 = (struct sockaddr_in *)addr;
-        //抓包 奇怪好像是小头端？？？
+        // 抓包 奇怪好像是小头端？？？
         storeUint32LE(peer_ip_addr, ipv4->sin_addr.s_addr);
     } else if (addr->ss_family == AF_INET6) {
         if (IN6_IS_ADDR_V4MAPPED(&((struct sockaddr_in6 *)addr)->sin6_addr)) {
