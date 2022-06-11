@@ -342,12 +342,12 @@ Value makeMediaSourceJson(MediaSource &media){
         obj["codec_id_name"] = track->getCodecName();
         obj["ready"] = track->ready();
         obj["codec_type"] = codec_type;
+        if (current_thread) {
+            obj["loss"] = media.getLossRate(codec_type);
+        }
         switch(codec_type){
             case TrackAudio : {
                 auto audio_track = dynamic_pointer_cast<AudioTrack>(track);
-                if (current_thread) {
-                    obj["loss"] = media.getLossRate(TrackAudio);
-                }
                 obj["sample_rate"] = audio_track->getAudioSampleRate();
                 obj["channels"] = audio_track->getAudioChannel();
                 obj["sample_bit"] = audio_track->getAudioSampleBit();
@@ -355,9 +355,6 @@ Value makeMediaSourceJson(MediaSource &media){
             }
             case TrackVideo : {
                 auto video_track = dynamic_pointer_cast<VideoTrack>(track);
-                if (current_thread) {
-                    obj["loss"] = media.getLossRate(TrackVideo);
-                }
                 obj["width"] = video_track->getVideoWidth();
                 obj["height"] = video_track->getVideoHeight();
                 obj["fps"] = round(video_track->getVideoFps());
