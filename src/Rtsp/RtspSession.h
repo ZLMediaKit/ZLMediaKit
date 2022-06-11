@@ -91,6 +91,7 @@ protected:
     std::string getOriginUrl(MediaSource &sender) const override;
     // 获取媒体源客户端相关信息
     std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
+    toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;
 
     /////TcpSession override////
     ssize_t send(toolkit::Buffer::Ptr pkt) override;
