@@ -327,6 +327,7 @@ void SrtTransport::handleDropReq(uint8_t *buf, int len, struct sockaddr_storage 
         _last_pkt_seq = data->packet_seq_number;
         onSRTData(std::move(data));
     }
+    /*
     _recv_nack.drop(max_seq);
 
     auto lost = _recv_buf->getLostSeq();
@@ -337,6 +338,7 @@ void SrtTransport::handleDropReq(uint8_t *buf, int len, struct sockaddr_storage 
         sendNAKPacket(lost);
         // TraceL << "check lost send nack";
     }
+    */
 
     auto nak_interval = (_rtt + _rtt_variance * 4) / 2;
     if (nak_interval <= 20 * 1000) {
@@ -467,9 +469,10 @@ void SrtTransport::handleDataPacket(uint8_t *buf, int len, struct sockaddr_stora
             _last_pkt_seq = data->packet_seq_number;
             onSRTData(std::move(data));
         }
-        _recv_nack.drop(last_seq);
-    }
 
+        //_recv_nack.drop(last_seq);
+    }
+    /*
     auto lost = _recv_buf->getLostSeq();
     _recv_nack.update(_now, lost);
     lost.clear();
@@ -478,6 +481,7 @@ void SrtTransport::handleDataPacket(uint8_t *buf, int len, struct sockaddr_stora
         // TraceL << "check lost send nack immediately";
         sendNAKPacket(lost);
     }
+    */
 
     auto nak_interval = (_rtt + _rtt_variance * 4) / 2;
     if (nak_interval <= 20 * 1000) {
