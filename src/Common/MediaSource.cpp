@@ -64,6 +64,7 @@ MediaSource::MediaSource(const string &schema, const string &vhost, const string
     _app = app;
     _stream_id = stream_id;
     _create_stamp = time(NULL);
+    _default_poller = EventPollerPool::Instance().getPoller();
 }
 
 MediaSource::~MediaSource() {
@@ -222,11 +223,12 @@ int MediaSource::getLossRate(mediakit::TrackType type) {
 }
 
 toolkit::EventPoller::Ptr MediaSource::getOwnerPoller() {
+    toolkit::EventPoller::Ptr ret;
     auto listener = _listener.lock();
-    if (!listener) {
-        return nullptr;
+    if (listener) {
+        ret = listener->getOwnerPoller(*this);
     }
-    return listener->getOwnerPoller(*this);
+    return ret ? ret : _default_poller;
 }
 
 void MediaSource::onReaderChanged(int size) {

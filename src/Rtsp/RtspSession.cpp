@@ -1153,6 +1153,10 @@ std::shared_ptr<SockInfo> RtspSession::getOriginSock(MediaSource &sender) const 
     return const_cast<RtspSession *>(this)->shared_from_this();
 }
 
+toolkit::EventPoller::Ptr RtspSession::getOwnerPoller(MediaSource &sender) {
+    return getPoller();
+}
+
 void RtspSession::onBeforeRtpSorted(const RtpPacket::Ptr &rtp, int track_index){
     updateRtcpContext(rtp);
 }

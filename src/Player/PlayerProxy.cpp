@@ -185,6 +185,10 @@ std::shared_ptr<SockInfo> PlayerProxy::getOriginSock(MediaSource &sender) const 
     return getSockInfo();
 }
 
+toolkit::EventPoller::Ptr PlayerProxy::getOwnerPoller(MediaSource &sender) {
+    return getPoller();
+}
+
 void PlayerProxy::onPlaySuccess() {
     GET_CONFIG(bool, reset_when_replay, General::kResetWhenRePlay);
     if (dynamic_pointer_cast<RtspMediaSource>(_media_src)) {
