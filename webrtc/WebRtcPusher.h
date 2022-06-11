@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
@@ -39,6 +39,8 @@ protected:
     std::string getOriginUrl(mediakit::MediaSource &sender) const override;
     // 获取媒体源客户端相关信息
     std::shared_ptr<SockInfo> getOriginSock(mediakit::MediaSource &sender) const override;
+
+    int getLossRate(mediakit::MediaSource &sender,mediakit::TrackType type) override;
 
 private:
     WebRtcPusher(const EventPoller::Ptr &poller, const mediakit::RtspMediaSourceImp::Ptr &src,
