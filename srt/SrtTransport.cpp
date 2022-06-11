@@ -178,7 +178,10 @@ void SrtTransport::handleHandshakeConclusion(HandshakePacket &pkt, struct sockad
             _stream_id = sid->streamid;
         }
         if (req) {
-            srt_flag = req->srt_flag;
+            if (req->srt_flag != srt_flag) {
+                WarnL << " not support flag " << req->srt_flag;
+            }
+            // srt_flag = req->srt_flag;
             delay = delay <= req->recv_tsbpd_delay ? req->recv_tsbpd_delay : delay;
         }
         TraceL << getIdentifier() << " CONCLUSION Phase ";
