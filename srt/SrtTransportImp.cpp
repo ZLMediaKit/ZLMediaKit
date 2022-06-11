@@ -326,4 +326,10 @@ int SrtTransportImp::getLatencyMul() {
     return latencyMul;
 }
 
+int SrtTransportImp::getPktBufSize() {
+    // kPktBufSize
+    GET_CONFIG(int, pktBufSize, kPktBufSize);
+    return pktBufSize;
+}
+
 } // namespace SRT
