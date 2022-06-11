@@ -333,6 +333,8 @@ Value makeMediaSourceJson(MediaSource &media){
         item["originSock"] = Json::nullValue;
     }
 
+    //getLossRate有线程安全问题；使用getMediaInfo接口才能获取丢包率；getMediaList接口将忽略丢包率
+    auto current_thread = media.getOwnerPoller()->isCurrentThread();
     for(auto &track : media.getTracks(false)){
         Value obj;
         auto codec_type = track->getTrackType();
@@ -343,7 +345,9 @@ Value makeMediaSourceJson(MediaSource &media){
         switch(codec_type){
             case TrackAudio : {
                 auto audio_track = dynamic_pointer_cast<AudioTrack>(track);
-                obj["loss"] = media.getLossRate(TrackAudio);
+                if (current_thread) {
+                    obj["loss"] = media.getLossRate(TrackAudio);
+                }
                 obj["sample_rate"] = audio_track->getAudioSampleRate();
                 obj["channels"] = audio_track->getAudioChannel();
                 obj["sample_bit"] = audio_track->getAudioSampleBit();
@@ -351,7 +355,9 @@ Value makeMediaSourceJson(MediaSource &media){
             }
             case TrackVideo : {
                 auto video_track = dynamic_pointer_cast<VideoTrack>(track);
-                obj["loss"] = media.getLossRate(TrackVideo);
+                if (current_thread) {
+                    obj["loss"] = media.getLossRate(TrackVideo);
+                }
                 obj["width"] = video_track->getVideoWidth();
                 obj["height"] = video_track->getVideoHeight();
                 obj["fps"] = round(video_track->getVideoFps());
