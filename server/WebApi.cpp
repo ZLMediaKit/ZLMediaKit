@@ -783,7 +783,7 @@ void installWebApi() {
             jsession["local_ip"] = session->get_local_ip();
             jsession["local_port"] = session->get_local_port();
             jsession["id"] = id;
-            jsession["typeid"] = typeid(*session).name();
+            jsession["typeid"] = toolkit::demangle(typeid(*session).name());
             val["data"].append(jsession);
         });
     });
