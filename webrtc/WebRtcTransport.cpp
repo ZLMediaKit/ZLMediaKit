@@ -612,11 +612,11 @@ public:
     }
 
     int getLossRate() {
-        if (!_rtcp_context.getExpectedPacketsInterval()) {
-            //_rtcp_context.getExpectedPacketsInterval()取值总为零？
+        auto expected =  _rtcp_context.getExpectedPacketsInterval();
+        if (!expected) {
             return 0;
         }
-        return _rtcp_context.geLostInterval() * 100 / _rtcp_context.getExpectedPacketsInterval();
+        return _rtcp_context.geLostInterval() * 100 / expected;
     }
 
 private:
