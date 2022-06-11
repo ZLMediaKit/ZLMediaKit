@@ -62,36 +62,6 @@ public:
      */
     static std::shared_ptr<MediaSinkInterface> createRecorder(type type, const std::string &vhost, const std::string &app, const std::string &stream_id, const std::string &customized_path = "", size_t max_second = 0);
 
-    /**
-     * 获取录制状态
-     * @param type hls还是MP4录制
-     * @param vhost 虚拟主机
-     * @param app 应用名
-     * @param stream_id 流id
-     * @return 是否真正录制
-     */
-    static bool isRecording(type type, const std::string &vhost, const std::string &app, const std::string &stream_id);
-
-    /**
-     * 开始录制
-     * @param type hls还是MP4录制
-     * @param vhost 虚拟主机
-     * @param app 应用名
-     * @param stream_id 流id
-     * @param customized_path 录像文件保存自定义根目录，为空则采用配置文件设置
-     * @return 成功与否
-     */
-    static bool startRecord(type type, const std::string &vhost, const std::string &app, const std::string &stream_id,const std::string &customized_path, size_t max_second);
-
-    /**
-     * 停止录制
-     * @param type hls还是MP4录制
-     * @param vhost 虚拟主机
-     * @param app 应用名
-     * @param stream_id 流id
-     */
-    static bool stopRecord(type type, const std::string &vhost, const std::string &app, const std::string &stream_id);
-
 private:
     Recorder() = delete;
     ~Recorder() = delete;
