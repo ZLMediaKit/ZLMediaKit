@@ -164,7 +164,9 @@ void SrtTransport::handleHandshakeConclusion(HandshakePacket &pkt, struct sockad
         HSExtStreamID::Ptr sid;
         uint32_t srt_flag = 0xbf;
         uint16_t delay = DurationCountMicroseconds(_now - _induction_ts) * getLatencyMul() / 1000;
-
+        if (delay <= 120) {
+            delay = 120;
+        }
         for (auto ext : pkt.ext_list) {
             // TraceL << getIdentifier() << " ext " << ext->dump();
             if (!req) {
