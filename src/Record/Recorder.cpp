@@ -83,29 +83,4 @@ std::shared_ptr<MediaSinkInterface> Recorder::createRecorder(type type, const st
     }
 }
 
-bool Recorder::isRecording(type type, const string &vhost, const string &app, const string &stream_id){
-    auto src = MediaSource::find(vhost, app, stream_id);
-    if(!src){
-        return false;
-    }
-    return src->isRecording(type);
-}
-
-bool Recorder::startRecord(type type, const string &vhost, const string &app, const string &stream_id,const string &customized_path, size_t max_second){
-    auto src = MediaSource::find(vhost, app, stream_id);
-    if (!src) {
-        WarnL << "未找到相关的MediaSource,startRecord失败:" << vhost << "/" << app << "/" << stream_id;
-        return false;
-    }
-    return src->setupRecord(type, true, customized_path, max_second);
-}
-
-bool Recorder::stopRecord(type type, const string &vhost, const string &app, const string &stream_id){
-    auto src = MediaSource::find(vhost, app, stream_id);
-    if(!src){
-        return false;
-    }
-    return src->setupRecord(type, false, "", 0);
-}
-
 } /* namespace mediakit */
