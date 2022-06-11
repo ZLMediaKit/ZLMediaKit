@@ -1,11 +1,11 @@
 ﻿#ifndef ZLMEDIAKIT_SRT_TRANSPORT_IMP_H
 #define ZLMEDIAKIT_SRT_TRANSPORT_IMP_H
 
-#include <mutex>
+#include "Common/MultiMediaSourceMuxer.h"
 #include "Rtp/Decoder.h"
 #include "SrtTransport.hpp"
 #include "TS/TSMediaSource.h"
-#include "Common/MultiMediaSourceMuxer.h"
+#include <mutex>
 
 namespace SRT {
 
@@ -66,6 +66,7 @@ protected:
     bool inputFrame(const Frame::Ptr &frame) override;
 
 private:
+    bool parseStreamid(std::string &streamid);
     void emitOnPublish();
     void emitOnPlay();
 

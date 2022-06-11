@@ -1,10 +1,11 @@
-﻿#include <memory>
-#include "Util/util.h"
+﻿#include "Util/util.h"
+#include <memory>
 
 #include "SrtTransportImp.hpp"
 
 namespace SRT {
-SrtTransportImp::SrtTransportImp(const EventPoller::Ptr &poller) : SrtTransport(poller) {}
+SrtTransportImp::SrtTransportImp(const EventPoller::Ptr &poller)
+    : SrtTransport(poller) {}
 
 SrtTransportImp::~SrtTransportImp() {
     InfoP(this);
@@ -12,7 +13,7 @@ SrtTransportImp::~SrtTransportImp() {
     WarnP(this) << (_is_pusher ? "srt 推流器(" : "srt 播放器(") << _media_info._vhost << "/" << _media_info._app << "/"
                 << _media_info._streamid << ")断开,耗时(s):" << duration;
 
-    //流量统计事件广播
+    // 流量统计事件广播
     GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
     if (_total_bytes >= iFlowThreshold * 1024) {
         NoticeCenter::Instance().emitEvent(
@@ -28,15 +29,13 @@ void SrtTransportImp::onHandShakeFinished(std::string &streamid, struct sockaddr
     }
     _is_pusher = false;
     TraceL << " stream id " << streamid;
-    if (streamid.empty()) {
-        onShutdown(SockException(Err_shutdown, "stream id not empty"));
+    if (!parseStreamid(streamid)) {
+        onShutdown(SockException(Err_shutdown, "stream id not vaild"));
         return;
     }
 
-    _media_info.parse("srt://" + streamid);
-
     auto params = Parser::parseArgs(_media_info._param_strs);
-    if (params["type"] == "push") {
+    if (params["m"] == "publish") {
         _is_pusher = true;
         _decoder = DecoderImp::createDecoder(DecoderImp::decoder_ts, this);
         emitOnPublish();
@@ -44,6 +43,56 @@ void SrtTransportImp::onHandShakeFinished(std::string &streamid, struct sockaddr
         _is_pusher = false;
         emitOnPlay();
     }
+}
+
+//
+bool SrtTransportImp::parseStreamid(std::string &streamid) {
+
+    if (!toolkit::start_with(streamid, "#!::")) {
+        return false;
+    }
+    _media_info._schema = SRT_SCHEMA;
+
+    std::string real_streamid = streamid.substr(4);
+    std::string vhost, app, stream_name;
+
+    auto params = Parser::parseArgs(real_streamid, ",", "=");
+
+    for (auto it : params) {
+        if (it.first == "h") {
+            vhost = it.second;
+        } else if (it.first == "r") {
+            auto tmps = toolkit::split(it.second, "/");
+            if (tmps.size() < 2) {
+                continue;
+            }
+            app = tmps[0];
+            stream_name = tmps[1];
+        } else {
+            if (_media_info._param_strs.empty()) {
+                _media_info._param_strs = it.first + "=" + it.second;
+            } else {
+                _media_info._param_strs += "&" + it.first + "=" + it.second;
+            }
+        }
+    }
+    if (app == "" || stream_name == "") {
+        return false;
+    }
+
+    if (vhost != "") {
+        _media_info._vhost = vhost;
+    } else {
+        _media_info._vhost = DEFAULT_VHOST;
+    }
+
+    _media_info._app = app;
+    _media_info._streamid = stream_name;
+
+    TraceL << " vhost=" << _media_info._vhost << " app=" << _media_info._app << " streamid=" << _media_info._streamid
+           << " params=" << _media_info._param_strs;
+
+    return true;
 }
 
 void SrtTransportImp::onSRTData(DataPacket::Ptr pkt) {
@@ -66,16 +115,14 @@ bool SrtTransportImp::close(mediakit::MediaSource &sender, bool force) {
     if (!force && totalReaderCount(sender)) {
         return false;
     }
-    std::string err = StrPrinter << "close media:" << sender.getSchema() << "/"
-                                 << sender.getVhost() << "/"
-                                 << sender.getApp() << "/"
-                                 << sender.getId() << " " << force;
+    std::string err = StrPrinter << "close media:" << sender.getSchema() << "/" << sender.getVhost() << "/"
+                                 << sender.getApp() << "/" << sender.getId() << " " << force;
     weak_ptr<SrtTransportImp> weak_self = static_pointer_cast<SrtTransportImp>(shared_from_this());
     getPoller()->async([weak_self, err]() {
         auto strong_self = weak_self.lock();
         if (strong_self) {
             strong_self->onShutdown(SockException(Err_shutdown, err));
-            //主动关闭推流，那么不延时注销
+            // 主动关闭推流，那么不延时注销
             strong_self->_muxer = nullptr;
         }
     });
@@ -122,12 +169,12 @@ void SrtTransportImp::emitOnPublish() {
         }
     };
 
-    //触发推流鉴权事件
+    // 触发推流鉴权事件
     auto flag = NoticeCenter::Instance().emitEvent(
         Broadcast::kBroadcastMediaPublish, MediaOriginType::srt_push, _media_info, invoker,
         static_cast<SockInfo &>(*this));
     if (!flag) {
-        //该事件无人监听,默认不鉴权
+        // 该事件无人监听,默认不鉴权
         invoker("", ProtocolOption());
     }
 }
@@ -156,19 +203,19 @@ void SrtTransportImp::emitOnPlay() {
 }
 
 void SrtTransportImp::doPlay() {
-    //异步查找直播流
+    // 异步查找直播流
     MediaInfo info = _media_info;
     info._schema = TS_SCHEMA;
     std::weak_ptr<SrtTransportImp> weak_self = static_pointer_cast<SrtTransportImp>(shared_from_this());
     MediaSource::findAsync(info, getSession(), [weak_self](const MediaSource::Ptr &src) {
         auto strong_self = weak_self.lock();
         if (!strong_self) {
-            //本对象已经销毁
+            // 本对象已经销毁
             TraceL << "本对象已经销毁";
             return;
         }
         if (!src) {
-            //未找到该流
+            // 未找到该流
             TraceL << "未找到该流";
             strong_self->onShutdown(SockException(Err_shutdown));
         } else {
@@ -180,7 +227,7 @@ void SrtTransportImp::doPlay() {
             strong_self->_ts_reader->setDetachCB([weak_self]() {
                 auto strong_self = weak_self.lock();
                 if (!strong_self) {
-                    //本对象已经销毁
+                    // 本对象已经销毁
                     return;
                 }
                 strong_self->onShutdown(SockException(Err_shutdown));
@@ -188,7 +235,7 @@ void SrtTransportImp::doPlay() {
             strong_self->_ts_reader->setReadCB([weak_self](const TSMediaSource::RingDataType &ts_list) {
                 auto strong_self = weak_self.lock();
                 if (!strong_self) {
-                    //本对象已经销毁
+                    // 本对象已经销毁
                     return;
                 }
                 size_t i = 0;
