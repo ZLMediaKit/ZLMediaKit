@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
@@ -211,6 +211,14 @@ bool MediaSource::close(bool force) {
         return false;
     }
     return listener->close(*this,force);
+}
+
+int MediaSource::getLossRate(mediakit::TrackType type) {
+    auto listener = _listener.lock();
+    if (!listener) {
+        return -1;
+    }
+    return listener->getLossRate(*this, type);
 }
 
 void MediaSource::onReaderChanged(int size) {
@@ -688,6 +696,14 @@ void MediaSourceEventInterceptor::onRegist(MediaSource &sender, bool regist) {
     if (listener) {
         listener->onRegist(sender, regist);
     }
+}
+
+int MediaSourceEventInterceptor::getLossRate(MediaSource &sender, TrackType type){
+    auto listener = _listener.lock();
+    if (listener) {
+        return listener->getLossRate(sender, type);
+    }
+    return -1; //异常返回-1
 }
 
 bool MediaSourceEventInterceptor::setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path, size_t max_second) {

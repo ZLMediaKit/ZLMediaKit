@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
@@ -343,6 +343,7 @@ Value makeMediaSourceJson(MediaSource &media){
         switch(codec_type){
             case TrackAudio : {
                 auto audio_track = dynamic_pointer_cast<AudioTrack>(track);
+                obj["loss"] = media.getLossRate(TrackAudio);
                 obj["sample_rate"] = audio_track->getAudioSampleRate();
                 obj["channels"] = audio_track->getAudioChannel();
                 obj["sample_bit"] = audio_track->getAudioSampleBit();
@@ -350,6 +351,7 @@ Value makeMediaSourceJson(MediaSource &media){
             }
             case TrackVideo : {
                 auto video_track = dynamic_pointer_cast<VideoTrack>(track);
+                obj["loss"] = media.getLossRate(TrackVideo);
                 obj["width"] = video_track->getVideoWidth();
                 obj["height"] = video_track->getVideoHeight();
                 obj["fps"] = round(video_track->getVideoFps());

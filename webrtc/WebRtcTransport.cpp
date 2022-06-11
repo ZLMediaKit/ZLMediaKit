@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
@@ -612,6 +612,10 @@ public:
     }
 
     int getLossRate() {
+        if (!_rtcp_context.getExpectedPacketsInterval()) //_rtcp_context.getExpectedPacketsInterval()取值总为零？
+		{
+			 return 0;		
+		}			
         return _rtcp_context.geLostInterval() * 100 / _rtcp_context.getExpectedPacketsInterval();
     }
 
@@ -653,6 +657,21 @@ std::shared_ptr<RtpChannel> MediaTrack::getRtpChannel(uint32_t ssrc) const{
         return nullptr;
     }
     return it_chn->second;
+}
+
+int WebRtcTransportImp::getLossRate(mediakit::TrackType type){
+    for(auto it : _ssrc_to_track){
+       auto ssrc = it.first;
+       auto track = it.second;
+       auto rtp_chn = track->getRtpChannel(ssrc);
+       if(rtp_chn){
+            InfoL << "-----------接收丢包率,ssrc------------- :" << ssrc << ",loss rate(%):" << rtp_chn->getLossRate() ;
+            if (track->media && type==track->media->type){
+                return rtp_chn->getLossRate();
+            }
+       }
+    }
+     return -1;
 }
 
 void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {

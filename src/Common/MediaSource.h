@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
@@ -78,6 +78,8 @@ public:
     //流注册或注销事件
     virtual void onRegist(MediaSource &sender, bool regist) {};
 
+    virtual int getLossRate(MediaSource &sender, TrackType type) {return -1;};
+
     ////////////////////////仅供MultiMediaSourceMuxer对象继承////////////////////////
     // 开启或关闭录制
     virtual bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const std::string &custom_path, size_t max_second) { return false; };
@@ -142,7 +144,7 @@ public:
     std::vector<Track::Ptr> getMediaTracks(MediaSource &sender, bool trackReady = true) const override;
     void startSendRtp(MediaSource &sender, const SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb) override;
     bool stopSendRtp(MediaSource &sender, const std::string &ssrc) override;
-
+    int getLossRate(MediaSource &sender, TrackType type) override;
 private:
     std::weak_ptr<MediaSourceEvent> _listener;
 };
