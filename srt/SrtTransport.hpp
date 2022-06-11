@@ -23,6 +23,7 @@ using namespace toolkit;
 extern const std::string kPort;
 extern const std::string kTimeOutSec;
 extern const std::string kLatencyMul;
+extern const std::string kPktBufSize;
 
 class SrtTransport : public std::enable_shared_from_this<SrtTransport> {
 public:
@@ -55,6 +56,7 @@ protected:
     virtual void onHandShakeFinished(std::string &streamid, struct sockaddr_storage *addr) {};
     virtual void sendPacket(Buffer::Ptr pkt, bool flush = true);
     virtual int getLatencyMul() { return 4; };
+    virtual int getPktBufSize() { return 8192; };
 
 private:
     void registerSelf();

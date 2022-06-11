@@ -12,6 +12,7 @@ const std::string kTimeOutSec = SRT_FIELD "timeoutSec";
 // srt 单端口udp服务器
 const std::string kPort = SRT_FIELD "port";
 const std::string kLatencyMul = SRT_FIELD "latencyMul";
+const std::string kPktBufSize = SRT_FIELD "pktBufSize";
 
 static std::atomic<uint32_t> s_srt_socket_id_generate { 125 };
 ////////////  SrtTransport //////////////////////////
@@ -207,8 +208,8 @@ void SrtTransport::handleHandshakeConclusion(HandshakePacket &pkt, struct sockad
         sendControlPacket(res, true);
         TraceL << " buf size = " << res->max_flow_window_size << " init seq =" << _init_seq_number
                << " latency=" << delay;
-        _recv_buf = std::make_shared<PacketQueue>(res->max_flow_window_size, _init_seq_number, delay * 1e3);
-        _send_buf = std::make_shared<PacketSendQueue>(res->max_flow_window_size, delay * 1e3);
+        _recv_buf = std::make_shared<PacketQueue>(getPktBufSize(), _init_seq_number, delay * 1e3);
+        _send_buf = std::make_shared<PacketSendQueue>(getPktBufSize(), delay * 1e3);
         _send_packet_seq_number = _init_seq_number;
         _buf_delay = delay;
         onHandShakeFinished(_stream_id, addr);

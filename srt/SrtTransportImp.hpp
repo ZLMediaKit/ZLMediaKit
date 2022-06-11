@@ -36,6 +36,7 @@ public:
 protected:
     ///////SrtTransport override///////
     int getLatencyMul() override;
+    int getPktBufSize() override;
     void onSRTData(DataPacket::Ptr pkt) override;
     void onShutdown(const SockException &ex) override;
     void onHandShakeFinished(std::string &streamid, struct sockaddr_storage *addr) override;
