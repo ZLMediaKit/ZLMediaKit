@@ -58,6 +58,7 @@ private:
     uint32_t data;
 } PACKED;
 
+#if 0
 //PSFB fmt = 3
 //https://tools.ietf.org/html/rfc4585#section-6.3.3.2
 //    0                   1                   2                   3
@@ -98,6 +99,7 @@ public:
 
     static size_t constexpr kSize = 8;
 } PACKED;
+#endif
 
 //PSFB fmt = 4
 //https://tools.ietf.org/html/rfc5104#section-4.3.1.1
@@ -126,6 +128,7 @@ private:
     uint8_t reserved[3];
 } PACKED;
 
+#if 0
 //PSFB fmt = 5
 //https://tools.ietf.org/html/rfc5104#section-4.3.2.1
 // 0                   1                   2                   3
@@ -182,6 +185,8 @@ public:
 private:
     uint8_t data[kSize];
 } PACKED;
+
+#endif
 
 //PSFB fmt = 15
 //https://tools.ietf.org/html/draft-alvestrand-rmcat-remb-03
@@ -263,6 +268,7 @@ private:
     uint16_t blp;
 } PACKED;
 
+#if 0
 //RTPFB fmt = 3
 //https://tools.ietf.org/html/rfc5104#section-4.2.1.1
 //    0                   1                   2                   3
@@ -310,6 +316,7 @@ class FCI_TMMBN : public FCI_TMMBR{
 public:
 
 } PACKED;
+#endif
 
 enum class SymbolStatus : uint8_t{
     //Packet not received
