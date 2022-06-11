@@ -11,50 +11,53 @@
 #ifndef ZLMEDIAKIT_MACROS_H
 #define ZLMEDIAKIT_MACROS_H
 
+#include "Util/logger.h"
 #include <iostream>
 #include <sstream>
-#include "Util/logger.h"
 #if defined(__MACH__)
 #include <arpa/inet.h>
-    #include <machine/endian.h>
-    #define __BYTE_ORDER BYTE_ORDER
-    #define __BIG_ENDIAN BIG_ENDIAN
-    #define __LITTLE_ENDIAN LITTLE_ENDIAN
+#include <machine/endian.h>
+#define __BYTE_ORDER BYTE_ORDER
+#define __BIG_ENDIAN BIG_ENDIAN
+#define __LITTLE_ENDIAN LITTLE_ENDIAN
 #elif defined(__linux__)
-    #include <endian.h>
-    #include <arpa/inet.h>
+#include <arpa/inet.h>
+#include <endian.h>
 #elif defined(_WIN32)
-    #define BIG_ENDIAN 1
-    #define LITTLE_ENDIAN 0
-    #define BYTE_ORDER LITTLE_ENDIAN
-    #define __BYTE_ORDER BYTE_ORDER
-    #define __BIG_ENDIAN BIG_ENDIAN
-    #define __LITTLE_ENDIAN LITTLE_ENDIAN
+#define BIG_ENDIAN 1
+#define LITTLE_ENDIAN 0
+#define BYTE_ORDER LITTLE_ENDIAN
+#define __BYTE_ORDER BYTE_ORDER
+#define __BIG_ENDIAN BIG_ENDIAN
+#define __LITTLE_ENDIAN LITTLE_ENDIAN
 #endif
 
 #ifndef PACKED
-    #if !defined(_WIN32)
-        #define PACKED    __attribute__((packed))
-    #else
-        #define PACKED
-    #endif //!defined(_WIN32)
+#if !defined(_WIN32)
+#define PACKED __attribute__((packed))
+#else
+#define PACKED
+#endif //! defined(_WIN32)
 #endif
 
 #ifndef CHECK
-#define CHECK(exp,...) mediakit::Assert_ThrowCpp(!(exp), #exp, __FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__)
-#endif//CHECK
+#define CHECK(exp, ...) mediakit::Assert_ThrowCpp(!(exp), #exp, __FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__)
+#endif // CHECK
 
 #ifndef MAX
-#define MAX(a,b) ((a) > (b) ? (a) : (b) )
-#endif //MAX
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#endif // MAX
 
 #ifndef MIN
-#define MIN(a,b) ((a) < (b) ? (a) : (b) )
-#endif //MIN
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#endif // MIN
 
 #ifndef CLEAR_ARR
-#define CLEAR_ARR(arr) for(auto &item : arr){ item = 0;}
-#endif //CLEAR_ARR
+#define CLEAR_ARR(arr)                                                                                                 \
+    for (auto &item : arr) {                                                                                           \
+        item = 0;                                                                                                      \
+    }
+#endif // CLEAR_ARR
 
 #define VHOST_KEY "vhost"
 #define HTTP_SCHEMA "http"
@@ -64,6 +67,7 @@
 #define HLS_SCHEMA "hls"
 #define TS_SCHEMA "ts"
 #define FMP4_SCHEMA "fmp4"
+#define SRT_SCHEMA "srt"
 #define DEFAULT_VHOST "__defaultVhost__"
 
 #ifdef __cplusplus
@@ -78,7 +82,7 @@ namespace mediakit {
 
 extern const char kServerName[];
 
-template<typename ...ARGS>
+template <typename... ARGS>
 void Assert_ThrowCpp(int failed, const char *exp, const char *func, const char *file, int line, ARGS &&...args) {
     if (failed) {
         std::stringstream ss;
@@ -87,5 +91,5 @@ void Assert_ThrowCpp(int failed, const char *exp, const char *func, const char *
     }
 }
 
-}//namespace mediakit
-#endif //ZLMEDIAKIT_MACROS_H
+} // namespace mediakit
+#endif // ZLMEDIAKIT_MACROS_H
