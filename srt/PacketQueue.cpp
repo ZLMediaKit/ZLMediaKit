@@ -243,6 +243,7 @@ PacketRecvQueue::PacketRecvQueue(uint32_t max_size, uint32_t init_seq, uint32_t 
     , _pkt_expected_seq(init_seq)
     , _pkt_buf(max_size) {}
 bool PacketRecvQueue::inputPacket(DataPacket::Ptr pkt, std::list<DataPacket::Ptr> &out) {
+    // TraceL << dump() << " seq:" << pkt->packet_seq_number;
     while (_size > 0 && _start == _end) {
         if (_pkt_buf[_start]) {
             out.push_back(_pkt_buf[_start]);
@@ -385,6 +386,8 @@ std::string PacketRecvQueue::dump() {
                 << " first:" << getFirst()->packet_seq_number;
         printer << " last:" << getLast()->packet_seq_number;
         printer << " latency:" << timeLatency() / 1e3;
+        printer << " start:" << _start;
+        printer << " end:" << _end;
     }
     return std::move(printer);
 }
@@ -438,8 +441,20 @@ void PacketRecvQueue::insertToCycleBuf(DataPacket::Ptr pkt, uint32_t diff) {
         return;
     }
     _pkt_buf[pos] = pkt;
-    if (pos >= _end && (_start <= _end || pos < _start)) {
+
+    if (_start <= _end && pos >= _end) {
         _end = (pos + 1) % _pkt_cap;
+        return;
+    }
+
+    if (_start <= _end && pos < _start) {
+        _end = (pos + 1) % _pkt_cap;
+        return;
+    }
+
+    if (_start > _end && _end <= pos && _start > pos) {
+        _end = (pos + 1) % _pkt_cap;
+        return;
     }
 }
 void PacketRecvQueue::tryInsertPkt(DataPacket::Ptr pkt) {

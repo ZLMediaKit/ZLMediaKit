@@ -515,7 +515,7 @@ bool NAKPacket::loadFromData(uint8_t *buf, size_t len) {
 bool NAKPacket::storeToData() {
     control_type = NAK;
     sub_type = 0;
-    size_t cif_size = getCIFSize();
+    size_t cif_size = getCIFSize(lost_list);
 
     _data = BufferRaw::create();
     _data->setCapacity(HEADER_SIZE + cif_size);
@@ -544,9 +544,9 @@ bool NAKPacket::storeToData() {
     return true;
 }
 
-size_t NAKPacket::getCIFSize() {
+size_t NAKPacket::getCIFSize(std::list<LostPair> &lost) {
     size_t size = 0;
-    for (auto it : lost_list) {
+    for (auto it : lost) {
         if (it.first + 1 == it.second) {
             size += 4;
         } else {
