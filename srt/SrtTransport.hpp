@@ -120,7 +120,7 @@ private:
 
     PacketSendQueue::Ptr _send_buf;
     uint32_t _buf_delay = 120;
-    PacketQueue::Ptr _recv_buf;
+    PacketQueueInterface::Ptr _recv_buf;
     // NackContext _recv_nack;
     uint32_t _rtt = 100 * 1000;
     uint32_t _rtt_variance = 50 * 1000;

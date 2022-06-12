@@ -213,7 +213,7 @@ void SrtTransport::handleHandshakeConclusion(HandshakePacket &pkt, struct sockad
         sendControlPacket(res, true);
         TraceL << " buf size = " << res->max_flow_window_size << " init seq =" << _init_seq_number
                << " latency=" << delay;
-        _recv_buf = std::make_shared<PacketQueue>(getPktBufSize(), _init_seq_number, delay * 1e3);
+        _recv_buf = std::make_shared<PacketRecvQueue>(getPktBufSize(), _init_seq_number, delay * 1e3);
         _send_buf = std::make_shared<PacketSendQueue>(getPktBufSize(), delay * 1e3);
         _send_packet_seq_number = _init_seq_number;
         _buf_delay = delay;
