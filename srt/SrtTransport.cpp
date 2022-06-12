@@ -1,4 +1,5 @@
 ﻿#include "Util/onceToken.h"
+#include <iterator>
 #include <stdlib.h>
 
 #include "Ack.hpp"
@@ -435,15 +436,42 @@ void SrtTransport::sendLightACKPacket() {
 
 void SrtTransport::sendNAKPacket(std::list<PacketQueue::LostPair> &lost_list) {
     NAKPacket::Ptr pkt = std::make_shared<NAKPacket>();
+    std::list<PacketQueue::LostPair> tmp;
+    auto size = NAKPacket::getCIFSize(lost_list);
+    size_t paylaod_size = getPayloadSize();
+    if (size > paylaod_size) {
+        WarnL << "loss report cif size " << size;
+        size_t num = paylaod_size / 8;
 
-    pkt->dst_socket_id = _peer_socket_id;
-    pkt->timestamp = DurationCountMicroseconds(_now - _start_timestamp);
-    pkt->lost_list = lost_list;
+        size_t msgNum = (lost_list.size() + num - 1) / num;
+        decltype(lost_list.begin()) cur, next;
+        for (size_t i = 0; i < msgNum; ++i) {
+            cur = lost_list.begin();
+            std::advance(cur, i * num);
 
-    pkt->storeToData();
+            if (i == msgNum - 1) {
+                next = lost_list.end();
+            } else {
+                next = lost_list.begin();
+                std::advance(next, (i + 1) * num);
+            }
+            tmp.assign(cur, next);
+            pkt->dst_socket_id = _peer_socket_id;
+            pkt->timestamp = DurationCountMicroseconds(_now - _start_timestamp);
+            pkt->lost_list = tmp;
+            pkt->storeToData();
+            sendControlPacket(pkt, true);
+        }
+
+    } else {
+        pkt->dst_socket_id = _peer_socket_id;
+        pkt->timestamp = DurationCountMicroseconds(_now - _start_timestamp);
+        pkt->lost_list = lost_list;
+        pkt->storeToData();
+        sendControlPacket(pkt, true);
+    }
 
     // TraceL<<"send NAK "<<pkt->dump();
-    sendControlPacket(pkt, true);
 }
 
 void SrtTransport::sendShutDown() {

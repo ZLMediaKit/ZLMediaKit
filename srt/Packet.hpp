@@ -275,9 +275,7 @@ public:
     bool storeToData() override;
 
     std::list<LostPair> lost_list;
-
-private:
-    size_t getCIFSize();
+    static size_t getCIFSize(std::list<LostPair> &lost);
 };
 
 /*
