@@ -28,7 +28,8 @@ public:
      * @param id 流id
      * @param ringSize 环形缓存大小
      */
-    RtspMediaSourceImp(const std::string &vhost, const std::string &app, const std::string &id, int ringSize = RTP_GOP_SIZE) : RtspMediaSource(vhost, app, id,ringSize) {
+    RtspMediaSourceImp(const std::string &vhost, const std::string &app, const std::string &id, const std::string &schema = RTSP_SCHEMA, int ringSize = RTP_GOP_SIZE)
+        : RtspMediaSource(vhost, app, id, schema, ringSize) {
         _demuxer = std::make_shared<RtspDemuxer>();
         _demuxer->setTrackListener(this);
     }
@@ -73,6 +74,8 @@ public:
      */
     void setProtocolOption(const ProtocolOption &option) {
         _option = option;
+        _option.enable_rtc = this->getSchema() != RTC_SCHEMA;
+        _option.enable_rtsp = this->getSchema() != RTSP_SCHEMA;
         _muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(), getApp(), getId(), _demuxer->getDuration(), _option);
         _muxer->setMediaListener(getListener());
         _muxer->setTrackListener(std::static_pointer_cast<RtspMediaSourceImp>(shared_from_this()));
@@ -80,8 +83,7 @@ public:
         MediaSource::setListener(_muxer);
 
         for (auto &track : _demuxer->getTracks(false)) {
-            _muxer->addTrack(track);
-            track->addDelegate(_muxer);
+            this->addTrack(track);
         }
     }
 
@@ -138,12 +140,13 @@ public:
         }
     }
 
-private:
+protected:
     bool _all_track_ready = false;
     ProtocolOption _option;
     RtspDemuxer::Ptr _demuxer;
     MultiMediaSourceMuxer::Ptr _muxer;
 };
+
 } /* namespace mediakit */
 
 #endif /* SRC_RTSP_RTSPTORTMPMEDIASOURCE_H_ */

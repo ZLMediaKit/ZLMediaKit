@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
@@ -19,7 +19,6 @@
 #include "Sdp.h"
 #include "Poller/EventPoller.h"
 #include "Network/Socket.h"
-#include "Rtsp/RtspMediaSourceImp.h"
 #include "Rtcp/RtcpContext.h"
 #include "Rtcp/RtcpFCI.h"
 #include "Nack.h"
@@ -31,7 +30,10 @@
 namespace RTC {
 extern const std::string kPort;
 extern const std::string kTimeOutSec;
+extern const std::string kTranscodeAudio;
+extern const std::string kRtcDemand;
 }//namespace RTC
+#include "RtcMediaSource.h"
 
 class WebRtcInterface {
 public:

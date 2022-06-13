@@ -24,9 +24,11 @@ public:
     RtspMediaSourceMuxer(const std::string &vhost,
                          const std::string &strApp,
                          const std::string &strId,
-                         const TitleSdp::Ptr &title = nullptr) : RtspMuxer(title){
-        _media_src = std::make_shared<RtspMediaSource>(vhost,strApp,strId);
+                         const TitleSdp::Ptr &title = nullptr,
+                         const std::string& schema = RTSP_SCHEMA) : RtspMuxer(title){
+        _media_src = std::make_shared<RtspMediaSource>(vhost, strApp, strId, schema);
         getRtpRing()->setDelegate(_media_src);
+        _on_demand = ::toolkit::mINI::Instance()[General::kRtspDemand];
     }
 
     ~RtspMediaSourceMuxer() override{}
@@ -49,9 +51,8 @@ public:
     }
 
     void onReaderChanged(MediaSource &sender, int size) override {
-        GET_CONFIG(bool, rtsp_demand, General::kRtspDemand);
-        _enabled = rtsp_demand ? size : true;
-        if (!size && rtsp_demand) {
+        _enabled = _on_demand ? size : true;
+        if (!size && _on_demand) {
             _clear_cache = true;
         }
         MediaSourceEventInterceptor::onReaderChanged(sender, size);
@@ -70,13 +71,13 @@ public:
     }
 
     bool isEnabled() {
-        GET_CONFIG(bool, rtsp_demand, General::kRtspDemand);
         //缓存尚未清空时，还允许触发inputFrame函数，以便及时清空缓存
-        return rtsp_demand ? (_clear_cache ? true : _enabled) : true;
+        return _on_demand ? (_clear_cache ? true : _enabled) : true;
     }
 
-private:
+protected:
     bool _enabled = true;
+    bool _on_demand = false;
     bool _clear_cache = false;
     RtspMediaSource::Ptr _media_src;
 };

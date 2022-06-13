@@ -14,7 +14,7 @@
 #include "Util/MD5.h"
 #include "Util/logger.h"
 #include "Extension/AAC.h"
-
+#include "Rtmp/RtmpMediaSource.h"
 using namespace toolkit;
 using namespace std;
 
