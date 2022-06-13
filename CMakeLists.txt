@@ -290,6 +290,7 @@ if (ENABLE_FFMPEG)
 
     if (AVUTIL_FOUND AND AVCODEC_FOUND AND SWSCALE_FOUND AND SWRESAMPLE_FOUND)
         add_definitions(-DENABLE_FFMPEG)
+        list(APPEND LINK_LIB_LIST ${CMAKE_DL_LIBS})
     else ()
         set(ENABLE_FFMPEG off)
         message(WARNING "ffmpeg相关功能未找到")
