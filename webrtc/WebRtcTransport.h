@@ -32,6 +32,8 @@ extern const std::string kPort;
 extern const std::string kTimeOutSec;
 extern const std::string kTranscodeAudio;
 extern const std::string kRtcDemand;
+extern const std::string kAacBitRate;
+extern const std::string kOpusBitRate;
 }//namespace RTC
 #include "RtcMediaSource.h"
 

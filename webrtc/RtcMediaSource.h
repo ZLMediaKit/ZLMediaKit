@@ -26,6 +26,8 @@ public:
             Track::Ptr newTrack = track;
             if (_option.transcode_rtc_audio && track->getCodecId() == CodecOpus) {
                 newTrack.reset(new AACTrack(44100, 2));
+                GET_CONFIG(int, bitrate, RTC::kAacBitRate);
+                newTrack->setBitRate(bitrate);
                 _audio_dec.reset(new FFmpegDecoder(track));
                 _audio_enc.reset(new FFmpegEncoder(newTrack));
                 // hook data to newTack
@@ -121,6 +123,8 @@ public:
         Track::Ptr newTrack = track;
         if (_transcode && track->getCodecId() == CodecAAC) {
             newTrack = std::make_shared<OpusTrack>();
+            GET_CONFIG(int, bitrate, RTC::kOpusBitRate);
+            newTrack->setBitRate(bitrate);
             _audio_dec.reset(new FFmpegDecoder(track));
             _audio_enc.reset(new FFmpegEncoder(newTrack));
             // aac to opus

@@ -36,15 +36,26 @@ const string kExternIP = RTC_FIELD"externIP";
 const string kRembBitRate = RTC_FIELD"rembBitRate";
 //webrtc单端口udp服务器
 const string kPort =  RTC_FIELD"port";
-const string kTranscodeAudio = RTC_FIELD"transcodeAudio";
+
+// rtc按需加载，影响首个用户加载时间
 const string kRtcDemand = RTC_FIELD"rtc_demand";
+// rtc音频转码开关
+const string kTranscodeAudio = RTC_FIELD"transcodeAudio";
+// 设置aac转码比特率
+const string kAacBitRate = RTC_FIELD"aacBitRate";
+// 设置opus转码比特率
+const string kOpusBitRate = RTC_FIELD"opusBitRate";
+
 static onceToken token([]() {
     mINI::Instance()[kTimeOutSec] = 15;
     mINI::Instance()[kExternIP] = "";
     mINI::Instance()[kRembBitRate] = 0;
     mINI::Instance()[kPort] = 8000;
-    mINI::Instance()[kTranscodeAudio] = 1;
+
     mINI::Instance()[kRtcDemand] = 0;
+    mINI::Instance()[kTranscodeAudio] = 1;
+    mINI::Instance()[kAacBitRate] = 64000;
+    mINI::Instance()[kOpusBitRate] = 64000;
 });
 
 }//namespace RTC
