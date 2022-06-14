@@ -323,12 +323,20 @@ void SrtTransportImp::doCachedFunc() {
 
 int SrtTransportImp::getLatencyMul() {
     GET_CONFIG(int, latencyMul, kLatencyMul);
+    if (latencyMul <= 0) {
+        WarnL << "config srt " << kLatencyMul << " not vaild";
+        return 4;
+    }
     return latencyMul;
 }
 
 int SrtTransportImp::getPktBufSize() {
     // kPktBufSize
     GET_CONFIG(int, pktBufSize, kPktBufSize);
+    if (pktBufSize <= 0) {
+        WarnL << "config srt " << kPktBufSize << " not vaild";
+        return 8912;
+    }
     return pktBufSize;
 }
 
