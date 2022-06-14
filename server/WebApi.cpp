@@ -736,6 +736,7 @@ void installWebApi() {
             val["result"] = flag ? 0 : -1;
             val["msg"] = flag ? "success" : "close failed";
             val["code"] = flag ? API::Success : API::OtherFailed;
+            invoker(200, headerOut, val.toStyledString());
         });
     });
 
