@@ -62,7 +62,7 @@ int TranscodeAudio(const char *srcPath, const char *dstPath) {
         auto pos = dstFile.rfind('_');
         if (pos == dstFile.npos)
             pos = dstFile.rfind('.');
-        if (pos == dstFile.npos)
+        if (pos != dstFile.npos)
             dstFile = dstFile.substr(0, pos);
         if (dstCodec == srcTrack->getCodecId()) {
             printf("same codec %s, skip transcode\n", dstPath);

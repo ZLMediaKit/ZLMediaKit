@@ -13,7 +13,9 @@
 #include <dlfcn.h>
 #endif
 #include "Util/File.h"
+#include "Util/util.h"
 #include "Util/uv_errno.h"
+#include <float.h>
 #include "Transcode.h"
 #include "Extension/AAC.h"
 #include "Extension/Opus.h"
@@ -554,15 +556,15 @@ bool FFmpegAudioFifo::Write(const AVFrame *frame) {
     }
     if (frame->pts != AV_NOPTS_VALUE) {
         // 计算fifo audio第一个采样的时间戳
-        int64_t tsp = frame->pts - _timebase * av_audio_fifo_size(_fifo);
+        double tsp = frame->pts - _timebase * av_audio_fifo_size(_fifo);
         // flv.js和webrtc对音频时间戳增量有要求, rtc要求更加严格！
         // 得尽量保证时间戳是按照sample_size累加，否则容易出现破音或杂音等问题
-        if (_tsp == AV_NOPTS_VALUE || abs(tsp - _tsp) > 200) {
+        if (fabs(_tsp) < DBL_EPSILON || fabs(tsp - _tsp) > 200) {
             InfoL << "reset base_tsp " << _tsp << "->" << tsp;
             _tsp = tsp;
         }
     } else {
-        _tsp = AV_NOPTS_VALUE;
+        _tsp = 0;
     }
 
     av_audio_fifo_write(_fifo, (void **)frame->data, frame->nb_samples);
@@ -580,10 +582,13 @@ bool FFmpegAudioFifo::Read(AVFrame *frame, int sample_size) {
     frame->format = _format;
     frame->channel_layout = av_get_default_channel_layout(_channels);
     frame->sample_rate = _samplerate;
-    frame->pts = _tsp;
-    if (_tsp != AV_NOPTS_VALUE) {
+    if (fabs(_tsp) > DBL_EPSILON) {
+        frame->pts = _tsp;
         // advance tsp by sample_size
         _tsp += sample_size * _timebase;
+    }
+    else {
+        frame->pts = AV_NOPTS_VALUE;
     }
 
     int ret = av_frame_get_buffer(frame, 0);
