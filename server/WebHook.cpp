@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
@@ -47,6 +47,7 @@ const string kOnServerStarted = HOOK_FIELD"on_server_started";
 const string kOnServerKeepalive = HOOK_FIELD"on_server_keepalive";
 const string kAdminParams = HOOK_FIELD"admin_params";
 const string kAliveInterval = HOOK_FIELD"alive_interval";
+const string kRetry = HOOK_FIELD"retry";
 
 onceToken token([](){
     mINI::Instance()[kEnable] = false;
@@ -68,6 +69,8 @@ onceToken token([](){
     mINI::Instance()[kOnServerKeepalive] = "";
     mINI::Instance()[kAdminParams] = "secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc";
     mINI::Instance()[kAliveInterval] = 30.0;
+    mINI::Instance()[kRetry] = 0;
+
 },nullptr);
 }//namespace Hook
 
@@ -84,6 +87,8 @@ static onceToken token([]() {
 });
 
 }//namespace Cluster
+
+void do_http_process(HttpRequester::Ptr &requester,const string &url, const string& bodyStr, const function<void(const Value &,const string &)> &func,int retry,float timeout_sec);
 
 static void parse_http_response(const SockException &ex, const Parser &res,
                                 const function<void(const Value &,const string &)> &fun){
@@ -150,6 +155,7 @@ string getVhost(const HttpArgs &value) {
 void do_http_hook(const string &url,const ArgsType &body,const function<void(const Value &,const string &)> &func){
     GET_CONFIG(string, mediaServerId, General::kMediaServerId);
     GET_CONFIG(float, hook_timeoutSec, Hook::kTimeoutSec);
+	GET_CONFIG(int, hook_retry, Hook::kRetry);
 
     const_cast<ArgsType &>(body)["mediaServerId"] = mediaServerId;
     HttpRequester::Ptr requester(new HttpRequester);
@@ -161,8 +167,14 @@ void do_http_hook(const string &url,const ArgsType &body,const function<void(con
     if (!vhost.empty()) {
         requester->addHeader("X-VHOST", vhost);
     }
+	
+	do_http_process(requester,url,bodyStr,func,hook_retry,hook_timeoutSec);
+}
+
+void do_http_process(HttpRequester::Ptr &requester,const string &url, const string& bodyStr, const function<void(const Value &,const string &)> &func,int retry,float timeout_sec){
+    
     std::shared_ptr<Ticker> pTicker(new Ticker);
-    requester->startRequester(url, [url, func, bodyStr, requester, pTicker](const SockException &ex,
+    requester->startRequester(url, [url, func, bodyStr, requester, pTicker,retry,timeout_sec](const SockException &ex,
                                                                             const Parser &res) mutable{
         onceToken token(nullptr, [&]() mutable{
             requester.reset();
@@ -176,8 +188,14 @@ void do_http_hook(const string &url,const ArgsType &body,const function<void(con
             } else if (pTicker->elapsedTime() > 500) {
                 DebugL << "hook " << url << " " << pTicker->elapsedTime() << "ms,success:" << bodyStr;
             }
+            //尾部递归重试
+            if (!err.empty() && retry-- > 0) {
+                 //WarnL << "----------------hook retry------------------ " << retry ;
+				 HttpRequester::Ptr requester(new HttpRequester);
+                 do_http_process(requester,url,bodyStr,func,retry,timeout_sec);   
+            }
         });
-    }, hook_timeoutSec);
+    }, timeout_sec);
 }
 
 static ArgsType make_json(const MediaInfo &args){
