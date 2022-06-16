@@ -325,19 +325,19 @@ extern const std::string kTimeoutSec;
 // 该范围同时限制rtsp服务器udp端口范围
 extern const std::string kPortRange;
 // rtp server h264的pt
-extern const std::string KH264PT;
+extern const std::string kH264PT;
 // rtp server h265的pt
-extern const std::string KH265PT;
+extern const std::string kH265PT;
 // rtp server ps 的pt
-extern const std::string KPSPT;
+extern const std::string kPSPT;
 // rtp server ts 的pt
-extern const std::string KTSPT;
+extern const std::string kTSPT;
 // rtp server opus 的pt
-extern const std::string KOpusPT;
+extern const std::string kOpusPT;
 // rtp server g711u 的pt
-extern const std::string KG711UPT;
+extern const std::string kG711UPT;
 // rtp server g711a 的pt
-extern const std::string KG711APT;
+extern const std::string kG711APT;
 } // namespace RtpProxy
 
 /**
