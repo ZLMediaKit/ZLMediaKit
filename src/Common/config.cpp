@@ -278,25 +278,25 @@ namespace RtpProxy {
 const string kDumpDir = RTP_PROXY_FIELD "dumpDir";
 const string kTimeoutSec = RTP_PROXY_FIELD "timeoutSec";
 const string kPortRange = RTP_PROXY_FIELD "port_range";
-const string KH264PT = RTP_PROXY_FIELD "h264_pt";
-const string KH265PT = RTP_PROXY_FIELD "h265_pt";
-const string KPSPT = RTP_PROXY_FIELD "ps_pt";
-const string KTSPT = RTP_PROXY_FIELD "ts_pt";
-const string KOpusPT = RTP_PROXY_FIELD "opus_pt";
-const string KG711UPT = RTP_PROXY_FIELD "g711u_pt";
-const string KG711APT = RTP_PROXY_FIELD "g711a_pt";
+const string kH264PT = RTP_PROXY_FIELD "h264_pt";
+const string kH265PT = RTP_PROXY_FIELD "h265_pt";
+const string kPSPT = RTP_PROXY_FIELD "ps_pt";
+const string kTSPT = RTP_PROXY_FIELD "ts_pt";
+const string kOpusPT = RTP_PROXY_FIELD "opus_pt";
+const string kG711UPT = RTP_PROXY_FIELD "g711u_pt";
+const string kG711APT = RTP_PROXY_FIELD "g711a_pt";
 
 static onceToken token([]() {
     mINI::Instance()[kDumpDir] = "";
     mINI::Instance()[kTimeoutSec] = 15;
     mINI::Instance()[kPortRange] = "30000-35000";
-    mINI::Instance()[KH264PT] = 98;
-    mINI::Instance()[KH265PT] = 99;
-    mINI::Instance()[KPSPT] = 96;
-    mINI::Instance()[KTSPT] = 33;
-    mINI::Instance()[KOpusPT] = 100;
-    mINI::Instance()[KG711UPT] = 0;
-    mINI::Instance()[KG711APT] = 8;
+    mINI::Instance()[kH264PT] = 98;
+    mINI::Instance()[kH265PT] = 99;
+    mINI::Instance()[kPSPT] = 96;
+    mINI::Instance()[kTSPT] = 33;
+    mINI::Instance()[kOpusPT] = 100;
+    mINI::Instance()[kG711UPT] = 0;
+    mINI::Instance()[kG711APT] = 8;
 });
 } // namespace RtpProxy
 
