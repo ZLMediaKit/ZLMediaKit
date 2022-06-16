@@ -180,7 +180,6 @@ private:
     std::weak_ptr<Listener> _track_listener;
     std::function<std::string()> _get_origin_url;
 #if defined(ENABLE_RTPPROXY)
-    std::mutex _rtp_sender_mtx;
     std::unordered_map<std::string, RtpSender::Ptr> _rtp_sender;
 #endif //ENABLE_RTPPROXY
 

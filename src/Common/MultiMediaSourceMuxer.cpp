@@ -230,7 +230,6 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &, const MediaSourceEvent::
             rtp_sender->addTrack(track);
         }
         rtp_sender->addTrackCompleted();
-        lock_guard<mutex> lck(strong_self->_rtp_sender_mtx);
         strong_self->_rtp_sender[args.ssrc] = rtp_sender;
     });
 #else
@@ -249,13 +248,11 @@ bool MultiMediaSourceMuxer::stopSendRtp(MediaSource &sender, const string &ssrc)
     }
     if (ssrc.empty()) {
         //关闭全部
-        lock_guard<mutex> lck(_rtp_sender_mtx);
         auto size = _rtp_sender.size();
         _rtp_sender.clear();
         return size;
     }
     //关闭特定的
-    lock_guard<mutex> lck(_rtp_sender_mtx);
     return _rtp_sender.erase(ssrc);
 #else
     return false;
@@ -340,7 +337,6 @@ void MultiMediaSourceMuxer::resetTracks() {
 #endif
 
 #if defined(ENABLE_RTPPROXY)
-    lock_guard<mutex> lck(_rtp_sender_mtx);
     for (auto &pr : _rtp_sender) {
         pr.second->resetTracks();
     }
@@ -447,7 +443,6 @@ bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
 #endif
 
 #if defined(ENABLE_RTPPROXY)
-    lock_guard<mutex> lck(_rtp_sender_mtx);
     for (auto &pr : _rtp_sender) {
         ret = pr.second->inputFrame(frame) ? true : ret;
     }
