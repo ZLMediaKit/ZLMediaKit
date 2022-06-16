@@ -108,7 +108,7 @@ bool GB28181Process::inputRtp(bool, const char *data, size_t data_len) {
             // CodecG711A
             ref = std::make_shared<RtpReceiverImp>(8000, [this](RtpPacket::Ptr rtp) { onRtpSorted(std::move(rtp)); });
 
-            auto track = std::make_shared<G711Track>(pt == 0 ? CodecG711U : CodecG711A, 8000, 1, 16);
+            auto track = std::make_shared<G711Track>(pt == g711u_pt ? CodecG711U : CodecG711A, 8000, 1, 16);
             _interface->addTrack(track);
             _rtp_decoder[pt] = Factory::getRtpDecoderByTrack(track);
         } else {
