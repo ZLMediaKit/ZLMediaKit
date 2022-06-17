@@ -18,7 +18,6 @@
 #include <unordered_map>
 #include "Extension/Frame.h"
 #include "Extension/Track.h"
-#include "Util/File.h"
 #include "Common/MediaSink.h"
 #include "Common/Stamp.h"
 

@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include "Util/logger.h"
 #include "Util/SSLBox.h"
+#include "Util/File.h"
 #include "Network/TcpServer.h"
 #include "Network/UdpServer.h"
 #include "Thread/WorkThreadPool.h"

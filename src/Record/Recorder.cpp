@@ -10,6 +10,7 @@
 
 #include "Recorder.h"
 #include "Common/config.h"
+#include "Util/File.h"
 #include "Common/MediaSource.h"
 #include "MP4Recorder.h"
 #include "HlsRecorder.h"
