@@ -581,7 +581,7 @@ MediaSource::Ptr MediaSource::createFromMP4(const string &schema, const string &
 /////////////////////////////////////MediaSourceEvent//////////////////////////////////////
 
 void MediaSourceEvent::onReaderChanged(MediaSource &sender, int size){
-    if (size || totalReaderCount(sender)) {
+    if (size) {
         //还有人观看该视频，不触发关闭事件
         _async_close_timer = nullptr;
         return;
@@ -618,7 +618,7 @@ void MediaSourceEvent::onReaderChanged(MediaSource &sender, int size){
             strong_sender->close(false);
         }
         return false;
-    }, nullptr);
+    }, getOwnerPoller(sender));
 }
 
 string MediaSourceEvent::getOriginUrl(MediaSource &sender) const {
