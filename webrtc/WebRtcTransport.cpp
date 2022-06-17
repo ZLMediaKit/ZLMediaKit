@@ -530,7 +530,7 @@ void WebRtcTransportImp::onCheckSdp(SdpType type, RtcSession &sdp) {
     switch (type) {
         case SdpType::answer: onCheckAnswer(sdp); break;
         case SdpType::offer: break;
-        default: /*不可达*/ assert(0); break;
+        default: /* 不可达 */ assert(0); break;
     }
 }
 
