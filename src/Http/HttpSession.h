@@ -97,6 +97,9 @@ protected:
      */
     void onWebSocketDecodeComplete(const WebSocketHeader &header_in) override;
 
+    //重载获取客户端ip
+    std::string get_peer_ip() override;
+
 private:
     void Handle_Req_GET(ssize_t &content_len);
     void Handle_Req_GET_l(ssize_t &content_len, bool sendBody);

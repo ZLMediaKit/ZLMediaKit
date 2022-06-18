@@ -124,6 +124,7 @@ const string kVirtualPath = HTTP_FIELD "virtualPath";
 const string kNotFound = HTTP_FIELD "notFound";
 const string kDirMenu = HTTP_FIELD "dirMenu";
 const string kForbidCacheSuffix = HTTP_FIELD "forbidCacheSuffix";
+const string kForwardedIpHeader = HTTP_FIELD "forwarded_ip_header";
 
 static onceToken token([]() {
     mINI::Instance()[kSendBufSize] = 64 * 1024;
@@ -150,6 +151,7 @@ static onceToken token([]() {
                                                 "</html>"
                                              << endl;
     mINI::Instance()[kForbidCacheSuffix] = "";
+    mINI::Instance()[kForwardedIpHeader] = "";
 });
 
 } // namespace Http
