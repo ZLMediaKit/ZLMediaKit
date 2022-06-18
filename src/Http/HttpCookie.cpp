@@ -29,26 +29,6 @@ void HttpCookie::setHost(const string &host) {
     _host = host;
 }
 
-static long s_gmtoff = 0; //时间差
-static onceToken s_token([]() {
-#ifdef _WIN32
-    TIME_ZONE_INFORMATION tzinfo;
-    DWORD dwStandardDaylight;
-    long bias;
-    dwStandardDaylight = GetTimeZoneInformation(&tzinfo);
-    bias = tzinfo.Bias;
-    if (dwStandardDaylight == TIME_ZONE_ID_STANDARD) {
-        bias += tzinfo.StandardBias;
-    }
-    if (dwStandardDaylight == TIME_ZONE_ID_DAYLIGHT) {
-        bias += tzinfo.DaylightBias;
-    }
-    s_gmtoff = -bias * 60; //时间差(分钟)
-#else
-    s_gmtoff = getLocalTime(time(nullptr)).tm_gmtoff;
-#endif // _WIN32
-});
-
 // from https://gmbabar.wordpress.com/2010/12/01/mktime-slow-use-custom-function/#comment-58
 static time_t time_to_epoch(const struct tm *ltm, int utcdiff) {
     const int mon_days[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
@@ -74,7 +54,7 @@ static time_t timeStrToInt(const string &date) {
     struct tm tt;
     strptime(date.data(), "%a, %b %d %Y %H:%M:%S %Z", &tt);
     // mktime内部有使用互斥锁，非常影响性能
-    return time_to_epoch(&tt, s_gmtoff / 3600); // mktime(&tt);
+    return time_to_epoch(&tt, getGMTOff() / 3600); // mktime(&tt);
 }
 
 void HttpCookie::setExpires(const string &expires, const string &server_date) {
