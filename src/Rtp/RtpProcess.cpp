@@ -277,5 +277,9 @@ std::shared_ptr<SockInfo> RtpProcess::getOriginSock(MediaSource &sender) const {
     return const_cast<RtpProcess *>(this)->shared_from_this();
 }
 
+toolkit::EventPoller::Ptr RtpProcess::getOwnerPoller(MediaSource &sender) {
+    return _sock ? _sock->getPoller() : nullptr;
+}
+
 }//namespace mediakit
 #endif//defined(ENABLE_RTPPROXY)
