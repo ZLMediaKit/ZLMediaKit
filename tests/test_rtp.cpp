@@ -38,6 +38,7 @@ static bool loadFile(const char *path){
     uint16_t len;
     char rtp[0xFFFF];
     struct sockaddr_storage addr = {0};
+    addr.ss_family = AF_INET;
     auto sock = Socket::createSocket();
     size_t total_size = 0;
     while (true) {
