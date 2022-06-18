@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
@@ -48,6 +48,7 @@ const string kOnServerKeepalive = HOOK_FIELD"on_server_keepalive";
 const string kAdminParams = HOOK_FIELD"admin_params";
 const string kAliveInterval = HOOK_FIELD"alive_interval";
 const string kRetry = HOOK_FIELD"retry";
+const string kRetryDelay = HOOK_FIELD"retry_delay";
 
 onceToken token([](){
     mINI::Instance()[kEnable] = false;
@@ -69,8 +70,8 @@ onceToken token([](){
     mINI::Instance()[kOnServerKeepalive] = "";
     mINI::Instance()[kAdminParams] = "secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc";
     mINI::Instance()[kAliveInterval] = 30.0;
-    mINI::Instance()[kRetry] = 0;
-
+    mINI::Instance()[kRetry] = 1;
+    mINI::Instance()[kRetryDelay] = 3.0;
 },nullptr);
 }//namespace Hook
 
@@ -87,8 +88,6 @@ static onceToken token([]() {
 });
 
 }//namespace Cluster
-
-void do_http_process(HttpRequester::Ptr &requester,const string &url, const string& bodyStr, const function<void(const Value &,const string &)> &func,int retry,float timeout_sec);
 
 static void parse_http_response(const SockException &ex, const Parser &res,
                                 const function<void(const Value &,const string &)> &fun){
@@ -152,10 +151,10 @@ string getVhost(const HttpArgs &value) {
     return val != value.end() ? val->second : "";
 }
 
-void do_http_hook(const string &url,const ArgsType &body,const function<void(const Value &,const string &)> &func){
+void do_http_hook(const string &url, const ArgsType &body, const function<void(const Value &, const string &)> &func, uint32_t retry) {
     GET_CONFIG(string, mediaServerId, General::kMediaServerId);
     GET_CONFIG(float, hook_timeoutSec, Hook::kTimeoutSec);
-	GET_CONFIG(int, hook_retry, Hook::kRetry);
+    GET_CONFIG(float, retry_delay, Hook::kRetryDelay);
 
     const_cast<ArgsType &>(body)["mediaServerId"] = mediaServerId;
     HttpRequester::Ptr requester(new HttpRequester);
@@ -167,35 +166,38 @@ void do_http_hook(const string &url,const ArgsType &body,const function<void(con
     if (!vhost.empty()) {
         requester->addHeader("X-VHOST", vhost);
     }
-	
-	do_http_process(requester,url,bodyStr,func,hook_retry,hook_timeoutSec);
-}
+    Ticker ticker;
+    requester->startRequester(url, [url, func, bodyStr, body, requester, ticker, retry](const SockException &ex, const Parser &res) mutable {
+            onceToken token(nullptr, [&]() mutable { requester.reset(); });
+            parse_http_response(ex, res, [&](const Value &obj, const string &err) {
+            if (!err.empty()) {
+                // hook失败
+                WarnL << "hook " << url << " " << ticker.elapsedTime() << "ms,failed" << err << ":" << bodyStr;
 
-void do_http_process(HttpRequester::Ptr &requester,const string &url, const string& bodyStr, const function<void(const Value &,const string &)> &func,int retry,float timeout_sec){
-    
-    std::shared_ptr<Ticker> pTicker(new Ticker);
-    requester->startRequester(url, [url, func, bodyStr, requester, pTicker,retry,timeout_sec](const SockException &ex,
-                                                                            const Parser &res) mutable{
-        onceToken token(nullptr, [&]() mutable{
-            requester.reset();
-        });
-        parse_http_response(ex, res, [&](const Value &obj, const string &err) {
+                if (retry-- > 0) {
+                    requester->getPoller()->doDelayTask(MAX(retry_delay, 0.0) * 1000, [url, body, func, retry] {
+                        do_http_hook(url, body, func, retry);
+                        return 0;
+                    });
+                    //重试不需要触发回调
+                    return;
+                }
+
+            } else if (ticker.elapsedTime() > 500) {
+                //hook成功，但是hook响应超过500ms，打印警告日志
+                DebugL << "hook " << url << " " << ticker.elapsedTime() << "ms,success:" << bodyStr;
+            }
+
             if (func) {
                 func(obj, err);
             }
-            if (!err.empty()) {
-                WarnL << "hook " << url << " " << pTicker->elapsedTime() << "ms,failed" << err << ":" << bodyStr;
-            } else if (pTicker->elapsedTime() > 500) {
-                DebugL << "hook " << url << " " << pTicker->elapsedTime() << "ms,success:" << bodyStr;
-            }
-            //尾部递归重试
-            if (!err.empty() && retry-- > 0) {
-                 //WarnL << "----------------hook retry------------------ " << retry ;
-				 HttpRequester::Ptr requester(new HttpRequester);
-                 do_http_process(requester,url,bodyStr,func,retry,timeout_sec);   
-            }
         });
-    }, timeout_sec);
+    }, hook_timeoutSec);
+}
+
+void do_http_hook(const string &url, const ArgsType &body, const function<void(const Value &, const string &)> &func) {
+    GET_CONFIG(uint32_t, hook_retry, Hook::kRetry);
+    do_http_hook(url, body, func, hook_retry);
 }
 
 static ArgsType make_json(const MediaInfo &args){
