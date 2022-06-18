@@ -278,7 +278,7 @@ std::shared_ptr<SockInfo> RtpProcess::getOriginSock(MediaSource &sender) const {
 }
 
 toolkit::EventPoller::Ptr RtpProcess::getOwnerPoller(MediaSource &sender) {
-    return _sock ? _sock->getPoller() : MediaSourceEventInterceptor::getOwnerPoller(sender);
+    return _sock ? _sock->getPoller() : nullptr;
 }
 
 }//namespace mediakit
