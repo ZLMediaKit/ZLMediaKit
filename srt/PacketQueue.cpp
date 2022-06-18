@@ -237,11 +237,16 @@ std::string PacketQueue::dump() {
 
 //////////////////// PacketRecvQueue //////////////////////////////////
 
-PacketRecvQueue::PacketRecvQueue(uint32_t max_size, uint32_t init_seq, uint32_t latency)
+PacketRecvQueue::PacketRecvQueue(uint32_t max_size, uint32_t init_seq, uint32_t latency,uint32_t flag)
     : _pkt_cap(max_size)
     , _pkt_latency(latency)
     , _pkt_expected_seq(init_seq)
-    , _pkt_buf(max_size) {}
+    , _pkt_buf(max_size)
+    , _srt_flag(flag) {}
+
+bool  PacketRecvQueue::TLPKTDrop(){
+    return (_srt_flag&HSExtMessage::HS_EXT_MSG_TLPKTDROP) && (_srt_flag &HSExtMessage::HS_EXT_MSG_TSBPDRCV);
+}
 bool PacketRecvQueue::inputPacket(DataPacket::Ptr pkt, std::list<DataPacket::Ptr> &out) {
     // TraceL << dump() << " seq:" << pkt->packet_seq_number;
     while (_size > 0 && _start == _end) {
@@ -265,7 +270,7 @@ bool PacketRecvQueue::inputPacket(DataPacket::Ptr pkt, std::list<DataPacket::Ptr
         _start = (_start + 1) % _pkt_cap;
         it = _pkt_buf[_start];
     }
-    while (timeLatency() > _pkt_latency) {
+    while (timeLatency() > _pkt_latency && TLPKTDrop()) {
         it = _pkt_buf[_start];
         if (it) {
             _pkt_buf[_start] = nullptr;
