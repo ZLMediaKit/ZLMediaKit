@@ -13,6 +13,7 @@ android {
             externalNativeBuild {
                 cmake {
                     cppFlags "-std=c++11 -frtti -fexceptions"
+                    arguments "-DENABLE_API=off", "-DENABLE_TESTS=off", "-DENABLE_PLAYER=off", "-DENABLE_SERVER_LIB=on"
                 }
             }
             ndk {
