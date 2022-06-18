@@ -3,6 +3,14 @@ file(GLOB jsoncpp_src_list ../3rdpart/jsoncpp/*.cpp ../3rdpart/jsoncpp/*.h )
 add_library(jsoncpp STATIC ${jsoncpp_src_list})
 file(GLOB MediaServer_src_list ./*.cpp ./*.h)
 
+if (ENABLE_SERVER_LIB)
+	add_definitions(-DDISABLE_MAIN)
+	add_library(MediaServer STATIC ${MediaServer_src_list})
+	list(APPEND LINK_LIB_LIST MediaServer jsoncpp)
+	set(LINK_LIB_LIST ${LINK_LIB_LIST} PARENT_SCOPE)
+	return()
+endif ()
+
 add_executable(MediaServer ${MediaServer_src_list})
 
 if(MSVC)

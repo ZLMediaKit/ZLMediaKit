@@ -15,92 +15,94 @@
 #include "Common/config.h"
 #include "Player/MediaPlayer.h"
 #include "Extension/Frame.h"
+
 using namespace std;
 using namespace toolkit;
 using namespace mediakit;
 
-#define JNI_API(retType,funName,...) extern "C"  JNIEXPORT retType Java_com_zlmediakit_jni_ZLMediaKit_##funName(JNIEnv* env, jclass cls,##__VA_ARGS__)
+#define JNI_API(retType, funName, ...) extern "C"  JNIEXPORT retType Java_com_zlmediakit_jni_ZLMediaKit_##funName(JNIEnv* env, jclass cls,##__VA_ARGS__)
 #define MediaPlayerCallBackSign "com/zlmediakit/jni/ZLMediaKit$MediaPlayerCallBack"
 #define MediaFrameSign "com/zlmediakit/jni/ZLMediaKit$MediaFrame"
 
-
-string stringFromJstring(JNIEnv *env,jstring jstr){
-    if(!env || !jstr){
+string stringFromJstring(JNIEnv *env, jstring jstr) {
+    if (!env || !jstr) {
         WarnL << "invalid args";
         return "";
     }
     const char *field_char = env->GetStringUTFChars(jstr, 0);
-    string ret(field_char,env->GetStringUTFLength(jstr));
+    string ret(field_char, env->GetStringUTFLength(jstr));
     env->ReleaseStringUTFChars(jstr, field_char);
     return ret;
 }
-string stringFromJbytes(JNIEnv *env,jbyteArray jbytes){
-    if(!env || !jbytes){
+
+string stringFromJbytes(JNIEnv *env, jbyteArray jbytes) {
+    if (!env || !jbytes) {
         WarnL << "invalid args";
         return "";
     }
     jbyte *bytes = env->GetByteArrayElements(jbytes, 0);
-    string ret((char *)bytes,env->GetArrayLength(jbytes));
-    env->ReleaseByteArrayElements(jbytes,bytes,0);
+    string ret((char *) bytes, env->GetArrayLength(jbytes));
+    env->ReleaseByteArrayElements(jbytes, bytes, 0);
     return ret;
 }
-string stringFieldFromJava(JNIEnv *env,  jobject jdata,jfieldID jid){
-    if(!env || !jdata || !jid){
+
+string stringFieldFromJava(JNIEnv *env, jobject jdata, jfieldID jid) {
+    if (!env || !jdata || !jid) {
         WarnL << "invalid args";
         return "";
     }
-    jstring field_str = (jstring)env->GetObjectField(jdata,jid);
-    auto ret = stringFromJstring(env,field_str);
+    jstring field_str = (jstring) env->GetObjectField(jdata, jid);
+    auto ret = stringFromJstring(env, field_str);
     env->DeleteLocalRef(field_str);
     return ret;
 }
 
-string bytesFieldFromJava(JNIEnv *env,  jobject jdata,jfieldID jid){
-    if(!env || !jdata || !jid){
+string bytesFieldFromJava(JNIEnv *env, jobject jdata, jfieldID jid) {
+    if (!env || !jdata || !jid) {
         WarnL << "invalid args";
         return "";
     }
-    jbyteArray jbufArray = (jbyteArray)env->GetObjectField(jdata, jid);
-    string ret = stringFromJbytes(env,jbufArray);
+    jbyteArray jbufArray = (jbyteArray) env->GetObjectField(jdata, jid);
+    string ret = stringFromJbytes(env, jbufArray);
     env->DeleteLocalRef(jbufArray);
     return ret;
 }
 
-jstring jstringFromString(JNIEnv* env, const char* pat) {
-    return (jstring)env->NewStringUTF(pat);
+jstring jstringFromString(JNIEnv *env, const char *pat) {
+    return (jstring) env->NewStringUTF(pat);
 }
 
-jbyteArray jbyteArrayFromString(JNIEnv* env, const char* pat,int len = 0){
-    if(len <= 0){
+jbyteArray jbyteArrayFromString(JNIEnv *env, const char *pat, int len = 0) {
+    if (len <= 0) {
         len = strlen(pat);
     }
     jbyteArray jarray = env->NewByteArray(len);
-    env->SetByteArrayRegion(jarray, 0, len, (jbyte *)(pat));
+    env->SetByteArrayRegion(jarray, 0, len, (jbyte * )(pat));
     return jarray;
 }
 
-jobject makeJavaFrame(JNIEnv* env,const Frame::Ptr &frame){
-    static jclass jclass_obj = (jclass)env->NewGlobalRef(env->FindClass(MediaFrameSign));
+jobject makeJavaFrame(JNIEnv *env, const Frame::Ptr &frame) {
+    static jclass jclass_obj = (jclass) env->NewGlobalRef(env->FindClass(MediaFrameSign));
     static jmethodID jmethodID_init = env->GetMethodID(jclass_obj, "<init>", "()V");
-    static jfieldID jfieldID_dts = env->GetFieldID(jclass_obj,"dts","I");
-    static jfieldID jfieldID_pts = env->GetFieldID(jclass_obj,"pts","I");
-    static jfieldID jfieldID_prefixSize = env->GetFieldID(jclass_obj,"prefixSize","I");
-    static jfieldID jfieldID_keyFrame = env->GetFieldID(jclass_obj,"keyFrame","Z");
-    static jfieldID jfieldID_data = env->GetFieldID(jclass_obj,"data","[B");
-    static jfieldID jfieldID_trackType = env->GetFieldID(jclass_obj,"trackType","I");
-    static jfieldID jfieldID_codecId = env->GetFieldID(jclass_obj,"codecId","I");
+    static jfieldID jfieldID_dts = env->GetFieldID(jclass_obj, "dts", "I");
+    static jfieldID jfieldID_pts = env->GetFieldID(jclass_obj, "pts", "I");
+    static jfieldID jfieldID_prefixSize = env->GetFieldID(jclass_obj, "prefixSize", "I");
+    static jfieldID jfieldID_keyFrame = env->GetFieldID(jclass_obj, "keyFrame", "Z");
+    static jfieldID jfieldID_data = env->GetFieldID(jclass_obj, "data", "[B");
+    static jfieldID jfieldID_trackType = env->GetFieldID(jclass_obj, "trackType", "I");
+    static jfieldID jfieldID_codecId = env->GetFieldID(jclass_obj, "codecId", "I");
 
-    if(!frame){
+    if (!frame) {
         return nullptr;
     }
     jobject ret = env->NewObject(jclass_obj, jmethodID_init);
-    env->SetIntField(ret,jfieldID_dts,frame->dts());
-    env->SetIntField(ret,jfieldID_pts,frame->pts());
-    env->SetIntField(ret,jfieldID_prefixSize,frame->prefixSize());
-    env->SetBooleanField(ret,jfieldID_keyFrame,frame->keyFrame());
-    env->SetObjectField(ret,jfieldID_data,jbyteArrayFromString(env,frame->data(),frame->size()));
-    env->SetIntField(ret,jfieldID_trackType,frame->getTrackType());
-    env->SetIntField(ret,jfieldID_codecId,frame->getCodecId());
+    env->SetIntField(ret, jfieldID_dts, frame->dts());
+    env->SetIntField(ret, jfieldID_pts, frame->pts());
+    env->SetIntField(ret, jfieldID_prefixSize, frame->prefixSize());
+    env->SetBooleanField(ret, jfieldID_keyFrame, frame->keyFrame());
+    env->SetObjectField(ret, jfieldID_data, jbyteArrayFromString(env, frame->data(), frame->size()));
+    env->SetIntField(ret, jfieldID_trackType, frame->getTrackType());
+    env->SetIntField(ret, jfieldID_codecId, frame->getCodecId());
     return ret;
 }
 
@@ -160,7 +162,8 @@ JNIEXPORT void JNICALL JNI_OnUnload(JavaVM* vm, void* reserved){
 }
 
 extern int start_main(int argc,char *argv[]);
-JNI_API(jboolean,startDemo,jstring ini_dir){
+
+JNI_API(jboolean, startDemo, jstring ini_dir){
     string sd_path = stringFromJstring(env,ini_dir);
     string ini_file = sd_path +  "/zlmediakit.ini";
 
@@ -185,9 +188,9 @@ JNI_API(jboolean,startDemo,jstring ini_dir){
             mINI::Instance()["rtsp.port"] = 8554;
             mINI::Instance()["rtsp.sslport"] = 8332;
             mINI::Instance()["general.enableVhost"] = 0;
-            for(auto &pr : mINI::Instance()){
+            for (auto &pr : mINI::Instance()) {
                 //替换hook默认地址
-                replace(pr.second,"https://127.0.0.1/","http://127.0.0.1:8080/");
+                replace(pr.second, "https://127.0.0.1/", "http://127.0.0.1:8080/");
             }
             //默认打开hook
             mINI::Instance()["hook.enable"] = 0;
@@ -195,10 +198,9 @@ JNI_API(jboolean,startDemo,jstring ini_dir){
             mINI::Instance()["api.apiDebug"] = 1;
 
             int argc = 5;
-            const char *argv[] = {"","-c",ini_file.data(),"-s",pem_file.data()};
-
-            start_main(argc,(char **)argv);
-        }catch (std::exception &ex){
+            const char *argv[] = {"", "-c", ini_file.data(), "-s", pem_file.data()};
+            start_main(argc, (char **) argv);
+        } catch (std::exception &ex) {
             WarnL << ex.what();
         }
     });
@@ -210,7 +212,7 @@ JNI_API(jboolean,startDemo,jstring ini_dir){
     return true;
 };
 
-JNI_API(jlong,createMediaPlayer,jstring url,jobject callback){
+JNI_API(jlong, createMediaPlayer, jstring url, jobject callback){
     static auto loadFrameClass = makeJavaFrame(env,nullptr);
     MediaPlayer::Ptr *ret = new MediaPlayer::Ptr(new MediaPlayer());
     MediaPlayer::Ptr &player = *ret;
@@ -259,8 +261,6 @@ JNI_API(jlong,createMediaPlayer,jstring url,jobject callback){
 
     return (jlong)(ret);
 }
-
-
 
 JNI_API(void,releaseMediaPlayer,jlong ptr){
     MediaPlayer::Ptr *player = (MediaPlayer::Ptr *)ptr;
