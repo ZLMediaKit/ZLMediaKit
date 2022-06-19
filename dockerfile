@@ -1,7 +1,6 @@
 FROM ubuntu:18.04 AS build
 ARG MODEL
 #shell,rtmp,rtsp,rtsps,http,https,rtp
-EXPOSE 9000/tcp
 EXPOSE 1935/tcp
 EXPOSE 554/tcp
 EXPOSE 80/tcp
@@ -9,6 +8,7 @@ EXPOSE 443/tcp
 EXPOSE 10000/udp
 EXPOSE 10000/tcp
 EXPOSE 8000/udp
+EXPOSE 9000/udp
 
 # ADD sources.list /etc/apt/sources.list
 
