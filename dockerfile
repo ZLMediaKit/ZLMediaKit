@@ -33,7 +33,7 @@ RUN apt-get update && \
          apt-get autoremove -y && \
          apt-get clean -y && \
          wget https://github.com/cisco/libsrtp/archive/v2.2.0.tar.gz -O libsrtp-2.2.0.tar.gz && tar xfv libsrtp-2.2.0.tar.gz && \
-         cd libsrtp-2.2.0 && ./configure --enable-openssl && make -j ${nproc} && make install && \
+         cd libsrtp-2.2.0 && ./configure --enable-openssl && make -j $(nproc) && make install && \
     rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /opt/media
@@ -44,7 +44,7 @@ RUN mkdir -p build release/linux/${MODEL}/
 
 WORKDIR /opt/media/ZLMediaKit/build
 RUN cmake -DCMAKE_BUILD_TYPE=${MODEL} -DENABLE_WEBRTC=true -DENABLE_TESTS=false -DENABLE_API=false .. && \
-    make -j ${nproc}
+    make -j $(nproc)
 
 FROM ubuntu:18.04
 ARG MODEL
