@@ -28,7 +28,7 @@ jobs:
       run: cd 3rdpart/libsrtp && ./configure --enable-openssl && make -j4 && sudo make install
 
     - name: 编译
-      run: mkdir -p linux_build && cd linux_build && cmake .. -DENABLE_WEBRTC:BOOL=TRUE && make -j ${nproc}
+      run: mkdir -p linux_build && cd linux_build && cmake .. -DENABLE_WEBRTC:BOOL=TRUE && make -j $(nproc)
 
     - name: 运行MediaServer
       run: pwd && cd release/linux/Debug && sudo ./MediaServer -d &
