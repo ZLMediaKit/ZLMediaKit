@@ -182,9 +182,9 @@ void SrtTransport::handleHandshakeConclusion(HandshakePacket &pkt, struct sockad
         }
         if (req) {
             if (req->srt_flag != srt_flag) {
-                WarnL << " not support flag " << req->srt_flag;
+                WarnL << "  flag " << req->srt_flag;
             }
-            // srt_flag = req->srt_flag;
+            srt_flag = req->srt_flag;
             delay = delay <= req->recv_tsbpd_delay ? req->recv_tsbpd_delay : delay;
         }
         TraceL << getIdentifier() << " CONCLUSION Phase ";
@@ -214,8 +214,8 @@ void SrtTransport::handleHandshakeConclusion(HandshakePacket &pkt, struct sockad
         sendControlPacket(res, true);
         TraceL << " buf size = " << res->max_flow_window_size << " init seq =" << _init_seq_number
                << " latency=" << delay;
-        _recv_buf = std::make_shared<PacketRecvQueue>(getPktBufSize(), _init_seq_number, delay * 1e3);
-        _send_buf = std::make_shared<PacketSendQueue>(getPktBufSize(), delay * 1e3);
+        _recv_buf = std::make_shared<PacketRecvQueue>(getPktBufSize(), _init_seq_number, delay * 1e3,srt_flag);
+        _send_buf = std::make_shared<PacketSendQueue>(getPktBufSize(), delay * 1e3,srt_flag);
         _send_packet_seq_number = _init_seq_number;
         _buf_delay = delay;
         onHandShakeFinished(_stream_id, addr);
@@ -413,6 +413,7 @@ void SrtTransport::sendACKPacket() {
     _last_ack_pkt_seq_num = pkt->last_ack_pkt_seq_number;
     sendControlPacket(pkt, true);
     // TraceL<<"send  ack "<<pkt->dump();
+    // TraceL<<_recv_buf->dump();
 }
 
 void SrtTransport::sendLightACKPacket() {
