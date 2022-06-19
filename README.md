@@ -140,11 +140,8 @@
 你可以从Docker Hub下载已经编译好的镜像并启动它：
 
 ```bash
-#此镜像为zlmediakit开发团队提供，推荐
-docker run -id -p 1935:1935 -p 8080:80 -p 8554:554 -p 10000:10000 -p 10000:10000/udp -p 8000:8000/udp zlmediakit/zlmediakit:Release.last
-
-#此镜像委托第三方提供
-docker run -id -p 1935:1935 -p 8080:80 -p 8554:554 -p 10000:10000 -p 10000:10000/udp panjjo/zlmediakit
+#此镜像为github持续集成自动编译推送，跟代码(master分支)保持最新状态
+docker run -id -p 1935:1935 -p 8080:80 -p 8443:443 -p 8554:554 -p 10000:10000 -p 10000:10000/udp -p 8000:8000/udp -p 9000:9000/udp zlmediakit/zlmediakit:master
 ```
 
 你也可以根据Dockerfile编译镜像：
