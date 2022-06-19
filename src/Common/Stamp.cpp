@@ -11,7 +11,7 @@
 #include "Stamp.h"
 
 //时间戳最大允许跳变30秒，主要是防止网络抖动导致的跳变
-#define MAX_DELTA_STAMP (30 * 1000)
+#define MAX_DELTA_STAMP (3 * 1000)
 #define STAMP_LOOP_DELTA (60 * 1000)
 #define MAX_CTS 500
 #define ABS(x) ((x) > 0 ? (x) : (-x))

@@ -670,6 +670,11 @@ bool HttpSession::emitHttpEvent(bool doInvoke){
     return consumed;
 }
 
+std::string HttpSession::get_peer_ip() {
+    GET_CONFIG(string, forwarded_ip_header, Http::kForwardedIpHeader);
+    return forwarded_ip_header.empty() ? TcpSession::get_peer_ip() : _parser.getHeader()[forwarded_ip_header];
+}
+
 void HttpSession::Handle_Req_POST(ssize_t &content_len) {
     GET_CONFIG(size_t,maxReqSize,Http::kMaxReqSize);
 

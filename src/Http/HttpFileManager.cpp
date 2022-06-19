@@ -465,6 +465,12 @@ static string getFilePath(const Parser &parser,const MediaInfo &media_info, TcpS
         path = rootPath;
         url = parser.Url();
     }
+    for (auto &ch : url) {
+        if (ch == '\\') {
+            //如果url中存在"\"，这种目录是Windows样式的；需要批量转换为标准的"/"; 防止访问目录权限外的文件
+            ch = '/';
+        }
+    }
     auto ret = File::absolutePath(enableVhost ? media_info._vhost + url : url, path);
     NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpBeforeAccess, parser, ret, static_cast<SockInfo &>(sender));
     return ret;

@@ -491,9 +491,15 @@ void RtspPlayer::onRtpPacket(const char *data, size_t len) {
     uint8_t interleaved = data[1];
     if(interleaved %2 == 0){
         trackIdx = getTrackIndexByInterleaved(interleaved);
+        if (trackIdx == -1) {
+            return;
+        }
         handleOneRtp(trackIdx, _sdp_track[trackIdx]->_type, _sdp_track[trackIdx]->_samplerate, (uint8_t *)data + RtpPacket::kRtpTcpHeaderSize, len - RtpPacket::kRtpTcpHeaderSize);
     }else{
         trackIdx = getTrackIndexByInterleaved(interleaved - 1);
+        if (trackIdx == -1) {
+            return;
+        }
         onRtcpPacket(trackIdx, _sdp_track[trackIdx], (uint8_t *) data + RtpPacket::kRtpTcpHeaderSize, len - RtpPacket::kRtpTcpHeaderSize);
     }
 }
@@ -711,7 +717,8 @@ int RtspPlayer::getTrackIndexByInterleaved(int interleaved) const {
     if (_sdp_track.size() == 1) {
         return 0;
     }
-    throw SockException(Err_shutdown, StrPrinter << "no such track with interleaved:" << interleaved);
+    WarnL << "no such track with interleaved:" << interleaved;
+    return -1;
 }
 
 int RtspPlayer::getTrackIndexByTrackType(TrackType track_type) const {

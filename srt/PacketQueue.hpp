@@ -65,7 +65,7 @@ class PacketRecvQueue : public PacketQueueInterface {
 public:
     using Ptr = std::shared_ptr<PacketRecvQueue>;
 
-    PacketRecvQueue(uint32_t max_size, uint32_t init_seq, uint32_t latency);
+    PacketRecvQueue(uint32_t max_size, uint32_t init_seq, uint32_t latency,uint32_t flag = 0xbf);
     ~PacketRecvQueue() = default;
     bool inputPacket(DataPacket::Ptr pkt, std::list<DataPacket::Ptr> &out);
 
@@ -85,11 +85,14 @@ private:
     void insertToCycleBuf(DataPacket::Ptr pkt, uint32_t diff);
     DataPacket::Ptr getFirst();
     DataPacket::Ptr getLast();
+    bool TLPKTDrop();
 
 private:
     uint32_t _pkt_cap;
     uint32_t _pkt_latency;
     uint32_t _pkt_expected_seq;
+
+    uint32_t _srt_flag;
 
     std::vector<DataPacket::Ptr> _pkt_buf;
     uint32_t _start = 0;

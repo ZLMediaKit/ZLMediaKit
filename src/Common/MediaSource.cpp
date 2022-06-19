@@ -233,10 +233,17 @@ toolkit::EventPoller::Ptr MediaSource::getOwnerPoller() {
 }
 
 void MediaSource::onReaderChanged(int size) {
-    auto listener = _listener.lock();
-    if (listener) {
-        listener->onReaderChanged(*this, size);
-    }
+    weak_ptr<MediaSource> weak_self = shared_from_this();
+    getOwnerPoller()->async([weak_self, size]() {
+        auto strong_self = weak_self.lock();
+        if (!strong_self) {
+            return;
+        }
+        auto listener = strong_self->_listener.lock();
+        if (listener) {
+            listener->onReaderChanged(*strong_self, size);
+        }
+    });
 }
 
 bool MediaSource::setupRecord(Recorder::type type, bool start, const string &custom_path, size_t max_second){
@@ -581,7 +588,7 @@ MediaSource::Ptr MediaSource::createFromMP4(const string &schema, const string &
 /////////////////////////////////////MediaSourceEvent//////////////////////////////////////
 
 void MediaSourceEvent::onReaderChanged(MediaSource &sender, int size){
-    if (size) {
+    if (size || totalReaderCount(sender)) {
         //还有人观看该视频，不触发关闭事件
         _async_close_timer = nullptr;
         return;
@@ -618,7 +625,7 @@ void MediaSourceEvent::onReaderChanged(MediaSource &sender, int size){
             strong_sender->close(false);
         }
         return false;
-    }, getOwnerPoller(sender));
+    }, nullptr);
 }
 
 string MediaSourceEvent::getOriginUrl(MediaSource &sender) const {

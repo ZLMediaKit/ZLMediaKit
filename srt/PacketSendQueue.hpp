@@ -16,7 +16,7 @@ public:
     using Ptr = std::shared_ptr<PacketSendQueue>;
     using LostPair = std::pair<uint32_t, uint32_t>;
 
-    PacketSendQueue(uint32_t max_size, uint32_t latency);
+    PacketSendQueue(uint32_t max_size, uint32_t latency,uint32_t flag = 0xbf);
     ~PacketSendQueue() = default;
 
     bool drop(uint32_t num);
@@ -25,7 +25,9 @@ public:
 
 private:
     uint32_t timeLatency();
+    bool TLPKTDrop();
 private:
+    uint32_t _srt_flag;
     uint32_t _pkt_cap;
     uint32_t _pkt_latency;
     std::list<DataPacket::Ptr> _pkt_cache;
