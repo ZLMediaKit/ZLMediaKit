@@ -16,7 +16,7 @@ jobs:
         cache: gradle
 
     - name: 下载submodule源码
-      run: git submodule update --init
+      run: mv -f .gitmodules_github .gitmodules && git submodule sync && git submodule update --init
 
     - name: 赋予gradlew文件可执行权限
       run: chmod +x ./Android/gradlew

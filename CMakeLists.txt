@@ -308,7 +308,7 @@ if (JEMALLOC_FOUND)
 endif ()
 
 #查找openssl是否安装
-find_package(OPENSSL QUIET)
+find_package(OpenSSL QUIET)
 if (OPENSSL_FOUND AND ENABLE_OPENSSL)
     message(STATUS "found library:${OPENSSL_LIBRARIES},ENABLE_OPENSSL defined")
     include_directories(${OPENSSL_INCLUDE_DIR})
