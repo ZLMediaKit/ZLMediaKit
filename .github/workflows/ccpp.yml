@@ -11,7 +11,7 @@ jobs:
     - uses: actions/checkout@v1
 
     - name: 下载submodule源码
-      run: git submodule update --init
+      run: mv -f .gitmodules_github .gitmodules && git submodule sync && git submodule update --init
 
     - name: apt-get安装依赖库(非必选)
       run: sudo apt-get update && sudo apt-get install -y cmake  libssl-dev libsdl-dev libavcodec-dev libavutil-dev
@@ -28,7 +28,7 @@ jobs:
       run: cd 3rdpart/libsrtp && ./configure --enable-openssl && make -j4 && sudo make install
 
     - name: 编译
-      run: mkdir -p linux_build && cd linux_build && cmake .. -DENABLE_WEBRTC:BOOL=TRUE && make -j4
+      run: mkdir -p linux_build && cd linux_build && cmake .. -DENABLE_WEBRTC:BOOL=TRUE && make -j $(nproc)
 
     - name: 运行MediaServer
       run: pwd && cd release/linux/Debug && sudo ./MediaServer -d &
