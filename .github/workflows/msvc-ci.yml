@@ -8,9 +8,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v1
-        with:
-          submodules: 'recursive'
-          fetch-depth: 1
+
+      - name: 下载submodule源码
+        run: mv -Force .gitmodules_github .gitmodules && git submodule sync && git submodule update --init
 
       - name: 配置 vcpkg
         uses: lukka/run-vcpkg@v7

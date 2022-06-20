@@ -11,7 +11,7 @@ jobs:
     - uses: actions/checkout@v1
 
     - name: 下载submodule源码
-      run: git submodule update --init
+      run: mv -f .gitmodules_github .gitmodules && git submodule sync && git submodule update --init
 
 #    - name: 安装brew
 #      run: ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
@@ -31,7 +31,7 @@ jobs:
 #      run: cd 3rdpart/libsrtp && ./configure --enable-openssl && make -j4 && sudo make install
 
     - name: 编译
-      run: mkdir -p build && cd build && cmake .. && make -j4
+      run: mkdir -p build && cd build && cmake .. &&  make -j $(nproc)
 
     - name: 运行MediaServer
       run: pwd && cd release/linux/Debug && sudo ./MediaServer -d &
