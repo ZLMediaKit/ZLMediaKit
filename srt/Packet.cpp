@@ -230,7 +230,7 @@ std::string HandshakePacket::dump(){
     printer <<"flag:"<< (int)f<<"\r\n";
     printer <<"control_type:"<< (int)control_type<<"\r\n";
     printer <<"sub_type:"<< (int)sub_type<<"\r\n";
-    printer <<"type_specific_info:"<< type_specific_info[0]<<":"<<type_specific_info[1]<<":"<<type_specific_info[2]<<":"<<type_specific_info[3]<<"\r\n";
+    printer <<"type_specific_info:"<< (int)type_specific_info[0]<<":"<<(int)type_specific_info[1]<<":"<<(int)type_specific_info[2]<<":"<<(int)type_specific_info[3]<<"\r\n";
     printer <<"timestamp:"<< timestamp<<"\r\n";
     printer <<"dst_socket_id:"<< dst_socket_id<<"\r\n";
 
@@ -245,7 +245,7 @@ std::string HandshakePacket::dump(){
     printer <<"syn_cookie:"<< syn_cookie<<"\r\n";
     printer <<"peer_ip_addr:";
     for(size_t i=0;i<sizeof(peer_ip_addr);++i){
-        printer<<peer_ip_addr[i]<<":";
+        printer<<(int)peer_ip_addr[i]<<":";
     }
     printer<<"\r\n";
 
