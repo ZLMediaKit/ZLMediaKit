@@ -228,7 +228,10 @@ void SrtTransport::handleHandshakeConclusion(HandshakePacket &pkt, struct sockad
 
 void SrtTransport::handleHandshake(uint8_t *buf, int len, struct sockaddr_storage *addr) {
     HandshakePacket pkt;
-    assert(pkt.loadFromData(buf, len));
+    if(!pkt.loadFromData(buf, len)){
+        WarnL<<"is not vaild HandshakePacket";
+        return;
+    }
 
     if (pkt.handshake_type == HandshakePacket::HS_TYPE_INDUCTION) {
         handleHandshakeInduction(pkt, addr);
