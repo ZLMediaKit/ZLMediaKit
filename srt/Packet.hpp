@@ -189,7 +189,7 @@ public:
     static uint32_t getSynCookie(uint8_t *buf, size_t len);
     static uint32_t
     generateSynCookie(struct sockaddr_storage *addr, TimePoint ts, uint32_t current_cookie = 0, int correction = 0);
-
+    std::string dump();
     void assignPeerIP(struct sockaddr_storage *addr);
     ///////ControlPacket override///////
     bool loadFromData(uint8_t *buf, size_t len) override;

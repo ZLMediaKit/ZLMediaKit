@@ -236,6 +236,7 @@ void SrtTransport::handleHandshake(uint8_t *buf, int len, struct sockaddr_storag
         handleHandshakeConclusion(pkt, addr);
     } else {
         WarnL << " not support handshake type = " << pkt.handshake_type;
+        WarnL <<pkt.dump();
     }
     _ack_ticker.resetTime(_now);
     _nak_ticker.resetTime(_now);
