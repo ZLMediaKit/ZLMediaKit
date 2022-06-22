@@ -86,6 +86,7 @@ void SrtTransport::inputSockData(uint8_t *buf, int len, struct sockaddr_storage 
 
             handleDataPacket(buf, len, addr);
         } else {
+            WarnL<<"DataPacket switch to other transport: "<<socketId;
             switchToOtherTransport(buf, len, socketId, addr);
         }
     } else {
@@ -94,6 +95,7 @@ void SrtTransport::inputSockData(uint8_t *buf, int len, struct sockaddr_storage 
             uint16_t type = ControlPacket::getControlType(buf, len);
             if (type != ControlPacket::HANDSHAKE && socketId != _socket_id && _socket_id != 0) {
                 // socket id not same
+                WarnL<<"ControlPacket: "<< (int)type <<" switch to other transport: "<<socketId;
                 switchToOtherTransport(buf, len, socketId, addr);
                 return;
             }
