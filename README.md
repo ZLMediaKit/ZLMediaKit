@@ -167,6 +167,7 @@ bash build_docker_images.sh
    - [Go实现的海康ehome服务器](https://github.com/tsingeye/FreeEhome)
 
  - 客户端
+   - [c sdk完整c#包装库](https://github.com/malegend/ZLMediaKit.Autogen) 
    - [基于C SDK实现的推流客户端](https://github.com/hctym1995/ZLM_ApiDemo)
    - [C#版本的Http API与Hook](https://github.com/chengxiaosheng/ZLMediaKit.HttpApi)
    - [DotNetCore的RESTful客户端](https://github.com/MingZhuLiu/ZLMediaKit.DotNetCore.Sdk)
