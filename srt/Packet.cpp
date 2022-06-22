@@ -225,7 +225,35 @@ size_t ControlPacket::size() const {
 uint32_t ControlPacket::getSocketID(uint8_t *buf, size_t len) {
     return loadUint32(buf + 12);
 }
+std::string HandshakePacket::dump(){
+    _StrPrinter printer;
+    printer <<"flag:"<< (int)f<<"\r\n";
+    printer <<"control_type:"<< (int)control_type<<"\r\n";
+    printer <<"sub_type:"<< (int)sub_type<<"\r\n";
+    printer <<"type_specific_info:"<< type_specific_info[0]<<":"<<type_specific_info[1]<<":"<<type_specific_info[2]<<":"<<type_specific_info[3]<<"\r\n";
+    printer <<"timestamp:"<< timestamp<<"\r\n";
+    printer <<"dst_socket_id:"<< dst_socket_id<<"\r\n";
 
+    printer <<"version:"<< version<<"\r\n";
+    printer <<"encryption_field:"<< encryption_field<<"\r\n";
+    printer <<"extension_field:"<< extension_field<<"\r\n";
+    printer <<"initial_packet_sequence_number:"<< initial_packet_sequence_number<<"\r\n";
+    printer <<"mtu:"<< mtu<<"\r\n";
+    printer <<"max_flow_window_size:"<< max_flow_window_size<<"\r\n";
+    printer <<"handshake_type:"<< handshake_type<<"\r\n";
+    printer <<"srt_socket_id:"<< srt_socket_id<<"\r\n";
+    printer <<"syn_cookie:"<< syn_cookie<<"\r\n";
+    printer <<"peer_ip_addr:";
+    for(size_t i=0;i<sizeof(peer_ip_addr);++i){
+        printer<<peer_ip_addr[i]<<":";
+    }
+    printer<<"\r\n";
+
+    for(size_t i=0;i<ext_list.size();++i){
+        printer<<ext_list[i]->dump()<<"\r\n";
+    }
+    return std::move(printer);
+}
 bool HandshakePacket::loadFromData(uint8_t *buf, size_t len) {
     if (HEADER_SIZE + HS_CONTENT_MIN_SIZE > len) {
         ErrorL << "size too smalle " << encryption_field;
