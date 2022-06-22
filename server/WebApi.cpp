@@ -368,6 +368,38 @@ Value makeMediaSourceJson(MediaSource &media){
     return item;
 }
 
+uint16_t openRtpServer(uint16_t local_port, const string &stream_id, bool enable_tcp, const string &local_ip, bool re_use_port, uint32_t ssrc) {
+    lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
+    if (s_rtpServerMap.find(stream_id) != s_rtpServerMap.end()) {
+        //为了防止RtpProcess所有权限混乱的问题，不允许重复添加相同的stream_id
+        return 0;
+    }
+
+    RtpServer::Ptr server = std::make_shared<RtpServer>();
+    server->start(local_port, stream_id, enable_tcp, local_ip.c_str(), re_use_port, ssrc);
+    server->setOnDetach([stream_id]() {
+        //设置rtp超时移除事件
+        lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
+        s_rtpServerMap.erase(stream_id);
+        });
+
+    //保存对象
+    s_rtpServerMap.emplace(stream_id, server);
+    //回复json
+    return server->getPort();
+}
+
+bool closeRtpServer(const string &stream_id) {
+    lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
+    auto it = s_rtpServerMap.find(stream_id);
+    if (it == s_rtpServerMap.end()) {
+        return false;
+    }
+    auto server = it->second;
+    s_rtpServerMap.erase(it);
+    return true;
+}
+
 void getStatisticJson(const function<void(Value &val)> &cb) {
     auto obj = std::make_shared<Value>(objectValue);
     auto &val = *obj;
@@ -1056,40 +1088,23 @@ void installWebApi() {
         CHECK_SECRET();
         CHECK_ARGS("port", "enable_tcp", "stream_id");
         auto stream_id = allArgs["stream_id"];
-
-        lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
-        if (s_rtpServerMap.find(stream_id) != s_rtpServerMap.end()) {
-            //为了防止RtpProcess所有权限混乱的问题，不允许重复添加相同的stream_id
+        auto port = openRtpServer(allArgs["port"], stream_id, allArgs["enable_tcp"].as<bool>(), "::",
+                      allArgs["re_use_port"].as<bool>(), allArgs["ssrc"].as<uint32_t>());
+        if(port == 0) {
             throw InvalidArgsException("该stream_id已存在");
         }
-
-        RtpServer::Ptr server = std::make_shared<RtpServer>();
-        server->start(allArgs["port"], stream_id, allArgs["enable_tcp"].as<bool>(), "::",
-                      allArgs["re_use_port"].as<bool>(), allArgs["ssrc"].as<uint32_t>());
-        server->setOnDetach([stream_id]() {
-            //设置rtp超时移除事件
-            lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
-            s_rtpServerMap.erase(stream_id);
-        });
-
-        //保存对象
-        s_rtpServerMap.emplace(stream_id, server);
         //回复json
-        val["port"] = server->getPort();
+        val["port"] = port;
     });
 
     api_regist("/index/api/closeRtpServer",[](API_ARGS_MAP){
         CHECK_SECRET();
         CHECK_ARGS("stream_id");
 
-        lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
-        auto it = s_rtpServerMap.find(allArgs["stream_id"]);
-        if(it == s_rtpServerMap.end()){
+        if(!closeRtpServer(allArgs["stream_id"])){
             val["hit"] = 0;
             return;
         }
-        auto server = it->second;
-        s_rtpServerMap.erase(it);
         val["hit"] = 1;
     });
 
