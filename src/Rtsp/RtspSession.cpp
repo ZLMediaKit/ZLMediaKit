@@ -868,7 +868,7 @@ void RtspSession::handleReq_Pause(const Parser &parser) {
 
 void RtspSession::handleReq_Teardown(const Parser &parser) {
     sendRtspResponse("200 OK");
-    _push_src = nullptr;
+    //_push_src = nullptr;
     throw SockException(Err_shutdown,"recv teardown request");
 }
 
