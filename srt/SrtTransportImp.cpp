@@ -149,6 +149,11 @@ std::shared_ptr<SockInfo> SrtTransportImp::getOriginSock(mediakit::MediaSource &
     return static_pointer_cast<SockInfo>(getSession());
 }
 
+toolkit::EventPoller::Ptr SrtTransportImp::getOwnerPoller(MediaSource &sender){
+    auto session = getSession();
+    return session  ? session->getPoller() : nullptr;
+}
+
 void SrtTransportImp::emitOnPublish() {
     std::weak_ptr<SrtTransportImp> weak_self = static_pointer_cast<SrtTransportImp>(shared_from_this());
     Broadcast::PublishAuthInvoker invoker = [weak_self](const std::string &err, const ProtocolOption &option) {
