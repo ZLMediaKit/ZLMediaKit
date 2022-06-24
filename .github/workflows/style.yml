@@ -1,0 +1,23 @@
+name: style check
+
+on: [pull_request]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          # with all history
+          fetch-depth: 0
+      - name: Validate BOM
+        run: |
+          for i in $(git diff --name-only origin/${GITHUB_BASE_REF}...${GITHUB_SHA}); do
+            if [ -f ${i} ]; then
+              case ${i} in
+                *.c|*.cc|*.cpp|*.h)
+                  file ${i} | grep -qv BOM || (echo "Missing BOM in ${i}" && exit 1)
+                  ;;
+              esac
+            fi
+          done
