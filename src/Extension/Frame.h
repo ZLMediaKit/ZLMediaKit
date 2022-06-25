@@ -15,6 +15,7 @@
 #include <functional>
 #include "Util/RingBuffer.h"
 #include "Network/Socket.h"
+#include "Common/Stamp.h"
 
 namespace mediakit{
 
@@ -263,6 +264,27 @@ private:
 };
 
 /**
+ * 一个Frame类中可以有多个帧(AAC)，时间戳会变化
+ * ZLMediaKit会先把这种复合帧split成单个帧然后再处理
+ * 一个复合帧可以通过无内存拷贝的方式切割成多个子Frame
+ * 提供该类的目的是切割复合帧时防止内存拷贝，提高性能
+ */
+template<typename Parent>
+class FrameTSInternal : public Parent{
+public:
+    typedef std::shared_ptr<FrameTSInternal> Ptr;
+    FrameTSInternal(const Frame::Ptr &parent_frame, char *ptr, size_t size, size_t prefix_size,uint32_t dts,uint32_t pts)
+            : Parent(ptr, size, dts, pts, prefix_size) {
+        _parent_frame = parent_frame;
+    }
+    bool cacheAble() const override {
+        return _parent_frame->cacheAble();
+    }
+private:
+    Frame::Ptr _parent_frame;
+};
+
+/**
  * 写帧接口的抽象接口类
  */
 class FrameWriterInterface {
@@ -496,6 +518,58 @@ private:
     bool _decode_able;
     Frame::Ptr _frame;
     FrameImp::Ptr _buffer;
+};
+
+//该类实现frame级别的时间戳覆盖
+class FrameStamp : public Frame{
+public:
+    typedef std::shared_ptr<FrameStamp> Ptr;
+    FrameStamp(const Frame::Ptr &frame, Stamp &stamp,bool modify_stamp){
+        _frame = frame;
+        //覆盖时间戳
+        stamp.revise(frame->dts(), frame->pts(), _dts, _pts, modify_stamp);
+    }
+    ~FrameStamp() override {}
+
+    uint32_t dts() const override{
+        return (uint32_t)_dts;
+    }
+
+    uint32_t pts() const override{
+        return (uint32_t)_pts;
+    }
+
+    size_t prefixSize() const override {
+        return _frame->prefixSize();
+    }
+
+    bool keyFrame() const override {
+        return _frame->keyFrame();
+    }
+
+    bool configFrame() const override {
+        return _frame->configFrame();
+    }
+
+    bool cacheAble() const override {
+        return _frame->cacheAble();
+    }
+
+    char *data() const override {
+        return _frame->data();
+    }
+
+    size_t size() const override {
+        return _frame->size();
+    }
+
+    CodecId getCodecId() const override {
+        return _frame->getCodecId();
+    }
+private:
+    int64_t _dts;
+    int64_t _pts;
+    Frame::Ptr _frame;
 };
 
 /**

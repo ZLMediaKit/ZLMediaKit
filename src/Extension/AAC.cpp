@@ -274,6 +274,9 @@ bool AACTrack::inputFrame(const Frame::Ptr &frame) {
 
     bool ret = false;
     //有adts头，尝试分帧
+    int64_t dts = frame->dts();
+    int64_t pts = frame->pts();
+
     auto ptr = frame->data();
     auto end = frame->data() + frame->size();
     while (ptr < end) {
@@ -284,7 +287,7 @@ bool AACTrack::inputFrame(const Frame::Ptr &frame) {
         if (frame_len == frame->size()) {
             return inputFrame_l(frame);
         }
-        auto sub_frame = std::make_shared<FrameInternal<FrameFromPtr> >(frame, (char *) ptr, frame_len, ADTS_HEADER_LEN);
+        auto sub_frame = std::make_shared<FrameTSInternal<FrameFromPtr> >(frame, (char *) ptr, frame_len, ADTS_HEADER_LEN,dts,pts);
         ptr += frame_len;
         if (ptr > end) {
             WarnL << "invalid aac length in adts header: " << frame_len
@@ -295,6 +298,8 @@ bool AACTrack::inputFrame(const Frame::Ptr &frame) {
         if (inputFrame_l(sub_frame)) {
             ret = true;
         }
+        dts += 1024*1000/getAudioSampleRate();
+        pts += 1024*1000/getAudioSampleRate();
     }
     return ret;
 }
