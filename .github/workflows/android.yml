@@ -1,4 +1,4 @@
-name: Android CI
+name: Android
 on: [push, pull_request]
 jobs:
   build:

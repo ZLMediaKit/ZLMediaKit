@@ -1,4 +1,4 @@
-name: MSVC C/C++ CI
+name: Windows
 
 on: [push, pull_request]
 
