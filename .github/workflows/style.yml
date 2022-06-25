@@ -12,6 +12,7 @@ jobs:
           fetch-depth: 0
       - name: Validate BOM
         run: |
+          git diff --name-only origin/${GITHUB_BASE_REF}...${GITHUB_SHA}
           for i in $(git diff --name-only origin/${GITHUB_BASE_REF}...${GITHUB_SHA}); do
             if [ -f ${i} ]; then
               case ${i} in
