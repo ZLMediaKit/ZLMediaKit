@@ -13,16 +13,16 @@ jobs:
       - name: Validate BOM
         run: |
           git diff --name-only origin/${GITHUB_BASE_REF}...${GITHUB_SHA}
+          ret=0
           for i in $(git diff --name-only origin/${GITHUB_BASE_REF}...${GITHUB_SHA}); do
-            ret=0
             if [ -f ${i} ]; then
               case ${i} in
                 *.c|*.cc|*.cpp|*.h)
-                  if file ${i} | grep -q BOM; then
+                  if file ${i} | grep -qv BOM; then
                     echo "Missing BOM in ${i}" && ret=1;
                   fi
                   ;;
               esac
             fi
-            exit ${ret}
           done
+          exit ${ret}
