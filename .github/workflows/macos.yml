@@ -1,4 +1,4 @@
-name: macos C/C++ CI
+name: macOS
 
 on: [push, pull_request]
 
