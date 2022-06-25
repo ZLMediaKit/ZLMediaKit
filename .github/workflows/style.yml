@@ -17,7 +17,7 @@ jobs:
             if [ -f ${i} ]; then
               case ${i} in
                 *.c|*.cc|*.cpp|*.h)
-                  file ${i} | grep -qv BOM || (echo "Missing BOM in ${i}" && exit 1)
+                  file ${i} | grep -q BOM || (echo "Missing BOM in ${i}" && exit 1)
                   ;;
               esac
             fi
