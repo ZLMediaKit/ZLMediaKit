@@ -101,14 +101,6 @@ ssize_t TSDecoder::input(const uint8_t *data, size_t bytes) {
     return bytes;
 }
 
-void TSDecoder::setOnDecode(Decoder::onDecode cb) {
-    _on_decode = std::move(cb);
-}
-
-void TSDecoder::setOnStream(Decoder::onStream cb) {
-    _on_stream = std::move(cb);
-}
-
 #endif//defined(ENABLE_HLS)
 
 }//namespace mediakit
