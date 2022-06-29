@@ -47,13 +47,13 @@ static void on_ffmpeg_log(void *ctx, int level, const char *fmt, va_list args) {
     }
     LogLevel lev;
     switch (level) {
-        case AV_LOG_FATAL: lev = LError; break;
+        case AV_LOG_FATAL:
         case AV_LOG_ERROR: lev = LError; break;
         case AV_LOG_WARNING: lev = LWarn; break;
         case AV_LOG_INFO: lev = LInfo; break;
-        case AV_LOG_VERBOSE: lev = LDebug; break;
+        case AV_LOG_VERBOSE:
         case AV_LOG_DEBUG: lev = LDebug; break;
-        case AV_LOG_TRACE: lev = LTrace; break;
+        case AV_LOG_TRACE:
         default: lev = LTrace; break;
     }
     LoggerWrapper::printLogV(::toolkit::getLogger(), lev, __FILE__, ctx ? av_default_item_name(ctx) : "NULL", level, fmt, args);
@@ -63,7 +63,9 @@ static bool setupFFmpeg_l() {
     av_log_set_level(AV_LOG_TRACE);
     av_log_set_flags(AV_LOG_PRINT_LEVEL);
     av_log_set_callback(on_ffmpeg_log);
+#if (LIBAVCODEC_VERSION_MAJOR < 58)
     avcodec_register_all();
+#endif
     return true;
 }
 
@@ -243,14 +245,14 @@ AVFrame *FFmpegFrame::get() const {
 
 void FFmpegFrame::fillPicture(AVPixelFormat target_format, int target_width, int target_height) {
     assert(_data == nullptr);
-    _data = new char[avpicture_get_size(target_format, target_width, target_height)];
-    avpicture_fill((AVPicture *) _frame.get(), (uint8_t *) _data, target_format, target_width, target_height);
+    _data = new char[av_image_get_buffer_size(target_format, target_width, target_height, 1)];
+    av_image_fill_arrays(_frame->data, _frame->linesize, (uint8_t *) _data,  target_format, target_width, target_height,1);
 }
 
 ///////////////////////////////////////////////////////////////////////////
 
 template<bool decoder = true>
-static inline AVCodec *getCodec_l(const char *name) {
+static inline const AVCodec *getCodec_l(const char *name) {
     auto codec = decoder ? avcodec_find_decoder_by_name(name) : avcodec_find_encoder_by_name(name);
     if (codec) {
         InfoL << (decoder ? "got decoder:" : "got encoder:") << name;
@@ -261,7 +263,7 @@ static inline AVCodec *getCodec_l(const char *name) {
 }
 
 template<bool decoder = true>
-static inline AVCodec *getCodec_l(enum AVCodecID id) {
+static inline const AVCodec *getCodec_l(enum AVCodecID id) {
     auto codec = decoder ? avcodec_find_decoder(id) : avcodec_find_encoder(id);
     if (codec) {
         InfoL << (decoder ? "got decoder:" : "got encoder:") << avcodec_get_name(id);
@@ -277,7 +279,7 @@ public:
     CodecName(enum AVCodecID id) : _id(id) {}
 
     template <bool decoder>
-    AVCodec *getCodec() const {
+    const AVCodec *getCodec() const {
         if (!_codec_name.empty()) {
             return getCodec_l<decoder>(_codec_name.data());
         }
@@ -290,8 +292,8 @@ private:
 };
 
 template <bool decoder = true>
-static inline AVCodec *getCodec(const std::initializer_list<CodecName> &codec_list) {
-    AVCodec *ret = nullptr;
+static inline const AVCodec *getCodec(const std::initializer_list<CodecName> &codec_list) {
+    const AVCodec *ret = nullptr;
     for (int i = codec_list.size(); i >= 1; --i) {
         ret = codec_list.begin()[i - 1].getCodec<decoder>();
         if (ret) {
@@ -303,8 +305,8 @@ static inline AVCodec *getCodec(const std::initializer_list<CodecName> &codec_li
 
 FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num) {
     setupFFmpeg();
-    AVCodec *codec = nullptr;
-    AVCodec *codec_default = nullptr;
+    const AVCodec *codec = nullptr;
+    const AVCodec *codec_default = nullptr;
     switch (track->getCodecId()) {
         case CodecH264:
             codec_default = getCodec({AV_CODEC_ID_H264});
@@ -358,7 +360,9 @@ FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num) {
         }
 
         //保存AVFrame的引用
+#ifdef FF_API_OLD_ENCDEC
         _context->refcounted_frames = 1;
+#endif
         _context->flags |= AV_CODEC_FLAG_LOW_DELAY;
         _context->flags2 |= AV_CODEC_FLAG2_FAST;
         if (track->getTrackType() == TrackVideo) {
@@ -539,7 +543,7 @@ FFmpegSwr::~FFmpegSwr() {
 FFmpegFrame::Ptr FFmpegSwr::inputFrame(const FFmpegFrame::Ptr &frame) {
     if (frame->get()->format == _target_format &&
         frame->get()->channels == _target_channels &&
-        frame->get()->channel_layout == _target_channel_layout &&
+        frame->get()->channel_layout == (uint64_t)_target_channel_layout &&
         frame->get()->sample_rate == _target_samplerate) {
         //不转格式
         return frame;
@@ -596,7 +600,8 @@ int FFmpegSws::inputFrame(const FFmpegFrame::Ptr &frame, uint8_t *data) {
     }
     AVFrame dst;
     memset(&dst, 0, sizeof(dst));
-    avpicture_fill((AVPicture *) &dst, data, _target_format, _target_width, _target_height);
+    av_image_fill_arrays(dst.data, dst.linesize, data,  _target_format, _target_width, _target_height,1);
+
     if (!_ctx) {
         _ctx = sws_getContext(frame->get()->width, frame->get()->height, (enum AVPixelFormat) frame->get()->format,
                               _target_width, _target_height, _target_format, SWS_FAST_BILINEAR, NULL, NULL, NULL);
