@@ -24,6 +24,15 @@
 using namespace toolkit;
 
 namespace mediakit {
+
+void Decoder::setOnDecode(Decoder::onDecode cb) {
+    _on_decode = std::move(cb);
+}
+
+void Decoder::setOnStream(Decoder::onStream cb) {
+    _on_stream = std::move(cb);
+}
+    
 static Decoder::Ptr createDecoder_l(DecoderImp::Type type) {
     switch (type){
         case DecoderImp::decoder_ps:
