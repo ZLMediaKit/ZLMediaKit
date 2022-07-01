@@ -612,6 +612,7 @@ public:
     std::string mid;
     uint16_t port{0};
     SdpConnection addr;
+    SdpBandwidth bandwidth;
     std::string proto;
     RtpDirection direction{RtpDirection::invalid};
     std::vector<RtcCodecPlan> plan;
@@ -666,7 +667,6 @@ public:
     std::string session_info;
     SdpTime time;
     SdpConnection connection;
-    SdpBandwidth bandwidth;
     SdpAttrMsidSemantic msid_semantic;
     std::vector<RtcMedia> media;
     SdpAttrGroup group;
