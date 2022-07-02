@@ -50,7 +50,7 @@ void RtmpSession::onError(const SockException& err) {
         _push_src_ownership = nullptr;
         //延时10秒注销流
         auto push_src = std::move(_push_src);
-        getPoller()->doDelayTask(_continue_push_ms, [push_src]() { return 0; });
+        _delay_unregister_task = getPoller()->doDelayTask(_continue_push_ms, [push_src]() { return 0; });
     }
 }
 
@@ -223,6 +223,10 @@ void RtmpSession::onCmd_deleteStream(AMFDecoder &dec) {
                  "code", "NetStream.Unpublish.Success",
                  "description", "Stop publishing." });
     //_push_src = nullptr;
+    //TraceL<<" delete stream";
+    if(_delay_unregister_task){
+            _delay_unregister_task->cancel();
+    }
     throw std::runtime_error(StrPrinter << "Stop publishing" << endl);
 }
 

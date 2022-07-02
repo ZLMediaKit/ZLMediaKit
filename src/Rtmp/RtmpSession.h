@@ -103,6 +103,8 @@ private:
     std::weak_ptr<RtmpMediaSource> _play_src;
     AMFValue _push_metadata;
     RtmpMediaSourceImp::Ptr _push_src;
+    //延迟注销任务
+    toolkit::EventPoller::DelayTask::Ptr _delay_unregister_task;
     std::shared_ptr<void> _push_src_ownership;
     RtmpMediaSource::RingType::RingReader::Ptr _ring_reader;
 };
