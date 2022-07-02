@@ -867,8 +867,9 @@ void RtspSession::handleReq_Pause(const Parser &parser) {
 }
 
 void RtspSession::handleReq_Teardown(const Parser &parser) {
-    sendRtspResponse("200 OK");
     _push_src = nullptr;
+    //此时回复可能触发broken pipe事件，从而直接触发onError回调；所以需要先把_push_src置空，防止触发断流续推功能
+    sendRtspResponse("200 OK");
     throw SockException(Err_shutdown,"recv teardown request");
 }
 
