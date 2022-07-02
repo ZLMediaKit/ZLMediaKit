@@ -71,6 +71,7 @@ SpaceBeforeInheritanceColon: true
 SpaceBeforeParens: ControlStatements
 # 空 {} 中不加空格
 SpaceInEmptyBlock: false
+Standard: C++11
 # Tab 占 4 位
 TabWidth: 4
 # 不使用 TAB
