@@ -28,7 +28,7 @@ RtmpSession::~RtmpSession() {
 }
 
 void RtmpSession::onError(const SockException& err) {
-    bool is_player = !_push_src;
+    bool is_player = !_push_src_ownership;
     uint64_t duration = _ticker.createdTime() / 1000;
     WarnP(this) << (is_player ? "RTMP播放器(" : "RTMP推流器(")
                 << _media_info._vhost << "/"
@@ -50,7 +50,7 @@ void RtmpSession::onError(const SockException& err) {
         _push_src_ownership = nullptr;
         //延时10秒注销流
         auto push_src = std::move(_push_src);
-        _delay_unregister_task = getPoller()->doDelayTask(_continue_push_ms, [push_src]() { return 0; });
+        getPoller()->doDelayTask(_continue_push_ms, [push_src]() { return 0; });
     }
 }
 
@@ -222,11 +222,7 @@ void RtmpSession::onCmd_deleteStream(AMFDecoder &dec) {
     sendStatus({ "level", "status",
                  "code", "NetStream.Unpublish.Success",
                  "description", "Stop publishing." });
-    //_push_src = nullptr;
-    //TraceL<<" delete stream";
-    if(_delay_unregister_task){
-            _delay_unregister_task->cancel();
-    }
+    _push_src = nullptr;
     throw std::runtime_error(StrPrinter << "Stop publishing" << endl);
 }
 

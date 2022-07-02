@@ -60,7 +60,7 @@ RtspSession::~RtspSession() {
 }
 
 void RtspSession::onError(const SockException &err) {
-    bool is_player = !_push_src;
+    bool is_player = !_push_src_ownership;
     uint64_t duration = _alive_ticker.createdTime() / 1000;
     WarnP(this) << (is_player ? "RTSP播放器(" : "RTSP推流器(")
                 << _media_info._vhost << "/"
@@ -868,7 +868,7 @@ void RtspSession::handleReq_Pause(const Parser &parser) {
 
 void RtspSession::handleReq_Teardown(const Parser &parser) {
     sendRtspResponse("200 OK");
-    //_push_src = nullptr;
+    _push_src = nullptr;
     throw SockException(Err_shutdown,"recv teardown request");
 }
 
