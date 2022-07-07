@@ -170,7 +170,7 @@ void SrtTransport::handleHandshakeConclusion(HandshakePacket &pkt, struct sockad
         if (delay <= 120) {
             delay = 120;
         }
-        for (auto ext : pkt.ext_list) {
+        for (auto& ext : pkt.ext_list) {
             // TraceL << getIdentifier() << " ext " << ext->dump();
             if (!req) {
                 req = std::dynamic_pointer_cast<HSExtMessage>(ext);
@@ -294,13 +294,13 @@ void SrtTransport::handleNAK(uint8_t *buf, int len, struct sockaddr_storage *add
     bool empty = false;
     bool flush = false;
 
-    for (auto it : pkt.lost_list) {
+    for (auto& it : pkt.lost_list) {
         if (pkt.lost_list.back() == it) {
             flush = true;
         }
         empty = true;
         auto re_list = _send_buf->findPacketBySeq(it.first, it.second - 1);
-        for (auto pkt : re_list) {
+        for (auto& pkt : re_list) {
             pkt->R = 1;
             pkt->storeToHeader();
             sendPacket(pkt, flush);
@@ -331,7 +331,7 @@ void SrtTransport::handleDropReq(uint8_t *buf, int len, struct sockaddr_storage 
         return;
     }
     uint32_t max_seq = 0;
-    for (auto data : list) {
+    for (auto& data : list) {
         max_seq = data->packet_seq_number;
         if (_last_pkt_seq + 1 != data->packet_seq_number) {
             TraceL << "pkt lost " << _last_pkt_seq + 1 << "->" << data->packet_seq_number;
@@ -501,7 +501,7 @@ void SrtTransport::handleDataPacket(uint8_t *buf, int len, struct sockaddr_stora
         // when no data ok send nack to sender immediately
     } else {
         uint32_t last_seq;
-        for (auto data : list) {
+        for (auto& data : list) {
             last_seq = data->packet_seq_number;
             if (_last_pkt_seq + 1 != data->packet_seq_number) {
                 TraceL << "pkt lost " << _last_pkt_seq + 1 << "->" << data->packet_seq_number;
