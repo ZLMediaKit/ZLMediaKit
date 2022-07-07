@@ -771,7 +771,6 @@ void RtcSession::loadFrom(const string &str) {
     session_name = sdp.getSessionName();
     session_info = sdp.getSessionInfo();
     connection = sdp.getConnection();
-    bandwidth = sdp.getBandwidth();
     time = sdp.getSessionTime();
     msid_semantic = sdp.getItemClass<SdpAttrMsidSemantic>('a', "msid-semantic");
     for (auto &media : sdp.medias) {
@@ -783,6 +782,7 @@ void RtcSession::loadFrom(const string &str) {
         rtc_media.type = mline.type;
         rtc_media.port = mline.port;
         rtc_media.addr = media.getItemClass<SdpConnection>('c');
+        rtc_media.bandwidth = media.getItemClass<SdpBandwidth>('b');
         rtc_media.ice_ufrag = media.getStringItem('a', "ice-ufrag");
         rtc_media.ice_pwd = media.getStringItem('a', "ice-pwd");
         rtc_media.role = media.getItemClass<SdpAttrSetup>('a', "setup").role;
@@ -1060,9 +1060,6 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
     if(connection.empty()){
         sdp.addItem(std::make_shared<SdpConnection>(connection));
     }
-    if (!bandwidth.empty()) {
-        sdp.addItem(std::make_shared<SdpBandwidth>(bandwidth));
-    }
     sdp.addAttr(std::make_shared<SdpAttrGroup>(group));
     sdp.addAttr(std::make_shared<SdpAttrMsidSemantic>(msid_semantic));
     for (auto &m : media) {
@@ -1080,6 +1077,9 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
         }
         sdp_media.addItem(std::move(mline));
         sdp_media.addItem(std::make_shared<SdpConnection>(m.addr));
+        if (!m.bandwidth.empty() && m.type != TrackAudio) {
+            sdp_media.addItem(std::make_shared<SdpBandwidth>(m.bandwidth));
+        }
         if (!m.rtcp_addr.empty()) {
             sdp_media.addAttr(std::make_shared<SdpAttrRtcp>(m.rtcp_addr));
         }
@@ -1631,6 +1631,7 @@ RETRY:
         answer_media.proto = offer_media.proto;
         answer_media.port = offer_media.port;
         answer_media.addr = offer_media.addr;
+        answer_media.bandwidth = offer_media.bandwidth;
         answer_media.rtcp_addr = offer_media.rtcp_addr;
         answer_media.rtcp_mux = offer_media.rtcp_mux && configure.rtcp_mux;
         answer_media.rtcp_rsize = offer_media.rtcp_rsize && configure.rtcp_rsize;
