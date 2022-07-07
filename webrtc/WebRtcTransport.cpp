@@ -48,6 +48,19 @@ static onceToken token([]() {
 
 static atomic<uint64_t> s_key{0};
 
+static void translateIPFromEnv(std::vector<std::string> &v) {
+    for (auto iter = v.begin(); iter != v.end();) {
+        if (start_with(*iter, "$")) {
+            auto ip = toolkit::getEnv(*iter);
+            if (ip.empty())
+                iter = v.erase(iter);
+            else
+                *iter++ = ip;
+        } else
+            ++iter;
+    }
+}
+
 WebRtcTransport::WebRtcTransport(const EventPoller::Ptr &poller) {
     _poller = poller;
     _identifier = "zlm_" + to_string(++s_key);
@@ -482,6 +495,7 @@ void WebRtcTransportImp::onCheckAnswer(RtcSession &sdp) {
         std::vector<std::string> ret;
         if (str.length())
             ret = split(str, ",");
+        translateIPFromEnv(ret);
         return ret;
     });
     for (auto &m : sdp.media) {
@@ -558,6 +572,7 @@ void WebRtcTransportImp::onRtcConfigure(RtcConfigure &configure) const {
         std::vector<std::string> ret;
         if (str.length())
             ret = split(str, ",");
+        translateIPFromEnv(ret);
         return ret;
     });
     if (extern_ips.empty()) {
