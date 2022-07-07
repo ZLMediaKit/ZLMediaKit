@@ -95,6 +95,32 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
     }
 }
 
+
+Track::Ptr Factory::getTrackByAbstractTrack(const Track::Ptr& track) {
+    auto codec = track->getCodecId();
+    switch (codec) {
+    case CodecG711A:
+    case CodecG711U: {
+        auto audio_track = dynamic_pointer_cast<AudioTrackImp>(track);
+        return std::make_shared<G711Track>(codec, audio_track->getAudioSampleRate(), audio_track->getAudioChannel(), 16);
+    }
+    case CodecL16: {
+        auto audio_track = dynamic_pointer_cast<AudioTrackImp>(track);
+        return std::make_shared<L16Track>(audio_track->getAudioSampleRate(), audio_track->getAudioChannel());
+    }
+    case CodecAAC  : return std::make_shared<AACTrack>();
+    case CodecOpus : return std::make_shared<OpusTrack>();
+    case CodecH265 : return std::make_shared<H265Track>();
+    case CodecH264 : return std::make_shared<H264Track>();
+
+    default: {
+        //其他codec不支持
+        WarnL << "暂不支持该该编码类型创建Track:" << track->getCodecName();
+        return nullptr;
+    }
+    }
+}
+
 RtpCodec::Ptr Factory::getRtpEncoderBySdp(const Sdp::Ptr &sdp) {
     GET_CONFIG(uint32_t,audio_mtu,Rtp::kAudioMtuSize);
     GET_CONFIG(uint32_t,video_mtu,Rtp::kVideoMtuSize);
