@@ -99,7 +99,11 @@ private:
         if (_rtmp_src) {
             _rtmp_src->setMetaData(val);
         }
+        if(_demuxer){
+            return;
+        }
         _demuxer = std::make_shared<RtmpDemuxer>();
+        //TraceL<<" _wait_track_ready "<<_wait_track_ready;
         _demuxer->setTrackListener(this, _wait_track_ready);
         _demuxer->loadMetaData(val);
     }
