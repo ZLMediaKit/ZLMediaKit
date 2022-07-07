@@ -64,8 +64,12 @@ int main(int argc, char *argv[]) {
 
     mk_media media = mk_media_create("__defaultVhost__", "live", "test", 0, 0, 0);
     //h264的codec
-    mk_media_init_video(media, 0, 0, 0, 0, 2 * 104 * 1024);
+    //mk_media_init_video(media, 0, 0, 0, 0, 2 * 104 * 1024);
+    codec_args v_args={0};
+    mk_track v_track = mk_track_create(MKCodecH264,&v_args);
+    mk_media_init_track(media,v_track);
     mk_media_init_complete(media);
+    mk_track_unref(v_track);
 
     //创建h264分帧器
     mk_h264_splitter splitter = mk_h264_splitter_create(on_h264_frame, media);
