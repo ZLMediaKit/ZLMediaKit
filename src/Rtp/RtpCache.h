@@ -30,13 +30,15 @@ protected:
      * 输入rtp(目的是为了合并写)
      * @param buffer rtp数据
      */
-    void input(uint64_t stamp, toolkit::Buffer::Ptr buffer);
+    void input(uint64_t stamp, toolkit::Buffer::Ptr buffer,bool is_key = false);
 
+    bool firstKeyReady(bool in);
 protected:
     void onFlush(std::shared_ptr<toolkit::List<toolkit::Buffer::Ptr> > rtp_list, bool) override;
 
 private:
     onFlushed _cb;
+    bool _first_key = false;
 };
 
 class RtpCachePS : public RtpCache, public PSEncoderImp{
@@ -45,7 +47,7 @@ public:
     ~RtpCachePS() override = default;
 
 protected:
-    void onRTP(toolkit::Buffer::Ptr rtp)  override;
+    void onRTP(toolkit::Buffer::Ptr rtp,bool is_key = false)  override;
 };
 
 
@@ -55,7 +57,7 @@ public:
     ~RtpCacheRaw() override = default;
 
 protected:
-    void onRTP(toolkit::Buffer::Ptr rtp)  override;
+    void onRTP(toolkit::Buffer::Ptr rtp,bool is_key = false)  override;
 };
 
 }//namespace mediakit

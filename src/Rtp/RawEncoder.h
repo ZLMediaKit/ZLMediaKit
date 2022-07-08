@@ -43,10 +43,9 @@ public:
 
 protected:
     //rtp打包后回调
-    virtual void onRTP(toolkit::Buffer::Ptr rtp) = 0;
+    virtual void onRTP(toolkit::Buffer::Ptr rtp, bool is_key = false) = 0;
 private:
     RtpCodec::Ptr createRtpEncoder(const Track::Ptr &track);
-
     uint32_t _ssrc;
     uint8_t _payload_type;
     bool _sendAudio;
