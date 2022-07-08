@@ -35,7 +35,7 @@ bool RawEncoderImp::addTrack(const Track::Ptr &track){
         _rtp_encoder = createRtpEncoder(track);
         _rtp_encoder->setRtpRing(std::make_shared<RtpRing::RingType>());
         _rtp_encoder->getRtpRing()->setDelegate(std::make_shared<RingDelegateHelper>([this](RtpPacket::Ptr rtp, bool is_key){
-            onRTP(std::move(rtp),is_key);
+            onRTP(std::move(rtp),true);
          }));
         return true;
     }
