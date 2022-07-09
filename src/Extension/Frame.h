@@ -391,17 +391,18 @@ class FrameFromPtr : public Frame{
 public:
     typedef std::shared_ptr<FrameFromPtr> Ptr;
 
-    FrameFromPtr(CodecId codec_id, char *ptr, size_t size, uint32_t dts, uint32_t pts = 0, size_t prefix_size = 0)
-            : FrameFromPtr(ptr, size, dts, pts, prefix_size) {
+    FrameFromPtr(CodecId codec_id, char *ptr, size_t size, uint32_t dts, uint32_t pts = 0, size_t prefix_size = 0,bool is_key = false )
+            : FrameFromPtr(ptr, size, dts, pts, prefix_size,is_key) {
         _codec_id = codec_id;
     }
 
-    FrameFromPtr(char *ptr, size_t size, uint32_t dts, uint32_t pts = 0, size_t prefix_size = 0){
+    FrameFromPtr(char *ptr, size_t size, uint32_t dts, uint32_t pts = 0, size_t prefix_size = 0,bool is_key = false){
         _ptr = ptr;
         _size = size;
         _dts = dts;
         _pts = pts;
         _prefix_size = prefix_size;
+        _is_key = is_key;
     }
 
     char *data() const override{
@@ -440,7 +441,7 @@ public:
     }
 
     bool keyFrame() const override {
-        return false;
+        return _is_key;
     }
 
     bool configFrame() const override{
@@ -457,6 +458,7 @@ protected:
     size_t _size;
     size_t _prefix_size;
     CodecId _codec_id = CodecInvalid;
+    bool _is_key;
 };
 
 /**
