@@ -483,8 +483,9 @@ void WebRtcTransportImp::onStartWebRTC() {
                 // 系统又要有rid，这里手工生成rid，并为其绑定ssrc
                 std::string rid = "r" + std::to_string(index);
                 track->rtp_ext_ctx->setRid(ssrc.ssrc, rid);
-                if(ssrc.rtx_ssrc)
+                if (ssrc.rtx_ssrc) {
                     track->rtp_ext_ctx->setRid(ssrc.rtx_ssrc, rid);
+                }
             }
             ++index;
         }
@@ -702,7 +703,7 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
                 if (it != _ssrc_to_track.end()) {
                     auto &track = it->second;
                     auto rtp_chn = track->getRtpChannel(sr->ssrc);
-                    if(!rtp_chn){
+                    if (!rtp_chn) {
                         WarnL << "未识别的sr rtcp包:" << rtcp->dumpString();
                     } else {
                         //InfoL << "接收丢包率,ssrc:" << sr->ssrc << ",loss rate(%):" << rtp_chn->getLossRate();
