@@ -52,12 +52,14 @@ static void translateIPFromEnv(std::vector<std::string> &v) {
     for (auto iter = v.begin(); iter != v.end();) {
         if (start_with(*iter, "$")) {
             auto ip = toolkit::getEnv(*iter);
-            if (ip.empty())
+            if (ip.empty()) {
                 iter = v.erase(iter);
-            else
+            } else {
                 *iter++ = ip;
-        } else
+            }
+        } else {
             ++iter;
+        }
     }
 }
 
@@ -491,10 +493,11 @@ void WebRtcTransportImp::onStartWebRTC() {
 
 void WebRtcTransportImp::onCheckAnswer(RtcSession &sdp) {
     //修改answer sdp的ip、端口信息
-    GET_CONFIG_FUNC(std::vector<std::string>, extern_ips, RTC::kExternIP, [](string str){
+    GET_CONFIG_FUNC(std::vector<std::string>, extern_ips, RTC::kExternIP, [](string str) {
         std::vector<std::string> ret;
-        if (str.length())
+        if (str.length()) {
             ret = split(str, ",");
+        }
         translateIPFromEnv(ret);
         return ret;
     });
@@ -570,16 +573,16 @@ void WebRtcTransportImp::onRtcConfigure(RtcConfigure &configure) const {
     //添加接收端口candidate信息
     GET_CONFIG_FUNC(std::vector<std::string>, extern_ips, RTC::kExternIP, [](string str){
         std::vector<std::string> ret;
-        if (str.length())
+        if (str.length()) {
             ret = split(str, ",");
+        }
         translateIPFromEnv(ret);
         return ret;
     });
     if (extern_ips.empty()) {
         std::string localIp = SockUtil::get_local_ip();
         configure.addCandidate(*makeIceCandidate(localIp, local_port, 120, "udp"));
-    }
-    else {
+    } else {
         const uint32_t delta = 10;
         uint32_t priority = 100 + delta * extern_ips.size();
         for (auto ip : extern_ips) {
@@ -588,7 +591,6 @@ void WebRtcTransportImp::onRtcConfigure(RtcConfigure &configure) const {
         }
     }
 }
-
 
 
 ///////////////////////////////////////////////////////////////////
