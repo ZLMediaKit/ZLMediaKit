@@ -48,6 +48,21 @@ static onceToken token([]() {
 
 static atomic<uint64_t> s_key{0};
 
+static void translateIPFromEnv(std::vector<std::string> &v) {
+    for (auto iter = v.begin(); iter != v.end();) {
+        if (start_with(*iter, "$")) {
+            auto ip = toolkit::getEnv(*iter);
+            if (ip.empty()) {
+                iter = v.erase(iter);
+            } else {
+                *iter++ = ip;
+            }
+        } else {
+            ++iter;
+        }
+    }
+}
+
 WebRtcTransport::WebRtcTransport(const EventPoller::Ptr &poller) {
     _poller = poller;
     _identifier = "zlm_" + to_string(++s_key);
@@ -468,8 +483,9 @@ void WebRtcTransportImp::onStartWebRTC() {
                 // 系统又要有rid，这里手工生成rid，并为其绑定ssrc
                 std::string rid = "r" + std::to_string(index);
                 track->rtp_ext_ctx->setRid(ssrc.ssrc, rid);
-                if(ssrc.rtx_ssrc)
+                if (ssrc.rtx_ssrc) {
                     track->rtp_ext_ctx->setRid(ssrc.rtx_ssrc, rid);
+                }
             }
             ++index;
         }
@@ -478,10 +494,12 @@ void WebRtcTransportImp::onStartWebRTC() {
 
 void WebRtcTransportImp::onCheckAnswer(RtcSession &sdp) {
     //修改answer sdp的ip、端口信息
-    GET_CONFIG_FUNC(std::vector<std::string>, extern_ips, RTC::kExternIP, [](string str){
+    GET_CONFIG_FUNC(std::vector<std::string>, extern_ips, RTC::kExternIP, [](string str) {
         std::vector<std::string> ret;
-        if (str.length())
+        if (str.length()) {
             ret = split(str, ",");
+        }
+        translateIPFromEnv(ret);
         return ret;
     });
     for (auto &m : sdp.media) {
@@ -556,15 +574,16 @@ void WebRtcTransportImp::onRtcConfigure(RtcConfigure &configure) const {
     //添加接收端口candidate信息
     GET_CONFIG_FUNC(std::vector<std::string>, extern_ips, RTC::kExternIP, [](string str){
         std::vector<std::string> ret;
-        if (str.length())
+        if (str.length()) {
             ret = split(str, ",");
+        }
+        translateIPFromEnv(ret);
         return ret;
     });
     if (extern_ips.empty()) {
         std::string localIp = SockUtil::get_local_ip();
         configure.addCandidate(*makeIceCandidate(localIp, local_port, 120, "udp"));
-    }
-    else {
+    } else {
         const uint32_t delta = 10;
         uint32_t priority = 100 + delta * extern_ips.size();
         for (auto ip : extern_ips) {
@@ -573,7 +592,6 @@ void WebRtcTransportImp::onRtcConfigure(RtcConfigure &configure) const {
         }
     }
 }
-
 
 
 ///////////////////////////////////////////////////////////////////
@@ -685,7 +703,7 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
                 if (it != _ssrc_to_track.end()) {
                     auto &track = it->second;
                     auto rtp_chn = track->getRtpChannel(sr->ssrc);
-                    if(!rtp_chn){
+                    if (!rtp_chn) {
                         WarnL << "未识别的sr rtcp包:" << rtcp->dumpString();
                     } else {
                         //InfoL << "接收丢包率,ssrc:" << sr->ssrc << ",loss rate(%):" << rtp_chn->getLossRate();
