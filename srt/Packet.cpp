@@ -1,6 +1,6 @@
-﻿#include "Util/MD5.h"
+﻿#include <atomic>
+#include "Util/MD5.h"
 #include "Util/logger.h"
-#include <atomic>
 
 #include "Packet.hpp"
 
@@ -463,15 +463,11 @@ uint32_t HandshakePacket::generateSynCookie(
 
     while (true) {
         // SYN cookie
-        char clienthost[NI_MAXHOST];
-        char clientport[NI_MAXSERV];
-        getnameinfo(
-            (struct sockaddr *)addr, sizeof(struct sockaddr_storage), clienthost, sizeof(clienthost), clientport,
-            sizeof(clientport), NI_NUMERICHOST | NI_NUMERICSERV);
         int64_t timestamp = (DurationCountMicroseconds(SteadyClock::now() - ts) / 60000000) + distractor.load()
             + correction; // secret changes every one minute
         std::stringstream cookiestr;
-        cookiestr << clienthost << ":" << clientport << ":" << timestamp;
+        cookiestr << SockUtil::inet_ntoa((struct sockaddr *)addr) << ":" << SockUtil::inet_port((struct sockaddr *)addr)
+                  << ":" << timestamp;
         union {
             unsigned char cookie[16];
             uint32_t cookie_val;
