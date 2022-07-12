@@ -55,6 +55,14 @@ public:
      */
     virtual toolkit::Buffer::Ptr createRtcpSR(uint32_t rtcp_ssrc);
 
+
+    /**
+     * @brief 创建xr的dlrr包，用于接收者估算rtt
+     * 
+     * @return toolkit::Buffer::Ptr 
+     */
+    virtual toolkit::Buffer::Ptr createRtcpXRDLRR(uint32_t rtcp_ssrc, uint32_t rtp_ssrc);
+
     /**
      * 创建RR rtcp包
      * @param rtcp_ssrc rtcp的ssrc
@@ -86,7 +94,10 @@ protected:
 class RtcpContextForSend : public RtcpContext {
 public:
     toolkit::Buffer::Ptr createRtcpSR(uint32_t rtcp_ssrc) override;
+
     void onRtcp(RtcpHeader *rtcp) override;
+
+    toolkit::Buffer::Ptr createRtcpXRDLRR(uint32_t rtcp_ssrc, uint32_t rtp_ssrc) override;
 
     /**
      * 获取rtt
@@ -98,6 +109,9 @@ public:
 private:
     std::map<uint32_t/*ssrc*/, uint32_t/*rtt*/> _rtt;
     std::map<uint32_t/*last_sr_lsr*/, uint64_t/*ntp stamp*/> _sender_report_ntp;
+
+    std::map<uint32_t/*ssrc*/,uint64_t/*xr rrtr sys stamp*/> _xr_rrtr_recv_sys_stamp;
+    std::map<uint32_t/*ssrc*/,uint32_t/*last rr */> _xr_xrrtr_recv_last_rr;
 };
 
 class RtcpContextForRecv : public RtcpContext {

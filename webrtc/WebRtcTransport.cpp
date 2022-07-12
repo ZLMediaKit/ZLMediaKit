@@ -774,6 +774,23 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
                 }
                 break;
             }
+            case RtcpType::RTCP_XR:{
+                RtcpXRRRTR* xr = (RtcpXRRRTR *) rtcp;
+                if(xr->bt != 4){
+                    break;
+                }
+                auto it = _ssrc_to_track.find(xr->ssrc);
+                if (it == _ssrc_to_track.end()) {
+                     WarnL << "未识别的 rtcp包:" << rtcp->dumpString();
+                     return;
+                }
+                auto &track = it->second;
+                track->rtcp_context_send->onRtcp(rtcp);
+                auto xrdlrr = track->rtcp_context_send->createRtcpXRDLRR(track->answer_ssrc_rtp,track->answer_ssrc_rtp);
+                sendRtcpPacket(xrdlrr->data(), xrdlrr->size(), true);
+
+                break;
+            }
             default: break;
         }
     }
