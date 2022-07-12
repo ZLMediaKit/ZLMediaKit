@@ -45,6 +45,10 @@ Buffer::Ptr RtcpContext::createRtcpRR(uint32_t rtcp_ssrc, uint32_t rtp_ssrc) {
     throw std::runtime_error("没有实现, rtp发送者尝试发送rr包");
 }
 
+Buffer::Ptr RtcpContext::createRtcpXRDLRR(uint32_t rtcp_ssrc, uint32_t rtp_ssrc) {
+    throw std::runtime_error("没有实现, rtp发送者尝试发送xr dlrr包");
+}
+
 ////////////////////////////////////////////////////////////////////////////////////
 
 void RtcpContextForSend::onRtcp(RtcpHeader *rtcp) {
@@ -69,6 +73,18 @@ void RtcpContextForSend::onRtcp(RtcpHeader *rtcp) {
                     _rtt[item->ssrc] = rtt;
                     //InfoL << "ssrc:" << item->ssrc << ",rtt:" << rtt;
                 }
+            }
+            break;
+        }
+        case RtcpType::RTCP_XR:{
+            auto rtcp_xr = (RtcpXRRRTR*)rtcp;
+            if(rtcp_xr->bt == 4){
+                _xr_xrrtr_recv_last_rr[rtcp_xr->ssrc] = ((rtcp_xr->ntpmsw & 0xFFFF) << 16) | ((rtcp_xr->ntplsw >> 16) & 0xFFFF);
+                _xr_rrtr_recv_sys_stamp[rtcp_xr->ssrc] = getCurrentMillisecond();
+            }else if(rtcp_xr->bt == 5){
+                TraceL<<"for sender not recive dlrr";
+            }else{
+                TraceL<<"not support xr bt "<<rtcp_xr->bt;
             }
             break;
         }
@@ -100,6 +116,34 @@ Buffer::Ptr RtcpContextForSend::createRtcpSR(uint32_t rtcp_ssrc) {
         _sender_report_ntp.erase(_sender_report_ntp.begin());
     }
 
+    return RtcpHeader::toBuffer(std::move(rtcp));
+}
+
+toolkit::Buffer::Ptr RtcpContextForSend::createRtcpXRDLRR(uint32_t rtcp_ssrc, uint32_t rtp_ssrc){
+    auto rtcp = RtcpXRDLRR::create(1);
+    rtcp->bt = 5;
+    rtcp->reserved = 0;
+    rtcp->block_length = htons(3);
+    rtcp->ssrc = htonl(rtcp_ssrc);
+    rtcp->items.ssrc = htonl(rtp_ssrc);
+
+    if(_xr_xrrtr_recv_last_rr.find(rtp_ssrc) == _xr_xrrtr_recv_last_rr.end()){
+        rtcp->items.lrr = 0;
+        WarnL;
+    }else{
+        rtcp->items.lrr = htonl(_xr_xrrtr_recv_last_rr[rtp_ssrc]);
+    }
+
+    if(_xr_rrtr_recv_sys_stamp.find(rtp_ssrc)  ==  _xr_rrtr_recv_sys_stamp.end()){
+        rtcp->items.dlrr = 0;
+        WarnL;
+    } else {
+        // now - Last SR time,单位毫秒
+        auto delay = getCurrentMillisecond() - _xr_rrtr_recv_sys_stamp[rtp_ssrc];
+        // in units of 1/65536 seconds
+        auto dlsr = (uint32_t)(delay / 1000.0f * 65536);
+        rtcp->items.dlrr = htonl(dlsr);
+    }
     return RtcpHeader::toBuffer(std::move(rtcp));
 }
 

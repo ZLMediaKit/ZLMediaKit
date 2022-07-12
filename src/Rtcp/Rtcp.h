@@ -687,6 +687,140 @@ private:
     void net2Host(size_t size);
 } PACKED;
 
+/*
+0                   1                   2                   3
+0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|V=2|P|reserved |   PT=XR=207   |             length            |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                              SSRC                             |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+:                         report blocks                         :
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+*/
+/*
+
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |     BT=4      |   reserved    |       block length = 2        |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |              NTP timestamp, most significant word             |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |             NTP timestamp, least significant word             |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+*/
+class RtcpXRRRTR : public RtcpHeader
+{
+public:
+    friend class RtcpHeader;
+    uint32_t ssrc;
+    // 4
+    uint8_t bt;
+    uint8_t reserved;
+    // 2
+    uint16_t block_length;
+     // ntp timestamp MSW(in second)
+    uint32_t ntpmsw;
+    // ntp timestamp LSW(in picosecond)
+    uint32_t ntplsw;
+private:
+     /**
+    * 打印字段详情
+    * 使用net2Host转换成主机字节序后才可使用此函数
+    */
+    std::string dumpString() const;
+
+    /**
+     * 网络字节序转换为主机字节序
+     * @param size 字节长度，防止内存越界
+     */
+    void net2Host(size_t size);
+
+}PACKED;
+
+/*
+
+  0                   1                   2                   3
+  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ |     BT=5      |   reserved    |         block length          |
+ +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+ |                 SSRC_1 (SSRC of first receiver)               | sub-
+ +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ block
+ |                         last RR (LRR)                         |   1
+ +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ |                   delay since last RR (DLRR)                  |
+ +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+ |                 SSRC_2 (SSRC of second receiver)              | sub-
+ +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ block
+ :                               ...                             :   2
+ +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+*/
+class RtcpXRDLRRReportItem
+{
+public:
+    friend class RtcpXRDLRR;
+    uint32_t ssrc;
+    uint32_t lrr;
+    uint32_t dlrr;
+private:
+     /**
+    * 打印字段详情
+    * 使用net2Host转换成主机字节序后才可使用此函数
+    */
+    std::string dumpString() const;
+
+    /**
+     * 网络字节序转换为主机字节序
+     * @param size 字节长度，防止内存越界
+     */
+    void net2Host();
+}PACKED;
+
+
+
+class RtcpXRDLRR : public RtcpHeader
+{
+public:
+    friend class RtcpHeader;
+    uint32_t ssrc;
+    uint8_t bt;
+    uint8_t reserved;
+    uint16_t block_length;
+    RtcpXRDLRRReportItem items;
+
+    /**
+     * 创建RtcpXRDLRR包，只赋值了RtcpHeader部分(网络字节序)
+     * @param item_count RtcpXRDLRRReportItem对象个数
+     * @return RtcpXRDLRR包
+     */
+    static std::shared_ptr<RtcpXRDLRR> create(size_t item_count);
+
+     /**
+     * 获取RtcpXRDLRRReportItem对象指针列表
+     * 使用net2Host转换成主机字节序后才可使用此函数
+     */
+    std::vector<RtcpXRDLRRReportItem*> getItemList();
+
+private:
+     /**
+    * 打印字段详情
+    * 使用net2Host转换成主机字节序后才可使用此函数
+    */
+    std::string dumpString() const;
+
+    /**
+     * 网络字节序转换为主机字节序
+     * @param size 字节长度，防止内存越界
+     */
+    void net2Host(size_t size);
+
+}PACKED;
+
+
 #if defined(_WIN32)
 #pragma pack(pop)
 #endif // defined(_WIN32)

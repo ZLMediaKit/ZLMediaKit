@@ -193,7 +193,20 @@ void RtcpHeader::net2Host(size_t len) {
             bye->net2Host(len);
             break;
         }
-
+        case RtcpType::RTCP_XR:{
+             RtcpXRRRTR* xr = (RtcpXRRRTR*)this;
+             if(xr->bt == 4){
+                xr->net2Host(len);
+                //TraceL<<xr->dumpString();
+             }else if(xr->bt == 5){
+                RtcpXRDLRR* dlrr = (RtcpXRDLRR*)this;
+                dlrr->net2Host(len);
+                TraceL<<dlrr->dumpString();
+             }else{
+                throw std::runtime_error(StrPrinter << "rtcp xr bt " << xr->bt<<" not support");
+             }
+             break;
+        }
         default: throw std::runtime_error(StrPrinter << "未处理的rtcp包:" << rtcpTypeToStr((RtcpType) this->pt));
     }
 }
@@ -690,6 +703,98 @@ void RtcpBye::net2Host(size_t size) {
             *reason_len_ptr = ((uint8_t *) this + size - reason_len_ptr - 1) & 0xFF;
         }
     }
+}
+//////////////////////////////////////////// 
+string RtcpXRRRTR::dumpString() const {
+    _StrPrinter printer;
+    printer << RtcpHeader::dumpHeader();
+    printer << "ssrc :" <<ssrc<<"\r\n";
+    printer << "bt :" <<(int)bt<<"\r\n";
+    printer << "block_length : "<<block_length<<"\r\n";
+    printer << "ntp msw : "<<ntpmsw<<"\r\n";
+    printer << "ntp lsw : "<<ntplsw<<"\r\n";
+    return std::move(printer);
+}
+
+void RtcpXRRRTR::net2Host(size_t size) {
+    static const size_t kMinSize = sizeof(RtcpHeader);
+    CHECK_MIN_SIZE(size, kMinSize);
+    if(size != sizeof(RtcpXRRRTR)){
+        throw std::invalid_argument(StrPrinter << "rtcp xr Receiver Reference Time Report Block must is " << sizeof(RtcpXRRRTR)<<" actual size "<<size);
+    }
+    ssrc = ntohl(ssrc);
+    block_length = ntohs(block_length);
+    ntpmsw = ntohl(ntpmsw);
+    ntplsw = ntohl(ntplsw);
+}
+
+
+string RtcpXRDLRRReportItem::dumpString() const {
+    _StrPrinter printer;
+
+    printer << "ssrc :" <<ssrc<<"\r\n";
+    printer << "last RR (lrr) :" <<lrr<<"\r\n";
+    printer << "delay since last RR (dlrr): "<<dlrr<<"\r\n";
+    
+    return std::move(printer);
+}
+
+void RtcpXRDLRRReportItem::net2Host() {
+    ssrc = ntohl(ssrc);
+    lrr = ntohl(lrr);
+    dlrr = ntohl(dlrr);
+}
+
+std::vector<RtcpXRDLRRReportItem*> RtcpXRDLRR::getItemList(){
+    auto count = block_length/3;
+    RtcpXRDLRRReportItem *ptr = &items;
+    vector<RtcpXRDLRRReportItem *> ret;
+    for (int i = 0; i < (int) count; ++i) {
+        ret.emplace_back(ptr);
+        ++ptr;
+    }
+    return ret;
+
+}
+string RtcpXRDLRR::dumpString() const {
+    _StrPrinter printer;
+    printer << RtcpHeader::dumpHeader();
+    printer << "ssrc :" <<ssrc<<"\r\n";
+    printer << "bt :" <<(int)bt<<"\r\n";
+    printer << "block_length : "<<block_length<<"\r\n";
+    auto items_list = ((RtcpXRDLRR *) this)->getItemList();
+    auto i = 0;
+    for (auto &item : items_list) {
+        printer << "---- item:" << i++ << " ----\r\n";
+        printer << item->dumpString();
+    }
+    return std::move(printer);
+}
+
+void RtcpXRDLRR::net2Host(size_t size) {
+    static const size_t kMinSize = sizeof(RtcpHeader);
+    CHECK_MIN_SIZE(size, kMinSize);
+
+    ssrc = ntohl(ssrc);
+    block_length = ntohs(block_length);
+
+    auto count = block_length/3;
+    for (int i = 0; i < (int) count; ++i) {
+        RtcpXRDLRRReportItem *ptr = &items;
+        ptr->net2Host();
+        ptr++;
+    }
+}
+
+std::shared_ptr<RtcpXRDLRR>  RtcpXRDLRR::create(size_t item_count){
+    auto real_size = sizeof(RtcpXRDLRR) - sizeof(RtcpXRDLRRReportItem) + item_count * sizeof(RtcpXRDLRRReportItem);
+    auto bytes = alignSize(real_size);
+    auto ptr = (RtcpXRDLRR *) new char[bytes];
+    setupHeader(ptr, RtcpType::RTCP_XR, 0, bytes);
+    setupPadding(ptr, bytes - real_size);
+    return std::shared_ptr<RtcpXRDLRR>(ptr, [](RtcpXRDLRR *ptr) {
+        delete[] (char *) ptr;
+    });
 }
 
 #if 0
