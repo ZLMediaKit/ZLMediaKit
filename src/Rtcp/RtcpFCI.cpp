@@ -16,16 +16,16 @@ using namespace toolkit;
 
 namespace mediakit {
 
-void FCI_SLI::check(size_t size){
+void FCI_SLI::check(size_t size) {
     CHECK(size >= kSize);
 }
 
 FCI_SLI::FCI_SLI(uint16_t first, uint16_t number, uint8_t pic_id) {
-    //13 bits
+    // 13 bits
     first &= 0x1FFF;
-    //13 bits
+    // 13 bits
     number &= 0x1FFF;
-    //6 bits
+    // 6 bits
     pic_id &= 0x3F;
     data = (first << 19) | (number << 6) | pic_id;
     data = htonl(data);
@@ -49,19 +49,19 @@ string FCI_SLI::dumpString() const {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void FCI_FIR::check(size_t size){
+void FCI_FIR::check(size_t size) {
     CHECK(size >= kSize);
 }
 
-uint32_t FCI_FIR::getSSRC() const{
+uint32_t FCI_FIR::getSSRC() const {
     return ntohl(ssrc);
 }
 
-uint8_t FCI_FIR::getSeq() const{
+uint8_t FCI_FIR::getSeq() const {
     return seq_number;
 }
 
-uint32_t FCI_FIR::getReserved() const{
+uint32_t FCI_FIR::getReserved() const {
     return (reserved[0] << 16) | (reserved[1] << 8) | reserved[2];
 }
 
@@ -81,7 +81,7 @@ FCI_FIR::FCI_FIR(uint32_t ssrc, uint8_t seq_number, uint32_t reserved) {
 
 static const char kRembMagic[] = "REMB";
 
-void FCI_REMB::check(size_t size){
+void FCI_REMB::check(size_t size) {
     CHECK(size >= kSize);
     CHECK(memcmp(magic, kRembMagic, sizeof(magic)) == 0);
     auto num_ssrc = bitrate[0];
@@ -93,7 +93,7 @@ string FCI_REMB::create(const vector<uint32_t> &ssrcs, uint32_t bitrate) {
     CHECK(ssrcs.size() > 0 && ssrcs.size() <= 0xFF);
     string ret;
     ret.resize(kSize + ssrcs.size() * 4);
-    FCI_REMB *thiz = (FCI_REMB *) ret.data();
+    FCI_REMB *thiz = (FCI_REMB *)ret.data();
     memcpy(thiz->magic, kRembMagic, sizeof(magic));
 
     /* bitrate --> BR Exp/BR Mantissa */
@@ -101,7 +101,7 @@ string FCI_REMB::create(const vector<uint32_t> &ssrcs, uint32_t bitrate) {
     uint8_t exp = 0;
     uint32_t mantissa = 0;
     for (b = 0; b < 32; b++) {
-        if (bitrate <= ((uint32_t) 0x3FFFF << b)) {
+        if (bitrate <= ((uint32_t)0x3FFFF << b)) {
             exp = b;
             break;
         }
@@ -110,16 +110,16 @@ string FCI_REMB::create(const vector<uint32_t> &ssrcs, uint32_t bitrate) {
         b = 31;
     }
     mantissa = bitrate >> b;
-    //Num SSRC (8 bits)
+    // Num SSRC (8 bits)
     thiz->bitrate[0] = ssrcs.size() & 0xFF;
-    //BR Exp (6 bits)/BR Mantissa (18 bits)
-    thiz->bitrate[1] = (uint8_t) ((exp << 2) + ((mantissa >> 16) & 0x03));
-    //BR Mantissa (18 bits)
-    thiz->bitrate[2] = (uint8_t) (mantissa >> 8);
-    //BR Mantissa (18 bits)
-    thiz->bitrate[3] = (uint8_t) (mantissa);
+    // BR Exp (6 bits)/BR Mantissa (18 bits)
+    thiz->bitrate[1] = (uint8_t)((exp << 2) + ((mantissa >> 16) & 0x03));
+    // BR Mantissa (18 bits)
+    thiz->bitrate[2] = (uint8_t)(mantissa >> 8);
+    // BR Mantissa (18 bits)
+    thiz->bitrate[3] = (uint8_t)(mantissa);
 
-    //设置ssrc列表
+    // 设置ssrc列表
     int i = 0;
     for (auto ssrc : ssrcs) {
         thiz->ssrc_feedback[i++] = htonl(ssrc);
@@ -149,7 +149,7 @@ vector<uint32_t> FCI_REMB::getSSRC() {
 string FCI_REMB::dumpString() const {
     _StrPrinter printer;
     printer << "bitrate:" << getBitRate() << ", ssrc:";
-    for (auto &ssrc : ((FCI_REMB *) this)->getSSRC()) {
+    for (auto &ssrc : ((FCI_REMB *)this)->getSSRC()) {
         printer << ssrc << " ";
     }
     return std::move(printer);
@@ -171,7 +171,7 @@ FCI_NACK::FCI_NACK(uint16_t pid_h, const vector<bool> &type) {
     pid = htons(pid_h);
 }
 
-void FCI_NACK::check(size_t size){
+void FCI_NACK::check(size_t size) {
     CHECK(size >= kSize);
 }
 
@@ -186,7 +186,7 @@ uint16_t FCI_NACK::getBlp() const {
 vector<bool> FCI_NACK::getBitArray() const {
     vector<bool> ret;
     ret.resize(kBitSize + 1);
-    //nack第一个包丢包
+    // nack第一个包丢包
     ret[0] = true;
 
     auto blp_h = getBlp();
@@ -220,25 +220,25 @@ public:
     // |T| S |       Run Length        |
     // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 #if __BYTE_ORDER == __BIG_ENDIAN
-    uint16_t type: 1;
-    uint16_t symbol: 2;
-    uint16_t run_length_high: 5;
+    uint16_t type : 1;
+    uint16_t symbol : 2;
+    uint16_t run_length_high : 5;
 #else
     // Run Length 高5位
-    uint16_t run_length_high: 5;
-    //参考SymbolStatus定义
-    uint16_t symbol: 2;
-    //固定为0
-    uint16_t type: 1;
+    uint16_t run_length_high : 5;
+    // 参考SymbolStatus定义
+    uint16_t symbol : 2;
+    // 固定为0
+    uint16_t type : 1;
 #endif
     // Run Length 低8位
-    uint16_t run_length_low: 8;
+    uint16_t run_length_low : 8;
 
-    //获取Run Length
+    // 获取Run Length
     uint16_t getRunLength() const;
-    //构造函数
+    // 构造函数
     RunLengthChunk(SymbolStatus status, uint16_t run_length);
-    //打印本对象
+    // 打印本对象
     string dumpString() const;
 } PACKED;
 
@@ -254,7 +254,7 @@ uint16_t RunLengthChunk::getRunLength() const {
     return run_length_high << 8 | run_length_low;
 }
 
-string RunLengthChunk::dumpString() const{
+string RunLengthChunk::dumpString() const {
     _StrPrinter printer;
     printer << "run length chunk, symbol:" << (int)symbol << ", run length:" << getRunLength();
     return std::move(printer);
@@ -271,30 +271,30 @@ public:
     // |T|S|       symbol list         |
     // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 #if __BYTE_ORDER == __BIG_ENDIAN
-    uint16_t type: 1;
-    uint16_t symbol: 1;
-    uint16_t symbol_list_high: 6;
+    uint16_t type : 1;
+    uint16_t symbol : 1;
+    uint16_t symbol_list_high : 6;
 #else
     // symbol_list 高6位
-    uint16_t symbol_list_high: 6;
-    //symbol_list中元素是1个还是2个bit
-    uint16_t symbol: 1;
-    //固定为1
-    uint16_t type: 1;
+    uint16_t symbol_list_high : 6;
+    // symbol_list中元素是1个还是2个bit
+    uint16_t symbol : 1;
+    // 固定为1
+    uint16_t type : 1;
 #endif
     // symbol_list 低8位
-    uint16_t symbol_list_low: 8;
+    uint16_t symbol_list_low : 8;
 
-    //获取symbollist
+    // 获取symbollist
     vector<SymbolStatus> getSymbolList() const;
-    //构造函数
+    // 构造函数
     StatusVecChunk(bool symbol_bit, const vector<SymbolStatus> &status);
-    //打印本对象
+    // 打印本对象
     string dumpString() const;
 } PACKED;
 
 StatusVecChunk::StatusVecChunk(bool symbol_bit, const vector<SymbolStatus> &status) {
-    CHECK( status.size() << symbol_bit <= 14);
+    CHECK(status.size() << symbol_bit <= 14);
     uint16_t value = 0;
     type = 1;
     symbol = symbol_bit;
@@ -303,31 +303,31 @@ StatusVecChunk::StatusVecChunk(bool symbol_bit, const vector<SymbolStatus> &stat
         CHECK(item <= SymbolStatus::reserved);
         if (!symbol) {
             CHECK(item <= SymbolStatus::small_delta);
-            value |= (int) item << i;
+            value |= (int)item << i;
             --i;
         } else {
-            value |= (int) item << (i - 1);
+            value |= (int)item << (i - 1);
             i -= 2;
         }
     }
     symbol_list_low = value & 0xFF;
-    symbol_list_high = (value >> 8 ) & 0x3F;
+    symbol_list_high = (value >> 8) & 0x3F;
 }
 
 vector<SymbolStatus> StatusVecChunk::getSymbolList() const {
     CHECK(type == 1);
     vector<SymbolStatus> ret;
-    auto thiz = ntohs(*((uint16_t *) this));
+    auto thiz = ntohs(*((uint16_t *)this));
     if (symbol == 0) {
-        //s = 0 时，表示symbollist的每一个bit能表示一个数据包的到达状态
+        // s = 0 时，表示symbollist的每一个bit能表示一个数据包的到达状态
         for (int i = 13; i >= 0; --i) {
-            SymbolStatus status = (SymbolStatus) ((bool) (thiz & (1 << i)));
+            SymbolStatus status = (SymbolStatus)((bool)(thiz & (1 << i)));
             ret.emplace_back(status);
         }
     } else {
-        //s = 1 时，表示symbollist每两个bit表示一个数据包的状态
+        // s = 1 时，表示symbollist每两个bit表示一个数据包的状态
         for (int i = 12; i >= 0; i -= 2) {
-            SymbolStatus status = (SymbolStatus) ((thiz & (3 << i)) >> i);
+            SymbolStatus status = (SymbolStatus)((thiz & (3 << i)) >> i);
             ret.emplace_back(status);
         }
     }
@@ -336,17 +336,17 @@ vector<SymbolStatus> StatusVecChunk::getSymbolList() const {
 
 string StatusVecChunk::dumpString() const {
     _StrPrinter printer;
-    printer << "status vector chunk, symbol:" << (int) symbol << ", symbol list:";
+    printer << "status vector chunk, symbol:" << (int)symbol << ", symbol list:";
     auto vec = getSymbolList();
     for (auto &item : vec) {
-        printer << (int) item << " ";
+        printer << (int)item << " ";
     }
     return std::move(printer);
 }
 
 ///////////////////////////////////////////////////////
 
-void FCI_TWCC::check(size_t size){
+void FCI_TWCC::check(size_t size) {
     CHECK(size >= kSize);
 }
 
@@ -365,87 +365,87 @@ uint32_t FCI_TWCC::getReferenceTime() const {
     ret |= ref_time[2];
     return ret;
 }
-//3.1.5.  Receive Delta
+// 3.1.5.  Receive Delta
 //
-//   Deltas are represented as multiples of 250us:
+//    Deltas are represented as multiples of 250us:
 //
-//   o  If the "Packet received, small delta" symbol has been appended to
-//      the status list, an 8-bit unsigned receive delta will be appended
-//      to recv delta list, representing a delta in the range [0, 63.75]
-//      ms.
+//    o  If the "Packet received, small delta" symbol has been appended to
+//       the status list, an 8-bit unsigned receive delta will be appended
+//       to recv delta list, representing a delta in the range [0, 63.75]
+//       ms.
 //
-//   o  If the "Packet received, large or negative delta" symbol has been
-//      appended to the status list, a 16-bit signed receive delta will be
-//      appended to recv delta list, representing a delta in the range
-//      [-8192.0, 8191.75] ms.
+//    o  If the "Packet received, large or negative delta" symbol has been
+//       appended to the status list, a 16-bit signed receive delta will be
+//       appended to recv delta list, representing a delta in the range
+//       [-8192.0, 8191.75] ms.
 //
-//   o  If the delta exceeds even the larger limits, a new feedback
-//      message must be used, where the 24-bit base receive delta can
-//      cover very large gaps.
+//    o  If the delta exceeds even the larger limits, a new feedback
+//       message must be used, where the 24-bit base receive delta can
+//       cover very large gaps.
 //
-//   The smaller receive delta upper bound of 63.75 ms means that this is
-//   only viable at about 1000/25.5 ~= 16 packets per second and above.
-//   With a packet size of 1200 bytes/packet that amounts to a bitrate of
-//   about 150 kbit/s.
+//    The smaller receive delta upper bound of 63.75 ms means that this is
+//    only viable at about 1000/25.5 ~= 16 packets per second and above.
+//    With a packet size of 1200 bytes/packet that amounts to a bitrate of
+//    about 150 kbit/s.
 //
-//   The 0.25 ms resolution means that up to 4000 packets per second can
-//   be represented.  With a 1200 bytes/packet payload, that amounts to
-//   38.4 Mbit/s payload bandwidth.
+//    The 0.25 ms resolution means that up to 4000 packets per second can
+//    be represented.  With a 1200 bytes/packet payload, that amounts to
+//    38.4 Mbit/s payload bandwidth.
 
-static int16_t getRecvDelta(SymbolStatus status, uint8_t *&ptr, const uint8_t *end){
+static int16_t getRecvDelta(SymbolStatus status, uint8_t *&ptr, const uint8_t *end) {
     int16_t delta = 0;
     switch (status) {
-        case SymbolStatus::not_received : {
-            //丢包， recv delta为0个字节
-            break;
-        }
-        case SymbolStatus::small_delta : {
-            CHECK(ptr + 1 <= end);
-            //时间戳增量小于256， recv delta为1个字节
-            delta = *ptr;
-            ptr += 1;
-            break;
-        }
-        case SymbolStatus::large_delta : {
-            CHECK(ptr + 2 <= end);
-            //时间戳增量256~65535间，recv delta为2个字节
-            delta = *ptr << 8 | *(ptr + 1);
-            ptr += 2;
-            break;
-        }
-        case SymbolStatus::reserved : {
-            //没有时间戳
-            break;
-        }
-        default:
-            //这个逻辑分支不可达到
-            CHECK(0);
-            break;
+    case SymbolStatus::not_received: {
+        // 丢包， recv delta为0个字节
+        break;
+    }
+    case SymbolStatus::small_delta: {
+        CHECK(ptr + 1 <= end);
+        // 时间戳增量小于256， recv delta为1个字节
+        delta = *ptr;
+        ptr += 1;
+        break;
+    }
+    case SymbolStatus::large_delta: {
+        CHECK(ptr + 2 <= end);
+        // 时间戳增量256~65535间，recv delta为2个字节
+        delta = *ptr << 8 | *(ptr + 1);
+        ptr += 2;
+        break;
+    }
+    case SymbolStatus::reserved: {
+        // 没有时间戳
+        break;
+    }
+    default:
+        // 这个逻辑分支不可达到
+        CHECK(0);
+        break;
     }
     return delta;
 }
 
 FCI_TWCC::TwccPacketStatus FCI_TWCC::getPacketChunkList(size_t total_size) const {
     TwccPacketStatus ret;
-    auto ptr = (uint8_t *) this + kSize;
-    auto end = (uint8_t *) this + total_size;
+    auto ptr = (uint8_t *)this + kSize;
+    auto end = (uint8_t *)this + total_size;
     CHECK(ptr < end);
     auto seq = getBaseSeq();
     auto rtp_count = getPacketCount();
     for (uint8_t i = 0; i < rtp_count;) {
         CHECK(ptr + RunLengthChunk::kSize <= end);
-        RunLengthChunk *chunk = (RunLengthChunk *) ptr;
+        RunLengthChunk *chunk = (RunLengthChunk *)ptr;
         if (!chunk->type) {
-            //RunLengthChunk
+            // RunLengthChunk
             for (auto j = 0; j < chunk->getRunLength(); ++j) {
-                ret.emplace(seq++, std::make_pair((SymbolStatus) chunk->symbol, 0));
+                ret.emplace(seq++, std::make_pair((SymbolStatus)chunk->symbol, 0));
                 if (++i >= rtp_count) {
                     break;
                 }
             }
         } else {
-            //StatusVecChunk
-            StatusVecChunk *chunk = (StatusVecChunk *) ptr;
+            // StatusVecChunk
+            StatusVecChunk *chunk = (StatusVecChunk *)ptr;
             for (auto &symbol : chunk->getSymbolList()) {
                 ret.emplace(seq++, std::make_pair(symbol, 0));
                 if (++i >= rtp_count) {
@@ -465,23 +465,29 @@ FCI_TWCC::TwccPacketStatus FCI_TWCC::getPacketChunkList(size_t total_size) const
 string FCI_TWCC::dumpString(size_t total_size) const {
     _StrPrinter printer;
     auto map = getPacketChunkList(total_size);
-    printer << "twcc fci, base_seq:" << getBaseSeq() << ", pkt_status_count:" << getPacketCount() << ", ref time:" << getReferenceTime() << ", fb count:" << (int)fb_pkt_count << "\n";
+    printer << "twcc fci, base_seq:" << getBaseSeq() << ", pkt_status_count:" << getPacketCount()
+            << ", ref time:" << getReferenceTime() << ", fb count:" << (int)fb_pkt_count << "\n";
     for (auto &pr : map) {
-        printer << "rtp seq:" << pr.first <<", packet status:" << (int)(pr.second.first) << ", delta:" << pr.second.second << "\n";
+        printer << "rtp seq:" << pr.first << ", packet status:" << (int)(pr.second.first)
+                << ", delta:" << pr.second.second << "\n";
     }
     return std::move(printer);
 }
 
-static void appendDeltaString(string &delta_str, FCI_TWCC::TwccPacketStatus &status, int count){
+static void appendDeltaString(string &delta_str, FCI_TWCC::TwccPacketStatus &status, int count) {
     for (auto it = status.begin(); it != status.end() && count--;) {
         switch (it->second.first) {
-            //large delta模式先写高字节，再写低字节
-            case SymbolStatus::large_delta: delta_str.push_back((it->second.second >> 8) & 0xFF);
-                //small delta模式只写低字节
-            case SymbolStatus::small_delta: delta_str.push_back(it->second.second & 0xFF); break;
-            default: break;
+        // large delta模式先写高字节，再写低字节
+        case SymbolStatus::large_delta:
+            delta_str.push_back((it->second.second >> 8) & 0xFF);
+            // small delta模式只写低字节
+        case SymbolStatus::small_delta:
+            delta_str.push_back(it->second.second & 0xFF);
+            break;
+        default:
+            break;
         }
-        //移除已经处理过的数据
+        // 移除已经处理过的数据
         it = status.erase(it);
     }
 }
@@ -489,7 +495,7 @@ static void appendDeltaString(string &delta_str, FCI_TWCC::TwccPacketStatus &sta
 string FCI_TWCC::create(uint32_t ref_time, uint8_t fb_pkt_count, TwccPacketStatus &status) {
     string fci;
     fci.resize(FCI_TWCC::kSize);
-    FCI_TWCC *ptr = (FCI_TWCC *) (fci.data());
+    FCI_TWCC *ptr = (FCI_TWCC *)(fci.data());
     ptr->base_seq = htons(status.begin()->first);
     ptr->pkt_status_count = htons(status.size());
     ptr->fb_pkt_count = fb_pkt_count;
@@ -500,21 +506,21 @@ string FCI_TWCC::create(uint32_t ref_time, uint8_t fb_pkt_count, TwccPacketStatu
     string delta_str;
     while (!status.empty()) {
         {
-            //第一个rtp的状态
+            // 第一个rtp的状态
             auto symbol = status.begin()->second.first;
             int16_t count = 0;
             for (auto &pr : status) {
                 if (pr.second.first != symbol) {
-                    //状态发送变更了，本chunk结束
+                    // 状态发送变更了，本chunk结束
                     break;
                 }
                 if (++count >= (0xFFFF >> 3)) {
-                    //RunLengthChunk 13个bit表明rtp个数，最多可以表述0xFFFF >> 3个rtp状态
+                    // RunLengthChunk 13个bit表明rtp个数，最多可以表述0xFFFF >> 3个rtp状态
                     break;
                 }
             }
             if (count >= 7) {
-                //连续状态相同个数大于6个时，使用RunLengthChunk模式比较节省带宽
+                // 连续状态相同个数大于6个时，使用RunLengthChunk模式比较节省带宽
                 RunLengthChunk chunk(symbol, count);
                 fci.append((char *)&chunk, RunLengthChunk::kSize);
                 appendDeltaString(delta_str, status, count);
@@ -523,20 +529,20 @@ string FCI_TWCC::create(uint32_t ref_time, uint8_t fb_pkt_count, TwccPacketStatu
         }
 
         {
-            //StatusVecChunk模式
-            //symbol_list中元素是1个bit
+            // StatusVecChunk模式
+            // symbol_list中元素是1个bit
             auto symbol = 0;
             vector<SymbolStatus> vec;
             for (auto &pr : status) {
                 vec.push_back(pr.second.first);
                 if (pr.second.first >= SymbolStatus::large_delta) {
-                    //symbol_list中元素是2个bit
+                    // symbol_list中元素是2个bit
                     symbol = 1;
                 }
 
                 if (vec.size() << symbol >= 14) {
-                    //symbol为0时，最多存放14个rtp的状态
-                    //symbol为1时，最多存放7个rtp的状态
+                    // symbol为0时，最多存放14个rtp的状态
+                    // symbol为1时，最多存放7个rtp的状态
                     break;
                 }
             }
@@ -547,9 +553,9 @@ string FCI_TWCC::create(uint32_t ref_time, uint8_t fb_pkt_count, TwccPacketStatu
         }
     }
 
-    //recv delta部分
+    // recv delta部分
     fci.append(delta_str);
     return fci;
 }
 
-}//namespace mediakit
+} // namespace mediakit

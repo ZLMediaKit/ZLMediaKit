@@ -11,11 +11,11 @@
 #ifndef ZLMEDIAKIT_RTCP_H
 #define ZLMEDIAKIT_RTCP_H
 
+#include "Common/macros.h"
+#include "Network/Buffer.h"
+#include "Util/util.h"
 #include <stdint.h>
 #include <vector>
-#include "Util/util.h"
-#include "Network/Buffer.h"
-#include "Common/macros.h"
 
 namespace mediakit {
 
@@ -23,115 +23,115 @@ namespace mediakit {
 #pragma pack(push, 1)
 #endif // defined(_WIN32)
 
-//http://www.networksorcery.com/enp/protocol/rtcp.htm
-#define RTCP_PT_MAP(XX) \
-        XX(RTCP_FIR, 192) \
-        XX(RTCP_NACK, 193) \
-        XX(RTCP_SMPTETC, 194) \
-        XX(RTCP_IJ, 195) \
-        XX(RTCP_SR, 200) \
-        XX(RTCP_RR, 201) \
-        XX(RTCP_SDES, 202) \
-        XX(RTCP_BYE, 203) \
-        XX(RTCP_APP, 204) \
-        XX(RTCP_RTPFB, 205) \
-        XX(RTCP_PSFB, 206) \
-        XX(RTCP_XR, 207) \
-        XX(RTCP_AVB, 208) \
-        XX(RTCP_RSI, 209) \
-        XX(RTCP_TOKEN, 210)
+// http://www.networksorcery.com/enp/protocol/rtcp.htm
+#define RTCP_PT_MAP(XX)                                                                                                \
+    XX(RTCP_FIR, 192)                                                                                                  \
+    XX(RTCP_NACK, 193)                                                                                                 \
+    XX(RTCP_SMPTETC, 194)                                                                                              \
+    XX(RTCP_IJ, 195)                                                                                                   \
+    XX(RTCP_SR, 200)                                                                                                   \
+    XX(RTCP_RR, 201)                                                                                                   \
+    XX(RTCP_SDES, 202)                                                                                                 \
+    XX(RTCP_BYE, 203)                                                                                                  \
+    XX(RTCP_APP, 204)                                                                                                  \
+    XX(RTCP_RTPFB, 205)                                                                                                \
+    XX(RTCP_PSFB, 206)                                                                                                 \
+    XX(RTCP_XR, 207)                                                                                                   \
+    XX(RTCP_AVB, 208)                                                                                                  \
+    XX(RTCP_RSI, 209)                                                                                                  \
+    XX(RTCP_TOKEN, 210)
 
-//https://tools.ietf.org/html/rfc3550#section-6.5
-#define SDES_TYPE_MAP(XX) \
-        XX(RTCP_SDES_END, 0) \
-        XX(RTCP_SDES_CNAME, 1) \
-        XX(RTCP_SDES_NAME, 2) \
-        XX(RTCP_SDES_EMAIL, 3) \
-        XX(RTCP_SDES_PHONE, 4) \
-        XX(RTCP_SDES_LOC, 5) \
-        XX(RTCP_SDES_TOOL, 6) \
-        XX(RTCP_SDES_NOTE, 7) \
-        XX(RTCP_SDES_PRIVATE, 8)
+// https://tools.ietf.org/html/rfc3550#section-6.5
+#define SDES_TYPE_MAP(XX)                                                                                              \
+    XX(RTCP_SDES_END, 0)                                                                                               \
+    XX(RTCP_SDES_CNAME, 1)                                                                                             \
+    XX(RTCP_SDES_NAME, 2)                                                                                              \
+    XX(RTCP_SDES_EMAIL, 3)                                                                                             \
+    XX(RTCP_SDES_PHONE, 4)                                                                                             \
+    XX(RTCP_SDES_LOC, 5)                                                                                               \
+    XX(RTCP_SDES_TOOL, 6)                                                                                              \
+    XX(RTCP_SDES_NOTE, 7)                                                                                              \
+    XX(RTCP_SDES_PRIVATE, 8)
 
-//https://datatracker.ietf.org/doc/rfc4585/?include_text=1
-//6.3.  Payload-Specific Feedback Messages
+// https://datatracker.ietf.org/doc/rfc4585/?include_text=1
+// 6.3.  Payload-Specific Feedback Messages
 //
-//   Payload-Specific FB messages are identified by the value PT=PSFB as
-//   RTCP message type.
+//    Payload-Specific FB messages are identified by the value PT=PSFB as
+//    RTCP message type.
 //
-//   Three payload-specific FB messages are defined so far plus an
-//   application layer FB message.  They are identified by means of the
-//   FMT parameter as follows:
+//    Three payload-specific FB messages are defined so far plus an
+//    application layer FB message.  They are identified by means of the
+//    FMT parameter as follows:
 //
-//      0:     unassigned
-//      1:     Picture Loss Indication (PLI)
-//      2:     Slice Loss Indication (SLI)
-//      3:     Reference Picture Selection Indication (RPSI)
-//      4:     FIR https://tools.ietf.org/html/rfc5104#section-4.3.1.1
-//      5:     TSTR https://tools.ietf.org/html/rfc5104#section-4.3.2.1
-//      6:     TSTN https://tools.ietf.org/html/rfc5104#section-4.3.2.1
-//      7:     VBCM https://tools.ietf.org/html/rfc5104#section-4.3.4.1
-//      8-14:  unassigned
-//      15:    REMB / Application layer FB (AFB) message, https://tools.ietf.org/html/draft-alvestrand-rmcat-remb-03
-//      16-30: unassigned
-//      31:    reserved for future expansion of the sequence number space
-#define PSFB_TYPE_MAP(XX) \
-        XX(RTCP_PSFB_PLI, 1) \
-        XX(RTCP_PSFB_SLI, 2) \
-        XX(RTCP_PSFB_RPSI, 3) \
-        XX(RTCP_PSFB_FIR, 4) \
-        XX(RTCP_PSFB_TSTR, 5)\
-        XX(RTCP_PSFB_TSTN, 6)\
-        XX(RTCP_PSFB_VBCM, 7) \
-        XX(RTCP_PSFB_REMB, 15)
+//       0:     unassigned
+//       1:     Picture Loss Indication (PLI)
+//       2:     Slice Loss Indication (SLI)
+//       3:     Reference Picture Selection Indication (RPSI)
+//       4:     FIR https://tools.ietf.org/html/rfc5104#section-4.3.1.1
+//       5:     TSTR https://tools.ietf.org/html/rfc5104#section-4.3.2.1
+//       6:     TSTN https://tools.ietf.org/html/rfc5104#section-4.3.2.1
+//       7:     VBCM https://tools.ietf.org/html/rfc5104#section-4.3.4.1
+//       8-14:  unassigned
+//       15:    REMB / Application layer FB (AFB) message, https://tools.ietf.org/html/draft-alvestrand-rmcat-remb-03
+//       16-30: unassigned
+//       31:    reserved for future expansion of the sequence number space
+#define PSFB_TYPE_MAP(XX)                                                                                              \
+    XX(RTCP_PSFB_PLI, 1)                                                                                               \
+    XX(RTCP_PSFB_SLI, 2)                                                                                               \
+    XX(RTCP_PSFB_RPSI, 3)                                                                                              \
+    XX(RTCP_PSFB_FIR, 4)                                                                                               \
+    XX(RTCP_PSFB_TSTR, 5)                                                                                              \
+    XX(RTCP_PSFB_TSTN, 6)                                                                                              \
+    XX(RTCP_PSFB_VBCM, 7)                                                                                              \
+    XX(RTCP_PSFB_REMB, 15)
 
-//https://tools.ietf.org/html/rfc4585#section-6.2
-//6.2.   Transport Layer Feedback Messages
+// https://tools.ietf.org/html/rfc4585#section-6.2
+// 6.2.   Transport Layer Feedback Messages
 //
-//   Transport layer FB messages are identified by the value RTPFB as RTCP
-//   message type.
+//    Transport layer FB messages are identified by the value RTPFB as RTCP
+//    message type.
 //
-//   A single general purpose transport layer FB message is defined in
-//   this document: Generic NACK.  It is identified by means of the FMT
-//   parameter as follows:
+//    A single general purpose transport layer FB message is defined in
+//    this document: Generic NACK.  It is identified by means of the FMT
+//    parameter as follows:
 //
-//   0:     unassigned
-//   1:     Generic NACK
-//   2:     reserved https://tools.ietf.org/html/rfc5104#section-4.2
-//   3:     TMMBR https://tools.ietf.org/html/rfc5104#section-4.2.1.1
-//   4:     TMMBN https://tools.ietf.org/html/rfc5104#section-4.2.2.1
-//   5-14:  unassigned
-//   15     transport-cc https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01
-//   16-30: unassigned
-//   31:    reserved for future expansion of the identifier number space
-#define RTPFB_TYPE_MAP(XX) \
-        XX(RTCP_RTPFB_NACK, 1) \
-        XX(RTCP_RTPFB_TMMBR, 3) \
-        XX(RTCP_RTPFB_TMMBN, 4) \
-        XX(RTCP_RTPFB_TWCC, 15)
+//    0:     unassigned
+//    1:     Generic NACK
+//    2:     reserved https://tools.ietf.org/html/rfc5104#section-4.2
+//    3:     TMMBR https://tools.ietf.org/html/rfc5104#section-4.2.1.1
+//    4:     TMMBN https://tools.ietf.org/html/rfc5104#section-4.2.2.1
+//    5-14:  unassigned
+//    15     transport-cc https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01
+//    16-30: unassigned
+//    31:    reserved for future expansion of the identifier number space
+#define RTPFB_TYPE_MAP(XX)                                                                                             \
+    XX(RTCP_RTPFB_NACK, 1)                                                                                             \
+    XX(RTCP_RTPFB_TMMBR, 3)                                                                                            \
+    XX(RTCP_RTPFB_TMMBN, 4)                                                                                            \
+    XX(RTCP_RTPFB_TWCC, 15)
 
-//rtcp类型枚举
+// rtcp类型枚举
 enum class RtcpType : uint8_t {
 #define XX(key, value) key = value,
     RTCP_PT_MAP(XX)
 #undef XX
 };
 
-//sdes类型枚举
+// sdes类型枚举
 enum class SdesType : uint8_t {
 #define XX(key, value) key = value,
     SDES_TYPE_MAP(XX)
 #undef XX
 };
 
-//psfb类型枚举
+// psfb类型枚举
 enum class PSFBType : uint8_t {
 #define XX(key, value) key = value,
     PSFB_TYPE_MAP(XX)
 #undef XX
 };
 
-//rtpfb类型枚举
+// rtpfb类型枚举
 enum class RTPFBType : uint8_t {
 #define XX(key, value) key = value,
     RTPFB_TYPE_MAP(XX)
@@ -161,26 +161,26 @@ const char *rtpfbTypeToStr(RTPFBType type);
 class RtcpHeader {
 public:
 #if __BYTE_ORDER == __BIG_ENDIAN
-    //版本号，固定为2
-    uint32_t version: 2;
-    //padding，固定为0
-    uint32_t padding: 1;
-    //reception report count
-    uint32_t report_count: 5;
+    // 版本号，固定为2
+    uint32_t version : 2;
+    // padding，固定为0
+    uint32_t padding : 1;
+    // reception report count
+    uint32_t report_count : 5;
 #else
-    //reception report count
-    uint32_t report_count: 5;
-    //padding，末尾是否有追加填充
-    uint32_t padding: 1;
-    //版本号，固定为2
-    uint32_t version: 2;
+    // reception report count
+    uint32_t report_count : 5;
+    // padding，末尾是否有追加填充
+    uint32_t padding : 1;
+    // 版本号，固定为2
+    uint32_t version : 2;
 #endif
-    //rtcp类型,RtcpType
-    uint32_t pt: 8;
+    // rtcp类型,RtcpType
+    uint32_t pt : 8;
 
 private:
-    //长度
-    uint32_t length: 16;
+    // 长度
+    uint32_t length : 16;
 
 public:
     /**
@@ -222,7 +222,6 @@ public:
     void setSize(size_t size);
 
 protected:
-
     /**
      * 打印字段详情
      * 使用net2Host转换成主机字节序后才可使用此函数
@@ -240,26 +239,26 @@ private:
 
 /////////////////////////////////////////////////////////////////////////////
 
-//ReportBlock
+// ReportBlock
 class ReportItem {
 public:
     friend class RtcpSR;
     friend class RtcpRR;
 
     uint32_t ssrc;
-    //Fraction lost
-    uint32_t fraction: 8;
-    //Cumulative number of packets lost
-    uint32_t cumulative: 24;
-    //Sequence number cycles count
+    // Fraction lost
+    uint32_t fraction : 8;
+    // Cumulative number of packets lost
+    uint32_t cumulative : 24;
+    // Sequence number cycles count
     uint16_t seq_cycles;
-    //Highest sequence number received
+    // Highest sequence number received
     uint16_t seq_max;
-    //Interarrival jitter
+    // Interarrival jitter
     uint32_t jitter;
-    //Last SR timestamp, NTP timestamp,(ntpmsw & 0xFFFF) << 16  | (ntplsw >> 16) & 0xFFFF)
+    // Last SR timestamp, NTP timestamp,(ntpmsw & 0xFFFF) << 16  | (ntplsw >> 16) & 0xFFFF)
     uint32_t last_sr_stamp;
-    //Delay since last SR timestamp,expressed in units of 1/65536 seconds
+    // Delay since last SR timestamp,expressed in units of 1/65536 seconds
     uint32_t delay_since_last_sr;
 
 private:
@@ -273,7 +272,7 @@ private:
      * 网络字节序转换为主机字节序
      */
     void net2Host();
-}PACKED;
+} PACKED;
 
 /*
  * 6.4.1 SR: Sender Report RTCP Packet
@@ -329,7 +328,7 @@ public:
     uint32_t packet_count;
     // sender octet count
     uint32_t octet_count;
-    //可能有很多个
+    // 可能有很多个
     ReportItem items;
 
 public:
@@ -358,13 +357,13 @@ public:
      * 获取ReportItem对象指针列表
      * 使用net2Host转换成主机字节序后才可使用此函数
      */
-    std::vector<ReportItem*> getItemList();
+    std::vector<ReportItem *> getItemList();
 
 private:
     /**
-    * 打印字段详情
-    * 使用net2Host转换成主机字节序后才可使用此函数
-    */
+     * 打印字段详情
+     * 使用net2Host转换成主机字节序后才可使用此函数
+     */
     std::string dumpString() const;
 
     /**
@@ -406,13 +405,13 @@ block  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
        +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  */
 
-//Receiver Report
+// Receiver Report
 class RtcpRR : public RtcpHeader {
 public:
     friend class RtcpHeader;
 
     uint32_t ssrc;
-    //可能有很多个
+    // 可能有很多个
     ReportItem items;
 
 public:
@@ -420,14 +419,14 @@ public:
      * 创建RR包，只赋值了RtcpHeader部分
      * @param item_count ReportItem对象个数
      * @return RR包
-    */
+     */
     static std::shared_ptr<RtcpRR> create(size_t item_count);
 
     /**
      * 获取ReportItem对象指针列表
      * 使用net2Host转换成主机字节序后才可使用此函数
      */
-    std::vector<ReportItem*> getItemList();
+    std::vector<ReportItem *> getItemList();
 
 private:
     /**
@@ -475,20 +474,20 @@ SDES items 定义
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 */
 
-//Source description Chunk
+// Source description Chunk
 class SdesChunk {
 public:
     friend class RtcpSdes;
 
     uint32_t ssrc;
-    //SdesType
+    // SdesType
     uint8_t type;
-    //text长度股，可以为0
+    // text长度股，可以为0
     uint8_t txt_len;
-    //不定长
+    // 不定长
     char text[1];
-    //最后以RTCP_SDES_END结尾
-    //只字段为占位字段，不代表真实位置
+    // 最后以RTCP_SDES_END结尾
+    // 只字段为占位字段，不代表真实位置
     uint8_t end;
 
 public:
@@ -511,16 +510,16 @@ private:
 
     /**
      * 网络字节序转换为主机字节序
-    */
+     */
     void net2Host();
 } PACKED;
 
-//Source description
+// Source description
 class RtcpSdes : public RtcpHeader {
 public:
     friend class RtcpHeader;
 
-    //可能有很多个
+    // 可能有很多个
     SdesChunk chunks;
 
 public:
@@ -535,13 +534,13 @@ public:
      * 获取SdesChunk对象指针列表
      * 使用net2Host转换成主机字节序后才可使用此函数
      */
-    std::vector<SdesChunk*> getChunkList();
+    std::vector<SdesChunk *> getChunkList();
 
 private:
     /**
-    * 打印字段详情
-    * 使用net2Host转换成主机字节序后才可使用此函数
-    */
+     * 打印字段详情
+     * 使用net2Host转换成主机字节序后才可使用此函数
+     */
     std::string dumpString() const;
 
     /**
@@ -591,11 +590,11 @@ public:
      * @tparam Type 对象类型
      * @return 对象指针
      */
-    template<typename Type>
-    const Type& getFci() const{
+    template <typename Type>
+    const Type &getFci() const {
         auto fci_data = getFciPtr();
         auto fci_len = getFciSize();
-        Type *fci = (Type *) fci_data;
+        Type *fci = (Type *)fci_data;
         fci->check(fci_len);
         return *fci;
     }
@@ -612,9 +611,9 @@ public:
 
 private:
     /**
-    * 打印字段详情
-    * 使用net2Host转换成主机字节序后才可使用此函数
-    */
+     * 打印字段详情
+     * 使用net2Host转换成主机字节序后才可使用此函数
+     */
     std::string dumpString() const;
 
     /**
@@ -627,7 +626,7 @@ private:
     static std::shared_ptr<RtcpFB> create_l(RtcpType type, int fmt, const void *fci, size_t fci_len);
 } PACKED;
 
-//BYE
+// BYE
 /*
        0                   1                   2                   3
        0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -675,9 +674,9 @@ public:
 
 private:
     /**
-    * 打印字段详情
-    * 使用net2Host转换成主机字节序后才可使用此函数
-    */
+     * 打印字段详情
+     * 使用net2Host转换成主机字节序后才可使用此函数
+     */
     std::string dumpString() const;
 
     /**
@@ -687,9 +686,139 @@ private:
     void net2Host(size_t size);
 } PACKED;
 
+/*
+0                   1                   2                   3
+0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|V=2|P|reserved |   PT=XR=207   |             length            |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                              SSRC                             |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+:                         report blocks                         :
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+*/
+/*
+
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |     BT=4      |   reserved    |       block length = 2        |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |              NTP timestamp, most significant word             |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |             NTP timestamp, least significant word             |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+*/
+class RtcpXRRRTR : public RtcpHeader {
+public:
+    friend class RtcpHeader;
+    uint32_t ssrc;
+    // 4
+    uint8_t bt;
+    uint8_t reserved;
+    // 2
+    uint16_t block_length;
+    // ntp timestamp MSW(in second)
+    uint32_t ntpmsw;
+    // ntp timestamp LSW(in picosecond)
+    uint32_t ntplsw;
+
+private:
+    /**
+     * 打印字段详情
+     * 使用net2Host转换成主机字节序后才可使用此函数
+     */
+    std::string dumpString() const;
+
+    /**
+     * 网络字节序转换为主机字节序
+     * @param size 字节长度，防止内存越界
+     */
+    void net2Host(size_t size);
+
+} PACKED;
+
+/*
+
+  0                   1                   2                   3
+  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ |     BT=5      |   reserved    |         block length          |
+ +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+ |                 SSRC_1 (SSRC of first receiver)               | sub-
+ +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ block
+ |                         last RR (LRR)                         |   1
+ +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ |                   delay since last RR (DLRR)                  |
+ +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+ |                 SSRC_2 (SSRC of second receiver)              | sub-
+ +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ block
+ :                               ...                             :   2
+ +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+*/
+class RtcpXRDLRRReportItem {
+public:
+    friend class RtcpXRDLRR;
+    uint32_t ssrc;
+    uint32_t lrr;
+    uint32_t dlrr;
+
+private:
+    /**
+     * 打印字段详情
+     * 使用net2Host转换成主机字节序后才可使用此函数
+     */
+    std::string dumpString() const;
+
+    /**
+     * 网络字节序转换为主机字节序
+     * @param size 字节长度，防止内存越界
+     */
+    void net2Host();
+} PACKED;
+
+class RtcpXRDLRR : public RtcpHeader {
+public:
+    friend class RtcpHeader;
+    uint32_t ssrc;
+    uint8_t bt;
+    uint8_t reserved;
+    uint16_t block_length;
+    RtcpXRDLRRReportItem items;
+
+    /**
+     * 创建RtcpXRDLRR包，只赋值了RtcpHeader部分(网络字节序)
+     * @param item_count RtcpXRDLRRReportItem对象个数
+     * @return RtcpXRDLRR包
+     */
+    static std::shared_ptr<RtcpXRDLRR> create(size_t item_count);
+
+    /**
+     * 获取RtcpXRDLRRReportItem对象指针列表
+     * 使用net2Host转换成主机字节序后才可使用此函数
+     */
+    std::vector<RtcpXRDLRRReportItem *> getItemList();
+
+private:
+    /**
+     * 打印字段详情
+     * 使用net2Host转换成主机字节序后才可使用此函数
+     */
+    std::string dumpString() const;
+
+    /**
+     * 网络字节序转换为主机字节序
+     * @param size 字节长度，防止内存越界
+     */
+    void net2Host(size_t size);
+
+} PACKED;
+
 #if defined(_WIN32)
 #pragma pack(pop)
 #endif // defined(_WIN32)
 
-} //namespace mediakit
-#endif //ZLMEDIAKIT_RTCP_H
+} // namespace mediakit
+#endif // ZLMEDIAKIT_RTCP_H
