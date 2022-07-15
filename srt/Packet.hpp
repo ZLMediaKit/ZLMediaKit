@@ -118,9 +118,9 @@ public:
         USERDEFINEDTYPE = 0x7FFF
     };
 
-    uint32_t sub_type : 16;
-    uint32_t control_type : 15;
-    uint32_t f : 1;
+    uint16_t sub_type;
+    uint16_t control_type;
+    uint8_t f;
     uint8_t type_specific_info[4];
     uint32_t timestamp;
     uint32_t dst_socket_id;
@@ -189,7 +189,7 @@ public:
     static uint32_t getSynCookie(uint8_t *buf, size_t len);
     static uint32_t
     generateSynCookie(struct sockaddr_storage *addr, TimePoint ts, uint32_t current_cookie = 0, int correction = 0);
-
+    std::string dump();
     void assignPeerIP(struct sockaddr_storage *addr);
     ///////ControlPacket override///////
     bool loadFromData(uint8_t *buf, size_t len) override;

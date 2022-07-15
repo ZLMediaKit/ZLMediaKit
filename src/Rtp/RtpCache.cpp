@@ -19,25 +19,37 @@ namespace mediakit{
 RtpCache::RtpCache(onFlushed cb) {
     _cb = std::move(cb);
 }
-
+bool RtpCache::firstKeyReady(bool in) {
+    if(_first_key){
+        return _first_key;
+    }
+    _first_key = in;
+    return _first_key;
+}
 void RtpCache::onFlush(std::shared_ptr<List<Buffer::Ptr> > rtp_list, bool) {
     _cb(std::move(rtp_list));
 }
 
-void RtpCache::input(uint64_t stamp, Buffer::Ptr buffer) {
-    inputPacket(stamp, true, std::move(buffer), false);
+void RtpCache::input(uint64_t stamp, Buffer::Ptr buffer,bool is_key ) {
+    inputPacket(stamp, true, std::move(buffer), is_key);
 }
 
-void RtpCachePS::onRTP(Buffer::Ptr buffer) {
+void RtpCachePS::onRTP(Buffer::Ptr buffer,bool is_key) {
+    if(!firstKeyReady(is_key)){
+        return;
+    }
     auto rtp = std::static_pointer_cast<RtpPacket>(buffer);
     auto stamp = rtp->getStampMS();
-    input(stamp, std::move(buffer));
+    input(stamp, std::move(buffer),is_key);
 }
 
-void RtpCacheRaw::onRTP(Buffer::Ptr buffer) {
+void RtpCacheRaw::onRTP(Buffer::Ptr buffer,bool is_key) {
+    if(!firstKeyReady(is_key)){
+        return;
+    }
     auto rtp = std::static_pointer_cast<RtpPacket>(buffer);
     auto stamp = rtp->getStampMS();
-    input(stamp, std::move(buffer));
+    input(stamp, std::move(buffer),is_key);
 }
 
 }//namespace mediakit

@@ -25,12 +25,16 @@ public:
     typedef std::function<void(int stream, int codecid, const void *extra, size_t bytes, int finish)> onStream;
 
     virtual ssize_t input(const uint8_t *data, size_t bytes) = 0;
-    virtual void setOnDecode(onDecode cb) = 0;
-    virtual void setOnStream(onStream cb) = 0;
+    void setOnDecode(onDecode cb);
+    void setOnStream(onStream cb);
 
 protected:
     Decoder() = default;
     virtual ~Decoder() = default;
+
+protected:
+    onDecode _on_decode;
+    onStream _on_stream;
 };
 
 class DecoderImp{

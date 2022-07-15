@@ -17,7 +17,7 @@ SrtTransportImp::~SrtTransportImp() {
     GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
     if (_total_bytes >= iFlowThreshold * 1024) {
         NoticeCenter::Instance().emitEvent(
-            Broadcast::kBroadcastFlowReport, _media_info, _total_bytes, duration, false,
+            Broadcast::kBroadcastFlowReport, _media_info, _total_bytes, duration, !_is_pusher,
             static_cast<SockInfo &>(*this));
     }
 }
@@ -147,6 +147,11 @@ std::string SrtTransportImp::getOriginUrl(mediakit::MediaSource &sender) const {
 // 获取媒体源客户端相关信息
 std::shared_ptr<SockInfo> SrtTransportImp::getOriginSock(mediakit::MediaSource &sender) const {
     return static_pointer_cast<SockInfo>(getSession());
+}
+
+toolkit::EventPoller::Ptr SrtTransportImp::getOwnerPoller(MediaSource &sender){
+    auto session = getSession();
+    return session  ? session->getPoller() : nullptr;
 }
 
 void SrtTransportImp::emitOnPublish() {
@@ -282,7 +287,10 @@ std::string SrtTransportImp::getIdentifier() const {
 
 bool SrtTransportImp::inputFrame(const Frame::Ptr &frame) {
     if (_muxer) {
-        return _muxer->inputFrame(frame);
+        //TraceL<<"before type "<<frame->getCodecName()<<" dts "<<frame->dts()<<" pts "<<frame->pts();
+        auto frame_tmp = std::make_shared<FrameStamp>(frame, _type_to_stamp[frame->getTrackType()],false);
+        //TraceL<<"after type "<<frame_tmp->getCodecName()<<" dts "<<frame_tmp->dts()<<" pts "<<frame_tmp->pts();
+        return _muxer->inputFrame(frame_tmp);
     }
     if (_cached_func.size() > 200) {
         WarnL << "cached frame of track(" << frame->getCodecName() << ") is too much, now dropped";
@@ -290,11 +298,17 @@ bool SrtTransportImp::inputFrame(const Frame::Ptr &frame) {
     }
     auto frame_cached = Frame::getCacheAbleFrame(frame);
     lock_guard<recursive_mutex> lck(_func_mtx);
-    _cached_func.emplace_back([this, frame_cached]() { _muxer->inputFrame(frame_cached); });
+    _cached_func.emplace_back([this, frame_cached]() { 
+        //TraceL<<"before type "<<frame_cached->getCodecName()<<" dts "<<frame_cached->dts()<<" pts "<<frame_cached->pts();
+        auto frame_tmp = std::make_shared<FrameStamp>(frame_cached, _type_to_stamp[frame_cached->getTrackType()],false);
+        //TraceL<<"after type "<<frame_tmp->getCodecName()<<" dts "<<frame_tmp->dts()<<" pts "<<frame_tmp->pts();
+        _muxer->inputFrame(frame_tmp);
+    });
     return true;
 }
 
 bool SrtTransportImp::addTrack(const Track::Ptr &track) {
+    _type_to_stamp.emplace(track->getTrackType(),Stamp());
     if (_muxer) {
         return _muxer->addTrack(track);
     }
@@ -310,6 +324,9 @@ void SrtTransportImp::addTrackCompleted() {
     } else {
         lock_guard<recursive_mutex> lck(_func_mtx);
         _cached_func.emplace_back([this]() { _muxer->addTrackCompleted(); });
+    }
+    if(_type_to_stamp.size() >1){
+        _type_to_stamp[TrackType::TrackAudio].syncTo(_type_to_stamp[TrackType::TrackVideo]);
     }
 }
 

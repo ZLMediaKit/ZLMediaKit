@@ -27,7 +27,7 @@ public:
 
 protected:
     //rtp打包后回调
-    virtual void onRTP(toolkit::Buffer::Ptr rtp) = 0;
+    virtual void onRTP(toolkit::Buffer::Ptr rtp,bool is_key = false) = 0;
 
 protected:
     void onWrite(std::shared_ptr<toolkit::Buffer> buffer, uint32_t stamp, bool key_pos) override;

@@ -59,6 +59,8 @@ protected:
     std::string getOriginUrl(mediakit::MediaSource &sender) const override;
     // 获取媒体源客户端相关信息
     std::shared_ptr<SockInfo> getOriginSock(mediakit::MediaSource &sender) const override;
+    // get poller
+    toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;
 
     ///////MediaSinkInterface override///////
     void resetTracks() override {};
@@ -87,6 +89,8 @@ private:
     DecoderImp::Ptr _decoder;
     std::recursive_mutex _func_mtx;
     std::deque<std::function<void()>> _cached_func;
+
+    std::unordered_map<int, Stamp> _type_to_stamp;
 };
 
 } // namespace SRT
