@@ -900,7 +900,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{ZLMediaKit_URL}}/index/api/getMp4RecordFile?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=proxy&stream=2&period=2020-05-26",
+					"raw": "{{ZLMediaKit_URL}}/index/api/getMp4RecordFile?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=proxy&stream=2&customized_path=/www&period=2020-05-26",
 					"host": [
 						"{{ZLMediaKit_URL}}"
 					],
@@ -929,6 +929,11 @@
 							"key": "stream",
 							"value": "2",
 							"description": "流id，例如 test"
+						},
+						{
+							"key": "customized_path",
+							"value": "/www",
+							"description": "录像文件保存自定义根目录，为空则采用配置文件设置"
 						},
 						{
 							"key": "period",
