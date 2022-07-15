@@ -354,64 +354,12 @@ void MultiMediaSourceMuxer::resetTracks() {
     }
 }
 
-//该类实现frame级别的时间戳覆盖
-class FrameModifyStamp : public Frame{
-public:
-    typedef std::shared_ptr<FrameModifyStamp> Ptr;
-    FrameModifyStamp(const Frame::Ptr &frame, Stamp &stamp){
-        _frame = frame;
-        //覆盖时间戳
-        stamp.revise(frame->dts(), frame->pts(), _dts, _pts, true);
-    }
-    ~FrameModifyStamp() override {}
-
-    uint32_t dts() const override{
-        return (uint32_t)_dts;
-    }
-
-    uint32_t pts() const override{
-        return (uint32_t)_pts;
-    }
-
-    size_t prefixSize() const override {
-        return _frame->prefixSize();
-    }
-
-    bool keyFrame() const override {
-        return _frame->keyFrame();
-    }
-
-    bool configFrame() const override {
-        return _frame->configFrame();
-    }
-
-    bool cacheAble() const override {
-        return _frame->cacheAble();
-    }
-
-    char *data() const override {
-        return _frame->data();
-    }
-
-    size_t size() const override {
-        return _frame->size();
-    }
-
-    CodecId getCodecId() const override {
-        return _frame->getCodecId();
-    }
-private:
-    int64_t _dts;
-    int64_t _pts;
-    Frame::Ptr _frame;
-};
-
 bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
     GET_CONFIG(bool, modify_stamp, General::kModifyStamp);
     auto frame = frame_in;
     if (modify_stamp) {
         //开启了时间戳覆盖
-        frame = std::make_shared<FrameModifyStamp>(frame, _stamp[frame->getTrackType()]);
+        frame = std::make_shared<FrameStamp>(frame, _stamp[frame->getTrackType()],true);
     }
 
     bool ret = false;

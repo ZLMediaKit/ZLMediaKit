@@ -1,6 +1,6 @@
-﻿#include "Util/MD5.h"
+﻿#include <atomic>
+#include "Util/MD5.h"
 #include "Util/logger.h"
-#include <atomic>
 
 #include "Packet.hpp"
 
@@ -225,7 +225,35 @@ size_t ControlPacket::size() const {
 uint32_t ControlPacket::getSocketID(uint8_t *buf, size_t len) {
     return loadUint32(buf + 12);
 }
+std::string HandshakePacket::dump(){
+    _StrPrinter printer;
+    printer <<"flag:"<< (int)f<<"\r\n";
+    printer <<"control_type:"<< (int)control_type<<"\r\n";
+    printer <<"sub_type:"<< (int)sub_type<<"\r\n";
+    printer <<"type_specific_info:"<< (int)type_specific_info[0]<<":"<<(int)type_specific_info[1]<<":"<<(int)type_specific_info[2]<<":"<<(int)type_specific_info[3]<<"\r\n";
+    printer <<"timestamp:"<< timestamp<<"\r\n";
+    printer <<"dst_socket_id:"<< dst_socket_id<<"\r\n";
 
+    printer <<"version:"<< version<<"\r\n";
+    printer <<"encryption_field:"<< encryption_field<<"\r\n";
+    printer <<"extension_field:"<< extension_field<<"\r\n";
+    printer <<"initial_packet_sequence_number:"<< initial_packet_sequence_number<<"\r\n";
+    printer <<"mtu:"<< mtu<<"\r\n";
+    printer <<"max_flow_window_size:"<< max_flow_window_size<<"\r\n";
+    printer <<"handshake_type:"<< handshake_type<<"\r\n";
+    printer <<"srt_socket_id:"<< srt_socket_id<<"\r\n";
+    printer <<"syn_cookie:"<< syn_cookie<<"\r\n";
+    printer <<"peer_ip_addr:";
+    for(size_t i=0;i<sizeof(peer_ip_addr);++i){
+        printer<<(int)peer_ip_addr[i]<<":";
+    }
+    printer<<"\r\n";
+
+    for(size_t i=0;i<ext_list.size();++i){
+        printer<<ext_list[i]->dump()<<"\r\n";
+    }
+    return std::move(printer);
+}
 bool HandshakePacket::loadFromData(uint8_t *buf, size_t len) {
     if (HEADER_SIZE + HS_CONTENT_MIN_SIZE > len) {
         ErrorL << "size too smalle " << encryption_field;
@@ -435,15 +463,11 @@ uint32_t HandshakePacket::generateSynCookie(
 
     while (true) {
         // SYN cookie
-        char clienthost[NI_MAXHOST];
-        char clientport[NI_MAXSERV];
-        getnameinfo(
-            (struct sockaddr *)addr, sizeof(struct sockaddr_storage), clienthost, sizeof(clienthost), clientport,
-            sizeof(clientport), NI_NUMERICHOST | NI_NUMERICSERV);
         int64_t timestamp = (DurationCountMicroseconds(SteadyClock::now() - ts) / 60000000) + distractor.load()
             + correction; // secret changes every one minute
         std::stringstream cookiestr;
-        cookiestr << clienthost << ":" << clientport << ":" << timestamp;
+        cookiestr << SockUtil::inet_ntoa((struct sockaddr *)addr) << ":" << SockUtil::inet_port((struct sockaddr *)addr)
+                  << ":" << timestamp;
         union {
             unsigned char cookie[16];
             uint32_t cookie_val;

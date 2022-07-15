@@ -15,8 +15,8 @@ var ZLMRTCClient = (function (exports) {
 	  CAPTURE_STREAM_FAILED: 'CAPTURE_STREAM_FAILED'
 	};
 
-	const VERSION = '1.0.1';
-	const BUILD_DATE = 'Thu Mar 24 2022 17:42:57 GMT+0800 (China Standard Time)';
+	const VERSION$1 = '1.0.1';
+	const BUILD_DATE = 'Mon Jul 04 2022 19:50:55 GMT+0800 (China Standard Time)';
 
 	// Copyright (C) <2018> Intel Corporation
 	//
@@ -5833,11 +5833,25 @@ var ZLMRTCClient = (function (exports) {
 	  };
 	};
 
-	/*global toString:true*/
-
 	// utils is a library of generic helper functions non-specific to axios
 
 	var toString = Object.prototype.toString;
+
+	// eslint-disable-next-line func-names
+	var kindOf = (function(cache) {
+	  // eslint-disable-next-line func-names
+	  return function(thing) {
+	    var str = toString.call(thing);
+	    return cache[str] || (cache[str] = str.slice(8, -1).toLowerCase());
+	  };
+	})(Object.create(null));
+
+	function kindOfTest(type) {
+	  type = type.toLowerCase();
+	  return function isKindOf(thing) {
+	    return kindOf(thing) === type;
+	  };
+	}
 
 	/**
 	 * Determine if a value is an Array
@@ -5846,7 +5860,7 @@ var ZLMRTCClient = (function (exports) {
 	 * @returns {boolean} True if value is an Array, otherwise false
 	 */
 	function isArray(val) {
-	  return toString.call(val) === '[object Array]';
+	  return Array.isArray(val);
 	}
 
 	/**
@@ -5873,22 +5887,12 @@ var ZLMRTCClient = (function (exports) {
 	/**
 	 * Determine if a value is an ArrayBuffer
 	 *
+	 * @function
 	 * @param {Object} val The value to test
 	 * @returns {boolean} True if value is an ArrayBuffer, otherwise false
 	 */
-	function isArrayBuffer(val) {
-	  return toString.call(val) === '[object ArrayBuffer]';
-	}
+	var isArrayBuffer = kindOfTest('ArrayBuffer');
 
-	/**
-	 * Determine if a value is a FormData
-	 *
-	 * @param {Object} val The value to test
-	 * @returns {boolean} True if value is an FormData, otherwise false
-	 */
-	function isFormData(val) {
-	  return (typeof FormData !== 'undefined') && (val instanceof FormData);
-	}
 
 	/**
 	 * Determine if a value is a view on an ArrayBuffer
@@ -5901,7 +5905,7 @@ var ZLMRTCClient = (function (exports) {
 	  if ((typeof ArrayBuffer !== 'undefined') && (ArrayBuffer.isView)) {
 	    result = ArrayBuffer.isView(val);
 	  } else {
-	    result = (val) && (val.buffer) && (val.buffer instanceof ArrayBuffer);
+	    result = (val) && (val.buffer) && (isArrayBuffer(val.buffer));
 	  }
 	  return result;
 	}
@@ -5943,7 +5947,7 @@ var ZLMRTCClient = (function (exports) {
 	 * @return {boolean} True if value is a plain Object, otherwise false
 	 */
 	function isPlainObject(val) {
-	  if (toString.call(val) !== '[object Object]') {
+	  if (kindOf(val) !== 'object') {
 	    return false;
 	  }
 
@@ -5954,32 +5958,38 @@ var ZLMRTCClient = (function (exports) {
 	/**
 	 * Determine if a value is a Date
 	 *
+	 * @function
 	 * @param {Object} val The value to test
 	 * @returns {boolean} True if value is a Date, otherwise false
 	 */
-	function isDate(val) {
-	  return toString.call(val) === '[object Date]';
-	}
+	var isDate = kindOfTest('Date');
 
 	/**
 	 * Determine if a value is a File
 	 *
+	 * @function
 	 * @param {Object} val The value to test
 	 * @returns {boolean} True if value is a File, otherwise false
 	 */
-	function isFile(val) {
-	  return toString.call(val) === '[object File]';
-	}
+	var isFile = kindOfTest('File');
 
 	/**
 	 * Determine if a value is a Blob
 	 *
+	 * @function
 	 * @param {Object} val The value to test
 	 * @returns {boolean} True if value is a Blob, otherwise false
 	 */
-	function isBlob(val) {
-	  return toString.call(val) === '[object Blob]';
-	}
+	var isBlob = kindOfTest('Blob');
+
+	/**
+	 * Determine if a value is a FileList
+	 *
+	 * @function
+	 * @param {Object} val The value to test
+	 * @returns {boolean} True if value is a File, otherwise false
+	 */
+	var isFileList = kindOfTest('FileList');
 
 	/**
 	 * Determine if a value is a Function
@@ -6002,14 +6012,27 @@ var ZLMRTCClient = (function (exports) {
 	}
 
 	/**
-	 * Determine if a value is a URLSearchParams object
+	 * Determine if a value is a FormData
 	 *
+	 * @param {Object} thing The value to test
+	 * @returns {boolean} True if value is an FormData, otherwise false
+	 */
+	function isFormData(thing) {
+	  var pattern = '[object FormData]';
+	  return thing && (
+	    (typeof FormData === 'function' && thing instanceof FormData) ||
+	    toString.call(thing) === pattern ||
+	    (isFunction(thing.toString) && thing.toString() === pattern)
+	  );
+	}
+
+	/**
+	 * Determine if a value is a URLSearchParams object
+	 * @function
 	 * @param {Object} val The value to test
 	 * @returns {boolean} True if value is a URLSearchParams object, otherwise false
 	 */
-	function isURLSearchParams(val) {
-	  return typeof URLSearchParams !== 'undefined' && val instanceof URLSearchParams;
-	}
+	var isURLSearchParams = kindOfTest('URLSearchParams');
 
 	/**
 	 * Trim excess whitespace off the beginning and end of a string
@@ -6018,7 +6041,7 @@ var ZLMRTCClient = (function (exports) {
 	 * @returns {String} The String freed of excess whitespace
 	 */
 	function trim(str) {
-	  return str.replace(/^\s*/, '').replace(/\s*$/, '');
+	  return str.trim ? str.trim() : str.replace(/^\s+|\s+$/g, '');
 	}
 
 	/**
@@ -6156,6 +6179,94 @@ var ZLMRTCClient = (function (exports) {
 	  return content;
 	}
 
+	/**
+	 * Inherit the prototype methods from one constructor into another
+	 * @param {function} constructor
+	 * @param {function} superConstructor
+	 * @param {object} [props]
+	 * @param {object} [descriptors]
+	 */
+
+	function inherits(constructor, superConstructor, props, descriptors) {
+	  constructor.prototype = Object.create(superConstructor.prototype, descriptors);
+	  constructor.prototype.constructor = constructor;
+	  props && Object.assign(constructor.prototype, props);
+	}
+
+	/**
+	 * Resolve object with deep prototype chain to a flat object
+	 * @param {Object} sourceObj source object
+	 * @param {Object} [destObj]
+	 * @param {Function} [filter]
+	 * @returns {Object}
+	 */
+
+	function toFlatObject(sourceObj, destObj, filter) {
+	  var props;
+	  var i;
+	  var prop;
+	  var merged = {};
+
+	  destObj = destObj || {};
+
+	  do {
+	    props = Object.getOwnPropertyNames(sourceObj);
+	    i = props.length;
+	    while (i-- > 0) {
+	      prop = props[i];
+	      if (!merged[prop]) {
+	        destObj[prop] = sourceObj[prop];
+	        merged[prop] = true;
+	      }
+	    }
+	    sourceObj = Object.getPrototypeOf(sourceObj);
+	  } while (sourceObj && (!filter || filter(sourceObj, destObj)) && sourceObj !== Object.prototype);
+
+	  return destObj;
+	}
+
+	/*
+	 * determines whether a string ends with the characters of a specified string
+	 * @param {String} str
+	 * @param {String} searchString
+	 * @param {Number} [position= 0]
+	 * @returns {boolean}
+	 */
+	function endsWith(str, searchString, position) {
+	  str = String(str);
+	  if (position === undefined || position > str.length) {
+	    position = str.length;
+	  }
+	  position -= searchString.length;
+	  var lastIndex = str.indexOf(searchString, position);
+	  return lastIndex !== -1 && lastIndex === position;
+	}
+
+
+	/**
+	 * Returns new array from array like object
+	 * @param {*} [thing]
+	 * @returns {Array}
+	 */
+	function toArray(thing) {
+	  if (!thing) return null;
+	  var i = thing.length;
+	  if (isUndefined(i)) return null;
+	  var arr = new Array(i);
+	  while (i-- > 0) {
+	    arr[i] = thing[i];
+	  }
+	  return arr;
+	}
+
+	// eslint-disable-next-line func-names
+	var isTypedArray = (function(TypedArray) {
+	  // eslint-disable-next-line func-names
+	  return function(thing) {
+	    return TypedArray && thing instanceof TypedArray;
+	  };
+	})(typeof Uint8Array !== 'undefined' && Object.getPrototypeOf(Uint8Array));
+
 	var utils = {
 	  isArray: isArray,
 	  isArrayBuffer: isArrayBuffer,
@@ -6178,7 +6289,15 @@ var ZLMRTCClient = (function (exports) {
 	  merge: merge,
 	  extend: extend,
 	  trim: trim,
-	  stripBOM: stripBOM
+	  stripBOM: stripBOM,
+	  inherits: inherits,
+	  toFlatObject: toFlatObject,
+	  kindOf: kindOf,
+	  kindOfTest: kindOfTest,
+	  endsWith: endsWith,
+	  toArray: toArray,
+	  isTypedArray: isTypedArray,
+	  isFileList: isFileList
 	};
 
 	function encode(val) {
@@ -6260,10 +6379,12 @@ var ZLMRTCClient = (function (exports) {
 	 *
 	 * @return {Number} An ID used to remove interceptor later
 	 */
-	InterceptorManager.prototype.use = function use(fulfilled, rejected) {
+	InterceptorManager.prototype.use = function use(fulfilled, rejected, options) {
 	  this.handlers.push({
 	    fulfilled: fulfilled,
-	    rejected: rejected
+	    rejected: rejected,
+	    synchronous: options ? options.synchronous : false,
+	    runWhen: options ? options.runWhen : null
 	  });
 	  return this.handlers.length - 1;
 	};
@@ -6297,27 +6418,6 @@ var ZLMRTCClient = (function (exports) {
 
 	var InterceptorManager_1 = InterceptorManager;
 
-	/**
-	 * Transform the data for a request or a response
-	 *
-	 * @param {Object|String} data The data to be transformed
-	 * @param {Array} headers The headers for the request or response
-	 * @param {Array|Function} fns A single function or Array of functions
-	 * @returns {*} The resulting transformed data
-	 */
-	var transformData = function transformData(data, headers, fns) {
-	  /*eslint no-param-reassign:0*/
-	  utils.forEach(fns, function transform(fn) {
-	    data = fn(data, headers);
-	  });
-
-	  return data;
-	};
-
-	var isCancel = function isCancel(value) {
-	  return !!(value && value.__CANCEL__);
-	};
-
 	var normalizeHeaderName = function normalizeHeaderName(headers, normalizedName) {
 	  utils.forEach(headers, function processHeader(value, name) {
 	    if (name !== normalizedName && name.toUpperCase() === normalizedName.toUpperCase()) {
@@ -6328,26 +6428,27 @@ var ZLMRTCClient = (function (exports) {
 	};
 
 	/**
-	 * Update an Error with the specified config, error code, and response.
+	 * Create an Error with the specified message, config, error code, request and response.
 	 *
-	 * @param {Error} error The error to update.
-	 * @param {Object} config The config.
+	 * @param {string} message The error message.
 	 * @param {string} [code] The error code (for example, 'ECONNABORTED').
+	 * @param {Object} [config] The config.
 	 * @param {Object} [request] The request.
 	 * @param {Object} [response] The response.
-	 * @returns {Error} The error.
+	 * @returns {Error} The created error.
 	 */
-	var enhanceError = function enhanceError(error, config, code, request, response) {
-	  error.config = config;
-	  if (code) {
-	    error.code = code;
-	  }
+	function AxiosError(message, code, config, request, response) {
+	  Error.call(this);
+	  this.message = message;
+	  this.name = 'AxiosError';
+	  code && (this.code = code);
+	  config && (this.config = config);
+	  request && (this.request = request);
+	  response && (this.response = response);
+	}
 
-	  error.request = request;
-	  error.response = response;
-	  error.isAxiosError = true;
-
-	  error.toJSON = function toJSON() {
+	utils.inherits(AxiosError, Error, {
+	  toJSON: function toJSON() {
 	    return {
 	      // Standard
 	      message: this.message,
@@ -6362,26 +6463,127 @@ var ZLMRTCClient = (function (exports) {
 	      stack: this.stack,
 	      // Axios
 	      config: this.config,
-	      code: this.code
+	      code: this.code,
+	      status: this.response && this.response.status ? this.response.status : null
 	    };
-	  };
-	  return error;
+	  }
+	});
+
+	var prototype = AxiosError.prototype;
+	var descriptors = {};
+
+	[
+	  'ERR_BAD_OPTION_VALUE',
+	  'ERR_BAD_OPTION',
+	  'ECONNABORTED',
+	  'ETIMEDOUT',
+	  'ERR_NETWORK',
+	  'ERR_FR_TOO_MANY_REDIRECTS',
+	  'ERR_DEPRECATED',
+	  'ERR_BAD_RESPONSE',
+	  'ERR_BAD_REQUEST',
+	  'ERR_CANCELED'
+	// eslint-disable-next-line func-names
+	].forEach(function(code) {
+	  descriptors[code] = {value: code};
+	});
+
+	Object.defineProperties(AxiosError, descriptors);
+	Object.defineProperty(prototype, 'isAxiosError', {value: true});
+
+	// eslint-disable-next-line func-names
+	AxiosError.from = function(error, code, config, request, response, customProps) {
+	  var axiosError = Object.create(prototype);
+
+	  utils.toFlatObject(error, axiosError, function filter(obj) {
+	    return obj !== Error.prototype;
+	  });
+
+	  AxiosError.call(axiosError, error.message, code, config, request, response);
+
+	  axiosError.name = error.name;
+
+	  customProps && Object.assign(axiosError, customProps);
+
+	  return axiosError;
+	};
+
+	var AxiosError_1 = AxiosError;
+
+	var transitional = {
+	  silentJSONParsing: true,
+	  forcedJSONParsing: true,
+	  clarifyTimeoutError: false
 	};
 
 	/**
-	 * Create an Error with the specified message, config, error code, request and response.
-	 *
-	 * @param {string} message The error message.
-	 * @param {Object} config The config.
-	 * @param {string} [code] The error code (for example, 'ECONNABORTED').
-	 * @param {Object} [request] The request.
-	 * @param {Object} [response] The response.
-	 * @returns {Error} The created error.
-	 */
-	var createError = function createError(message, config, code, request, response) {
-	  var error = new Error(message);
-	  return enhanceError(error, config, code, request, response);
-	};
+	 * Convert a data object to FormData
+	 * @param {Object} obj
+	 * @param {?Object} [formData]
+	 * @returns {Object}
+	 **/
+
+	function toFormData(obj, formData) {
+	  // eslint-disable-next-line no-param-reassign
+	  formData = formData || new FormData();
+
+	  var stack = [];
+
+	  function convertValue(value) {
+	    if (value === null) return '';
+
+	    if (utils.isDate(value)) {
+	      return value.toISOString();
+	    }
+
+	    if (utils.isArrayBuffer(value) || utils.isTypedArray(value)) {
+	      return typeof Blob === 'function' ? new Blob([value]) : Buffer.from(value);
+	    }
+
+	    return value;
+	  }
+
+	  function build(data, parentKey) {
+	    if (utils.isPlainObject(data) || utils.isArray(data)) {
+	      if (stack.indexOf(data) !== -1) {
+	        throw Error('Circular reference detected in ' + parentKey);
+	      }
+
+	      stack.push(data);
+
+	      utils.forEach(data, function each(value, key) {
+	        if (utils.isUndefined(value)) return;
+	        var fullKey = parentKey ? parentKey + '.' + key : key;
+	        var arr;
+
+	        if (value && !parentKey && typeof value === 'object') {
+	          if (utils.endsWith(key, '{}')) {
+	            // eslint-disable-next-line no-param-reassign
+	            value = JSON.stringify(value);
+	          } else if (utils.endsWith(key, '[]') && (arr = utils.toArray(value))) {
+	            // eslint-disable-next-line func-names
+	            arr.forEach(function(el) {
+	              !utils.isUndefined(el) && formData.append(fullKey, convertValue(el));
+	            });
+	            return;
+	          }
+	        }
+
+	        build(value, fullKey);
+	      });
+
+	      stack.pop();
+	    } else {
+	      formData.append(parentKey, convertValue(data));
+	    }
+	  }
+
+	  build(obj);
+
+	  return formData;
+	}
+
+	var toFormData_1 = toFormData;
 
 	/**
 	 * Resolve or reject a Promise based on response status.
@@ -6395,10 +6597,10 @@ var ZLMRTCClient = (function (exports) {
 	  if (!response.status || !validateStatus || validateStatus(response.status)) {
 	    resolve(response);
 	  } else {
-	    reject(createError(
+	    reject(new AxiosError_1(
 	      'Request failed with status code ' + response.status,
+	      [AxiosError_1.ERR_BAD_REQUEST, AxiosError_1.ERR_BAD_RESPONSE][Math.floor(response.status / 100) - 4],
 	      response.config,
-	      null,
 	      response.request,
 	      response
 	    ));
@@ -6465,7 +6667,7 @@ var ZLMRTCClient = (function (exports) {
 	  // A URL is considered absolute if it begins with "<scheme>://" or "//" (protocol-relative URL).
 	  // RFC 3986 defines scheme name as a sequence of characters beginning with a letter and followed
 	  // by any combination of letters, digits, plus, period, or hyphen.
-	  return /^([a-z][a-z\d\+\-\.]*:)?\/\//i.test(url);
+	  return /^([a-z][a-z\d+\-.]*:)?\/\//i.test(url);
 	};
 
 	/**
@@ -6612,12 +6814,46 @@ var ZLMRTCClient = (function (exports) {
 	    })()
 	);
 
+	/**
+	 * A `CanceledError` is an object that is thrown when an operation is canceled.
+	 *
+	 * @class
+	 * @param {string=} message The message.
+	 */
+	function CanceledError(message) {
+	  // eslint-disable-next-line no-eq-null,eqeqeq
+	  AxiosError_1.call(this, message == null ? 'canceled' : message, AxiosError_1.ERR_CANCELED);
+	  this.name = 'CanceledError';
+	}
+
+	utils.inherits(CanceledError, AxiosError_1, {
+	  __CANCEL__: true
+	});
+
+	var CanceledError_1 = CanceledError;
+
+	var parseProtocol = function parseProtocol(url) {
+	  var match = /^([-+\w]{1,25})(:?\/\/|:)/.exec(url);
+	  return match && match[1] || '';
+	};
+
 	var xhr = function xhrAdapter(config) {
 	  return new Promise(function dispatchXhrRequest(resolve, reject) {
 	    var requestData = config.data;
 	    var requestHeaders = config.headers;
+	    var responseType = config.responseType;
+	    var onCanceled;
+	    function done() {
+	      if (config.cancelToken) {
+	        config.cancelToken.unsubscribe(onCanceled);
+	      }
 
-	    if (utils.isFormData(requestData)) {
+	      if (config.signal) {
+	        config.signal.removeEventListener('abort', onCanceled);
+	      }
+	    }
+
+	    if (utils.isFormData(requestData) && utils.isStandardBrowserEnv()) {
 	      delete requestHeaders['Content-Type']; // Let the browser set it
 	    }
 
@@ -6631,28 +6867,20 @@ var ZLMRTCClient = (function (exports) {
 	    }
 
 	    var fullPath = buildFullPath(config.baseURL, config.url);
+
 	    request.open(config.method.toUpperCase(), buildURL(fullPath, config.params, config.paramsSerializer), true);
 
 	    // Set the request timeout in MS
 	    request.timeout = config.timeout;
 
-	    // Listen for ready state
-	    request.onreadystatechange = function handleLoad() {
-	      if (!request || request.readyState !== 4) {
+	    function onloadend() {
+	      if (!request) {
 	        return;
 	      }
-
-	      // The request errored out and we didn't get a response, this will be
-	      // handled by onerror instead
-	      // With one exception: request that using file: protocol, most browsers
-	      // will return status as 0 even though it's a successful request
-	      if (request.status === 0 && !(request.responseURL && request.responseURL.indexOf('file:') === 0)) {
-	        return;
-	      }
-
 	      // Prepare the response
 	      var responseHeaders = 'getAllResponseHeaders' in request ? parseHeaders(request.getAllResponseHeaders()) : null;
-	      var responseData = !config.responseType || config.responseType === 'text' ? request.responseText : request.response;
+	      var responseData = !responseType || responseType === 'text' ||  responseType === 'json' ?
+	        request.responseText : request.response;
 	      var response = {
 	        data: responseData,
 	        status: request.status,
@@ -6662,11 +6890,40 @@ var ZLMRTCClient = (function (exports) {
 	        request: request
 	      };
 
-	      settle(resolve, reject, response);
+	      settle(function _resolve(value) {
+	        resolve(value);
+	        done();
+	      }, function _reject(err) {
+	        reject(err);
+	        done();
+	      }, response);
 
 	      // Clean up request
 	      request = null;
-	    };
+	    }
+
+	    if ('onloadend' in request) {
+	      // Use onloadend if available
+	      request.onloadend = onloadend;
+	    } else {
+	      // Listen for ready state to emulate onloadend
+	      request.onreadystatechange = function handleLoad() {
+	        if (!request || request.readyState !== 4) {
+	          return;
+	        }
+
+	        // The request errored out and we didn't get a response, this will be
+	        // handled by onerror instead
+	        // With one exception: request that using file: protocol, most browsers
+	        // will return status as 0 even though it's a successful request
+	        if (request.status === 0 && !(request.responseURL && request.responseURL.indexOf('file:') === 0)) {
+	          return;
+	        }
+	        // readystate handler is calling before onerror or ontimeout handlers,
+	        // so we should call onloadend on the next 'tick'
+	        setTimeout(onloadend);
+	      };
+	    }
 
 	    // Handle browser request cancellation (as opposed to a manual cancellation)
 	    request.onabort = function handleAbort() {
@@ -6674,7 +6931,7 @@ var ZLMRTCClient = (function (exports) {
 	        return;
 	      }
 
-	      reject(createError('Request aborted', config, 'ECONNABORTED', request));
+	      reject(new AxiosError_1('Request aborted', AxiosError_1.ECONNABORTED, config, request));
 
 	      // Clean up request
 	      request = null;
@@ -6684,7 +6941,7 @@ var ZLMRTCClient = (function (exports) {
 	    request.onerror = function handleError() {
 	      // Real errors are hidden from us by the browser
 	      // onerror should only fire if it's a network error
-	      reject(createError('Network Error', config, null, request));
+	      reject(new AxiosError_1('Network Error', AxiosError_1.ERR_NETWORK, config, request, request));
 
 	      // Clean up request
 	      request = null;
@@ -6692,11 +6949,15 @@ var ZLMRTCClient = (function (exports) {
 
 	    // Handle timeout
 	    request.ontimeout = function handleTimeout() {
-	      var timeoutErrorMessage = 'timeout of ' + config.timeout + 'ms exceeded';
+	      var timeoutErrorMessage = config.timeout ? 'timeout of ' + config.timeout + 'ms exceeded' : 'timeout exceeded';
+	      var transitional$1 = config.transitional || transitional;
 	      if (config.timeoutErrorMessage) {
 	        timeoutErrorMessage = config.timeoutErrorMessage;
 	      }
-	      reject(createError(timeoutErrorMessage, config, 'ECONNABORTED',
+	      reject(new AxiosError_1(
+	        timeoutErrorMessage,
+	        transitional$1.clarifyTimeoutError ? AxiosError_1.ETIMEDOUT : AxiosError_1.ECONNABORTED,
+	        config,
 	        request));
 
 	      // Clean up request
@@ -6736,16 +6997,8 @@ var ZLMRTCClient = (function (exports) {
 	    }
 
 	    // Add responseType to request if needed
-	    if (config.responseType) {
-	      try {
-	        request.responseType = config.responseType;
-	      } catch (e) {
-	        // Expected DOMException thrown by browsers not compatible XMLHttpRequest Level 2.
-	        // But, this can be suppressed for 'json' type as it can be parsed by default 'transformResponse' function.
-	        if (config.responseType !== 'json') {
-	          throw e;
-	        }
-	      }
+	    if (responseType && responseType !== 'json') {
+	      request.responseType = config.responseType;
 	    }
 
 	    // Handle progress if needed
@@ -6758,28 +7011,43 @@ var ZLMRTCClient = (function (exports) {
 	      request.upload.addEventListener('progress', config.onUploadProgress);
 	    }
 
-	    if (config.cancelToken) {
+	    if (config.cancelToken || config.signal) {
 	      // Handle cancellation
-	      config.cancelToken.promise.then(function onCanceled(cancel) {
+	      // eslint-disable-next-line func-names
+	      onCanceled = function(cancel) {
 	        if (!request) {
 	          return;
 	        }
-
+	        reject(!cancel || (cancel && cancel.type) ? new CanceledError_1() : cancel);
 	        request.abort();
-	        reject(cancel);
-	        // Clean up request
 	        request = null;
-	      });
+	      };
+
+	      config.cancelToken && config.cancelToken.subscribe(onCanceled);
+	      if (config.signal) {
+	        config.signal.aborted ? onCanceled() : config.signal.addEventListener('abort', onCanceled);
+	      }
 	    }
 
 	    if (!requestData) {
 	      requestData = null;
 	    }
 
+	    var protocol = parseProtocol(fullPath);
+
+	    if (protocol && [ 'http', 'https', 'file' ].indexOf(protocol) === -1) {
+	      reject(new AxiosError_1('Unsupported protocol ' + protocol + ':', AxiosError_1.ERR_BAD_REQUEST, config));
+	      return;
+	    }
+
+
 	    // Send the request
 	    request.send(requestData);
 	  });
 	};
+
+	// eslint-disable-next-line strict
+	var _null = null;
 
 	var DEFAULT_CONTENT_TYPE = {
 	  'Content-Type': 'application/x-www-form-urlencoded'
@@ -6803,12 +7071,31 @@ var ZLMRTCClient = (function (exports) {
 	  return adapter;
 	}
 
+	function stringifySafely(rawValue, parser, encoder) {
+	  if (utils.isString(rawValue)) {
+	    try {
+	      (parser || JSON.parse)(rawValue);
+	      return utils.trim(rawValue);
+	    } catch (e) {
+	      if (e.name !== 'SyntaxError') {
+	        throw e;
+	      }
+	    }
+	  }
+
+	  return (encoder || JSON.stringify)(rawValue);
+	}
+
 	var defaults = {
+
+	  transitional: transitional,
+
 	  adapter: getDefaultAdapter(),
 
 	  transformRequest: [function transformRequest(data, headers) {
 	    normalizeHeaderName(headers, 'Accept');
 	    normalizeHeaderName(headers, 'Content-Type');
+
 	    if (utils.isFormData(data) ||
 	      utils.isArrayBuffer(data) ||
 	      utils.isBuffer(data) ||
@@ -6825,20 +7112,42 @@ var ZLMRTCClient = (function (exports) {
 	      setContentTypeIfUnset(headers, 'application/x-www-form-urlencoded;charset=utf-8');
 	      return data.toString();
 	    }
-	    if (utils.isObject(data)) {
-	      setContentTypeIfUnset(headers, 'application/json;charset=utf-8');
-	      return JSON.stringify(data);
+
+	    var isObjectPayload = utils.isObject(data);
+	    var contentType = headers && headers['Content-Type'];
+
+	    var isFileList;
+
+	    if ((isFileList = utils.isFileList(data)) || (isObjectPayload && contentType === 'multipart/form-data')) {
+	      var _FormData = this.env && this.env.FormData;
+	      return toFormData_1(isFileList ? {'files[]': data} : data, _FormData && new _FormData());
+	    } else if (isObjectPayload || contentType === 'application/json') {
+	      setContentTypeIfUnset(headers, 'application/json');
+	      return stringifySafely(data);
 	    }
+
 	    return data;
 	  }],
 
 	  transformResponse: [function transformResponse(data) {
-	    /*eslint no-param-reassign:0*/
-	    if (typeof data === 'string') {
+	    var transitional = this.transitional || defaults.transitional;
+	    var silentJSONParsing = transitional && transitional.silentJSONParsing;
+	    var forcedJSONParsing = transitional && transitional.forcedJSONParsing;
+	    var strictJSONParsing = !silentJSONParsing && this.responseType === 'json';
+
+	    if (strictJSONParsing || (forcedJSONParsing && utils.isString(data) && data.length)) {
 	      try {
-	        data = JSON.parse(data);
-	      } catch (e) { /* Ignore */ }
+	        return JSON.parse(data);
+	      } catch (e) {
+	        if (strictJSONParsing) {
+	          if (e.name === 'SyntaxError') {
+	            throw AxiosError_1.from(e, AxiosError_1.ERR_BAD_RESPONSE, this, null, this.response);
+	          }
+	          throw e;
+	        }
+	      }
 	    }
+
 	    return data;
 	  }],
 
@@ -6854,14 +7163,18 @@ var ZLMRTCClient = (function (exports) {
 	  maxContentLength: -1,
 	  maxBodyLength: -1,
 
+	  env: {
+	    FormData: _null
+	  },
+
 	  validateStatus: function validateStatus(status) {
 	    return status >= 200 && status < 300;
-	  }
-	};
+	  },
 
-	defaults.headers = {
-	  common: {
-	    'Accept': 'application/json, text/plain, */*'
+	  headers: {
+	    common: {
+	      'Accept': 'application/json, text/plain, */*'
+	    }
 	  }
 	};
 
@@ -6876,11 +7189,37 @@ var ZLMRTCClient = (function (exports) {
 	var defaults_1 = defaults;
 
 	/**
-	 * Throws a `Cancel` if cancellation has been requested.
+	 * Transform the data for a request or a response
+	 *
+	 * @param {Object|String} data The data to be transformed
+	 * @param {Array} headers The headers for the request or response
+	 * @param {Array|Function} fns A single function or Array of functions
+	 * @returns {*} The resulting transformed data
+	 */
+	var transformData = function transformData(data, headers, fns) {
+	  var context = this || defaults_1;
+	  /*eslint no-param-reassign:0*/
+	  utils.forEach(fns, function transform(fn) {
+	    data = fn.call(context, data, headers);
+	  });
+
+	  return data;
+	};
+
+	var isCancel = function isCancel(value) {
+	  return !!(value && value.__CANCEL__);
+	};
+
+	/**
+	 * Throws a `CanceledError` if cancellation has been requested.
 	 */
 	function throwIfCancellationRequested(config) {
 	  if (config.cancelToken) {
 	    config.cancelToken.throwIfRequested();
+	  }
+
+	  if (config.signal && config.signal.aborted) {
+	    throw new CanceledError_1();
 	  }
 	}
 
@@ -6897,7 +7236,8 @@ var ZLMRTCClient = (function (exports) {
 	  config.headers = config.headers || {};
 
 	  // Transform request data
-	  config.data = transformData(
+	  config.data = transformData.call(
+	    config,
 	    config.data,
 	    config.headers,
 	    config.transformRequest
@@ -6923,7 +7263,8 @@ var ZLMRTCClient = (function (exports) {
 	    throwIfCancellationRequested(config);
 
 	    // Transform response data
-	    response.data = transformData(
+	    response.data = transformData.call(
+	      config,
 	      response.data,
 	      response.headers,
 	      config.transformResponse
@@ -6936,7 +7277,8 @@ var ZLMRTCClient = (function (exports) {
 
 	      // Transform response data
 	      if (reason && reason.response) {
-	        reason.response.data = transformData(
+	        reason.response.data = transformData.call(
+	          config,
 	          reason.response.data,
 	          reason.response.headers,
 	          config.transformResponse
@@ -6961,17 +7303,6 @@ var ZLMRTCClient = (function (exports) {
 	  config2 = config2 || {};
 	  var config = {};
 
-	  var valueFromConfig2Keys = ['url', 'method', 'data'];
-	  var mergeDeepPropertiesKeys = ['headers', 'auth', 'proxy', 'params'];
-	  var defaultToConfig2Keys = [
-	    'baseURL', 'transformRequest', 'transformResponse', 'paramsSerializer',
-	    'timeout', 'timeoutMessage', 'withCredentials', 'adapter', 'responseType', 'xsrfCookieName',
-	    'xsrfHeaderName', 'onUploadProgress', 'onDownloadProgress', 'decompress',
-	    'maxContentLength', 'maxBodyLength', 'maxRedirects', 'transport', 'httpAgent',
-	    'httpsAgent', 'cancelToken', 'socketPath', 'responseEncoding'
-	  ];
-	  var directMergeKeys = ['validateStatus'];
-
 	  function getMergedValue(target, source) {
 	    if (utils.isPlainObject(target) && utils.isPlainObject(source)) {
 	      return utils.merge(target, source);
@@ -6983,55 +7314,169 @@ var ZLMRTCClient = (function (exports) {
 	    return source;
 	  }
 
+	  // eslint-disable-next-line consistent-return
 	  function mergeDeepProperties(prop) {
 	    if (!utils.isUndefined(config2[prop])) {
-	      config[prop] = getMergedValue(config1[prop], config2[prop]);
+	      return getMergedValue(config1[prop], config2[prop]);
 	    } else if (!utils.isUndefined(config1[prop])) {
-	      config[prop] = getMergedValue(undefined, config1[prop]);
+	      return getMergedValue(undefined, config1[prop]);
 	    }
 	  }
 
-	  utils.forEach(valueFromConfig2Keys, function valueFromConfig2(prop) {
+	  // eslint-disable-next-line consistent-return
+	  function valueFromConfig2(prop) {
 	    if (!utils.isUndefined(config2[prop])) {
-	      config[prop] = getMergedValue(undefined, config2[prop]);
+	      return getMergedValue(undefined, config2[prop]);
 	    }
-	  });
+	  }
 
-	  utils.forEach(mergeDeepPropertiesKeys, mergeDeepProperties);
-
-	  utils.forEach(defaultToConfig2Keys, function defaultToConfig2(prop) {
+	  // eslint-disable-next-line consistent-return
+	  function defaultToConfig2(prop) {
 	    if (!utils.isUndefined(config2[prop])) {
-	      config[prop] = getMergedValue(undefined, config2[prop]);
+	      return getMergedValue(undefined, config2[prop]);
 	    } else if (!utils.isUndefined(config1[prop])) {
-	      config[prop] = getMergedValue(undefined, config1[prop]);
+	      return getMergedValue(undefined, config1[prop]);
 	    }
-	  });
+	  }
 
-	  utils.forEach(directMergeKeys, function merge(prop) {
+	  // eslint-disable-next-line consistent-return
+	  function mergeDirectKeys(prop) {
 	    if (prop in config2) {
-	      config[prop] = getMergedValue(config1[prop], config2[prop]);
+	      return getMergedValue(config1[prop], config2[prop]);
 	    } else if (prop in config1) {
-	      config[prop] = getMergedValue(undefined, config1[prop]);
+	      return getMergedValue(undefined, config1[prop]);
 	    }
+	  }
+
+	  var mergeMap = {
+	    'url': valueFromConfig2,
+	    'method': valueFromConfig2,
+	    'data': valueFromConfig2,
+	    'baseURL': defaultToConfig2,
+	    'transformRequest': defaultToConfig2,
+	    'transformResponse': defaultToConfig2,
+	    'paramsSerializer': defaultToConfig2,
+	    'timeout': defaultToConfig2,
+	    'timeoutMessage': defaultToConfig2,
+	    'withCredentials': defaultToConfig2,
+	    'adapter': defaultToConfig2,
+	    'responseType': defaultToConfig2,
+	    'xsrfCookieName': defaultToConfig2,
+	    'xsrfHeaderName': defaultToConfig2,
+	    'onUploadProgress': defaultToConfig2,
+	    'onDownloadProgress': defaultToConfig2,
+	    'decompress': defaultToConfig2,
+	    'maxContentLength': defaultToConfig2,
+	    'maxBodyLength': defaultToConfig2,
+	    'beforeRedirect': defaultToConfig2,
+	    'transport': defaultToConfig2,
+	    'httpAgent': defaultToConfig2,
+	    'httpsAgent': defaultToConfig2,
+	    'cancelToken': defaultToConfig2,
+	    'socketPath': defaultToConfig2,
+	    'responseEncoding': defaultToConfig2,
+	    'validateStatus': mergeDirectKeys
+	  };
+
+	  utils.forEach(Object.keys(config1).concat(Object.keys(config2)), function computeConfigValue(prop) {
+	    var merge = mergeMap[prop] || mergeDeepProperties;
+	    var configValue = merge(prop);
+	    (utils.isUndefined(configValue) && merge !== mergeDirectKeys) || (config[prop] = configValue);
 	  });
-
-	  var axiosKeys = valueFromConfig2Keys
-	    .concat(mergeDeepPropertiesKeys)
-	    .concat(defaultToConfig2Keys)
-	    .concat(directMergeKeys);
-
-	  var otherKeys = Object
-	    .keys(config1)
-	    .concat(Object.keys(config2))
-	    .filter(function filterAxiosKeys(key) {
-	      return axiosKeys.indexOf(key) === -1;
-	    });
-
-	  utils.forEach(otherKeys, mergeDeepProperties);
 
 	  return config;
 	};
 
+	var data = {
+	  "version": "0.27.2"
+	};
+
+	var VERSION = data.version;
+
+
+	var validators$1 = {};
+
+	// eslint-disable-next-line func-names
+	['object', 'boolean', 'number', 'function', 'string', 'symbol'].forEach(function(type, i) {
+	  validators$1[type] = function validator(thing) {
+	    return typeof thing === type || 'a' + (i < 1 ? 'n ' : ' ') + type;
+	  };
+	});
+
+	var deprecatedWarnings = {};
+
+	/**
+	 * Transitional option validator
+	 * @param {function|boolean?} validator - set to false if the transitional option has been removed
+	 * @param {string?} version - deprecated version / removed since version
+	 * @param {string?} message - some message with additional info
+	 * @returns {function}
+	 */
+	validators$1.transitional = function transitional(validator, version, message) {
+	  function formatMessage(opt, desc) {
+	    return '[Axios v' + VERSION + '] Transitional option \'' + opt + '\'' + desc + (message ? '. ' + message : '');
+	  }
+
+	  // eslint-disable-next-line func-names
+	  return function(value, opt, opts) {
+	    if (validator === false) {
+	      throw new AxiosError_1(
+	        formatMessage(opt, ' has been removed' + (version ? ' in ' + version : '')),
+	        AxiosError_1.ERR_DEPRECATED
+	      );
+	    }
+
+	    if (version && !deprecatedWarnings[opt]) {
+	      deprecatedWarnings[opt] = true;
+	      // eslint-disable-next-line no-console
+	      console.warn(
+	        formatMessage(
+	          opt,
+	          ' has been deprecated since v' + version + ' and will be removed in the near future'
+	        )
+	      );
+	    }
+
+	    return validator ? validator(value, opt, opts) : true;
+	  };
+	};
+
+	/**
+	 * Assert object's properties type
+	 * @param {object} options
+	 * @param {object} schema
+	 * @param {boolean?} allowUnknown
+	 */
+
+	function assertOptions(options, schema, allowUnknown) {
+	  if (typeof options !== 'object') {
+	    throw new AxiosError_1('options must be an object', AxiosError_1.ERR_BAD_OPTION_VALUE);
+	  }
+	  var keys = Object.keys(options);
+	  var i = keys.length;
+	  while (i-- > 0) {
+	    var opt = keys[i];
+	    var validator = schema[opt];
+	    if (validator) {
+	      var value = options[opt];
+	      var result = value === undefined || validator(value, opt, options);
+	      if (result !== true) {
+	        throw new AxiosError_1('option ' + opt + ' must be ' + result, AxiosError_1.ERR_BAD_OPTION_VALUE);
+	      }
+	      continue;
+	    }
+	    if (allowUnknown !== true) {
+	      throw new AxiosError_1('Unknown option ' + opt, AxiosError_1.ERR_BAD_OPTION);
+	    }
+	  }
+	}
+
+	var validator = {
+	  assertOptions: assertOptions,
+	  validators: validators$1
+	};
+
+	var validators = validator.validators;
 	/**
 	 * Create a new instance of Axios
 	 *
@@ -7050,14 +7495,14 @@ var ZLMRTCClient = (function (exports) {
 	 *
 	 * @param {Object} config The config specific for this request (merged with this.defaults)
 	 */
-	Axios.prototype.request = function request(config) {
+	Axios.prototype.request = function request(configOrUrl, config) {
 	  /*eslint no-param-reassign:0*/
 	  // Allow for axios('example/url'[, config]) a la fetch API
-	  if (typeof config === 'string') {
-	    config = arguments[1] || {};
-	    config.url = arguments[0];
-	  } else {
+	  if (typeof configOrUrl === 'string') {
 	    config = config || {};
+	    config.url = configOrUrl;
+	  } else {
+	    config = configOrUrl || {};
 	  }
 
 	  config = mergeConfig(this.defaults, config);
@@ -7071,20 +7516,71 @@ var ZLMRTCClient = (function (exports) {
 	    config.method = 'get';
 	  }
 
-	  // Hook up interceptors middleware
-	  var chain = [dispatchRequest, undefined];
-	  var promise = Promise.resolve(config);
+	  var transitional = config.transitional;
 
+	  if (transitional !== undefined) {
+	    validator.assertOptions(transitional, {
+	      silentJSONParsing: validators.transitional(validators.boolean),
+	      forcedJSONParsing: validators.transitional(validators.boolean),
+	      clarifyTimeoutError: validators.transitional(validators.boolean)
+	    }, false);
+	  }
+
+	  // filter out skipped interceptors
+	  var requestInterceptorChain = [];
+	  var synchronousRequestInterceptors = true;
 	  this.interceptors.request.forEach(function unshiftRequestInterceptors(interceptor) {
-	    chain.unshift(interceptor.fulfilled, interceptor.rejected);
+	    if (typeof interceptor.runWhen === 'function' && interceptor.runWhen(config) === false) {
+	      return;
+	    }
+
+	    synchronousRequestInterceptors = synchronousRequestInterceptors && interceptor.synchronous;
+
+	    requestInterceptorChain.unshift(interceptor.fulfilled, interceptor.rejected);
 	  });
 
+	  var responseInterceptorChain = [];
 	  this.interceptors.response.forEach(function pushResponseInterceptors(interceptor) {
-	    chain.push(interceptor.fulfilled, interceptor.rejected);
+	    responseInterceptorChain.push(interceptor.fulfilled, interceptor.rejected);
 	  });
 
-	  while (chain.length) {
-	    promise = promise.then(chain.shift(), chain.shift());
+	  var promise;
+
+	  if (!synchronousRequestInterceptors) {
+	    var chain = [dispatchRequest, undefined];
+
+	    Array.prototype.unshift.apply(chain, requestInterceptorChain);
+	    chain = chain.concat(responseInterceptorChain);
+
+	    promise = Promise.resolve(config);
+	    while (chain.length) {
+	      promise = promise.then(chain.shift(), chain.shift());
+	    }
+
+	    return promise;
+	  }
+
+
+	  var newConfig = config;
+	  while (requestInterceptorChain.length) {
+	    var onFulfilled = requestInterceptorChain.shift();
+	    var onRejected = requestInterceptorChain.shift();
+	    try {
+	      newConfig = onFulfilled(newConfig);
+	    } catch (error) {
+	      onRejected(error);
+	      break;
+	    }
+	  }
+
+	  try {
+	    promise = dispatchRequest(newConfig);
+	  } catch (error) {
+	    return Promise.reject(error);
+	  }
+
+	  while (responseInterceptorChain.length) {
+	    promise = promise.then(responseInterceptorChain.shift(), responseInterceptorChain.shift());
 	  }
 
 	  return promise;
@@ -7092,7 +7588,8 @@ var ZLMRTCClient = (function (exports) {
 
 	Axios.prototype.getUri = function getUri(config) {
 	  config = mergeConfig(this.defaults, config);
-	  return buildURL(config.url, config.params, config.paramsSerializer).replace(/^\?/, '');
+	  var fullPath = buildFullPath(config.baseURL, config.url);
+	  return buildURL(fullPath, config.params, config.paramsSerializer);
 	};
 
 	// Provide aliases for supported request methods
@@ -7109,34 +7606,26 @@ var ZLMRTCClient = (function (exports) {
 
 	utils.forEach(['post', 'put', 'patch'], function forEachMethodWithData(method) {
 	  /*eslint func-names:0*/
-	  Axios.prototype[method] = function(url, data, config) {
-	    return this.request(mergeConfig(config || {}, {
-	      method: method,
-	      url: url,
-	      data: data
-	    }));
-	  };
+
+	  function generateHTTPMethod(isForm) {
+	    return function httpMethod(url, data, config) {
+	      return this.request(mergeConfig(config || {}, {
+	        method: method,
+	        headers: isForm ? {
+	          'Content-Type': 'multipart/form-data'
+	        } : {},
+	        url: url,
+	        data: data
+	      }));
+	    };
+	  }
+
+	  Axios.prototype[method] = generateHTTPMethod();
+
+	  Axios.prototype[method + 'Form'] = generateHTTPMethod(true);
 	});
 
 	var Axios_1 = Axios;
-
-	/**
-	 * A `Cancel` is an object that is thrown when an operation is canceled.
-	 *
-	 * @class
-	 * @param {string=} message The message.
-	 */
-	function Cancel(message) {
-	  this.message = message;
-	}
-
-	Cancel.prototype.toString = function toString() {
-	  return 'Cancel' + (this.message ? ': ' + this.message : '');
-	};
-
-	Cancel.prototype.__CANCEL__ = true;
-
-	var Cancel_1 = Cancel;
 
 	/**
 	 * A `CancelToken` is an object that can be used to request cancellation of an operation.
@@ -7150,28 +7639,90 @@ var ZLMRTCClient = (function (exports) {
 	  }
 
 	  var resolvePromise;
+
 	  this.promise = new Promise(function promiseExecutor(resolve) {
 	    resolvePromise = resolve;
 	  });
 
 	  var token = this;
+
+	  // eslint-disable-next-line func-names
+	  this.promise.then(function(cancel) {
+	    if (!token._listeners) return;
+
+	    var i;
+	    var l = token._listeners.length;
+
+	    for (i = 0; i < l; i++) {
+	      token._listeners[i](cancel);
+	    }
+	    token._listeners = null;
+	  });
+
+	  // eslint-disable-next-line func-names
+	  this.promise.then = function(onfulfilled) {
+	    var _resolve;
+	    // eslint-disable-next-line func-names
+	    var promise = new Promise(function(resolve) {
+	      token.subscribe(resolve);
+	      _resolve = resolve;
+	    }).then(onfulfilled);
+
+	    promise.cancel = function reject() {
+	      token.unsubscribe(_resolve);
+	    };
+
+	    return promise;
+	  };
+
 	  executor(function cancel(message) {
 	    if (token.reason) {
 	      // Cancellation has already been requested
 	      return;
 	    }
 
-	    token.reason = new Cancel_1(message);
+	    token.reason = new CanceledError_1(message);
 	    resolvePromise(token.reason);
 	  });
 	}
 
 	/**
-	 * Throws a `Cancel` if cancellation has been requested.
+	 * Throws a `CanceledError` if cancellation has been requested.
 	 */
 	CancelToken.prototype.throwIfRequested = function throwIfRequested() {
 	  if (this.reason) {
 	    throw this.reason;
+	  }
+	};
+
+	/**
+	 * Subscribe to the cancel signal
+	 */
+
+	CancelToken.prototype.subscribe = function subscribe(listener) {
+	  if (this.reason) {
+	    listener(this.reason);
+	    return;
+	  }
+
+	  if (this._listeners) {
+	    this._listeners.push(listener);
+	  } else {
+	    this._listeners = [listener];
+	  }
+	};
+
+	/**
+	 * Unsubscribe from the cancel signal
+	 */
+
+	CancelToken.prototype.unsubscribe = function unsubscribe(listener) {
+	  if (!this._listeners) {
+	    return;
+	  }
+	  var index = this._listeners.indexOf(listener);
+	  if (index !== -1) {
+	    this._listeners.splice(index, 1);
 	  }
 	};
 
@@ -7225,7 +7776,7 @@ var ZLMRTCClient = (function (exports) {
 	 * @returns {boolean} True if the payload is an error thrown by Axios, otherwise false
 	 */
 	var isAxiosError = function isAxiosError(payload) {
-	  return (typeof payload === 'object') && (payload.isAxiosError === true);
+	  return utils.isObject(payload) && (payload.isAxiosError === true);
 	};
 
 	/**
@@ -7244,6 +7795,11 @@ var ZLMRTCClient = (function (exports) {
 	  // Copy context to instance
 	  utils.extend(instance, context);
 
+	  // Factory for creating new instances
+	  instance.create = function create(instanceConfig) {
+	    return createInstance(mergeConfig(defaultConfig, instanceConfig));
+	  };
+
 	  return instance;
 	}
 
@@ -7253,15 +7809,18 @@ var ZLMRTCClient = (function (exports) {
 	// Expose Axios class to allow class inheritance
 	axios$1.Axios = Axios_1;
 
-	// Factory for creating new instances
-	axios$1.create = function create(instanceConfig) {
-	  return createInstance(mergeConfig(axios$1.defaults, instanceConfig));
-	};
-
 	// Expose Cancel & CancelToken
-	axios$1.Cancel = Cancel_1;
+	axios$1.CanceledError = CanceledError_1;
 	axios$1.CancelToken = CancelToken_1;
 	axios$1.isCancel = isCancel;
+	axios$1.VERSION = data.version;
+	axios$1.toFormData = toFormData_1;
+
+	// Expose AxiosError class
+	axios$1.AxiosError = AxiosError_1;
+
+	// alias for CanceledError for backward compatibility
+	axios$1.Cancel = axios$1.CanceledError;
 
 	// Expose all/spread
 	axios$1.all = function all(promises) {
@@ -7347,8 +7906,15 @@ var ZLMRTCClient = (function (exports) {
 	      direction: 'recvonly',
 	      sendEncodings: []
 	    };
-	    this.pc.addTransceiver('audio', AudioTransceiverInit);
-	    this.pc.addTransceiver('video', VideoTransceiverInit);
+
+	    if (this.options.videoEnable) {
+	      this.pc.addTransceiver('video', VideoTransceiverInit);
+	    }
+
+	    if (this.options.audioEnable) {
+	      this.pc.addTransceiver('audio', AudioTransceiverInit);
+	    }
+
 	    this.pc.createOffer().then(desc => {
 	      log(this.TAG, 'offer:', desc.sdp);
 	      this.pc.setLocalDescription(desc).then(() => {
@@ -7695,7 +8261,7 @@ var ZLMRTCClient = (function (exports) {
 	}
 
 	console.log('build date:', BUILD_DATE);
-	console.log('version:', VERSION);
+	console.log('version:', VERSION$1);
 	const Events = Events$1;
 	const Media = media;
 	const Endpoint = RTCEndpoint;
@@ -7714,5 +8280,5 @@ var ZLMRTCClient = (function (exports) {
 
 	return exports;
 
-}({}));
+})({});
 //# sourceMappingURL=ZLMRTCClient.js.map

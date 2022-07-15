@@ -11,9 +11,9 @@
 #ifndef ZLMEDIAKIT_RTCPCONTEXT_H
 #define ZLMEDIAKIT_RTCPCONTEXT_H
 
-#include <stdint.h>
-#include <stddef.h>
 #include "Rtcp.h"
+#include <stddef.h>
+#include <stdint.h>
 
 namespace mediakit {
 
@@ -56,6 +56,13 @@ public:
     virtual toolkit::Buffer::Ptr createRtcpSR(uint32_t rtcp_ssrc);
 
     /**
+     * @brief 创建xr的dlrr包，用于接收者估算rtt
+     *
+     * @return toolkit::Buffer::Ptr
+     */
+    virtual toolkit::Buffer::Ptr createRtcpXRDLRR(uint32_t rtcp_ssrc, uint32_t rtp_ssrc);
+
+    /**
      * 创建RR rtcp包
      * @param rtcp_ssrc rtcp的ssrc
      * @param rtp_ssrc rtp的ssrc
@@ -74,11 +81,11 @@ public:
     virtual size_t geLostInterval();
 
 protected:
-    //收到或发送的rtp的字节数
+    // 收到或发送的rtp的字节数
     size_t _bytes = 0;
-    //收到或发送的rtp的个数
+    // 收到或发送的rtp的个数
     size_t _packets = 0;
-    //上次的rtp时间戳,毫秒
+    // 上次的rtp时间戳,毫秒
     uint32_t _last_rtp_stamp = 0;
     uint64_t _last_ntp_stamp_ms = 0;
 };
@@ -86,7 +93,10 @@ protected:
 class RtcpContextForSend : public RtcpContext {
 public:
     toolkit::Buffer::Ptr createRtcpSR(uint32_t rtcp_ssrc) override;
+
     void onRtcp(RtcpHeader *rtcp) override;
+
+    toolkit::Buffer::Ptr createRtcpXRDLRR(uint32_t rtcp_ssrc, uint32_t rtp_ssrc) override;
 
     /**
      * 获取rtt
@@ -96,8 +106,11 @@ public:
     uint32_t getRtt(uint32_t ssrc) const;
 
 private:
-    std::map<uint32_t/*ssrc*/, uint32_t/*rtt*/> _rtt;
-    std::map<uint32_t/*last_sr_lsr*/, uint64_t/*ntp stamp*/> _sender_report_ntp;
+    std::map<uint32_t /*ssrc*/, uint32_t /*rtt*/> _rtt;
+    std::map<uint32_t /*last_sr_lsr*/, uint64_t /*ntp stamp*/> _sender_report_ntp;
+
+    std::map<uint32_t /*ssrc*/, uint64_t /*xr rrtr sys stamp*/> _xr_rrtr_recv_sys_stamp;
+    std::map<uint32_t /*ssrc*/, uint32_t /*last rr */> _xr_xrrtr_recv_last_rr;
 };
 
 class RtcpContextForRecv : public RtcpContext {
@@ -111,29 +124,29 @@ public:
     void onRtcp(RtcpHeader *rtcp) override;
 
 private:
-    //时间戳抖动值
+    // 时间戳抖动值
     double _jitter = 0;
-    //第一个seq的值
+    // 第一个seq的值
     uint16_t _seq_base = 0;
-    //rtp最大seq
+    // rtp最大seq
     uint16_t _seq_max = 0;
-    //rtp回环次数
+    // rtp回环次数
     uint16_t _seq_cycles = 0;
-    //上次回环发生时，记录的rtp包数
+    // 上次回环发生时，记录的rtp包数
     size_t _last_cycle_packets = 0;
-    //上次的seq
+    // 上次的seq
     uint16_t _last_rtp_seq = 0;
-    //上次的rtp的系统时间戳(毫秒)用于统计抖动
+    // 上次的rtp的系统时间戳(毫秒)用于统计抖动
     uint64_t _last_rtp_sys_stamp = 0;
-    //上次统计的丢包总数
+    // 上次统计的丢包总数
     size_t _last_lost = 0;
-    //上次统计应收rtp包总数
+    // 上次统计应收rtp包总数
     size_t _last_expected = 0;
-    //上次收到sr包时计算出的Last SR timestamp
+    // 上次收到sr包时计算出的Last SR timestamp
     uint32_t _last_sr_lsr = 0;
-    //上次收到sr时的系统时间戳,单位毫秒
+    // 上次收到sr时的系统时间戳,单位毫秒
     uint64_t _last_sr_ntp_sys = 0;
 };
 
-}//namespace mediakit
-#endif //ZLMEDIAKIT_RTCPCONTEXT_H
+} // namespace mediakit
+#endif // ZLMEDIAKIT_RTCPCONTEXT_H

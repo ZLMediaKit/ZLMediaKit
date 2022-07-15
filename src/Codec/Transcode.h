@@ -25,6 +25,7 @@ extern "C" {
 #include "libavcodec/avcodec.h"
 #include "libswresample/swresample.h"
 #include "libavutil/audio_fifo.h"
+#include "libavutil/imgutils.h"
 #ifdef __cplusplus
 }
 #endif

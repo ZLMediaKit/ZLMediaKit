@@ -53,14 +53,6 @@ ssize_t PSDecoder::input(const uint8_t *data, size_t bytes) {
     return bytes;
 }
 
-void PSDecoder::setOnDecode(Decoder::onDecode cb) {
-    _on_decode = std::move(cb);
-}
-
-void PSDecoder::setOnStream(Decoder::onStream cb) {
-    _on_stream = std::move(cb);
-}
-
 const char *PSDecoder::onSearchPacketTail(const char *data, size_t len) {
     try {
         auto ret = ps_demuxer_input(static_cast<struct ps_demuxer_t *>(_ps_demuxer), reinterpret_cast<const uint8_t *>(data), len);
