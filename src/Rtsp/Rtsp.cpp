@@ -212,7 +212,7 @@ void SdpParser::load(const string &sdp) {
             char codec[16] = {0};
 
             sscanf(rtpmap.data(), "%d", &pt);
-            if (track._pt != pt) {
+            if (track._pt != pt && track._pt != 0xff) {
                 //pt不匹配
                 it = track._attr.erase(it);
                 continue;
@@ -237,7 +237,7 @@ void SdpParser::load(const string &sdp) {
             auto &fmtp = it->second;
             int pt;
             sscanf(fmtp.data(), "%d", &pt);
-            if (track._pt != pt) {
+            if (track._pt != pt && track._pt != 0xff) {
                 //pt不匹配
                 it = track._attr.erase(it);
                 continue;
