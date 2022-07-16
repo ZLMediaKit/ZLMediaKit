@@ -175,6 +175,7 @@ public:
     uint32_t getSSRC() const;
     RtpPacket::Ptr inputRtp(TrackType type, int sample_rate, uint8_t *ptr, size_t len);
     void setNtpStamp(uint32_t rtp_stamp, uint64_t ntp_stamp_ms);
+    void setPT(uint8_t pt);
 
 protected:
     virtual void onRtpSorted(RtpPacket::Ptr rtp) {}
@@ -250,6 +251,11 @@ public:
     void setNtpStamp(int index, uint32_t rtp_stamp, uint64_t ntp_stamp_ms) {
         assert(index < kCount && index >= 0);
         _track[index].setNtpStamp(rtp_stamp, ntp_stamp_ms);
+    }
+
+    void setPT(int index, uint8_t pt){
+        assert(index < kCount && index >= 0);
+        _track[index].setPT(pt);
     }
 
     void clear() {
