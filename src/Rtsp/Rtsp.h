@@ -217,7 +217,7 @@ public:
     std::string getControlUrl(const std::string &base_url) const;
 
 public:
-    int _pt;
+    int _pt = 0xff;
     int _channel;
     int _samplerate;
     TrackType _type;
