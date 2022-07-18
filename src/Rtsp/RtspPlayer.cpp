@@ -208,6 +208,9 @@ void RtspPlayer::handleResDESCRIBE(const Parser& parser) {
     }
     _rtcp_context.clear();
     for (auto &track : _sdp_track) {
+        if(track->_pt != 0xff){
+            setPT(_rtcp_context.size(),track->_pt);
+        }
         _rtcp_context.emplace_back(std::make_shared<RtcpContextForRecv>());
     }
     sendSetup(0);
