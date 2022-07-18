@@ -29,6 +29,7 @@ RUN apt-get update && \
          libfaac-dev \
          gcc \
          g++ \
+         libavcodec-dev libavutil-dev libswscale-dev libresample-dev \
          gdb && \
          apt-get autoremove -y && \
          apt-get clean -y && \
@@ -43,7 +44,7 @@ WORKDIR /opt/media/ZLMediaKit
 RUN mkdir -p build release/linux/${MODEL}/
 
 WORKDIR /opt/media/ZLMediaKit/build
-RUN cmake -DCMAKE_BUILD_TYPE=${MODEL} -DENABLE_WEBRTC=true -DENABLE_TESTS=false -DENABLE_API=false .. && \
+RUN cmake -DCMAKE_BUILD_TYPE=${MODEL} -DENABLE_WEBRTC=true -DENABLE_FFMPEG=true -DENABLE_TESTS=false -DENABLE_API=false .. && \
     make -j $(nproc)
 
 FROM ubuntu:18.04
@@ -65,6 +66,7 @@ RUN apt-get update && \
          ffmpeg \
          gcc \
          g++ \
+         libavcodec-dev libavutil-dev libswscale-dev libresample-dev \
          gdb && \
          apt-get autoremove -y && \
          apt-get clean -y && \
