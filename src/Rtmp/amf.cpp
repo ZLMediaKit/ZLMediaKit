@@ -480,10 +480,10 @@ double AMFDecoder::load<double>() {
     if (pos + 8 > buf.size()) {
         throw std::runtime_error("Not enough data");
     }
-    uint64_t val = ((uint64_t) load_be32(&buf[pos]) << 32)
-            | load_be32(&buf[pos + 4]);
+    uint64_t val = ((uint64_t) load_be32(&buf[pos]) << 32) | load_be32(&buf[pos + 4]);
     double n = 0;
-    memcpy(&n, &val, 8);
+    static_assert(sizeof(n) == sizeof(val), "sizeof(double) not eq sizeof(uint64_t)");
+    memcpy(&n, &val, sizeof(n));
     pos += 8;
     return n;
 
