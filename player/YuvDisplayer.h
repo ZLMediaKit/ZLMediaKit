@@ -55,11 +55,11 @@ public:
         while(flag){
             SDL_WaitEvent(&event);
             switch (event.type){
-                case REFRESH_EVENT:{
+                case REFRESH_EVENT: {
                     {
                         std::lock_guard<std::mutex> lck(_mtxTask);
                         if (_taskList.empty()) {
-                            //not reachable
+                            // not reachable
                             continue;
                         }
                         task = _taskList.front();
@@ -67,7 +67,8 @@ public:
                     }
                     flag = task();
                     break;
-                case SDL_QUIT:
+                }
+                case SDL_QUIT:{
                     InfoL << event.type;
                     return;
                 }
@@ -168,7 +169,7 @@ public:
             }
         }
         if (_texture) {
-#if (SDL_PATCHLEVEL >= 16 || SDL_MINOR_VERSION > 0)
+#if SDL_VERSION_ATLEAST(2,0,16)
             //需要更新sdl到最新（>=2.0.16）
             if (pFrame->format == AV_PIX_FMT_NV12) {
                 SDL_UpdateNVTexture(
