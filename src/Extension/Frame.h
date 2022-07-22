@@ -17,7 +17,7 @@
 #include "Network/Socket.h"
 #include "Common/Stamp.h"
 
-namespace mediakit{
+namespace mediakit {
 
 typedef enum {
     TrackInvalid = -1,
@@ -82,8 +82,8 @@ class CodecInfo {
 public:
     typedef std::shared_ptr<CodecInfo> Ptr;
 
-    CodecInfo(){}
-    virtual ~CodecInfo(){}
+    CodecInfo() = default;
+    virtual ~CodecInfo() = default;
 
     /**
      * 获取编解码器类型
@@ -106,8 +106,8 @@ public:
  */
 class Frame : public toolkit::Buffer, public CodecInfo {
 public:
-    typedef std::shared_ptr<Frame> Ptr;
-    virtual ~Frame(){}
+    using Ptr = std::shared_ptr<Frame>;
+    virtual ~Frame() = default;
 
     /**
      * 返回解码时间戳，单位毫秒
@@ -117,9 +117,7 @@ public:
     /**
      * 返回显示时间戳，单位毫秒
      */
-    virtual uint32_t pts() const {
-        return dts();
-    }
+    virtual uint32_t pts() const { return dts(); }
 
     /**
      * 前缀长度，譬如264前缀为0x00 00 00 01,那么前缀长度就是4
@@ -176,7 +174,7 @@ class FrameImp : public Frame {
 public:
     using Ptr = std::shared_ptr<FrameImp>;
 
-    template<typename C=FrameImp>
+    template <typename C = FrameImp>
     static std::shared_ptr<C> create() {
 #if 0
         static ResourcePool<C> packet_pool;
@@ -194,37 +192,14 @@ public:
 #endif
     }
 
-    char *data() const override{
-        return (char *)_buffer.data();
-    }
-
-    size_t size() const override {
-        return _buffer.size();
-    }
-
-    uint32_t dts() const override {
-        return _dts;
-    }
-
-    uint32_t pts() const override{
-        return _pts ? _pts : _dts;
-    }
-
-    size_t prefixSize() const override{
-        return _prefix_size;
-    }
-
-    CodecId getCodecId() const override{
-        return _codec_id;
-    }
-
-    bool keyFrame() const override {
-        return false;
-    }
-
-    bool configFrame() const override{
-        return false;
-    }
+    char *data() const override { return (char *)_buffer.data(); }
+    size_t size() const override { return _buffer.size(); }
+    uint32_t dts() const override { return _dts; }
+    uint32_t pts() const override { return _pts ? _pts : _dts; }
+    size_t prefixSize() const override { return _prefix_size; }
+    CodecId getCodecId() const override { return _codec_id; }
+    bool keyFrame() const override { return false; }
+    bool configFrame() const override { return false; }
 
 public:
     CodecId _codec_id = CodecInvalid;
@@ -248,17 +223,16 @@ protected:
  * 一个复合帧可以通过无内存拷贝的方式切割成多个子Frame
  * 提供该类的目的是切割复合帧时防止内存拷贝，提高性能
  */
-template<typename Parent>
-class FrameInternal : public Parent{
+template <typename Parent>
+class FrameInternal : public Parent {
 public:
     typedef std::shared_ptr<FrameInternal> Ptr;
     FrameInternal(const Frame::Ptr &parent_frame, char *ptr, size_t size, size_t prefix_size)
-            : Parent(ptr, size, parent_frame->dts(), parent_frame->pts(), prefix_size) {
+        : Parent(ptr, size, parent_frame->dts(), parent_frame->pts(), prefix_size) {
         _parent_frame = parent_frame;
     }
-    bool cacheAble() const override {
-        return _parent_frame->cacheAble();
-    }
+    bool cacheAble() const override { return _parent_frame->cacheAble(); }
+
 private:
     Frame::Ptr _parent_frame;
 };
@@ -269,17 +243,17 @@ private:
  * 一个复合帧可以通过无内存拷贝的方式切割成多个子Frame
  * 提供该类的目的是切割复合帧时防止内存拷贝，提高性能
  */
-template<typename Parent>
-class FrameTSInternal : public Parent{
+template <typename Parent>
+class FrameTSInternal : public Parent {
 public:
     typedef std::shared_ptr<FrameTSInternal> Ptr;
-    FrameTSInternal(const Frame::Ptr &parent_frame, char *ptr, size_t size, size_t prefix_size,uint32_t dts,uint32_t pts)
-            : Parent(ptr, size, dts, pts, prefix_size) {
+    FrameTSInternal(
+        const Frame::Ptr &parent_frame, char *ptr, size_t size, size_t prefix_size, uint32_t dts, uint32_t pts)
+        : Parent(ptr, size, dts, pts, prefix_size) {
         _parent_frame = parent_frame;
     }
-    bool cacheAble() const override {
-        return _parent_frame->cacheAble();
-    }
+    bool cacheAble() const override { return _parent_frame->cacheAble(); }
+
 private:
     Frame::Ptr _parent_frame;
 };
@@ -290,8 +264,8 @@ private:
 class FrameWriterInterface {
 public:
     typedef std::shared_ptr<FrameWriterInterface> Ptr;
-    FrameWriterInterface(){}
-    virtual ~FrameWriterInterface(){}
+    FrameWriterInterface() = default;
+    virtual ~FrameWriterInterface() = default;
 
     /**
      * 写入帧数据
@@ -310,18 +284,13 @@ public:
     /**
      * inputFrame后触发onWriteFrame回调
      */
-    FrameWriterInterfaceHelper(const onWriteFrame& cb){
-        _writeCallback = cb;
-    }
-
-    virtual ~FrameWriterInterfaceHelper(){}
+    FrameWriterInterfaceHelper(const onWriteFrame &cb) { _writeCallback = cb; }
+    virtual ~FrameWriterInterfaceHelper() = default;
 
     /**
      * 写入帧数据
      */
-    bool inputFrame(const Frame::Ptr &frame) override {
-        return _writeCallback(frame);
-    }
+    bool inputFrame(const Frame::Ptr &frame) override { return _writeCallback(frame); }
 
 private:
     onWriteFrame _writeCallback;
@@ -387,16 +356,18 @@ private:
 /**
  * 通过Frame接口包装指针，方便使用者把自己的数据快速接入ZLMediaKit
  */
-class FrameFromPtr : public Frame{
+class FrameFromPtr : public Frame {
 public:
     typedef std::shared_ptr<FrameFromPtr> Ptr;
 
-    FrameFromPtr(CodecId codec_id, char *ptr, size_t size, uint32_t dts, uint32_t pts = 0, size_t prefix_size = 0,bool is_key = false )
-            : FrameFromPtr(ptr, size, dts, pts, prefix_size,is_key) {
+    FrameFromPtr(
+        CodecId codec_id, char *ptr, size_t size, uint32_t dts, uint32_t pts = 0, size_t prefix_size = 0,
+        bool is_key = false)
+        : FrameFromPtr(ptr, size, dts, pts, prefix_size, is_key) {
         _codec_id = codec_id;
     }
 
-    FrameFromPtr(char *ptr, size_t size, uint32_t dts, uint32_t pts = 0, size_t prefix_size = 0,bool is_key = false){
+    FrameFromPtr(char *ptr, size_t size, uint32_t dts, uint32_t pts = 0, size_t prefix_size = 0, bool is_key = false) {
         _ptr = ptr;
         _size = size;
         _dts = dts;
@@ -405,29 +376,15 @@ public:
         _is_key = is_key;
     }
 
-    char *data() const override{
-        return _ptr;
-    }
-
-    size_t size() const override {
-        return _size;
-    }
-
-    uint32_t dts() const override {
-        return _dts;
-    }
-
-    uint32_t pts() const override{
-        return _pts ? _pts : dts();
-    }
-
-    size_t prefixSize() const override{
-        return _prefix_size;
-    }
-
-    bool cacheAble() const override {
-        return false;
-    }
+    char *data() const override { return _ptr; }
+    size_t size() const override { return _size; }
+    uint32_t dts() const override { return _dts; }
+    uint32_t pts() const override { return _pts ? _pts : dts(); }
+    size_t prefixSize() const override { return _prefix_size; }
+    bool cacheAble() const override { return false; }
+    bool keyFrame() const override { return _is_key; }
+    bool configFrame() const override { return false; }
+    void setCodecId(CodecId codec_id) { _codec_id = codec_id; }
 
     CodecId getCodecId() const override {
         if (_codec_id == CodecInvalid) {
@@ -436,29 +393,17 @@ public:
         return _codec_id;
     }
 
-    void setCodecId(CodecId codec_id) {
-        _codec_id = codec_id;
-    }
-
-    bool keyFrame() const override {
-        return _is_key;
-    }
-
-    bool configFrame() const override{
-        return false;
-    }
+protected:
+    FrameFromPtr() = default;
 
 protected:
-    FrameFromPtr() {}
-
-protected:
+    bool _is_key;
     char *_ptr;
     uint32_t _dts;
     uint32_t _pts = 0;
     size_t _size;
     size_t _prefix_size;
     CodecId _codec_id = CodecInvalid;
-    bool _is_key;
 };
 
 /**
@@ -493,25 +438,11 @@ public:
     /**
      * 可以被缓存
      */
-    bool cacheAble() const override {
-        return true;
-    }
-
-    bool keyFrame() const override{
-        return _key;
-    }
-
-    bool configFrame() const override{
-        return _config;
-    }
-
-    bool dropAble() const override {
-        return _drop_able;
-    }
-
-    bool decodeAble() const override {
-        return _decode_able;
-    }
+    bool cacheAble() const override { return true; }
+    bool keyFrame() const override { return _key; }
+    bool configFrame() const override { return _config; }
+    bool dropAble() const override { return _drop_able; }
+    bool decodeAble() const override { return _decode_able; }
 
 private:
     bool _key;
@@ -523,51 +454,28 @@ private:
 };
 
 //该类实现frame级别的时间戳覆盖
-class FrameStamp : public Frame{
+class FrameStamp : public Frame {
 public:
-    typedef std::shared_ptr<FrameStamp> Ptr;
-    FrameStamp(const Frame::Ptr &frame, Stamp &stamp,bool modify_stamp){
-        _frame = frame;
+    using Ptr = std::shared_ptr<FrameStamp>;
+    FrameStamp(Frame::Ptr frame, Stamp &stamp, bool modify_stamp) {
+        _frame = std::move(frame);
         //覆盖时间戳
         stamp.revise(frame->dts(), frame->pts(), _dts, _pts, modify_stamp);
     }
     ~FrameStamp() override {}
 
-    uint32_t dts() const override{
-        return (uint32_t)_dts;
-    }
+    uint32_t dts() const override { return (uint32_t)_dts; }
+    uint32_t pts() const override { return (uint32_t)_pts; }
+    size_t prefixSize() const override { return _frame->prefixSize(); }
+    bool keyFrame() const override { return _frame->keyFrame(); }
+    bool configFrame() const override { return _frame->configFrame(); }
+    bool cacheAble() const override { return _frame->cacheAble(); }
+    bool dropAble() const override { return _frame->dropAble(); }
+    bool decodeAble() const override { return _frame->decodeAble(); }
+    char *data() const override { return _frame->data(); }
+    size_t size() const override { return _frame->size(); }
+    CodecId getCodecId() const override { return _frame->getCodecId(); }
 
-    uint32_t pts() const override{
-        return (uint32_t)_pts;
-    }
-
-    size_t prefixSize() const override {
-        return _frame->prefixSize();
-    }
-
-    bool keyFrame() const override {
-        return _frame->keyFrame();
-    }
-
-    bool configFrame() const override {
-        return _frame->configFrame();
-    }
-
-    bool cacheAble() const override {
-        return _frame->cacheAble();
-    }
-
-    char *data() const override {
-        return _frame->data();
-    }
-
-    size_t size() const override {
-        return _frame->size();
-    }
-
-    CodecId getCodecId() const override {
-        return _frame->getCodecId();
-    }
 private:
     int64_t _dts;
     int64_t _pts;
@@ -578,7 +486,7 @@ private:
  * 该对象可以把Buffer对象转换成可缓存的Frame对象
  */
 template <typename Parent>
-class FrameWrapper : public Parent{
+class FrameWrapper : public Parent {
 public:
     ~FrameWrapper() = default;
 
@@ -590,8 +498,9 @@ public:
      * @param prefix 帧前缀长度
      * @param offset buffer有效数据偏移量
      */
-    FrameWrapper(const toolkit::Buffer::Ptr &buf, uint32_t dts, uint32_t pts, size_t prefix, size_t offset) : Parent(buf->data() + offset, buf->size() - offset, dts, pts, prefix){
-        _buf = buf;
+    FrameWrapper(toolkit::Buffer::Ptr buf, uint32_t dts, uint32_t pts, size_t prefix, size_t offset)
+        : Parent(buf->data() + offset, buf->size() - offset, dts, pts, prefix) {
+        _buf = std::move(buf);
     }
 
     /**
@@ -603,16 +512,15 @@ public:
      * @param offset buffer有效数据偏移量
      * @param codec 帧类型
      */
-    FrameWrapper(const toolkit::Buffer::Ptr &buf, uint32_t dts, uint32_t pts, size_t prefix, size_t offset, CodecId codec) : Parent(codec, buf->data() + offset, buf->size() - offset, dts, pts, prefix){
-        _buf = buf;
+    FrameWrapper(toolkit::Buffer::Ptr buf, uint32_t dts, uint32_t pts, size_t prefix, size_t offset, CodecId codec)
+        : Parent(codec, buf->data() + offset, buf->size() - offset, dts, pts, prefix) {
+        _buf = std::move(buf);
     }
 
     /**
      * 该帧可缓存
      */
-    bool cacheAble() const override {
-        return true;
-    }
+    bool cacheAble() const override { return true; }
 
 private:
     toolkit::Buffer::Ptr _buf;
@@ -647,5 +555,5 @@ private:
     toolkit::List<Frame::Ptr> _frame_cache;
 };
 
-}//namespace mediakit
-#endif //ZLMEDIAKIT_FRAME_H
+} // namespace mediakit
+#endif // ZLMEDIAKIT_FRAME_H
