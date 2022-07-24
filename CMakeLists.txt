@@ -1,540 +1,431 @@
-project(ZLMediaKit)
+# MIT License
+#
+# Copyright (c) 2016-2022 The ZLMediaKit project authors. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+
 cmake_minimum_required(VERSION 3.1.3)
-include(CheckStructHasMember)
-include(CheckSymbolExists)
 
-# 检查sendmmsg相关依赖并设置对应的宏
-list(APPEND CMAKE_REQUIRED_DEFINITIONS -D_GNU_SOURCE)
-check_struct_has_member("struct mmsghdr" msg_hdr sys/socket.h HAVE_MMSG_HDR)
-check_symbol_exists(sendmmsg sys/socket.h HAVE_SENDMMSG_API)
-check_symbol_exists(recvmmsg sys/socket.h HAVE_RECVMMSG_API)
+# 加载自定义模块
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-if(HAVE_MMSG_HDR)
-    add_definitions(-DHAVE_MMSG_HDR)
-endif()
-if(HAVE_SENDMMSG_API)
-    add_definitions(-DHAVE_SENDMMSG_API)
-endif()
-if(HAVE_RECVMMSG_API)
-    add_definitions(-DHAVE_RECVMMSG_API)
-endif()
-#使能c++11
+project(ZLMediaKit LANGUAGES C CXX)
+
+# 使能 C++11
 set(CMAKE_CXX_STANDARD 11)
-#加载自定义模块
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-set(DEP_ROOT_DIR ${CMAKE_SOURCE_DIR}/3rdpart/external-${CMAKE_SYSTEM_NAME})
-if(NOT EXISTS ${DEP_ROOT_DIR})
-    file(MAKE_DIRECTORY ${DEP_ROOT_DIR})
-endif()
 
-find_program(CCACHE_FOUND ccache)
-if(CCACHE_FOUND)
-    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
-    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
-endif(CCACHE_FOUND)
+option(ENABLE_API "Enable C API SDK" ON)
+option(ENABLE_API_STATIC_LIB "Enable mk_api static lib" OFF)
+option(ENABLE_ASAN "Enable Address Sanitize" OFF)
+option(ENABLE_CXX_API "Enable C++ API SDK" OFF)
+option(ENABLE_FAAC "Enable FAAC" OFF)
+option(ENABLE_FFMPEG "Enable FFmpeg" OFF)
+option(ENABLE_HLS "Enable HLS" ON)
+option(ENABLE_JEMALLOC_STATIC "Enable static linking to the jemalloc library" OFF)
+option(ENABLE_MEM_DEBUG "Enable Memory Debug" OFF)
+option(ENABLE_MP4 "Enable MP4" ON)
+option(ENABLE_MSVC_MT "Enable MSVC Mt/Mtd lib" ON)
+option(ENABLE_MYSQL "Enable MySQL" OFF)
+option(ENABLE_OPENSSL "Enable OpenSSL" ON)
+option(ENABLE_PLAYER "Enable Player" ON)
+option(ENABLE_RTPPROXY "Enable RTPPROXY" ON)
+option(ENABLE_SERVER "Enable Server" ON)
+option(ENABLE_SERVER_LIB "Enable server as android static library" OFF)
+option(ENABLE_SRT "Enable SRT" ON)
+option(ENABLE_TESTS "Enable Tests" ON)
+option(ENABLE_WEBRTC "Enable WebRTC" ON)
+option(ENABLE_X264 "Enable x264" OFF)
 
-#add_compile_options(-D__STDC_FORMAT_MACROS)
-if(CMAKE_COMPILER_IS_GNUCXX)
-    add_compile_options(-D__STDC_FORMAT_MACROS)
-    message(STATUS "-D__STDC_FORMAT_MACROS")
-endif(CMAKE_COMPILER_IS_GNUCXX)
-
-#set(CMAKE_BUILD_TYPE "Release")
-if ("${CMAKE_BUILD_TYPE}" STREQUAL "")
-    set(CMAKE_BUILD_TYPE "Debug")
-endif ()
-
-message(STATUS "编译类型:${CMAKE_BUILD_TYPE}")
-
-#设置bin和lib库目录
-set(RELEASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/release)
-
-if (CMAKE_SYSTEM_NAME MATCHES "Linux")
-    SET(LIBRARY_OUTPUT_PATH ${RELEASE_DIR}/linux/${CMAKE_BUILD_TYPE})
-    SET(EXECUTABLE_OUTPUT_PATH ${RELEASE_DIR}/linux/${CMAKE_BUILD_TYPE})
-    add_compile_options(-fPIC -Wall -Wno-unused-variable -Wno-unused-value)
-    INCLUDE(CheckCXXSourceCompiles)
-    file(READ ${CMAKE_CURRENT_SOURCE_DIR}/cmake/checks/atomic_check.cpp atomic_check_cpp)
-    CHECK_CXX_SOURCE_COMPILES("${atomic_check_cpp}" HAVE_CXX_ATOMICS_WITHOUT_LIB)
-    if(NOT HAVE_CXX_ATOMICS_WITHOUT_LIB)
-        list(APPEND CMAKE_REQUIRED_LIBRARIES "atomic")
-        CHECK_CXX_SOURCE_COMPILES("${atomic_check_cpp}" HAVE_CXX_ATOMICS_WITH_LIB)
-        if(NOT HAVE_CXX_ATOMICS_WITH_LIB)
-            message(WARNING "Compiler doesn't support std::atomic<long long>")
-        else()
-            set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} -latomic")
-        endif()
-    endif()
-elseif (CMAKE_SYSTEM_NAME MATCHES "Windows")
-    if (CMAKE_CL_64)
-        set(CL_32_64 64)
-    else ()
-        set(CL_32_64 32)
-    endif ()
-    SET(LIBRARY_OUTPUT_PATH ${RELEASE_DIR}/windows${CL_32_64}/${CMAKE_BUILD_TYPE})
-    SET(EXECUTABLE_OUTPUT_PATH ${RELEASE_DIR}/windows${CL_32_64}/${CMAKE_BUILD_TYPE})
-elseif (CMAKE_SYSTEM_NAME MATCHES "Darwin")
-    SET(LIBRARY_OUTPUT_PATH ${RELEASE_DIR}/mac/${CMAKE_BUILD_TYPE})
-    SET(EXECUTABLE_OUTPUT_PATH ${RELEASE_DIR}/mac/${CMAKE_BUILD_TYPE})
-    add_compile_options(-Wall -Wno-unused-variable -Wno-unused-value)
-endif ()
-
-LINK_DIRECTORIES(${LIBRARY_OUTPUT_PATH})
-
-#设置工程源码根目录
-set(ToolKit_Root ${CMAKE_CURRENT_SOURCE_DIR}/3rdpart/ZLToolKit/src)
-set(MediaKit_Root ${CMAKE_CURRENT_SOURCE_DIR}/src)
-set(MediaServer_Root ${CMAKE_CURRENT_SOURCE_DIR}/3rdpart/media-server)
-
-#设置头文件目录
-INCLUDE_DIRECTORIES(${ToolKit_Root})
-INCLUDE_DIRECTORIES(${MediaKit_Root})
-INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/3rdpart)
-
-option(ENABLE_HLS "Enable HLS" true)
-option(ENABLE_OPENSSL "Enable OpenSSL" true)
-option(ENABLE_MYSQL "Enable MySQL" false)
-option(ENABLE_FAAC "Enable FAAC" false)
-option(ENABLE_X264 "Enable x264" false)
-option(ENABLE_MP4 "Enable MP4" true)
-option(ENABLE_RTPPROXY "Enable RTPPROXY" true)
-option(ENABLE_API "Enable C API SDK" true)
-option(ENABLE_CXX_API "Enable C++ API SDK" false)
-option(ENABLE_TESTS "Enable Tests" true)
-option(ENABLE_SERVER "Enable Server" true)
-option(ENABLE_SERVER_LIB "Enable server as android static library" false)
-option(ENABLE_MEM_DEBUG "Enable Memory Debug" false)
-option(ENABLE_ASAN "Enable Address Sanitize" false)
-option(ENABLE_WEBRTC "Enable WebRTC" true)
-option(ENABLE_PLAYER "Enable Player" true)
-option(ENABLE_FFMPEG "Enable FFmpeg" false)
-option(ENABLE_MSVC_MT "Enable MSVC Mt/Mtd lib" true)
-option(ENABLE_API_STATIC_LIB "Enable mk_api static lib" false)
 option(USE_SOLUTION_FOLDERS "Enable solution dir supported" ON)
-option(ENABLE_SRT "Enable SRT" true)
-option(ENABLE_JEMALLOC_STATIC "Enable static linking to the jemalloc library" false)
-# ----------------------------------------------------------------------------
-# Solution folders:
-# ----------------------------------------------------------------------------
-if(USE_SOLUTION_FOLDERS)
-    set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-    set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMakeTargets")
+
+##############################################################################
+
+if("${CMAKE_BUILD_TYPE}" STREQUAL "")
+  set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
-function(set_file_group prefix)
-    message(STATUS "set_file_group " ${prefix} " " ${ARGC})
-    foreach(FILE IN LISTS ARGN 1)
-       # Get the directory of the source file
-       get_filename_component(PARENT_DIR "${FILE}" DIRECTORY)
+message(STATUS "编译类型: ${CMAKE_BUILD_TYPE}")
 
-       # Remove common directory prefix to make the group
-       string(REPLACE "${prefix}" "" GROUP "${PARENT_DIR}")
+# 方便排查编译问题, 需要 FORCE CACHE, 否则需要命令行设置才生效
+set(CMAKE_VERBOSE_MAKEFILE ON CACHE INTERNAL "" FORCE)
 
-      # Make sure we are using windows slashes
-       string(REPLACE "/" "\\" GROUP "${GROUP}")
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-       # Group into "Source Files" and "Header Files"
-       #if ("${FILE}" MATCHES ".*\\.cpp")
-       #   set(GROUP "Source Files${GROUP}")
-       #elseif("${FILE}" MATCHES ".*\\.h")
-       #   set(GROUP "Header Files${GROUP}")
-       #endif()
-       #message(STATUS ${GROUP} " : " ${FILE})
-       source_group("${GROUP}" FILES "${FILE}")
-    endforeach()
-endfunction()
-
-if (MSVC AND ENABLE_MSVC_MT)
-    set(CompilerFlags
-        CMAKE_CXX_FLAGS
-        CMAKE_CXX_FLAGS_DEBUG
-        CMAKE_CXX_FLAGS_RELEASE
-        CMAKE_C_FLAGS
-        CMAKE_C_FLAGS_DEBUG
-        CMAKE_C_FLAGS_RELEASE
-        )
-    foreach(CompilerFlag ${CompilerFlags})
-        string(REPLACE "/MD" "/MT" ${CompilerFlag} "${${CompilerFlag}}")
-    endforeach()
+# 安装路径
+if(NOT CMAKE_INSTALL_PREFIX)
+  if(UNIX)
+    set(INSTALL_PATH_LIB     lib${LIB_SUFFIX})
+    set(INSTALL_PATH_INCLUDE include)
+    set(INSTALL_PATH_RUNTIME bin)
+  elseif(WIN32)
+    # Windows 下安装到了用户主目录下?
+    set(INSTALL_PATH_LIB     $ENV{HOME}/${CMAKE_PROJECT_NAME}/lib)
+    set(INSTALL_PATH_INCLUDE $ENV{HOME}/${CMAKE_PROJECT_NAME}/include)
+  else()
+    message(WARNING "该平台(${CMAKE_SYSTEM_NAME})下暂未设置安装路径")
+  endif()
+else()
+  set(INSTALL_PATH_LIB     ${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX})
+  set(INSTALL_PATH_INCLUDE ${CMAKE_INSTALL_PREFIX}/include)
+  set(INSTALL_PATH_RUNTIME ${CMAKE_INSTALL_PREFIX}/bin)
 endif()
 
-# 添加git版本信息
+string(TOLOWER ${CMAKE_SYSTEM_NAME} SYSTEM_NAME_LOWER)
+# 设置输出目录, 包括 bin, lib 以及其他文件
+# Windows 也不再区分 32/64
+set(OUTPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/release/${SYSTEM_NAME_LOWER}/${CMAKE_BUILD_TYPE})
+set(LIBRARY_OUTPUT_PATH    ${OUTPUT_DIR})
+set(EXECUTABLE_OUTPUT_PATH ${OUTPUT_DIR})
+
+# 添加 git 版本信息
 set(COMMIT_HASH "Git_NotFound_Unkown_commit")
 set(BRANCH_NAME "Git_NotFound_Unkown_branch")
 set(BUILD_TIME "")
 
-string(TIMESTAMP BUILD_TIME "%Y/%m/%d-%H:%M:%S")
+string(TIMESTAMP BUILD_TIME "%Y-%m-%d %H:%M:%S")
 
 find_package(Git QUIET)
-if (GIT_FOUND)
-    execute_process(
-            COMMAND ${GIT_EXECUTABLE} log -1 --pretty=format:%h
-            OUTPUT_VARIABLE COMMIT_HASH
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            ERROR_QUIET
-            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    )
-    execute_process(
-            COMMAND ${GIT_EXECUTABLE} symbolic-ref --short -q HEAD
-            OUTPUT_VARIABLE BRANCH_NAME
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            ERROR_QUIET
-            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    )
-endif ()
+if(GIT_FOUND)
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} rev-parse --short=7 HEAD
+    OUTPUT_VARIABLE COMMIT_HASH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} symbolic-ref --short -q HEAD
+    OUTPUT_VARIABLE BRANCH_NAME
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+endif()
 
 configure_file(
-        ${CMAKE_CURRENT_SOURCE_DIR}/version.h.ini
-        ${CMAKE_BINARY_DIR}/version.h
-        @ONLY
-)
+  ${CMAKE_CURRENT_SOURCE_DIR}/version.h.ini
+  ${CMAKE_BINARY_DIR}/version.h
+  @ONLY)
 
-add_definitions(-DENABLE_VERSION)
-include_directories(${CMAKE_BINARY_DIR})
 message(STATUS "Git version is ${BRANCH_NAME}:${COMMIT_HASH}:${BUILD_TIME}")
 
-if (ENABLE_MEM_DEBUG)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wl,-wrap,free  -Wl,-wrap,malloc -Wl,-wrap,realloc -Wl,-wrap,calloc")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wl,-wrap,free  -Wl,-wrap,malloc -Wl,-wrap,realloc -Wl,-wrap,calloc")
-    add_definitions(-DENABLE_MEM_DEBUG)
-    message(STATUS "已启用内存调试功能")
-endif ()
+##############################################################################
 
-if (ENABLE_ASAN)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
-    message(STATUS "已启用Address Sanitize")
-endif ()
+# 方便修改全局变量
+function(update_cached name value)
+  set("${name}" "${value}" CACHE INTERNAL "*** Internal ***" FORCE)
+endfunction()
 
-set(LINK_LIB_LIST zlmediakit zltoolkit)
+function(update_cached_list name)
+  set(_tmp_list "${${name}}")
+  list(APPEND _tmp_list "${ARGN}")
+  list(REMOVE_DUPLICATES _tmp_list)
+  update_cached(${name} "${_tmp_list}")
+endfunction()
 
-if (ENABLE_FFMPEG)
-    find_package(PkgConfig QUIET)
-    #查找ffmpeg/libutil是否安装
-    if (PKG_CONFIG_FOUND)
-        pkg_check_modules(AVUTIL QUIET IMPORTED_TARGET libavutil)
-        if (AVUTIL_FOUND)
-            include_directories(${AVUTIL_INCLUDE_DIRS})
-            link_directories(${AVUTIL_LIBRARY_DIRS})
-            list(APPEND LINK_LIB_LIST ${AVUTIL_LIBRARIES})
-            message(STATUS "found library:${AVUTIL_LIBRARIES}")
-        endif ()
+# TODO:
+function(set_file_group prefix)
+  message(STATUS "set_file_group " ${prefix} " " ${ARGC})
+  foreach(FILE IN LISTS ARGN 1)
+    # Get the directory of the source file
+    get_filename_component(PARENT_DIR "${FILE}" DIRECTORY)
+
+    # Remove common directory prefix to make the group
+    string(REPLACE "${prefix}" "" GROUP "${PARENT_DIR}")
+
+    # Make sure we are using windows slashes
+    string(REPLACE "/" "\\" GROUP "${GROUP}")
+
+    source_group("${GROUP}" FILES "${FILE}")
+  endforeach()
+endfunction()
+
+
+find_program(CCACHE_FOUND ccache)
+if(CCACHE_FOUND)
+  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+  set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK    ccache)
+endif()
+
+if(UNIX)
+  # UNIX/Linux/Darwin
+  set(COMPILE_OPTIONS_DEFAULT
+    "-fPIC"
+    "-Wall;-Wextra"
+    "-Wno-unused-function;-Wno-unused-parameter;-Wno-unused-variable"
+    "-Wno-error=extra;-Wno-error=missing-field-initializers;-Wno-error=type-limits")
+elseif(WIN32)
+  # TODO: /wd4819 应该是不会生效
+  set(COMPILE_OPTIONS_DEFAULT "/wd4819")
+endif()
+
+# mediakit 以及各个 runtime 依赖
+update_cached_list(MK_LINK_LIBRARIES "")
+update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_VERSION)
+
+# 多个模块依赖 ffmpeg 相关库, 统一查找
+if(ENABLE_FFMPEG)
+  find_package(PkgConfig QUIET)
+  # 查找 ffmpeg/libutil 是否安装
+  if(PKG_CONFIG_FOUND)
+    pkg_check_modules(AVUTIL QUIET IMPORTED_TARGET libavutil)
+    if(AVUTIL_FOUND)
+      update_cached_list(MK_LINK_LIBRARIES PkgConfig::AVUTIL)
+      message(STATUS "found library: ${AVUTIL_LIBRARIES}")
+    endif()
+  endif()
+
+  # 查找 ffmpeg/libavcodec 是否安装
+  if(PKG_CONFIG_FOUND)
+    pkg_check_modules(AVCODEC QUIET IMPORTED_TARGET libavcodec)
+    if(AVCODEC_FOUND)
+      update_cached_list(MK_LINK_LIBRARIES PkgConfig::AVCODEC)
+      message(STATUS "found library: ${AVCODEC_LIBRARIES}")
+    endif()
+  endif()
+
+  # 查找 ffmpeg/libswscale 是否安装
+  if(PKG_CONFIG_FOUND)
+    pkg_check_modules(SWSCALE QUIET IMPORTED_TARGET libswscale)
+    if(SWSCALE_FOUND)
+      update_cached_list(MK_LINK_LIBRARIES PkgConfig::SWSCALE)
+      message(STATUS "found library: ${SWSCALE_LIBRARIES}")
+    endif()
+  endif()
+
+  # 查找 ffmpeg/libswresample 是否安装
+  if(PKG_CONFIG_FOUND)
+    pkg_check_modules(SWRESAMPLE QUIET IMPORTED_TARGET libswresample)
+    if(SWRESAMPLE_FOUND)
+      update_cached_list(MK_LINK_LIBRARIES PkgConfig::SWRESAMPLE)
+      message(STATUS "found library: ${SWRESAMPLE_LIBRARIES}")
+    endif()
+  endif()
+
+  # 查找 ffmpeg/libutil 是否安装
+  if(NOT AVUTIL_FOUND)
+    find_package(AVUTIL QUIET)
+    if(AVUTIL_FOUND)
+      include_directories(SYSTEM ${AVUTIL_INCLUDE_DIR})
+      update_cached_list(MK_LINK_LIBRARIES ${AVUTIL_LIBRARIES})
+      message(STATUS "found library: ${AVUTIL_LIBRARIES}")
     endif ()
+  endif ()
 
-    #查找ffmpeg/libavcodec是否安装
-    if (PKG_CONFIG_FOUND)
-        pkg_check_modules(AVCODEC QUIET IMPORTED_TARGET libavcodec)
-        if (AVCODEC_FOUND)
-            include_directories(${AVCODEC_INCLUDE_DIRS})
-            link_directories(${AVCODEC_LIBRARY_DIRS})
-            list(APPEND LINK_LIB_LIST ${AVCODEC_LIBRARIES})
-            message(STATUS "found library:${AVCODEC_LIBRARIES}")
-        endif ()
-    endif ()
+  # 查找 ffmpeg/libavcodec 是否安装
+  if(NOT AVCODEC_FOUND)
+    find_package(AVCODEC QUIET)
+    if(AVCODEC_FOUND)
+      include_directories(SYSTEM ${AVCODEC_INCLUDE_DIR})
+      update_cached_list(MK_LINK_LIBRARIES ${AVCODEC_LIBRARIES})
+      message(STATUS "found library: ${AVCODEC_LIBRARIES}")
+    endif()
+  endif()
 
-    #查找ffmpeg/libswscale是否安装
-    if (PKG_CONFIG_FOUND)
-        pkg_check_modules(SWSCALE QUIET IMPORTED_TARGET libswscale)
-        if (SWSCALE_FOUND)
-            include_directories(${SWSCALE_INCLUDE_DIRS})
-            link_directories(${SWSCALE_LIBRARY_DIRS})
-            list(APPEND LINK_LIB_LIST ${SWSCALE_LIBRARIES})
-            message(STATUS "found library:${SWSCALE_LIBRARIES}")
-        endif ()
-    endif ()
+  # 查找 ffmpeg/libswscale 是否安装
+  if(NOT SWSCALE_FOUND)
+    find_package(SWSCALE QUIET)
+    if(SWSCALE_FOUND)
+      include_directories(SYSTEM ${SWSCALE_INCLUDE_DIR})
+      update_cached_list(MK_LINK_LIBRARIES ${SWSCALE_LIBRARIES})
+      message(STATUS "found library: ${SWSCALE_LIBRARIES}")
+    endif()
+  endif()
 
-    #查找ffmpeg/libswresample是否安装
-    if (PKG_CONFIG_FOUND)
-        pkg_check_modules(SWRESAMPLE QUIET IMPORTED_TARGET libswresample)
-        if (SWRESAMPLE_FOUND)
-            include_directories(${SWRESAMPLE_INCLUDE_DIRS})
-            link_directories(${SWRESAMPLE_LIBRARY_DIRS})
-            list(APPEND LINK_LIB_LIST ${SWRESAMPLE_LIBRARIES})
-            message(STATUS "found library:${SWRESAMPLE_LIBRARIES}")
-        endif ()
-    endif ()
+  # 查找 ffmpeg/libswresample 是否安装
+  if(NOT SWRESAMPLE_FOUND)
+    find_package(SWRESAMPLE QUIET)
+    if(SWRESAMPLE_FOUND)
+      include_directories(SYSTEM ${SWRESAMPLE_INCLUDE_DIRS})
+      update_cached_list(MK_LINK_LIBRARIES ${SWRESAMPLE_LIBRARIES})
+      message(STATUS "found library: ${SWRESAMPLE_LIBRARIES}")
+    endif()
+  endif()
 
-    #查找ffmpeg/libutil是否安装
-    if (NOT AVUTIL_FOUND)
-        find_package(AVUTIL QUIET)
-        if (AVUTIL_FOUND)
-            include_directories(${AVUTIL_INCLUDE_DIR})
-            list(APPEND LINK_LIB_LIST ${AVUTIL_LIBRARIES})
-            message(STATUS "found library:${AVUTIL_LIBRARIES}")
-        endif ()
-    endif ()
+  if(AVUTIL_FOUND AND AVCODEC_FOUND AND SWSCALE_FOUND AND SWRESAMPLE_FOUND)
+    update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_FFMPEG)
+    update_cached_list(MK_LINK_LIBRARIES ${CMAKE_DL_LIBS})
+  else()
+    set(ENABLE_FFMPEG OFF)
+    message(WARNING "ffmpeg 相关功能未找到")
+  endif()
+endif()
 
-    #查找ffmpeg/libavcodec是否安装
-    if (NOT AVCODEC_FOUND)
-        find_package(AVCODEC QUIET)
-        if (AVCODEC_FOUND)
-            include_directories(${AVCODEC_INCLUDE_DIR})
-            list(APPEND LINK_LIB_LIST ${AVCODEC_LIBRARIES})
-            message(STATUS "found library:${AVCODEC_LIBRARIES}")
-        endif ()
-    endif ()
+if(ENABLE_MEM_DEBUG)
+  list(APPEND COMPILE_OPTIONS_DEFAULT
+    "-Wl,-wrap,free;-Wl,-wrap,malloc;-Wl,-wrap,realloc;-Wl,-wrap,calloc")
+  update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_MEM_DEBUG)
+  message(STATUS "已启用内存调试功能")
+endif()
 
-    #查找ffmpeg/libswscale是否安装
-    if (NOT SWSCALE_FOUND)
-        find_package(SWSCALE QUIET)
-        if (SWSCALE_FOUND)
-            include_directories(${SWSCALE_INCLUDE_DIR})
-            list(APPEND LINK_LIB_LIST ${SWSCALE_LIBRARIES})
-            message(STATUS "found library:${SWSCALE_LIBRARIES}")
-        endif ()
-    endif ()
+if(ENABLE_ASAN)
+  list(APPEND COMPILE_OPTIONS_DEFAULT
+    "-fsanitize=address;-fno-omit-frame-pointer")
+  message(STATUS "已启用 Address Sanitize")
+endif()
 
-    #查找ffmpeg/libswresample是否安装
-    if (NOT SWRESAMPLE_FOUND)
-        find_package(SWRESAMPLE QUIET)
-        if (SWRESAMPLE_FOUND)
-            include_directories(${SWRESAMPLE_INCLUDE_DIRS})
-            list(APPEND LINK_LIB_LIST ${SWRESAMPLE_LIBRARIES})
-            message(STATUS "found library:${SWRESAMPLE_LIBRARIES}")
-        endif ()
-    endif ()
-
-    if (AVUTIL_FOUND AND AVCODEC_FOUND AND SWSCALE_FOUND AND SWRESAMPLE_FOUND)
-        add_definitions(-DENABLE_FFMPEG)
-        list(APPEND LINK_LIB_LIST ${CMAKE_DL_LIBS})
-    else ()
-        set(ENABLE_FFMPEG off)
-        message(WARNING "ffmpeg相关功能未找到")
-    endif ()
-
-endif ()
-
+# TODO: 下载静态编译 jemalloc 后静态编译链接?
+set(DEP_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdpart/external-${CMAKE_SYSTEM_NAME})
 if(ENABLE_JEMALLOC_STATIC)
-    include(cmake/Jemalloc.cmake)
-    include_directories(${DEP_ROOT_DIR}/${JEMALLOC_NAME}/include/jemalloc)
-    link_directories(${DEP_ROOT_DIR}/${JEMALLOC_NAME}/lib)
-    set(JEMALLOC_ROOT_DIR "${DEP_ROOT_DIR}/${JEMALLOC_NAME}")
-endif ()
+  if(NOT EXISTS ${DEP_ROOT_DIR})
+    file(MAKE_DIRECTORY ${DEP_ROOT_DIR})
+  endif()
 
-#默认链接jemalloc库避免内存碎片
+  include(Jemalloc)
+  include_directories(SYSTEM ${DEP_ROOT_DIR}/${JEMALLOC_NAME}/include/jemalloc)
+  link_directories(${DEP_ROOT_DIR}/${JEMALLOC_NAME}/lib)
+  # 用于影响后续查找过程
+  set(JEMALLOC_ROOT_DIR "${DEP_ROOT_DIR}/${JEMALLOC_NAME}")
+endif()
+
+# 默认链接 jemalloc 库避免内存碎片
 find_package(JEMALLOC QUIET)
-if (JEMALLOC_FOUND)
-    message(STATUS "found library:\"${JEMALLOC_LIBRARIES}\"")
-    include_directories(${JEMALLOC_INCLUDE_DIR})
-    list(APPEND LINK_LIB_LIST ${JEMALLOC_LIBRARIES})
-endif ()
+if(JEMALLOC_FOUND)
+  message(STATUS "found library: ${JEMALLOC_LIBRARIES}")
+  include_directories(${JEMALLOC_INCLUDE_DIR})
+  update_cached_list(MK_LINK_LIBRARIES ${JEMALLOC_LIBRARIES})
+endif()
 
-#查找openssl是否安装
+# 查找 openssl 是否安装
 find_package(OpenSSL QUIET)
-if (OPENSSL_FOUND AND ENABLE_OPENSSL)
-    message(STATUS "found library:${OPENSSL_LIBRARIES},ENABLE_OPENSSL defined")
-    include_directories(${OPENSSL_INCLUDE_DIR})
-    add_definitions(-DENABLE_OPENSSL)
-    list(APPEND LINK_LIB_LIST ${OPENSSL_LIBRARIES})
-    if (CMAKE_SYSTEM_NAME MATCHES "Linux" AND OPENSSL_USE_STATIC_LIBS)
-        list(APPEND LINK_LIB_LIST dl)
-    endif ()
-else ()
-    set(ENABLE_OPENSSL off)
-    message(WARNING "openssl未找到，rtmp将不支持flash播放器，https/wss/rtsps/rtmps也将失效")
-endif ()
+if(OPENSSL_FOUND AND ENABLE_OPENSSL)
+  message(STATUS "found library: ${OPENSSL_LIBRARIES}, ENABLE_OPENSSL defined")
+  include_directories(${OPENSSL_INCLUDE_DIR})
+  update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_OPENSSL)
+  update_cached_list(MK_LINK_LIBRARIES ${OPENSSL_LIBRARIES})
+  if(CMAKE_SYSTEM_NAME MATCHES "Linux" AND OPENSSL_USE_STATIC_LIBS)
+    update_cached_list(MK_LINK_LIBRARIES ${CMAKE_DL_LIBS})
+  endif()
+else()
+  set(ENABLE_OPENSSL OFF)
+  message(WARNING "openssl 未找到, rtmp 将不支持 flash 播放器, https/wss/rtsps/rtmps 也将失效")
+endif()
 
-#查找mysql是否安装
+# 查找 mysql 是否安装
 find_package(MYSQL QUIET)
-if (MYSQL_FOUND AND ENABLE_MYSQL)
-    message(STATUS "found library:${MYSQL_LIBRARIES},ENABLE_MYSQL defined")
-    include_directories(${MYSQL_INCLUDE_DIR})
-    include_directories(${MYSQL_INCLUDE_DIR}/mysql)
-    add_definitions(-DENABLE_MYSQL)
-    list(APPEND LINK_LIB_LIST ${MYSQL_LIBRARIES})
-endif ()
+if(MYSQL_FOUND AND ENABLE_MYSQL)
+  message(STATUS "found library: ${MYSQL_LIBRARIES}, ENABLE_MYSQL defined")
+  include_directories(SYSTEM
+    ${MYSQL_INCLUDE_DIR}
+    ${MYSQL_INCLUDE_DIR}/mysql)
 
-#查找x264是否安装
+  update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_MYSQL)
+  update_cached_list(MK_LINK_LIBRARIES ${MYSQL_LIBRARIES})
+endif()
+
+# 查找 x264 是否安装
 find_package(X264 QUIET)
-if (X264_FOUND AND ENABLE_X264)
-    message(STATUS "found library:${X264_LIBRARIES},ENABLE_X264 defined")
-    include_directories(${X264_INCLUDE_DIRS})
-    add_definitions(-DENABLE_X264)
-    list(APPEND LINK_LIB_LIST ${X264_LIBRARIES})
-endif ()
+if(X264_FOUND AND ENABLE_X264)
+  message(STATUS "found library: ${X264_LIBRARIES}, ENABLE_X264 defined")
+  include_directories(SYSTEM ${X264_INCLUDE_DIRS})
 
-#查找faac是否安装
+  update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_X264)
+  update_cached_list(MK_LINK_LIBRARIES ${X264_LIBRARIES})
+endif()
+
+# 查找 faac 是否安装
 find_package(FAAC QUIET)
-if (FAAC_FOUND AND ENABLE_FAAC)
-    message(STATUS "found library:${FAAC_LIBRARIES},ENABLE_FAAC defined")
-    include_directories(${FAAC_INCLUDE_DIR})
-    add_definitions(-DENABLE_FAAC)
-    list(APPEND LINK_LIB_LIST ${FAAC_LIBRARIES})
-endif ()
-
-#set(VS_FALGS "/wd4819 /wd4996 /wd4018 /wd4267 /wd4244 /wd4101 /wd4828 /wd4309 /wd4573 /wd4996" )
-set(VS_FALGS "/wd4819")
-
-#添加mpeg用于支持ts生成
-if (ENABLE_RTPPROXY OR ENABLE_HLS)
-    include_directories(${MediaServer_Root}/libmpeg/include)
-    aux_source_directory(${MediaServer_Root}/libmpeg/include src_mpeg)
-    aux_source_directory(${MediaServer_Root}/libmpeg/source src_mpeg)
-
-    add_library(mpeg STATIC ${src_mpeg})
-    list(APPEND LINK_LIB_LIST mpeg)
-    list(APPEND CXX_API_TARGETS mpeg)
-
-    if (MSVC)
-        set_target_properties(mpeg PROPERTIES COMPILE_FLAGS ${VS_FALGS})
-    endif ()
-endif ()
-
-#添加mov、flv库用于MP4录制
-if (ENABLE_MP4)
-    message(STATUS "ENABLE_MP4 defined")
-    add_definitions(-DENABLE_MP4)
-
-    include_directories(${MediaServer_Root}/libmov/include)
-    include_directories(${MediaServer_Root}/libflv/include)
-
-    aux_source_directory(${MediaServer_Root}/libmov/include src_mov)
-    aux_source_directory(${MediaServer_Root}/libmov/source src_mov)
-
-    aux_source_directory(${MediaServer_Root}/libflv/include src_flv)
-    aux_source_directory(${MediaServer_Root}/libflv/source src_flv)
-
-    add_library(mov STATIC ${src_mov})
-    add_library(flv STATIC ${src_flv})
-    list(APPEND LINK_LIB_LIST mov flv)
-    list(APPEND CXX_API_TARGETS mov flv)
-
-    if (MSVC)
-        set_target_properties(mov flv PROPERTIES COMPILE_FLAGS ${VS_FALGS})
-    endif ()
-endif ()
-
-if (ENABLE_RTPPROXY)
-    message(STATUS "ENABLE_RTPPROXY defined")
-    add_definitions(-DENABLE_RTPPROXY)
-endif ()
-
-if (ENABLE_HLS)
-    message(STATUS "ENABLE_HLS defined")
-    add_definitions(-DENABLE_HLS)
-endif ()
-
-#收集源代码
-file(GLOB ToolKit_src_list ${ToolKit_Root}/*/*.cpp ${ToolKit_Root}/*/*.h ${ToolKit_Root}/*/*.c)
-if (IOS)
-    list(APPEND ToolKit_src_list ${ToolKit_Root}/Network/Socket_ios.mm)
-endif ()
-
-file(GLOB MediaKit_src_list ${MediaKit_Root}/*/*.cpp ${MediaKit_Root}/*/*.h ${MediaKit_Root}/*/*.c)
-
-#去除win32的适配代码
-if (NOT WIN32)
-    list(REMOVE_ITEM ToolKit_src_list ${ToolKit_Root}/win32/getopt.c)
-else ()
-    #防止Windows.h包含Winsock.h
-    add_definitions(-DWIN32_LEAN_AND_MEAN -DMP4V2_NO_STDINT_DEFS -D_CRT_SECURE_NO_WARNINGS -D_WINSOCK_DEPRECATED_NO_WARNINGS)
-endif ()
-
-if (USE_SOLUTION_FOLDERS AND (NOT GROUP_BY_EXPLORER))    # 在 IDE 中对文件进行分组，源文件和头文件分开
-   set_file_group(${ToolKit_Root} ${ToolKit_src_list})
-   set_file_group("${CMAKE_CURRENT_SOURCE_DIR}/src" ${MediaKit_src_list})
+if(FAAC_FOUND AND ENABLE_FAAC)
+  message(STATUS "found library:${FAAC_LIBRARIES}, ENABLE_FAAC defined")
+  include_directories(SYSTEM ${FAAC_INCLUDE_DIR})
+  update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_FAAC)
+  update_cached_list(MK_LINK_LIBRARIES ${FAAC_LIBRARIES})
 endif()
 
-#添加库
-add_library(zltoolkit STATIC ${ToolKit_src_list})
-add_library(zlmediakit STATIC ${MediaKit_src_list})
-list(APPEND CXX_API_TARGETS zltoolkit zlmediakit)
-
-#安装目录
-if (WIN32)
-    set(INSTALL_PATH_LIB $ENV{HOME}/${CMAKE_PROJECT_NAME}/lib)
-    set(INSTALL_PATH_INCLUDE $ENV{HOME}/${CMAKE_PROJECT_NAME}/include)
-else ()
-    set(INSTALL_PATH_LIB lib${LIB_SUFFIX})
-    set(INSTALL_PATH_INCLUDE include)
-    set(INSTALL_PATH_EXECUTABLE bin)
-endif ()
-
-if (ENABLE_CXX_API)
-    # 保留目录结构
-    install(DIRECTORY ${ToolKit_Root}/ DESTINATION ${INSTALL_PATH_INCLUDE}/ZLToolKit REGEX "(.*[.](md|cpp)|win32)$" EXCLUDE)
-    install(DIRECTORY ${MediaKit_Root}/ DESTINATION ${INSTALL_PATH_INCLUDE}/ZLMediaKit REGEX ".*[.](md|cpp)$" EXCLUDE)
-    install(TARGETS ${CXX_API_TARGETS} DESTINATION ${INSTALL_PATH_LIB})
-endif ()
-
-if (WIN32)
-    list(APPEND LINK_LIB_LIST WS2_32 Iphlpapi shlwapi)
-    if (MSVC)
-        set_target_properties(zltoolkit PROPERTIES COMPILE_FLAGS ${VS_FALGS})
-        set_target_properties(zlmediakit PROPERTIES COMPILE_FLAGS ${VS_FALGS})
-    endif ()
-elseif (NOT ANDROID OR IOS)
-    list(APPEND LINK_LIB_LIST pthread)
-endif ()
-
-#复制文件过来
-file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/www" DESTINATION ${EXECUTABLE_OUTPUT_PATH})
-file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/conf/config.ini" DESTINATION ${EXECUTABLE_OUTPUT_PATH})
-
-
-if (ENABLE_WEBRTC)
-    #查找srtp是否安装
-    find_package(SRTP QUIET)
-    if (SRTP_FOUND AND ENABLE_OPENSSL)
-        message(STATUS "found library:${SRTP_LIBRARIES}")
-        include_directories(${SRTP_INCLUDE_DIRS})
-        list(APPEND LINK_LIB_LIST ${SRTP_LIBRARIES})
-
-        add_definitions(-DENABLE_WEBRTC)
-        include_directories(./webrtc)
-        file(GLOB SRC_WEBRTC_LIST ./webrtc/*.cpp ./webrtc/*.h ./webrtc/*.hpp)
-        add_library(webrtc ${SRC_WEBRTC_LIST})
-        list(APPEND LINK_LIB_LIST webrtc)
-        message(STATUS "webrtc功能已开启")
-
-        find_package(SCTP QUIET)
-        if (SCTP_FOUND)
-            message(STATUS "found library:${SCTP_INCLUDE_DIRS} ${SCTP_LIBRARIES}")
-            include_directories(${SCTP_INCLUDE_DIRS})
-            list(APPEND LINK_LIB_LIST ${SCTP_LIBRARIES})
-            add_definitions(-DENABLE_SCTP)
-            message(STATUS "webrtc datachannel功能已打开")
-        endif ()
-    else ()
-        set(ENABLE_WEBRTC off)
-        message(WARNING "srtp未找到, webrtc相关功能打开失败")
-    endif ()
-endif ()
-
-if (ENABLE_SRT)
-    add_definitions(-DENABLE_SRT)
-    include_directories(./srt)
-    file(GLOB SRC_SRT_LIST ./srt/*.cpp ./srt/*.h ./srt/*.hpp)
-    add_library(srt ${SRC_SRT_LIST})
-    list(APPEND LINK_LIB_LIST srt)
-    message(STATUS "srt 功能已开启")
+if(WIN32)
+  update_cached_list(MK_LINK_LIBRARIES WS2_32 Iphlpapi shlwapi)
+elseif(NOT ANDROID OR IOS)
+  update_cached_list(MK_LINK_LIBRARIES pthread)
 endif()
 
-#添加c库
-if (ENABLE_API)
-    add_subdirectory(api)
-endif ()
-
-#ios不编译可执行程序
-if (IOS)
-    return()
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+  include(CheckCXXSourceCompiles)
+  file(READ ${CMAKE_CURRENT_SOURCE_DIR}/cmake/checks/atomic_check.cpp atomic_check_cpp)
+  check_cxx_source_compiles("${atomic_check_cpp}" HAVE_CXX_ATOMICS_WITHOUT_LIB)
+  if(NOT HAVE_CXX_ATOMICS_WITHOUT_LIB)
+    # cmake --help-policy CMP0075
+    list(APPEND CMAKE_REQUIRED_LIBRARIES "atomic")
+    check_cxx_source_compiles("${atomic_check_cpp}" HAVE_CXX_ATOMICS_WITH_LIB)
+    if(NOT HAVE_CXX_ATOMICS_WITH_LIB)
+      message(WARNING "Compiler doesn't support std::atomic<long long>")
+    else()
+      update_cached_list(MK_LINK_LIBRARIES atomic)
+    endif()
+  endif()
 endif()
 
-#测试程序
-if (ENABLE_TESTS)
-    add_subdirectory(tests)
-endif ()
+# ----------------------------------------------------------------------------
+# Solution folders:
+# ----------------------------------------------------------------------------
+if(USE_SOLUTION_FOLDERS)
+  set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+  set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMakeTargets")
+endif()
 
-#主服务器
-if (ENABLE_SERVER)
-    add_subdirectory(server)
-endif ()
+if(MSVC AND ENABLE_MSVC_MT)
+  set(CompilerFlags
+    CMAKE_CXX_FLAGS
+    CMAKE_CXX_FLAGS_DEBUG
+    CMAKE_CXX_FLAGS_RELEASE
+    CMAKE_C_FLAGS
+    CMAKE_C_FLAGS_DEBUG
+    CMAKE_C_FLAGS_RELEASE)
+  # TODO: 通常应该不需要替换
+  foreach(CompilerFlag ${CompilerFlags})
+    string(REPLACE "/MD" "/MT" ${CompilerFlag} "${${CompilerFlag}}")
+  endforeach()
+endif()
 
-#播放器
-if (ENABLE_PLAYER)
+##############################################################################
+
+# for version.h
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
+add_subdirectory(3rdpart)
+
+add_subdirectory(src)
+
+if(ENABLE_SRT)
+  add_subdirectory(srt)
+endif()
+
+if(ENABLE_WEBRTC)
+  add_subdirectory(webrtc)
+endif()
+
+if(ENABLE_API)
+  add_subdirectory(api)
+endif()
+
+# IOS 不编译可执行程序
+if(NOT IOS)
+  if(ENABLE_PLAYER AND ENABLE_FFMPEG)
     add_subdirectory(player)
-endif ()
+  endif()
 
-if (ENABLE_SERVER_LIB)
-    set(LINK_LIB_LIST ${LINK_LIB_LIST} PARENT_SCOPE)
-endif ()
+  add_subdirectory(server)
+  # 复制文件过来
+  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/www"
+    DESTINATION ${EXECUTABLE_OUTPUT_PATH})
+  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/conf/config.ini"
+    DESTINATION ${EXECUTABLE_OUTPUT_PATH})
+
+  if(ENABLE_TESTS)
+    add_subdirectory(tests)
+  endif()
+endif()
