@@ -419,6 +419,11 @@ if(NOT IOS)
   endif()
 
   add_subdirectory(server)
+  # Android 会 add_subdirectory 并依赖该变量
+  if(ENABLE_SERVER_LIB)
+    set(MK_LINK_LIBRARIES ${MK_LINK_LIBRARIES} PARENT_SCOPE)
+  endif()
+
   # 复制文件过来
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/www"
     DESTINATION ${EXECUTABLE_OUTPUT_PATH})

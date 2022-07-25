@@ -36,5 +36,5 @@ file(GLOB JNI_src_list ${JNI_Root}/*.cpp ${JNI_Root}/*.h)
 add_library(zlmediakit_jni SHARED ${JNI_src_list})
 
 #链接
-target_link_libraries(zlmediakit_jni -Wl,--start-group log z ${LINK_LIB_LIST} -Wl,--end-group)
+target_link_libraries(zlmediakit_jni -Wl,--start-group log z ${MK_LINK_LIBRARIES} -Wl,--end-group)
 
