@@ -115,8 +115,8 @@ endif()
 include(CheckStructHasMember)
 include(CheckSymbolExists)
 
-# 检查 sendmmsg 相关依赖并设置对应的宏
-#list(APPEND CMAKE_REQUIRED_DEFINITIONS -D_GNU_SOURCE)
+# 检查 sendmmsg 相关依赖并设置对应的宏, 配置 _GNU_SOURCE 以启用 GNU 扩展特性
+list(APPEND CMAKE_REQUIRED_DEFINITIONS -D_GNU_SOURCE)
 check_struct_has_member("struct mmsghdr" msg_hdr sys/socket.h HAVE_MMSG_HDR)
 check_symbol_exists(sendmmsg sys/socket.h HAVE_SENDMMSG_API)
 check_symbol_exists(recvmmsg sys/socket.h HAVE_RECVMMSG_API)
