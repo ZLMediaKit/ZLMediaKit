@@ -32,6 +32,8 @@ if(ENABLE_SERVER_LIB)
     PRIVATE ${COMPILE_DEFINITIONS})
   target_compile_options(MediaServer
     PRIVATE ${COMPILE_OPTIONS_DEFAULT})
+  target_link_libraries(MediaServer
+    PRIVATE ${MK_LINK_LIBRARIES})
   update_cached(MK_LINK_LIBRARIES MediaServer)
   return()
 endif()
