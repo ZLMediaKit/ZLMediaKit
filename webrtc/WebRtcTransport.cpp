@@ -13,6 +13,9 @@
 #include "Rtcp/RtcpFCI.h"
 #include "RtpExt.h"
 #include "Rtsp/RtpReceiver.h"
+
+#include <srtp2/srtp.h>
+
 #include <iostream>
 
 #define RTP_SSRC_OFFSET 1
