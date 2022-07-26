@@ -291,6 +291,7 @@ int RtpProcess::getLossRate(MediaSource &sender, TrackType type)
         if (!expected) {
             return 0;
         }
+
         return help->geLostInterval() * 100 / expected;
 }
 }//namespace mediakit
