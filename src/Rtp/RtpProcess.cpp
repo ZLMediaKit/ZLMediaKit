@@ -280,19 +280,22 @@ std::shared_ptr<SockInfo> RtpProcess::getOriginSock(MediaSource &sender) const {
 toolkit::EventPoller::Ptr RtpProcess::getOwnerPoller(MediaSource &sender) {
     return _sock ? _sock->getPoller() : nullptr;
 }
-void RtpProcess::setHelper(const std::weak_ptr<RtcpContext> &help)
-{
-    _help=help;
+
+void RtpProcess::setHelper(const std::weak_ptr<RtcpContext> help){
+	_help = std::move(help);
 }
-int RtpProcess::getLossRate(MediaSource &sender, TrackType type)
-{
+
+int RtpProcess::getLossRate(MediaSource &sender, TrackType type){
      auto help = _help.lock();
+	 if(!help){
+	 	return -1;	
+	 }
      auto expected =  help->getExpectedPacketsInterval();
         if (!expected) {
             return 0;
         }
-
         return help->geLostInterval() * 100 / expected;
 }
+
 }//namespace mediakit
 #endif//defined(ENABLE_RTPPROXY)

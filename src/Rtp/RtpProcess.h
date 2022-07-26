@@ -67,7 +67,7 @@ public:
     int getTotalReaderCount();
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener);
 
-    void setHelper(const std::weak_ptr<RtcpContext> &help);
+    void setHelper(const std::weak_ptr<RtcpContext> help);
     int getLossRate(MediaSource &sender, TrackType type) override;
 protected:
     bool inputFrame(const Frame::Ptr &frame) override;
