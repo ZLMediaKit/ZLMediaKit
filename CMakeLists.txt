@@ -171,7 +171,7 @@ if(UNIX)
     "-Wno-error=extra;-Wno-error=missing-field-initializers;-Wno-error=type-limits")
 elseif(WIN32)
   # TODO: /wd4819 应该是不会生效
-  set(COMPILE_OPTIONS_DEFAULT "/wd4819")
+  set(COMPILE_OPTIONS_DEFAULT "/wd4566;/wd4819")
 endif()
 
 # mediakit 以及各个 runtime 依赖
