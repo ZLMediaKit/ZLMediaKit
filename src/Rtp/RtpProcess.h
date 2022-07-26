@@ -102,7 +102,6 @@ private:
     toolkit::Ticker _last_check_alive;
     std::recursive_mutex _func_mtx;
     std::deque<std::function<void()> > _cached_func;
-
     std::weak_ptr<RtcpContext> _help;
 };
 
