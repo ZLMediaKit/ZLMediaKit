@@ -119,7 +119,7 @@ endif()
 
 configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/version.h.ini
-  ${CMAKE_BINARY_DIR}/version.h
+  ${CMAKE_CURRENT_BINARY_DIR}/version.h
   @ONLY)
 
 message(STATUS "Git version is ${BRANCH_NAME}:${COMMIT_HASH}:${BUILD_TIME}")
