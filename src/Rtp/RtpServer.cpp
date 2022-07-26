@@ -127,6 +127,7 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, bool enable_
         //指定了流id，那么一个端口一个流(不管是否包含多个ssrc的多个流，绑定rtp源后，会筛选掉ip端口不匹配的流)
         process = RtpSelector::Instance().getProcess(stream_id, true);
         RtcpHelper::Ptr helper = std::make_shared<RtcpHelper>(std::move(rtcp_socket), 90000);
+        process->setHelper(helper);
         helper->startRtcp();
         rtp_socket->setOnRead([rtp_socket, process, helper, ssrc](const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len) {
             RtpHeader *header = (RtpHeader *)buf->data();
