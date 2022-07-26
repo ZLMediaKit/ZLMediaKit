@@ -39,6 +39,8 @@ if(ENABLE_SERVER_LIB)
 endif()
 
 add_executable(MediaServer ${MediaServer_SRC_LIST})
+target_compile_definitions(MediaServer
+  PRIVATE ${COMPILE_DEFINITIONS})
 
 install(TARGETS MediaServer DESTINATION ${INSTALL_PATH_RUNTIME})
 
