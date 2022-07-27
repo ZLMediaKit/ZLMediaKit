@@ -281,13 +281,13 @@ toolkit::EventPoller::Ptr RtpProcess::getOwnerPoller(MediaSource &sender) {
     return _sock ? _sock->getPoller() : nullptr;
 }
 
-void RtpProcess::setHelper(const std::weak_ptr<RtcpContext> help){
+void RtpProcess::setHelper(std::weak_ptr<RtcpContext> help) {
 	_help = std::move(help);
 }
 
-int RtpProcess::getLossRate(MediaSource &sender, TrackType type){
+int RtpProcess::getLossRate(MediaSource &sender, TrackType type) {
      auto help = _help.lock();
-	 if(!help){
+	 if (!help) {
 	 	return -1;	
 	 }
      auto expected =  help->getExpectedPacketsInterval();
