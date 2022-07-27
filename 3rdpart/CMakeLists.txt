@@ -158,7 +158,7 @@ endif()
 add_library(zltoolkit STATIC ${ToolKit_SRC_LIST})
 add_library(ZLMediaKit::ToolKit ALIAS zltoolkit)
 target_compile_definitions(zltoolkit
-  PRIVATE ${COMPILE_DEFINITIONS})
+  PUBLIC ${COMPILE_DEFINITIONS})
 target_compile_options(zltoolkit
   PRIVATE ${COMPILE_OPTIONS_DEFAULT})
 target_include_directories(zltoolkit
