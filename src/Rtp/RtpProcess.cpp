@@ -291,10 +291,10 @@ int RtpProcess::getLossRate(MediaSource &sender, TrackType type){
 	 	return -1;	
 	 }
      auto expected =  help->getExpectedPacketsInterval();
-        if (!expected) {
-            return 0;
-        }
-        return help->geLostInterval() * 100 / expected;
+     if (!expected) {
+        return 0;
+     }
+     return help->geLostInterval() * 100 / expected;
 }
 
 }//namespace mediakit
