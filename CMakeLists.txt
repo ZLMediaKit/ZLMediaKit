@@ -66,7 +66,8 @@ message(STATUS "编译类型: ${CMAKE_BUILD_TYPE}")
 # 方便排查编译问题, 需要 FORCE CACHE, 否则需要命令行设置才生效
 set(CMAKE_VERBOSE_MAKEFILE ON CACHE INTERNAL "" FORCE)
 
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
+# TODO: include 当前目录会导致 server 编译出错, 待排除
+set(CMAKE_INCLUDE_CURRENT_DIR OFF)
 
 # 安装路径
 if(NOT CMAKE_INSTALL_PREFIX)
@@ -170,8 +171,16 @@ if(UNIX)
     "-Wno-unused-function;-Wno-unused-parameter;-Wno-unused-variable"
     "-Wno-error=extra;-Wno-error=missing-field-initializers;-Wno-error=type-limits")
 elseif(WIN32)
-  # TODO: /wd4819 应该是不会生效
-  set(COMPILE_OPTIONS_DEFAULT "/wd4566;/wd4819")
+  set(COMPILE_OPTIONS_DEFAULT
+    # TODO: /wd4819 应该是不会生效
+    "/wd4566;/wd4819"
+    # warning C4530: C++ exception handler used, but unwind semantics are not enabled.
+    "/EHsc")
+  if (MSVC)
+    # disable Windows logo
+    list(APPEND COMPILE_OPTIONS_DEFAULT "/nologo")
+    list(APPEND CMAKE_STATIC_LINKER_FLAGS "/nologo")
+  endif()
 endif()
 
 # mediakit 以及各个 runtime 依赖
