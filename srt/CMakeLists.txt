@@ -1,4 +1,4 @@
-﻿# MIT License
+# MIT License
 #
 # Copyright (c) 2016-2022 The ZLMediaKit project authors. All Rights Reserved.
 #
@@ -21,31 +21,24 @@
 # SOFTWARE.
 #
 
-execute_process(COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/default.pem ${EXECUTABLE_OUTPUT_PATH}/)
-aux_source_directory(. TEST_SRC_LIST)
+file(GLOB SRT_SRC_LIST *.cpp *.h *.hpp)
 
-foreach(TEST_SRC ${TEST_SRC_LIST})
-  get_filename_component(TEST_EXE_NAME ${TEST_SRC} NAME_WE)
+add_library(srt STATIC ${SRT_SRC_LIST})
+add_library(ZLMediaKit::SRT ALIAS srt)
+target_link_libraries(srt
+  PUBLIC
+    ZLMediaKit::MediaKit
+    ZLMediaKit::ToolKit)
+target_compile_options(srt
+  PRIVATE ${COMPILE_OPTIONS_DEFAULT})
+target_include_directories(srt
+  PRIVATE
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
+  PUBLIC
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>")
 
-  if(NOT TARGET ZLMediaKit::WebRTC)
-    # 暂时过滤掉依赖 WebRTC 的测试模块
-    if("${TEST_EXE_NAME}" MATCHES "test_rtcp_nack")
-      continue()
-    endif()
-  endif()
+update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_SRT)
+update_cached_list(MK_LINK_LIBRARIES ZLMediaKit::SRT)
 
-  message(STATUS "add test: ${TEST_EXE_NAME}")
-  add_executable(${TEST_EXE_NAME} ${TEST_SRC})
-  target_compile_options(${TEST_EXE_NAME}
-    PRIVATE ${COMPILE_OPTIONS_DEFAULT})
-
-  if(USE_SOLUTION_FOLDERS)
-    SET_PROPERTY(TARGET ${TEST_EXE_NAME} PROPERTY FOLDER "test")
-  endif()
-
-  if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-    target_link_libraries(${TEST_EXE_NAME} -Wl,--start-group ${MK_LINK_LIBRARIES} -Wl,--end-group)
-  else()
-    target_link_libraries(${TEST_EXE_NAME} ${MK_LINK_LIBRARIES})
-  endif()
-endforeach()
+message(STATUS "srt 功能已开启")
