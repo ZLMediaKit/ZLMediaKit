@@ -35,12 +35,17 @@ include_directories(SYSTEM ${SRTP_INCLUDE_DIRS})
 
 set(LINK_LIBRARIES ${SRTP_LIBRARIES})
 
+set(COMPILE_DEFINITIONS)
+set(INCLUDE_DIRECTORIES)
+
 find_package(SCTP QUIET)
 if(SCTP_FOUND)
   message(STATUS "found library: ${SCTP_INCLUDE_DIRS} ${SCTP_LIBRARIES}")
   include_directories(SYSTEM ${SCTP_INCLUDE_DIRS})
-  update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_SCTP)
-  update_cached_list(LINK_LIBRARIES ${SCTP_LIBRARIES})
+  # TODO: 避免暴露 SCTP 到 WebRTC 模块外
+  list(APPEND COMPILE_DEFINITIONS ENABLE_SCTP)
+  list(APPEND INCLUDE_DIRECTORIES ${SCTP_INCLUDE_DIRS})
+  list(APPEND LINK_LIBRARIES ${SCTP_LIBRARIES})
   message(STATUS "WebRTC datachannel 功能已打开")
 endif()
 
@@ -50,19 +55,22 @@ file(GLOB WEBRTC_SRC_LIST
   ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
 add_library(webrtc ${WEBRTC_SRC_LIST})
 add_library(ZLMediaKit::WebRTC ALIAS webrtc)
+target_compile_definitions(webrtc
+  # ENABLE_SCTP 暂时需要暴露
+  PUBLIC ${COMPILE_DEFINITIONS})
 target_compile_options(webrtc
   PRIVATE ${COMPILE_OPTIONS_DEFAULT})
 target_link_libraries(webrtc
   PRIVATE
     ZLMediaKit::MediaKit
     ZLMediaKit::ToolKit
-  PUBLIC
     ${LINK_LIBRARIES})
 target_include_directories(webrtc
   PRIVATE
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
   PUBLIC
-    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>")
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>"
+    ${INCLUDE_DIRECTORIES})
 
 message(STATUS "WebRTC 功能已开启")
 
