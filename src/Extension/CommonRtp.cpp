@@ -76,7 +76,7 @@ bool CommonRtpEncoder::inputFrame(const Frame::Ptr &frame){
     auto len = frame->size() - frame->prefixSize();
     auto remain_size = len;
     auto max_size = getMaxSize();
-
+    bool is_key = frame->keyFrame();
     bool mark = false;
     while (remain_size > 0) {
         size_t rtp_size;
@@ -86,9 +86,10 @@ bool CommonRtpEncoder::inputFrame(const Frame::Ptr &frame){
             rtp_size = remain_size;
             mark = true;
         }
-        RtpCodec::inputRtp(makeRtp(getTrackType(), ptr, rtp_size, mark, stamp), false);
+        RtpCodec::inputRtp(makeRtp(getTrackType(), ptr, rtp_size, mark, stamp), is_key);
         ptr += rtp_size;
         remain_size -= rtp_size;
+        is_key = false;
     }
     return len > 0;
 }

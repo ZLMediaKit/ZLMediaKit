@@ -22,6 +22,10 @@ endif()
 set(CMAKE_CXX_STANDARD 11)
 #加载自定义模块
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(DEP_ROOT_DIR ${CMAKE_SOURCE_DIR}/3rdpart/external-${CMAKE_SYSTEM_NAME})
+if(NOT EXISTS ${DEP_ROOT_DIR})
+    file(MAKE_DIRECTORY ${DEP_ROOT_DIR})
+endif()
 
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
@@ -108,6 +112,7 @@ option(ENABLE_MSVC_MT "Enable MSVC Mt/Mtd lib" true)
 option(ENABLE_API_STATIC_LIB "Enable mk_api static lib" false)
 option(USE_SOLUTION_FOLDERS "Enable solution dir supported" ON)
 option(ENABLE_SRT "Enable SRT" true)
+option(ENABLE_JEMALLOC_STATIC "Enable static linking to the jemalloc library" false)
 # ----------------------------------------------------------------------------
 # Solution folders:
 # ----------------------------------------------------------------------------
@@ -297,6 +302,13 @@ if (ENABLE_FFMPEG)
         message(WARNING "ffmpeg相关功能未找到")
     endif ()
 
+endif ()
+
+if(ENABLE_JEMALLOC_STATIC)
+    include(cmake/Jemalloc.cmake)
+    include_directories(${DEP_ROOT_DIR}/${JEMALLOC_NAME}/include/jemalloc)
+    link_directories(${DEP_ROOT_DIR}/${JEMALLOC_NAME}/lib)
+    set(JEMALLOC_ROOT_DIR "${DEP_ROOT_DIR}/${JEMALLOC_NAME}")
 endif ()
 
 #默认链接jemalloc库避免内存碎片

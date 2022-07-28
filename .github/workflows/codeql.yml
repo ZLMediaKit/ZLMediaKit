@@ -1,0 +1,62 @@
+name: CodeQL
+
+on: [push, pull_request]
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-20.04
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'cpp', 'javascript' ]
+        # CodeQL supports [ 'cpp', 'csharp', 'go', 'java', 'javascript', 'python', 'ruby' ]
+        # Learn more about CodeQL language support at https://aka.ms/codeql-docs/language-support
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v2
+      with:
+        languages: ${{ matrix.language }}
+        # If you wish to specify custom queries, you can do so here or in a config file.
+        # By default, queries listed here will override any specified in a config file.
+        # Prefix the list here with "+" to use these queries and those in the config file.
+
+        # Details on CodeQL's query packs refer to : https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
+        # queries: security-extended,security-and-quality
+
+    - name: 下载submodule源码
+      run: mv -f .gitmodules_github .gitmodules && git submodule sync && git submodule update --init
+
+    - name: apt-get安装依赖库(非必选)
+      run: sudo apt-get update && sudo apt-get install -y cmake  libssl-dev libsdl-dev libavcodec-dev libavutil-dev libswscale-dev libresample-dev
+
+    - name: 下载 SRTP
+      uses: actions/checkout@v2
+      with:
+        repository: cisco/libsrtp
+        fetch-depth: 1
+        ref: v2.3.0
+        path: 3rdpart/libsrtp
+
+    - name: 编译 SRTP
+      run: cd 3rdpart/libsrtp && ./configure --enable-openssl && make -j4 && sudo make install
+
+    - name: 编译
+      run: mkdir -p linux_build && cd linux_build && cmake .. -DENABLE_WEBRTC=true -DENABLE_FFMPEG=true && make -j $(nproc)
+
+    - name: 运行MediaServer
+      run: pwd && cd release/linux/Debug && sudo ./MediaServer -d &
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v2
+
+
+      

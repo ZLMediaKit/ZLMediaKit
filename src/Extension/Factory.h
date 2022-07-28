@@ -28,6 +28,11 @@ public:
     static Track::Ptr getTrackBySdp(const SdpTrack::Ptr &track);
 
     /**
+     * 根据c api 抽象的Track生成具体Track对象
+     */
+    static Track::Ptr getTrackByAbstractTrack(const Track::Ptr& track);
+
+    /**
      * 根据sdp生成rtp编码器
      * @param sdp sdp对象
      */

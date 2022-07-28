@@ -187,7 +187,6 @@ API_EXPORT int API_CALL mk_media_init_video(mk_media ctx, int codec_id, int widt
     info.iWidth = width;
     info.iHeight = height;
     info.iBitRate = bit_rate;
-    (*obj)->getChannel()->initVideo(info);
     return (*obj)->getChannel()->initVideo(info);
 }
 

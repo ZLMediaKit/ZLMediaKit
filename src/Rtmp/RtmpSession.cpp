@@ -28,7 +28,7 @@ RtmpSession::~RtmpSession() {
 }
 
 void RtmpSession::onError(const SockException& err) {
-    bool is_player = !_push_src;
+    bool is_player = !_push_src_ownership;
     uint64_t duration = _ticker.createdTime() / 1000;
     WarnP(this) << (is_player ? "RTMP播放器(" : "RTMP推流器(")
                 << _media_info._vhost << "/"
@@ -219,10 +219,11 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
 }
 
 void RtmpSession::onCmd_deleteStream(AMFDecoder &dec) {
+    _push_src = nullptr;
+    //此时回复可能触发broken pipe事件，从而直接触发onError回调；所以需要先把_push_src置空，防止触发断流续推功能
     sendStatus({ "level", "status",
                  "code", "NetStream.Unpublish.Success",
                  "description", "Stop publishing." });
-    //_push_src = nullptr;
     throw std::runtime_error(StrPrinter << "Stop publishing" << endl);
 }
 
