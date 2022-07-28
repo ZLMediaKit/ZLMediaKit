@@ -228,7 +228,7 @@ class MediaSource: public TrackSource, public std::enable_shared_from_this<Media
 public:
     static MediaSource * const NullMediaSource;
     using Ptr = std::shared_ptr<MediaSource>;
-    using StreamMap = std::unordered_map<std::string/*strema_id*/, std::weak_ptr<MediaSource> >;
+    using StreamMap = std::unordered_map<std::string/*stream_id*/, std::weak_ptr<MediaSource> >;
     using AppStreamMap = std::unordered_map<std::string/*app*/, StreamMap>;
     using VhostAppStreamMap = std::unordered_map<std::string/*vhost*/, AppStreamMap>;
     using SchemaVhostAppStreamMap = std::unordered_map<std::string/*schema*/, VhostAppStreamMap>;
