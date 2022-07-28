@@ -368,6 +368,7 @@ Value makeMediaSourceJson(MediaSource &media){
     return item;
 }
 
+#if defined(ENABLE_RTPPROXY)
 uint16_t openRtpServer(uint16_t local_port, const string &stream_id, bool enable_tcp, const string &local_ip, bool re_use_port, uint32_t ssrc) {
     lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
     if (s_rtpServerMap.find(stream_id) != s_rtpServerMap.end()) {
@@ -399,6 +400,7 @@ bool closeRtpServer(const string &stream_id) {
     s_rtpServerMap.erase(it);
     return true;
 }
+#endif
 
 void getStatisticJson(const function<void(Value &val)> &cb) {
     auto obj = std::make_shared<Value>(objectValue);
