@@ -56,10 +56,9 @@ PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &poller, const s
         } else if (end_with(url, ".ts") || end_with(url_in, ".ts")) {
             return PlayerBase::Ptr(new TsPlayerImp(poller), releasePlayer);
         }
-        return PlayerBase::Ptr(new TsPlayerImp(poller), releasePlayer);
     }
 
-    return PlayerBase::Ptr(new RtspPlayerImp(poller), releasePlayer);
+    throw std::invalid_argument("not supported play schema:" + url_in);
 }
 
 PlayerBase::PlayerBase() {
