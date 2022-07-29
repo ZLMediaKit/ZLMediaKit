@@ -17,20 +17,19 @@
 #endif//!defined(ANDROID)
 #endif//!defined(_WIN32)
 
-#include "System.h"
 #include <cstdlib>
 #include <csignal>
 #include <map>
 #include <iostream>
-#include "Util/logger.h"
-#include "Util/NoticeCenter.h"
-#include "Util/uv_errno.h"
-using namespace toolkit;
-using namespace std;
 
-const int MAX_STACK_FRAMES = 128;
-#define BroadcastOnCrashDumpArgs int &sig,const vector<vector<string> > &stack
-const char kBroadcastOnCrashDump[] = "kBroadcastOnCrashDump";
+#include "Util/logger.h"
+#include "Util/uv_errno.h"
+#include "System.h"
+#include "Common/macros.h"
+
+using namespace std;
+using namespace toolkit;
+using namespace mediakit;
 
 #ifdef _WIN32
 #define popen _popen
@@ -53,6 +52,9 @@ string System::execute(const string &cmd) {
 }
 
 #if !defined(ANDROID) && !defined(_WIN32)
+
+static constexpr int MAX_STACK_FRAMES = 128;
+
 static void sig_crash(int sig) {
     signal(sig, SIG_DFL);
     void *array[MAX_STACK_FRAMES];
@@ -76,7 +78,24 @@ static void sig_crash(int sig) {
 #endif//__linux
     }
     free(strings);
-    NoticeCenter::Instance().emitEvent(kBroadcastOnCrashDump,sig,stack);
+
+    stringstream ss;
+    ss << "## crash date:" << getTimeStr("%Y-%m-%d %H:%M:%S") << endl;
+    ss << "## exe:       " << exeName() << endl;
+    ss << "## signal:    " << sig << endl;
+    ss << "## version:   " << kServerName << endl;
+    ss << "## stack:     " << endl;
+    for (size_t i = 0; i < stack.size(); ++i) {
+        ss << "[" << i << "]: ";
+        for (auto &str : stack[i]){
+            ss << str << endl;
+        }
+    }
+    string stack_info = ss.str();
+    ofstream out(StrPrinter << exeDir() << "/crash." << getpid(), ios::out | ios::binary | ios::trunc);
+    out << stack_info;
+    out.flush();
+    cerr << stack_info << endl;
 }
 #endif // !defined(ANDROID) && !defined(_WIN32)
 
@@ -149,24 +168,6 @@ void System::systemSetup(){
     signal(SIGABRT, sig_crash);
     //忽略挂起信号
     signal(SIGHUP, SIG_IGN);
-    NoticeCenter::Instance().addListener(nullptr,kBroadcastOnCrashDump,[](BroadcastOnCrashDumpArgs){
-        stringstream ss;
-        ss << "## crash date:" << getTimeStr("%Y-%m-%d %H:%M:%S") << endl;
-        ss << "## exe:       " << exeName() << endl;
-        ss << "## signal:    " << sig << endl;
-        ss << "## stack:     " << endl;
-        for (size_t i = 0; i < stack.size(); ++i) {
-            ss << "[" << i << "]: ";
-            for (auto &str : stack[i]){
-                ss << str << endl;
-            }
-        }
-        string stack_info = ss.str();
-        ofstream out(StrPrinter << exeDir() << "/crash." << getpid(), ios::out | ios::binary | ios::trunc);
-        out << stack_info;
-        out.flush();
-        cerr << stack_info << endl;
-    });
 #endif// ANDROID
 #endif//!defined(_WIN32)
 }
