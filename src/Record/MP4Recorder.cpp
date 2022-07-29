@@ -38,11 +38,11 @@ MP4Recorder::~MP4Recorder() {
 
 void MP4Recorder::createFile() {
     closeFile();
-    auto date = getTimeStr("%Y%m%d");
-    auto time = getTimeStr("%H%M%S");
-    auto dateTime = date + time;
-    auto full_path_tmp = _folder_path + date + "/." + time + ".mp4";
-    auto full_path = _folder_path + date + "/" + dateTime.c_str();
+    auto date = getTimeStr("%Y-%m-%d");
+    auto time = getTimeStr("%H-%M-%S");
+    auto beginTime = getTimeStr("%Y%m%d%H%M%S");
+    auto full_path_tmp = _folder_path + date + "/." + beginTime + ".mp4";
+    auto full_path = _folder_path + date + "/" + beginTime;
 
     /////record 业务逻辑//////
     _info.start_time = ::time(NULL);
@@ -84,8 +84,8 @@ void MP4Recorder::asyncClose() {
                 return;
             }
             // 将录像结束时间加到文件名中
-            auto dateTime = getTimeStr("%Y%m%d%H%M%S");
-            full_path = full_path + "_" + dateTime.c_str() + ".mp4";
+            auto endTime = getTimeStr("%Y%m%d%H%M%S");
+            full_path = full_path + "_" + endTime.c_str() + ".mp4";
             //临时文件名改成正式文件名，防止mp4未完成时被访问
             rename(full_path_tmp.data(), full_path.data());
         }
