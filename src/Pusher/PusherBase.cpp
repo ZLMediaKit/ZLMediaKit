@@ -19,14 +19,14 @@ namespace mediakit {
 
 PusherBase::Ptr PusherBase::createPusher(const EventPoller::Ptr &poller,
                                          const MediaSource::Ptr &src,
-                                         const std::string & strUrl) {
+                                         const std::string & url) {
     static auto releasePusher = [](PusherBase *ptr){
         onceToken token(nullptr,[&](){
             delete  ptr;
         });
         ptr->teardown();
     };
-    std::string prefix = FindField(strUrl.data(), NULL, "://");
+    std::string prefix = FindField(url.data(), NULL, "://");
 
     if (strcasecmp("rtsps",prefix.data()) == 0) {
         return PusherBase::Ptr(new TcpClientWithSSL<RtspPusherImp>(poller, std::dynamic_pointer_cast<RtspMediaSource>(src)), releasePusher);
@@ -44,7 +44,7 @@ PusherBase::Ptr PusherBase::createPusher(const EventPoller::Ptr &poller,
         return PusherBase::Ptr(new RtmpPusherImp(poller, std::dynamic_pointer_cast<RtmpMediaSource>(src)), releasePusher);
     }
 
-    return PusherBase::Ptr(new RtspPusherImp(poller, std::dynamic_pointer_cast<RtspMediaSource>(src)), releasePusher);
+    throw std::invalid_argument("not supported push schema:" + url);
 }
 
 PusherBase::PusherBase() {
