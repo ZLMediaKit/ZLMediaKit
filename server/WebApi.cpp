@@ -220,10 +220,12 @@ extern std::vector<size_t> getBlockTypeSize();
 extern uint64_t getTotalMemBlockByType(int type);
 extern uint64_t getThisThreadMemBlockByType(int type) ;
 
+static void *web_api_tag = nullptr;
+
 static inline void addHttpListener(){
     GET_CONFIG(bool, api_debug, API::kApiDebug);
     //注册监听kBroadcastHttpRequest事件
-    NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastHttpRequest, [](BroadcastHttpRequestArgs) {
+    NoticeCenter::Instance().addListener(&web_api_tag, Broadcast::kBroadcastHttpRequest, [](BroadcastHttpRequestArgs) {
         auto it = s_map_api.find(parser.Url());
         if (it == s_map_api.end()) {
             return;
@@ -1682,10 +1684,16 @@ void unInstallWebApi(){
     }
 
     {
+        lock_guard<recursive_mutex> lck(s_proxyPusherMapMtx);
+        s_proxyPusherMap.clear();
+    }
+
+    {
 #if defined(ENABLE_RTPPROXY)
         RtpSelector::Instance().clear();
         lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
         s_rtpServerMap.clear();
 #endif
     }
+    NoticeCenter::Instance().delListener(&web_api_tag);
 }
