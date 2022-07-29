@@ -39,6 +39,9 @@ foreach(TEST_SRC ${TEST_SRC_LIST})
   target_compile_options(${TEST_EXE_NAME}
     PRIVATE ${COMPILE_OPTIONS_DEFAULT})
 
+  target_compile_definitions(${TEST_EXE_NAME}
+    PRIVATE ${MK_COMPILE_DEFINITIONS})
+
   if(USE_SOLUTION_FOLDERS)
     SET_PROPERTY(TARGET ${TEST_EXE_NAME} PROPERTY FOLDER "test")
   endif()
