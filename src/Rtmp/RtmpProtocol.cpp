@@ -751,7 +751,8 @@ void RtmpProtocol::handle_chunk(RtmpPacket::Ptr packet) {
         }
 
         case MSG_WIN_SIZE: {
-            _windows_size = load_be32(&chunk_data.buffer[0]);
+            //如果窗口太小，会导致发送sendAcknowledgement时无限递归：https://github.com/ZLMediaKit/ZLMediaKit/issues/1839
+            _windows_size = std::max(load_be32(&chunk_data.buffer[0]), 32 * 1024U);
             TraceL << "MSG_WIN_SIZE:" << _windows_size;
             break;
         }
@@ -759,7 +760,7 @@ void RtmpProtocol::handle_chunk(RtmpPacket::Ptr packet) {
         case MSG_SET_PEER_BW: {
             _bandwidth = load_be32(&chunk_data.buffer[0]);
             _band_limit_type =  chunk_data.buffer[4];
-            TraceL << "MSG_SET_PEER_BW:" << _windows_size;
+            TraceL << "MSG_SET_PEER_BW:" << _bandwidth << " " << (int)_band_limit_type;
             break;
         }
 
