@@ -14,7 +14,7 @@ jobs:
       run: mv -f .gitmodules_github .gitmodules && git submodule sync && git submodule update --init
 
     - name: apt-get安装依赖库(非必选)
-      run: sudo apt-get update && sudo apt-get install -y cmake libssl-dev libsdl-dev libavcodec-dev libavutil-dev libswscale-dev libresample-dev
+      run: sudo apt-get update && sudo apt-get install -y cmake libssl-dev libsdl-dev libavcodec-dev libavutil-dev libswscale-dev libresample-dev libusrsctp-dev
 
     - name: 下载 SRTP
       uses: actions/checkout@v2
