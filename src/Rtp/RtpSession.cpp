@@ -59,7 +59,7 @@ void RtpSession::onRecv(const Buffer::Ptr &data) {
 }
 
 void RtpSession::onError(const SockException &err) {
-    WarnL << _stream_id << " " << err.what();
+    WarnP(this) << _stream_id << " " << err.what();
 }
 
 void RtpSession::onManager() {
