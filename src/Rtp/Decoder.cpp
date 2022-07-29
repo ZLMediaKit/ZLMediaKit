@@ -123,6 +123,7 @@ void DecoderImp::onStream(int stream, int codecid, const void *extra, size_t byt
             break;
         }
 
+        case PSI_STREAM_MPEG4_AAC :
         case PSI_STREAM_AAC: {
             onTrack(std::make_shared<AACTrack>());
             break;
@@ -182,6 +183,7 @@ void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
             break;
         }
 
+        case PSI_STREAM_MPEG4_AAC :
         case PSI_STREAM_AAC: {
             uint8_t *ptr = (uint8_t *)data;
             if(!(bytes > 7 && ptr[0] == 0xFF && (ptr[1] & 0xF0) == 0xF0)){
