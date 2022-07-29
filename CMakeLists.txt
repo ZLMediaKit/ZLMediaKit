@@ -183,6 +183,12 @@ elseif(WIN32)
   endif()
 endif()
 
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
+  if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "arm64")
+    include_directories(SYSTEM "/opt/homebrew/include")
+  endif()
+endif()
+
 # mediakit 以及各个 runtime 依赖
 update_cached_list(MK_LINK_LIBRARIES "")
 update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_VERSION)
