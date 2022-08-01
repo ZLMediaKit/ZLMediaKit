@@ -357,6 +357,8 @@ if(MYSQL_FOUND AND ENABLE_MYSQL)
 
   update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_MYSQL)
   update_cached_list(MK_LINK_LIBRARIES ${MYSQL_LIBRARIES})
+else()
+  set(ENABLE_MYSQL OFF)
 endif()
 
 # 查找 x264 是否安装

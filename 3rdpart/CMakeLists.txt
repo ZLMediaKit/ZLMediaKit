@@ -122,6 +122,7 @@ check_symbol_exists(sendmmsg sys/socket.h HAVE_SENDMMSG_API)
 check_symbol_exists(recvmmsg sys/socket.h HAVE_RECVMMSG_API)
 
 set(COMPILE_DEFINITIONS)
+set(LINK_LIBRARIES)
 if(HAVE_MMSG_HDR)
   list(APPEND COMPILE_DEFINITIONS HAVE_MMSG_HDR)
 endif()
@@ -130,6 +131,15 @@ if(HAVE_SENDMMSG_API)
 endif()
 if(HAVE_RECVMMSG_API)
   list(APPEND COMPILE_DEFINITIONS HAVE_RECVMMSG_API)
+endif()
+
+if(ENABLE_OPENSSL)
+  list(APPEND COMPILE_DEFINITIONS ENABLE_OPENSSL)
+  list(APPEND LINK_LIBRARIES ${OPENSSL_LIBRARIES})
+endif()
+if(ENABLE_MYSQL)
+  list(APPEND COMPILE_DEFINITIONS ENABLE_MYSQL)
+  list(APPEND LINK_LIBRARIES ${MYSQL_LIBRARIES})
 endif()
 
 set(ToolKit_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/ZLToolKit)
@@ -161,6 +171,9 @@ target_compile_definitions(zltoolkit
   PUBLIC ${COMPILE_DEFINITIONS})
 target_compile_options(zltoolkit
   PRIVATE ${COMPILE_OPTIONS_DEFAULT})
+target_link_libraries(zltoolkit
+  PRIVATE
+    ${LINK_LIBRARIES})
 target_include_directories(zltoolkit
   PRIVATE
     "$<BUILD_INTERFACE:${ToolKit_ROOT}/src>"
