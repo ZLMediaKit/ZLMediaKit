@@ -41,11 +41,11 @@ list(REMOVE_ITEM LINK_LIBRARIES ZLMediaKit::MediaKit)
 set(COMPILE_DEFINITIONS ${MK_COMPILE_DEFINITIONS})
 
 target_compile_definitions(zlmediakit
-  PRIVATE ${COMPILE_DEFINITIONS})
+  PUBLIC ${COMPILE_DEFINITIONS})
 target_compile_options(zlmediakit
   PRIVATE ${COMPILE_OPTIONS_DEFAULT})
 target_link_libraries(zlmediakit
-  PRIVATE ${LINK_LIBRARIES})
+  PUBLIC ${LINK_LIBRARIES})
 target_include_directories(zlmediakit
   PRIVATE
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
