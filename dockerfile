@@ -78,7 +78,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
         mkdir -p /opt/media/bin/www
 
 WORKDIR /opt/media/bin/
-COPY --from=build /opt/media/ZLMediaKit/release/linux/${MODEL}/MediaServer /opt/media/ZLMediaKit/tests/default.pem /opt/media/bin/
+COPY --from=build /opt/media/ZLMediaKit/release/linux/${MODEL}/MediaServer /opt/media/ZLMediaKit/default.pem /opt/media/bin/
 COPY --from=build /opt/media/ZLMediaKit/release/linux/${MODEL}/config.ini /opt/media/conf/
 COPY --from=build /opt/media/ZLMediaKit/www/ /opt/media/bin/www/
 ENV PATH /opt/media/bin:$PATH
