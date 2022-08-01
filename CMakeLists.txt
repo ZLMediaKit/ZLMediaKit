@@ -344,7 +344,8 @@ if(OPENSSL_FOUND AND ENABLE_OPENSSL)
   endif()
 else()
   set(ENABLE_OPENSSL OFF)
-  message(WARNING "openssl 未找到, rtmp 将不支持 flash 播放器, https/wss/rtsps/rtmps 也将失效")
+  set(ENABLE_WEBRTC OFF)
+  message(WARNING "openssl 未找到, rtmp 将不支持 flash 播放器, https/wss/rtsps/rtmps/webrtc 也将失效")
 endif()
 
 # 查找 mysql 是否安装
@@ -428,24 +429,30 @@ if(ENABLE_API)
 endif()
 
 # IOS 不编译可执行程序
-if(NOT IOS)
-  if(ENABLE_PLAYER AND ENABLE_FFMPEG)
-    add_subdirectory(player)
-  endif()
-
-  add_subdirectory(server)
-  # Android 会 add_subdirectory 并依赖该变量
-  if(ENABLE_SERVER_LIB)
-    set(MK_LINK_LIBRARIES ${MK_LINK_LIBRARIES} PARENT_SCOPE)
-  endif()
-
-  # 复制文件过来
-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/www"
-    DESTINATION ${EXECUTABLE_OUTPUT_PATH})
-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/conf/config.ini"
-    DESTINATION ${EXECUTABLE_OUTPUT_PATH})
-
-  if(ENABLE_TESTS)
-    add_subdirectory(tests)
-  endif()
+if(IOS)
+  return()
 endif()
+
+##############################################################################
+
+if(ENABLE_PLAYER AND ENABLE_FFMPEG)
+  add_subdirectory(player)
+endif()
+
+#MediaServer主程序
+add_subdirectory(server)
+
+# Android 会 add_subdirectory 并依赖该变量
+if(ENABLE_SERVER_LIB)
+  set(MK_LINK_LIBRARIES ${MK_LINK_LIBRARIES} PARENT_SCOPE)
+endif()
+
+#cpp测试demo程序
+if (ENABLE_TESTS)
+  add_subdirectory(tests)
+endif ()
+
+# 拷贝www文件夹、配置文件、默认证书
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/www" DESTINATION ${EXECUTABLE_OUTPUT_PATH})
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/conf/config.ini" DESTINATION ${EXECUTABLE_OUTPUT_PATH})
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/default.pem" DESTINATION ${EXECUTABLE_OUTPUT_PATH})
