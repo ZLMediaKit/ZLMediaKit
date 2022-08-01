@@ -79,11 +79,10 @@ private:
     }
 
     void onRecvRTP(RtpPacket::Ptr rtp, const SdpTrack::Ptr &track) override {
-        _demuxer->inputRtp(rtp);
+        //rtp解复用时可以判断是否为关键帧起始位置
+        auto key_pos = _demuxer->inputRtp(rtp);
         if (_rtsp_media_src) {
-            // rtsp直接代理是无法判断该rtp是否是I帧，所以GOP缓存基本是无效的
-            // 为了减少内存使用，那么我们设置为一直关键帧以便清空GOP缓存
-            _rtsp_media_src->onWrite(std::move(rtp), true);
+            _rtsp_media_src->onWrite(std::move(rtp), key_pos);
         }
     }
 
