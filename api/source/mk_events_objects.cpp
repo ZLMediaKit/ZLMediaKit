@@ -20,7 +20,7 @@
 
 #ifdef ENABLE_WEBRTC
 #include "jsoncpp/json.h"
-#include "mk_webrtc_api.h"
+#include "mk_webrtc_private.h"
 #endif
 
 using namespace toolkit;
