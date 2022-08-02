@@ -460,7 +460,7 @@ public:
     FrameStamp(Frame::Ptr frame, Stamp &stamp, bool modify_stamp) {
         _frame = std::move(frame);
         //覆盖时间戳
-        stamp.revise(frame->dts(), frame->pts(), _dts, _pts, modify_stamp);
+        stamp.revise(_frame->dts(), _frame->pts(), _dts, _pts, modify_stamp);
     }
     ~FrameStamp() override {}
 
