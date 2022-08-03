@@ -54,12 +54,12 @@ target_include_directories(mk_api
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>"
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
   PUBLIC
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>"
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>")
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
   target_link_libraries(mk_api -Wl,--start-group ${LINK_LIBRARIES} -Wl,--end-group)
 elseif(CMAKE_SYSTEM_NAME MATCHES "Android")
-  include_directories("${CMAKE_BINARY_DIR}")
   target_link_libraries(mk_api log -Wl,--start-group ${LINK_LIBRARIES} -Wl,--end-group)
 else()
   target_link_libraries(mk_api jsoncpp ${LINK_LIBRARIES})
@@ -69,7 +69,7 @@ generate_export_header(mk_api
   EXPORT_MACRO_NAME API_EXPORT
   BASE_NAME MK_API
   STATIC_DEFINE MediaKitApi_STATIC
-  EXPORT_FILE_NAME "${CMAKE_BINARY_DIR}/mk_export.h")
+  EXPORT_FILE_NAME "${CMAKE_CURRENT_BINARY_DIR}/mk_export.h")
 
 add_subdirectory(tests)
 
