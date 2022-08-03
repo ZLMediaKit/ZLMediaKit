@@ -58,6 +58,9 @@ target_include_directories(mk_api
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
   target_link_libraries(mk_api -Wl,--start-group ${LINK_LIBRARIES} -Wl,--end-group)
+elseif(CMAKE_SYSTEM_NAME MATCHES "Android")
+  include_directories("${CMAKE_BINARY_DIR}")
+  target_link_libraries(mk_api log -Wl,--start-group ${LINK_LIBRARIES} -Wl,--end-group)
 else()
   target_link_libraries(mk_api jsoncpp ${LINK_LIBRARIES})
 endif()
