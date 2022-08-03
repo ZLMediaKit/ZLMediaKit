@@ -1342,9 +1342,9 @@ void installWebApi() {
         auto period = allArgs["period"];
         record_path = record_path + period + "/";
         int result = File::delete_file(record_path.data());
-	if(!result) {
-	    record_path = "delete error";
-	}
+        if(!result) {
+            record_path = "delete error";
+        }
         val["code"] = result;
         val["path"] = record_path.data();
     });
