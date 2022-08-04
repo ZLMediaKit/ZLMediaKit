@@ -1342,11 +1342,14 @@ void installWebApi() {
         auto period = allArgs["period"];
         record_path = record_path + period + "/";
         int result = File::delete_file(record_path.data());
-        if(!result) {
+        if (result != 0) {
             record_path = "delete error";
+            val["path"] = record_path;
+        } else {
+            val["path"] = record_path.data();
         }
+
         val["code"] = result;
-        val["path"] = record_path.data();
     });
 	
     //获取录像文件夹列表或mp4文件列表
