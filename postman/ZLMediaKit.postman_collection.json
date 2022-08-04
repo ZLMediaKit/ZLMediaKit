@@ -946,6 +946,52 @@
 			"response": []
 		},
 		{
+			"name": "删除录像文件夹(deleteRecordDirectroy)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/deleteRecordDirectroy?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=proxy&stream=2&period=2020-01-01",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"deleteRecordDirectroy"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "proxy",
+							"description": "应用名，例如 live"
+						},
+						{
+							"key": "stream",
+							"value": "2",
+							"description": "流id，例如 test"
+						},
+						{
+							"key": "period",
+							"value": "2020-01-01",
+							"description": "流的录像日期，格式为2020-01-01,如果不是完整的日期，那么会删除失败"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "开始录制(startRecord)",
 			"request": {
 				"method": "GET",
