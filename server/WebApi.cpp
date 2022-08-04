@@ -1332,7 +1332,23 @@ void installWebApi() {
             invoker(200, headerOut, val.toStyledString());
         });
     });
-
+	
+    // 删除录像文件夹
+    // http://127.0.0.1/index/api/deleteRecordDirectroy?vhost=__defaultVhost__&app=live&stream=ss&period=2020-01-01
+    api_regist("/index/api/deleteRecordDirectroy", [](API_ARGS_MAP) {
+        CHECK_SECRET();
+        CHECK_ARGS("vhost", "app", "stream");
+        auto record_path = Recorder::getRecordPath(Recorder::type_mp4, allArgs["vhost"], allArgs["app"], allArgs["stream"], allArgs["customized_path"]);
+        auto period = allArgs["period"];
+        record_path = record_path + period + "/";
+        int result = File::delete_file(record_path.data());
+        if(!result) {
+            record_path = "delete error";
+        }
+        val["code"] = result;
+        val["path"] = record_path.data();
+    });
+	
     //获取录像文件夹列表或mp4文件列表
     //http://127.0.0.1/index/api/getMp4RecordFile?vhost=__defaultVhost__&app=live&stream=ss&period=2020-01
     api_regist("/index/api/getMp4RecordFile", [](API_ARGS_MAP){
