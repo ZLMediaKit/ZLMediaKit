@@ -946,19 +946,19 @@
 			"response": []
 		},
 		{
-			"name": "删除录像文件夹(deleteRecordDirectroy)",
+			"name": "删除录像文件夹(deleteRecordDirectory)",
 			"request": {
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{ZLMediaKit_URL}}/index/api/deleteRecordDirectroy?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=proxy&stream=2&period=2020-01-01",
+					"raw": "{{ZLMediaKit_URL}}/index/api/deleteRecordDirectory?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=proxy&stream=2&period=2020-01-01",
 					"host": [
 						"{{ZLMediaKit_URL}}"
 					],
 					"path": [
 						"index",
 						"api",
-						"deleteRecordDirectroy"
+						"deleteRecordDirectory"
 					],
 					"query": [
 						{
