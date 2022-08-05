@@ -280,6 +280,10 @@ bash build_docker_images.sh
 [mtdxc](https://github.com/mtdxc)
 [胡刚风](https://github.com/hugangfeng333)
 [zhao85](https://github.com/zhao85)
+[dreamisdream](https://github.com/dreamisdream)
+[dingcan](https://github.com/dcan123)
+[Haibo Chen](https://github.com/duiniuluantanqin)
+[Leon](https://gitee.com/leon14631)
 
 ## 使用案例
 
