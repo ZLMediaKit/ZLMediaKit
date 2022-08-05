@@ -123,21 +123,10 @@ DepLibSRTP::DepLibSRTP() {
     err = srtp_install_event_handler([](srtp_event_data_t *data) {
         MS_TRACE();
         switch (data->event) {
-        case event_ssrc_collision:
-            MS_WARN_TAG(srtp, "SSRC collision occurred");
-            break;
-
-        case event_key_soft_limit:
-            MS_WARN_TAG(srtp, "stream reached the soft key usage limit and will expire soon");
-            break;
-
-        case event_key_hard_limit:
-            MS_WARN_TAG(srtp, "stream reached the hard key usage limit and has expired");
-            break;
-
-        case event_packet_index_limit:
-            MS_WARN_TAG(srtp, "stream reached the hard packet limit (2^48 packets)");
-            break;
+            case event_ssrc_collision: MS_WARN_TAG(srtp, "SSRC collision occurred"); break;
+            case event_key_soft_limit: MS_WARN_TAG(srtp, "stream reached the soft key usage limit and will expire soon"); break;
+            case event_key_hard_limit: MS_WARN_TAG(srtp, "stream reached the hard key usage limit and has expired"); break;
+            case event_packet_index_limit: MS_WARN_TAG(srtp, "stream reached the hard packet limit (2^48 packets)"); break;
         }
     });
 
