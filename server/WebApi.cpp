@@ -1335,20 +1335,18 @@ void installWebApi() {
 	
     // 删除录像文件夹
     // http://127.0.0.1/index/api/deleteRecordDirectroy?vhost=__defaultVhost__&app=live&stream=ss&period=2020-01-01
-    api_regist("/index/api/deleteRecordDirectroy", [](API_ARGS_MAP) {
+    api_regist("/index/api/deleteRecordDirectory", [](API_ARGS_MAP) {
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream");
         auto record_path = Recorder::getRecordPath(Recorder::type_mp4, allArgs["vhost"], allArgs["app"], allArgs["stream"], allArgs["customized_path"]);
         auto period = allArgs["period"];
         record_path = record_path + period + "/";
         int result = File::delete_file(record_path.data());
-        if (result != 0) {
+        if (result) {
+            // 不等于0时代表失败
             record_path = "delete error";
-            val["path"] = record_path;
-        } else {
-            val["path"] = record_path.data();
         }
-
+        val["path"] = record_path;
         val["code"] = result;
     });
 	
