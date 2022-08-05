@@ -22,48 +22,40 @@ namespace mediakit {
 const char *rtcpTypeToStr(RtcpType type) {
     switch (type) {
 #define SWITCH_CASE(key, value)                                                                                        \
-    case RtcpType::key:                                                                                                \
-        return #value "(" #key ")";
+    case RtcpType::key: return #value "(" #key ")";
         RTCP_PT_MAP(SWITCH_CASE)
 #undef SWITCH_CASE
-    default:
-        return "unknown rtcp pt";
+        default: return "unknown rtcp pt";
     }
 }
 
 const char *sdesTypeToStr(SdesType type) {
     switch (type) {
 #define SWITCH_CASE(key, value)                                                                                        \
-    case SdesType::key:                                                                                                \
-        return #value "(" #key ")";
+    case SdesType::key: return #value "(" #key ")";
         SDES_TYPE_MAP(SWITCH_CASE)
 #undef SWITCH_CASE
-    default:
-        return "unknown source description type";
+        default: return "unknown source description type";
     }
 }
 
 const char *psfbTypeToStr(PSFBType type) {
     switch (type) {
 #define SWITCH_CASE(key, value)                                                                                        \
-    case PSFBType::key:                                                                                                \
-        return #value "(" #key ")";
+    case PSFBType::key: return #value "(" #key ")";
         PSFB_TYPE_MAP(SWITCH_CASE)
 #undef SWITCH_CASE
-    default:
-        return "unknown payload-specific fb message fmt type";
+        default: return "unknown payload-specific fb message fmt type";
     }
 }
 
 const char *rtpfbTypeToStr(RTPFBType type) {
     switch (type) {
 #define SWITCH_CASE(key, value)                                                                                        \
-    case RTPFBType::key:                                                                                               \
-        return #value "(" #key ")";
+    case RTPFBType::key: return #value "(" #key ")";
         RTPFB_TYPE_MAP(SWITCH_CASE)
 #undef SWITCH_CASE
-    default:
-        return "unknown transport layer feedback messages fmt type";
+        default: return "unknown transport layer feedback messages fmt type";
     }
 }
 
@@ -104,18 +96,18 @@ string RtcpHeader::dumpHeader() const {
     }
 
     switch ((RtcpType)pt) {
-    case RtcpType::RTCP_RTPFB: {
-        printer << "report_count:" << rtpfbTypeToStr((RTPFBType)report_count) << "\r\n";
-        break;
-    }
-    case RtcpType::RTCP_PSFB: {
-        printer << "report_count:" << psfbTypeToStr((PSFBType)report_count) << "\r\n";
-        break;
-    }
-    default: {
-        printer << "report_count:" << report_count << "\r\n";
-        break;
-    }
+        case RtcpType::RTCP_RTPFB: {
+            printer << "report_count:" << rtpfbTypeToStr((RTPFBType)report_count) << "\r\n";
+            break;
+        }
+        case RtcpType::RTCP_PSFB: {
+            printer << "report_count:" << psfbTypeToStr((PSFBType)report_count) << "\r\n";
+            break;
+        }
+        default: {
+            printer << "report_count:" << report_count << "\r\n";
+            break;
+        }
     }
 
     printer << "pt:" << rtcpTypeToStr((RtcpType)pt) << "\r\n";
@@ -126,34 +118,33 @@ string RtcpHeader::dumpHeader() const {
 
 string RtcpHeader::dumpString() const {
     switch ((RtcpType)pt) {
-    case RtcpType::RTCP_SR: {
-        RtcpSR *rtcp = (RtcpSR *)this;
-        return rtcp->dumpString();
-    }
+        case RtcpType::RTCP_SR: {
+            RtcpSR *rtcp = (RtcpSR *)this;
+            return rtcp->dumpString();
+        }
 
-    case RtcpType::RTCP_RR: {
-        RtcpRR *rtcp = (RtcpRR *)this;
-        return rtcp->dumpString();
-    }
+        case RtcpType::RTCP_RR: {
+            RtcpRR *rtcp = (RtcpRR *)this;
+            return rtcp->dumpString();
+        }
 
-    case RtcpType::RTCP_SDES: {
-        RtcpSdes *rtcp = (RtcpSdes *)this;
-        return rtcp->dumpString();
-    }
+        case RtcpType::RTCP_SDES: {
+            RtcpSdes *rtcp = (RtcpSdes *)this;
+            return rtcp->dumpString();
+        }
 
-    case RtcpType::RTCP_RTPFB:
-    case RtcpType::RTCP_PSFB: {
-        RtcpFB *rtcp = (RtcpFB *)this;
-        return rtcp->dumpString();
-    }
+        case RtcpType::RTCP_RTPFB:
+        case RtcpType::RTCP_PSFB: {
+            RtcpFB *rtcp = (RtcpFB *)this;
+            return rtcp->dumpString();
+        }
 
-    case RtcpType::RTCP_BYE: {
-        RtcpBye *rtcp = (RtcpBye *)this;
-        return rtcp->dumpString();
-    }
+        case RtcpType::RTCP_BYE: {
+            RtcpBye *rtcp = (RtcpBye *)this;
+            return rtcp->dumpString();
+        }
 
-    default:
-        return StrPrinter << dumpHeader() << hexdump((char *)this + sizeof(*this), getSize() - sizeof(*this));
+        default: return StrPrinter << dumpHeader() << hexdump((char *)this + sizeof(*this), getSize() - sizeof(*this));
     }
 }
 
@@ -176,52 +167,51 @@ void RtcpHeader::setSize(size_t size) {
 
 void RtcpHeader::net2Host(size_t len) {
     switch ((RtcpType)pt) {
-    case RtcpType::RTCP_SR: {
-        RtcpSR *sr = (RtcpSR *)this;
-        sr->net2Host(len);
-        break;
-    }
-
-    case RtcpType::RTCP_RR: {
-        RtcpRR *rr = (RtcpRR *)this;
-        rr->net2Host(len);
-        break;
-    }
-
-    case RtcpType::RTCP_SDES: {
-        RtcpSdes *sdes = (RtcpSdes *)this;
-        sdes->net2Host(len);
-        break;
-    }
-
-    case RtcpType::RTCP_RTPFB:
-    case RtcpType::RTCP_PSFB: {
-        RtcpFB *fb = (RtcpFB *)this;
-        fb->net2Host(len);
-        break;
-    }
-
-    case RtcpType::RTCP_BYE: {
-        RtcpBye *bye = (RtcpBye *)this;
-        bye->net2Host(len);
-        break;
-    }
-    case RtcpType::RTCP_XR: {
-        RtcpXRRRTR *xr = (RtcpXRRRTR *)this;
-        if (xr->bt == 4) {
-            xr->net2Host(len);
-            // TraceL<<xr->dumpString();
-        } else if (xr->bt == 5) {
-            RtcpXRDLRR *dlrr = (RtcpXRDLRR *)this;
-            dlrr->net2Host(len);
-            TraceL << dlrr->dumpString();
-        } else {
-            throw std::runtime_error(StrPrinter << "rtcp xr bt " << xr->bt << " not support");
+        case RtcpType::RTCP_SR: {
+            RtcpSR *sr = (RtcpSR *)this;
+            sr->net2Host(len);
+            break;
         }
-        break;
-    }
-    default:
-        throw std::runtime_error(StrPrinter << "未处理的rtcp包:" << rtcpTypeToStr((RtcpType)this->pt));
+
+        case RtcpType::RTCP_RR: {
+            RtcpRR *rr = (RtcpRR *)this;
+            rr->net2Host(len);
+            break;
+        }
+
+        case RtcpType::RTCP_SDES: {
+            RtcpSdes *sdes = (RtcpSdes *)this;
+            sdes->net2Host(len);
+            break;
+        }
+
+        case RtcpType::RTCP_RTPFB:
+        case RtcpType::RTCP_PSFB: {
+            RtcpFB *fb = (RtcpFB *)this;
+            fb->net2Host(len);
+            break;
+        }
+
+        case RtcpType::RTCP_BYE: {
+            RtcpBye *bye = (RtcpBye *)this;
+            bye->net2Host(len);
+            break;
+        }
+        case RtcpType::RTCP_XR: {
+            RtcpXRRRTR *xr = (RtcpXRRRTR *)this;
+            if (xr->bt == 4) {
+                xr->net2Host(len);
+                // TraceL<<xr->dumpString();
+            } else if (xr->bt == 5) {
+                RtcpXRDLRR *dlrr = (RtcpXRDLRR *)this;
+                dlrr->net2Host(len);
+                TraceL << dlrr->dumpString();
+            } else {
+                throw std::runtime_error(StrPrinter << "rtcp xr bt " << xr->bt << " not support");
+            }
+            break;
+        }
+        default: throw std::runtime_error(StrPrinter << "未处理的rtcp包:" << rtcpTypeToStr((RtcpType)this->pt));
     }
 }
 
@@ -275,7 +265,7 @@ std::shared_ptr<RtcpSR> RtcpSR::create(size_t item_count) {
     auto ptr = (RtcpSR *)new char[bytes];
     setupHeader(ptr, RtcpType::RTCP_SR, item_count, bytes);
     setupPadding(ptr, bytes - real_size);
-    return std::shared_ptr<RtcpSR>(ptr, [](RtcpSR *ptr) { delete[] (char *)ptr; });
+    return std::shared_ptr<RtcpSR>(ptr, [](RtcpSR *ptr) { delete[](char *) ptr; });
 }
 
 string RtcpSR::getNtpStamp() const {
@@ -406,7 +396,7 @@ std::shared_ptr<RtcpRR> RtcpRR::create(size_t item_count) {
     auto ptr = (RtcpRR *)new char[bytes];
     setupHeader(ptr, RtcpType::RTCP_RR, item_count, bytes);
     setupPadding(ptr, bytes - real_size);
-    return std::shared_ptr<RtcpRR>(ptr, [](RtcpRR *ptr) { delete[] (char *)ptr; });
+    return std::shared_ptr<RtcpRR>(ptr, [](RtcpRR *ptr) { delete[](char *) ptr; });
 }
 
 string RtcpRR::dumpString() const {
@@ -492,7 +482,7 @@ std::shared_ptr<RtcpSdes> RtcpSdes::create(const std::vector<string> &item_text)
 
     setupHeader(ptr, RtcpType::RTCP_SDES, item_text.size(), bytes);
     setupPadding(ptr, bytes - real_size);
-    return std::shared_ptr<RtcpSdes>(ptr, [](RtcpSdes *ptr) { delete[] (char *)ptr; });
+    return std::shared_ptr<RtcpSdes>(ptr, [](RtcpSdes *ptr) { delete[](char *) ptr; });
 }
 
 string RtcpSdes::dumpString() const {
@@ -544,7 +534,7 @@ std::shared_ptr<RtcpFB> RtcpFB::create_l(RtcpType type, int fmt, const void *fci
     }
     setupHeader(ptr, type, fmt, bytes);
     setupPadding(ptr, bytes - real_size);
-    return std::shared_ptr<RtcpFB>((RtcpFB *)ptr, [](RtcpFB *ptr) { delete[] (char *)ptr; });
+    return std::shared_ptr<RtcpFB>((RtcpFB *)ptr, [](RtcpFB *ptr) { delete[](char *) ptr; });
 }
 
 std::shared_ptr<RtcpFB> RtcpFB::create(PSFBType fmt, const void *fci, size_t fci_len) {
@@ -571,59 +561,59 @@ string RtcpFB::dumpString() const {
     printer << "ssrc:" << ssrc << "\r\n";
     printer << "ssrc_media:" << ssrc_media << "\r\n";
     switch ((RtcpType)pt) {
-    case RtcpType::RTCP_PSFB: {
-        switch ((PSFBType)report_count) {
-        case PSFBType::RTCP_PSFB_SLI: {
-            auto &fci = getFci<FCI_SLI>();
-            printer << "fci:" << psfbTypeToStr((PSFBType)report_count) << " " << fci.dumpString();
-            break;
-        }
-        case PSFBType::RTCP_PSFB_PLI: {
-            getFciSize();
-            printer << "fci:" << psfbTypeToStr((PSFBType)report_count);
-            break;
-        }
+        case RtcpType::RTCP_PSFB: {
+            switch ((PSFBType)report_count) {
+                case PSFBType::RTCP_PSFB_SLI: {
+                    auto &fci = getFci<FCI_SLI>();
+                    printer << "fci:" << psfbTypeToStr((PSFBType)report_count) << " " << fci.dumpString();
+                    break;
+                }
+                case PSFBType::RTCP_PSFB_PLI: {
+                    getFciSize();
+                    printer << "fci:" << psfbTypeToStr((PSFBType)report_count);
+                    break;
+                }
 
-        case PSFBType::RTCP_PSFB_FIR: {
-            auto &fci = getFci<FCI_FIR>();
-            printer << "fci:" << psfbTypeToStr((PSFBType)report_count) << " " << fci.dumpString();
-            break;
-        }
+                case PSFBType::RTCP_PSFB_FIR: {
+                    auto &fci = getFci<FCI_FIR>();
+                    printer << "fci:" << psfbTypeToStr((PSFBType)report_count) << " " << fci.dumpString();
+                    break;
+                }
 
-        case PSFBType::RTCP_PSFB_REMB: {
-            auto &fci = getFci<FCI_REMB>();
-            printer << "fci:" << psfbTypeToStr((PSFBType)report_count) << " " << fci.dumpString();
+                case PSFBType::RTCP_PSFB_REMB: {
+                    auto &fci = getFci<FCI_REMB>();
+                    printer << "fci:" << psfbTypeToStr((PSFBType)report_count) << " " << fci.dumpString();
+                    break;
+                }
+                default: {
+                    printer << "fci:" << psfbTypeToStr((PSFBType)report_count) << " "
+                            << hexdump(getFciPtr(), getFciSize());
+                    break;
+                }
+            }
             break;
         }
-        default: {
-            printer << "fci:" << psfbTypeToStr((PSFBType)report_count) << " " << hexdump(getFciPtr(), getFciSize());
+        case RtcpType::RTCP_RTPFB: {
+            switch ((RTPFBType)report_count) {
+                case RTPFBType::RTCP_RTPFB_NACK: {
+                    auto &fci = getFci<FCI_NACK>();
+                    printer << "fci:" << rtpfbTypeToStr((RTPFBType)report_count) << " " << fci.dumpString();
+                    break;
+                }
+                case RTPFBType::RTCP_RTPFB_TWCC: {
+                    auto &fci = getFci<FCI_TWCC>();
+                    printer << "fci:" << rtpfbTypeToStr((RTPFBType)report_count) << " " << fci.dumpString(getFciSize());
+                    break;
+                }
+                default: {
+                    printer << "fci:" << rtpfbTypeToStr((RTPFBType)report_count) << " "
+                            << hexdump(getFciPtr(), getFciSize());
+                    break;
+                }
+            }
             break;
         }
-        }
-        break;
-    }
-    case RtcpType::RTCP_RTPFB: {
-        switch ((RTPFBType)report_count) {
-        case RTPFBType::RTCP_RTPFB_NACK: {
-            auto &fci = getFci<FCI_NACK>();
-            printer << "fci:" << rtpfbTypeToStr((RTPFBType)report_count) << " " << fci.dumpString();
-            break;
-        }
-        case RTPFBType::RTCP_RTPFB_TWCC: {
-            auto &fci = getFci<FCI_TWCC>();
-            printer << "fci:" << rtpfbTypeToStr((RTPFBType)report_count) << " " << fci.dumpString(getFciSize());
-            break;
-        }
-        default: {
-            printer << "fci:" << rtpfbTypeToStr((RTPFBType)report_count) << " " << hexdump(getFciPtr(), getFciSize());
-            break;
-        }
-        }
-        break;
-    }
-    default: /*不可达*/
-        assert(0);
-        break;
+        default: /*不可达*/ assert(0); break;
     }
     return std::move(printer);
 }
@@ -656,7 +646,7 @@ std::shared_ptr<RtcpBye> RtcpBye::create(const std::vector<uint32_t> &ssrcs, con
         memcpy(reason_len_ptr + 1, reason.data(), *reason_len_ptr);
     }
 
-    return std::shared_ptr<RtcpBye>(ptr, [](RtcpBye *ptr) { delete[] (char *)ptr; });
+    return std::shared_ptr<RtcpBye>(ptr, [](RtcpBye *ptr) { delete[](char *) ptr; });
 }
 
 vector<uint32_t *> RtcpBye::getSSRC() {
@@ -794,7 +784,7 @@ std::shared_ptr<RtcpXRDLRR> RtcpXRDLRR::create(size_t item_count) {
     auto ptr = (RtcpXRDLRR *)new char[bytes];
     setupHeader(ptr, RtcpType::RTCP_XR, 0, bytes);
     setupPadding(ptr, bytes - real_size);
-    return std::shared_ptr<RtcpXRDLRR>(ptr, [](RtcpXRDLRR *ptr) { delete[] (char *)ptr; });
+    return std::shared_ptr<RtcpXRDLRR>(ptr, [](RtcpXRDLRR *ptr) { delete[](char *) ptr; });
 }
 
 #if 0
