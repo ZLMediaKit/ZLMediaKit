@@ -13,23 +13,21 @@
 
 #if defined(ENABLE_RTPPROXY)
 
-
 #include "Common/MediaSink.h"
 #include "Common/Stamp.h"
 #include "Extension/CommonRtp.h"
 
-namespace mediakit{
+namespace mediakit {
 
-class RawEncoderImp : public MediaSinkInterface{
+class RawEncoderImp : public MediaSinkInterface {
 public:
-    RawEncoderImp(uint32_t ssrc, uint8_t payload_type = 96, bool sendAudio = true);
+    RawEncoderImp(uint32_t ssrc, uint8_t payload_type = 96, bool send_audio = true);
     ~RawEncoderImp() override;
 
     /**
      * 添加音视频轨道
      */
     bool addTrack(const Track::Ptr &track) override;
-
 
     /**
      * 重置音视频轨道
@@ -42,17 +40,20 @@ public:
     bool inputFrame(const Frame::Ptr &frame) override;
 
 protected:
-    //rtp打包后回调
+    // rtp打包后回调
     virtual void onRTP(toolkit::Buffer::Ptr rtp, bool is_key = false) = 0;
+
 private:
     RtpCodec::Ptr createRtpEncoder(const Track::Ptr &track);
-    uint32_t _ssrc;
+
+private:
+    bool _send_audio;
     uint8_t _payload_type;
-    bool _sendAudio;
+    uint32_t _ssrc;
     RtpCodec::Ptr _rtp_encoder;
 };
 
-}//namespace mediakit
+} // namespace mediakit
 
-#endif //ENABLE_RTPPROXY
-#endif //ZLMEDIAKIT_RAWENCODER_H
+#endif // ENABLE_RTPPROXY
+#endif // ZLMEDIAKIT_RAWENCODER_H
