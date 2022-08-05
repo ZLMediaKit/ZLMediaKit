@@ -321,16 +321,10 @@ bool HandshakePacket::loadExtMessage(uint8_t *buf, size_t len) {
         type = loadUint16(ptr);
         length = loadUint16(ptr + 2);
         switch (type) {
-        case HSExt::SRT_CMD_HSREQ:
-        case HSExt::SRT_CMD_HSRSP:
-            ext = std::make_shared<HSExtMessage>();
-            break;
-        case HSExt::SRT_CMD_SID:
-            ext = std::make_shared<HSExtStreamID>();
-            break;
-        default:
-            WarnL << "not support ext " << type;
-            break;
+            case HSExt::SRT_CMD_HSREQ:
+            case HSExt::SRT_CMD_HSRSP: ext = std::make_shared<HSExtMessage>(); break;
+            case HSExt::SRT_CMD_SID: ext = std::make_shared<HSExtStreamID>(); break;
+            default: WarnL << "not support ext " << type; break;
         }
         if (ext) {
             if (ext->loadFromData(ptr, length * 4 + 4)) {

@@ -179,32 +179,32 @@ bool H264Track::inputFrame_l(const Frame::Ptr &frame) {
     int type = H264_TYPE(frame->data()[frame->prefixSize()]);
     bool ret = true;
     switch (type) {
-    case H264Frame::NAL_SPS: {
-        _sps = string(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
-        _latest_is_config_frame = true;
-        ret = VideoTrack::inputFrame(frame);
-        break;
-    }
-    case H264Frame::NAL_PPS: {
-        _pps = string(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
-        _latest_is_config_frame = true;
-        ret = VideoTrack::inputFrame(frame);
-        break;
-    }
-    default:
-        // 避免识别不出关键帧
-        if (_latest_is_config_frame && !frame->dropAble()) {
-            if (!frame->keyFrame()) {
-                const_cast<Frame::Ptr &>(frame) = std::make_shared<FrameCacheAble>(frame, true);
+        case H264Frame::NAL_SPS: {
+            _sps = string(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
+            _latest_is_config_frame = true;
+            ret = VideoTrack::inputFrame(frame);
+            break;
+        }
+        case H264Frame::NAL_PPS: {
+            _pps = string(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
+            _latest_is_config_frame = true;
+            ret = VideoTrack::inputFrame(frame);
+            break;
+        }
+        default:
+            // 避免识别不出关键帧
+            if (_latest_is_config_frame && !frame->dropAble()) {
+                if (!frame->keyFrame()) {
+                    const_cast<Frame::Ptr &>(frame) = std::make_shared<FrameCacheAble>(frame, true);
+                }
             }
-        }
-        // 判断是否是I帧, 并且如果是,那判断前面是否插入过config帧, 如果插入过就不插入了
-        if (frame->keyFrame() && !_latest_is_config_frame) {
-            insertConfigFrame(frame);
-        }
-        _latest_is_config_frame = false;
-        ret = VideoTrack::inputFrame(frame);
-        break;
+            // 判断是否是I帧, 并且如果是,那判断前面是否插入过config帧, 如果插入过就不插入了
+            if (frame->keyFrame() && !_latest_is_config_frame) {
+                insertConfigFrame(frame);
+            }
+            _latest_is_config_frame = false;
+            ret = VideoTrack::inputFrame(frame);
+            break;
     }
 
     if (_width == 0 && ready()) {
