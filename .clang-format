@@ -56,6 +56,12 @@ ColumnLimit: 120
 Cpp11BracedListStyle: false
 # 命名空间后的注释会修正为: // namespace_name
 FixNamespaceComments: true
+
+#switch case的缩进
+IndentCaseLabels: true
+#允许单行case
+AllowShortCaseLabelsOnASingleLine: true
+
 # clang-format >= 13 required, lambda 函数内部缩进级别和外部一致, 默认会增加一级缩进
 # LambdaBodyIndentation: OuterScope
 # 命名空间不缩进
