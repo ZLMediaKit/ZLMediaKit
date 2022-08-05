@@ -118,6 +118,18 @@ void RtpTrack::setPT(uint8_t pt){
     _pt = pt;
 }
 
+void RtpTrack::onRtpSorted(RtpPacket::Ptr rtp) {
+    if (_on_sorted) {
+        _on_sorted(std::move(rtp));
+    }
+}
+
+void RtpTrack::onBeforeRtpSorted(const RtpPacket::Ptr &rtp) {
+    if (_on_before_sorted) {
+        _on_before_sorted(rtp);
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////////
 
 void RtpTrackImp::setOnSorted(OnSorted cb) {
@@ -128,16 +140,6 @@ void RtpTrackImp::setBeforeSorted(BeforeSorted cb) {
     _on_before_sorted = std::move(cb);
 }
 
-void RtpTrackImp::onRtpSorted(RtpPacket::Ptr rtp) {
-    if (_on_sorted) {
-        _on_sorted(std::move(rtp));
-    }
-}
 
-void RtpTrackImp::onBeforeRtpSorted(const RtpPacket::Ptr &rtp) {
-    if (_on_before_sorted) {
-        _on_before_sorted(rtp);
-    }
-}
 
 }//namespace mediakit

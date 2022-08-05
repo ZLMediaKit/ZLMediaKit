@@ -161,6 +161,9 @@ private:
 
 class RtpTrack : private PacketSortor<RtpPacket::Ptr>{
 public:
+    using OnSorted = std::function<void(RtpPacket::Ptr)>;
+    using BeforeSorted = std::function<void(const RtpPacket::Ptr &)>;
+
     class BadRtpException : public std::invalid_argument {
     public:
         template<typename Type>
@@ -178,8 +181,12 @@ public:
     void setPT(uint8_t pt);
 
 protected:
-    virtual void onRtpSorted(RtpPacket::Ptr rtp) {}
-    virtual void onBeforeRtpSorted(const RtpPacket::Ptr &rtp) {}
+    void onRtpSorted(RtpPacket::Ptr rtp);
+    void onBeforeRtpSorted(const RtpPacket::Ptr &rtp);
+
+protected:
+    OnSorted _on_sorted;
+    BeforeSorted _on_before_sorted;
 
 private:
     bool _disable_ntp = false;
@@ -191,22 +198,11 @@ private:
 
 class RtpTrackImp : public RtpTrack{
 public:
-    using OnSorted = std::function<void(RtpPacket::Ptr)>;
-    using BeforeSorted = std::function<void(const RtpPacket::Ptr &)>;
-
     RtpTrackImp() = default;
     ~RtpTrackImp() override = default;
 
     void setOnSorted(OnSorted cb);
     void setBeforeSorted(BeforeSorted cb);
-
-protected:
-    void onRtpSorted(RtpPacket::Ptr rtp) override;
-    void onBeforeRtpSorted(const RtpPacket::Ptr &rtp) override;
-
-private:
-    OnSorted _on_sorted;
-    BeforeSorted _on_before_sorted;
 };
 
 template<int kCount = 2>
@@ -285,14 +281,14 @@ protected:
      * @param rtp rtp数据包
      * @param track_index track索引
      */
-    virtual void onRtpSorted(RtpPacket::Ptr rtp, int index) {}
+    virtual void onRtpSorted(RtpPacket::Ptr rtp, int index) = 0;
 
     /**
      * 解析出rtp但还未排序
      * @param rtp rtp数据包
      * @param track_index track索引
      */
-    virtual void onBeforeRtpSorted(const RtpPacket::Ptr &rtp, int index) {}
+    virtual void onBeforeRtpSorted(const RtpPacket::Ptr &rtp, int index) = 0;
 
 private:
     RtpTrackImp _track[kCount];
