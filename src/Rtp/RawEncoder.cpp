@@ -19,9 +19,9 @@ using namespace toolkit;
 namespace mediakit {
 
 RawEncoderImp::RawEncoderImp(uint32_t ssrc, uint8_t payload_type, bool send_audio)
-    : _ssrc(ssrc)
+    : _send_audio(send_audio)
     , _payload_type(payload_type)
-    , _send_audio(send_audio) {}
+    , _ssrc(ssrc) {}
 
 RawEncoderImp::~RawEncoderImp() {
     InfoL << this << " " << printSSRC(_ssrc);
