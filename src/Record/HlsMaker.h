@@ -38,7 +38,7 @@ public:
      * @param timestamp 毫秒时间戳
      * @param is_idr_fast_packet 是否为关键帧第一个包
      */
-    void inputData(void *data, size_t len, uint32_t timestamp, bool is_idr_fast_packet);
+    void inputData(void *data, size_t len, uint64_t timestamp, bool is_idr_fast_packet);
 
     /**
      * 是否为直播
@@ -85,7 +85,7 @@ protected:
      * 上一个 ts 切片写入完成, 可在这里进行通知处理
      * @param duration_ms 上一个 ts 切片的时长, 单位为毫秒
      */
-    virtual void onFlushLastSegment(uint32_t duration_ms) {};
+    virtual void onFlushLastSegment(uint64_t duration_ms) {};
 
     /**
      * 关闭上个ts切片并且写入m3u8索引
@@ -109,14 +109,14 @@ private:
      * 添加新的ts切片
      * @param timestamp
      */
-    void addNewSegment(uint32_t timestamp);
+    void addNewSegment(uint64_t timestamp);
 
 private:
     float _seg_duration = 0;
     uint32_t _seg_number = 0;
     bool _seg_keep = false;
-    uint32_t _last_timestamp = 0;
-    uint32_t _last_seg_timestamp = 0;
+    uint64_t _last_timestamp = 0;
+    uint64_t _last_seg_timestamp = 0;
     uint64_t _file_index = 0;
     std::string _last_file_name;
     std::deque<std::tuple<int,std::string> > _seg_dur_list;

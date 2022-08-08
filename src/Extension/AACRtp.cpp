@@ -53,8 +53,8 @@ bool AACRtpEncoder::inputFrame(const Frame::Ptr &frame) {
     return len > 0;
 }
 
-void AACRtpEncoder::makeAACRtp(const void *data, size_t len, bool mark, uint32_t uiStamp) {
-    RtpCodec::inputRtp(makeRtp(getTrackType(), data, len, mark, uiStamp), false);
+void AACRtpEncoder::makeAACRtp(const void *data, size_t len, bool mark, uint64_t stamp) {
+    RtpCodec::inputRtp(makeRtp(getTrackType(), data, len, mark, stamp), false);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////

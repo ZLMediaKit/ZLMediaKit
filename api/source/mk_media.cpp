@@ -219,37 +219,37 @@ API_EXPORT int API_CALL mk_media_input_frame(mk_media ctx, mk_frame frame){
     return (*obj)->getChannel()->inputFrame(*((Frame::Ptr *) frame));
 }
 
-API_EXPORT int API_CALL mk_media_input_h264(mk_media ctx, const void *data, int len, uint32_t dts, uint32_t pts) {
+API_EXPORT int API_CALL mk_media_input_h264(mk_media ctx, const void *data, int len, uint64_t dts, uint64_t pts) {
     assert(ctx && data && len > 0);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
     return (*obj)->getChannel()->inputH264((const char *) data, len, dts, pts);
 }
 
-API_EXPORT int API_CALL mk_media_input_h265(mk_media ctx, const void *data, int len, uint32_t dts, uint32_t pts) {
+API_EXPORT int API_CALL mk_media_input_h265(mk_media ctx, const void *data, int len, uint64_t dts, uint64_t pts) {
     assert(ctx && data && len > 0);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
     return (*obj)->getChannel()->inputH265((const char *) data, len, dts, pts);
 }
 
-API_EXPORT void API_CALL mk_media_input_yuv(mk_media ctx, const char *yuv[3], int linesize[3], uint32_t cts) {
+API_EXPORT void API_CALL mk_media_input_yuv(mk_media ctx, const char *yuv[3], int linesize[3], uint64_t cts) {
     assert(ctx && yuv && linesize);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
     (*obj)->getChannel()->inputYUV((char **) yuv, linesize, cts);
 }
 
-API_EXPORT int API_CALL mk_media_input_aac(mk_media ctx, const void *data, int len, uint32_t dts, void *adts) {
+API_EXPORT int API_CALL mk_media_input_aac(mk_media ctx, const void *data, int len, uint64_t dts, void *adts) {
     assert(ctx && data && len > 0 && adts);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
     return (*obj)->getChannel()->inputAAC((const char *) data, len, dts, (char *) adts);
 }
 
-API_EXPORT int API_CALL mk_media_input_pcm(mk_media ctx, void *data , int len, uint32_t pts){
+API_EXPORT int API_CALL mk_media_input_pcm(mk_media ctx, void *data , int len, uint64_t pts){
 	assert(ctx && data && len > 0);
 	MediaHelper::Ptr* obj = (MediaHelper::Ptr*) ctx;
 	return (*obj)->getChannel()->inputPCM((char*)data, len, pts);
 }
 
-API_EXPORT int API_CALL mk_media_input_audio(mk_media ctx, const void* data, int len, uint32_t dts){
+API_EXPORT int API_CALL mk_media_input_audio(mk_media ctx, const void* data, int len, uint64_t dts){
     assert(ctx && data && len > 0);
     MediaHelper::Ptr* obj = (MediaHelper::Ptr*) ctx;
     return (*obj)->getChannel()->inputAudio((const char*)data, len, dts);

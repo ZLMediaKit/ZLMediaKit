@@ -42,9 +42,9 @@ public:
     }
 
 private:
-    bool singleFrame(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssize_t size, uint32_t stamp);
-    bool unpackStapA(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssize_t size, uint32_t stamp);
-    bool mergeFu(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssize_t size, uint32_t stamp, uint16_t seq);
+    bool singleFrame(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssize_t size, uint64_t stamp);
+    bool unpackStapA(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssize_t size, uint64_t stamp);
+    bool mergeFu(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssize_t size, uint64_t stamp, uint16_t seq);
 
     bool decodeRtp(const RtpPacket::Ptr &rtp);
     H264Frame::Ptr obtainFrame();
@@ -86,11 +86,11 @@ public:
     bool inputFrame(const Frame::Ptr &frame) override;
 
 private:
-    void insertConfigFrame(uint32_t pts);
+    void insertConfigFrame(uint64_t pts);
     bool inputFrame_l(const Frame::Ptr &frame, bool is_mark);
-    void packRtp(const char *data, size_t len, uint32_t pts, bool is_mark, bool gop_pos);
-    void packRtpFu(const char *data, size_t len, uint32_t pts, bool is_mark, bool gop_pos);
-    void packRtpStapA(const char *data, size_t len, uint32_t pts, bool is_mark, bool gop_pos);
+    void packRtp(const char *data, size_t len, uint64_t pts, bool is_mark, bool gop_pos);
+    void packRtpFu(const char *data, size_t len, uint64_t pts, bool is_mark, bool gop_pos);
+    void packRtpStapA(const char *data, size_t len, uint64_t pts, bool is_mark, bool gop_pos);
 
 private:
     Frame::Ptr _sps;

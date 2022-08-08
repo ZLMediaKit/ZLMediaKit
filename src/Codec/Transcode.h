@@ -113,7 +113,7 @@ public:
 private:
     void onDecode(const FFmpegFrame::Ptr &frame);
     bool inputFrame_l(const Frame::Ptr &frame, bool live, bool enable_merge);
-    bool decodeFrame(const char *data, size_t size, uint32_t dts, uint32_t pts, bool live);
+    bool decodeFrame(const char *data, size_t size, uint64_t dts, uint64_t pts, bool live);
 
 private:
     bool _do_merger = false;

@@ -25,8 +25,8 @@ void RtpSelector::clear(){
     _map_rtp_process.clear();
 }
 
-bool RtpSelector::inputRtp(const Socket::Ptr &sock, const char *data, size_t data_len,
-                           const struct sockaddr *addr,uint32_t *dts_out) {
+bool RtpSelector::inputRtp(const Socket::Ptr &sock, const char *data, size_t data_len, const struct sockaddr *addr,
+                           uint64_t *dts_out) {
     uint32_t ssrc = 0;
     if (!getSSRC(data, data_len, ssrc)) {
         WarnL << "get ssrc from rtp failed:" << data_len;

@@ -152,7 +152,7 @@ bool H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         _rtmp_packet->buffer.resize(5);
     }
 
-    return _merger.inputFrame(frame, [this](uint32_t dts, uint32_t pts, const Buffer::Ptr &, bool have_key_frame) {
+    return _merger.inputFrame(frame, [this](uint64_t dts, uint64_t pts, const Buffer::Ptr &, bool have_key_frame) {
         //flags
         _rtmp_packet->buffer[0] = FLV_CODEC_H264 | ((have_key_frame ? FLV_KEY_FRAME : FLV_INTER_FRAME) << 4);
         //not config

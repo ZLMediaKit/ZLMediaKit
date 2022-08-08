@@ -64,7 +64,7 @@ RtpProcess::~RtpProcess() {
     }
 }
 
-bool RtpProcess::inputRtp(bool is_udp, const Socket::Ptr &sock, const char *data, size_t len, const struct sockaddr *addr, uint32_t *dts_out) {
+bool RtpProcess::inputRtp(bool is_udp, const Socket::Ptr &sock, const char *data, size_t len, const struct sockaddr *addr, uint64_t *dts_out) {
     auto is_busy = _busy_flag.test_and_set();
     if (is_busy) {
         //其他线程正在执行本函数

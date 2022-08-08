@@ -35,7 +35,7 @@ public:
      * @param dts_out 解析出最新的dts
      * @return 是否解析成功
      */
-    bool inputRtp(bool is_udp, const toolkit::Socket::Ptr &sock, const char *data, size_t len, const struct sockaddr *addr , uint32_t *dts_out = nullptr);
+    bool inputRtp(bool is_udp, const toolkit::Socket::Ptr &sock, const char *data, size_t len, const struct sockaddr *addr , uint64_t *dts_out = nullptr);
 
     /**
      * 是否超时，用于超时移除对象
@@ -86,7 +86,7 @@ private:
     void doCachedFunc();
 
 private:
-    uint32_t _dts = 0;
+    uint64_t _dts = 0;
     uint64_t _total_bytes = 0;
     std::unique_ptr<sockaddr_storage> _addr;
     toolkit::Socket::Ptr _sock;

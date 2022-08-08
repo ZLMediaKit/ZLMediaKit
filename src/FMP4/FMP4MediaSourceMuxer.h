@@ -72,7 +72,7 @@ public:
     }
 
 protected:
-    void onSegmentData(std::string string, uint32_t stamp, bool key_frame) override {
+    void onSegmentData(std::string string, uint64_t stamp, bool key_frame) override {
         if (string.empty()) {
             return;
         }

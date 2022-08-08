@@ -112,12 +112,12 @@ public:
     /**
      * 返回解码时间戳，单位毫秒
      */
-    virtual uint32_t dts() const = 0;
+    virtual uint64_t dts() const = 0;
 
     /**
      * 返回显示时间戳，单位毫秒
      */
-    virtual uint32_t pts() const { return dts(); }
+    virtual uint64_t pts() const { return dts(); }
 
     /**
      * 前缀长度，譬如264前缀为0x00 00 00 01,那么前缀长度就是4
@@ -194,8 +194,8 @@ public:
 
     char *data() const override { return (char *)_buffer.data(); }
     size_t size() const override { return _buffer.size(); }
-    uint32_t dts() const override { return _dts; }
-    uint32_t pts() const override { return _pts ? _pts : _dts; }
+    uint64_t dts() const override { return _dts; }
+    uint64_t pts() const override { return _pts ? _pts : _dts; }
     size_t prefixSize() const override { return _prefix_size; }
     CodecId getCodecId() const override { return _codec_id; }
     bool keyFrame() const override { return false; }
@@ -203,8 +203,8 @@ public:
 
 public:
     CodecId _codec_id = CodecInvalid;
-    uint32_t _dts = 0;
-    uint32_t _pts = 0;
+    uint64_t _dts = 0;
+    uint64_t _pts = 0;
     size_t _prefix_size = 0;
     toolkit::BufferLikeString _buffer;
 
@@ -248,7 +248,7 @@ class FrameTSInternal : public Parent {
 public:
     typedef std::shared_ptr<FrameTSInternal> Ptr;
     FrameTSInternal(
-        const Frame::Ptr &parent_frame, char *ptr, size_t size, size_t prefix_size, uint32_t dts, uint32_t pts)
+        const Frame::Ptr &parent_frame, char *ptr, size_t size, size_t prefix_size, uint64_t dts, uint64_t pts)
         : Parent(ptr, size, dts, pts, prefix_size) {
         _parent_frame = parent_frame;
     }
@@ -361,13 +361,13 @@ public:
     typedef std::shared_ptr<FrameFromPtr> Ptr;
 
     FrameFromPtr(
-        CodecId codec_id, char *ptr, size_t size, uint32_t dts, uint32_t pts = 0, size_t prefix_size = 0,
+        CodecId codec_id, char *ptr, size_t size, uint64_t dts, uint64_t pts = 0, size_t prefix_size = 0,
         bool is_key = false)
         : FrameFromPtr(ptr, size, dts, pts, prefix_size, is_key) {
         _codec_id = codec_id;
     }
 
-    FrameFromPtr(char *ptr, size_t size, uint32_t dts, uint32_t pts = 0, size_t prefix_size = 0, bool is_key = false) {
+    FrameFromPtr(char *ptr, size_t size, uint64_t dts, uint64_t pts = 0, size_t prefix_size = 0, bool is_key = false) {
         _ptr = ptr;
         _size = size;
         _dts = dts;
@@ -378,8 +378,8 @@ public:
 
     char *data() const override { return _ptr; }
     size_t size() const override { return _size; }
-    uint32_t dts() const override { return _dts; }
-    uint32_t pts() const override { return _pts ? _pts : dts(); }
+    uint64_t dts() const override { return _dts; }
+    uint64_t pts() const override { return _pts ? _pts : dts(); }
     size_t prefixSize() const override { return _prefix_size; }
     bool cacheAble() const override { return false; }
     bool keyFrame() const override { return _is_key; }
@@ -399,8 +399,8 @@ protected:
 protected:
     bool _is_key;
     char *_ptr;
-    uint32_t _dts;
-    uint32_t _pts = 0;
+    uint64_t _dts;
+    uint64_t _pts = 0;
     size_t _size;
     size_t _prefix_size;
     CodecId _codec_id = CodecInvalid;
@@ -464,8 +464,8 @@ public:
     }
     ~FrameStamp() override {}
 
-    uint32_t dts() const override { return (uint32_t)_dts; }
-    uint32_t pts() const override { return (uint32_t)_pts; }
+    uint64_t dts() const override { return (uint64_t)_dts; }
+    uint64_t pts() const override { return (uint64_t)_pts; }
     size_t prefixSize() const override { return _frame->prefixSize(); }
     bool keyFrame() const override { return _frame->keyFrame(); }
     bool configFrame() const override { return _frame->configFrame(); }
@@ -498,7 +498,7 @@ public:
      * @param prefix 帧前缀长度
      * @param offset buffer有效数据偏移量
      */
-    FrameWrapper(toolkit::Buffer::Ptr buf, uint32_t dts, uint32_t pts, size_t prefix, size_t offset)
+    FrameWrapper(toolkit::Buffer::Ptr buf, uint64_t dts, uint64_t pts, size_t prefix, size_t offset)
         : Parent(buf->data() + offset, buf->size() - offset, dts, pts, prefix) {
         _buf = std::move(buf);
     }
@@ -512,7 +512,7 @@ public:
      * @param offset buffer有效数据偏移量
      * @param codec 帧类型
      */
-    FrameWrapper(toolkit::Buffer::Ptr buf, uint32_t dts, uint32_t pts, size_t prefix, size_t offset, CodecId codec)
+    FrameWrapper(toolkit::Buffer::Ptr buf, uint64_t dts, uint64_t pts, size_t prefix, size_t offset, CodecId codec)
         : Parent(codec, buf->data() + offset, buf->size() - offset, dts, pts, prefix) {
         _buf = std::move(buf);
     }
@@ -531,7 +531,7 @@ private:
  */
 class FrameMerger {
 public:
-    using onOutput = std::function<void(uint32_t dts, uint32_t pts, const toolkit::Buffer::Ptr &buffer, bool have_key_frame)>;
+    using onOutput = std::function<void(uint64_t dts, uint64_t pts, const toolkit::Buffer::Ptr &buffer, bool have_key_frame)>;
     using Ptr = std::shared_ptr<FrameMerger>;
     enum {
         none = 0,

@@ -84,7 +84,7 @@ public:
         return _ssrc;
     }
 
-    RtpPacket::Ptr makeRtp(TrackType type,const void *data, size_t len, bool mark, uint32_t stamp);
+    RtpPacket::Ptr makeRtp(TrackType type,const void *data, size_t len, bool mark, uint64_t stamp);
 
 private:
     uint8_t _pt;

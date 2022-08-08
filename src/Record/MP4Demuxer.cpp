@@ -233,10 +233,10 @@ Frame::Ptr MP4Demuxer::makeFrame(uint32_t track_id, const Buffer::Ptr &buf, int6
                 offset += (frame_len + 4);
             }
             if (codec == CodecH264) {
-                ret = std::make_shared<FrameWrapper<H264FrameNoCacheAble> >(buf, (uint32_t)dts, (uint32_t)pts, 4, DATA_OFFSET);
+                ret = std::make_shared<FrameWrapper<H264FrameNoCacheAble> >(buf, (uint64_t)dts, (uint64_t)pts, 4, DATA_OFFSET);
                 break;
             }
-            ret = std::make_shared<FrameWrapper<H265FrameNoCacheAble> >(buf, (uint32_t)dts, (uint32_t)pts, 4, DATA_OFFSET);
+            ret = std::make_shared<FrameWrapper<H265FrameNoCacheAble> >(buf, (uint64_t)dts, (uint64_t)pts, 4, DATA_OFFSET);
             break;
         }
 
@@ -245,14 +245,14 @@ Frame::Ptr MP4Demuxer::makeFrame(uint32_t track_id, const Buffer::Ptr &buf, int6
             assert(track);
             //加上adts头
             dumpAacConfig(track->getAacCfg(), buf->size() - DATA_OFFSET, (uint8_t *) buf->data() + (DATA_OFFSET - ADTS_HEADER_LEN), ADTS_HEADER_LEN);
-            ret = std::make_shared<FrameWrapper<FrameFromPtr> >(buf, (uint32_t)dts, (uint32_t)pts, ADTS_HEADER_LEN, DATA_OFFSET - ADTS_HEADER_LEN, codec);
+            ret = std::make_shared<FrameWrapper<FrameFromPtr> >(buf, (uint64_t)dts, (uint64_t)pts, ADTS_HEADER_LEN, DATA_OFFSET - ADTS_HEADER_LEN, codec);
             break;
         }
 
         case CodecOpus:
         case CodecG711A:
         case CodecG711U: {
-            ret = std::make_shared<FrameWrapper<FrameFromPtr> >(buf, (uint32_t)dts, (uint32_t)pts, 0, DATA_OFFSET, codec);
+            ret = std::make_shared<FrameWrapper<FrameFromPtr> >(buf, (uint64_t)dts, (uint64_t)pts, 0, DATA_OFFSET, codec);
             break;
         }
 

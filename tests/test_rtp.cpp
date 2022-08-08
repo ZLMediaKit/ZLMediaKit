@@ -34,7 +34,7 @@ static bool loadFile(const char *path){
         return false;
     }
 
-    uint32_t timeStamp_last = 0;
+    uint64_t timeStamp_last = 0;
     uint16_t len;
     char rtp[0xFFFF];
     struct sockaddr_storage addr = {0};
@@ -57,7 +57,7 @@ static bool loadFile(const char *path){
             break;
         }
         total_size += len;
-        uint32_t timeStamp;
+        uint64_t timeStamp;
 
         RtpSelector::Instance().inputRtp(sock, rtp, len, (struct sockaddr *)&addr, &timeStamp);
         auto diff = timeStamp - timeStamp_last;

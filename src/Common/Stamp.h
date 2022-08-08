@@ -97,20 +97,20 @@ class DtsGenerator{
 public:
     DtsGenerator() = default;
     ~DtsGenerator() = default;
-    bool getDts(uint32_t pts, uint32_t &dts);
+    bool getDts(uint64_t pts, uint64_t &dts);
 
 private:
-    bool getDts_l(uint32_t pts, uint32_t &dts);
+    bool getDts_l(uint64_t pts, uint64_t &dts);
 
 private:
-    uint32_t _dts_pts_offset = 0;
-    uint32_t _last_dts = 0;
-    uint32_t _last_pts = 0;
-    uint32_t _last_max_pts = 0;
+    uint64_t _dts_pts_offset = 0;
+    uint64_t _last_dts = 0;
+    uint64_t _last_pts = 0;
+    uint64_t _last_max_pts = 0;
     size_t _frames_since_last_max_pts = 0;
     size_t _sorter_max_size = 0;
     size_t _count_sorter_max_size = 0;
-    std::set<uint32_t> _pts_sorter;
+    std::set<uint64_t> _pts_sorter;
 };
 
 class NtpStamp {
