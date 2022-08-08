@@ -132,7 +132,8 @@ string makeAacConfig(const uint8_t *hex, size_t length){
     audioSpecificConfig[1] = (sampling_frequency_index << 7) | (channel_configuration << 3);
     return string((char *)audioSpecificConfig,2);
 #else
-    struct mpeg4_aac_t aac = {0};
+    struct mpeg4_aac_t aac;
+    memset(&aac, 0, sizeof(aac));
     if (mpeg4_aac_adts_load(hex, length, &aac) > 0) {
         char buf[32] = {0};
         int len = mpeg4_aac_audio_specific_config_save(&aac, (uint8_t *) buf, sizeof(buf));
@@ -153,7 +154,8 @@ int dumpAacConfig(const string &config, size_t length, uint8_t *out, size_t out_
     dumpAdtsHeader(header, out);
     return ADTS_HEADER_LEN;
 #else
-    struct mpeg4_aac_t aac = {0};
+    struct mpeg4_aac_t aac;
+    memset(&aac, 0, sizeof(aac));
     int ret = mpeg4_aac_audio_specific_config_load((uint8_t *) config.data(), config.size(), &aac);
     if (ret > 0) {
         ret = mpeg4_aac_adts_save(&aac, length, out, out_size);
@@ -174,7 +176,8 @@ bool parseAacConfig(const string &config, int &samplerate, int &channels){
     channels = header.channel_configuration;
     return true;
 #else
-    struct mpeg4_aac_t aac = {0};
+    struct mpeg4_aac_t aac;
+    memset(&aac, 0, sizeof(aac));
     int ret = mpeg4_aac_audio_specific_config_load((uint8_t *) config.data(), config.size(), &aac);
     if (ret > 0) {
         samplerate = aac.sampling_frequency;
@@ -284,7 +287,7 @@ bool AACTrack::inputFrame(const Frame::Ptr &frame) {
         if (frame_len < ADTS_HEADER_LEN) {
             break;
         }
-        if (frame_len == frame->size()) {
+        if (frame_len == (int)frame->size()) {
             return inputFrame_l(frame);
         }
         auto sub_frame = std::make_shared<FrameTSInternal<FrameFromPtr> >(frame, (char *) ptr, frame_len, ADTS_HEADER_LEN,dts,pts);

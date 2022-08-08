@@ -221,7 +221,8 @@ bool MP4MuxerInterface::addTrack(const Track::Ptr &track) {
                 return false;
             }
 
-            struct mpeg4_avc_t avc = {0};
+            struct mpeg4_avc_t avc;
+            memset(&avc, 0, sizeof(avc));
             string sps_pps = string("\x00\x00\x00\x01", 4) + h264_track->getSps() +
                              string("\x00\x00\x00\x01", 4) + h264_track->getPps();
             h264_annexbtomp4(&avc, sps_pps.data(), (int) sps_pps.size(), NULL, 0, NULL, NULL);
@@ -256,7 +257,8 @@ bool MP4MuxerInterface::addTrack(const Track::Ptr &track) {
                 return false;
             }
 
-            struct mpeg4_hevc_t hevc = {0};
+            struct mpeg4_hevc_t hevc;
+            memset(&hevc, 0, sizeof(hevc));
             string vps_sps_pps = string("\x00\x00\x00\x01", 4) + h265_track->getVps() +
                                  string("\x00\x00\x00\x01", 4) + h265_track->getSps() +
                                  string("\x00\x00\x00\x01", 4) + h265_track->getPps();

@@ -3,9 +3,9 @@
 namespace SRT {
 
 PacketSendQueue::PacketSendQueue(uint32_t max_size, uint32_t latency,uint32_t flag)
-    : _pkt_cap(max_size)
-    , _pkt_latency(latency)
-    , _srt_flag(flag) {}
+    : _srt_flag(flag)
+    , _pkt_cap(max_size)
+    , _pkt_latency(latency) {}
 
 bool PacketSendQueue::drop(uint32_t num) {
     decltype(_pkt_cache.begin()) it;

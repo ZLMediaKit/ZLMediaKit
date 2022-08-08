@@ -29,10 +29,12 @@ public:
     bool wait(bool block = true);
     int exit_code();
 private:
+    int _exit_code = 0;
     pid_t _pid = -1;
     void *_handle = nullptr;
-    void* _process_stack = nullptr;
-    int _exit_code = 0;
+#if (defined(__linux) || defined(__linux__))
+    void *_process_stack = nullptr;
+#endif
 };
 
 

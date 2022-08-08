@@ -37,7 +37,8 @@ static bool loadFile(const char *path){
     uint64_t timeStamp_last = 0;
     uint16_t len;
     char rtp[0xFFFF];
-    struct sockaddr_storage addr = {0};
+    struct sockaddr_storage addr;
+    memset(&addr, 0, sizeof(addr));
     addr.ss_family = AF_INET;
     auto sock = Socket::createSocket();
     size_t total_size = 0;

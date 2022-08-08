@@ -49,7 +49,8 @@ static bool getH265ConfigFrame(const RtmpPacket &thiz,string &frame) {
     auto extra = thiz.buffer.data() + 5;
     auto bytes = thiz.buffer.size() - 5;
 
-    struct mpeg4_hevc_t hevc = {0};
+    struct mpeg4_hevc_t hevc;
+    memset(&hevc, 0, sizeof(hevc));
     if (mpeg4_hevc_decoder_configuration_record_load((uint8_t *) extra, bytes, &hevc) > 0) {
         uint8_t *config = new uint8_t[bytes * 2];
         int size = mpeg4_hevc_to_nalu(&hevc, config, bytes * 2);
@@ -207,7 +208,8 @@ void H265RtmpEncoder::makeVideoConfigPkt() {
     //cts
     rtmpPkt->buffer.append("\x0\x0\x0", 3);
 
-    struct mpeg4_hevc_t hevc = {0};
+    struct mpeg4_hevc_t hevc;
+    memset(&hevc, 0, sizeof(hevc));
     string vps_sps_pps = string("\x00\x00\x00\x01", 4) + _vps +
                          string("\x00\x00\x00\x01", 4) + _sps +
                          string("\x00\x00\x00\x01", 4) + _pps;
