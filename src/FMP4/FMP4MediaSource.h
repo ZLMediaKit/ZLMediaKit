@@ -27,7 +27,7 @@ public:
     ~FMP4Packet() override = default;
 
 public:
-    uint32_t time_stamp = 0;
+    uint64_t time_stamp = 0;
 };
 
 //FMP4直播源
