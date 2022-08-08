@@ -28,7 +28,7 @@ using namespace std;
 
 namespace mediakit {
 
-bool DevChannel::inputYUV(char *yuv[3], int linesize[3], uint32_t cts) {
+bool DevChannel::inputYUV(char *yuv[3], int linesize[3], uint64_t cts) {
 #ifdef ENABLE_X264
     //TimeTicker1(50);
     if (!_pH264Enc) {
@@ -54,7 +54,7 @@ bool DevChannel::inputYUV(char *yuv[3], int linesize[3], uint32_t cts) {
 #endif //ENABLE_X264
 }
 
-bool DevChannel::inputPCM(char* pcData, int iDataLen, uint32_t uiStamp) {
+bool DevChannel::inputPCM(char* pcData, int iDataLen, uint64_t uiStamp) {
 #ifdef ENABLE_FAAC
     if (!_pAacEnc) {
         _pAacEnc.reset(new AACEncoder());
@@ -77,11 +77,11 @@ bool DevChannel::inputPCM(char* pcData, int iDataLen, uint32_t uiStamp) {
 #endif //ENABLE_FAAC
 }
 
-bool DevChannel::inputH264(const char *data, int len, uint32_t dts, uint32_t pts) {
-    if(dts == 0){
-        dts = (uint32_t)_aTicker[0].elapsedTime();
+bool DevChannel::inputH264(const char *data, int len, uint64_t dts, uint64_t pts) {
+    if (dts == 0) {
+        dts = _aTicker[0].elapsedTime();
     }
-    if(pts == 0){
+    if (pts == 0) {
         pts = dts;
     }
 
@@ -96,11 +96,11 @@ bool DevChannel::inputH264(const char *data, int len, uint32_t dts, uint32_t pts
     return inputFrame(frame);
 }
 
-bool DevChannel::inputH265(const char *data, int len, uint32_t dts, uint32_t pts) {
-    if(dts == 0){
-        dts = (uint32_t)_aTicker[0].elapsedTime();
+bool DevChannel::inputH265(const char *data, int len, uint64_t dts, uint64_t pts) {
+    if (dts == 0) {
+        dts = _aTicker[0].elapsedTime();
     }
-    if(pts == 0){
+    if (pts == 0) {
         pts = dts;
     }
 
@@ -129,9 +129,9 @@ public:
     }
 };
 
-bool DevChannel::inputAAC(const char *data_without_adts, int len, uint32_t dts, const char *adts_header){
+bool DevChannel::inputAAC(const char *data_without_adts, int len, uint64_t dts, const char *adts_header){
     if (dts == 0) {
-        dts = (uint32_t) _aTicker[1].elapsedTime();
+        dts = _aTicker[1].elapsedTime();
     }
 
     if (!adts_header) {
@@ -152,9 +152,9 @@ bool DevChannel::inputAAC(const char *data_without_adts, int len, uint32_t dts, 
 
 }
 
-bool DevChannel::inputAudio(const char *data, int len, uint32_t dts){
+bool DevChannel::inputAudio(const char *data, int len, uint64_t dts){
     if (dts == 0) {
-        dts = (uint32_t) _aTicker[1].elapsedTime();
+        dts = _aTicker[1].elapsedTime();
     }
     return inputFrame(std::make_shared<FrameFromPtr>(_audio->codecId, (char *) data, len, dts, 0));
 }

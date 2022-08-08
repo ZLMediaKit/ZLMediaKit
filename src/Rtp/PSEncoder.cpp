@@ -32,7 +32,7 @@ PSEncoderImp::~PSEncoderImp() {
     InfoL << this << " " << printSSRC(_rtp_encoder->getSsrc());
 }
 
-void PSEncoderImp::onWrite(std::shared_ptr<Buffer> buffer, uint32_t stamp, bool key_pos) {
+void PSEncoderImp::onWrite(std::shared_ptr<Buffer> buffer, uint64_t stamp, bool key_pos) {
     if (!buffer) {
         return;
     }

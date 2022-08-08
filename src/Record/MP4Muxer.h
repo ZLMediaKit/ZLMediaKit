@@ -134,7 +134,7 @@ protected:
      * @param stamp 切片末尾时间戳
      * @param key_frame 是否有关键帧
      */
-    virtual void onSegmentData(std::string string, uint32_t stamp, bool key_frame) = 0;
+    virtual void onSegmentData(std::string string, uint64_t stamp, bool key_frame) = 0;
 
 protected:
     MP4FileIO::Writer createWriter() override;

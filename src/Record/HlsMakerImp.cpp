@@ -130,7 +130,7 @@ void HlsMakerImp::onWriteHls(const std::string &data) {
     //DebugL << "\r\n"  << string(data,len);
 }
 
-void HlsMakerImp::onFlushLastSegment(uint32_t duration_ms) {
+void HlsMakerImp::onFlushLastSegment(uint64_t duration_ms) {
     //关闭并flush文件到磁盘
     _file = nullptr;
 

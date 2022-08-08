@@ -75,7 +75,7 @@ public:
      * @param dts 解码时间戳，单位毫秒；等于0时内部会自动生成时间戳
      * @param pts 播放时间戳，单位毫秒；等于0时内部会赋值为dts
      */
-    bool inputH264(const char *data, int len, uint32_t dts, uint32_t pts = 0);
+    bool inputH264(const char *data, int len, uint64_t dts, uint64_t pts = 0);
 
     /**
      * 输入265帧
@@ -84,7 +84,7 @@ public:
      * @param dts 解码时间戳，单位毫秒；等于0时内部会自动生成时间戳
      * @param pts 播放时间戳，单位毫秒；等于0时内部会赋值为dts
      */
-    bool inputH265(const char *data, int len, uint32_t dts, uint32_t pts = 0);
+    bool inputH265(const char *data, int len, uint64_t dts, uint64_t pts = 0);
 
     /**
      * 输入aac帧
@@ -93,7 +93,7 @@ public:
      * @param dts 时间戳，单位毫秒
      * @param adts_header adts头
      */
-    bool inputAAC(const char *data_without_adts, int len, uint32_t dts, const char *adts_header);
+    bool inputAAC(const char *data_without_adts, int len, uint64_t dts, const char *adts_header);
 
     /**
      * 输入OPUS/G711音频帧
@@ -101,7 +101,7 @@ public:
      * @param len 帧数据长度
      * @param dts 时间戳，单位毫秒
      */
-    bool inputAudio(const char *data, int len, uint32_t dts);
+    bool inputAudio(const char *data, int len, uint64_t dts);
 
     /**
      * 输入yuv420p视频帧，内部会完成编码并调用inputH264方法
@@ -109,7 +109,7 @@ public:
      * @param linesize yuv420p数据linesize
      * @param cts 采集时间戳，单位毫秒
      */
-    bool inputYUV(char *yuv[3], int linesize[3], uint32_t cts);
+    bool inputYUV(char *yuv[3], int linesize[3], uint64_t cts);
 
     /**
      * 输入pcm数据，内部会完成编码并调用inputAAC方法
@@ -117,7 +117,7 @@ public:
      * @param len pcm数据长度
      * @param cts 采集时间戳，单位毫秒
      */
-    bool inputPCM(char *data, int len, uint32_t cts);
+    bool inputPCM(char *data, int len, uint64_t cts);
 
 private:
     MediaOriginType getOriginType(MediaSource &sender) const override;

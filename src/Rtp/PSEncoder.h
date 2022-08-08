@@ -30,7 +30,7 @@ protected:
     virtual void onRTP(toolkit::Buffer::Ptr rtp,bool is_key = false) = 0;
 
 protected:
-    void onWrite(std::shared_ptr<toolkit::Buffer> buffer, uint32_t stamp, bool key_pos) override;
+    void onWrite(std::shared_ptr<toolkit::Buffer> buffer, uint64_t stamp, bool key_pos) override;
 
 private:
     std::shared_ptr<CommonRtpEncoder> _rtp_encoder;

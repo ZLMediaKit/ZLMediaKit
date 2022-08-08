@@ -75,7 +75,7 @@ void HlsMaker::makeIndexFile(bool eof) {
 }
 
 
-void HlsMaker::inputData(void *data, size_t len, uint32_t timestamp, bool is_idr_fast_packet) {
+void HlsMaker::inputData(void *data, size_t len, uint64_t timestamp, bool is_idr_fast_packet) {
     if (data && len) {
         if (timestamp < _last_timestamp) {
             //时间戳回退了，切片时长重新计时
@@ -117,7 +117,7 @@ void HlsMaker::delOldSegment() {
     }
 }
 
-void HlsMaker::addNewSegment(uint32_t stamp) {
+void HlsMaker::addNewSegment(uint64_t stamp) {
     if (!_last_file_name.empty() && stamp - _last_seg_timestamp < _seg_duration * 1000) {
         //存在上个切片，并且未到分片时间
         return;

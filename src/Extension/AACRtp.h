@@ -43,7 +43,7 @@ private:
     void flushData();
 
 private:
-    uint32_t _last_dts = 0;
+    uint64_t _last_dts = 0;
     std::string _aac_cfg;
     FrameImp::Ptr _frame;
 };
@@ -77,7 +77,7 @@ public:
     bool inputFrame(const Frame::Ptr &frame) override;
 
 private:
-    void makeAACRtp(const void *pData, size_t uiLen, bool bMark, uint32_t uiStamp);
+    void makeAACRtp(const void *data, size_t len, bool mark, uint64_t stamp);
 
 private:
     unsigned char _section_buf[1600];

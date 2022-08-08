@@ -27,7 +27,7 @@ public:
     ~TSPacket() override = default;
 
 public:
-    uint32_t time_stamp = 0;
+    uint64_t time_stamp = 0;
 };
 
 //TS直播源

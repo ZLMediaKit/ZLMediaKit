@@ -73,7 +73,7 @@ Table 1.  Summary of NAL unit types and their payload structures
    30-31  undefined                                    -
 */
 
-bool H264RtpDecoder::singleFrame(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssize_t size, uint32_t stamp){
+bool H264RtpDecoder::singleFrame(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssize_t size, uint64_t stamp){
     _frame->_buffer.assign("\x00\x00\x00\x01", 4);
     _frame->_buffer.append((char *) ptr, size);
     _frame->_pts = stamp;
@@ -82,7 +82,7 @@ bool H264RtpDecoder::singleFrame(const RtpPacket::Ptr &rtp, const uint8_t *ptr, 
     return key;
 }
 
-bool H264RtpDecoder::unpackStapA(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssize_t size, uint32_t stamp) {
+bool H264RtpDecoder::unpackStapA(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssize_t size, uint64_t stamp) {
     //STAP-A 单一时间的组合包
     auto have_key_frame = false;
     auto end = ptr + size;
@@ -102,7 +102,7 @@ bool H264RtpDecoder::unpackStapA(const RtpPacket::Ptr &rtp, const uint8_t *ptr, 
     return have_key_frame;
 }
 
-bool H264RtpDecoder::mergeFu(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssize_t size, uint32_t stamp, uint16_t seq){
+bool H264RtpDecoder::mergeFu(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssize_t size, uint64_t stamp, uint16_t seq){
     auto nal_suffix = *ptr & (~0x1F);
     FuFlags *fu = (FuFlags *) (ptr + 1);
     if (fu->start_bit) {
@@ -197,7 +197,7 @@ H264RtpEncoder::H264RtpEncoder(uint32_t ssrc, uint32_t mtu, uint32_t sample_rate
         : RtpInfo(ssrc, mtu, sample_rate, pt, interleaved) {
 }
 
-void H264RtpEncoder::insertConfigFrame(uint32_t pts){
+void H264RtpEncoder::insertConfigFrame(uint64_t pts){
     if (!_sps || !_pps) {
         return;
     }
@@ -206,7 +206,7 @@ void H264RtpEncoder::insertConfigFrame(uint32_t pts){
     packRtp(_pps->data() + _pps->prefixSize(), _pps->size() - _pps->prefixSize(), pts, false, false);
 }
 
-void H264RtpEncoder::packRtp(const char *ptr, size_t len, uint32_t pts, bool is_mark, bool gop_pos){
+void H264RtpEncoder::packRtp(const char *ptr, size_t len, uint64_t pts, bool is_mark, bool gop_pos){
     if (len + 3 <= getMaxSize()) {
         //STAP-A模式打包小于MTU
         packRtpStapA(ptr, len, pts, is_mark, gop_pos);
@@ -216,7 +216,7 @@ void H264RtpEncoder::packRtp(const char *ptr, size_t len, uint32_t pts, bool is_
     }
 }
 
-void H264RtpEncoder::packRtpFu(const char *ptr, size_t len, uint32_t pts, bool is_mark, bool gop_pos){
+void H264RtpEncoder::packRtpFu(const char *ptr, size_t len, uint64_t pts, bool is_mark, bool gop_pos){
     auto packet_size = getMaxSize() - 2;
     if (len <= packet_size + 1) {
         //小于FU-A打包最小字节长度要求，采用STAP-A模式
@@ -256,7 +256,7 @@ void H264RtpEncoder::packRtpFu(const char *ptr, size_t len, uint32_t pts, bool i
     }
 }
 
-void H264RtpEncoder::packRtpStapA(const char *ptr, size_t len, uint32_t pts, bool is_mark, bool gop_pos){
+void H264RtpEncoder::packRtpStapA(const char *ptr, size_t len, uint64_t pts, bool is_mark, bool gop_pos){
     //如果帧长度不超过mtu,为了兼容性 webrtc，采用STAP-A模式打包
     auto rtp = makeRtp(getTrackType(), nullptr, len + 3, is_mark, pts);
     uint8_t *payload = rtp->getPayload();

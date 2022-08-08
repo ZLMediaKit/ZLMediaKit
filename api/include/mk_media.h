@@ -99,7 +99,7 @@ API_EXPORT int API_CALL mk_media_input_frame(mk_media ctx, mk_frame frame);
  * @param pts 播放时间戳，单位毫秒
  * @return 1代表成功，0失败
  */
-API_EXPORT int API_CALL mk_media_input_h264(mk_media ctx, const void *data, int len, uint32_t dts, uint32_t pts);
+API_EXPORT int API_CALL mk_media_input_h264(mk_media ctx, const void *data, int len, uint64_t dts, uint64_t pts);
 
 /**
  * 输入单帧H265视频，帧起始字节00 00 01,00 00 00 01均可，请改用mk_media_input_frame方法
@@ -110,7 +110,7 @@ API_EXPORT int API_CALL mk_media_input_h264(mk_media ctx, const void *data, int 
  * @param pts 播放时间戳，单位毫秒
  * @return 1代表成功，0失败
  */
-API_EXPORT int API_CALL mk_media_input_h265(mk_media ctx, const void *data, int len, uint32_t dts, uint32_t pts);
+API_EXPORT int API_CALL mk_media_input_h265(mk_media ctx, const void *data, int len, uint64_t dts, uint64_t pts);
 
 /**
  * 输入YUV视频数据
@@ -119,7 +119,7 @@ API_EXPORT int API_CALL mk_media_input_h265(mk_media ctx, const void *data, int 
  * @param linesize yuv420p linesize
  * @param cts 视频采集时间戳，单位毫秒
  */
-API_EXPORT void API_CALL mk_media_input_yuv(mk_media ctx, const char *yuv[3], int linesize[3], uint32_t cts);
+API_EXPORT void API_CALL mk_media_input_yuv(mk_media ctx, const char *yuv[3], int linesize[3], uint64_t cts);
 
 /**
  * 输入单帧AAC音频(单独指定adts头)，请改用mk_media_input_frame方法
@@ -130,7 +130,7 @@ API_EXPORT void API_CALL mk_media_input_yuv(mk_media ctx, const char *yuv[3], in
  * @param adts adts头，可以为null
  * @return 1代表成功，0失败
  */
-API_EXPORT int API_CALL mk_media_input_aac(mk_media ctx, const void *data, int len, uint32_t dts, void *adts);
+API_EXPORT int API_CALL mk_media_input_aac(mk_media ctx, const void *data, int len, uint64_t dts, void *adts);
 
 /**
  * 输入单帧PCM音频,启用ENABLE_FAAC编译时，该函数才有效
@@ -140,7 +140,7 @@ API_EXPORT int API_CALL mk_media_input_aac(mk_media ctx, const void *data, int l
  * @param dts 时间戳，毫秒
  * @return 1代表成功，0失败
  */
-API_EXPORT int API_CALL mk_media_input_pcm(mk_media ctx, void *data, int len, uint32_t pts);
+API_EXPORT int API_CALL mk_media_input_pcm(mk_media ctx, void *data, int len, uint64_t pts);
 
 /**
  * 输入单帧OPUS/G711音频帧，请改用mk_media_input_frame方法
@@ -150,7 +150,7 @@ API_EXPORT int API_CALL mk_media_input_pcm(mk_media ctx, void *data, int len, ui
  * @param dts 时间戳，毫秒
  * @return 1代表成功，0失败
  */
-API_EXPORT int API_CALL mk_media_input_audio(mk_media ctx, const void* data, int len, uint32_t dts);
+API_EXPORT int API_CALL mk_media_input_audio(mk_media ctx, const void* data, int len, uint64_t dts);
 
 /**
  * MediaSource.close()回调事件

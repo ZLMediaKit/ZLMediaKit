@@ -69,7 +69,7 @@ H265Frame::Ptr H265RtpDecoder::obtainFrame() {
 |                               :    ...OPTIONAL RTP padding    |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 */
-bool H265RtpDecoder::unpackAp(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssize_t size, uint32_t stamp){
+bool H265RtpDecoder::unpackAp(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssize_t size, uint64_t stamp){
     bool have_key_frame = false;
     //忽略PayloadHdr
     CHECK_SIZE(size, 2, have_key_frame);
@@ -119,7 +119,7 @@ bool H265RtpDecoder::unpackAp(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssi
 +---------------+
 */
 
-bool H265RtpDecoder::mergeFu(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssize_t size, uint32_t stamp, uint16_t seq){
+bool H265RtpDecoder::mergeFu(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssize_t size, uint64_t stamp, uint16_t seq){
     CHECK_SIZE(size, 4, false);
     auto s_bit = ptr[2] >> 7;
     auto e_bit = (ptr[2] >> 6) & 0x01;
@@ -216,7 +216,7 @@ bool H265RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtp) {
     }
 }
 
-bool H265RtpDecoder::singleFrame(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssize_t size, uint32_t stamp){
+bool H265RtpDecoder::singleFrame(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssize_t size, uint64_t stamp){
     _frame->_buffer.assign("\x00\x00\x00\x01", 4);
     _frame->_buffer.append((char *) ptr, size);
     _frame->_pts = stamp;
