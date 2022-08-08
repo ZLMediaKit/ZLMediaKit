@@ -386,7 +386,7 @@ FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num) {
         if (thread_num <= 0) {
             av_dict_set(&dict, "threads", "auto", 0);
         } else {
-            av_dict_set(&dict, "threads", to_string(MIN(thread_num, thread::hardware_concurrency())).data(), 0);
+            av_dict_set(&dict, "threads", to_string(MIN((unsigned int)thread_num, thread::hardware_concurrency())).data(), 0);
         }
         av_dict_set(&dict, "zerolatency", "1", 0);
         av_dict_set(&dict, "strict", "-2", 0);

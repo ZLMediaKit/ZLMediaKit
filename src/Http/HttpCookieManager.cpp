@@ -67,7 +67,7 @@ void HttpServerCookie::setAttach(std::shared_ptr<void> attach) {
 
 string HttpServerCookie::cookieExpireTime() const {
     char buf[64];
-    time_t tt = time(NULL) + _max_elapsed;
+    time_t tt = time(nullptr) + _max_elapsed;
     strftime(buf, sizeof buf, "%a, %b %d %Y %H:%M:%S GMT", gmtime(&tt));
     return buf;
 }
@@ -105,8 +105,8 @@ void HttpCookieManager::onManager() {
         }
 
         if (it_name->second.empty()) {
-            //该类型下没有任何cooki记录,移除之
-            DebugL << "该path下没有任何cooki记录:" << it_name->first;
+            //该类型下没有任何cookie记录,移除之
+            DebugL << "该path下没有任何cookie记录:" << it_name->first;
             it_name = _map_cookie.erase(it_name);
             continue;
         }
@@ -117,7 +117,7 @@ void HttpCookieManager::onManager() {
 HttpServerCookie::Ptr HttpCookieManager::addCookie(const string &cookie_name, const string &uid_in,
                                                    uint64_t max_elapsed, std::shared_ptr<void> attach, int max_client) {
     lock_guard<recursive_mutex> lck(_mtx_cookie);
-    auto cookie = _geneator.obtain();
+    auto cookie = _generator.obtain();
     auto uid = uid_in.empty() ? cookie : uid_in;
     auto oldCookie = getOldestCookie(cookie_name, uid, max_client);
     if (!oldCookie.empty()) {
@@ -159,13 +159,13 @@ HttpServerCookie::Ptr HttpCookieManager::getCookie(const string &cookie_name, co
         return nullptr;
     }
     auto cookie = FindField(it->second.data(), (cookie_name + "=").data(), ";");
-    if (!cookie.size()) {
+    if (cookie.empty()) {
         cookie = FindField(it->second.data(), (cookie_name + "=").data(), nullptr);
     }
     if (cookie.empty()) {
         return nullptr;
     }
-    return HttpCookieManager::Instance().getCookie(cookie_name, cookie);
+    return getCookie(cookie_name, cookie);
 }
 
 HttpServerCookie::Ptr HttpCookieManager::getCookieByUid(const string &cookie_name, const string &uid) {
@@ -205,7 +205,7 @@ void HttpCookieManager::onAddCookie(const string &cookie_name, const string &uid
 void HttpCookieManager::onDelCookie(const string &cookie_name, const string &uid, const string &cookie) {
     lock_guard<recursive_mutex> lck(_mtx_cookie);
     //回收随机字符串
-    _geneator.release(cookie);
+    _generator.release(cookie);
 
     auto it_name = _map_uid_to_cookie.find(cookie_name);
     if (it_name == _map_uid_to_cookie.end()) {
@@ -227,14 +227,14 @@ void HttpCookieManager::onDelCookie(const string &cookie_name, const string &uid
         //移除该用户名下的某个cookie，这个设备cookie将失效
         it_uid->second.erase(it_cookie);
 
-        if (it_uid->second.size() != 0) {
+        if (!it_uid->second.empty()) {
             break;
         }
 
         //该用户名下没有任何设备在线，移除之
         it_name->second.erase(it_uid);
 
-        if (it_name->second.size() != 0) {
+        if (!it_name->second.empty()) {
             break;
         }
         //该类型下未有任何用户在线，移除之
@@ -255,7 +255,7 @@ string HttpCookieManager::getOldestCookie(const string &cookie_name, const strin
         //该用户从未登录过
         return "";
     }
-    if (it_uid->second.size() < MAX(1, max_client)) {
+    if ((int)it_uid->second.size() < MAX(1, max_client)) {
         //同一名用户下，客户端个数还没达到限制个数
         return "";
     }
@@ -263,8 +263,8 @@ string HttpCookieManager::getOldestCookie(const string &cookie_name, const strin
     return it_uid->second.begin()->second;
 }
 
-/////////////////////////////////RandStrGeneator////////////////////////////////////
-string RandStrGeneator::obtain() {
+/////////////////////////////////RandStrGenerator////////////////////////////////////
+string RandStrGenerator::obtain() {
     //获取唯一的防膨胀的随机字符串
     while (true) {
         auto str = obtain_l();
@@ -276,12 +276,12 @@ string RandStrGeneator::obtain() {
     }
 }
 
-void RandStrGeneator::release(const string &str) {
+void RandStrGenerator::release(const string &str) {
     //从防膨胀库中移除
     _obtained.erase(str);
 }
 
-string RandStrGeneator::obtain_l() {
+string RandStrGenerator::obtain_l() {
     // 12个伪随机字节 + 4个递增的整形字节，然后md5即为随机字符串
     auto str = makeRandStr(12, false);
     str.append((char *)&_index, sizeof(_index));

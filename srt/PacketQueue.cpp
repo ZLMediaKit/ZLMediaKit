@@ -237,12 +237,12 @@ std::string PacketQueue::dump() {
 
 //////////////////// PacketRecvQueue //////////////////////////////////
 
-PacketRecvQueue::PacketRecvQueue(uint32_t max_size, uint32_t init_seq, uint32_t latency,uint32_t flag)
+PacketRecvQueue::PacketRecvQueue(uint32_t max_size, uint32_t init_seq, uint32_t latency, uint32_t flag)
     : _pkt_cap(max_size)
     , _pkt_latency(latency)
     , _pkt_expected_seq(init_seq)
-    , _pkt_buf(max_size)
-    , _srt_flag(flag) {}
+    , _srt_flag(flag)
+    , _pkt_buf(max_size) {}
 
 bool  PacketRecvQueue::TLPKTDrop(){
     return (_srt_flag&HSExtMessage::HS_EXT_MSG_TLPKTDROP) && (_srt_flag &HSExtMessage::HS_EXT_MSG_TSBPDRCV);

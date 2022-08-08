@@ -96,7 +96,8 @@ void MP4Demuxer::onVideoTrack(uint32_t track, uint8_t object, int width, int hei
             auto video = std::make_shared<H264Track>();
             _track_to_codec.emplace(track,video);
 
-            struct mpeg4_avc_t avc = {0};
+            struct mpeg4_avc_t avc;
+            memset(&avc, 0, sizeof(avc));
             if (mpeg4_avc_decoder_configuration_record_load((uint8_t *) extra, bytes, &avc) > 0) {
                 uint8_t config[1024 * 10] = {0};
                 int size = mpeg4_avc_to_nalu(&avc, config, sizeof(config));
@@ -110,7 +111,8 @@ void MP4Demuxer::onVideoTrack(uint32_t track, uint8_t object, int width, int hei
             auto video = std::make_shared<H265Track>();
             _track_to_codec.emplace(track,video);
 
-            struct mpeg4_hevc_t hevc = {0};
+            struct mpeg4_hevc_t hevc;
+            memset(&hevc, 0, sizeof(hevc));
             if (mpeg4_hevc_decoder_configuration_record_load((uint8_t *) extra, bytes, &hevc) > 0) {
                 uint8_t config[1024 * 10] = {0};
                 int size = mpeg4_hevc_to_nalu(&hevc, config, sizeof(config));
@@ -160,12 +162,13 @@ int64_t MP4Demuxer::seekTo(int64_t stamp_ms) {
     return stamp_ms;
 }
 
-struct Context{
+struct Context {
+    Context(MP4Demuxer *ptr) : thiz(ptr) {}
     MP4Demuxer *thiz;
-    int flags;
-    int64_t pts;
-    int64_t dts;
-    uint32_t track_id;
+    int flags = 0;
+    int64_t pts = 0;
+    int64_t dts = 0;
+    uint32_t track_id = 0;
     BufferRaw::Ptr buffer;
 };
 
@@ -188,7 +191,7 @@ Frame::Ptr MP4Demuxer::readFrame(bool &keyFrame, bool &eof) {
         return ctx->buffer->data() + DATA_OFFSET;
     };
 
-    Context ctx = {this, 0};
+    Context ctx(this);
     auto ret = mov_reader_read2(_mov_reader.get(), mov_onalloc, &ctx);
     switch (ret) {
         case 0 : {
