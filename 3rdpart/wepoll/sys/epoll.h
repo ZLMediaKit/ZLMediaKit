@@ -26,6 +26,9 @@ extern std::mutex s_handleMtx;
 inline int epoll_create(int size){
     HANDLE  handle = ::epoll_create(size);
     {
+        if(!handle){
+            return -1;
+        }
         std::lock_guard<std::mutex> lck(s_handleMtx);
         int idx = ++s_handleIndex;
         s_wepollHandleMap[idx] = handle;
