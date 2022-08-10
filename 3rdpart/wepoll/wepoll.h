@@ -1,4 +1,4 @@
-/*
+﻿/*
  * wepoll - epoll for Windows
  * https://github.com/piscisaureus/wepoll
  *

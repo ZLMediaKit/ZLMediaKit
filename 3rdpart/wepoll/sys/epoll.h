@@ -1,4 +1,4 @@
-/*
+﻿/*
 * Copyright (c) 2016 The ZLToolKit project authors. All Rights Reserved.
 *
 * This file is part of ZLToolKit(https://github.com/ZLMediaKit/ZLToolKit).
@@ -37,11 +37,21 @@ inline int epoll_create(int size){
 }
 
 inline int epoll_ctl(int ephnd, int op, SOCKET sock, struct epoll_event* ev){
-    return ::epoll_ctl(s_wepollHandleMap[ephnd],op,sock,ev);
+    HANDLE  handle;
+    {
+        std::lock_guard<std::mutex> lck(s_handleMtx);
+        handle = s_wepollHandleMap[ephnd];
+    }
+    return ::epoll_ctl(handle,op,sock,ev);
 }
 
 inline int epoll_wait(int ephnd,struct epoll_event* events,int maxevents,int timeout){
-    return ::epoll_wait(s_wepollHandleMap[ephnd],events,maxevents,timeout);
+    HANDLE  handle;
+    {
+        std::lock_guard<std::mutex> lck(s_handleMtx);
+        handle = s_wepollHandleMap[ephnd];
+    }
+    return ::epoll_wait(handle,events,maxevents,timeout);
 }
 
 }
