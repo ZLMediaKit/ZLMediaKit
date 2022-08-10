@@ -155,15 +155,17 @@ endif()
 ###################################################################
 #使用wepoll windows iocp 模拟 epoll
 if(ENABLE_WEPOLL)
-  message(STATUS "Enable wepoll")
-  #增加wepoll源文件及api参数兼容文件
-  list(APPEND ToolKit_SRC_LIST
-          ${CMAKE_CURRENT_SOURCE_DIR}/wepoll/wepoll.c
-          ${CMAKE_CURRENT_SOURCE_DIR}/wepoll/sys/epoll.cpp)
-  #增加wepoll头文件目录
-  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/wepoll)
-  #开启epoll
-  add_definitions(-DHAS_EPOLL)
+  if(WIN32)
+    message(STATUS "Enable wepoll")
+    #增加wepoll源文件及api参数兼容文件
+    list(APPEND ToolKit_SRC_LIST
+            ${CMAKE_CURRENT_SOURCE_DIR}/wepoll/wepoll.c
+            ${CMAKE_CURRENT_SOURCE_DIR}/wepoll/sys/epoll.cpp)
+    #增加wepoll头文件目录
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/wepoll)
+    #开启epoll
+    add_definitions(-DHAS_EPOLL)
+  endif()
 endif()
 ###################################################################
 
