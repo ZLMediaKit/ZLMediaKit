@@ -19,6 +19,7 @@
 #include "HttpSession.h"
 #include "Record/HlsMediaSource.h"
 #include "Common/Parser.h"
+#include "strCoding.h"
 
 using namespace std;
 using namespace toolkit;
@@ -124,7 +125,7 @@ static bool makeFolderMenu(const string &httpPath, const string &strFullPath, st
         if (pDirent->d_name[0] == '.') {
             continue;
         }
-        file_map.emplace(pDirent->d_name, std::make_pair(pDirent->d_name, strPathPrefix + "/" + pDirent->d_name));
+        file_map.emplace(strCoding::UrlEncode(pDirent->d_name), std::make_pair(pDirent->d_name, strPathPrefix + "/" + pDirent->d_name));
     }
     //如果是root目录，添加虚拟目录
     if (httpPath == "/") {

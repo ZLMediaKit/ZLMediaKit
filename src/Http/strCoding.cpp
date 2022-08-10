@@ -20,32 +20,30 @@ using namespace std;
 namespace mediakit {
 
 //////////////////////////通用///////////////////////
-void UTF8ToUnicode(wchar_t* pOut, const char *pText)
-{
-    char* uchar = (char *)pOut;
+void UTF8ToUnicode(wchar_t *pOut, const char *pText) {
+    char *uchar = (char *) pOut;
     uchar[1] = ((pText[0] & 0x0F) << 4) + ((pText[1] >> 2) & 0x0F);
     uchar[0] = ((pText[1] & 0x03) << 6) + (pText[2] & 0x3F);
     return;
 }
-void UnicodeToUTF8(char* pOut, const wchar_t* pText)
-{
+
+void UnicodeToUTF8(char *pOut, const wchar_t *pText) {
     // 注意 WCHAR高低字的顺序,低字节在前，高字节在后 
-    const char* pchar = (const char *)pText;
+    const char *pchar = (const char *) pText;
     pOut[0] = (0xE0 | ((pchar[1] & 0xF0) >> 4));
     pOut[1] = (0x80 | ((pchar[1] & 0x0F) << 2)) + ((pchar[0] & 0xC0) >> 6);
     pOut[2] = (0x80 | (pchar[0] & 0x3F));
     return;
 }
 
-char CharToInt(char ch) 
-{
-    if (ch >= '0' && ch <= '9')return (char)(ch - '0');
-    if (ch >= 'a' && ch <= 'f')return (char)(ch - 'a' + 10);
-    if (ch >= 'A' && ch <= 'F')return (char)(ch - 'A' + 10);
+char CharToInt(char ch) {
+    if (ch >= '0' && ch <= '9')return (char) (ch - '0');
+    if (ch >= 'a' && ch <= 'f')return (char) (ch - 'a' + 10);
+    if (ch >= 'A' && ch <= 'F')return (char) (ch - 'A' + 10);
     return -1;
 }
-char StrToBin(const char *str) 
-{
+
+char StrToBin(const char *str) {
     char tempWord[2];
     char chn;
     tempWord[0] = CharToInt(str[0]); //make the B to 11 -- 00001011 
@@ -59,23 +57,24 @@ string strCoding::UrlEncode(const string &str) {
     size_t len = str.size();
     for (size_t i = 0; i < len; ++i) {
         char ch = str[i];
-        if (isalnum((uint8_t)ch)) {
+        if (isalnum((uint8_t) ch)) {
             out.push_back(ch);
-        }else {
+        } else {
             char buf[4];
-            sprintf(buf, "%%%X%X", (uint8_t)ch >> 4,(uint8_t)ch & 0x0F);
+            sprintf(buf, "%%%X%X", (uint8_t) ch >> 4, (uint8_t) ch & 0x0F);
             out.append(buf);
         }
     }
     return out;
 }
+
 string strCoding::UrlDecode(const string &str) {
-    string output = "";
+    string output;
     char tmp[2];
     size_t i = 0, len = str.length();
     while (i < len) {
         if (str[i] == '%') {
-            if(i > len - 3){
+            if (i > len - 3) {
                 //防止内存溢出
                 break;
             }
@@ -83,9 +82,6 @@ string strCoding::UrlDecode(const string &str) {
             tmp[1] = str[i + 2];
             output += StrToBin(tmp);
             i = i + 3;
-        } else if (str[i] == '+') {
-            output += ' ';
-            i++;
         } else {
             output += str[i];
             i++;
@@ -93,7 +89,6 @@ string strCoding::UrlDecode(const string &str) {
     }
     return output;
 }
-
 
 ///////////////////////////////windows专用///////////////////////////////////
 #if defined(_WIN32)
@@ -168,8 +163,5 @@ string strCoding::GB2312ToUTF8(const string &str) {
     return ret;
 }
 #endif//defined(_WIN32)
-
-
-
 
 } /* namespace mediakit */
