@@ -8,6 +8,7 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 #include "epoll.h"
+
 std::map<int, HANDLE> toolkit::s_wepollHandleMap;
 int toolkit::s_handleIndex = 0;
 std::mutex toolkit::s_handleMtx;
