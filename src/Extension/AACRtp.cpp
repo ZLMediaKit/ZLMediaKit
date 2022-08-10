@@ -93,6 +93,11 @@ bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
     auto end = ptr + payload_size;
     //首2字节表示Au-Header的个数，单位bit，所以除以16得到Au-Header个数
     auto au_header_count = ((ptr[0] << 8) | ptr[1]) >> 4;
+    if (!au_header_count) {
+        //问题issue: https://github.com/ZLMediaKit/ZLMediaKit/issues/1869
+        WarnL << "invalid aac rtp au_header_count";
+        return false;
+    }
     //记录au_header起始指针
     auto au_header_ptr = ptr + 2;
     ptr = au_header_ptr +  au_header_count * 2;
