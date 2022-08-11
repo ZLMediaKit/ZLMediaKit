@@ -152,6 +152,23 @@ if(IOS)
     ${ToolKit_ROOT}/Network/Socket_ios.mm)
 endif()
 
+###################################################################
+#使用wepoll windows iocp 模拟 epoll
+if(ENABLE_WEPOLL)
+  if(WIN32)
+    message(STATUS "Enable wepoll")
+    #增加wepoll源文件及api参数兼容文件
+    list(APPEND ToolKit_SRC_LIST
+            ${CMAKE_CURRENT_SOURCE_DIR}/wepoll/wepoll.c
+            ${CMAKE_CURRENT_SOURCE_DIR}/wepoll/sys/epoll.cpp)
+    #增加wepoll头文件目录
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/wepoll)
+    #开启epoll
+    add_definitions(-DHAS_EPOLL)
+  endif()
+endif()
+###################################################################
+
 # 去除 win32 的适配代码
 if(NOT WIN32)
   list(REMOVE_ITEM ToolKit_SRC_LIST ${ToolKit_ROOT}/win32/getopt.c)
