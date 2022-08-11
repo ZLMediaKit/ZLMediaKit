@@ -52,6 +52,7 @@ option(ENABLE_SRT "Enable SRT" ON)
 option(ENABLE_TESTS "Enable Tests" ON)
 option(ENABLE_WEBRTC "Enable WebRTC" ON)
 option(ENABLE_X264 "Enable x264" OFF)
+option(ENABLE_WEPOLL "Enable wepoll" OFF)
 
 option(USE_SOLUTION_FOLDERS "Enable solution dir supported" ON)
 
