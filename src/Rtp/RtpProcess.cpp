@@ -244,17 +244,24 @@ void RtpProcess::emitOnPublish() {
         if (!strong_self) {
             return;
         }
-        if (err.empty()) {
-            strong_self->_muxer = std::make_shared<MultiMediaSourceMuxer>(strong_self->_media_info._vhost,
-                                                                          strong_self->_media_info._app,
-                                                                          strong_self->_media_info._streamid, 0.0f,
-                                                                          option);
-            strong_self->_muxer->setMediaListener(strong_self);
-            strong_self->doCachedFunc();
-            InfoP(strong_self) << "允许RTP推流";
-        } else {
-            WarnP(strong_self) << "禁止RTP推流:" << err;
-        }
+        auto poller = strong_self->_sock ? strong_self->_sock->getPoller() : EventPollerPool::Instance().getPoller();
+        poller->async([weak_self, err, option]() {
+            auto strong_self = weak_self.lock();
+            if (!strong_self) {
+                return;
+            }
+            if (err.empty()) {
+                strong_self->_muxer = std::make_shared<MultiMediaSourceMuxer>(strong_self->_media_info._vhost,
+                                                                              strong_self->_media_info._app,
+                                                                              strong_self->_media_info._streamid,0.0f,
+                                                                              option);
+                strong_self->_muxer->setMediaListener(strong_self);
+                strong_self->doCachedFunc();
+                InfoP(strong_self) << "允许RTP推流";
+            } else {
+                WarnP(strong_self) << "禁止RTP推流:" << err;
+            }
+        });
     };
 
     //触发推流鉴权事件
