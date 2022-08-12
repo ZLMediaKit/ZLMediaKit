@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "fe6cdfbd-531d-45e6-87e5-d460ce9e6328",
+		"_postman_id": "4626d766-16b5-4255-89ba-f7614de2398c",
 		"name": "ZLMediaKit",
 		"description": "媒体服务器",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
@@ -1087,7 +1087,7 @@
 						},
 						{
 							"key": "speed",
-							"value": 2.0,
+							"value": "2.0",
 							"description": "要设置的录像倍速"
 						}
 					]
@@ -1685,6 +1685,31 @@
 							"value": "",
 							"description": "根据ssrc关停某路rtp推流，不传时关闭所有推流",
 							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "获取版本信息(version)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/version?secret={{ZLMediaKit_secret}}",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"version"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}"
 						}
 					]
 				}
