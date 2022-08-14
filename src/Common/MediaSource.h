@@ -85,7 +85,7 @@ public:
 
     ////////////////////////仅供MultiMediaSourceMuxer对象继承////////////////////////
     // 开启或关闭录制
-    virtual bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const std::string &custom_path, size_t max_second) { return false; };
+    virtual bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const std::string &custom_path, size_t max_second, bool is_play) { return false; };
     // 获取录制状态
     virtual bool isRecording(MediaSource &sender, Recorder::type type) { return false; };
     // 获取所有track相关信息
@@ -142,7 +142,7 @@ public:
     int totalReaderCount(MediaSource &sender) override;
     void onReaderChanged(MediaSource &sender, int size) override;
     void onRegist(MediaSource &sender, bool regist) override;
-    bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const std::string &custom_path, size_t max_second) override;
+    bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const std::string &custom_path, size_t max_second, bool is_play) override;
     bool isRecording(MediaSource &sender, Recorder::type type) override;
     std::vector<Track::Ptr> getMediaTracks(MediaSource &sender, bool trackReady = true) const override;
     void startSendRtp(MediaSource &sender, const SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb) override;
@@ -295,7 +295,7 @@ public:
     // 该流观看人数变化
     void onReaderChanged(int size);
     // 开启或关闭录制
-    bool setupRecord(Recorder::type type, bool start, const std::string &custom_path, size_t max_second);
+    bool setupRecord(Recorder::type type, bool start, const std::string &custom_path, size_t max_second, bool is_play);
     // 获取录制状态
     bool isRecording(Recorder::type type);
     // 开始发送ps-rtp
