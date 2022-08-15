@@ -36,8 +36,8 @@ ProtocolOption::ProtocolOption() {
     continue_push_ms = s_continue_push_ms;
 }
 
-static std::shared_ptr<MediaSinkInterface> makeRecorder(MediaSource &sender, const vector<Track::Ptr> &tracks, Recorder::type type, const string &custom_path, size_t max_second, bool is_play = false){
-    auto recorder = Recorder::createRecorder(type, sender.getVhost(), sender.getApp(), sender.getId(), custom_path, max_second, is_play);
+static std::shared_ptr<MediaSinkInterface> makeRecorder(MediaSource &sender, const vector<Track::Ptr> &tracks, Recorder::type type, const string &custom_path, size_t max_second, bool as_player = false){
+    auto recorder = Recorder::createRecorder(type, sender.getVhost(), sender.getApp(), sender.getId(), custom_path, max_second, as_player);
     for (auto &track : tracks) {
         recorder->addTrack(track);
     }
@@ -93,7 +93,7 @@ MultiMediaSourceMuxer::MultiMediaSourceMuxer(const string &vhost, const string &
         _hls = dynamic_pointer_cast<HlsRecorder>(Recorder::createRecorder(Recorder::type_hls, vhost, app, stream, option.hls_save_path));
     }
     if (option.enable_mp4) {
-        _mp4 = Recorder::createRecorder(Recorder::type_mp4, vhost, app, stream, option.mp4_save_path, option.mp4_max_second, option.enable_record_player);
+        _mp4 = Recorder::createRecorder(Recorder::type_mp4, vhost, app, stream, option.mp4_save_path, option.mp4_max_second, option.enable_record_as_player);
     }
     if (option.enable_ts) {
         _ts = std::make_shared<TSMediaSourceMuxer>(vhost, app, stream);
@@ -145,8 +145,8 @@ int MultiMediaSourceMuxer::totalReaderCount() const {
                (_ts ? _ts->readerCount() : 0) +
                #if defined(ENABLE_MP4)
                (_fmp4 ? _fmp4->readerCount() : 0) +
-               (_mp4 ? _mp4->isPlayer() : 0) +
                #endif
+               (_mp4 ? (int)_mp4->asPlayer() : 0) +
                (hls ? hls->readerCount() : 0);
 
 #if defined(ENABLE_RTPPROXY)
@@ -174,7 +174,7 @@ int MultiMediaSourceMuxer::totalReaderCount(MediaSource &sender) {
 }
 
 //此函数可能跨线程调用
-bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path, size_t max_second, bool is_play) {
+bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path, size_t max_second, bool as_player) {
     switch (type) {
         case Recorder::type_hls : {
             if (start && !_hls) {
@@ -194,7 +194,7 @@ bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type
         case Recorder::type_mp4 : {
             if (start && !_mp4) {
                 //开始录制
-                _mp4 = makeRecorder(sender, getTracks(), type, custom_path, max_second, is_play);
+                _mp4 = makeRecorder(sender, getTracks(), type, custom_path, max_second, as_player);
             } else if (!start && _mp4) {
                 //停止录制
                 _mp4 = nullptr;

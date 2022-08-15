@@ -56,7 +56,7 @@ string Recorder::getRecordPath(Recorder::type type, const string &vhost, const s
     }
 }
 
-std::shared_ptr<MediaSinkInterface> Recorder::createRecorder(type type, const string &vhost, const string &app, const string &stream_id, const string &customized_path, size_t max_second, bool is_play){
+std::shared_ptr<MediaSinkInterface> Recorder::createRecorder(type type, const string &vhost, const string &app, const string &stream_id, const string &customized_path, size_t max_second, bool as_player){
     auto path = Recorder::getRecordPath(type, vhost, app, stream_id, customized_path);
     switch (type) {
         case Recorder::type_hls: {
@@ -73,7 +73,7 @@ std::shared_ptr<MediaSinkInterface> Recorder::createRecorder(type type, const st
 
         case Recorder::type_mp4: {
 #if defined(ENABLE_MP4)
-            return std::make_shared<MP4Recorder>(path, vhost, app, stream_id, max_second, is_play);
+            return std::make_shared<MP4Recorder>(path, vhost, app, stream_id, max_second, as_player);
 #else
             throw std::invalid_argument("mp4相关功能未打开，请开启ENABLE_MP4宏后编译再测试");
 #endif

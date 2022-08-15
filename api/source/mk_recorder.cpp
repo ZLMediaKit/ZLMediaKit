@@ -47,13 +47,13 @@ static inline bool isRecording(Recorder::type type, const string &vhost, const s
     return src->isRecording(type);
 }
 
-static inline  bool startRecord(Recorder::type type, const string &vhost, const string &app, const string &stream_id, const string &customized_path, size_t max_second, bool is_play = false){
+static inline  bool startRecord(Recorder::type type, const string &vhost, const string &app, const string &stream_id, const string &customized_path, size_t max_second, bool as_player = false){
     auto src = MediaSource::find(vhost, app, stream_id);
     if (!src) {
         WarnL << "未找到相关的MediaSource,startRecord失败:" << vhost << "/" << app << "/" << stream_id;
         return false;
     }
-    return src->setupRecord(type, true, customized_path, max_second, is_play);
+    return src->setupRecord(type, true, customized_path, max_second, as_player);
 }
 
 static inline bool stopRecord(Recorder::type type, const string &vhost, const string &app, const string &stream_id){

@@ -32,7 +32,7 @@ public:
     //是否开启MP4录制
     bool enable_mp4 = false;
     //是否将录制当做观看者
-    bool enable_record_player = false;
+    bool enable_record_as_player = false;
     //是否开启转换为rtsp/webrtc
     bool enable_rtsp = true;
     //是否开启转换为rtmp/flv
@@ -122,7 +122,7 @@ public:
      * @param custom_path 开启录制时，指定自定义路径
      * @return 是否设置成功
      */
-    bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const std::string &custom_path, size_t max_second, bool is_play) override;
+    bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const std::string &custom_path, size_t max_second, bool as_player) override;
 
     /**
      * 获取录制状态

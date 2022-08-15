@@ -48,7 +48,7 @@ public:
 
     MediaSinkInterface() = default;
     ~MediaSinkInterface() override = default;
-    virtual int isPlayer() { return 0; }
+    virtual bool asPlayer() { return false; }
 };
 
 /**

@@ -61,7 +61,7 @@ public:
      * @param is_play mp4录制是否作为观看者
      * @return 对象指针，可能为nullptr
      */
-    static std::shared_ptr<MediaSinkInterface> createRecorder(type type, const std::string &vhost, const std::string &app, const std::string &stream_id, const std::string &customized_path = "", size_t max_second = 0, bool is_play = false);
+    static std::shared_ptr<MediaSinkInterface> createRecorder(type type, const std::string &vhost, const std::string &app, const std::string &stream_id, const std::string &customized_path = "", size_t max_second = 0, bool as_player = false);
 
 private:
     Recorder() = delete;
