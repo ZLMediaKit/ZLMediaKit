@@ -58,9 +58,10 @@ public:
      * @param stream_id 流id
      * @param customized_path 录像文件保存自定义根目录，为空则采用配置文件设置
      * @param max_second mp4录制最大切片时间，单位秒，置0则采用配置文件配置
+     * @param is_play mp4录制是否作为观看者
      * @return 对象指针，可能为nullptr
      */
-    static std::shared_ptr<MediaSinkInterface> createRecorder(type type, const std::string &vhost, const std::string &app, const std::string &stream_id, const std::string &customized_path = "", size_t max_second = 0);
+    static std::shared_ptr<MediaSinkInterface> createRecorder(type type, const std::string &vhost, const std::string &app, const std::string &stream_id, const std::string &customized_path = "", size_t max_second = 0, bool as_player = false);
 
 private:
     Recorder() = delete;

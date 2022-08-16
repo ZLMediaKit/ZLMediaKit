@@ -28,7 +28,7 @@ class MP4Recorder : public MediaSinkInterface {
 public:
     using Ptr = std::shared_ptr<MP4Recorder>;
 
-    MP4Recorder(const std::string &path, const std::string &vhost, const std::string &app, const std::string &stream_id, size_t max_second);
+    MP4Recorder(const std::string &path, const std::string &vhost, const std::string &app, const std::string &stream_id, size_t max_second, bool as_player);
     ~MP4Recorder() override;
 
     /**
@@ -46,12 +46,19 @@ public:
      */
     bool addTrack(const Track::Ptr & track) override;
 
+    /**
+     * 录制是否作为观看者
+     */
+
+    bool asPlayer() override;
+
 private:
     void createFile();
     void closeFile();
     void asyncClose();
 
 private:
+    bool _as_player = false;
     bool _have_video = false;
     size_t _max_second;
     std::string _folder_path;

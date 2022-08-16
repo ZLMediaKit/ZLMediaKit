@@ -21,7 +21,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-MP4Recorder::MP4Recorder(const string &path, const string &vhost, const string &app, const string &stream_id, size_t max_second) {
+MP4Recorder::MP4Recorder(const string &path, const string &vhost, const string &app, const string &stream_id, size_t max_second, bool as_player) {
     _folder_path = path;
     /////record 业务逻辑//////
     _info.app = app;
@@ -30,6 +30,7 @@ MP4Recorder::MP4Recorder(const string &path, const string &vhost, const string &
     _info.folder = path;
     GET_CONFIG(size_t ,recordSec,Record::kFileSecond);
     _max_second = max_second ? max_second : recordSec;
+    _as_player = as_player;
 }
 
 MP4Recorder::~MP4Recorder() {
@@ -133,10 +134,15 @@ bool MP4Recorder::addTrack(const Track::Ptr &track) {
     return true;
 }
 
+
 void MP4Recorder::resetTracks() {
     closeFile();
     _tracks.clear();
     _have_video = false;
+}
+
+bool MP4Recorder::asPlayer() {
+    return _as_player;
 }
 
 } /* namespace mediakit */
