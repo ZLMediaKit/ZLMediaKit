@@ -966,7 +966,7 @@ void installWebApi() {
         ProtocolOption option;
         getArgsValue(allArgs, "enable_hls", option.enable_hls);
         getArgsValue(allArgs, "enable_mp4", option.enable_mp4);
-        getArgsValue(allArgs, "enable_record_as_player", option.enable_record_as_player);
+        getArgsValue(allArgs, "mp4_as_player", option.mp4_as_player);
         getArgsValue(allArgs, "enable_rtsp", option.enable_rtsp);
         getArgsValue(allArgs, "enable_rtmp", option.enable_rtmp);
         getArgsValue(allArgs, "enable_ts", option.enable_ts);
@@ -1250,7 +1250,7 @@ void installWebApi() {
         }
 
         src->getOwnerPoller()->async([=]() mutable {
-            auto result = src->setupRecord((Recorder::type)allArgs["type"].as<int>(), true, allArgs["customized_path"], allArgs["max_second"].as<size_t>(),allArgs["as_player"].as<bool>());
+            auto result = src->setupRecord((Recorder::type)allArgs["type"].as<int>(), true, allArgs["customized_path"], allArgs["max_second"].as<size_t>());
             val["result"] = result;
             val["code"] = result ? API::Success : API::OtherFailed;
             val["msg"] = result ? "success" :  "start record failed";
@@ -1313,7 +1313,7 @@ void installWebApi() {
 
         auto type = (Recorder::type)allArgs["type"].as<int>();
         src->getOwnerPoller()->async([=]() mutable {
-            auto result = src->setupRecord(type, false, "", 0, false);
+            auto result = src->setupRecord(type, false, "", 0);
             val["result"] = result;
             val["code"] = result ? API::Success : API::OtherFailed;
             val["msg"] = result ? "success" : "stop record failed";

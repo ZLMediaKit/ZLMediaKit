@@ -26,18 +26,19 @@ ProtocolOption::ProtocolOption() {
     GET_CONFIG(bool, s_to_mp4, General::kPublishToMP4);
     GET_CONFIG(bool, s_enabel_audio, General::kEnableAudio);
     GET_CONFIG(bool, s_add_mute_audio, General::kAddMuteAudio);
+    GET_CONFIG(bool, s_mp4_as_player, Record::kMP4AsPlayer);
     GET_CONFIG(uint32_t, s_continue_push_ms, General::kContinuePushMS);
-
 
     enable_hls = s_to_hls;
     enable_mp4 = s_to_mp4;
     enable_audio = s_enabel_audio;
     add_mute_audio = s_add_mute_audio;
     continue_push_ms = s_continue_push_ms;
+    mp4_as_player = s_mp4_as_player;
 }
 
-static std::shared_ptr<MediaSinkInterface> makeRecorder(MediaSource &sender, const vector<Track::Ptr> &tracks, Recorder::type type, const string &custom_path, size_t max_second, bool as_player = false){
-    auto recorder = Recorder::createRecorder(type, sender.getVhost(), sender.getApp(), sender.getId(), custom_path, max_second, as_player);
+static std::shared_ptr<MediaSinkInterface> makeRecorder(MediaSource &sender, const vector<Track::Ptr> &tracks, Recorder::type type, const string &custom_path, size_t max_second){
+    auto recorder = Recorder::createRecorder(type, sender.getVhost(), sender.getApp(), sender.getId(), custom_path, max_second);
     for (auto &track : tracks) {
         recorder->addTrack(track);
     }
@@ -75,6 +76,7 @@ static string getTrackInfoStr(const TrackSource *track_src){
 }
 
 MultiMediaSourceMuxer::MultiMediaSourceMuxer(const string &vhost, const string &app, const string &stream, float dur_sec, const ProtocolOption &option) {
+    _option = option;
     _get_origin_url = [this, vhost, app, stream]() {
         auto ret = getOriginUrl(*MediaSource::NullMediaSource);
         if (!ret.empty()) {
@@ -93,7 +95,7 @@ MultiMediaSourceMuxer::MultiMediaSourceMuxer(const string &vhost, const string &
         _hls = dynamic_pointer_cast<HlsRecorder>(Recorder::createRecorder(Recorder::type_hls, vhost, app, stream, option.hls_save_path));
     }
     if (option.enable_mp4) {
-        _mp4 = Recorder::createRecorder(Recorder::type_mp4, vhost, app, stream, option.mp4_save_path, option.mp4_max_second, option.enable_record_as_player);
+        _mp4 = Recorder::createRecorder(Recorder::type_mp4, vhost, app, stream, option.mp4_save_path, option.mp4_max_second);
     }
     if (option.enable_ts) {
         _ts = std::make_shared<TSMediaSourceMuxer>(vhost, app, stream);
@@ -146,7 +148,7 @@ int MultiMediaSourceMuxer::totalReaderCount() const {
                #if defined(ENABLE_MP4)
                (_fmp4 ? _fmp4->readerCount() : 0) +
                #endif
-               (_mp4 ? (int)_mp4->asPlayer() : 0) +
+               (_mp4 ? _option.mp4_as_player : 0) +
                (hls ? hls->readerCount() : 0);
 
 #if defined(ENABLE_RTPPROXY)
@@ -174,7 +176,7 @@ int MultiMediaSourceMuxer::totalReaderCount(MediaSource &sender) {
 }
 
 //此函数可能跨线程调用
-bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path, size_t max_second, bool as_player) {
+bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path, size_t max_second) {
     switch (type) {
         case Recorder::type_hls : {
             if (start && !_hls) {
@@ -194,7 +196,7 @@ bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type
         case Recorder::type_mp4 : {
             if (start && !_mp4) {
                 //开始录制
-                _mp4 = makeRecorder(sender, getTracks(), type, custom_path, max_second, as_player);
+                _mp4 = makeRecorder(sender, getTracks(), type, custom_path, max_second);
             } else if (!start && _mp4) {
                 //停止录制
                 _mp4 = nullptr;

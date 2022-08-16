@@ -348,6 +348,9 @@ void installWebHook(){
                 if (obj.isMember("continue_push_ms")) {
                     option.continue_push_ms = obj["continue_push_ms"].asUInt();
                 }
+                if (obj.isMember("mp4_as_player")) {
+                    option.mp4_as_player = obj["mp4_as_player"].asBool();
+                }
                 invoker(err, option);
             } else {
                 //推流鉴权失败
