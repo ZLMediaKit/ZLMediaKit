@@ -966,6 +966,7 @@ void installWebApi() {
         ProtocolOption option;
         getArgsValue(allArgs, "enable_hls", option.enable_hls);
         getArgsValue(allArgs, "enable_mp4", option.enable_mp4);
+        getArgsValue(allArgs, "mp4_as_player", option.mp4_as_player);
         getArgsValue(allArgs, "enable_rtsp", option.enable_rtsp);
         getArgsValue(allArgs, "enable_rtmp", option.enable_rtmp);
         getArgsValue(allArgs, "enable_ts", option.enable_ts);

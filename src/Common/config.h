@@ -295,6 +295,8 @@ extern const std::string kFileBufSize;
 extern const std::string kFastStart;
 // mp4文件是否重头循环读取
 extern const std::string kFileRepeat;
+//MP4录制是否当做播放器参与播放人数统计
+extern const std::string kMP4AsPlayer;
 } // namespace Record
 
 ////////////HLS相关配置///////////
