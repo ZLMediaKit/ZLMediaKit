@@ -1311,6 +1311,10 @@ void RtcSession::checkValid() const{
     bool have_active_media = false;
     for (auto &item : media) {
         item.checkValid();
+
+        if (TrackApplication == item.type) {
+            have_active_media = true;
+        }
         switch (item.direction) {
             case RtpDirection::sendrecv:
             case RtpDirection::sendonly:
@@ -1596,6 +1600,10 @@ RETRY:
 #ifdef ENABLE_SCTP
         answer_media.direction = matchDirection(offer_media.direction, configure.direction);
         answer_media.candidate = configure.candidate;
+        answer_media.ice_ufrag = configure.ice_ufrag;
+        answer_media.ice_pwd = configure.ice_pwd;
+        answer_media.fingerprint = configure.fingerprint;
+        answer_media.ice_lite = configure.ice_lite;
 #else
         answer_media.direction = RtpDirection::inactive;
 #endif
