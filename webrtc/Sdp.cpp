@@ -556,7 +556,7 @@ void SdpAttrRtpMap::parse(const string &str)  {
 
 string SdpAttrRtpMap::toString() const  {
     if (value.empty()) {
-        value = to_string(pt) + " " + codec + "/" + to_string(sample_rate);
+        value = to_string((int)pt) + " " + codec + "/" + to_string(sample_rate);
         if (channel) {
             value += '/';
             value += to_string(channel);
@@ -574,7 +574,7 @@ void SdpAttrRtcpFb::parse(const string &str_in)  {
 
 string SdpAttrRtcpFb::toString() const  {
     if (value.empty()) {
-        value = to_string(pt) + " " + rtcp_type;
+        value = to_string((int)pt) + " " + rtcp_type;
     }
     return SdpItem::toString();
 }
@@ -598,7 +598,7 @@ void SdpAttrFmtp::parse(const string &str)  {
 
 string SdpAttrFmtp::toString() const  {
     if (value.empty()) {
-        value = to_string(pt);
+        value = to_string((int)pt);
         int i = 0;
         for (auto &pr : fmtp) {
             value += (i++  ? ';' : ' ');
@@ -1070,7 +1070,7 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
         mline->port = m.port;
         mline->proto = m.proto;
         for (auto &p : m.plan) {
-            mline->fmts.emplace_back(to_string(p.pt));
+            mline->fmts.emplace_back(to_string((int)p.pt));
         }
         if (m.type == TrackApplication) {
             mline->fmts.emplace_back("webrtc-datachannel");
