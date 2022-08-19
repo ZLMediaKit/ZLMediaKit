@@ -1352,6 +1352,10 @@ bool RtcSession::supportSimulcast() const {
     return false;
 }
 
+bool RtcSession::isOnlyDatachannel() const {
+    return 1 == media.size() && TrackApplication == media[0].type;
+}
+
 string const SdpConst::kTWCCRtcpFb = "transport-cc";
 string const SdpConst::kRembRtcpFb = "goog-remb";
 
