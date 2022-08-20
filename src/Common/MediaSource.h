@@ -111,6 +111,15 @@ public:
         uint16_t dst_port;
         // 发送目标主机地址，可以是ip或域名
         std::string dst_url;
+
+        //udp发送时，是否开启rr rtcp接收超时判断
+        bool udp_rtcp_timeout = false;
+        //tcp被动发送服务器延时关闭事件，单位毫秒
+        uint32_t tcp_passive_close_delay_ms = 5 * 1000;
+        //udp 发送时，rr rtcp包接收超时时间，单位毫秒
+        uint32_t rtcp_timeout_ms = 30 * 1000;
+        //udp 发送时，发送sr rtcp包间隔，单位毫秒
+        uint32_t rtcp_send_interval_ms = 5 * 1000;
     };
 
     // 开始发送ps-rtp

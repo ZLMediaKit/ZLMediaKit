@@ -13,6 +13,7 @@
 #if defined(ENABLE_RTPPROXY)
 #include "PSEncoder.h"
 #include "Extension/CommonRtp.h"
+#include "Rtcp/RtcpContext.h"
 
 namespace mediakit{
 
@@ -53,6 +54,8 @@ public:
      */
     virtual void resetTracks() override;
 
+    void setOnClose(std::function<void()> on_close);
+
 private:
     //合并写输出
     void onFlushRtpList(std::shared_ptr<toolkit::List<toolkit::Buffer::Ptr> > rtp_list);
@@ -60,14 +63,23 @@ private:
     void onConnect();
     //异常断开socket事件
     void onErr(const toolkit::SockException &ex, bool is_connect = false);
+    void createRtcpSocket();
+    void onRecvRtcp(RtcpHeader *rtcp);
+    void onSendRtpUdp(const toolkit::Buffer::Ptr &buf, bool check);
+    void onClose();
 
 private:
     bool _is_connect = false;
     MediaSourceEvent::SendRtpArgs _args;
-    toolkit::Socket::Ptr _socket;
+    toolkit::Socket::Ptr _socket_rtp;
+    toolkit::Socket::Ptr _socket_rtcp;
     toolkit::EventPoller::Ptr _poller;
     toolkit::Timer::Ptr _connect_timer;
     MediaSinkInterface::Ptr _interface;
+    std::shared_ptr<RtcpContext> _rtcp_context;
+    toolkit::Ticker _rtcp_send_ticker;
+    toolkit::Ticker _rtcp_recv_ticker;
+    std::function<void()> _on_close;
 };
 
 }//namespace mediakit
