@@ -367,7 +367,32 @@ void WebRtcTransportImp::onCreate() {
     WebRtcTransport::onCreate();
     registerSelf();
 
+    weak_ptr<WebRtcTransportImp> weak_self = static_pointer_cast<WebRtcTransportImp>(shared_from_this());
+    GET_CONFIG(float, timeoutSec, RTC::kTimeOutSec);
+    _timer = std::make_shared<Timer>(
+        timeoutSec / 2,
+        [weak_self]() {
+            auto strong_self = weak_self.lock();
+            if (!strong_self) {
+                return false;
+            }
+            if (strong_self->_alive_ticker.elapsedTime() > timeoutSec * 1000) {
+                strong_self->onShutdown(SockException(Err_timeout, "接受rtp/rtcp/datachannel超时"));
+            }
+            return true;
+        },
+        getPoller());
+
     _twcc_ctx.setOnSendTwccCB([this](uint32_t ssrc, string fci) { onSendTwcc(ssrc, fci); });
+}
+
+void WebRtcTransportImp::OnDtlsTransportApplicationDataReceived(const RTC::DtlsTransport *dtlsTransport, const uint8_t *data, size_t len) {
+    WebRtcTransport::OnDtlsTransportApplicationDataReceived(dtlsTransport, data, len);
+#ifdef ENABLE_SCTP
+    if (_answer_sdp->isOnlyDatachannel()) {
+        _alive_ticker.resetTime();
+    }
+#endif
 }
 
 WebRtcTransportImp::WebRtcTransportImp(const EventPoller::Ptr &poller)
@@ -415,25 +440,6 @@ bool WebRtcTransportImp::canRecvRtp() const {
 }
 
 void WebRtcTransportImp::onStartWebRTC() {
-    //根据answer_sdp ,当仅有datachannel时 ，忽略rtp和rtcp超时
-    if (!_answer_sdp->isOnlyDatachannel()) {
-        weak_ptr<WebRtcTransportImp> weak_self = static_pointer_cast<WebRtcTransportImp>(shared_from_this());
-        GET_CONFIG(float, timeoutSec, RTC::kTimeOutSec);
-        _timer = std::make_shared<Timer>(
-            timeoutSec / 2,
-            [weak_self]() {
-                auto strong_self = weak_self.lock();
-                if (!strong_self) {
-                    return false;
-                }
-                if (strong_self->_alive_ticker.elapsedTime() > timeoutSec * 1000) {
-                    strong_self->onShutdown(SockException(Err_timeout, "接受rtp和rtcp超时"));
-                }
-                return true;
-            },
-            getPoller());
-    }
-
     // 获取ssrc和pt相关信息,届时收到rtp和rtcp时分别可以根据pt和ssrc找到相关的信息
     for (auto &m_answer : _answer_sdp->media) {
         if (m_answer.type == TrackApplication) {
