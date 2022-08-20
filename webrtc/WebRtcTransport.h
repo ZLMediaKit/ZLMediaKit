@@ -248,6 +248,7 @@ public:
 
 protected:
     WebRtcTransportImp(const EventPoller::Ptr &poller);
+    void OnDtlsTransportApplicationDataReceived(const RTC::DtlsTransport *dtlsTransport, const uint8_t *data, size_t len) override;
     void onStartWebRTC() override;
     void onSendSockData(Buffer::Ptr buf, bool flush = true, RTC::TransportTuple *tuple = nullptr) override;
     void onCheckSdp(SdpType type, RtcSession &sdp) override;

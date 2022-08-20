@@ -377,13 +377,22 @@ void WebRtcTransportImp::onCreate() {
                 return false;
             }
             if (strong_self->_alive_ticker.elapsedTime() > timeoutSec * 1000) {
-                strong_self->onShutdown(SockException(Err_timeout, "接受rtp和rtcp超时"));
+                strong_self->onShutdown(SockException(Err_timeout, "接受rtp/rtcp/datachannel超时"));
             }
             return true;
         },
         getPoller());
 
     _twcc_ctx.setOnSendTwccCB([this](uint32_t ssrc, string fci) { onSendTwcc(ssrc, fci); });
+}
+
+void WebRtcTransportImp::OnDtlsTransportApplicationDataReceived(const RTC::DtlsTransport *dtlsTransport, const uint8_t *data, size_t len) {
+    WebRtcTransport::OnDtlsTransportApplicationDataReceived(dtlsTransport, data, len);
+#ifdef ENABLE_SCTP
+    if (_answer_sdp->isOnlyDatachannel()) {
+        _alive_ticker.resetTime();
+    }
+#endif
 }
 
 WebRtcTransportImp::WebRtcTransportImp(const EventPoller::Ptr &poller)
