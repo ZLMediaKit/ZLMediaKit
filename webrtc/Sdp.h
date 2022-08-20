@@ -678,6 +678,7 @@ public:
     const  RtcMedia *getMedia(mediakit::TrackType type) const;
     bool supportRtcpFb(const std::string &name, mediakit::TrackType type = mediakit::TrackType::TrackVideo) const;
     bool supportSimulcast() const;
+    bool isOnlyDatachannel() const;
 
 private:
     RtcSessionSdp::Ptr toRtcSessionSdp() const;
