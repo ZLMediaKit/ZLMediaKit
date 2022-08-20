@@ -78,7 +78,7 @@ static string getTrackInfoStr(const TrackSource *track_src){
 MultiMediaSourceMuxer::MultiMediaSourceMuxer(const string &vhost, const string &app, const string &stream, float dur_sec, const ProtocolOption &option) {
     _option = option;
     _get_origin_url = [this, vhost, app, stream]() {
-        auto ret = getOriginUrl(*MediaSource::NullMediaSource);
+        auto ret = getOriginUrl(MediaSource::NullMediaSource);
         if (!ret.empty()) {
             return ret;
         }
@@ -237,11 +237,14 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &, const MediaSourceEvent::
         auto ssrc = args.ssrc;
         rtp_sender->setOnClose([weak_self, ssrc]() {
             if (auto strong_self = weak_self.lock()) {
-                strong_self->_rtp_sender.erase(ssrc);
                 WarnL << "stream:" << strong_self->_get_origin_url() << " stop send rtp:" << ssrc;
+                strong_self->_rtp_sender.erase(ssrc);
+                //触发观看人数统计
+                strong_self->onReaderChanged(MediaSource::NullMediaSource, strong_self->totalReaderCount());
             }
         });
         strong_self->_rtp_sender[args.ssrc] = std::move(rtp_sender);
+        strong_self->onReaderChanged(MediaSource::NullMediaSource, strong_self->totalReaderCount());
     });
 #else
     cb(0, SockException(Err_other, "该功能未启用，编译时请打开ENABLE_RTPPROXY宏"));
@@ -250,13 +253,10 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &, const MediaSourceEvent::
 
 bool MultiMediaSourceMuxer::stopSendRtp(MediaSource &sender, const string &ssrc) {
 #if defined(ENABLE_RTPPROXY)
-    std::unique_ptr<onceToken> token;
-    if (&sender != MediaSource::NullMediaSource) {
-        token.reset(new onceToken(nullptr, [&]() {
-            //关闭rtp推流，可能触发无人观看事件
-            MediaSourceEventInterceptor::onReaderChanged(sender, totalReaderCount());
-        }));
-    }
+    onceToken token(nullptr, [&]() {
+        //关闭rtp推流，可能触发无人观看事件
+        onReaderChanged(sender, totalReaderCount());
+    });
     if (ssrc.empty()) {
         //关闭全部
         auto size = _rtp_sender.size();
