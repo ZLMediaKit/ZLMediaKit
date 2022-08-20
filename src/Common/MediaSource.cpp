@@ -44,15 +44,17 @@ string getOriginTypeString(MediaOriginType type){
 }
 
 static string getOriginUrl_l(const MediaSource *thiz) {
-    if (thiz == MediaSource::NullMediaSource) {
-        return "";
-    }
     return thiz->getSchema() + "://" + thiz->getVhost() + "/" + thiz->getApp() + "/" + thiz->getId();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
+struct MediaSourceNull : public MediaSource {
+    MediaSourceNull() : MediaSource("schema", "vhost", "app", "stream") {};
+    int readerCount() override { return 0; }
+};
 
-MediaSource * const MediaSource::NullMediaSource = nullptr;
+static std::shared_ptr<MediaSource> s_null = std::make_shared<MediaSourceNull>();
+MediaSource &MediaSource::NullMediaSource = *s_null;
 
 MediaSource::MediaSource(const string &schema, const string &vhost, const string &app, const string &stream_id){
     GET_CONFIG(bool, enableVhost, General::kEnableVhost);
