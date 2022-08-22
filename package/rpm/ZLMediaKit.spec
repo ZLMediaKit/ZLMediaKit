@@ -13,6 +13,10 @@
 %bcond_without openssl
 %bcond_without mysql
 
+# 默认不编译 API
+%bcond_with api
+%bcond_with cxx_api
+
 Name:		ZLMediaKit
 Version:	5.0.0
 Release:	1%{?dist}
@@ -61,6 +65,7 @@ Summary:	A lightweight, high performance and stable stream server
 %description media-server
 A lightweight RTSP/RTMP/HTTP/HLS/HTTP-FLV/WebSocket-FLV/HTTP-TS/HTTP-fMP4/WebSocket-TS/WebSocket-fMP4/GB28181 server.
 
+%if %{with api}
 %package c-libs
 Requires:	%{name} = %{version}
 Summary:	The %{name} C libraries.
@@ -72,12 +77,15 @@ Requires:	%{name}-c-libs = %{version}
 Summary:	The %{name} C API headers.
 %description c-devel
 The %{name} C API headers.
+%endif
 
+%if %{with cxx_api}
 %package cxx-devel
 Requires:	%{name} = %{version}
 Summary:	The %{name} C++ API headers and development libraries.
 %description cxx-devel
 The %{name} C++ API headers and development libraries.
+%endif
 
 %prep
 %setup -q
@@ -104,8 +112,8 @@ pushd %{_target_platform}
 %endif
     -DENABLE_MP4:BOOL=ON \
     -DENABLE_RTPPROXY:BOOL=ON \
-    -DENABLE_API:BOOL=ON \
-    -DENABLE_CXX_API:BOOL=ON \
+    -DENABLE_API:BOOL=%{with api} \
+    -DENABLE_CXX_API:BOOL=%{with cxx_api} \
     -DENABLE_TESTS:BOOL=OFF \
     -DENABLE_SERVERL:BOOL=ON \
     ..
@@ -137,12 +145,15 @@ rm -rf $RPM_BUILD_ROOT
 %files media-server
 %{_bindir}/*
 
+%if %{with api}
 %files c-libs
 %{_libdir}/libmk_api.so
 
 %files c-devel
 %{_includedir}/mk_*
+%endif
 
+%if %{with cxx_api}
 %files cxx-devel
 %{_includedir}/ZLMediaKit/*
 %{_includedir}/ZLToolKit/*
@@ -151,6 +162,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libmpeg.a
 %{_libdir}/libmov.a
 %{_libdir}/libflv.a
+%endif
 
 %changelog
 
