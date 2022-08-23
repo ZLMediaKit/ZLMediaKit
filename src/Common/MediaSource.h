@@ -235,7 +235,7 @@ private:
  */
 class MediaSource: public TrackSource, public std::enable_shared_from_this<MediaSource> {
 public:
-    static MediaSource& NullMediaSource;
+    static MediaSource& NullMediaSource();
     using Ptr = std::shared_ptr<MediaSource>;
     using StreamMap = std::unordered_map<std::string/*stream_id*/, std::weak_ptr<MediaSource> >;
     using AppStreamMap = std::unordered_map<std::string/*app*/, StreamMap>;

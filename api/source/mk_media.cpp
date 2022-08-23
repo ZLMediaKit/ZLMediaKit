@@ -266,7 +266,7 @@ API_EXPORT void API_CALL mk_media_start_send_rtp(mk_media ctx, const char *dst_u
     args.is_udp = is_udp;
 
     //sender参数无用
-    (*obj)->getChannel()->startSendRtp(MediaSource::NullMediaSource, args, [cb, user_data](uint16_t local_port, const SockException &ex){
+    (*obj)->getChannel()->startSendRtp(MediaSource::NullMediaSource(), args, [cb, user_data](uint16_t local_port, const SockException &ex){
         if (cb) {
             cb(user_data, local_port, ex.getErrCode(), ex.what());
         }
@@ -277,5 +277,5 @@ API_EXPORT int API_CALL mk_media_stop_send_rtp(mk_media ctx, const char *ssrc){
     assert(ctx);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
     //sender参数无用
-    return (*obj)->getChannel()->stopSendRtp(MediaSource::NullMediaSource, ssrc ? ssrc : "");
+    return (*obj)->getChannel()->stopSendRtp(MediaSource::NullMediaSource(), ssrc ? ssrc : "");
 }
