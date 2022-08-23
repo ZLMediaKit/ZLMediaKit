@@ -53,8 +53,10 @@ struct MediaSourceNull : public MediaSource {
     int readerCount() override { return 0; }
 };
 
-static std::shared_ptr<MediaSource> s_null = std::make_shared<MediaSourceNull>();
-MediaSource &MediaSource::NullMediaSource = *s_null;
+MediaSource &MediaSource::NullMediaSource() {
+    static std::shared_ptr<MediaSource> s_null = std::make_shared<MediaSourceNull>();
+    return *s_null;
+}
 
 MediaSource::MediaSource(const string &schema, const string &vhost, const string &app, const string &stream_id){
     GET_CONFIG(bool, enableVhost, General::kEnableVhost);

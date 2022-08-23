@@ -78,7 +78,7 @@ static string getTrackInfoStr(const TrackSource *track_src){
 MultiMediaSourceMuxer::MultiMediaSourceMuxer(const string &vhost, const string &app, const string &stream, float dur_sec, const ProtocolOption &option) {
     _option = option;
     _get_origin_url = [this, vhost, app, stream]() {
-        auto ret = getOriginUrl(MediaSource::NullMediaSource);
+        auto ret = getOriginUrl(MediaSource::NullMediaSource());
         if (!ret.empty()) {
             return ret;
         }
@@ -240,11 +240,11 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &, const MediaSourceEvent::
                 WarnL << "stream:" << strong_self->_get_origin_url() << " stop send rtp:" << ssrc;
                 strong_self->_rtp_sender.erase(ssrc);
                 //触发观看人数统计
-                strong_self->onReaderChanged(MediaSource::NullMediaSource, strong_self->totalReaderCount());
+                strong_self->onReaderChanged(MediaSource::NullMediaSource(), strong_self->totalReaderCount());
             }
         });
         strong_self->_rtp_sender[args.ssrc] = std::move(rtp_sender);
-        strong_self->onReaderChanged(MediaSource::NullMediaSource, strong_self->totalReaderCount());
+        strong_self->onReaderChanged(MediaSource::NullMediaSource(), strong_self->totalReaderCount());
     });
 #else
     cb(0, SockException(Err_other, "该功能未启用，编译时请打开ENABLE_RTPPROXY宏"));
