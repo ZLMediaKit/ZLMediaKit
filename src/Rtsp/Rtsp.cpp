@@ -559,7 +559,7 @@ uint32_t RtpPacket::getStamp() const {
 }
 
 uint64_t RtpPacket::getStampMS(bool ntp) const {
-    return ntp ? ntp_stamp & 0xFFFFFFFF : getStamp() * uint64_t(1000) / sample_rate;
+    return ntp ? ntp_stamp : getStamp() * uint64_t(1000) / sample_rate;
 }
 
 uint32_t RtpPacket::getSSRC() const {
