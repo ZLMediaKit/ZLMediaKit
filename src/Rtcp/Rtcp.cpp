@@ -284,7 +284,7 @@ uint64_t RtcpSR::getNtpUnixStampMS() const {
     struct timeval tv;
     tv.tv_sec = ntpmsw - 0x83AA7E80;
     tv.tv_usec = (decltype(tv.tv_usec))(ntplsw / ((double)(((uint64_t)1) << 32) * 1.0e-6));
-    return 1000 * tv.tv_sec + tv.tv_usec / 1000;
+    return (uint64_t)1000 * tv.tv_sec + tv.tv_usec / 1000;
 }
 
 void RtcpSR::setNtpStamp(struct timeval tv) {
