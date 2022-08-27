@@ -246,6 +246,10 @@ void SrtTransport::handleHandshakeConclusion(HandshakePacket &pkt, struct sockad
         _send_packet_seq_number = _init_seq_number;
         _buf_delay = delay;
         onHandShakeFinished(_stream_id, addr);
+
+        if(!isPusher()){
+            _handleshake_timer.reset();
+        }
     } else {
         if(_handleshake_res->handshake_type == HandshakePacket::HS_TYPE_CONCLUSION){
             if(_handleshake_res->dst_socket_id != pkt.srt_socket_id){
