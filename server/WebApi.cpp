@@ -1673,6 +1673,10 @@ void installWebApi() {
         val["close"] = true;
     });
 
+    api_regist("/index/hook/on_send_rtp_stopped",[](API_ARGS_JSON){
+        //发送rtp(startSendRtp)被动关闭时回调
+    });
+
     static auto checkAccess = [](const string &params){
         //我们假定大家都要权限访问
         return true;

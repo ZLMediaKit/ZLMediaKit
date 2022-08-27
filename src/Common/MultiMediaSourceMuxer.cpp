@@ -75,7 +75,22 @@ static string getTrackInfoStr(const TrackSource *track_src){
     return std::move(codec_info);
 }
 
+const std::string &MultiMediaSourceMuxer::getVhost() const {
+    return _vhost;
+}
+
+const std::string &MultiMediaSourceMuxer::getApp() const {
+    return _app;
+}
+
+const std::string &MultiMediaSourceMuxer::getStreamId() const {
+    return _stream_id;
+}
+
 MultiMediaSourceMuxer::MultiMediaSourceMuxer(const string &vhost, const string &app, const string &stream, float dur_sec, const ProtocolOption &option) {
+    _vhost = vhost;
+    _app = app;
+    _stream_id = stream;
     _option = option;
     _get_origin_url = [this, vhost, app, stream]() {
         auto ret = getOriginUrl(MediaSource::NullMediaSource());
@@ -235,12 +250,13 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const MediaSourceE
         rtp_sender->addTrackCompleted();
 
         auto ssrc = args.ssrc;
-        rtp_sender->setOnClose([weak_self, ssrc]() {
+        rtp_sender->setOnClose([weak_self, ssrc](const toolkit::SockException &ex) {
             if (auto strong_self = weak_self.lock()) {
-                WarnL << "stream:" << strong_self->_get_origin_url() << " stop send rtp:" << ssrc;
+                WarnL << "stream:" << strong_self->_get_origin_url() << " stop send rtp:" << ssrc << ", reason:" << ex.what();
                 strong_self->_rtp_sender.erase(ssrc);
                 //触发观看人数统计
                 strong_self->onReaderChanged(MediaSource::NullMediaSource(), strong_self->totalReaderCount());
+                NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastSendRtpStopped, *strong_self, ssrc, ex);
             }
         });
         strong_self->_rtp_sender[args.ssrc] = std::move(rtp_sender);

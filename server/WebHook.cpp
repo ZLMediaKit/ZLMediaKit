@@ -45,6 +45,7 @@ const string kOnStreamNoneReader = HOOK_FIELD"on_stream_none_reader";
 const string kOnHttpAccess = HOOK_FIELD"on_http_access";
 const string kOnServerStarted = HOOK_FIELD"on_server_started";
 const string kOnServerKeepalive = HOOK_FIELD"on_server_keepalive";
+const string kOnSendRtpStopped = HOOK_FIELD"on_send_rtp_stopped";
 const string kAdminParams = HOOK_FIELD"admin_params";
 const string kAliveInterval = HOOK_FIELD"alive_interval";
 const string kRetry = HOOK_FIELD"retry";
@@ -68,6 +69,7 @@ onceToken token([](){
     mINI::Instance()[kOnHttpAccess] = "";
     mINI::Instance()[kOnServerStarted] = "";
     mINI::Instance()[kOnServerKeepalive] = "";
+    mINI::Instance()[kOnSendRtpStopped] = "";
     mINI::Instance()[kAdminParams] = "secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc";
     mINI::Instance()[kAliveInterval] = 30.0;
     mINI::Instance()[kRetry] = 1;
@@ -587,6 +589,26 @@ void installWebHook(){
             strongSrc->close(false);
             WarnL << "无人观看主动关闭流:" << strongSrc->getOriginUrl();
         });
+    });
+
+    NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastSendRtpStopped, [](BroadcastSendRtpStopped) {
+        GET_CONFIG(string, hook_send_rtp_stopped, Hook::kOnSendRtpStopped);
+        if (!hook_enable || hook_send_rtp_stopped.empty()) {
+            return;
+        }
+
+        ArgsType body;
+        body[VHOST_KEY] = sender.getVhost();
+        body["app"] = sender.getApp();
+        body["stream"] = sender.getStreamId();
+        body["ssrc"] = ssrc;
+        body["originType"] = (int)sender.getOriginType(MediaSource::NullMediaSource());
+        body["originTypeStr"] = getOriginTypeString(sender.getOriginType(MediaSource::NullMediaSource()));
+        body["originUrl"] = sender.getOriginUrl(MediaSource::NullMediaSource());
+        body["msg"] = ex.what();
+        body["err"] = ex.getErrCode();
+        //执行hook
+        do_http_hook(hook_send_rtp_stopped, body, nullptr);
     });
 
     /**

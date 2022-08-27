@@ -154,6 +154,10 @@ public:
      */
     std::vector<Track::Ptr> getMediaTracks(MediaSource &sender, bool trackReady = true) const override;
 
+    const std::string& getVhost() const;
+    const std::string& getApp() const;
+    const std::string& getStreamId() const;
+
 protected:
     /////////////////////////////////MediaSink override/////////////////////////////////
 
@@ -177,6 +181,9 @@ protected:
 
 private:
     bool _is_enable = false;
+    std::string _vhost;
+    std::string _app;
+    std::string _stream_id;
     ProtocolOption _option;
     toolkit::Ticker _last_check;
     Stamp _stamp[2];
