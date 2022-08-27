@@ -54,7 +54,7 @@ public:
      */
     virtual void resetTracks() override;
 
-    void setOnClose(std::function<void()> on_close);
+    void setOnClose(std::function<void(const toolkit::SockException &ex)> on_close);
 
 private:
     //合并写输出
@@ -66,7 +66,7 @@ private:
     void createRtcpSocket();
     void onRecvRtcp(RtcpHeader *rtcp);
     void onSendRtpUdp(const toolkit::Buffer::Ptr &buf, bool check);
-    void onClose();
+    void onClose(const toolkit::SockException &ex);
 
 private:
     bool _is_connect = false;
@@ -79,7 +79,7 @@ private:
     std::shared_ptr<RtcpContext> _rtcp_context;
     toolkit::Ticker _rtcp_send_ticker;
     toolkit::Ticker _rtcp_recv_ticker;
-    std::function<void()> _on_close;
+    std::function<void(const toolkit::SockException &ex)> _on_close;
 };
 
 }//namespace mediakit
