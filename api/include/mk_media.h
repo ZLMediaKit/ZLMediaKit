@@ -15,6 +15,7 @@
 #include "mk_track.h"
 #include "mk_frame.h"
 #include "mk_events_objects.h"
+#include "mk_thread.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -246,7 +247,7 @@ API_EXPORT void API_CALL mk_media_set_on_regist(mk_media ctx, on_mk_media_source
 typedef on_mk_media_source_send_rtp_result on_mk_media_send_rtp_result;
 
 /**
- * 开始发送一路ps-rtp流(通过ssrc区分多路)
+ * 开始发送一路ps-rtp流(通过ssrc区分多路)，此api线程安全
  * @param ctx 对象指针
  * @param dst_url 目标ip或域名
  * @param dst_port 目标端口
@@ -258,12 +259,18 @@ typedef on_mk_media_source_send_rtp_result on_mk_media_send_rtp_result;
 API_EXPORT void API_CALL mk_media_start_send_rtp(mk_media ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int is_udp, on_mk_media_send_rtp_result cb, void *user_data);
 
 /**
- * 停止某路或全部ps-rtp发送
+ * 停止某路或全部ps-rtp发送，此api线程安全
  * @param ctx 对象指针
  * @param ssrc rtp的ssrc，10进制的字符串打印，如果为null或空字符串，则停止所有rtp推流
- * @return 1成功，0失败
  */
-API_EXPORT int API_CALL mk_media_stop_send_rtp(mk_media ctx, const char *ssrc);
+API_EXPORT void API_CALL mk_media_stop_send_rtp(mk_media ctx, const char *ssrc);
+
+/**
+ * 获取所属线程
+ * @param ctx 对象指针
+ */
+API_EXPORT mk_thread API_CALL mk_media_get_owner_thread(mk_media ctx);
+
 
 #ifdef __cplusplus
 }

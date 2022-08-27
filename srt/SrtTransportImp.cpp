@@ -151,7 +151,7 @@ std::shared_ptr<SockInfo> SrtTransportImp::getOriginSock(mediakit::MediaSource &
 
 toolkit::EventPoller::Ptr SrtTransportImp::getOwnerPoller(MediaSource &sender){
     auto session = getSession();
-    return session  ? session->getPoller() : nullptr;
+    return session  ? session->getPoller() : EventPollerPool::Instance().getPoller();
 }
 
 void SrtTransportImp::emitOnPublish() {

@@ -22,6 +22,7 @@ public:
     template<typename ...ArgsType>
     MediaHelper(ArgsType &&...args){
         _channel = std::make_shared<DevChannel>(std::forward<ArgsType>(args)...);
+        _poller = EventPollerPool::Instance().getPoller();
     }
     ~MediaHelper(){}
 
@@ -56,6 +57,11 @@ public:
     void setOnRegist(on_mk_media_source_regist cb, void *user_data){
         _on_regist = cb;
         _on_regist_data = user_data;
+    }
+
+    // 获取所属线程
+    toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override {
+        return _poller;
     }
 
 protected:
@@ -111,6 +117,7 @@ protected:
     }
 
 private:
+    EventPoller::Ptr _poller;
     DevChannel::Ptr _channel;
     on_mk_media_close _on_close = nullptr;
     on_mk_media_seek _on_seek = nullptr;
@@ -265,17 +272,29 @@ API_EXPORT void API_CALL mk_media_start_send_rtp(mk_media ctx, const char *dst_u
     args.ssrc = ssrc;
     args.is_udp = is_udp;
 
-    //sender参数无用
-    (*obj)->getChannel()->startSendRtp(MediaSource::NullMediaSource(), args, [cb, user_data](uint16_t local_port, const SockException &ex){
-        if (cb) {
-            cb(user_data, local_port, ex.getErrCode(), ex.what());
-        }
+    // sender参数无用
+    auto ref = *obj;
+    (*obj)->getOwnerPoller(MediaSource::NullMediaSource())->async([args, ref, cb, user_data]() {
+        ref->getChannel()->startSendRtp(MediaSource::NullMediaSource(), args, [cb, user_data](uint16_t local_port, const SockException &ex) {
+            if (cb) {
+                cb(user_data, local_port, ex.getErrCode(), ex.what());
+            }
+        });
     });
 }
 
-API_EXPORT int API_CALL mk_media_stop_send_rtp(mk_media ctx, const char *ssrc){
+API_EXPORT void API_CALL mk_media_stop_send_rtp(mk_media ctx, const char *ssrc){
     assert(ctx);
-    MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
-    //sender参数无用
-    return (*obj)->getChannel()->stopSendRtp(MediaSource::NullMediaSource(), ssrc ? ssrc : "");
+    MediaHelper::Ptr *obj = (MediaHelper::Ptr *)ctx;
+    // sender参数无用
+    auto ref = *obj;
+    string ssrc_str = ssrc ? ssrc : "";
+    (*obj)->getOwnerPoller(MediaSource::NullMediaSource())->async([ref, ssrc_str]() {
+        ref->getChannel()->stopSendRtp(MediaSource::NullMediaSource(), ssrc_str);
+    });
+}
+
+API_EXPORT mk_thread API_CALL mk_media_get_owner_thread(mk_media ctx) {
+    MediaHelper::Ptr *obj = (MediaHelper::Ptr *)ctx;
+    return (*obj)->getOwnerPoller(MediaSource::NullMediaSource()).get();
 }

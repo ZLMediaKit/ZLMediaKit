@@ -33,12 +33,11 @@ public:
 
     /**
      * 开始解复用MP4文件
-     * @param poller 解复用mp4定时器所绑定线程，置空则随机采用一条后台线程
      * @param sample_ms 每次读取文件数据量，单位毫秒，置0时采用配置文件配置
      * @param ref_self 是否让定时器引用此对象本身，如果无其他对象引用本身，在不循环读文件时，读取文件结束后本对象将自动销毁
      * @param file_repeat 是否循环读取文件，如果配置文件设置为循环读文件，此参数无效
      */
-    void startReadMP4(const toolkit::EventPoller::Ptr &poller = nullptr, uint64_t sample_ms = 0, bool ref_self = true,  bool file_repeat = false);
+    void startReadMP4(uint64_t sample_ms = 0, bool ref_self = true,  bool file_repeat = false);
 
     /**
      * 停止解复用MP4定时器
@@ -60,6 +59,7 @@ private:
     int totalReaderCount(MediaSource &sender) override;
     MediaOriginType getOriginType(MediaSource &sender) const override;
     std::string getOriginUrl(MediaSource &sender) const override;
+    toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;
 
     bool readSample();
     bool readNextSample();
@@ -80,6 +80,7 @@ private:
     toolkit::Timer::Ptr _timer;
     MP4Demuxer::Ptr _demuxer;
     MultiMediaSourceMuxer::Ptr _muxer;
+    toolkit::EventPoller::Ptr _poller;
 };
 
 } /* namespace mediakit */
