@@ -88,6 +88,8 @@ private:
 
     size_t getPayloadSize();
 
+    bool isSameCon(HandshakePacket &pkt);
+
 protected:
     void sendDataPacket(DataPacket::Ptr pkt, char *buf, int len, bool flush = false);
     void sendControlPacket(ControlPacket::Ptr pkt, bool flush = true);
