@@ -281,38 +281,10 @@ void RtpSender::onFlushRtpList(shared_ptr<List<Buffer::Ptr> > rtp_list) {
     });
 }
 
-void RtpSender::onErr(const SockException &ex, bool is_connect) {
+void RtpSender::onErr(const SockException &ex) {
     _is_connect = false;
-
-    if (_args.passive || !_args.is_udp) {
-        WarnL << "send rtp tcp connection lost: " << ex.what();
-        //tcp模式，如果对方断开连接，应该停止发送rtp
-        onClose(ex);
-        return;
-    }
-
-    //监听socket断开事件，方便重连
-    if (is_connect) {
-        WarnL << "重连" << _args.dst_url << ":" << _args.dst_port << "失败, 原因为:" << ex.what();
-    } else {
-        WarnL << "停止发送 rtp:" << _args.dst_url << ":" << _args.dst_port << ", 原因为:" << ex.what();
-    }
-
-    weak_ptr<RtpSender> weak_self = shared_from_this();
-    _connect_timer = std::make_shared<Timer>(10.0f, [weak_self]() {
-        auto strong_self = weak_self.lock();
-        if (!strong_self) {
-            return false;
-        }
-        strong_self->startSend(strong_self->_args, [weak_self](uint16_t local_port, const SockException &ex){
-            auto strong_self = weak_self.lock();
-            if (strong_self && ex) {
-                //连接失败且本对象未销毁，那么重试连接
-                strong_self->onErr(ex, true);
-            }
-        });
-        return false;
-    }, _poller);
+    WarnL << "send rtp tcp connection lost: " << ex.what();
+    onClose(ex);
 }
 
 void RtpSender::setOnClose(std::function<void(const toolkit::SockException &ex)> on_close){
