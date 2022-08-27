@@ -120,12 +120,6 @@ void RtpSelector::onManager() {
     });
 }
 
-RtpSelector::RtpSelector() {
-}
-
-RtpSelector::~RtpSelector() {
-}
-
 RtpProcessHelper::RtpProcessHelper(const string &stream_id, const weak_ptr<RtpSelector> &parent) {
     _stream_id = stream_id;
     _parent = parent;
@@ -136,6 +130,7 @@ RtpProcessHelper::~RtpProcessHelper() {
 }
 
 void RtpProcessHelper::attachEvent() {
+    //主要目的是close回调触发时能把对象从RtpSelector中删除
     _process->setListener(shared_from_this());
 }
 
@@ -155,6 +150,10 @@ bool RtpProcessHelper::close(MediaSource &sender, bool force) {
 
 int RtpProcessHelper::totalReaderCount(MediaSource &sender) {
     return _process ? _process->getTotalReaderCount() : sender.totalReaderCount();
+}
+
+toolkit::EventPoller::Ptr RtpProcessHelper::getOwnerPoller(MediaSource &sender) {
+    return toolkit::EventPollerPool::Instance().getPoller();
 }
 
 RtpProcess::Ptr &RtpProcessHelper::getProcess() {

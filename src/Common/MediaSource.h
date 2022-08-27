@@ -81,7 +81,7 @@ public:
     // 获取丢包率
     virtual int getLossRate(MediaSource &sender, TrackType type) { return -1; }
     // 获取所在线程
-    virtual toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) { return nullptr; }
+    virtual toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) = 0;
 
     ////////////////////////仅供MultiMediaSourceMuxer对象继承////////////////////////
     // 开启或关闭录制

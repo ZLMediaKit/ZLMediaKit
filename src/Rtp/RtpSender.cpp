@@ -20,8 +20,8 @@ using namespace toolkit;
 
 namespace mediakit{
 
-RtpSender::RtpSender() {
-    _poller = EventPollerPool::Instance().getPoller();
+RtpSender::RtpSender(EventPoller::Ptr poller) {
+    _poller = poller ? std::move(poller) : EventPollerPool::Instance().getPoller();
     _socket_rtp = Socket::createSocket(_poller, false);
 }
 
@@ -253,9 +253,8 @@ void RtpSender::onSendRtpUdp(const toolkit::Buffer::Ptr &buf, bool check) {
 }
 
 void RtpSender::onClose() {
-    auto cb = _on_close;
-    if (cb) {
-        _poller->async([cb]() { cb(); }, false);
+    if (_on_close) {
+        _on_close();
     }
 }
 
@@ -266,24 +265,17 @@ void RtpSender::onFlushRtpList(shared_ptr<List<Buffer::Ptr> > rtp_list) {
         return;
     }
 
-    weak_ptr<RtpSender> weak_self = shared_from_this();
-    _poller->async([rtp_list, weak_self]() {
-        auto strong_self = weak_self.lock();
-        if (!strong_self) {
-            return;
+    size_t i = 0;
+    auto size = rtp_list->size();
+    rtp_list->for_each([&](Buffer::Ptr &packet) {
+        if (_args.is_udp) {
+            onSendRtpUdp(packet, i == 0);
+            // udp模式，rtp over tcp前4个字节可以忽略
+            _socket_rtp->send(std::make_shared<BufferRtp>(std::move(packet), RtpPacket::kRtpTcpHeaderSize), nullptr, 0, ++i == size);
+        } else {
+            // tcp模式, rtp over tcp前2个字节可以忽略,只保留后续rtp长度的2个字节
+            _socket_rtp->send(std::make_shared<BufferRtp>(std::move(packet), 2), nullptr, 0, ++i == size);
         }
-        size_t i = 0;
-        auto size = rtp_list->size();
-        rtp_list->for_each([&](Buffer::Ptr &packet) {
-            if (strong_self->_args.is_udp) {
-                strong_self->onSendRtpUdp(packet, i == 0);
-                //udp模式，rtp over tcp前4个字节可以忽略
-                strong_self->_socket_rtp->send(std::make_shared<BufferRtp>(std::move(packet),  RtpPacket::kRtpTcpHeaderSize), nullptr, 0, ++i == size);
-            } else {
-                //tcp模式, rtp over tcp前2个字节可以忽略,只保留后续rtp长度的2个字节
-                strong_self->_socket_rtp->send(std::make_shared<BufferRtp>(std::move(packet), 2), nullptr, 0, ++i == size);
-            }
-        });
     });
 }
 

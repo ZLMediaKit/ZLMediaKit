@@ -139,6 +139,10 @@ int RtpSession::totalReaderCount(MediaSource &sender) {
     return _process ? _process->getTotalReaderCount() : sender.totalReaderCount();
 }
 
+toolkit::EventPoller::Ptr RtpSession::getOwnerPoller(MediaSource &sender) {
+    return getPoller();
+}
+
 static const char *findSSRC(const char *data, ssize_t len, uint32_t ssrc) {
     //rtp前面必须预留两个字节的长度字段
     for (ssize_t i = 2; i <= len - 4; ++i) {

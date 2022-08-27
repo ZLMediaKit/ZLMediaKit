@@ -219,9 +219,9 @@ bool MultiMediaSourceMuxer::isRecording(MediaSource &sender, Recorder::type type
     }
 }
 
-void MultiMediaSourceMuxer::startSendRtp(MediaSource &, const MediaSourceEvent::SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb) {
+void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const MediaSourceEvent::SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb) {
 #if defined(ENABLE_RTPPROXY)
-    auto rtp_sender = std::make_shared<RtpSender>();
+    auto rtp_sender = std::make_shared<RtpSender>(getOwnerPoller(sender));
     weak_ptr<MultiMediaSourceMuxer> weak_self = shared_from_this();
     rtp_sender->startSend(args, [args, weak_self, rtp_sender, cb](uint16_t local_port, const SockException &ex) mutable {
         cb(local_port, ex);
