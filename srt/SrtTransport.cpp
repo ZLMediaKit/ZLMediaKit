@@ -116,14 +116,41 @@ void SrtTransport::inputSockData(uint8_t *buf, int len, struct sockaddr_storage 
         }
     }
 }
-
+bool SrtTransport::isSameCon(HandshakePacket &pkt) {
+    if (_handleshake_res) {
+        if (_handleshake_res->handshake_type == HandshakePacket::HS_TYPE_INDUCTION) {
+            if (pkt.srt_socket_id == _handleshake_res->dst_socket_id
+                && pkt.initial_packet_sequence_number == _init_seq_number) {
+                return true;
+            }
+            // TraceL << getIdentifier() << " new client from same udp connection";
+            return false;
+        } else if (_handleshake_res->handshake_type == HandshakePacket::HS_TYPE_CONCLUSION) {
+            if (pkt.srt_socket_id == _handleshake_res->dst_socket_id && _sync_cookie == pkt.syn_cookie) {
+                return true;
+            }
+            // TraceL << getIdentifier() << " new client from new same udp connection ";
+            return false;
+        } else {
+            WarnL << "not reach this";
+        }
+        return false;
+    }
+    return true;
+}
 void SrtTransport::handleHandshakeInduction(HandshakePacket &pkt, struct sockaddr_storage *addr) {
     // Induction Phase
-    TraceL << getIdentifier() << " Induction Phase ";
     if (_handleshake_res) {
-        TraceL << getIdentifier() << " Induction handle repeate ";
-        sendControlPacket(_handleshake_res, true);
+        if(isSameCon(pkt)){
+            TraceL << getIdentifier() <<" Induction repeate "<<SockUtil::inet_ntoa((struct sockaddr *)addr) << ":" << SockUtil::inet_port((struct sockaddr *)addr);
+            sendControlPacket(_handleshake_res, true);
+        }else{
+            TraceL << getIdentifier() <<" new connection fron client "<<SockUtil::inet_ntoa((struct sockaddr *)addr) << ":" << SockUtil::inet_port((struct sockaddr *)addr);
+            onShutdown(SockException(Err_other, "client new connection"));
+        }
         return;
+    }else{
+         TraceL << getIdentifier() <<" Induction from "<<SockUtil::inet_ntoa((struct sockaddr *)addr) << ":" << SockUtil::inet_port((struct sockaddr *)addr);
     }
     _induction_ts = _now;
     _start_timestamp = _now;
@@ -222,8 +249,14 @@ void SrtTransport::handleHandshakeConclusion(HandshakePacket &pkt, struct sockad
         _buf_delay = delay;
         onHandShakeFinished(_stream_id, addr);
     } else {
-        TraceL << getIdentifier() << " CONCLUSION handle repeate ";
-        sendControlPacket(_handleshake_res, true);
+        if(isSameCon(pkt)){
+            TraceL << getIdentifier() <<" CONCLUSION repeate "<<SockUtil::inet_ntoa((struct sockaddr *)addr) << ":" << SockUtil::inet_port((struct sockaddr *)addr);
+            sendControlPacket(_handleshake_res, true);
+        }else{
+            TraceL << getIdentifier() <<" new connection fron client "<<SockUtil::inet_ntoa((struct sockaddr *)addr) << ":" << SockUtil::inet_port((struct sockaddr *)addr);
+            onShutdown(SockException(Err_other, "client new connection"));
+        }
+        
     }
     _last_ack_pkt_seq_num = _init_seq_number;
 }
