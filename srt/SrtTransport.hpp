@@ -88,8 +88,6 @@ private:
 
     size_t getPayloadSize();
 
-    bool isSameCon(HandshakePacket &pkt);
-
 protected:
     void sendDataPacket(DataPacket::Ptr pkt, char *buf, int len, bool flush = false);
     void sendControlPacket(ControlPacket::Ptr pkt, bool flush = true);
@@ -142,6 +140,8 @@ private:
 
     // 保持发送的握手消息，防止丢失重发
     HandshakePacket::Ptr _handleshake_res;
+
+    Timer::Ptr _handleshake_timer;
 
     ResourcePool<BufferRaw> _packet_pool;
 };
