@@ -143,7 +143,9 @@ void SrtTransport::handleHandshakeInduction(HandshakePacket &pkt, struct sockadd
     if (_handleshake_res) {
         if(isSameCon(pkt)){
             TraceL << getIdentifier() <<" Induction repeate "<<SockUtil::inet_ntoa((struct sockaddr *)addr) << ":" << SockUtil::inet_port((struct sockaddr *)addr);
-            sendControlPacket(_handleshake_res, true);
+            for(int i=0;i<3;++i){
+                sendControlPacket(_handleshake_res, true);
+            }
         }else{
             TraceL << getIdentifier() <<" new connection fron client "<<SockUtil::inet_ntoa((struct sockaddr *)addr) << ":" << SockUtil::inet_port((struct sockaddr *)addr);
             onShutdown(SockException(Err_other, "client new connection"));
@@ -179,7 +181,9 @@ void SrtTransport::handleHandshakeInduction(HandshakePacket &pkt, struct sockadd
     res->storeToData();
 
     registerSelfHandshake();
-    sendControlPacket(res, true);
+    for(int i=0;i<3;++i){
+        sendControlPacket(res, true);
+    }
 }
 
 void SrtTransport::handleHandshakeConclusion(HandshakePacket &pkt, struct sockaddr_storage *addr) {
@@ -240,7 +244,9 @@ void SrtTransport::handleHandshakeConclusion(HandshakePacket &pkt, struct sockad
         _handleshake_res = res;
         unregisterSelfHandshake();
         registerSelf();
-        sendControlPacket(res, true);
+        for(int i=0;i<3;++i){
+            sendControlPacket(res, true);
+        }
         TraceL << " buf size = " << res->max_flow_window_size << " init seq =" << _init_seq_number
                << " latency=" << delay;
         _recv_buf = std::make_shared<PacketRecvQueue>(getPktBufSize(), _init_seq_number, delay * 1e3,srt_flag);
@@ -251,7 +257,9 @@ void SrtTransport::handleHandshakeConclusion(HandshakePacket &pkt, struct sockad
     } else {
         if(isSameCon(pkt)){
             TraceL << getIdentifier() <<" CONCLUSION repeate "<<SockUtil::inet_ntoa((struct sockaddr *)addr) << ":" << SockUtil::inet_port((struct sockaddr *)addr);
-            sendControlPacket(_handleshake_res, true);
+            for(int i=0;i<3;++i){
+                sendControlPacket(_handleshake_res, true);
+            }
         }else{
             TraceL << getIdentifier() <<" new connection fron client "<<SockUtil::inet_ntoa((struct sockaddr *)addr) << ":" << SockUtil::inet_port((struct sockaddr *)addr);
             onShutdown(SockException(Err_other, "client new connection"));
