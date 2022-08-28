@@ -229,14 +229,6 @@ string RtpProcess::getIdentifier() const {
     return _media_info._streamid;
 }
 
-int RtpProcess::getTotalReaderCount() {
-    return _muxer ? _muxer->totalReaderCount() : 0;
-}
-
-void RtpProcess::setListener(const std::weak_ptr<MediaSourceEvent> &listener) {
-    setDelegate(listener);
-}
-
 void RtpProcess::emitOnPublish() {
     weak_ptr<RtpProcess> weak_self = shared_from_this();
     Broadcast::PublishAuthInvoker invoker = [weak_self](const string &err, const ProtocolOption &option) {

@@ -101,7 +101,7 @@ void RtpSession::onRtpPacket(const char *data, size_t len) {
         }
         //tcp情况下，一个tcp链接只可能是一路流，不需要通过多个ssrc来区分，所以不需要频繁getProcess
         _process = RtpSelector::Instance().getProcess(_stream_id, true);
-        _process->setListener(dynamic_pointer_cast<RtpSession>(shared_from_this()));
+        _process->setDelegate(dynamic_pointer_cast<RtpSession>(shared_from_this()));
     }
     try {
         uint32_t rtp_ssrc = 0;
@@ -126,21 +126,12 @@ void RtpSession::onRtpPacket(const char *data, size_t len) {
 
 bool RtpSession::close(MediaSource &sender, bool force) {
     //此回调在其他线程触发
-    if(!_process || (!force && _process->getTotalReaderCount())){
+    if(!_process || (!force && static_pointer_cast<MediaSourceEvent>(_process)->totalReaderCount(sender))){
         return false;
     }
     string err = StrPrinter << "close media:" << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId() << " " << force;
     safeShutdown(SockException(Err_shutdown,err));
     return true;
-}
-
-int RtpSession::totalReaderCount(MediaSource &sender) {
-    //此回调在其他线程触发
-    return _process ? _process->getTotalReaderCount() : sender.totalReaderCount();
-}
-
-toolkit::EventPoller::Ptr RtpSession::getOwnerPoller(MediaSource &sender) {
-    return getPoller();
 }
 
 static const char *findSSRC(const char *data, ssize_t len, uint32_t ssrc) {

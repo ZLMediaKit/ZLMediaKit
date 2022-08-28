@@ -36,13 +36,9 @@ public:
 protected:
     // 通知其停止推流
     bool close(MediaSource &sender,bool force) override;
-    // 观看总人数
-    int totalReaderCount(MediaSource &sender) override;
-    // 获取所属线程
-    toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;
     // 收到rtp回调
     void onRtpPacket(const char *data, size_t len) override;
-
+    // RtpSplitter override
     const char *onSearchPacketTail(const char *data, size_t len) override;
 
 private:

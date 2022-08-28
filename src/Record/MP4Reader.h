@@ -56,7 +56,6 @@ private:
     bool speed(MediaSource &sender, float speed) override;
 
     bool close(MediaSource &sender,bool force) override;
-    int totalReaderCount(MediaSource &sender) override;
     MediaOriginType getOriginType(MediaSource &sender) const override;
     std::string getOriginUrl(MediaSource &sender) const override;
     toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;

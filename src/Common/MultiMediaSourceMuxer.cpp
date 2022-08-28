@@ -88,6 +88,7 @@ const std::string &MultiMediaSourceMuxer::getStreamId() const {
 }
 
 MultiMediaSourceMuxer::MultiMediaSourceMuxer(const string &vhost, const string &app, const string &stream, float dur_sec, const ProtocolOption &option) {
+    _poller = EventPollerPool::Instance().getPoller();
     _vhost = vhost;
     _app = app;
     _stream_id = stream;
@@ -187,7 +188,12 @@ int MultiMediaSourceMuxer::totalReaderCount(MediaSource &sender) {
     if (!listener) {
         return totalReaderCount();
     }
-    return listener->totalReaderCount(sender);
+    try {
+        return listener->totalReaderCount(sender);
+    } catch (MediaSourceEvent::NotImplemented &) {
+        //listener未重载totalReaderCount
+        return totalReaderCount();
+    }
 }
 
 //此函数可能跨线程调用
@@ -288,6 +294,19 @@ bool MultiMediaSourceMuxer::stopSendRtp(MediaSource &sender, const string &ssrc)
 
 vector<Track::Ptr> MultiMediaSourceMuxer::getMediaTracks(MediaSource &sender, bool trackReady) const {
     return getTracks(trackReady);
+}
+
+EventPoller::Ptr MultiMediaSourceMuxer::getOwnerPoller(MediaSource &sender) {
+    auto listener = getDelegate();
+    if (!listener) {
+        return _poller;
+    }
+    try {
+        return listener->getOwnerPoller(sender);
+    } catch (MediaSourceEvent::NotImplemented &) {
+        // listener未重载getOwnerPoller
+        return _poller;
+    }
 }
 
 bool MultiMediaSourceMuxer::onTrackReady(const Track::Ptr &track) {

@@ -129,11 +129,6 @@ bool SrtTransportImp::close(mediakit::MediaSource &sender, bool force) {
     return true;
 }
 
-// 播放总人数
-int SrtTransportImp::totalReaderCount(mediakit::MediaSource &sender) {
-    return _muxer ? _muxer->totalReaderCount() : sender.readerCount();
-}
-
 // 获取媒体源类型
 mediakit::MediaOriginType SrtTransportImp::getOriginType(mediakit::MediaSource &sender) const {
     return MediaOriginType::srt_push;
@@ -147,11 +142,6 @@ std::string SrtTransportImp::getOriginUrl(mediakit::MediaSource &sender) const {
 // 获取媒体源客户端相关信息
 std::shared_ptr<SockInfo> SrtTransportImp::getOriginSock(mediakit::MediaSource &sender) const {
     return static_pointer_cast<SockInfo>(getSession());
-}
-
-toolkit::EventPoller::Ptr SrtTransportImp::getOwnerPoller(MediaSource &sender){
-    auto session = getSession();
-    return session  ? session->getPoller() : EventPollerPool::Instance().getPoller();
 }
 
 void SrtTransportImp::emitOnPublish() {
