@@ -54,6 +54,14 @@ class MediaSource;
 class MediaSourceEvent {
 public:
     friend class MediaSource;
+
+    class NotImplemented : public std::runtime_error {
+    public:
+        template<typename ...T>
+        NotImplemented(T && ...args) : std::runtime_error(std::forward<T>(args)...) {}
+        ~NotImplemented() override = default;
+    };
+
     MediaSourceEvent(){};
     virtual ~MediaSourceEvent(){};
 
@@ -72,16 +80,16 @@ public:
     virtual bool speed(MediaSource &sender, float speed) { return false; }
     // 通知其停止产生流
     virtual bool close(MediaSource &sender, bool force) { return false; }
-    // 获取观看总人数
-    virtual int totalReaderCount(MediaSource &sender) = 0;
+    // 获取观看总人数，此函数一般强制重载
+    virtual int totalReaderCount(MediaSource &sender) { throw NotImplemented(toolkit::demangle(typeid(*this).name()) + "::totalReaderCount not implemented"); }
     // 通知观看人数变化
     virtual void onReaderChanged(MediaSource &sender, int size);
     //流注册或注销事件
     virtual void onRegist(MediaSource &sender, bool regist) {};
     // 获取丢包率
     virtual int getLossRate(MediaSource &sender, TrackType type) { return -1; }
-    // 获取所在线程
-    virtual toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) = 0;
+    // 获取所在线程, 此函数一般强制重载
+    virtual toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) { throw NotImplemented(toolkit::demangle(typeid(*this).name()) + "::getOwnerPoller not implemented"); }
 
     ////////////////////////仅供MultiMediaSourceMuxer对象继承////////////////////////
     // 开启或关闭录制

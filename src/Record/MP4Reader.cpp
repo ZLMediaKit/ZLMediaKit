@@ -239,10 +239,6 @@ bool MP4Reader::close(MediaSource &sender, bool force) {
     return true;
 }
 
-int MP4Reader::totalReaderCount(MediaSource &sender) {
-    return _muxer ? _muxer->totalReaderCount() : sender.readerCount();
-}
-
 MediaOriginType MP4Reader::getOriginType(MediaSource &sender) const {
     return MediaOriginType::mp4_vod;
 }

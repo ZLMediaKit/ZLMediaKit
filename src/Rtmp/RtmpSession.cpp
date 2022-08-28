@@ -599,10 +599,6 @@ std::shared_ptr<SockInfo> RtmpSession::getOriginSock(MediaSource &sender) const 
     return const_cast<RtmpSession *>(this)->shared_from_this();
 }
 
-toolkit::EventPoller::Ptr RtmpSession::getOwnerPoller(MediaSource &sender) {
-    return getPoller();
-}
-
 void RtmpSession::setSocketFlags(){
     GET_CONFIG(int, merge_write_ms, General::kMergeWriteMS);
     if (merge_write_ms > 0) {

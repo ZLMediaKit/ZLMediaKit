@@ -22,7 +22,6 @@ public:
     template<typename ...ArgsType>
     MediaHelper(ArgsType &&...args){
         _channel = std::make_shared<DevChannel>(std::forward<ArgsType>(args)...);
-        _poller = EventPollerPool::Instance().getPoller();
     }
     ~MediaHelper(){}
 
@@ -57,11 +56,6 @@ public:
     void setOnRegist(on_mk_media_source_regist cb, void *user_data){
         _on_regist = cb;
         _on_regist_data = user_data;
-    }
-
-    // 获取所属线程
-    toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override {
-        return _poller;
     }
 
 protected:
@@ -105,11 +99,6 @@ protected:
         return _on_speed(_on_speed_data, speed);
     }
 
-    // 观看总人数
-    int totalReaderCount(MediaSource &sender) override{
-        return _channel->totalReaderCount();
-    }
-
     void onRegist(MediaSource &sender, bool regist) override{
         if (_on_regist) {
             _on_regist(_on_regist_data, &sender, regist);
@@ -117,7 +106,6 @@ protected:
     }
 
 private:
-    EventPoller::Ptr _poller;
     DevChannel::Ptr _channel;
     on_mk_media_close _on_close = nullptr;
     on_mk_media_seek _on_seek = nullptr;

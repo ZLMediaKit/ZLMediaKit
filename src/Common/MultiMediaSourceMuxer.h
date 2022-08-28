@@ -154,6 +154,11 @@ public:
      */
     std::vector<Track::Ptr> getMediaTracks(MediaSource &sender, bool trackReady = true) const override;
 
+    /**
+     * 获取所属线程
+     */
+    toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;
+
     const std::string& getVhost() const;
     const std::string& getApp() const;
     const std::string& getStreamId() const;
@@ -201,6 +206,7 @@ private:
     TSMediaSourceMuxer::Ptr _ts;
     MediaSinkInterface::Ptr _mp4;
     HlsRecorder::Ptr _hls;
+    toolkit::EventPoller::Ptr _poller;
 
     //对象个数统计
     toolkit::ObjectStatistic<MultiMediaSourceMuxer> _statistic;
