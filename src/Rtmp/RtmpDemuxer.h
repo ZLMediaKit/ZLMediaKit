@@ -15,12 +15,10 @@
 #include <unordered_map>
 #include "Rtmp/amf.h"
 #include "Rtmp/Rtmp.h"
-#include "Player/PlayerBase.h"
-#include "Util/TimeTicker.h"
-#include "RtmpCodec.h"
+#include "Common/MediaSink.h"
 
 namespace mediakit {
-
+class RtmpCodec;
 class RtmpDemuxer : public Demuxer {
 public:
     using Ptr = std::shared_ptr<RtmpDemuxer>;
@@ -54,8 +52,8 @@ private:
     float _duration = 0;
     AudioTrack::Ptr _audio_track;
     VideoTrack::Ptr _video_track;
-    RtmpCodec::Ptr _audio_rtmp_decoder;
-    RtmpCodec::Ptr _video_rtmp_decoder;
+    std::shared_ptr<RtmpCodec> _audio_rtmp_decoder;
+    std::shared_ptr<RtmpCodec> _video_rtmp_decoder;
 };
 
 } /* namespace mediakit */

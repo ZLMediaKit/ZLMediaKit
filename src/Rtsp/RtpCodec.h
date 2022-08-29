@@ -12,8 +12,9 @@
 #define ZLMEDIAKIT_RTPCODEC_H
 
 #include <memory>
+#include "Extension/Frame.h"
 #include "Util/RingBuffer.h"
-#include "Player/PlayerBase.h"
+#include "Rtsp/Rtsp.h"
 
 namespace mediakit {
 

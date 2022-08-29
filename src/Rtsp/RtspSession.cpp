@@ -15,6 +15,7 @@
 #include "RtspSession.h"
 #include "Util/MD5.h"
 #include "Util/base64.h"
+#include "RtpMultiCaster.h"
 
 using namespace std;
 using namespace toolkit;
