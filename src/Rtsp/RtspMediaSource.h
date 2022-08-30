@@ -65,6 +65,11 @@ public:
         return _ring;
     }
 
+    void getPlayerList(const std::function<void(const std::list<std::shared_ptr<void>> &info_list)> &cb,
+                       const std::function<std::shared_ptr<void>(std::shared_ptr<void> &&info)> &on_change) override {
+        _ring->getInfoList(cb, on_change);
+    }
+
     /**
      * 获取播放器个数
      */

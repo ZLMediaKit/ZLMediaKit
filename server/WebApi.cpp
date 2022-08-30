@@ -741,6 +741,32 @@ void installWebApi() {
         val["online"] = (bool) (MediaSource::find(allArgs["schema"],allArgs["vhost"],allArgs["app"],allArgs["stream"]));
     });
 
+    api_regist("/index/api/getMediaPlayerList",[](API_ARGS_MAP_ASYNC){
+        CHECK_SECRET();
+        CHECK_ARGS("schema", "vhost", "app", "stream");
+        auto src = MediaSource::find(allArgs["schema"], allArgs["vhost"], allArgs["app"], allArgs["stream"]);
+        if (!src) {
+            throw ApiRetException("can not find the stream", API::NotFound);
+        }
+        src->getPlayerList(
+            [=](const std::list<std::shared_ptr<void>> &info_list) mutable {
+                val["code"] = API::Success;
+                auto &data = val["data"];
+                for (auto &info : info_list) {
+                    auto obj = reinterpret_pointer_cast<Value>(info);
+                    data.append(std::move(*obj));
+                }
+                invoker(200, headerOut, val.toStyledString());
+            },
+            [](std::shared_ptr<void> &&info) -> std::shared_ptr<void> {
+                auto obj = std::make_shared<Value>();
+                auto session = reinterpret_pointer_cast<Session>(info);
+                (*obj)["peer_ip"] = session->get_peer_ip();
+                (*obj)["peer_port"] = session->get_peer_port();
+                return obj;
+            });
+    });
+
     //测试url http://127.0.0.1/index/api/getMediaInfo?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs
     api_regist("/index/api/getMediaInfo",[](API_ARGS_MAP_ASYNC){
         CHECK_SECRET();
