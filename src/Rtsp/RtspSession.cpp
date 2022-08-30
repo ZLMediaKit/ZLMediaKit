@@ -836,6 +836,9 @@ void RtspSession::handleReq_Play(const Parser &parser) {
     if (!_play_reader && _rtp_type != Rtsp::RTP_MULTICAST) {
         weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
         _play_reader = play_src->getRing()->attach(getPoller(), useGOP);
+
+        _play_reader->setGetInfoCB([weakSelf]() { return weakSelf.lock(); });
+
         _play_reader->setDetachCB([weakSelf]() {
             auto strongSelf = weakSelf.lock();
             if (!strongSelf) {

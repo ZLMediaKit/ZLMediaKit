@@ -234,6 +234,8 @@ void SrtTransportImp::doPlay() {
                 }
                 strong_self->onShutdown(SockException(Err_shutdown));
             });
+            weak_ptr<Session> weak_session = strong_self->getSession();
+            strong_self->_ts_reader->setGetInfoCB([weak_session]() { return weak_session.lock(); });
             strong_self->_ts_reader->setReadCB([weak_self](const TSMediaSource::RingDataType &ts_list) {
                 auto strong_self = weak_self.lock();
                 if (!strong_self) {

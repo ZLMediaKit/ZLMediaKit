@@ -54,6 +54,9 @@ void FlvMuxer::start(const EventPoller::Ptr &poller, const RtmpMediaSource::Ptr 
     });
 
     bool check = start_pts > 0;
+
+    _ring_reader->setGetInfoCB([weakSelf]() { return weakSelf.lock(); });
+
     _ring_reader->setReadCB([weakSelf, start_pts, check](const RtmpMediaSource::RingDataType &pkt) mutable {
         auto strongSelf = weakSelf.lock();
         if (!strongSelf) {

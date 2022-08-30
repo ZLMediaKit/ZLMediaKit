@@ -285,6 +285,9 @@ bool HttpSession::checkLiveStreamFMP4(const function<void()> &cb){
             }
             strong_self->shutdown(SockException(Err_shutdown, "fmp4 ring buffer detached"));
         });
+
+        _fmp4_reader->setGetInfoCB([weak_self]() { return weak_self.lock(); });
+
         _fmp4_reader->setReadCB([weak_self](const FMP4MediaSource::RingDataType &fmp4_list) {
             auto strong_self = weak_self.lock();
             if (!strong_self) {
@@ -326,6 +329,9 @@ bool HttpSession::checkLiveStreamTS(const function<void()> &cb){
             }
             strong_self->shutdown(SockException(Err_shutdown,"ts ring buffer detached"));
         });
+
+        _ts_reader->setGetInfoCB([weak_self]() { return weak_self.lock(); });
+
         _ts_reader->setReadCB([weak_self](const TSMediaSource::RingDataType &ts_list) {
             auto strong_self = weak_self.lock();
             if (!strong_self) {
