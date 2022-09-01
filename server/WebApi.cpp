@@ -753,14 +753,14 @@ void installWebApi() {
                 val["code"] = API::Success;
                 auto &data = val["data"];
                 for (auto &info : info_list) {
-                    auto obj = reinterpret_pointer_cast<Value>(info);
+                    auto obj = static_pointer_cast<Value>(info);
                     data.append(std::move(*obj));
                 }
                 invoker(200, headerOut, val.toStyledString());
             },
             [](std::shared_ptr<void> &&info) -> std::shared_ptr<void> {
                 auto obj = std::make_shared<Value>();
-                auto session = reinterpret_pointer_cast<Session>(info);
+                auto session = static_pointer_cast<Session>(info);
                 (*obj)["peer_ip"] = session->get_peer_ip();
                 (*obj)["peer_port"] = session->get_peer_port();
                 return obj;
