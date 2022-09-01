@@ -752,6 +752,7 @@ void installWebApi() {
             [=](const std::list<std::shared_ptr<void>> &info_list) mutable {
                 val["code"] = API::Success;
                 auto &data = val["data"];
+                data = Value(arrayValue);
                 for (auto &info : info_list) {
                     auto obj = static_pointer_cast<Value>(info);
                     data.append(std::move(*obj));
