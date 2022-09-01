@@ -764,6 +764,8 @@ void installWebApi() {
                 auto session = static_pointer_cast<Session>(info);
                 (*obj)["peer_ip"] = session->get_peer_ip();
                 (*obj)["peer_port"] = session->get_peer_port();
+                (*obj)["id"] = session->getIdentifier();
+                (*obj)["typeid"] = toolkit::demangle(typeid(*session).name());
                 return obj;
             });
     });
