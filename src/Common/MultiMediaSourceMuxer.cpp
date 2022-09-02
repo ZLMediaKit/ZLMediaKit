@@ -404,7 +404,7 @@ void MultiMediaSourceMuxer::resetTracks() {
 
 bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
     auto frame = frame_in;
-   if (_option.modify_stamp)
+   if (_option.modify_stamp) {
         //开启了时间戳覆盖
         frame = std::make_shared<FrameStamp>(frame, _stamp[frame->getTrackType()],true);
     }
