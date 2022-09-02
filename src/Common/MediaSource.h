@@ -192,52 +192,6 @@ public:
     std::string _param_strs;
 };
 
-class BytesSpeed {
-public:
-    BytesSpeed() = default;
-    ~BytesSpeed() = default;
-
-    /**
-     * 添加统计字节
-     */
-    BytesSpeed& operator += (size_t bytes) {
-        _bytes += bytes;
-        if (_bytes > 1024 * 1024) {
-            //数据大于1MB就计算一次网速
-            computeSpeed();
-        }
-        return *this;
-    }
-
-    /**
-     * 获取速度，单位bytes/s
-     */
-    int getSpeed() {
-        if (_ticker.elapsedTime() < 1000) {
-            //获取频率小于1秒，那么返回上次计算结果
-            return _speed;
-        }
-        return computeSpeed();
-    }
-
-private:
-    int computeSpeed() {
-        auto elapsed = _ticker.elapsedTime();
-        if (!elapsed) {
-            return _speed;
-        }
-        _speed = (int)(_bytes * 1000 / elapsed);
-        _ticker.resetTime();
-        _bytes = 0;
-        return _speed;
-    }
-
-private:
-    int _speed = 0;
-    size_t _bytes = 0;
-    toolkit::Ticker _ticker;
-};
-
 /**
  * 媒体源，任何rtsp/rtmp的直播流都源自该对象
  */
@@ -293,6 +247,12 @@ public:
     virtual int readerCount() = 0;
     // 观看者个数，包括(hls/rtsp/rtmp)
     virtual int totalReaderCount();
+    // 获取播放器列表
+    virtual void getPlayerList(const std::function<void(const std::list<std::shared_ptr<void>> &info_list)> &cb,
+                               const std::function<std::shared_ptr<void>(std::shared_ptr<void> &&info)> &on_change) {
+        assert(cb);
+        cb(std::list<std::shared_ptr<void>>());
+    }
 
     // 获取媒体源类型
     MediaOriginType getOriginType() const;
@@ -350,7 +310,7 @@ private:
     void emitEvent(bool regist);
 
 protected:
-    BytesSpeed _speed[TrackMax];
+    toolkit::BytesSpeed _speed[TrackMax];
 
 private:
     std::atomic_flag _owned { false };
