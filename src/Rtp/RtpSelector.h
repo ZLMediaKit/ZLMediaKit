@@ -36,7 +36,7 @@ protected:
 private:
     std::string _stream_id;
     RtpProcess::Ptr _process;
-    std::weak_ptr<RtpSelector > _parent;
+    std::weak_ptr<RtpSelector> _parent;
 };
 
 class RtpSelector : public std::enable_shared_from_this<RtpSelector>{

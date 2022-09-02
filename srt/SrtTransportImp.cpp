@@ -226,6 +226,8 @@ void SrtTransportImp::doPlay() {
             assert(ts_src);
             ts_src->pause(false);
             strong_self->_ts_reader = ts_src->getRing()->attach(strong_self->getPoller());
+            weak_ptr<Session> weak_session = strong_self->getSession();
+            strong_self->_ts_reader->setGetInfoCB([weak_session]() { return weak_session.lock(); });
             strong_self->_ts_reader->setDetachCB([weak_self]() {
                 auto strong_self = weak_self.lock();
                 if (!strong_self) {

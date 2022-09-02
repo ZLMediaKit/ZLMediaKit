@@ -28,12 +28,12 @@ void FlvMuxer::start(const EventPoller::Ptr &poller, const RtmpMediaSource::Ptr 
         throw std::runtime_error("RtmpMediaSource 无效");
     }
     if (!poller->isCurrentThread()) {
-        weak_ptr<FlvMuxer> weakSelf = getSharedPtr();
+        weak_ptr<FlvMuxer> weak_self = getSharedPtr();
         //延时两秒启动录制，目的是为了等待config帧收集完毕
-        poller->doDelayTask(2000, [weakSelf, poller, media, start_pts]() {
-            auto strongSelf = weakSelf.lock();
-            if (strongSelf) {
-                strongSelf->start(poller, media, start_pts);
+        poller->doDelayTask(2000, [weak_self, poller, media, start_pts]() {
+            auto strong_self = weak_self.lock();
+            if (strong_self) {
+                strong_self->start(poller, media, start_pts);
             }
             return 0;
         });
@@ -42,21 +42,22 @@ void FlvMuxer::start(const EventPoller::Ptr &poller, const RtmpMediaSource::Ptr 
 
     onWriteFlvHeader(media);
 
-    std::weak_ptr<FlvMuxer> weakSelf = getSharedPtr();
+    std::weak_ptr<FlvMuxer> weak_self = getSharedPtr();
     media->pause(false);
     _ring_reader = media->getRing()->attach(poller);
-    _ring_reader->setDetachCB([weakSelf]() {
-        auto strongSelf = weakSelf.lock();
-        if (!strongSelf) {
+    _ring_reader->setGetInfoCB([weak_self]() { return weak_self.lock(); });
+    _ring_reader->setDetachCB([weak_self]() {
+        auto strong_self = weak_self.lock();
+        if (!strong_self) {
             return;
         }
-        strongSelf->onDetach();
+        strong_self->onDetach();
     });
 
     bool check = start_pts > 0;
-    _ring_reader->setReadCB([weakSelf, start_pts, check](const RtmpMediaSource::RingDataType &pkt) mutable {
-        auto strongSelf = weakSelf.lock();
-        if (!strongSelf) {
+    _ring_reader->setReadCB([weak_self, start_pts, check](const RtmpMediaSource::RingDataType &pkt) mutable {
+        auto strong_self = weak_self.lock();
+        if (!strong_self) {
             return;
         }
 
@@ -69,7 +70,7 @@ void FlvMuxer::start(const EventPoller::Ptr &poller, const RtmpMediaSource::Ptr 
                 }
                 check = false;
             }
-            strongSelf->onWriteRtmp(rtmp, ++i == size);
+            strong_self->onWriteRtmp(rtmp, ++i == size);
         });
     });
 }

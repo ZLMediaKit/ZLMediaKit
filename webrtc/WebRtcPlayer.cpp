@@ -39,23 +39,25 @@ void WebRtcPlayer::onStartWebRTC() {
         _play_src->pause(false);
         _reader = _play_src->getRing()->attach(getPoller(), true);
         weak_ptr<WebRtcPlayer> weak_self = static_pointer_cast<WebRtcPlayer>(shared_from_this());
+        weak_ptr<Session> weak_session = getSession();
+        _reader->setGetInfoCB([weak_session]() { return weak_session.lock(); });
         _reader->setReadCB([weak_self](const RtspMediaSource::RingDataType &pkt) {
-            auto strongSelf = weak_self.lock();
-            if (!strongSelf) {
+            auto strong_self = weak_self.lock();
+            if (!strong_self) {
                 return;
             }
             size_t i = 0;
             pkt->for_each([&](const RtpPacket::Ptr &rtp) {
                 //TraceL<<"send track type:"<<rtp->type<<" ts:"<<rtp->getStamp()<<" ntp:"<<rtp->ntp_stamp<<" size:"<<rtp->getPayloadSize()<<" i:"<<i;
-                strongSelf->onSendRtp(rtp, ++i == pkt->size());
+                strong_self->onSendRtp(rtp, ++i == pkt->size());
             });
         });
         _reader->setDetachCB([weak_self]() {
-            auto strongSelf = weak_self.lock();
-            if (!strongSelf) {
+            auto strong_self = weak_self.lock();
+            if (!strong_self) {
                 return;
             }
-            strongSelf->onShutdown(SockException(Err_shutdown, "rtsp ring buffer detached"));
+            strong_self->onShutdown(SockException(Err_shutdown, "rtsp ring buffer detached"));
         });
     }
     //使用完毕后，释放强引用，这样确保推流器断开后能及时注销媒体

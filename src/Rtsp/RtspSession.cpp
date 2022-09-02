@@ -283,15 +283,15 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
         sendRtspResponse("200 OK");
     };
 
-    weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
-    Broadcast::PublishAuthInvoker invoker = [weakSelf, onRes](const string &err, const ProtocolOption &option) {
-        auto strongSelf = weakSelf.lock();
-        if (!strongSelf) {
+    weak_ptr<RtspSession> weak_self = dynamic_pointer_cast<RtspSession>(shared_from_this());
+    Broadcast::PublishAuthInvoker invoker = [weak_self, onRes](const string &err, const ProtocolOption &option) {
+        auto strong_self = weak_self.lock();
+        if (!strong_self) {
             return;
         }
-        strongSelf->async([weakSelf, onRes, err, option]() {
-            auto strongSelf = weakSelf.lock();
-            if (!strongSelf) {
+        strong_self->async([weak_self, onRes, err, option]() {
+            auto strong_self = weak_self.lock();
+            if (!strong_self) {
                 return;
             }
             onRes(err, option);
@@ -330,28 +330,28 @@ void RtspSession::handleReq_RECORD(const Parser &parser){
 }
 
 void RtspSession::emitOnPlay(){
-    weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
+    weak_ptr<RtspSession> weak_self = dynamic_pointer_cast<RtspSession>(shared_from_this());
     //url鉴权回调
-    auto onRes = [weakSelf](const string &err) {
-        auto strongSelf = weakSelf.lock();
-        if (!strongSelf) {
+    auto onRes = [weak_self](const string &err) {
+        auto strong_self = weak_self.lock();
+        if (!strong_self) {
             return;
         }
         if (!err.empty()) {
             //播放url鉴权失败
-            strongSelf->sendRtspResponse("401 Unauthorized", {"Content-Type", "text/plain"}, err);
-            strongSelf->shutdown(SockException(Err_shutdown, StrPrinter << "401 Unauthorized:" << err));
+            strong_self->sendRtspResponse("401 Unauthorized", {"Content-Type", "text/plain"}, err);
+            strong_self->shutdown(SockException(Err_shutdown, StrPrinter << "401 Unauthorized:" << err));
             return;
         }
-        strongSelf->onAuthSuccess();
+        strong_self->onAuthSuccess();
     };
 
-    Broadcast::AuthInvoker invoker = [weakSelf, onRes](const string &err) {
-        auto strongSelf = weakSelf.lock();
-        if (!strongSelf) {
+    Broadcast::AuthInvoker invoker = [weak_self, onRes](const string &err) {
+        auto strong_self = weak_self.lock();
+        if (!strong_self) {
             return;
         }
-        strongSelf->async([onRes, err, weakSelf]() {
+        strong_self->async([onRes, err, weak_self]() {
             onRes(err);
         });
     };
@@ -369,29 +369,29 @@ void RtspSession::emitOnPlay(){
 void RtspSession::handleReq_Describe(const Parser &parser) {
     //该请求中的认证信息
     auto authorization = parser["Authorization"];
-    weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
+    weak_ptr<RtspSession> weak_self = dynamic_pointer_cast<RtspSession>(shared_from_this());
     //rtsp专属鉴权是否开启事件回调
-    onGetRealm invoker = [weakSelf, authorization](const string &realm) {
-        auto strongSelf = weakSelf.lock();
-        if (!strongSelf) {
+    onGetRealm invoker = [weak_self, authorization](const string &realm) {
+        auto strong_self = weak_self.lock();
+        if (!strong_self) {
             //本对象已经销毁
             return;
         }
         //切换到自己的线程然后执行
-        strongSelf->async([weakSelf, realm, authorization]() {
-            auto strongSelf = weakSelf.lock();
-            if (!strongSelf) {
+        strong_self->async([weak_self, realm, authorization]() {
+            auto strong_self = weak_self.lock();
+            if (!strong_self) {
                 //本对象已经销毁
                 return;
             }
             if (realm.empty()) {
                 //无需rtsp专属认证, 那么继续url通用鉴权认证(on_play)
-                strongSelf->emitOnPlay();
+                strong_self->emitOnPlay();
                 return;
             }
             //该流需要rtsp专属认证，开启rtsp专属认证后，将不再触发url通用鉴权认证(on_play)
-            strongSelf->_rtsp_realm = realm;
-            strongSelf->onAuthUser(realm, authorization);
+            strong_self->_rtsp_realm = realm;
+            strong_self->onAuthUser(realm, authorization);
         });
     };
 
@@ -408,43 +408,43 @@ void RtspSession::handleReq_Describe(const Parser &parser) {
 
 void RtspSession::onAuthSuccess() {
     TraceP(this);
-    weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
-    MediaSource::findAsync(_media_info, weakSelf.lock(), [weakSelf](const MediaSource::Ptr &src){
-        auto strongSelf = weakSelf.lock();
-        if(!strongSelf){
+    weak_ptr<RtspSession> weak_self = dynamic_pointer_cast<RtspSession>(shared_from_this());
+    MediaSource::findAsync(_media_info, weak_self.lock(), [weak_self](const MediaSource::Ptr &src){
+        auto strong_self = weak_self.lock();
+        if(!strong_self){
             return;
         }
         auto rtsp_src = dynamic_pointer_cast<RtspMediaSource>(src);
         if (!rtsp_src) {
             //未找到相应的MediaSource
-            string err = StrPrinter << "no such stream:" << strongSelf->_media_info._vhost << " " << strongSelf->_media_info._app << " " << strongSelf->_media_info._streamid;
-            strongSelf->send_StreamNotFound();
-            strongSelf->shutdown(SockException(Err_shutdown,err));
+            string err = StrPrinter << "no such stream:" << strong_self->_media_info._vhost << " " << strong_self->_media_info._app << " " << strong_self->_media_info._streamid;
+            strong_self->send_StreamNotFound();
+            strong_self->shutdown(SockException(Err_shutdown,err));
             return;
         }
         //找到了相应的rtsp流
-        strongSelf->_sdp_track = SdpParser(rtsp_src->getSdp()).getAvailableTrack();
-        if (strongSelf->_sdp_track.empty()) {
+        strong_self->_sdp_track = SdpParser(rtsp_src->getSdp()).getAvailableTrack();
+        if (strong_self->_sdp_track.empty()) {
             //该流无效
             WarnL << "sdp中无有效track，该流无效:" << rtsp_src->getSdp();
-            strongSelf->send_StreamNotFound();
-            strongSelf->shutdown(SockException(Err_shutdown,"can not find any available track in sdp"));
+            strong_self->send_StreamNotFound();
+            strong_self->shutdown(SockException(Err_shutdown,"can not find any available track in sdp"));
             return;
         }
-        strongSelf->_rtcp_context.clear();
-        for (auto &track : strongSelf->_sdp_track) {
-            strongSelf->_rtcp_context.emplace_back(std::make_shared<RtcpContextForSend>());
+        strong_self->_rtcp_context.clear();
+        for (auto &track : strong_self->_sdp_track) {
+            strong_self->_rtcp_context.emplace_back(std::make_shared<RtcpContextForSend>());
         }
-        strongSelf->_sessionid = makeRandStr(12);
-        strongSelf->_play_src = rtsp_src;
-        for(auto &track : strongSelf->_sdp_track){
+        strong_self->_sessionid = makeRandStr(12);
+        strong_self->_play_src = rtsp_src;
+        for(auto &track : strong_self->_sdp_track){
             track->_ssrc = rtsp_src->getSsrc(track->_type);
             track->_seq = rtsp_src->getSeqence(track->_type);
             track->_time_stamp = rtsp_src->getTimeStamp(track->_type);
         }
 
-        strongSelf->sendRtspResponse("200 OK",
-                                     {"Content-Base", strongSelf->_content_base + "/",
+        strong_self->sendRtspResponse("200 OK",
+                                     {"Content-Base", strong_self->_content_base + "/",
                                       "x-Accept-Retransmit","our-retransmit",
                                       "x-Accept-Dynamic-Rate","1"
                                      },rtsp_src->getSdp());
@@ -482,28 +482,28 @@ void RtspSession::onAuthBasic(const string &realm,const string &auth_base64){
     }
     auto user = user_pwd_vec[0];
     auto pwd = user_pwd_vec[1];
-    weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
-    onAuth invoker = [pwd, realm, weakSelf](bool encrypted, const string &good_pwd) {
-        auto strongSelf = weakSelf.lock();
-        if (!strongSelf) {
+    weak_ptr<RtspSession> weak_self = dynamic_pointer_cast<RtspSession>(shared_from_this());
+    onAuth invoker = [pwd, realm, weak_self](bool encrypted, const string &good_pwd) {
+        auto strong_self = weak_self.lock();
+        if (!strong_self) {
             //本对象已经销毁
             return;
         }
         //切换到自己的线程执行
-        strongSelf->async([weakSelf, good_pwd, pwd, realm]() {
-            auto strongSelf = weakSelf.lock();
-            if (!strongSelf) {
+        strong_self->async([weak_self, good_pwd, pwd, realm]() {
+            auto strong_self = weak_self.lock();
+            if (!strong_self) {
                 //本对象已经销毁
                 return;
             }
             //base64忽略encrypted参数，上层必须传入明文密码
             if (pwd == good_pwd) {
                 //提供的密码且匹配正确
-                strongSelf->onAuthSuccess();
+                strong_self->onAuthSuccess();
                 return;
             }
             //密码错误
-            strongSelf->onAuthFailed(realm, StrPrinter << "password mismatch when base64 auth:" << pwd << " != " << good_pwd);
+            strong_self->onAuthFailed(realm, StrPrinter << "password mismatch when base64 auth:" << pwd << " != " << good_pwd);
         });
     };
 
@@ -575,16 +575,16 @@ void RtspSession::onAuthDigest(const string &realm,const string &auth_md5){
         }
     };
 
-    weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
-    onAuth invoker = [realInvoker,weakSelf](bool encrypted,const string &good_pwd){
-        auto strongSelf = weakSelf.lock();
-        if(!strongSelf){
+    weak_ptr<RtspSession> weak_self = dynamic_pointer_cast<RtspSession>(shared_from_this());
+    onAuth invoker = [realInvoker,weak_self](bool encrypted,const string &good_pwd){
+        auto strong_self = weak_self.lock();
+        if(!strong_self){
             return;
         }
         //切换到自己的线程确保realInvoker执行时，this指针有效
-        strongSelf->async([realInvoker,weakSelf,encrypted,good_pwd](){
-            auto strongSelf = weakSelf.lock();
-            if(!strongSelf){
+        strong_self->async([realInvoker,weak_self,encrypted,good_pwd](){
+            auto strong_self = weak_self.lock();
+            if(!strong_self){
                 return;
             }
             realInvoker(false,encrypted,good_pwd);
@@ -733,13 +733,13 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
                 send_NotAcceptable();
                 throw SockException(Err_shutdown, "can not get a available udp multicast socket");
             }
-            weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
-            _multicaster->setDetachCB(this, [weakSelf]() {
-                auto strongSelf = weakSelf.lock();
-                if(!strongSelf) {
+            weak_ptr<RtspSession> weak_self = dynamic_pointer_cast<RtspSession>(shared_from_this());
+            _multicaster->setDetachCB(this, [weak_self]() {
+                auto strong_self = weak_self.lock();
+                if(!strong_self) {
                     return;
                 }
-                strongSelf->safeShutdown(SockException(Err_shutdown,"ring buffer detached"));
+                strong_self->safeShutdown(SockException(Err_shutdown,"ring buffer detached"));
             });
         }
         int iSrvPort = _multicaster->getMultiCasterPort(trackRef->_type);
@@ -781,7 +781,7 @@ void RtspSession::handleReq_Play(const Parser &parser) {
         return;
     }
 
-    bool useGOP = true;
+    bool use_gop = true;
     auto &strScale = parser["Scale"];
     auto &strRange = parser["Range"];
     StrCaseMap res_header;
@@ -801,7 +801,7 @@ void RtspSession::handleReq_Play(const Parser &parser) {
             strStart = "0";
         }
         auto iStartTime = 1000 * (float) atof(strStart.data());
-        useGOP = !play_src->seekTo((uint32_t) iStartTime);
+        use_gop = !play_src->seekTo((uint32_t) iStartTime);
         InfoP(this) << "rtsp seekTo(ms):" << iStartTime;
     }
 
@@ -834,21 +834,22 @@ void RtspSession::handleReq_Play(const Parser &parser) {
     setSocketFlags();
 
     if (!_play_reader && _rtp_type != Rtsp::RTP_MULTICAST) {
-        weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
-        _play_reader = play_src->getRing()->attach(getPoller(), useGOP);
-        _play_reader->setDetachCB([weakSelf]() {
-            auto strongSelf = weakSelf.lock();
-            if (!strongSelf) {
+        weak_ptr<RtspSession> weak_self = dynamic_pointer_cast<RtspSession>(shared_from_this());
+        _play_reader = play_src->getRing()->attach(getPoller(), use_gop);
+        _play_reader->setGetInfoCB([weak_self]() { return weak_self.lock(); });
+        _play_reader->setDetachCB([weak_self]() {
+            auto strong_self = weak_self.lock();
+            if (!strong_self) {
                 return;
             }
-            strongSelf->shutdown(SockException(Err_shutdown, "rtsp ring buffer detached"));
+            strong_self->shutdown(SockException(Err_shutdown, "rtsp ring buffer detached"));
         });
-        _play_reader->setReadCB([weakSelf](const RtspMediaSource::RingDataType &pack) {
-            auto strongSelf = weakSelf.lock();
-            if (!strongSelf) {
+        _play_reader->setReadCB([weak_self](const RtspMediaSource::RingDataType &pack) {
+            auto strong_self = weak_self.lock();
+            if (!strong_self) {
                 return;
             }
-            strongSelf->sendRtpPacket(pack);
+            strong_self->sendRtpPacket(pack);
         });
     }
 }
@@ -972,32 +973,32 @@ void RtspSession::onRcvPeerUdpData(int interleaved, const Buffer::Ptr &buf, cons
 }
 
 void RtspSession::startListenPeerUdpData(int track_idx) {
-    weak_ptr<RtspSession> weakSelf = dynamic_pointer_cast<RtspSession>(shared_from_this());
+    weak_ptr<RtspSession> weak_self = dynamic_pointer_cast<RtspSession>(shared_from_this());
     auto peer_ip = get_peer_ip();
-    auto onUdpData = [weakSelf,peer_ip](const Buffer::Ptr &buf, struct sockaddr *peer_addr, int interleaved){
-        auto strongSelf = weakSelf.lock();
-        if (!strongSelf) {
+    auto onUdpData = [weak_self,peer_ip](const Buffer::Ptr &buf, struct sockaddr *peer_addr, int interleaved){
+        auto strong_self = weak_self.lock();
+        if (!strong_self) {
             return false;
         }
 
         if (SockUtil::inet_ntoa(peer_addr) != peer_ip) {
-            WarnP(strongSelf.get()) << ((interleaved % 2 == 0) ? "收到其他地址的rtp数据:" : "收到其他地址的rtcp数据:")
+            WarnP(strong_self.get()) << ((interleaved % 2 == 0) ? "收到其他地址的rtp数据:" : "收到其他地址的rtcp数据:")
                                     << SockUtil::inet_ntoa(peer_addr);
             return true;
         }
 
         struct sockaddr_storage addr = *((struct sockaddr_storage *)peer_addr);
-        strongSelf->async([weakSelf, buf, addr, interleaved]() {
-            auto strongSelf = weakSelf.lock();
-            if (!strongSelf) {
+        strong_self->async([weak_self, buf, addr, interleaved]() {
+            auto strong_self = weak_self.lock();
+            if (!strong_self) {
                 return;
             }
             try {
-                strongSelf->onRcvPeerUdpData(interleaved, buf, addr);
+                strong_self->onRcvPeerUdpData(interleaved, buf, addr);
             } catch (SockException &ex) {
-                strongSelf->shutdown(ex);
+                strong_self->shutdown(ex);
             } catch (std::exception &ex) {
-                strongSelf->shutdown(SockException(Err_other, ex.what()));
+                strong_self->shutdown(SockException(Err_other, ex.what()));
             }
         });
         return true;

@@ -245,8 +245,8 @@ bool HttpSession::checkLiveStream(const string &schema, const string  &url_suffi
     };
 
     Broadcast::AuthInvoker invoker = [weak_self, onRes](const string &err) {
-        if (auto strongSelf = weak_self.lock()) {
-            strongSelf->async([onRes, err]() { onRes(err); });
+        if (auto strong_self = weak_self.lock()) {
+            strong_self->async([onRes, err]() { onRes(err); });
         }
     };
 
@@ -277,6 +277,7 @@ bool HttpSession::checkLiveStreamFMP4(const function<void()> &cb){
         weak_ptr<HttpSession> weak_self = dynamic_pointer_cast<HttpSession>(shared_from_this());
         fmp4_src->pause(false);
         _fmp4_reader = fmp4_src->getRing()->attach(getPoller());
+        _fmp4_reader->setGetInfoCB([weak_self]() { return weak_self.lock(); });
         _fmp4_reader->setDetachCB([weak_self]() {
             auto strong_self = weak_self.lock();
             if (!strong_self) {
@@ -318,6 +319,7 @@ bool HttpSession::checkLiveStreamTS(const function<void()> &cb){
         weak_ptr<HttpSession> weak_self = dynamic_pointer_cast<HttpSession>(shared_from_this());
         ts_src->pause(false);
         _ts_reader = ts_src->getRing()->attach(getPoller());
+        _ts_reader->setGetInfoCB([weak_self]() { return weak_self.lock(); });
         _ts_reader->setDetachCB([weak_self](){
             auto strong_self = weak_self.lock();
             if (!strong_self) {
@@ -412,19 +414,19 @@ void HttpSession::Handle_Req_GET_l(ssize_t &content_len, bool sendBody) {
     }
 
     bool bClose = !strcasecmp(_parser["Connection"].data(),"close");
-    weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
-    HttpFileManager::onAccessPath(*this, _parser, [weakSelf, bClose](int code, const string &content_type,
+    weak_ptr<HttpSession> weak_self = dynamic_pointer_cast<HttpSession>(shared_from_this());
+    HttpFileManager::onAccessPath(*this, _parser, [weak_self, bClose](int code, const string &content_type,
                                                                      const StrCaseMap &responseHeader, const HttpBody::Ptr &body) {
-        auto strongSelf = weakSelf.lock();
-        if (!strongSelf) {
+        auto strong_self = weak_self.lock();
+        if (!strong_self) {
             return;
         }
-        strongSelf->async([weakSelf, bClose, code, content_type, responseHeader, body]() {
-            auto strongSelf = weakSelf.lock();
-            if (!strongSelf) {
+        strong_self->async([weak_self, bClose, code, content_type, responseHeader, body]() {
+            auto strong_self = weak_self.lock();
+            if (!strong_self) {
                 return;
             }
-            strongSelf->sendResponse(code, bClose, content_type.data(), responseHeader, body);
+            strong_self->sendResponse(code, bClose, content_type.data(), responseHeader, body);
         });
     });
 }
@@ -645,19 +647,19 @@ void HttpSession::urlDecode(Parser &parser){
 bool HttpSession::emitHttpEvent(bool doInvoke){
     bool bClose = !strcasecmp(_parser["Connection"].data(),"close");
     /////////////////////异步回复Invoker///////////////////////////////
-    weak_ptr<HttpSession> weakSelf = dynamic_pointer_cast<HttpSession>(shared_from_this());
-    HttpResponseInvoker invoker = [weakSelf,bClose](int code, const KeyValue &headerOut, const HttpBody::Ptr &body){
-        auto strongSelf = weakSelf.lock();
-        if(!strongSelf) {
+    weak_ptr<HttpSession> weak_self = dynamic_pointer_cast<HttpSession>(shared_from_this());
+    HttpResponseInvoker invoker = [weak_self,bClose](int code, const KeyValue &headerOut, const HttpBody::Ptr &body){
+        auto strong_self = weak_self.lock();
+        if(!strong_self) {
             return;
         }
-        strongSelf->async([weakSelf, bClose, code, headerOut, body]() {
-            auto strongSelf = weakSelf.lock();
-            if (!strongSelf) {
+        strong_self->async([weak_self, bClose, code, headerOut, body]() {
+            auto strong_self = weak_self.lock();
+            if (!strong_self) {
                 //本对象已经销毁
                 return;
             }
-            strongSelf->sendResponse(code, bClose, nullptr, headerOut, body);
+            strong_self->sendResponse(code, bClose, nullptr, headerOut, body);
         });
     };
     ///////////////////广播HTTP事件///////////////////////////
