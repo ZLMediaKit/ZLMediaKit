@@ -27,19 +27,18 @@ RtpServer::~RtpServer() {
     }
 }
 
-class RtcpHelper : public RtcpContextForRecv, public std::enable_shared_from_this<RtcpHelper> {
+class RtcpHelper: public std::enable_shared_from_this<RtcpHelper> {
 public:
     using Ptr = std::shared_ptr<RtcpHelper>;
 
-    RtcpHelper(Socket::Ptr rtcp_sock, uint32_t sample_rate) {
+    RtcpHelper(Socket::Ptr rtcp_sock, RtpProcess::Ptr process) {
         _rtcp_sock = std::move(rtcp_sock);
-        _sample_rate = sample_rate;
+        _process = std::move(process);
     }
 
     void onRecvRtp(const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len){
         //统计rtp接受情况，用于发送rr包
         auto header = (RtpHeader *) buf->data();
-        onRtp(ntohs(header->seq), ntohl(header->stamp), 0/*不发送sr,所以可以设置为0*/ , _sample_rate, buf->size());
         sendRtcp(ntohl(header->ssrc), addr, addr_len);
     }
 
@@ -58,7 +57,7 @@ public:
             }
             auto rtcps = RtcpHeader::loadFromBytes(buf->data(), buf->size());
             for (auto &rtcp : rtcps) {
-                strong_self->onRtcp(rtcp);
+                strong_self->_process->onRtcp(rtcp);
             }
         });
     }
@@ -81,13 +80,13 @@ private:
             //未收到rtcp打洞包时，采用默认的rtcp端口
             rtcp_addr = addr;
         }
-        _rtcp_sock->send(createRtcpRR(rtp_ssrc + 1, rtp_ssrc), rtcp_addr, addr_len);
+        _rtcp_sock->send(_process->createRtcpRR(rtp_ssrc + 1, rtp_ssrc), rtcp_addr, addr_len);
     }
 
 private:
     Ticker _ticker;
     Socket::Ptr _rtcp_sock;
-    uint32_t _sample_rate;
+    RtpProcess::Ptr _process;
     std::shared_ptr<struct sockaddr_storage> _rtcp_addr;
 };
 
@@ -126,8 +125,7 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, bool enable_
     if (!stream_id.empty()) {
         //指定了流id，那么一个端口一个流(不管是否包含多个ssrc的多个流，绑定rtp源后，会筛选掉ip端口不匹配的流)
         process = RtpSelector::Instance().getProcess(stream_id, true);
-        RtcpHelper::Ptr helper = std::make_shared<RtcpHelper>(std::move(rtcp_socket), 90000);
-        process->setHelper(helper);
+        RtcpHelper::Ptr helper = std::make_shared<RtcpHelper>(std::move(rtcp_socket), process);
         helper->startRtcp();
         rtp_socket->setOnRead([rtp_socket, process, helper, ssrc](const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len) {
             RtpHeader *header = (RtpHeader *)buf->data();

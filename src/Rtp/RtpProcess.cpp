@@ -95,6 +95,9 @@ bool RtpProcess::inputRtp(bool is_udp, const Socket::Ptr &sock, const char *data
         _process = std::make_shared<GB28181Process>(_media_info, this);
     }
 
+    auto header = (RtpHeader *) data;
+    onRtp(ntohs(header->seq), ntohl(header->stamp), 0/*不发送sr,所以可以设置为0*/ , 90000/*ps/ts流时间戳按照90K采样率*/, len);
+
     GET_CONFIG(string, dump_dir, RtpProxy::kDumpDir);
     if (_muxer && !_muxer->isEnabled() && !dts_out && dump_dir.empty()) {
         //无人访问、且不取时间戳、不导出调试文件时，我们可以直接丢弃数据
@@ -280,20 +283,12 @@ toolkit::EventPoller::Ptr RtpProcess::getOwnerPoller(MediaSource &sender) {
     return _sock ? _sock->getPoller() : EventPollerPool::Instance().getPoller();
 }
 
-void RtpProcess::setHelper(std::weak_ptr<RtcpContext> help) {
-	_help = std::move(help);
-}
-
-int RtpProcess::getLossRate(MediaSource &sender, TrackType type) {
-     auto help = _help.lock();
-	 if (!help) {
-	 	return -1;	
-	 }
-     auto expected =  help->getExpectedPacketsInterval();
-     if (!expected) {
-        return 0;
-     }
-     return help->geLostInterval() * 100 / expected;
+float RtpProcess::getLossRate(MediaSource &sender, TrackType type) {
+    auto expected = getExpectedPacketsInterval();
+    if (!expected) {
+        return -1;
+    }
+    return geLostInterval() * 100 / expected;
 }
 
 }//namespace mediakit

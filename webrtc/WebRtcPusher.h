@@ -40,7 +40,7 @@ protected:
     // 获取媒体源客户端相关信息
     std::shared_ptr<SockInfo> getOriginSock(mediakit::MediaSource &sender) const override;
     // 获取丢包率
-    int getLossRate(mediakit::MediaSource &sender,mediakit::TrackType type) override;
+    float getLossRate(mediakit::MediaSource &sender,mediakit::TrackType type) override;
 
 private:
     WebRtcPusher(const EventPoller::Ptr &poller, const mediakit::RtspMediaSourceImp::Ptr &src,
