@@ -263,7 +263,7 @@ protected:
     void onShutdown(const SockException &ex) override;
     virtual void onRecvRtp(MediaTrack &track, const std::string &rid, mediakit::RtpPacket::Ptr rtp) = 0;
     void updateTicker();
-    int getLossRate(mediakit::TrackType type);
+    float getLossRate(mediakit::TrackType type);
 
 private:
     void onSortedRtp(MediaTrack &track, const std::string &rid, mediakit::RtpPacket::Ptr rtp);

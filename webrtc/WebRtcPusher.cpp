@@ -148,6 +148,6 @@ void WebRtcPusher::onRtcConfigure(RtcConfigure &configure) const {
     configure.audio.direction = configure.video.direction = RtpDirection::recvonly;
 }
 
-int WebRtcPusher::getLossRate(MediaSource &sender,mediakit::TrackType type){
+float WebRtcPusher::getLossRate(MediaSource &sender,mediakit::TrackType type){
     return WebRtcTransportImp::getLossRate(type);
 }

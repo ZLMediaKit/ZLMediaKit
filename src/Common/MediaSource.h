@@ -87,7 +87,7 @@ public:
     //流注册或注销事件
     virtual void onRegist(MediaSource &sender, bool regist) {};
     // 获取丢包率
-    virtual int getLossRate(MediaSource &sender, TrackType type) { return -1; }
+    virtual float getLossRate(MediaSource &sender, TrackType type) { return -1; }
     // 获取所在线程, 此函数一般强制重载
     virtual toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) { throw NotImplemented(toolkit::demangle(typeid(*this).name()) + "::getOwnerPoller not implemented"); }
 
@@ -164,7 +164,7 @@ public:
     std::vector<Track::Ptr> getMediaTracks(MediaSource &sender, bool trackReady = true) const override;
     void startSendRtp(MediaSource &sender, const SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb) override;
     bool stopSendRtp(MediaSource &sender, const std::string &ssrc) override;
-    int getLossRate(MediaSource &sender, TrackType type) override;
+    float getLossRate(MediaSource &sender, TrackType type) override;
     toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;
 
 private:
@@ -280,7 +280,7 @@ public:
     // 停止发送ps-rtp
     bool stopSendRtp(const std::string &ssrc);
     // 获取丢包率
-    int getLossRate(mediakit::TrackType type);
+    float getLossRate(mediakit::TrackType type);
     // 获取所在线程
     toolkit::EventPoller::Ptr getOwnerPoller();
 

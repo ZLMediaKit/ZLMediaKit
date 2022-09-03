@@ -650,10 +650,10 @@ public:
         return _rtcp_context.createRtcpRR(ssrc, getSSRC());
     }
 
-    int getLossRate() {
+    float getLossRate() {
         auto expected = _rtcp_context.getExpectedPacketsInterval();
         if (!expected) {
-            return 0;
+            return -1;
         }
         return _rtcp_context.geLostInterval() * 100 / expected;
     }
@@ -698,7 +698,7 @@ std::shared_ptr<RtpChannel> MediaTrack::getRtpChannel(uint32_t ssrc) const {
     return it_chn->second;
 }
 
-int WebRtcTransportImp::getLossRate(mediakit::TrackType type) {
+float WebRtcTransportImp::getLossRate(mediakit::TrackType type) {
     for (auto &pr : _ssrc_to_track) {
         auto ssrc = pr.first;
         auto &track = pr.second;

@@ -219,7 +219,7 @@ bool MediaSource::close(bool force) {
     return listener->close(*this,force);
 }
 
-int MediaSource::getLossRate(mediakit::TrackType type) {
+float MediaSource::getLossRate(mediakit::TrackType type) {
     auto listener = _listener.lock();
     if (!listener) {
         return -1;
@@ -720,7 +720,7 @@ void MediaSourceEventInterceptor::onRegist(MediaSource &sender, bool regist) {
     }
 }
 
-int MediaSourceEventInterceptor::getLossRate(MediaSource &sender, TrackType type){
+float MediaSourceEventInterceptor::getLossRate(MediaSource &sender, TrackType type){
     auto listener = _listener.lock();
     if (listener) {
         return listener->getLossRate(sender, type);

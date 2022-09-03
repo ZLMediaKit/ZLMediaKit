@@ -89,7 +89,7 @@ public:
      * 获取丢包率，只支持rtsp
      * @param type 音频或视频，TrackInvalid时为总丢包率
      */
-    virtual float getPacketLossRate(TrackType type) const { return 0; };
+    virtual float getPacketLossRate(TrackType type) const { return -1; };
 
     /**
      * 获取所有track
