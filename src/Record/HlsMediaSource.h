@@ -52,7 +52,6 @@ public:
                 strongSelf->onReaderChanged(size);
             };
             _ring = std::make_shared<RingType>(0, std::move(lam));
-            onReaderChanged(0);
             regist();
         }
 

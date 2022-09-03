@@ -98,7 +98,6 @@ private:
             }
             strong_self->onReaderChanged(size);
         });
-        onReaderChanged(0);
         //注册媒体源
         regist();
     }

@@ -114,7 +114,6 @@ private:
             }
             strong_self->onReaderChanged(size);
         });
-        onReaderChanged(0);
         if (!_init_segment.empty()) {
             regist();
         }
