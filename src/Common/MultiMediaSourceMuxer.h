@@ -57,6 +57,9 @@ public:
 
     //断连续推延时，单位毫秒，默认采用配置文件
     uint32_t continue_push_ms;
+    
+    //时间戳修复这一路流标志位
+    bool modify_stamp;
 };
 
 class MultiMediaSourceMuxer : public MediaSourceEventInterceptor, public MediaSink, public std::enable_shared_from_this<MultiMediaSourceMuxer>{

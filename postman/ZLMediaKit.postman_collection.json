@@ -578,6 +578,12 @@
 							"value": null,
 							"description": "hls保存根目录，置空使用默认目录",
 							"disabled": true
+						},
+						{
+							"key": "modify_stamp",
+							"value": null,
+							"description": "是否重新计算时间戳",
+							"disabled": true
 						}
 					]
 				}

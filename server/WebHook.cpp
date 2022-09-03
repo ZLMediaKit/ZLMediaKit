@@ -353,6 +353,9 @@ void installWebHook(){
                 if (obj.isMember("mp4_as_player")) {
                     option.mp4_as_player = obj["mp4_as_player"].asBool();
                 }
+		if (obj.isMember("modify_stamp")) {
+                    option.modify_stamp = obj["modify_stamp"].asBool();
+                }
                 invoker(err, option);
             } else {
                 //推流鉴权失败
