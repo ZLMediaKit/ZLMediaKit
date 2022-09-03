@@ -1007,7 +1007,7 @@ void installWebApi() {
         getArgsValue(allArgs, "mp4_save_path", option.mp4_save_path);
         getArgsValue(allArgs, "mp4_max_second", option.mp4_max_second);
         getArgsValue(allArgs, "hls_save_path", option.hls_save_path);
-		getArgsValue(allArgs, "modify_stamp", option.modify_stamp);
+        getArgsValue(allArgs, "modify_stamp", option.modify_stamp);
 
         addStreamProxy(allArgs["vhost"],
                        allArgs["app"],
