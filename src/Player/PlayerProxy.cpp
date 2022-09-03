@@ -115,7 +115,6 @@ void PlayerProxy::setDirectProxy() {
     }
     if (mediaSource) {
         setMediaSource(mediaSource);
-        mediaSource->setListener(shared_from_this());
     }
 }
 
