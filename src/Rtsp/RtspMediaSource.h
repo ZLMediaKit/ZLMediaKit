@@ -183,7 +183,6 @@ public:
             //GOP默认缓冲512组RTP包，每组RTP包时间戳相同(如果开启合并写了，那么每组为合并写时间内的RTP包),
             //每次遇到关键帧第一个RTP包，则会清空GOP缓存(因为有新的关键帧了，同样可以实现秒开)
             _ring = std::make_shared<RingType>(_ring_size, std::move(lam));
-            onReaderChanged(0);
             if (!_sdp.empty()) {
                 regist();
             }
