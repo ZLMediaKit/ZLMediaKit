@@ -284,6 +284,10 @@ bash build_docker_images.sh
 [dingcan](https://github.com/dcan123)
 [Haibo Chen](https://github.com/duiniuluantanqin)
 [Leon](https://gitee.com/leon14631)
+[custompal](https://github.com/custompal)
+[PioLing](https://github.com/PioLing)
+[KevinZang](https://github.com/ZSC714725)
+[gongluck](https://github.com/gongluck)
 
 ## 使用案例
 
