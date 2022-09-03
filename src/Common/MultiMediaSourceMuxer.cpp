@@ -28,6 +28,7 @@ ProtocolOption::ProtocolOption() {
     GET_CONFIG(bool, s_add_mute_audio, General::kAddMuteAudio);
     GET_CONFIG(bool, s_mp4_as_player, Record::kMP4AsPlayer);
     GET_CONFIG(uint32_t, s_continue_push_ms, General::kContinuePushMS);
+    GET_CONFIG(bool, s_modify_stamp, General::kModifyStamp);
 
     enable_hls = s_to_hls;
     enable_mp4 = s_to_mp4;
@@ -35,6 +36,7 @@ ProtocolOption::ProtocolOption() {
     add_mute_audio = s_add_mute_audio;
     continue_push_ms = s_continue_push_ms;
     mp4_as_player = s_mp4_as_player;
+    modify_stamp = s_modify_stamp;	
 }
 
 static std::shared_ptr<MediaSinkInterface> makeRecorder(MediaSource &sender, const vector<Track::Ptr> &tracks, Recorder::type type, const string &custom_path, size_t max_second){
@@ -401,9 +403,8 @@ void MultiMediaSourceMuxer::resetTracks() {
 }
 
 bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
-    GET_CONFIG(bool, modify_stamp, General::kModifyStamp);
     auto frame = frame_in;
-    if (modify_stamp) {
+   if (_option.modify_stamp) {
         //开启了时间戳覆盖
         frame = std::make_shared<FrameStamp>(frame, _stamp[frame->getTrackType()],true);
     }
