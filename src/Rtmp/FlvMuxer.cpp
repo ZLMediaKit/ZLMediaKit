@@ -11,6 +11,7 @@
 #include "FlvMuxer.h"
 #include "Util/File.h"
 #include "Rtmp/utils.h"
+#include "Http/HttpSession.h"
 
 #define FILE_BUF_SIZE (64 * 1024)
 
@@ -45,7 +46,7 @@ void FlvMuxer::start(const EventPoller::Ptr &poller, const RtmpMediaSource::Ptr 
     std::weak_ptr<FlvMuxer> weak_self = getSharedPtr();
     media->pause(false);
     _ring_reader = media->getRing()->attach(poller);
-    _ring_reader->setGetInfoCB([weak_self]() { return weak_self.lock(); });
+    _ring_reader->setGetInfoCB([weak_self]() { return dynamic_pointer_cast<HttpSession>(weak_self.lock()); });
     _ring_reader->setDetachCB([weak_self]() {
         auto strong_self = weak_self.lock();
         if (!strong_self) {
