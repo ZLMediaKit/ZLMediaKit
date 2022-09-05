@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
     Logger::Instance().add(std::make_shared<ConsoleChannel>());
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 
-    if (argc != 3) {
+    if (argc < 3) {
         ErrorL << "\r\n测试方法：./test_player rtxp_url rtp_type\r\n"
                << "例如：./test_player rtsp://admin:123456@127.0.0.1/live/0 0\r\n"
                << endl;
@@ -119,6 +119,9 @@ int main(int argc, char *argv[]) {
     (*player)[Client::kRtpType] = atoi(argv[2]);
     //不等待track ready再回调播放成功事件，这样可以加快秒开速度
     (*player)[Client::kWaitTrackReady] = false;
+    if (argc > 3) {
+        (*player)[Client::kPlayTrack] = atoi(argv[3]);
+    }
     player->play(argv[1]);
     SDLDisplayerHelper::Instance().runLoop();
     return 0;
