@@ -805,13 +805,14 @@ void RtspSession::handleReq_Play(const Parser &parser) {
         InfoP(this) << "rtsp seekTo(ms):" << iStartTime;
     }
 
+    vector<TrackType> inited_track;
     _StrPrinter rtp_info;
     for (auto &track : _sdp_track) {
         if (track->_inited == false) {
-            //还有track没有setup
-            shutdown(SockException(Err_shutdown, "track not setuped"));
-            return;
+            //为支持播放器播放单一track, 不校验没有发setup的track
+            continue;
         }
+        inited_track.emplace_back(track->_type);
         track->_ssrc = play_src->getSsrc(track->_type);
         track->_seq = play_src->getSeqence(track->_type);
         track->_time_stamp = play_src->getTimeStamp(track->_type);
@@ -827,6 +828,12 @@ void RtspSession::handleReq_Play(const Parser &parser) {
     //已存在Range时不覆盖
     res_header.emplace("Range", StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << play_src->getTimeStamp(TrackInvalid) / 1000.0);
     sendRtspResponse("200 OK", res_header);
+
+    //设置播放track
+    if (inited_track.size() == 1) {
+        _target_play_track = inited_track[0];
+        InfoP(this) << "指定播放track:" << _target_play_track;
+    }
 
     //在回复rtsp信令后再恢复播放
     play_src->pause(false);
@@ -1192,12 +1199,24 @@ void RtspSession::updateRtcpContext(const RtpPacket::Ptr &rtp){
 }
 
 void RtspSession::sendRtpPacket(const RtspMediaSource::RingDataType &pkt) {
+    RtspMediaSource::RingDataType target_pkt;
+    if (_target_play_track == TrackInvalid) {
+        target_pkt = pkt;
+    } else {
+        //过滤不需要发送的包
+        target_pkt = std::make_shared<List<RtpPacket::Ptr>>();
+        pkt->for_each([&](const RtpPacket::Ptr &rtp) {
+            if (rtp->type == _target_play_track) {
+                target_pkt->emplace_back(rtp);
+            }
+        });
+    }
     switch (_rtp_type) {
         case Rtsp::RTP_TCP: {
             size_t i = 0;
-            auto size = pkt->size();
+            auto size = target_pkt->size();
             setSendFlushFlag(false);
-            pkt->for_each([&](const RtpPacket::Ptr &rtp) {
+            target_pkt->for_each([&](const RtpPacket::Ptr &rtp) {
                 updateRtcpContext(rtp);
                 if (++i == size) {
                     setSendFlushFlag(true);
@@ -1208,8 +1227,8 @@ void RtspSession::sendRtpPacket(const RtspMediaSource::RingDataType &pkt) {
             break;
         case Rtsp::RTP_UDP: {
             size_t i = 0;
-            auto size = pkt->size();
-            pkt->for_each([&](const RtpPacket::Ptr &rtp) {
+            auto size = target_pkt->size();
+            target_pkt->for_each([&](const RtpPacket::Ptr &rtp) {
                 updateRtcpContext(rtp);
                 int track_index = getTrackIndexByTrackType(rtp->type);
                 auto &pSock = _rtp_socks[track_index];
