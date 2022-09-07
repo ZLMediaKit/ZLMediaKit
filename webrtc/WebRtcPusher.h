@@ -26,6 +26,9 @@ protected:
     void onDestory() override;
     void onRtcConfigure(RtcConfigure &configure) const override;
     void onRecvRtp(MediaTrack &track, const std::string &rid, mediakit::RtpPacket::Ptr rtp) override;
+    void onRtcpBye() override;
+    ////  dtls相关的回调 ////
+   void OnDtlsTransportClosed(const RTC::DtlsTransport *dtlsTransport) override;
 
 protected:
     ///////MediaSourceEvent override///////

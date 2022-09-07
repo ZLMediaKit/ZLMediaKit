@@ -766,6 +766,7 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
                 }
                 _ssrc_to_track.erase(it);
             }
+            onRtcpBye();
             onShutdown(SockException(Err_eof, "rtcp bye message received"));
             break;
         }
@@ -1050,6 +1051,8 @@ uint64_t WebRtcTransportImp::getBytesUsage() const {
 uint64_t WebRtcTransportImp::getDuration() const {
     return _alive_ticker.createdTime() / 1000;
 }
+
+void WebRtcTransportImp::onRtcpBye(){}
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 
