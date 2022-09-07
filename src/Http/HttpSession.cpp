@@ -674,7 +674,10 @@ bool HttpSession::emitHttpEvent(bool doInvoke){
 
 std::string HttpSession::get_peer_ip() {
     GET_CONFIG(string, forwarded_ip_header, Http::kForwardedIpHeader);
-    return forwarded_ip_header.empty() ? TcpSession::get_peer_ip() : _parser.getHeader()[forwarded_ip_header];
+    if(!forwarded_ip_header.empty() && !_parser.getHeader()[forwarded_ip_header].empty()){
+        return _parser.getHeader()[forwarded_ip_header];
+    }
+    return TcpSession::get_peer_ip();
 }
 
 void HttpSession::Handle_Req_POST(ssize_t &content_len) {
