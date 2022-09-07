@@ -151,3 +151,14 @@ void WebRtcPusher::onRtcConfigure(RtcConfigure &configure) const {
 float WebRtcPusher::getLossRate(MediaSource &sender,mediakit::TrackType type){
     return WebRtcTransportImp::getLossRate(type);
 }
+
+void WebRtcPusher::OnDtlsTransportClosed(const RTC::DtlsTransport *dtlsTransport) {
+   //主动关闭推流，那么不等待重推
+    _push_src = nullptr;
+    WebRtcTransportImp::OnDtlsTransportClosed(dtlsTransport);
+}
+
+void WebRtcPusher::onRtcpBye(){
+    _push_src = nullptr;
+     WebRtcTransportImp::onRtcpBye();
+}
