@@ -75,8 +75,6 @@ protected:
 
     //用于tcp主动模式
     TcpMode _tcp_mode = NONE;
-    //仅用于传递参数
-    toolkit::Server::Ptr _server;
 };
 
 }//namespace mediakit

@@ -411,8 +411,7 @@ void connectRtpServer(const string &stream_id, const string &dst_url, uint16_t d
         cb(SockException(Err_other, "未找到rtp服务"));
         return;
     }
-    auto server = it->second;
-    server->connectToServer(dst_url, dst_port, cb);
+    it->second->connectToServer(dst_url, dst_port, cb);
 }
 
 bool closeRtpServer(const string &stream_id) {
