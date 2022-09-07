@@ -1145,11 +1145,16 @@ void installWebApi() {
 
     api_regist("/index/api/openRtpServer",[](API_ARGS_MAP){
         CHECK_SECRET();
-        CHECK_ARGS("port", "enable_tcp", "stream_id");
+        CHECK_ARGS("port", "stream_id");
         auto stream_id = allArgs["stream_id"];
-        auto port = openRtpServer(allArgs["port"], stream_id, allArgs["tcp_mode"].as<int>(), "::",
-                      allArgs["re_use_port"].as<bool>(), allArgs["ssrc"].as<uint32_t>());
-        if(port == 0) {
+        auto tcp_mode = allArgs["tcp_mode"].as<int>();
+        if (allArgs["enable_tcp"].as<int>() && !tcp_mode) {
+            //兼容老版本请求，新版本去除enable_tcp参数并新增tcp_mode参数
+            tcp_mode = 1;
+        }
+        auto port = openRtpServer(allArgs["port"], stream_id, tcp_mode, "::", allArgs["re_use_port"].as<bool>(),
+                                  allArgs["ssrc"].as<uint32_t>());
+        if (port == 0) {
             throw InvalidArgsException("该stream_id已存在");
         }
         //回复json
