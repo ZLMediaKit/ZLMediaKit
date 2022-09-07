@@ -23,6 +23,7 @@ public:
 protected:
     ///////WebRtcTransportImp override///////
     void onStartWebRTC() override;
+    void onShutdown(const SockException &ex) override;
     void onDestory() override;
     void onRtcConfigure(RtcConfigure &configure) const override;
     void onRecvRtp(MediaTrack &track, const std::string &rid, mediakit::RtpPacket::Ptr rtp) override;

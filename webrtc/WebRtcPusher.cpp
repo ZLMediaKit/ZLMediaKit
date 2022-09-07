@@ -113,6 +113,19 @@ void WebRtcPusher::onStartWebRTC() {
     }
 }
 
+void WebRtcPusher::onShutdown(const SockException &ex) {
+    WebRtcTransportImp::onShutdown(ex);
+
+    if (_push_src && _continue_push_ms && ex.getErrCode() != Err_shutdown) {
+        //取消所有权
+        _push_src_ownership = nullptr;
+        //延时注销流
+        auto push_src = std::move(_push_src);
+        getPoller()->doDelayTask(_continue_push_ms, [push_src]() { return 0; });
+    }
+
+}
+
 void WebRtcPusher::onDestory() {
     WebRtcTransportImp::onDestory();
 
@@ -133,13 +146,6 @@ void WebRtcPusher::onDestory() {
         }
     }
 
-    if (_push_src && _continue_push_ms) {
-        //取消所有权
-        _push_src_ownership = nullptr;
-        //延时10秒注销流
-        auto push_src = std::move(_push_src);
-        getPoller()->doDelayTask(_continue_push_ms, [push_src]() { return 0; });
-    }
 }
 
 void WebRtcPusher::onRtcConfigure(RtcConfigure &configure) const {

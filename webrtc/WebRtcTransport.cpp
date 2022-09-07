@@ -766,7 +766,7 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
                 }
                 _ssrc_to_track.erase(it);
             }
-            onShutdown(SockException(Err_eof, "rtcp bye message received"));
+            onShutdown(SockException(Err_shutdown, "rtcp bye message received"));
             break;
         }
         case RtcpType::RTCP_PSFB:
