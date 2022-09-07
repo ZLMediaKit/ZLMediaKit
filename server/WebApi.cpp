@@ -312,6 +312,14 @@ static inline string getPusherKey(const string &schema, const string &vhost, con
     return schema + "/" + vhost + "/" + app + "/" + stream + "/" + MD5(dst_url).hexdigest();
 }
 
+static void fillSockInfo(Value& val, SockInfo* info) {
+    val["peer_ip"] = info->get_peer_ip();
+    val["peer_port"] = info->get_peer_port();
+    val["local_port"] = info->get_local_port();
+    val["local_ip"] = info->get_local_ip();
+    val["identifier"] = info->getIdentifier();
+}
+
 Value makeMediaSourceJson(MediaSource &media){
     Value item;
     item["schema"] = media.getSchema();
@@ -330,11 +338,7 @@ Value makeMediaSourceJson(MediaSource &media){
     item["isRecordingHLS"] = media.isRecording(Recorder::type_hls);
     auto originSock = media.getOriginSock();
     if (originSock) {
-        item["originSock"]["local_ip"] = originSock->get_local_ip();
-        item["originSock"]["local_port"] = originSock->get_local_port();
-        item["originSock"]["peer_ip"] = originSock->get_peer_ip();
-        item["originSock"]["peer_port"] = originSock->get_peer_port();
-        item["originSock"]["identifier"] = originSock->getIdentifier();
+        fillSockInfo(item["originSock"], originSock.get());
     } else {
         item["originSock"] = Json::nullValue;
     }
@@ -772,9 +776,7 @@ void installWebApi() {
             [](std::shared_ptr<void> &&info) -> std::shared_ptr<void> {
                 auto obj = std::make_shared<Value>();
                 auto session = static_pointer_cast<Session>(info);
-                (*obj)["peer_ip"] = session->get_peer_ip();
-                (*obj)["peer_port"] = session->get_peer_port();
-                (*obj)["id"] = session->getIdentifier();
+                fillSockInfo(*obj, session.get());
                 (*obj)["typeid"] = toolkit::demangle(typeid(*session).name());
                 return obj;
             });
@@ -858,10 +860,7 @@ void installWebApi() {
             if(!peer_ip.empty() && peer_ip != session->get_peer_ip()){
                 return;
             }
-            jsession["peer_ip"] = session->get_peer_ip();
-            jsession["peer_port"] = session->get_peer_port();
-            jsession["local_ip"] = session->get_local_ip();
-            jsession["local_port"] = session->get_local_port();
+            fillSockInfo(jsession, session.get());
             jsession["id"] = id;
             jsession["typeid"] = toolkit::demangle(typeid(*session).name());
             val["data"].append(jsession);
@@ -1127,10 +1126,7 @@ void installWebApi() {
             return;
         }
         val["exist"] = true;
-        val["peer_ip"] = process->get_peer_ip();
-        val["peer_port"] = process->get_peer_port();
-        val["local_port"] = process->get_local_port();
-        val["local_ip"] = process->get_local_ip();
+        fillSockInfo(val, process.get());
     });
 
     api_regist("/index/api/openRtpServer",[](API_ARGS_MAP){

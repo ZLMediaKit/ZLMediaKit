@@ -19,13 +19,8 @@
 #include <unordered_map>
 #include "Common/config.h"
 #include "Common/Parser.h"
-#include "Util/logger.h"
-#include "Util/TimeTicker.h"
-#include "Util/NoticeCenter.h"
 #include "Util/List.h"
 #include "Network/Socket.h"
-#include "Rtsp/Rtsp.h"
-#include "Rtmp/Rtmp.h"
 #include "Extension/Track.h"
 #include "Record/Recorder.h"
 
@@ -85,7 +80,7 @@ public:
     // 通知观看人数变化
     virtual void onReaderChanged(MediaSource &sender, int size);
     //流注册或注销事件
-    virtual void onRegist(MediaSource &sender, bool regist) {};
+    virtual void onRegist(MediaSource &sender, bool regist) {}
     // 获取丢包率
     virtual float getLossRate(MediaSource &sender, TrackType type) { return -1; }
     // 获取所在线程, 此函数一般强制重载
@@ -95,7 +90,7 @@ public:
     // 开启或关闭录制
     virtual bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const std::string &custom_path, size_t max_second) { return false; };
     // 获取录制状态
-    virtual bool isRecording(MediaSource &sender, Recorder::type type) { return false; };
+    virtual bool isRecording(MediaSource &sender, Recorder::type type) { return false; }
     // 获取所有track相关信息
     virtual std::vector<Track::Ptr> getMediaTracks(MediaSource &sender, bool trackReady = true) const { return std::vector<Track::Ptr>(); };
 
@@ -180,7 +175,12 @@ public:
     MediaInfo() {}
     MediaInfo(const std::string &url) { parse(url); }
     void parse(const std::string &url);
-
+    std::string shortUrl() const {
+        return _vhost + "/" + _app + "/" + _streamid;
+    }
+    std::string getUrl() const {
+        return _schema + "://" + shortUrl();
+    }
 public:
     std::string _full_url;
     std::string _schema;
@@ -199,10 +199,6 @@ class MediaSource: public TrackSource, public std::enable_shared_from_this<Media
 public:
     static MediaSource& NullMediaSource();
     using Ptr = std::shared_ptr<MediaSource>;
-    using StreamMap = std::unordered_map<std::string/*stream_id*/, std::weak_ptr<MediaSource> >;
-    using AppStreamMap = std::unordered_map<std::string/*app*/, StreamMap>;
-    using VhostAppStreamMap = std::unordered_map<std::string/*vhost*/, AppStreamMap>;
-    using SchemaVhostAppStreamMap = std::unordered_map<std::string/*schema*/, VhostAppStreamMap>;
 
     MediaSource(const std::string &schema, const std::string &vhost, const std::string &app, const std::string &stream_id) ;
     virtual ~MediaSource();
@@ -218,6 +214,13 @@ public:
     // 流id
     const std::string& getId() const;
 
+    std::string shortUrl() const {
+        return  _vhost + "/" + _app + "/" + _stream_id;
+    }
+    std::string getUrl() const {
+        return _schema + "://" + shortUrl();
+    }
+    
     //获取对象所有权
     std::shared_ptr<void> getOwnership();
 
@@ -232,7 +235,7 @@ public:
     // 获取数据速率，单位bytes/s
     int getBytesSpeed(TrackType type = TrackInvalid);
     // 获取流创建GMT unix时间戳，单位秒
-    uint64_t getCreateStamp() const;
+    uint64_t getCreateStamp() const {return _create_stamp;}
     // 获取流上线时间，单位秒
     uint64_t getAliveSecond() const;
 
@@ -288,8 +291,11 @@ public:
 
     // 同步查找流
     static Ptr find(const std::string &schema, const std::string &vhost, const std::string &app, const std::string &id, bool from_mp4 = false);
+    static Ptr find(const MediaInfo &info, bool from_mp4 = false) {
+        return find(info._schema, info._vhost, info._app, info._streamid, from_mp4);
+    }
 
-    // 忽略类型，同步查找流，可能返回rtmp/rtsp/hls类型
+    // 忽略schema，同步查找流，可能返回rtmp/rtsp/hls类型
     static Ptr find(const std::string &vhost, const std::string &app, const std::string &stream_id, bool from_mp4 = false);
 
     // 异步查找流
@@ -335,6 +341,7 @@ public:
     bool isFlushAble(bool is_video, bool is_key, uint64_t new_stamp, size_t cache_size);
 
 private:
+    // 音视频的最后时间戳
     uint64_t _last_stamp[2] = {0, 0};
 };
 

@@ -129,7 +129,7 @@ bool RtpSession::close(MediaSource &sender, bool force) {
     if(!_process || (!force && static_pointer_cast<MediaSourceEvent>(_process)->totalReaderCount(sender))){
         return false;
     }
-    string err = StrPrinter << "close media:" << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId() << " " << force;
+    string err = StrPrinter << "close media:" << sender.getUrl() << " " << force;
     safeShutdown(SockException(Err_shutdown,err));
     return true;
 }

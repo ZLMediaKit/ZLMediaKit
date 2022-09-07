@@ -72,7 +72,7 @@ protected:
         }
         //请在回调中调用mk_media_release函数释放资源,否则MediaSource::close()操作不会生效
         _on_close(_on_close_data);
-        WarnL << "close media:" << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId() << " " << force;
+        WarnL << "close media:" << sender.getUrl() << " " << force;
         return true;
     }
 

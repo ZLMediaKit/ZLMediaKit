@@ -23,12 +23,7 @@ public:
             MediaSource::for_each_media([&](const MediaSource::Ptr &media) {
                 if (ini.find("list") != ini.end()) {
                     //列出源
-                    (*stream) << "\t"
-                              << media->getSchema() << "/"
-                              << media->getVhost() << "/"
-                              << media->getApp() << "/"
-                              << media->getId()
-                              << "\r\n";
+                    (*stream) << "\t" << media->getUrl() << "\r\n";
                     return;
                 }
 
@@ -42,20 +37,10 @@ public:
                             if (!media->close(true)) {
                                 break;
                             }
-                            (*stream) << "\t踢出成功:"
-                                      << media->getSchema() << "/"
-                                      << media->getVhost() << "/"
-                                      << media->getApp() << "/"
-                                      << media->getId()
-                                      << "\r\n";
+                            (*stream) << "\t踢出成功:" << media->getUrl() << "\r\n";
                             return;
                         } while (0);
-                        (*stream) << "\t踢出失败:"
-                                  << media->getSchema() << "/"
-                                  << media->getVhost() << "/"
-                                  << media->getApp() << "/"
-                                  << media->getId()
-                                  << "\r\n";
+                        (*stream) << "\t踢出失败:" << media->getUrl() << "\r\n";
                     }
                 }, false);
 

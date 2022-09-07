@@ -63,6 +63,7 @@ void MP4Recorder::createFile() {
         WarnL << ex.what();
     }
 }
+
 void MP4Recorder::asyncClose() {
     auto muxer = _muxer;
     auto full_path_tmp = _full_path_tmp;
