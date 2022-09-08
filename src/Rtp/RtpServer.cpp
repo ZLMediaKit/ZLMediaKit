@@ -204,7 +204,7 @@ void RtpServer::connectToServer(const std::string &url, uint16_t port, const fun
         if (err) {
             WarnL << "连接到服务器 " << url << ":" << port << " 失败 " << err.what();
         } else {
-            WarnL << "连接到服务器 " << url << ":" << port << " 成功";
+            InfoL << "连接到服务器 " << url << ":" << port << " 成功";
             strong_self->onConnect();
         }
         cb(err);
@@ -217,6 +217,12 @@ void RtpServer::onConnect() {
     rtp_session->attachServer(*_tcp_server);
     _rtp_socket->setOnRead([rtp_session](const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len) {
         rtp_session->onRecv(buf);
+    });
+    weak_ptr<RtpServer> weak_self = shared_from_this();
+    _rtp_socket->setOnErr([weak_self](const SockException &err) {
+        if (auto strong_self = weak_self.lock()) {
+            strong_self->_rtp_socket->setOnRead(nullptr);
+        }
     });
 }
 
