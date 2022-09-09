@@ -801,14 +801,14 @@ void RtspSession::handleReq_Play(const Parser &parser) {
         InfoP(this) << "rtsp seekTo(ms):" << iStartTime;
     }
 
-    vector<TrackType> inited_track;
+    vector<TrackType> inited_tracks;
     _StrPrinter rtp_info;
     for (auto &track : _sdp_track) {
         if (track->_inited == false) {
             //为支持播放器播放单一track, 不校验没有发setup的track
             continue;
         }
-        inited_track.emplace_back(track->_type);
+        inited_tracks.emplace_back(track->_type);
         track->_ssrc = play_src->getSsrc(track->_type);
         track->_seq = play_src->getSeqence(track->_type);
         track->_time_stamp = play_src->getTimeStamp(track->_type);
@@ -826,8 +826,8 @@ void RtspSession::handleReq_Play(const Parser &parser) {
     sendRtspResponse("200 OK", res_header);
 
     //设置播放track
-    if (inited_track.size() == 1) {
-        _target_play_track = inited_track[0];
+    if (inited_tracks.size() == 1) {
+        _target_play_track = inited_tracks[0];
         InfoP(this) << "指定播放track:" << _target_play_track;
     }
 
@@ -963,13 +963,17 @@ void RtspSession::onRcvPeerUdpData(int interleaved, const Buffer::Ptr &buf, cons
         } else if (!_udp_connected_flags.count(interleaved)) {
             //这是rtsp播放器的rtp打洞包
             _udp_connected_flags.emplace(interleaved);
-            _rtp_socks[interleaved / 2]->bindPeerAddr((struct sockaddr *)&addr);
+            if (_rtp_socks[interleaved / 2]) {
+                _rtp_socks[interleaved / 2]->bindPeerAddr((struct sockaddr *)&addr);
+            }
         }
     } else {
         //rtcp包
         if (!_udp_connected_flags.count(interleaved)) {
             _udp_connected_flags.emplace(interleaved);
-            _rtcp_socks[(interleaved - 1) / 2]->bindPeerAddr((struct sockaddr *)&addr);
+            if (_rtcp_socks[(interleaved - 1) / 2]) {
+                _rtcp_socks[(interleaved - 1) / 2]->bindPeerAddr((struct sockaddr *)&addr);
+            }
         }
         onRtcpPacket((interleaved - 1) / 2, _sdp_track[(interleaved - 1) / 2], buf->data(), buf->size());
     }
@@ -1195,46 +1199,41 @@ void RtspSession::updateRtcpContext(const RtpPacket::Ptr &rtp){
 }
 
 void RtspSession::sendRtpPacket(const RtspMediaSource::RingDataType &pkt) {
-    RtspMediaSource::RingDataType target_pkt;
-    if (_target_play_track == TrackInvalid) {
-        target_pkt = pkt;
-    } else {
-        //过滤不需要发送的包
-        target_pkt = std::make_shared<List<RtpPacket::Ptr>>();
-        pkt->for_each([&](const RtpPacket::Ptr &rtp) {
-            if (rtp->type == _target_play_track) {
-                target_pkt->emplace_back(rtp);
-            }
-        });
-    }
     switch (_rtp_type) {
         case Rtsp::RTP_TCP: {
-            size_t i = 0;
-            auto size = target_pkt->size();
             setSendFlushFlag(false);
-            target_pkt->for_each([&](const RtpPacket::Ptr &rtp) {
-                updateRtcpContext(rtp);
-                if (++i == size) {
-                    setSendFlushFlag(true);
+            pkt->for_each([&](const RtpPacket::Ptr &rtp) {
+                if (_target_play_track == TrackInvalid || _target_play_track == rtp->type) {
+                    updateRtcpContext(rtp);
+                    send(rtp);
                 }
-                send(rtp);
             });
+            flushAll();
+            setSendFlushFlag(true);
         }
             break;
         case Rtsp::RTP_UDP: {
-            size_t i = 0;
-            auto size = target_pkt->size();
-            target_pkt->for_each([&](const RtpPacket::Ptr &rtp) {
-                updateRtcpContext(rtp);
-                int track_index = getTrackIndexByTrackType(rtp->type);
-                auto &pSock = _rtp_socks[track_index];
-                if (!pSock) {
-                    shutdown(SockException(Err_shutdown, "udp sock not opened yet"));
-                    return;
+            //下标0表示视频，1表示音频
+            Socket::Ptr rtp_socks[2];
+            rtp_socks[0] = _rtp_socks[getTrackIndexByTrackType(TrackVideo)];
+            rtp_socks[1] = _rtp_socks[getTrackIndexByTrackType(TrackAudio)];
+            pkt->for_each([&](const RtpPacket::Ptr &rtp) {
+                if (_target_play_track == TrackInvalid || _target_play_track == rtp->type) {
+                    updateRtcpContext(rtp);
+                    auto &pSock = rtp_socks[rtp->type];
+                    if (!pSock) {
+                        shutdown(SockException(Err_shutdown, "udp sock not opened yet"));
+                        return;
+                    }
+                    _bytes_usage += rtp->size() - RtpPacket::kRtpTcpHeaderSize;
+                    pSock->send(std::make_shared<BufferRtp>(rtp, RtpPacket::kRtpTcpHeaderSize), nullptr, 0, false);
                 }
-                _bytes_usage += rtp->size() - RtpPacket::kRtpTcpHeaderSize;
-                pSock->send(std::make_shared<BufferRtp>(rtp, RtpPacket::kRtpTcpHeaderSize), nullptr, 0, ++i == size);
             });
+            for (int i = 0; i < 2; ++i) {
+                if (rtp_socks[i]) {
+                    rtp_socks[i]->flushAll();
+                }
+            }
         }
             break;
         default:
