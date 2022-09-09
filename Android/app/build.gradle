@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 28
-    ndkVersion "25.0.8775105"
+    //ndkVersion "25.1.xxx"
     defaultConfig {
         applicationId "com.zlmediakit.demo"
         minSdkVersion 15
