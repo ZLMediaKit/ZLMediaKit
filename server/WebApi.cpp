@@ -383,7 +383,7 @@ Value makeMediaSourceJson(MediaSource &media){
 }
 
 #if defined(ENABLE_RTPPROXY)
-uint16_t openRtpServer(uint16_t local_port, const string &stream_id, bool enable_tcp, const string &local_ip, bool re_use_port, uint32_t ssrc) {
+uint16_t openRtpServer(uint16_t local_port, const string &stream_id, int tcp_mode, const string &local_ip, bool re_use_port, uint32_t ssrc) {
     lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
     if (s_rtpServerMap.find(stream_id) != s_rtpServerMap.end()) {
         //为了防止RtpProcess所有权限混乱的问题，不允许重复添加相同的stream_id
@@ -391,7 +391,7 @@ uint16_t openRtpServer(uint16_t local_port, const string &stream_id, bool enable
     }
 
     RtpServer::Ptr server = std::make_shared<RtpServer>();
-    server->start(local_port, stream_id, enable_tcp, local_ip.c_str(), re_use_port, ssrc);
+    server->start(local_port, stream_id, (RtpServer::TcpMode)tcp_mode, local_ip.c_str(), re_use_port, ssrc);
     server->setOnDetach([stream_id]() {
         //设置rtp超时移除事件
         lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
@@ -402,6 +402,16 @@ uint16_t openRtpServer(uint16_t local_port, const string &stream_id, bool enable
     s_rtpServerMap.emplace(stream_id, server);
     //回复json
     return server->getPort();
+}
+
+void connectRtpServer(const string &stream_id, const string &dst_url, uint16_t dst_port, const function<void(const SockException &ex)> &cb) {
+    lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
+    auto it = s_rtpServerMap.find(stream_id);
+    if (it == s_rtpServerMap.end()) {
+        cb(SockException(Err_other, "未找到rtp服务"));
+        return;
+    }
+    it->second->connectToServer(dst_url, dst_port, cb);
 }
 
 bool closeRtpServer(const string &stream_id) {
@@ -1135,15 +1145,34 @@ void installWebApi() {
 
     api_regist("/index/api/openRtpServer",[](API_ARGS_MAP){
         CHECK_SECRET();
-        CHECK_ARGS("port", "enable_tcp", "stream_id");
+        CHECK_ARGS("port", "stream_id");
         auto stream_id = allArgs["stream_id"];
-        auto port = openRtpServer(allArgs["port"], stream_id, allArgs["enable_tcp"].as<bool>(), "::",
-                      allArgs["re_use_port"].as<bool>(), allArgs["ssrc"].as<uint32_t>());
-        if(port == 0) {
+        auto tcp_mode = allArgs["tcp_mode"].as<int>();
+        if (allArgs["enable_tcp"].as<int>() && !tcp_mode) {
+            //兼容老版本请求，新版本去除enable_tcp参数并新增tcp_mode参数
+            tcp_mode = 1;
+        }
+        auto port = openRtpServer(allArgs["port"], stream_id, tcp_mode, "::", allArgs["re_use_port"].as<bool>(),
+                                  allArgs["ssrc"].as<uint32_t>());
+        if (port == 0) {
             throw InvalidArgsException("该stream_id已存在");
         }
         //回复json
         val["port"] = port;
+    });
+
+    api_regist("/index/api/connectRtpServer", [](API_ARGS_MAP_ASYNC) {
+        CHECK_SECRET();
+        CHECK_ARGS("stream_id", "dst_url", "dst_port");
+        connectRtpServer(
+            allArgs["stream_id"], allArgs["dst_url"], allArgs["dst_port"],
+            [val, headerOut, invoker](const SockException &ex) mutable {
+                if (ex) {
+                    val["code"] = API::OtherFailed;
+                    val["msg"] = ex.what();
+                }
+                invoker(200, headerOut, val.toStyledString());
+            });
     });
 
     api_regist("/index/api/closeRtpServer",[](API_ARGS_MAP){

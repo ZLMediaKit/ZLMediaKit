@@ -231,7 +231,8 @@ bool checkArgs(Args &args, const First &first, const KeyTypes &...keys) {
 void installWebApi();
 void unInstallWebApi();
 
-uint16_t openRtpServer(uint16_t local_port, const std::string &stream_id, bool enable_tcp, const std::string &local_ip, bool re_use_port, uint32_t ssrc);
+uint16_t openRtpServer(uint16_t local_port, const std::string &stream_id, int tcp_mode, const std::string &local_ip, bool re_use_port, uint32_t ssrc);
+void connectRtpServer(const std::string &stream_id, const std::string &dst_url, uint16_t dst_port, const std::function<void(const toolkit::SockException &ex)> &cb);
 bool closeRtpServer(const std::string &stream_id);
 Json::Value makeMediaSourceJson(mediakit::MediaSource &media);
 void getStatisticJson(const std::function<void(Json::Value &val)> &cb);
