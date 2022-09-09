@@ -718,6 +718,7 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
     for (auto rtcp : rtcps) {
         switch ((RtcpType)rtcp->pt) {
         case RtcpType::RTCP_SR: {
+            _alive_ticker.resetTime();
             // 对方汇报rtp发送情况
             RtcpSR *sr = (RtcpSR *)rtcp;
             auto it = _ssrc_to_track.find(sr->ssrc);
