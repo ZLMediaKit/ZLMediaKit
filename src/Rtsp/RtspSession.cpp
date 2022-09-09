@@ -63,9 +63,7 @@ void RtspSession::onError(const SockException &err) {
     bool is_player = !_push_src_ownership;
     uint64_t duration = _alive_ticker.createdTime() / 1000;
     WarnP(this) << (is_player ? "RTSP播放器(" : "RTSP推流器(")
-                << _media_info._vhost << "/"
-                << _media_info._app << "/"
-                << _media_info._streamid
+                << _media_info.shortUrl()
                 << ")断开:" << err.what()
                 << ",耗时(s):" << duration;
 
@@ -249,9 +247,7 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
 
         if (push_failed) {
             sendRtspResponse("406 Not Acceptable", { "Content-Type", "text/plain" }, "Already publishing.");
-            string err = StrPrinter << "ANNOUNCE:"
-                                    << "Already publishing:" << _media_info._vhost << " " << _media_info._app << " "
-                                    << _media_info._streamid << endl;
+            string err = StrPrinter << "ANNOUNCE: Already publishing:" << _media_info.shortUrl() << endl;
             throw SockException(Err_shutdown, err);
         }
 
@@ -417,7 +413,7 @@ void RtspSession::onAuthSuccess() {
         auto rtsp_src = dynamic_pointer_cast<RtspMediaSource>(src);
         if (!rtsp_src) {
             //未找到相应的MediaSource
-            string err = StrPrinter << "no such stream:" << strong_self->_media_info._vhost << " " << strong_self->_media_info._app << " " << strong_self->_media_info._streamid;
+            string err = StrPrinter << "no such stream:" << strong_self->_media_info.shortUrl();
             strong_self->send_StreamNotFound();
             strong_self->shutdown(SockException(Err_shutdown,err));
             return;
@@ -1134,7 +1130,7 @@ bool RtspSession::close(MediaSource &sender, bool force) {
     if(!_push_src || (!force && _push_src->totalReaderCount())){
         return false;
     }
-    string err = StrPrinter << "close media:" << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId() << " " << force;
+    string err = StrPrinter << "close media:" << sender.getUrl() << " " << force;
     safeShutdown(SockException(Err_shutdown,err));
     return true;
 }

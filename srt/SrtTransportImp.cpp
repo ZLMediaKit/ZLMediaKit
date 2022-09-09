@@ -10,8 +10,7 @@ SrtTransportImp::SrtTransportImp(const EventPoller::Ptr &poller)
 SrtTransportImp::~SrtTransportImp() {
     InfoP(this);
     uint64_t duration = _alive_ticker.createdTime() / 1000;
-    WarnP(this) << (_is_pusher ? "srt 推流器(" : "srt 播放器(") << _media_info._vhost << "/" << _media_info._app << "/"
-                << _media_info._streamid << ")断开,耗时(s):" << duration;
+    WarnP(this) << (_is_pusher ? "srt 推流器(" : "srt 播放器(") << _media_info.shortUrl() << ")断开,耗时(s):" << duration;
 
     // 流量统计事件广播
     GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
@@ -89,8 +88,7 @@ bool SrtTransportImp::parseStreamid(std::string &streamid) {
     _media_info._app = app;
     _media_info._streamid = stream_name;
 
-    TraceL << " vhost=" << _media_info._vhost << " app=" << _media_info._app << " streamid=" << _media_info._streamid
-           << " params=" << _media_info._param_strs;
+    TraceL << " mediainfo=" << _media_info.shortUrl() << " params=" << _media_info._param_strs;
 
     return true;
 }
@@ -115,8 +113,7 @@ bool SrtTransportImp::close(mediakit::MediaSource &sender, bool force) {
     if (!force && totalReaderCount(sender)) {
         return false;
     }
-    std::string err = StrPrinter << "close media:" << sender.getSchema() << "/" << sender.getVhost() << "/"
-                                 << sender.getApp() << "/" << sender.getId() << " " << force;
+    std::string err = StrPrinter << "close media:" << sender.getUrl() << " " << force;
     weak_ptr<SrtTransportImp> weak_self = static_pointer_cast<SrtTransportImp>(shared_from_this());
     getPoller()->async([weak_self, err]() {
         auto strong_self = weak_self.lock();

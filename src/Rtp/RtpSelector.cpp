@@ -144,7 +144,7 @@ bool RtpProcessHelper::close(MediaSource &sender, bool force) {
         return false;
     }
     parent->delProcess(_stream_id, _process.get());
-    WarnL << "close media:" << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId() << " " << force;
+    WarnL << "close media:" << sender.getUrl() << " " << force;
     return true;
 }
 

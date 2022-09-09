@@ -52,9 +52,7 @@ RtpProcess::RtpProcess(const string &stream_id) {
 RtpProcess::~RtpProcess() {
     uint64_t duration = (_last_frame_time.createdTime() - _last_frame_time.elapsedTime()) / 1000;
     WarnP(this) << "RTP推流器("
-                << _media_info._vhost << "/"
-                << _media_info._app << "/"
-                << _media_info._streamid
+                << _media_info.shortUrl()
                 << ")断开,耗时(s):" << duration;
 
     //流量统计事件广播
@@ -272,7 +270,7 @@ MediaOriginType RtpProcess::getOriginType(MediaSource &sender) const{
 }
 
 string RtpProcess::getOriginUrl(MediaSource &sender) const {
-    return _media_info._schema + "://" + _media_info._vhost + "/" + _media_info._app + "/" + _media_info._streamid;
+    return _media_info.getUrl();
 }
 
 std::shared_ptr<SockInfo> RtpProcess::getOriginSock(MediaSource &sender) const {
