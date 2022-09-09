@@ -141,8 +141,10 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
 
         NoticeCenter::Instance().addListener(&s_tag,Broadcast::kBroadcastNotFoundStream,[](BroadcastNotFoundStreamArgs){
             if (s_events.on_mk_media_not_found) {
-                s_events.on_mk_media_not_found((mk_media_info) &args,
-                                               (mk_sock_info) &sender);
+                if (s_events.on_mk_media_not_found((mk_media_info) &args,
+                                                   (mk_sock_info) &sender)) {
+                    closePlayer();
+                }
             }
         });
 
