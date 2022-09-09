@@ -160,7 +160,7 @@ bool PlayerProxy::close(MediaSource &sender, bool force) {
         strongSelf->teardown();
     });
     _on_close(SockException(Err_shutdown, "closed by user"));
-    WarnL << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId() << " " << force;
+    WarnL << sender.getUrl() << " " << force;
     return true;
 }
 

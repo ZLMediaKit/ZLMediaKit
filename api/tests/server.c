@@ -88,8 +88,10 @@ void API_CALL on_mk_media_play(const mk_media_info url_info,
  * 未找到流后会广播该事件，请在监听该事件后去拉流或其他方式产生流，这样就能按需拉流了
  * @param url_info 播放url相关信息
  * @param sender 播放客户端相关信息
+ * @return 1 直接关闭
+ *         0 等待流注册
  */
-void API_CALL on_mk_media_not_found(const mk_media_info url_info,
+int API_CALL on_mk_media_not_found(const mk_media_info url_info,
                                     const mk_sock_info sender) {
     char ip[64];
     log_printf(LOG_LEV,
@@ -104,6 +106,7 @@ void API_CALL on_mk_media_not_found(const mk_media_info url_info,
                mk_media_info_get_app(url_info),
                mk_media_info_get_stream(url_info),
                mk_media_info_get_params(url_info));
+    return 0;
 }
 
 /**

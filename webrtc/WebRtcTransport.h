@@ -154,6 +154,7 @@ protected:
     virtual void onShutdown(const SockException &ex) = 0;
     virtual void onBeforeEncryptRtp(const char *buf, int &len, void *ctx) = 0;
     virtual void onBeforeEncryptRtcp(const char *buf, int &len, void *ctx) = 0;
+    virtual void onRtcpBye() = 0;
 
 protected:
     RTC::TransportTuple* getSelectedTuple() const;
@@ -264,6 +265,7 @@ protected:
     virtual void onRecvRtp(MediaTrack &track, const std::string &rid, mediakit::RtpPacket::Ptr rtp) = 0;
     void updateTicker();
     float getLossRate(mediakit::TrackType type);
+    void onRtcpBye() override;
 
 private:
     void onSortedRtp(MediaTrack &track, const std::string &rid, mediakit::RtpPacket::Ptr rtp);

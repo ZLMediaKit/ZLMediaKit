@@ -24,12 +24,11 @@ public:
     void onRecv(const Buffer::Ptr &) override;
     void onError(const SockException &err) override;
     void onManager() override;
-    std::string getIdentifier() const override;
+    //std::string getIdentifier() const override;
 
     static EventPoller::Ptr queryPoller(const Buffer::Ptr &buffer);
 
 private:
-    std::string _identifier;
     bool _find_transport = true;
     Ticker _ticker;
     struct sockaddr_storage _peer_addr;

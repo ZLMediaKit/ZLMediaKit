@@ -58,7 +58,6 @@ void WebRtcSession::onRecv(const Buffer::Ptr &buffer) {
         //只允许寻找一次transport
         _find_transport = false;
         auto user_name = getUserName(buffer);
-        _identifier = to_string(getSock()->rawFD()) + '-' + user_name;
         auto transport = WebRtcTransportManager::Instance().getItem(user_name);
         CHECK(transport && transport->getPoller()->isCurrentThread());
         transport->setSession(shared_from_this());
@@ -97,7 +96,5 @@ void WebRtcSession::onManager() {
     }
 }
 
-std::string WebRtcSession::getIdentifier() const {
-    return _identifier;
-}
+
 
