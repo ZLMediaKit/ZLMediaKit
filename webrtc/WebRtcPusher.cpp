@@ -43,8 +43,7 @@ bool WebRtcPusher::close(MediaSource &sender, bool force) {
     if (!force && totalReaderCount(sender)) {
         return false;
     }
-    string err = StrPrinter << "close media:" << sender.getSchema() << "/" << sender.getVhost() << "/"
-                            << sender.getApp() << "/" << sender.getId() << " " << force;
+    string err = StrPrinter << "close media:" << sender.getUrl() << " " << force;
     weak_ptr<WebRtcPusher> weak_self = static_pointer_cast<WebRtcPusher>(shared_from_this());
     getPoller()->async([weak_self, err]() {
         auto strong_self = weak_self.lock();
@@ -123,9 +122,7 @@ void WebRtcPusher::onDestory() {
 
     if (getSession()) {
         WarnL << "RTC推流器("
-              << _media_info._vhost << "/"
-              << _media_info._app << "/"
-              << _media_info._streamid
+              << _media_info.shortUrl()
               << ")结束推流,耗时(s):" << duration;
         if (bytes_usage >= iFlowThreshold * 1024) {
             NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, bytes_usage, duration,

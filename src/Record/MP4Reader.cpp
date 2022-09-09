@@ -235,7 +235,7 @@ bool MP4Reader::close(MediaSource &sender, bool force) {
         return false;
     }
     _timer.reset();
-    WarnL << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId() << " " << force;
+    WarnL << sender.getUrl() << " " << force;
     return true;
 }
 

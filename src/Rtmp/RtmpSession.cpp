@@ -31,9 +31,7 @@ void RtmpSession::onError(const SockException& err) {
     bool is_player = !_push_src_ownership;
     uint64_t duration = _ticker.createdTime() / 1000;
     WarnP(this) << (is_player ? "RTMP播放器(" : "RTMP推流器(")
-                << _media_info._vhost << "/"
-                << _media_info._app << "/"
-                << _media_info._streamid
+                << _media_info.shortUrl()
                 << ")断开:" << err.what()
                 << ",耗时(s):" << duration;
 
@@ -256,10 +254,7 @@ void RtmpSession::sendPlayResponse(const string &err, const RtmpMediaSource::Ptr
                  "clientid", "0" });
 
     if (!ok) {
-        string err_msg = StrPrinter << (auth_success ? "no such stream:" : err.data()) << " "
-                                    << _media_info._vhost << " "
-                                    << _media_info._app << " "
-                                    << _media_info._streamid;
+        string err_msg = StrPrinter << (auth_success ? "no such stream:" : err.data()) << " " << _media_info.shortUrl();
         shutdown(SockException(Err_shutdown, err_msg));
         return;
     }
@@ -579,7 +574,7 @@ bool RtmpSession::close(MediaSource &sender,bool force)  {
     if(!_push_src || (!force && _push_src->totalReaderCount())){
         return false;
     }
-    string err = StrPrinter << "close media:" << sender.getSchema() << "/" << sender.getVhost() << "/" << sender.getApp() << "/" << sender.getId() << " " << force;
+    string err = StrPrinter << "close media:" << sender.getUrl() << " " << force;
     safeShutdown(SockException(Err_shutdown,err));
     return true;
 }
@@ -619,6 +614,6 @@ void RtmpSession::dumpMetadata(const AMFValue &metadata) {
     metadata.object_for_each([&](const string &key, const AMFValue &val) {
         printer << "\r\n" << key << "\t:" << val.to_string();
     });
-    InfoL << _media_info._vhost << " " << _media_info._app << " " << _media_info._streamid << (string) printer;
+    InfoL << _media_info.shortUrl() << (string) printer;
 }
 } /* namespace mediakit */

@@ -103,9 +103,7 @@ void HttpSession::onError(const SockException& err) {
         //flv/ts播放器
         uint64_t duration = _ticker.createdTime() / 1000;
         WarnP(this) << "FLV/TS/FMP4播放器("
-                    << _mediaInfo._vhost << "/"
-                    << _mediaInfo._app << "/"
-                    << _mediaInfo._streamid
+                    << _mediaInfo.shortUrl()
                     << ")断开:" << err.what()
                     << ",耗时(s):" << duration;
 
