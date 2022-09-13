@@ -195,6 +195,8 @@ private:
     RtspMediaSource::RingType::RingReader::Ptr _play_reader;
     //sdp里面有效的track,包含音频或视频
     std::vector<SdpTrack::Ptr> _sdp_track;
+    //播放器setup指定的播放track,默认为TrackInvalid表示不指定即音视频都推
+    TrackType _target_play_track = TrackInvalid;
 
     ////////RTP over udp////////
     //RTP端口,trackid idx 为数组下标
