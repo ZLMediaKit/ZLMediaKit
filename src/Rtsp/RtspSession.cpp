@@ -1215,23 +1215,23 @@ void RtspSession::sendRtpPacket(const RtspMediaSource::RingDataType &pkt) {
         case Rtsp::RTP_UDP: {
             //下标0表示视频，1表示音频
             Socket::Ptr rtp_socks[2];
-            rtp_socks[0] = _rtp_socks[getTrackIndexByTrackType(TrackVideo)];
-            rtp_socks[1] = _rtp_socks[getTrackIndexByTrackType(TrackAudio)];
+            rtp_socks[TrackVideo] = _rtp_socks[getTrackIndexByTrackType(TrackVideo)];
+            rtp_socks[TrackAudio] = _rtp_socks[getTrackIndexByTrackType(TrackAudio)];
             pkt->for_each([&](const RtpPacket::Ptr &rtp) {
                 if (_target_play_track == TrackInvalid || _target_play_track == rtp->type) {
                     updateRtcpContext(rtp);
-                    auto &pSock = rtp_socks[rtp->type];
-                    if (!pSock) {
+                    auto &sock = rtp_socks[rtp->type];
+                    if (!sock) {
                         shutdown(SockException(Err_shutdown, "udp sock not opened yet"));
                         return;
                     }
                     _bytes_usage += rtp->size() - RtpPacket::kRtpTcpHeaderSize;
-                    pSock->send(std::make_shared<BufferRtp>(rtp, RtpPacket::kRtpTcpHeaderSize), nullptr, 0, false);
+                    sock->send(std::make_shared<BufferRtp>(rtp, RtpPacket::kRtpTcpHeaderSize), nullptr, 0, false);
                 }
             });
-            for (int i = 0; i < 2; ++i) {
-                if (rtp_socks[i]) {
-                    rtp_socks[i]->flushAll();
+            for (auto &sock : rtp_socks) {
+                if (sock) {
+                    sock->flushAll();
                 }
             }
         }
