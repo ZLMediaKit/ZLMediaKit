@@ -60,6 +60,36 @@ public:
     
     //时间戳修复这一路流标志位
     bool modify_stamp;
+
+    template <typename MAP>
+    ProtocolOption(const MAP &allArgs) : ProtocolOption() {
+        #define GET_OPT_VALUE(key) getArgsValue(allArgs, #key, key)
+        GET_OPT_VALUE(enable_hls);
+        GET_OPT_VALUE(enable_mp4);
+        GET_OPT_VALUE(mp4_as_player);
+        GET_OPT_VALUE(enable_rtsp);
+        GET_OPT_VALUE(enable_rtmp);
+        GET_OPT_VALUE(enable_ts);
+        GET_OPT_VALUE(enable_fmp4);
+        GET_OPT_VALUE(enable_audio);
+        GET_OPT_VALUE(add_mute_audio);
+        GET_OPT_VALUE(mp4_save_path);
+        GET_OPT_VALUE(mp4_max_second);
+        GET_OPT_VALUE(hls_save_path);
+        GET_OPT_VALUE(continue_push_ms);
+        GET_OPT_VALUE(modify_stamp);
+    }
+
+    ProtocolOption(const ProtocolOption &) = default;
+
+private:
+    template <typename MAP, typename KEY, typename TYPE>
+    static void getArgsValue(const MAP &allArgs, const KEY &key, TYPE &value) {
+        auto val = ((MAP &)allArgs)[key];
+        if (!val.empty()) {
+            value = (TYPE)val;
+        }
+    }
 };
 
 class MultiMediaSourceMuxer : public MediaSourceEventInterceptor, public MediaSink, public std::enable_shared_from_this<MultiMediaSourceMuxer>{
