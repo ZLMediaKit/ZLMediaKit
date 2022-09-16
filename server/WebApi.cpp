@@ -1011,20 +1011,7 @@ void installWebApi() {
         CHECK_SECRET();
         CHECK_ARGS("vhost","app","stream","url");
 
-        ProtocolOption option;
-        getArgsValue(allArgs, "enable_hls", option.enable_hls);
-        getArgsValue(allArgs, "enable_mp4", option.enable_mp4);
-        getArgsValue(allArgs, "mp4_as_player", option.mp4_as_player);
-        getArgsValue(allArgs, "enable_rtsp", option.enable_rtsp);
-        getArgsValue(allArgs, "enable_rtmp", option.enable_rtmp);
-        getArgsValue(allArgs, "enable_ts", option.enable_ts);
-        getArgsValue(allArgs, "enable_fmp4", option.enable_fmp4);
-        getArgsValue(allArgs, "enable_audio", option.enable_audio);
-        getArgsValue(allArgs, "add_mute_audio", option.add_mute_audio);
-        getArgsValue(allArgs, "mp4_save_path", option.mp4_save_path);
-        getArgsValue(allArgs, "mp4_max_second", option.mp4_max_second);
-        getArgsValue(allArgs, "hls_save_path", option.hls_save_path);
-        getArgsValue(allArgs, "modify_stamp", option.modify_stamp);
+        ProtocolOption option(allArgs);
 
         addStreamProxy(allArgs["vhost"],
                        allArgs["app"],
@@ -1629,9 +1616,9 @@ void installWebApi() {
     api_regist("/index/hook/on_publish",[](API_ARGS_JSON){
         //开始推流事件
         //转换hls
-        val["enableHls"] = true;
+        val["enable_hls"] = true;
         //不录制mp4
-        val["enableMP4"] = false;
+        val["enable_mp4"] = false;
     });
 
     api_regist("/index/hook/on_play",[](API_ARGS_JSON){

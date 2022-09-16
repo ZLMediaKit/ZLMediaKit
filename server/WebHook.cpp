@@ -292,6 +292,16 @@ static void pullStreamFromOrigin(const vector<string>& urls, size_t index, size_
 
 static void *web_hook_tag = nullptr;
 
+static mINI jsonToMini(const Value &obj) {
+    mINI ret;
+    if (obj.isObject()) {
+        for (auto it = obj.begin(); it != obj.end(); ++it) {
+            ret[it.name()] = (*it).asString();
+        }
+    }
+    return ret;
+}
+
 void installWebHook(){
     GET_CONFIG(bool,hook_enable,Hook::kEnable);
     GET_CONFIG(string,hook_adminparams,Hook::kAdminParams);
@@ -311,55 +321,12 @@ void installWebHook(){
         body["originTypeStr"] = getOriginTypeString(type);
         //执行hook
         do_http_hook(hook_publish, body, [invoker](const Value &obj, const string &err) mutable {
-            ProtocolOption option;
             if (err.empty()) {
                 //推流鉴权成功
-                if (obj.isMember("enable_hls")) {
-                    option.enable_hls = obj["enable_hls"].asBool();
-                }
-                if (obj.isMember("enable_mp4")) {
-                    option.enable_mp4 = obj["enable_mp4"].asBool();
-                }
-                if (obj.isMember("enable_audio")) {
-                    option.enable_audio = obj["enable_audio"].asBool();
-                }
-                if (obj.isMember("add_mute_audio")) {
-                    option.add_mute_audio = obj["add_mute_audio"].asBool();
-                }
-                if (obj.isMember("mp4_save_path")) {
-                    option.mp4_save_path = obj["mp4_save_path"].asString();
-                }
-                if (obj.isMember("mp4_max_second")) {
-                    option.mp4_max_second = obj["mp4_max_second"].asUInt();
-                }
-                if (obj.isMember("hls_save_path")) {
-                    option.hls_save_path = obj["hls_save_path"].asString();
-                }
-                if (obj.isMember("enable_rtsp")) {
-                    option.enable_rtsp = obj["enable_rtsp"].asBool();
-                }
-                if (obj.isMember("enable_rtmp")) {
-                    option.enable_rtmp = obj["enable_rtmp"].asBool();
-                }
-                if (obj.isMember("enable_ts")) {
-                    option.enable_ts = obj["enable_ts"].asBool();
-                }
-                if (obj.isMember("enable_fmp4")) {
-                    option.enable_fmp4 = obj["enable_fmp4"].asBool();
-                }
-                if (obj.isMember("continue_push_ms")) {
-                    option.continue_push_ms = obj["continue_push_ms"].asUInt();
-                }
-                if (obj.isMember("mp4_as_player")) {
-                    option.mp4_as_player = obj["mp4_as_player"].asBool();
-                }
-		if (obj.isMember("modify_stamp")) {
-                    option.modify_stamp = obj["modify_stamp"].asBool();
-                }
-                invoker(err, option);
+                invoker(err, ProtocolOption(jsonToMini(obj)));
             } else {
                 //推流鉴权失败
-                invoker(err, option);
+                invoker(err, ProtocolOption());
             }
         });
     });
