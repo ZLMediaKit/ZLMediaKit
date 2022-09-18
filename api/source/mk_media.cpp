@@ -60,19 +60,15 @@ public:
 
 protected:
     // 通知其停止推流
-    bool close(MediaSource &sender,bool force) override{
-        if(!force && _channel->totalReaderCount()){
-            //非强制关闭且正有人在观看该视频
-            return false;
-        }
-        if(!_on_close){
+    bool close(MediaSource &sender) override {
+        if (!_on_close) {
             //未设置回调，没法关闭
             WarnL << "请使用mk_media_set_on_close函数设置回调函数!";
             return false;
         }
         //请在回调中调用mk_media_release函数释放资源,否则MediaSource::close()操作不会生效
         _on_close(_on_close_data);
-        WarnL << "close media:" << sender.getUrl() << " " << force;
+        WarnL << "close media: " << sender.getUrl();
         return true;
     }
 

@@ -1136,12 +1136,9 @@ int RtspSession::getTrackIndexByInterleaved(int interleaved) {
     throw SockException(Err_shutdown, StrPrinter << "no such track with interleaved:" << interleaved);
 }
 
-bool RtspSession::close(MediaSource &sender, bool force) {
+bool RtspSession::close(MediaSource &sender) {
     //此回调在其他线程触发
-    if(!_push_src || (!force && _push_src->totalReaderCount())){
-        return false;
-    }
-    string err = StrPrinter << "close media:" << sender.getUrl() << " " << force;
+    string err = StrPrinter << "close media: " << sender.getUrl();
     safeShutdown(SockException(Err_shutdown,err));
     return true;
 }

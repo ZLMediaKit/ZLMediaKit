@@ -71,7 +71,7 @@ private:
 
     ///////MediaSourceEvent override///////
     // 关闭
-    bool close(MediaSource &sender, bool force) override;
+    bool close(MediaSource &sender) override;
     // 播放总人数
     int totalReaderCount(MediaSource &sender) override;
     // 获取媒体源类型

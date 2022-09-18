@@ -38,12 +38,9 @@ WebRtcPusher::WebRtcPusher(const EventPoller::Ptr &poller,
     CHECK(_push_src);
 }
 
-bool WebRtcPusher::close(MediaSource &sender, bool force) {
+bool WebRtcPusher::close(MediaSource &sender) {
     //此回调在其他线程触发
-    if (!force && totalReaderCount(sender)) {
-        return false;
-    }
-    string err = StrPrinter << "close media:" << sender.getUrl() << " " << force;
+    string err = StrPrinter << "close media: " << sender.getUrl();
     weak_ptr<WebRtcPusher> weak_self = static_pointer_cast<WebRtcPusher>(shared_from_this());
     getPoller()->async([weak_self, err]() {
         auto strong_self = weak_self.lock();
