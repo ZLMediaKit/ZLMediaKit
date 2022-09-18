@@ -273,14 +273,14 @@ void FFmpegSource::setOnClose(const function<void()> &cb){
     _onClose = cb;
 }
 
-bool FFmpegSource::close(MediaSource &sender, bool force) {
+bool FFmpegSource::close(MediaSource &sender) {
     auto listener = getDelegate();
-    if(listener && !listener->close(sender,force)){
+    if (listener && !listener->close(sender)) {
         //关闭失败
         return false;
     }
     //该流无人观看，我们停止吧
-    if(_onClose){
+    if (_onClose) {
         _onClose();
     }
     return true;

@@ -35,7 +35,7 @@ public:
 
 protected:
     // 通知其停止推流
-    bool close(MediaSource &sender,bool force) override;
+    bool close(MediaSource &sender) override;
     // 收到rtp回调
     void onRtpPacket(const char *data, size_t len) override;
     // RtpSplitter override

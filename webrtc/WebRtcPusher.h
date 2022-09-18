@@ -33,7 +33,7 @@ protected:
 protected:
     ///////MediaSourceEvent override///////
     // 关闭
-    bool close(mediakit::MediaSource &sender, bool force) override;
+    bool close(mediakit::MediaSource &sender) override;
     // 播放总人数
     int totalReaderCount(mediakit::MediaSource &sender) override;
     // 获取媒体源类型

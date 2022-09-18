@@ -31,7 +31,7 @@ public:
 
 protected:
     // 通知其停止推流
-    bool close(MediaSource &sender,bool force) override;
+    bool close(MediaSource &sender) override;
 
 private:
     std::string _stream_id;

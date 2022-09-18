@@ -54,7 +54,7 @@ public:
 
 private:
     //MediaSourceEvent override
-    bool close(MediaSource &sender,bool force) override;
+    bool close(MediaSource &sender) override;
     int totalReaderCount(MediaSource &sender) override;
     MediaOriginType getOriginType(MediaSource &sender) const override;
     std::string getOriginUrl(MediaSource &sender) const override;

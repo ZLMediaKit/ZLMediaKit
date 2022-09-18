@@ -211,10 +211,14 @@ bool MediaSource::speed(float speed) {
 
 bool MediaSource::close(bool force) {
     auto listener = _listener.lock();
-    if(!listener){
+    if (!listener) {
         return false;
     }
-    return listener->close(*this,force);
+    if (!force && totalReaderCount()) {
+        //有人观看，不强制关闭
+        return false;
+    }
+    return listener->close(*this);
 }
 
 float MediaSource::getLossRate(mediakit::TrackType type) {
@@ -680,12 +684,12 @@ bool MediaSourceEventInterceptor::speed(MediaSource &sender, float speed) {
     return listener->speed(sender, speed);
 }
 
-bool MediaSourceEventInterceptor::close(MediaSource &sender, bool force) {
+bool MediaSourceEventInterceptor::close(MediaSource &sender) {
     auto listener = _listener.lock();
     if (!listener) {
         return false;
     }
-    return listener->close(sender, force);
+    return listener->close(sender);
 }
 
 int MediaSourceEventInterceptor::totalReaderCount(MediaSource &sender) {

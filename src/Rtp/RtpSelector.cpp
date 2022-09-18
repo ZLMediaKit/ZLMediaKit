@@ -134,17 +134,14 @@ void RtpProcessHelper::attachEvent() {
     _process->setDelegate(shared_from_this());
 }
 
-bool RtpProcessHelper::close(MediaSource &sender, bool force) {
+bool RtpProcessHelper::close(MediaSource &sender) {
     //此回调在其他线程触发
-    if (!_process || (!force && _process->totalReaderCount(sender))) {
-        return false;
-    }
     auto parent = _parent.lock();
     if (!parent) {
         return false;
     }
     parent->delProcess(_stream_id, _process.get());
-    WarnL << "close media:" << sender.getUrl() << " " << force;
+    WarnL << "close media: " << sender.getUrl();
     return true;
 }
 

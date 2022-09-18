@@ -74,7 +74,7 @@ public:
     // 通知倍数
     virtual bool speed(MediaSource &sender, float speed) { return false; }
     // 通知其停止产生流
-    virtual bool close(MediaSource &sender, bool force) { return false; }
+    virtual bool close(MediaSource &sender) { return false; }
     // 获取观看总人数，此函数一般强制重载
     virtual int totalReaderCount(MediaSource &sender) { throw NotImplemented(toolkit::demangle(typeid(*this).name()) + "::totalReaderCount not implemented"); }
     // 通知观看人数变化
@@ -150,7 +150,7 @@ public:
     bool seekTo(MediaSource &sender, uint32_t stamp) override;
     bool pause(MediaSource &sender,  bool pause) override;
     bool speed(MediaSource &sender, float speed) override;
-    bool close(MediaSource &sender, bool force) override;
+    bool close(MediaSource &sender) override;
     int totalReaderCount(MediaSource &sender) override;
     void onReaderChanged(MediaSource &sender, int size) override;
     void onRegist(MediaSource &sender, bool regist) override;
