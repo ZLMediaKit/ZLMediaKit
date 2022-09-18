@@ -83,7 +83,7 @@ onceToken token1([](){
 }  // namespace mediakit
 
 
-#define REALM "realm_zlmedaikit"
+#define REALM "realm_zlmediakit"
 static map<string,FlvRecorder::Ptr> s_mapFlvRecorder;
 static mutex s_mtxFlvRecorder;
 

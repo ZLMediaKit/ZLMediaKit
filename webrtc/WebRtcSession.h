@@ -16,6 +16,8 @@
 #include "IceServer.hpp"
 #include "WebRtcTransport.h"
 
+namespace mediakit {
+
 class WebRtcSession : public UdpSession {
 public:
     WebRtcSession(const Socket::Ptr &sock);
@@ -35,5 +37,6 @@ private:
     std::shared_ptr<WebRtcTransportImp> _transport;
 };
 
+}// namespace mediakit
 
 #endif //ZLMEDIAKIT_WEBRTCSESSION_H

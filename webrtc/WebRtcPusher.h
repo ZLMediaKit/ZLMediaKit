@@ -13,19 +13,21 @@
 
 #include "WebRtcTransport.h"
 
-class WebRtcPusher : public WebRtcTransportImp, public mediakit::MediaSourceEvent {
+namespace mediakit {
+
+class WebRtcPusher : public WebRtcTransportImp, public MediaSourceEvent {
 public:
     using Ptr = std::shared_ptr<WebRtcPusher>;
     ~WebRtcPusher() override = default;
-    static Ptr create(const EventPoller::Ptr &poller, const mediakit::RtspMediaSourceImp::Ptr &src,
-                      const std::shared_ptr<void> &ownership, const mediakit::MediaInfo &info, const mediakit::ProtocolOption &option);
+    static Ptr create(const EventPoller::Ptr &poller, const RtspMediaSourceImp::Ptr &src,
+                      const std::shared_ptr<void> &ownership, const MediaInfo &info, const ProtocolOption &option);
 
 protected:
     ///////WebRtcTransportImp override///////
     void onStartWebRTC() override;
     void onDestory() override;
     void onRtcConfigure(RtcConfigure &configure) const override;
-    void onRecvRtp(MediaTrack &track, const std::string &rid, mediakit::RtpPacket::Ptr rtp) override;
+    void onRecvRtp(MediaTrack &track, const std::string &rid, RtpPacket::Ptr rtp) override;
     void onRtcpBye() override;
     ////  dtls相关的回调 ////
    void OnDtlsTransportClosed(const RTC::DtlsTransport *dtlsTransport) override;
@@ -33,35 +35,36 @@ protected:
 protected:
     ///////MediaSourceEvent override///////
     // 关闭
-    bool close(mediakit::MediaSource &sender) override;
+    bool close(MediaSource &sender) override;
     // 播放总人数
-    int totalReaderCount(mediakit::MediaSource &sender) override;
+    int totalReaderCount(MediaSource &sender) override;
     // 获取媒体源类型
-    mediakit::MediaOriginType getOriginType(mediakit::MediaSource &sender) const override;
+    MediaOriginType getOriginType(MediaSource &sender) const override;
     // 获取媒体源url或者文件路径
-    std::string getOriginUrl(mediakit::MediaSource &sender) const override;
+    std::string getOriginUrl(MediaSource &sender) const override;
     // 获取媒体源客户端相关信息
-    std::shared_ptr<SockInfo> getOriginSock(mediakit::MediaSource &sender) const override;
+    std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
     // 获取丢包率
-    float getLossRate(mediakit::MediaSource &sender,mediakit::TrackType type) override;
+    float getLossRate(MediaSource &sender,TrackType type) override;
 
 private:
-    WebRtcPusher(const EventPoller::Ptr &poller, const mediakit::RtspMediaSourceImp::Ptr &src,
-                 const std::shared_ptr<void> &ownership, const mediakit::MediaInfo &info, const mediakit::ProtocolOption &option);
+    WebRtcPusher(const EventPoller::Ptr &poller, const RtspMediaSourceImp::Ptr &src,
+                 const std::shared_ptr<void> &ownership, const MediaInfo &info, const ProtocolOption &option);
 
 private:
     bool _simulcast = false;
     //断连续推延时
     uint32_t _continue_push_ms = 0;
     //媒体相关元数据
-    mediakit::MediaInfo _media_info;
+    MediaInfo _media_info;
     //推流的rtsp源
-    mediakit::RtspMediaSourceImp::Ptr _push_src;
+    RtspMediaSourceImp::Ptr _push_src;
     //推流所有权
     std::shared_ptr<void> _push_src_ownership;
     //推流的rtsp源,支持simulcast
-    std::unordered_map<std::string/*rid*/, mediakit::RtspMediaSource::Ptr> _push_src_sim;
+    std::unordered_map<std::string/*rid*/, RtspMediaSource::Ptr> _push_src_sim;
     std::unordered_map<std::string/*rid*/, std::shared_ptr<void> > _push_src_sim_ownership;
 };
 
+}// namespace mediakit
 #endif //ZLMEDIAKIT_WEBRTCPUSHER_H

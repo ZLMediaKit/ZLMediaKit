@@ -17,7 +17,8 @@
 
 using namespace std;
 using namespace toolkit;
-using namespace mediakit;
+
+namespace mediakit {
 
 //https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01
 //https://tools.ietf.org/html/rfc5285
@@ -644,3 +645,4 @@ void RtpExtContext::onGetRtp(uint8_t pt, uint32_t ssrc, const string &rid){
     }
 }
 
+}// namespace mediakit

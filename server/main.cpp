@@ -286,7 +286,7 @@ int start_main(int argc,char *argv[]) {
             }
             return Socket::createSocket(new_poller, false);
         });
-        uint16_t rtcPort = mINI::Instance()[RTC::kPort];
+        uint16_t rtcPort = mINI::Instance()[Rtc::kPort];
 #endif//defined(ENABLE_WEBRTC)
 
 

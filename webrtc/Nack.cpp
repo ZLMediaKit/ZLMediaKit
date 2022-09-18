@@ -12,7 +12,8 @@
 
 using namespace std;
 using namespace toolkit;
-using namespace mediakit;
+
+namespace mediakit {
 
 static constexpr uint32_t kMaxNackMS = 5 * 1000;
 static constexpr uint32_t kRtpCacheCheckInterval = 100;
@@ -92,7 +93,6 @@ int64_t NackList::getRtpStamp(uint16_t seq) {
     return it->second->getStampMS(false);
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 void NackContext::received(uint16_t seq, bool is_rtx) {
@@ -101,7 +101,7 @@ void NackContext::received(uint16_t seq, bool is_rtx) {
     }
     if (is_rtx || (seq < _last_max_seq && !(seq < 1024 && _last_max_seq > UINT16_MAX - 1024))) {
         //重传包或
-        //seq回退，且非回环，那么这个应该是重传包
+        // seq回退，且非回环，那么这个应该是重传包
         onRtx(seq);
         return;
     }
@@ -127,7 +127,7 @@ void NackContext::received(uint16_t seq, bool is_rtx) {
         _seq.clear();
         _last_max_seq = max_seq;
     } else {
-        //seq不连续，有丢包
+        // seq不连续，有丢包
         if (min_seq == _last_max_seq + 1) {
             //前面部分seq是连续的，未丢包，移除之
             eraseFrontSeq();
@@ -135,7 +135,7 @@ void NackContext::received(uint16_t seq, bool is_rtx) {
 
         //有丢包，丢包从_last_max_seq开始
         auto nack_rtp_count = FCI_NACK::kBitSize;
-        if (max_seq  > nack_rtp_count + _last_max_seq) {
+        if (max_seq > nack_rtp_count + _last_max_seq) {
             vector<bool> vec;
             vec.resize(FCI_NACK::kBitSize, false);
             for (size_t i = 0; i < nack_rtp_count; ++i) {
@@ -170,7 +170,7 @@ void NackContext::eraseFrontSeq() {
     //前面部分seq是连续的，未丢包，移除之
     for (auto it = _seq.begin(); it != _seq.end();) {
         if (*it != _last_max_seq + 1) {
-            //seq不连续，丢包了
+            // seq不连续，丢包了
             break;
         }
         _last_max_seq = *it;
@@ -187,9 +187,9 @@ void NackContext::onRtx(uint16_t seq) {
     _nack_send_status.erase(it);
 
     if (rtt >= 0) {
-        //rtt不肯小于0
+        // rtt不肯小于0
         _rtt = rtt;
-        //InfoL << "rtt:" << rtt;
+        // InfoL << "rtt:" << rtt;
     }
 }
 
@@ -230,7 +230,7 @@ uint64_t NackContext::reSendNack() {
         //更新nack发送时间戳
         it->second.update_stamp = now;
         if (++(it->second.nack_count) == kNackMaxCount) {
-            //nack次数太多，移除之
+            // nack次数太多，移除之
             it = _nack_send_status.erase(it);
             continue;
         }
@@ -269,3 +269,5 @@ uint64_t NackContext::reSendNack() {
     //重传间隔不得低于5ms
     return max(_rtt, 5);
 }
+
+} // namespace mediakit

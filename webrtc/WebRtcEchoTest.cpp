@@ -10,6 +10,8 @@
 
 #include "WebRtcEchoTest.h"
 
+namespace mediakit {
+
 WebRtcEchoTest::Ptr WebRtcEchoTest::create(const EventPoller::Ptr &poller) {
     WebRtcEchoTest::Ptr ret(new WebRtcEchoTest(poller), [](WebRtcEchoTest *ptr) {
         ptr->onDestory();
@@ -49,3 +51,5 @@ void WebRtcEchoTest::onCheckSdp(SdpType type, RtcSession &sdp) {
         }
     }
 }
+
+}// namespace mediakit

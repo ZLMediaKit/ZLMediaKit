@@ -15,7 +15,10 @@
 - srtp相关功能：
    - SrtpSession.cpp
    - SrtpSession.hpp
-   
+
+- datachannel相关功能：
+  - SctpAssociation.cpp
+  - SctpAssociation.hpp
 
 以上源码有一定的修改和裁剪，感谢MediaSoup开源项目及作者，
 用户在使用本项目的同时，应该同时遵循MediaSoup的开源协议。

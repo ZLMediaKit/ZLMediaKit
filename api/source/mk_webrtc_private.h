@@ -24,6 +24,8 @@
 #include "../webrtc/WebRtcPusher.h"
 #include "../webrtc/WebRtcTransport.h"
 
+using namespace mediakit;
+
 namespace API {
 typedef enum {
     NotFound = -500, //未找到

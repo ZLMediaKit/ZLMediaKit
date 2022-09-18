@@ -11,7 +11,8 @@
 #include "WebRtcPlayer.h"
 
 using namespace std;
-using namespace mediakit;
+
+namespace mediakit {
 
 WebRtcPlayer::Ptr WebRtcPlayer::create(const EventPoller::Ptr &poller,
                                        const RtspMediaSource::Ptr &src,
@@ -88,3 +89,5 @@ void WebRtcPlayer::onRtcConfigure(RtcConfigure &configure) const {
     configure.audio.direction = configure.video.direction = RtpDirection::sendonly;
     configure.setPlayRtspInfo(_play_src->getSdp());
 }
+
+}// namespace mediakit
