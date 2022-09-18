@@ -16,6 +16,8 @@
 #include <functional>
 #include "Util/TimeTicker.h"
 
+namespace mediakit {
+
 class TwccContext {
 public:
     using onSendTwccCB = std::function<void(uint32_t ssrc, std::string fci)>;
@@ -44,5 +46,5 @@ private:
     onSendTwccCB _cb;
 };
 
-
+}// namespace mediakit
 #endif //ZLMEDIAKIT_TWCCCONTEXT_H

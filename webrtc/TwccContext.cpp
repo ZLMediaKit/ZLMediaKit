@@ -11,7 +11,7 @@
 #include "TwccContext.h"
 #include "Rtcp/RtcpFCI.h"
 
-using namespace mediakit;
+namespace mediakit {
 
 enum class ExtSeqStatus : int {
     normal = 0,
@@ -121,3 +121,5 @@ void TwccContext::clearStatus() {
 void TwccContext::setOnSendTwccCB(TwccContext::onSendTwccCB cb) {
     _cb = std::move(cb);
 }
+
+}// namespace mediakit

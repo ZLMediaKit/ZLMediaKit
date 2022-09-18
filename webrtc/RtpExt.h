@@ -17,6 +17,7 @@
 #include "Common/macros.h"
 #include "Rtsp/Rtsp.h"
 
+namespace mediakit {
 
 #define RTP_EXT_MAP(XX) \
     XX(ssrc_audio_level,            "urn:ietf:params:rtp-hdrext:ssrc-audio-level") \
@@ -53,7 +54,7 @@ public:
     friend class RtpExtContext;
     ~RtpExt() = default;
 
-    static std::map<uint8_t/*id*/, RtpExt/*data*/> getExtValue(const mediakit::RtpHeader *header);
+    static std::map<uint8_t/*id*/, RtpExt/*data*/> getExtValue(const RtpHeader *header);
     static RtpExtType getExtType(const std::string &url);
     static const std::string& getExtUrl(RtpExtType type);
     static const char *getExtName(RtpExtType type);
@@ -122,7 +123,7 @@ public:
     void setOnGetRtp(OnGetRtp cb);
     std::string getRid(uint32_t ssrc) const;
     void setRid(uint32_t ssrc, const std::string &rid);
-    RtpExt changeRtpExtId(const mediakit::RtpHeader *header, bool is_recv, std::string *rid_ptr = nullptr, RtpExtType type = RtpExtType::padding);
+    RtpExt changeRtpExtId(const RtpHeader *header, bool is_recv, std::string *rid_ptr = nullptr, RtpExtType type = RtpExtType::padding);
 
 private:
     void onGetRtp(uint8_t pt, uint32_t ssrc, const std::string &rid);
@@ -137,4 +138,5 @@ private:
     std::unordered_map<uint32_t/*simulcast ssrc*/, std::string/*rid*/> _ssrc_to_rid;
 };
 
+} //namespace mediakit
 #endif //ZLMEDIAKIT_RTPEXT_H

@@ -18,6 +18,8 @@
 #include "Extension/Frame.h"
 #include "Common/Parser.h"
 
+namespace mediakit {
+
 //https://datatracker.ietf.org/doc/rfc4566/?include_text=1
 //https://blog.csdn.net/aggresss/article/details/109850434
 //https://aggresss.blog.csdn.net/article/details/106436703
@@ -189,7 +191,7 @@ class SdpMedia : public SdpItem {
 public:
     // 5.14.  Media Descriptions ("m=")
     // m=<media> <port> <proto> <fmt> ...
-    mediakit::TrackType type;
+    TrackType type;
     uint16_t port;
     //RTP/AVP：应用场景为视频/音频的 RTP 协议。参考 RFC 3551
     //RTP/SAVP：应用场景为视频/音频的 SRTP 协议。参考 RFC 3711
@@ -374,7 +376,7 @@ class SdpAttrFmtp : public SdpItem {
 public:
     //fmtp:96 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f
     uint8_t pt;
-    std::map<std::string/*key*/, std::string/*value*/, mediakit::StrCaseCompare> fmtp;
+    std::map<std::string/*key*/, std::string/*value*/, StrCaseCompare> fmtp;
     void parse(const std::string &str) override;
     std::string toString() const override;
     const char* getKey() const override { return "fmtp";}
@@ -600,7 +602,7 @@ public:
     uint32_t channel = 0;
     //rtcp反馈
     std::set<std::string> rtcp_fb;
-    std::map<std::string/*key*/, std::string/*value*/, mediakit::StrCaseCompare> fmtp;
+    std::map<std::string/*key*/, std::string/*value*/, StrCaseCompare> fmtp;
 
     std::string getFmtp(const char *key) const;
 };
@@ -608,7 +610,7 @@ public:
 //rtc 媒体描述
 class RtcMedia{
 public:
-    mediakit::TrackType type{mediakit::TrackType::TrackInvalid};
+    TrackType type{TrackType::TrackInvalid};
     std::string mid;
     uint16_t port{0};
     SdpConnection addr;
@@ -675,8 +677,8 @@ public:
     void checkValid() const;
     std::string toString() const;
     std::string toRtspSdp() const;
-    const  RtcMedia *getMedia(mediakit::TrackType type) const;
-    bool supportRtcpFb(const std::string &name, mediakit::TrackType type = mediakit::TrackType::TrackVideo) const;
+    const  RtcMedia *getMedia(TrackType type) const;
+    bool supportRtcpFb(const std::string &name, TrackType type = TrackType::TrackVideo) const;
     bool supportSimulcast() const;
     bool isOnlyDatachannel() const;
 
@@ -706,10 +708,10 @@ public:
 
         std::set<std::string> rtcp_fb;
         std::map<RtpExtType, RtpDirection> extmap;
-        std::vector<mediakit::CodecId> preferred_codec;
+        std::vector<CodecId> preferred_codec;
         std::vector<SdpAttrCandidate> candidate;
 
-        void setDefaultSetting(mediakit::TrackType type);
+        void setDefaultSetting(TrackType type);
         void enableTWCC(bool enable = true);
         void enableREMB(bool enable = true);
     };
@@ -719,19 +721,19 @@ public:
     RtcTrackConfigure application;
 
     void setDefaultSetting(std::string ice_ufrag, std::string ice_pwd, RtpDirection direction, const SdpAttrFingerprint &fingerprint);
-    void addCandidate(const SdpAttrCandidate &candidate, mediakit::TrackType type = mediakit::TrackInvalid);
+    void addCandidate(const SdpAttrCandidate &candidate, TrackType type = TrackInvalid);
 
     std::shared_ptr<RtcSession> createAnswer(const RtcSession &offer) const;
 
     void setPlayRtspInfo(const std::string &sdp);
 
-    void enableTWCC(bool enable = true, mediakit::TrackType type = mediakit::TrackInvalid);
-    void enableREMB(bool enable = true, mediakit::TrackType type = mediakit::TrackInvalid);
+    void enableTWCC(bool enable = true, TrackType type = TrackInvalid);
+    void enableREMB(bool enable = true, TrackType type = TrackInvalid);
 
 private:
     void matchMedia(const std::shared_ptr<RtcSession> &ret, const RtcMedia &media) const;
-    bool onCheckCodecProfile(const RtcCodecPlan &plan, mediakit::CodecId codec) const;
-    void onSelectPlan(RtcCodecPlan &plan, mediakit::CodecId codec) const;
+    bool onCheckCodecProfile(const RtcCodecPlan &plan, CodecId codec) const;
+    void onSelectPlan(RtcCodecPlan &plan, CodecId codec) const;
 
 private:
     RtcCodecPlan::Ptr _rtsp_video_plan;
@@ -748,5 +750,6 @@ private:
     ~SdpConst() = delete;
 };
 
+}// namespace mediakit
 
 #endif //ZLMEDIAKIT_SDP_H
