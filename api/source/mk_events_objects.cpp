@@ -257,6 +257,25 @@ API_EXPORT void API_CALL mk_media_source_for_each(void *user_data, on_mk_media_s
     }, schema ? schema : "", vhost ? vhost : "", app ? app : "", stream ? stream : "");
 }
 
+API_EXPORT void API_CALL mk_media_source_answersdp(void *user_data, on_mk_media_source_answersdp_cb cb, const char *offer, 
+                                                   const char *schema, const char *vhost, const char *app, const char *stream, int from_mp4) {
+#ifdef ENABLE_WEBRTC
+    assert(offer && schema && vhost && app && stream && cb);
+    auto srcfound = MediaSource::find(schema, vhost, app, stream, from_mp4);
+    mediakit::MediaInfo info;
+    info._schema = RTC_SCHEMA;
+    info._host = vhost;
+    info._app = app;
+    info._streamid = stream;
+    try {
+        auto rtc = WebRtcPlayer::create(EventPollerPool::Instance().getPoller(), std::dynamic_pointer_cast<RtspMediaSource>(srcfound), info);
+        cb(user_data, srcfound.get(), rtc->getAnswerSdp(offer).c_str(), "");
+    } catch (std::exception &ex) {
+        cb(user_data, nullptr, nullptr, ex.what());
+    }
+#endif
+}
+
 ///////////////////////////////////////////HttpBody/////////////////////////////////////////////
 API_EXPORT mk_http_body API_CALL mk_http_body_from_string(const char *str, size_t len){
     assert(str);
