@@ -60,7 +60,29 @@ void SrtTransport::switchToOtherTransport(uint8_t *buf, int len, uint32_t socket
     }
 }
 
+void SrtTransport::createTimerForCheckAlive(){
+    std::weak_ptr<SrtTransport> weak_self = std::static_pointer_cast<SrtTransport>(shared_from_this());
+    auto timeoutSec = getTimeOutSec();
+    _timer = std::make_shared<Timer>(
+         timeoutSec/ 2,
+        [weak_self,timeoutSec]() {
+            auto strong_self = weak_self.lock();
+            if (!strong_self) {
+                return false;
+            }
+            if (strong_self->_alive_ticker.elapsedTime() > timeoutSec * 1000) {
+                strong_self->onShutdown(SockException(Err_timeout, "接收srt数据超时"));
+            }
+            return true;
+        },
+        getPoller());
+}
+
 void SrtTransport::inputSockData(uint8_t *buf, int len, struct sockaddr_storage *addr) {
+    _alive_ticker.resetTime();
+    if(!_timer){
+        createTimerForCheckAlive();
+    }
     using srt_control_handler = void (SrtTransport::*)(uint8_t * buf, int len, struct sockaddr_storage *addr);
     static std::unordered_map<uint16_t, srt_control_handler> s_control_functions;
     static onceToken token([]() {
@@ -173,7 +195,6 @@ void SrtTransport::handleHandshakeInduction(HandshakePacket &pkt, struct sockadd
 
     registerSelfHandshake();
     sendControlPacket(res, true);
-
     _handleshake_timer = std::make_shared<Timer>(0.02,[this]()->bool{
         sendControlPacket(_handleshake_res, true);
         return true;
