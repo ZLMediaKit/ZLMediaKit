@@ -417,6 +417,9 @@ endif()
 # for version.h
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
+# for assert.h
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty)
+
 add_subdirectory(3rdpart)
 
 add_subdirectory(src)
