@@ -308,6 +308,10 @@ endif()
 if(ENABLE_ASAN)
   list(APPEND COMPILE_OPTIONS_DEFAULT
     "-fsanitize=address;-fno-omit-frame-pointer")
+  # https://github.com/google/sanitizers/wiki/AddressSanitizer#using-addresssanitizer
+  # > In order to use AddressSanitizer you will need to
+  # > compile and link your program using clang with the -fsanitize=address switch.
+  update_cached_list(MK_LINK_LIBRARIES "-fsanitize=address")
   message(STATUS "已启用 Address Sanitize")
 endif()
 
