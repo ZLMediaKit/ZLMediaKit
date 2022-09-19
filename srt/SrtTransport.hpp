@@ -57,6 +57,7 @@ protected:
     virtual void sendPacket(Buffer::Ptr pkt, bool flush = true);
     virtual int getLatencyMul() { return 4; };
     virtual int getPktBufSize() { return 8192; };
+    virtual float getTimeOutSec(){return 5.0;};
 
 private:
     void registerSelf();
@@ -87,6 +88,8 @@ private:
     void sendMsgDropReq(uint32_t first, uint32_t last);
 
     size_t getPayloadSize();
+
+    void createTimerForCheckAlive();
 
 protected:
     void sendDataPacket(DataPacket::Ptr pkt, char *buf, int len, bool flush = false);
@@ -144,6 +147,11 @@ private:
     Timer::Ptr _handleshake_timer;
 
     ResourcePool<BufferRaw> _packet_pool;
+
+    //检测超时的定时器
+    Timer::Ptr _timer;
+    //刷新计时器
+    Ticker _alive_ticker;
 };
 
 class SrtTransportManager {
