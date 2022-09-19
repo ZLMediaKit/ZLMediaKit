@@ -299,7 +299,7 @@ if(ENABLE_FFMPEG)
 endif()
 
 if(ENABLE_MEM_DEBUG)
-  list(APPEND COMPILE_OPTIONS_DEFAULT
+  update_cached_list(MK_LINK_LIBRARIES
     "-Wl,-wrap,free;-Wl,-wrap,malloc;-Wl,-wrap,realloc;-Wl,-wrap,calloc")
   update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_MEM_DEBUG)
   message(STATUS "已启用内存调试功能")
