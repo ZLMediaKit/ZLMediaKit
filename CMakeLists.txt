@@ -299,7 +299,7 @@ if(ENABLE_FFMPEG)
 endif()
 
 if(ENABLE_MEM_DEBUG)
-  list(APPEND COMPILE_OPTIONS_DEFAULT
+  update_cached_list(MK_LINK_LIBRARIES
     "-Wl,-wrap,free;-Wl,-wrap,malloc;-Wl,-wrap,realloc;-Wl,-wrap,calloc")
   update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_MEM_DEBUG)
   message(STATUS "已启用内存调试功能")
@@ -308,6 +308,10 @@ endif()
 if(ENABLE_ASAN)
   list(APPEND COMPILE_OPTIONS_DEFAULT
     "-fsanitize=address;-fno-omit-frame-pointer")
+  # https://github.com/google/sanitizers/wiki/AddressSanitizer#using-addresssanitizer
+  # > In order to use AddressSanitizer you will need to
+  # > compile and link your program using clang with the -fsanitize=address switch.
+  update_cached_list(MK_LINK_LIBRARIES "-fsanitize=address")
   message(STATUS "已启用 Address Sanitize")
 endif()
 
@@ -412,6 +416,9 @@ endif()
 
 # for version.h
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
+# for assert.h
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty)
 
 add_subdirectory(3rdpart)
 
