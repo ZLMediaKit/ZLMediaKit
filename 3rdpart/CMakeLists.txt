@@ -90,8 +90,12 @@ if(ENABLE_RTPPROXY OR ENABLE_HLS)
   aux_source_directory(${MediaServer_MPEG_ROOT}/source  MPEG_SRC_LIST)
   add_library(mpeg STATIC ${MPEG_SRC_LIST})
   add_library(MediaServer::mpeg ALIAS mpeg)
+  # media-server库相关编译宏
+  # MPEG_H26X_VERIFY - 视频流类型识别
+  # MPEG_ZERO_PAYLOAD_LENGTH - 兼容hik流
+  # MPEG_DAHUA_AAC_FROM_G711 - 兼容dahua流
   target_compile_options(mpeg
-    PRIVATE ${COMPILE_OPTIONS_DEFAULT})
+    PRIVATE ${COMPILE_OPTIONS_DEFAULT} -DMPEG_H26X_VERIFY -DMPEG_ZERO_PAYLOAD_LENGTH -DMPEG_DAHUA_AAC_FROM_G711)
   target_include_directories(mpeg
     PRIVATE
       "$<BUILD_INTERFACE:${MediaServer_MPEG_ROOT}/include>"
