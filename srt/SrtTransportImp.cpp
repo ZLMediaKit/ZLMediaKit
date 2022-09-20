@@ -340,6 +340,15 @@ int SrtTransportImp::getLatencyMul() {
     return latencyMul;
 }
 
+float SrtTransportImp::getTimeOutSec() {
+    GET_CONFIG(float, timeOutSec, kTimeOutSec);
+    if (timeOutSec <= 0) {
+        WarnL << "config srt " << kTimeOutSec << " not vaild";
+        return 5.0;
+    }
+    return timeOutSec;
+}
+
 int SrtTransportImp::getPktBufSize() {
     // kPktBufSize
     GET_CONFIG(int, pktBufSize, kPktBufSize);
