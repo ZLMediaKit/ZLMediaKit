@@ -106,7 +106,6 @@ void SrtTransport::inputSockData(uint8_t *buf, int len, struct sockaddr_storage 
                 _handleshake_timer.reset();
             }
             _pkt_recv_rate_context->inputPacket(_now,len-HDR_SIZE);
-            _estimated_link_capacity_context->inputPacket(_now);
             //_recv_rate_context->inputPacket(_now, len);
 
             handleDataPacket(buf, len, addr);
@@ -126,8 +125,8 @@ void SrtTransport::inputSockData(uint8_t *buf, int len, struct sockaddr_storage 
                 return;
             }
             
-            _pkt_recv_rate_context->inputPacket(_now,len);
-            _estimated_link_capacity_context->inputPacket(_now);
+            //_pkt_recv_rate_context->inputPacket(_now,len);
+            //_estimated_link_capacity_context->inputPacket(_now);
             //_recv_rate_context->inputPacket(_now, len);
 
             auto it = s_control_functions.find(type);
@@ -179,6 +178,7 @@ void SrtTransport::handleHandshakeInduction(HandshakePacket &pkt, struct sockadd
     _mtu = pkt.mtu;
 
     _last_pkt_seq = _init_seq_number - 1;
+    _estimated_link_capacity_context->setLastSeq(_last_pkt_seq);
 
     _peer_socket_id = pkt.srt_socket_id;
     HandshakePacket::Ptr res = std::make_shared<HandshakePacket>();
@@ -484,6 +484,7 @@ void SrtTransport::sendACKPacket() {
     pkt->pkt_recv_rate = _pkt_recv_rate_context->getPacketRecvRate(recv_rate);
     pkt->estimated_link_capacity = _estimated_link_capacity_context->getEstimatedLinkCapacity();
     pkt->recv_rate = recv_rate;
+    TraceL<<pkt->pkt_recv_rate<<" pkt/s "<<recv_rate<<" byte/s "<<pkt->estimated_link_capacity<<" pkt/s (cap)";
     pkt->storeToData();
     _ack_send_timestamp[pkt->ack_number] = _now;
     _last_ack_pkt_seq_num = pkt->last_ack_pkt_seq_number;
@@ -562,6 +563,8 @@ void SrtTransport::sendShutDown() {
 void SrtTransport::handleDataPacket(uint8_t *buf, int len, struct sockaddr_storage *addr) {
     DataPacket::Ptr pkt = std::make_shared<DataPacket>();
     pkt->loadFromData(buf, len);
+
+    _estimated_link_capacity_context->inputPacket(_now,pkt);
 
     std::list<DataPacket::Ptr> list;
     //TraceL<<" seq="<< pkt->packet_seq_number<<" ts="<<pkt->timestamp<<" size="<<pkt->payloadSize()<<\
