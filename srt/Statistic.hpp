@@ -23,14 +23,25 @@ private:
 
 class EstimatedLinkCapacityContext {
 public:
-    EstimatedLinkCapacityContext(TimePoint start) : _start(start) {};
+    EstimatedLinkCapacityContext(TimePoint start);
     ~EstimatedLinkCapacityContext() = default;
-    void inputPacket(TimePoint &ts);
+    void setLastSeq(uint32_t seq){
+        _last_seq = seq;
+    }
+    void inputPacket(TimePoint &ts,DataPacket::Ptr& pkt);
     uint32_t getEstimatedLinkCapacity();
-
+    static const int SIZE = 16;
+private:
+    void probe1Arrival(TimePoint &ts,const DataPacket::Ptr& pkt, bool unordered);
+    void probe2Arrival(TimePoint &ts,const DataPacket::Ptr& pkt);
 private:
     TimePoint _start;
-    std::map<int64_t, int64_t> _pkt_map;
+    TimePoint _ts_probe_time;
+    int64_t _dur_probe_arr[SIZE];
+    size_t _cur_idx;
+    uint32_t _last_seq = 0;
+    uint32_t _probe1_seq = SEQ_NONE;
+    //std::map<int64_t, int64_t> _pkt_map;
 };
 
 /*
