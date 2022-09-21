@@ -15,7 +15,7 @@ namespace SRT {
 
 using namespace toolkit;
 
-static const size_t HDR_SIZE = 4; // packet header size = SRT_PH_E_SIZE * sizeof(uint32_t)
+static const size_t HDR_SIZE = 16; // packet header size = SRT_PH_E_SIZE * sizeof(uint32_t)
 
 // Can also be calculated as: sizeof(struct ether_header) + sizeof(struct ip) + sizeof(struct udphdr).
 static const size_t UDP_HDR_SIZE = 28; // 20 bytes IPv4 + 8 bytes of UDP { u16 sport, dport, len, csum }.

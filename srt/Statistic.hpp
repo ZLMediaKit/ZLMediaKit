@@ -12,6 +12,7 @@ public:
     ~PacketRecvRateContext() = default;
     void inputPacket(TimePoint &ts,size_t len = 0);
     uint32_t getPacketRecvRate(uint32_t& bytesps);
+    std::string dump();
     static const int SIZE = 16;
 private:
     TimePoint _last_arrive_time;
@@ -30,7 +31,7 @@ public:
     }
     void inputPacket(TimePoint &ts,DataPacket::Ptr& pkt);
     uint32_t getEstimatedLinkCapacity();
-    static const int SIZE = 16;
+    static const int SIZE = 64;
 private:
     void probe1Arrival(TimePoint &ts,const DataPacket::Ptr& pkt, bool unordered);
     void probe2Arrival(TimePoint &ts,const DataPacket::Ptr& pkt);

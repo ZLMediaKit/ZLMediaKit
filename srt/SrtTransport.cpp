@@ -105,7 +105,7 @@ void SrtTransport::inputSockData(uint8_t *buf, int len, struct sockaddr_storage 
             if(_handleshake_timer){
                 _handleshake_timer.reset();
             }
-            _pkt_recv_rate_context->inputPacket(_now,len-HDR_SIZE);
+            _pkt_recv_rate_context->inputPacket(_now,len+UDP_HDR_SIZE);
             //_recv_rate_context->inputPacket(_now, len);
 
             handleDataPacket(buf, len, addr);
@@ -484,7 +484,11 @@ void SrtTransport::sendACKPacket() {
     pkt->pkt_recv_rate = _pkt_recv_rate_context->getPacketRecvRate(recv_rate);
     pkt->estimated_link_capacity = _estimated_link_capacity_context->getEstimatedLinkCapacity();
     pkt->recv_rate = recv_rate;
-    TraceL<<pkt->pkt_recv_rate<<" pkt/s "<<recv_rate<<" byte/s "<<pkt->estimated_link_capacity<<" pkt/s (cap)";
+    if(pkt->pkt_recv_rate == 0){
+        TraceL<<pkt->pkt_recv_rate<<" pkt/s "<<recv_rate<<" byte/s "<<pkt->estimated_link_capacity<<" pkt/s (cap)";
+        TraceL<<_pkt_recv_rate_context->dump();
+    }
+    
     pkt->storeToData();
     _ack_send_timestamp[pkt->ack_number] = _now;
     _last_ack_pkt_seq_num = pkt->last_ack_pkt_seq_number;

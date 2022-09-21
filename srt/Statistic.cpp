@@ -58,6 +58,25 @@ uint32_t PacketRecvRateContext::getPacketRecvRate(uint32_t &bytesps) {
 
     
 }
+
+std::string PacketRecvRateContext::dump(){
+    _StrPrinter printer;
+    printer <<"dur array : ";
+    for (size_t i = 0; i < SIZE; i++)
+    {
+        printer<<_ts_arr[i]<<" ";
+    }
+    printer <<"\r\n";
+
+    printer <<"size array : ";
+    for (size_t i = 0; i < SIZE; i++)
+    {
+        printer<<_size_arr[i]<<" ";
+    }
+    printer <<"\r\n";
+
+    return std::move(printer);
+}
 EstimatedLinkCapacityContext::EstimatedLinkCapacityContext(TimePoint start) : _start(start) {
     for (size_t i = 0; i < SIZE; i++) {
         _dur_probe_arr[i] = 1000;
