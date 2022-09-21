@@ -53,7 +53,9 @@ protected:
     virtual bool isPusher() { return true; };
     virtual void onSRTData(DataPacket::Ptr pkt) {};
     virtual void onShutdown(const SockException &ex);
-    virtual void onHandShakeFinished(std::string &streamid, struct sockaddr_storage *addr) {};
+    virtual void onHandShakeFinished(std::string &streamid, struct sockaddr_storage *addr) {
+        _is_handleshake_finished = true;
+    };
     virtual void sendPacket(Buffer::Ptr pkt, bool flush = true);
     virtual int getLatencyMul() { return 4; };
     virtual int getPktBufSize() { return 8192; };
@@ -90,6 +92,8 @@ private:
     size_t getPayloadSize();
 
     void createTimerForCheckAlive();
+
+    void checkAndSendAckNak();
 
 protected:
     void sendDataPacket(DataPacket::Ptr pkt, char *buf, int len, bool flush = false);
@@ -137,7 +141,7 @@ private:
 
     std::shared_ptr<PacketRecvRateContext> _pkt_recv_rate_context;
     std::shared_ptr<EstimatedLinkCapacityContext> _estimated_link_capacity_context;
-    std::shared_ptr<RecvRateContext> _recv_rate_context;
+    //std::shared_ptr<RecvRateContext> _recv_rate_context;
 
     UTicker _nak_ticker;
 
@@ -152,6 +156,8 @@ private:
     Timer::Ptr _timer;
     //刷新计时器
     Ticker _alive_ticker;
+
+    bool _is_handleshake_finished = false;
 };
 
 class SrtTransportManager {

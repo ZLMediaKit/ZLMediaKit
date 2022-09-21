@@ -22,6 +22,7 @@ SrtTransportImp::~SrtTransportImp() {
 }
 
 void SrtTransportImp::onHandShakeFinished(std::string &streamid, struct sockaddr_storage *addr) {
+    SrtTransport::onHandShakeFinished(streamid,addr);
     // TODO parse stream id like this zlmediakit.com/live/test?token=1213444&type=push
     if (!_addr) {
         _addr.reset(new sockaddr_storage(*((sockaddr_storage *)addr)));
@@ -100,6 +101,7 @@ void SrtTransportImp::onSRTData(DataPacket::Ptr pkt) {
     }
     if (_decoder) {
         _decoder->input(reinterpret_cast<const uint8_t *>(pkt->payloadData()), pkt->payloadSize());
+        //TraceL<<" size "<<pkt->payloadSize();
     } else {
         WarnP(this) << " not reach this";
     }
