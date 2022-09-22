@@ -473,6 +473,18 @@ void SrtTransport::handleACKACK(uint8_t *buf, int len, struct sockaddr_storage *
             }
         }
 
+        if(_ack_send_timestamp.size()>1000){
+            // clear data
+            for(auto it = _ack_send_timestamp.begin(); it != _ack_send_timestamp.end();){
+                if(DurationCountMicroseconds(_now-it->second)>5e6){
+                    // 超过五秒没有ackack 丢弃
+                    it = _ack_send_timestamp.erase(it);
+                }else{
+                    it++;
+                }
+            }
+        }
+
     }
 }
 
