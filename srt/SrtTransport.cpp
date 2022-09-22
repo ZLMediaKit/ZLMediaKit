@@ -292,7 +292,7 @@ void SrtTransport::handleHandshakeConclusion(HandshakePacket &pkt, struct sockad
         return;
         
     }
-    _last_ack_pkt_seq_num = _init_seq_number;
+    //_last_ack_pkt_seq_num = _init_seq_number;
 }
 
 void SrtTransport::handleHandshake(uint8_t *buf, int len, struct sockaddr_storage *addr) {
@@ -458,12 +458,22 @@ void SrtTransport::handleACKACK(uint8_t *buf, int len, struct sockaddr_storage *
     ACKACKPacket::Ptr pkt = std::make_shared<ACKACKPacket>();
     pkt->loadFromData(buf, len);
 
-    uint32_t rtt = DurationCountMicroseconds(_now - _ack_send_timestamp[pkt->ack_number]);
-    _rtt_variance = (3 * _rtt_variance + abs((long)_rtt - (long)rtt)) / 4;
-    _rtt = (7 * rtt + _rtt) / 8;
+    if(_ack_send_timestamp.find(pkt->ack_number)!=_ack_send_timestamp.end()){
+        uint32_t rtt = DurationCountMicroseconds(_now - _ack_send_timestamp[pkt->ack_number]);
+        _rtt_variance = (3 * _rtt_variance + abs((long)_rtt - (long)rtt)) / 4;
+        _rtt = (7 * rtt + _rtt) / 8;
+        // TraceL<<" rtt:"<<_rtt<<" rtt variance:"<<_rtt_variance;
+        _ack_send_timestamp.erase(pkt->ack_number);
 
-    // TraceL<<" rtt:"<<_rtt<<" rtt variance:"<<_rtt_variance;
-    _ack_send_timestamp.erase(pkt->ack_number);
+        if(_last_recv_ackack_seq_num < pkt->ack_number){
+            _last_recv_ackack_seq_num = pkt->ack_number;
+        }else{
+            if((_last_recv_ackack_seq_num-pkt->ack_number)>(MAX_TS>>1)){
+                _last_recv_ackack_seq_num = pkt->ack_number;
+            }
+        }
+
+    }
 }
 
 void SrtTransport::handlePeerError(uint8_t *buf, int len, struct sockaddr_storage *addr) {
@@ -484,14 +494,20 @@ void SrtTransport::sendACKPacket() {
     pkt->pkt_recv_rate = _pkt_recv_rate_context->getPacketRecvRate(recv_rate);
     pkt->estimated_link_capacity = _estimated_link_capacity_context->getEstimatedLinkCapacity();
     pkt->recv_rate = recv_rate;
-    if(pkt->pkt_recv_rate == 0){
-        TraceL<<pkt->pkt_recv_rate<<" pkt/s "<<recv_rate<<" byte/s "<<pkt->estimated_link_capacity<<" pkt/s (cap)";
-        TraceL<<_pkt_recv_rate_context->dump();
+    if(1){
+        TraceL<<pkt->pkt_recv_rate<<" pkt/s "<<recv_rate<<" byte/s "<<pkt->estimated_link_capacity<<" pkt/s (cap) "<<pkt->available_buf_size<<" available buf";
+        //TraceL<<_pkt_recv_rate_context->dump();
+        //TraceL<<"recv estimated:";
+        //TraceL<< _pkt_recv_rate_context->dump();
+        //TraceL<<"recv queue:";
+        //TraceL<<_recv_buf->dump();
     }
-    
+    if(pkt->available_buf_size<2){
+        pkt->available_buf_size = 2;
+    }
     pkt->storeToData();
     _ack_send_timestamp[pkt->ack_number] = _now;
-    _last_ack_pkt_seq_num = pkt->last_ack_pkt_seq_number;
+    //_last_ack_pkt_seq_num = pkt->last_ack_pkt_seq_number;
     sendControlPacket(pkt, true);
     // TraceL<<"send  ack "<<pkt->dump();
     // TraceL<<_recv_buf->dump();
@@ -511,7 +527,7 @@ void SrtTransport::sendLightACKPacket() {
     pkt->estimated_link_capacity = 0;
     pkt->recv_rate = 0;
     pkt->storeToData();
-    _last_ack_pkt_seq_num = pkt->last_ack_pkt_seq_number;
+    //_last_ack_pkt_seq_num = pkt->last_ack_pkt_seq_number;
     sendControlPacket(pkt, true);
     TraceL << "send  ack " << pkt->dump();
 }
