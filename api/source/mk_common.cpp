@@ -40,6 +40,11 @@ static std::shared_ptr<RtpServer> rtpServer;
 static std::shared_ptr<UdpServer> rtcServer;
 #endif
 
+#if defined(ENABLE_SRT)
+#include "../srt/SrtSession.hpp"
+static std::shared_ptr<UdpServer> srtServer;
+#endif
+
 //////////////////////////environment init///////////////////////////
 
 API_EXPORT void API_CALL mk_env_init(const mk_config *cfg) {
@@ -62,8 +67,15 @@ API_EXPORT void API_CALL mk_stop_all_server(){
     CLEAR_ARR(rtsp_server);
     CLEAR_ARR(rtmp_server);
     CLEAR_ARR(http_server);
+    shell_server = nullptr;
 #ifdef ENABLE_RTPPROXY
     rtpServer = nullptr;
+#endif
+#ifdef ENABLE_WEBRTC
+    rtcServer = nullptr;
+#endif
+#ifdef ENABLE_SRT
+    srtServer = nullptr;
 #endif
     stopAllTcpServer();
 }
@@ -253,6 +265,36 @@ API_EXPORT uint16_t API_CALL mk_rtc_server_start(uint16_t port) {
     return 0;
 #endif
 }
+
+API_EXPORT uint16_t API_CALL mk_srt_server_start(uint16_t port) {
+#ifdef ENABLE_SRT
+    try {
+        srtServer = std::make_shared<UdpServer>();
+        srtServer->setOnCreateSocket([](const EventPoller::Ptr &poller, const Buffer::Ptr &buf, struct sockaddr *, int) {
+            if (!buf) {
+                return Socket::createSocket(poller, false);
+            }
+            auto new_poller = SRT::SrtSession::queryPoller(buf);
+            if (!new_poller) {
+                //握手第一阶段
+                return Socket::createSocket(poller, false);
+            }
+            return Socket::createSocket(new_poller, false);
+        });
+        srtServer->start<SRT::SrtSession>(port);
+        return srtServer->getPort();
+
+    } catch (std::exception &ex) {
+        srtServer.reset();
+        WarnL << ex.what();
+        return 0;
+    }
+#else
+    WarnL << "未启用该功能!";
+    return 0;
+#endif
+}
+
 
 API_EXPORT uint16_t API_CALL mk_shell_server_start(uint16_t port){
     try {
