@@ -494,7 +494,7 @@ void SrtTransport::sendACKPacket() {
     pkt->pkt_recv_rate = _pkt_recv_rate_context->getPacketRecvRate(recv_rate);
     pkt->estimated_link_capacity = _estimated_link_capacity_context->getEstimatedLinkCapacity();
     pkt->recv_rate = recv_rate;
-    if(1){
+    if(0){
         TraceL<<pkt->pkt_recv_rate<<" pkt/s "<<recv_rate<<" byte/s "<<pkt->estimated_link_capacity<<" pkt/s (cap) "<<pkt->available_buf_size<<" available buf";
         //TraceL<<_pkt_recv_rate_context->dump();
         //TraceL<<"recv estimated:";
