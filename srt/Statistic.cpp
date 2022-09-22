@@ -32,6 +32,9 @@ uint32_t PacketRecvRateContext::getPacketRecvRate(uint32_t &bytesps) {
     int64_t upper = median << 3;
     int64_t lower = median >> 3;
 
+    int64_t min = median;
+    int64_t min_size = 0;
+
     bytesps = 0;
     size_t bytes = 0;
     const size_t *bp = _size_arr;
@@ -43,14 +46,27 @@ uint32_t PacketRecvRateContext::getPacketRecvRate(uint32_t &bytesps) {
             sum += *p; // usec counter
             bytes += *bp; // byte counter
         }
+        if(*p < min){
+            min = *p;
+            min_size = *bp;
+        }
         ++p; // advance packet pointer
         ++bp; // advance bytes pointer
     }
 
+    uint32_t max_ret = (uint32_t)ceil(1e6/min);
+    uint32_t max_byteps = (uint32_t)ceil(1e6*min_size/min);
+
     if(count>(SIZE>>1)){
-        bytesps = (unsigned long)ceil(1000000.0 / (double(sum) / double(bytes)));
-        auto ret = (uint32_t)ceil(1000000.0 / (sum / count));
-        return ret;
+        bytesps = (uint32_t)ceil(1000000.0 / (double(sum) / double(bytes)));
+        auto ret = (uint32_t)ceil(1000000.0 / (double(sum) / double(count)));
+        //bytesps = max_byteps;
+
+        return max_ret;
+    }else{
+        //TraceL<<max_ret<<" pkt/s "<<max_byteps<<" byte/s";
+        bytesps = 0;
+        return 0;
     }
     bytesps = 0;
     return 0;
