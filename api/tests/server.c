@@ -416,6 +416,7 @@ int main(int argc, char *argv[]) {
     mk_shell_server_start(9000);
     mk_rtp_server_start(10000);
     mk_rtc_server_start(8000);
+    mk_srt_server_start(9000);
 
     mk_events events = {
             .on_mk_media_changed = on_mk_media_changed,
