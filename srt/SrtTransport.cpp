@@ -1,4 +1,6 @@
 ﻿#include "Util/onceToken.h"
+#include "Util/mini.h"
+
 #include <iterator>
 #include <stdlib.h>
 
@@ -14,6 +16,13 @@ const std::string kTimeOutSec = SRT_FIELD "timeoutSec";
 const std::string kPort = SRT_FIELD "port";
 const std::string kLatencyMul = SRT_FIELD "latencyMul";
 const std::string kPktBufSize = SRT_FIELD "pktBufSize";
+
+static onceToken token([]() {
+    mINI::Instance()[kTimeOutSec] = 5;
+    mINI::Instance()[kPort] = 9000;
+    mINI::Instance()[kLatencyMul] = 4;
+    mINI::Instance()[kPktBufSize] = 8192;
+});
 
 static std::atomic<uint32_t> s_srt_socket_id_generate { 125 };
 ////////////  SrtTransport //////////////////////////
