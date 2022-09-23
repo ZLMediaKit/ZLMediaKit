@@ -292,7 +292,7 @@ void SrtTransport::handleHandshakeConclusion(HandshakePacket &pkt, struct sockad
         return;
         
     }
-    //_last_ack_pkt_seq_num = _init_seq_number;
+    _last_ack_pkt_seq = _init_seq_number;
 }
 
 void SrtTransport::handleHandshake(uint8_t *buf, int len, struct sockaddr_storage *addr) {
@@ -437,7 +437,13 @@ void SrtTransport::checkAndSendAckNak(){
         _light_ack_pkt_count = 0;
         _ack_ticker.resetTime(_now);
         // send a ack per 10 ms for receiver
-        sendACKPacket();
+        if(_last_ack_pkt_seq != _recv_buf->getExpectedSeq()){
+            //TraceL<<"send a ack packet";
+            sendACKPacket();
+        }else{
+            //TraceL<<" ignore repeate ack packet";
+        }
+        
     } else {
         if (_light_ack_pkt_count >= 64) {
             // for high bitrate stream send light ack
@@ -519,7 +525,7 @@ void SrtTransport::sendACKPacket() {
     }
     pkt->storeToData();
     _ack_send_timestamp[pkt->ack_number] = _now;
-    //_last_ack_pkt_seq_num = pkt->last_ack_pkt_seq_number;
+    _last_ack_pkt_seq = pkt->last_ack_pkt_seq_number;
     sendControlPacket(pkt, true);
     // TraceL<<"send  ack "<<pkt->dump();
     // TraceL<<_recv_buf->dump();
@@ -539,7 +545,7 @@ void SrtTransport::sendLightACKPacket() {
     pkt->estimated_link_capacity = 0;
     pkt->recv_rate = 0;
     pkt->storeToData();
-    //_last_ack_pkt_seq_num = pkt->last_ack_pkt_seq_number;
+    _last_ack_pkt_seq = pkt->last_ack_pkt_seq_number;
     sendControlPacket(pkt, true);
     TraceL << "send  ack " << pkt->dump();
 }
