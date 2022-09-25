@@ -312,10 +312,6 @@ EventPoller::Ptr MultiMediaSourceMuxer::getOwnerPoller(MediaSource &sender) {
 }
 
 bool MultiMediaSourceMuxer::onTrackReady(const Track::Ptr &track) {
-    if (CodecL16 == track->getCodecId()) {
-        WarnL << "L16音频格式目前只支持RTSP协议推流拉流!!!";
-        return false;
-    }
 
     bool ret = false;
     if (_rtmp) {
