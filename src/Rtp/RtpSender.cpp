@@ -41,6 +41,8 @@ void RtpSender::startSend(const MediaSourceEvent::SendRtpArgs &args, const funct
     if (args.passive) {
         // tcp被动发流模式
         _args.is_udp = false;
+        // 默认等待链接
+        bool is_wait = true;
         try {
             auto tcp_listener = Socket::createSocket(_poller, false);
             if (args.src_port) {
@@ -49,18 +51,22 @@ void RtpSender::startSend(const MediaSourceEvent::SendRtpArgs &args, const funct
                     throw std::invalid_argument(StrPrinter << "open tcp passive server failed on port:" << args.src_port
                                                            << ", err:" << get_uv_errmsg(true));
                 }
+                is_wait = true;
             } else {
                 auto pr = std::make_pair(tcp_listener, Socket::createSocket(_poller, false));
                 //从端口池获取随机端口
                 makeSockPair(pr, "::", false, false);
+                // 随机端口不等待，保证调用者可以知道端口
+                is_wait = false;
             }
             // tcp服务器默认开启5秒
-            auto delay_task = _poller->doDelayTask(_args.tcp_passive_close_delay_ms, [tcp_listener, cb]() mutable {
-                cb(0, SockException(Err_timeout, "wait tcp connection timeout"));
+            auto delay_task = _poller->doDelayTask(_args.tcp_passive_close_delay_ms, [tcp_listener, cb,is_wait]() mutable {
+                if(is_wait)
+                    cb(0, SockException(Err_timeout, "wait tcp connection timeout"));
                 tcp_listener = nullptr;
                 return 0;
             });
-            tcp_listener->setOnAccept([weak_self, cb, delay_task](Socket::Ptr &sock, std::shared_ptr<void> &complete) {
+            tcp_listener->setOnAccept([weak_self, cb, delay_task,is_wait](Socket::Ptr &sock, std::shared_ptr<void> &complete) {
                 auto strong_self = weak_self.lock();
                 if (!strong_self) {
                     return;
@@ -69,10 +75,15 @@ void RtpSender::startSend(const MediaSourceEvent::SendRtpArgs &args, const funct
                 delay_task->cancel();
                 strong_self->_socket_rtp = sock;
                 strong_self->onConnect();
-                cb(sock->get_local_port(), SockException());
+                if(is_wait)
+                    cb(sock->get_local_port(), SockException());
                 InfoL << "accept connection from:" << sock->get_peer_ip() << ":" << sock->get_peer_port();
             });
             InfoL << "start tcp passive server on:" << tcp_listener->get_local_port();
+            if(!is_wait){
+                // 随机端口马上返回端口，保证调用者知道端口
+                cb(tcp_listener->get_local_port(), SockException());
+            }
         } catch (std::exception &ex) {
             cb(0, SockException(Err_other, ex.what()));
             return;
