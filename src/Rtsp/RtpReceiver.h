@@ -60,6 +60,10 @@ public:
      * @param packet 包负载
      */
     void sortPacket(SEQ seq, T packet) {
+        if(!_is_inited && _next_seq_out == 0){
+            _next_seq_out = seq;
+            _is_inited = true;
+        }
         if (seq < _next_seq_out) {
             if (_next_seq_out < seq + kMax) {
                 //过滤seq回退包(回环包除外)
@@ -147,6 +151,9 @@ private:
     }
 
 private:
+    //第一个包是已经进入
+    bool _is_inited = false;
+
     //下次应该输出的SEQ
     SEQ _next_seq_out = 0;
     //seq回环次数计数
