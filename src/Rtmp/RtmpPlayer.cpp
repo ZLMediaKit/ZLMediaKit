@@ -44,11 +44,16 @@ void RtmpPlayer::teardown() {
     _deque_on_status.clear();
 }
 
-void RtmpPlayer::play(const string &strUrl)  {
+void RtmpPlayer::play(const string &url)  {
     teardown();
-    string host_url = FindField(strUrl.data(), "://", "/");
-    _app = FindField(strUrl.data(), (host_url + "/").data(), "/");
-    _stream_id = FindField(strUrl.data(), (host_url + "/" + _app + "/").data(), NULL);
+    string host_url = FindField(url.data(), "://", "/");
+    {
+        auto pos = url.find_last_of('/');
+        if (pos != string::npos) {
+            _stream_id = url.substr(pos + 1);
+        }
+    }
+    _app = FindField(url.data(), (host_url + "/").data(), ("/" + _stream_id).data());
     _tc_url = string("rtmp://") + host_url + "/" + _app;
 
     if (!_app.size() || !_stream_id.size()) {
@@ -109,16 +114,16 @@ void RtmpPlayer::onPlayResult_l(const SockException &ex, bool handshake_done) {
         //播放成功，恢复rtmp接收超时定时器
         _rtmp_recv_ticker.resetTime();
         auto timeout_ms = (*this)[Client::kMediaTimeoutMS].as<uint64_t>();
-        weak_ptr<RtmpPlayer> weakSelf = dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
-        auto lam = [weakSelf, timeout_ms]() {
-            auto strongSelf = weakSelf.lock();
-            if (!strongSelf) {
+        weak_ptr<RtmpPlayer> weak_self = dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
+        auto lam = [weak_self, timeout_ms]() {
+            auto strong_self = weak_self.lock();
+            if (!strong_self) {
                 return false;
             }
-            if (strongSelf->_rtmp_recv_ticker.elapsedTime() > timeout_ms) {
+            if (strong_self->_rtmp_recv_ticker.elapsedTime() > timeout_ms) {
                 //接收rtmp媒体数据超时
                 SockException ex(Err_timeout, "receive rtmp timeout");
-                strongSelf->onPlayResult_l(ex, true);
+                strong_self->onPlayResult_l(ex, true);
                 return false;
             }
             return true;
@@ -130,19 +135,17 @@ void RtmpPlayer::onPlayResult_l(const SockException &ex, bool handshake_done) {
     }
 }
 
-void RtmpPlayer::onConnect(const SockException &err){
+void RtmpPlayer::onConnect(const SockException &err) {
     if (err.getErrCode() != Err_success) {
         onPlayResult_l(err, false);
         return;
     }
-    weak_ptr<RtmpPlayer> weakSelf = dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
-    startClientSession([weakSelf]() {
-        auto strongSelf = weakSelf.lock();
-        if (!strongSelf) {
-            return;
+    weak_ptr<RtmpPlayer> weak_self = dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
+    startClientSession([weak_self]() {
+        if (auto strong_self = weak_self.lock()) {
+            strong_self->send_connect();
         }
-        strongSelf->send_connect();
-    });
+    },_app.find("vod") != 0); // 实测发现vod点播时，使用复杂握手fms无响应：issue #2007
 }
 
 void RtmpPlayer::onRecv(const Buffer::Ptr &buf){
@@ -249,14 +252,14 @@ inline void RtmpPlayer::send_pause(bool pause) {
 
     _beat_timer.reset();
     if (pause) {
-        weak_ptr<RtmpPlayer> weakSelf = dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
-        _beat_timer.reset(new Timer((*this)[Client::kBeatIntervalMS].as<int>() / 1000.0f, [weakSelf]() {
-            auto strongSelf = weakSelf.lock();
-            if (!strongSelf) {
+        weak_ptr<RtmpPlayer> weak_self = dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
+        _beat_timer.reset(new Timer((*this)[Client::kBeatIntervalMS].as<int>() / 1000.0f, [weak_self]() {
+            auto strong_self = weak_self.lock();
+            if (!strong_self) {
                 return false;
             }
             uint32_t timeStamp = (uint32_t)::time(NULL);
-            strongSelf->sendUserControl(CONTROL_PING_REQUEST, timeStamp);
+            strong_self->sendUserControl(CONTROL_PING_REQUEST, timeStamp);
             return true;
         }, getPoller()));
     }
