@@ -92,10 +92,11 @@
   - 支持http文件访问鉴权
 
 - GB28181与RTP推流
-  - 支持UDP/TCP国标RTP(PS或TS)推流服务器，可以转换成RTSP/RTMP/HLS等协议
-  - 支持RTSP/RTMP/HLS转国标推流客户端，支持TCP/UDP模式，提供相应restful api
+  - 支持UDP/TCP RTP(PS/TS/ES)推流服务器，可以转换成RTSP/RTMP/HLS等协议
+  - 支持RTSP/RTMP/HLS等协议转rtp推流客户端，支持TCP/UDP模式，提供相应restful api，支持主动被动方式。
   - 支持H264/H265/AAC/G711/OPUS编码
   - 支持海康ehome推流
+  - 支持GB28181主动拉流模式
 
 - MP4点播与录制
   - 支持录制为FLV/HLS/MP4

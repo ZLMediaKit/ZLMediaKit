@@ -13,8 +13,9 @@
 #endif // defined(_WIN32)
 
 #include <chrono>
-#define MAX_SEQ 0x7fffffff
-#define MAX_TS 0xffffffff
+#define MAX_SEQ  0x7fffffff
+#define SEQ_NONE 0xffffffff
+#define MAX_TS   0xffffffff
 
 namespace SRT {
 using SteadyClock = std::chrono::steady_clock;
@@ -35,6 +36,25 @@ static inline uint16_t loadUint16(uint8_t *ptr) {
     return ptr[0] << 8 | ptr[1];
 }
 
+inline static int64_t seqCmp(uint32_t seq1, uint32_t seq2) {
+    if(seq1 > seq2){
+        if((seq1 - seq2) >(MAX_SEQ>>1)){
+            return (int64_t)seq1 - (int64_t)(seq2+MAX_SEQ);
+        }else{
+            return (int64_t)seq1 - (int64_t)seq2;
+        }
+    }else{
+        if((seq2-seq1) >(MAX_SEQ>>1)){
+            return (int64_t)(seq1+MAX_SEQ) - (int64_t)seq2;
+        }else{
+            return (int64_t)seq1 - (int64_t)seq2;
+        }
+    }
+}
+
+inline static uint32_t incSeq(int32_t seq) {
+    return (seq == MAX_SEQ) ? 0 : seq + 1;
+}
 static inline void storeUint32(uint8_t *buf, uint32_t val) {
     buf[0] = val >> 24;
     buf[1] = (val >> 16) & 0xff;

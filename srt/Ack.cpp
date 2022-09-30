@@ -59,10 +59,10 @@ bool ACKPacket::storeToData() {
     storeUint32(ptr, rtt_variance);
     ptr += 4;
 
-    storeUint32(ptr, pkt_recv_rate);
+    storeUint32(ptr, available_buf_size);
     ptr += 4;
 
-    storeUint32(ptr, available_buf_size);
+    storeUint32(ptr, pkt_recv_rate);
     ptr += 4;
 
     storeUint32(ptr, estimated_link_capacity);

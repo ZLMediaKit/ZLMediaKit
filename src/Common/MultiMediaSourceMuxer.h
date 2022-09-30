@@ -80,8 +80,6 @@ public:
         GET_OPT_VALUE(modify_stamp);
     }
 
-    ProtocolOption(const ProtocolOption &) = default;
-
 private:
     template <typename MAP, typename KEY, typename TYPE>
     static void getArgsValue(const MAP &allArgs, const KEY &key, TYPE &value) {

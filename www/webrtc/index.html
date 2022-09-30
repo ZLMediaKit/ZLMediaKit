@@ -46,14 +46,14 @@
             </p>
 
             <p>
-              <label for="methond">methond(play or push or echo):</label>
-              <input type="radio" name="methond" value="echo" >echo
-              <input type="radio" name="methond" value="push" >push
-              <input type="radio" name="methond" value="play" checked = true>play
+              <label for="method">method(play or push or echo):</label>
+              <input type="radio" name="method" value="echo" >echo
+              <input type="radio" name="method" value="push" >push
+              <input type="radio" name="method" value="play" checked = true>play
             </p>
             <p>
-              <label for="resilution">resolution:</label>
-              <select id="resilution">
+              <label for="resolution">resolution:</label>
+              <select id="resolution">
               </select>
             </p>
             <p>
@@ -98,7 +98,7 @@
         url = "http://127.0.0.1"+"/index/api/webrtc?app=live&stream=test&type=play"
       }
       document.getElementById('streamUrl').value = url
-      document.getElementsByName("methond").forEach((el,idx)=>{
+      document.getElementsByName("method").forEach((el,idx)=>{
         el.onclick=function(e){
           let url = new URL(document.getElementById('streamUrl').value);
           url.searchParams.set("type",el.value)
@@ -118,14 +118,14 @@
           opt = document.createElement('option');
           opt.text = r.label +"("+r.width+"x"+r.height+")";
           opt.value = r;
-          document.getElementById("resilution").add(opt,null)
+          document.getElementById("resolution").add(opt,null)
 
           //console.log(opt.text.match(/\d+/g))
 
         
       })
       function start_play(){
-        let elr = document.getElementById("resilution");
+        let elr = document.getElementById("resolution");
         let res = elr.options[elr.selectedIndex].text.match(/\d+/g);
         let h = parseInt(res.pop());
         let w = parseInt(res.pop());
@@ -204,7 +204,7 @@
       function start()
       {
         stop();
-        let elr = document.getElementById("resilution");
+        let elr = document.getElementById("resolution");
         let res = elr.options[elr.selectedIndex].text.match(/\d+/g);
         let h = parseInt(res.pop());
         let w = parseInt(res.pop());

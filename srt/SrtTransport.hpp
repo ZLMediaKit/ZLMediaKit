@@ -53,10 +53,13 @@ protected:
     virtual bool isPusher() { return true; };
     virtual void onSRTData(DataPacket::Ptr pkt) {};
     virtual void onShutdown(const SockException &ex);
-    virtual void onHandShakeFinished(std::string &streamid, struct sockaddr_storage *addr) {};
+    virtual void onHandShakeFinished(std::string &streamid, struct sockaddr_storage *addr) {
+        _is_handleshake_finished = true;
+    };
     virtual void sendPacket(Buffer::Ptr pkt, bool flush = true);
     virtual int getLatencyMul() { return 4; };
     virtual int getPktBufSize() { return 8192; };
+    virtual float getTimeOutSec(){return 5.0;};
 
 private:
     void registerSelf();
@@ -87,6 +90,10 @@ private:
     void sendMsgDropReq(uint32_t first, uint32_t last);
 
     size_t getPayloadSize();
+
+    void createTimerForCheckAlive();
+
+    void checkAndSendAckNak();
 
 protected:
     void sendDataPacket(DataPacket::Ptr pkt, char *buf, int len, bool flush = false);
@@ -126,7 +133,8 @@ private:
     uint32_t _rtt_variance = 50 * 1000;
     uint32_t _light_ack_pkt_count = 0;
     uint32_t _ack_number_count = 0;
-    uint32_t _last_ack_pkt_seq_num = 0;
+    uint32_t _last_ack_pkt_seq = 0;
+    uint32_t _last_recv_ackack_seq_num = 0;
 
     uint32_t _last_pkt_seq = 0;
     UTicker _ack_ticker;
@@ -134,7 +142,7 @@ private:
 
     std::shared_ptr<PacketRecvRateContext> _pkt_recv_rate_context;
     std::shared_ptr<EstimatedLinkCapacityContext> _estimated_link_capacity_context;
-    std::shared_ptr<RecvRateContext> _recv_rate_context;
+    //std::shared_ptr<RecvRateContext> _recv_rate_context;
 
     UTicker _nak_ticker;
 
@@ -144,6 +152,13 @@ private:
     Timer::Ptr _handleshake_timer;
 
     ResourcePool<BufferRaw> _packet_pool;
+
+    //检测超时的定时器
+    Timer::Ptr _timer;
+    //刷新计时器
+    Ticker _alive_ticker;
+
+    bool _is_handleshake_finished = false;
 };
 
 class SrtTransportManager {
