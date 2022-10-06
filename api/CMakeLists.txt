@@ -28,7 +28,7 @@ file(GLOB API_SRC_LIST
   source/*.cpp
   source/*.h)
 
-set(LINK_LIBRARIES ${MK_LINK_LIBRARIES} jsoncpp)
+set(LINK_LIBRARIES ${MK_LINK_LIBRARIES})
 
 if(IOS)
   add_library(mk_api STATIC ${API_SRC_LIST})
@@ -62,7 +62,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 elseif(CMAKE_SYSTEM_NAME MATCHES "Android")
   target_link_libraries(mk_api log -Wl,--start-group ${LINK_LIBRARIES} -Wl,--end-group)
 else()
-  target_link_libraries(mk_api jsoncpp ${LINK_LIBRARIES})
+  target_link_libraries(mk_api ${LINK_LIBRARIES})
 endif()
 
 generate_export_header(mk_api

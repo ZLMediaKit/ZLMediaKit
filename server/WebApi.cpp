@@ -1578,9 +1578,9 @@ void installWebApi() {
         auto offer = allArgs.getArgs();
         CHECK(!offer.empty(), "http body(webrtc offer sdp) is empty");
 
-        WebRtcPluginManager::Instance().getAnswerSdp(
-            *(static_cast<Session *>(&sender)), type, offer, WebRtcArgsImp(allArgs, sender.getIdentifier()),
-            [invoker, val, offer, headerOut](const WebRtcInterface &exchanger) mutable {
+        WebRtcPluginManager::Instance().getAnswerSdp(*(static_cast<Session *>(&sender)), type,
+                                                     WebRtcArgsImp(allArgs, sender.getIdentifier()),
+                                                     [invoker, val, offer, headerOut](const WebRtcInterface &exchanger) mutable {
             //设置返回类型
             headerOut["Content-Type"] = HttpFileManager::getContentType(".json");
             //设置跨域

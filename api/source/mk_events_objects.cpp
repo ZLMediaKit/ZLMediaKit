@@ -18,11 +18,6 @@
 #include "Http/HttpClient.h"
 #include "Rtsp/RtspSession.h"
 
-#ifdef ENABLE_WEBRTC
-#include "jsoncpp/json.h"
-#include "mk_webrtc_private.h"
-#endif
-
 using namespace toolkit;
 using namespace mediakit;
 
@@ -257,25 +252,6 @@ API_EXPORT void API_CALL mk_media_source_for_each(void *user_data, on_mk_media_s
     }, schema ? schema : "", vhost ? vhost : "", app ? app : "", stream ? stream : "");
 }
 
-API_EXPORT void API_CALL mk_media_source_answersdp(void *user_data, on_mk_media_source_answersdp_cb cb, const char *offer, 
-                                                   const char *schema, const char *vhost, const char *app, const char *stream, int from_mp4) {
-#ifdef ENABLE_WEBRTC
-    assert(offer && schema && vhost && app && stream && cb);
-    auto srcfound = MediaSource::find(schema, vhost, app, stream, from_mp4);
-    mediakit::MediaInfo info;
-    info._schema = RTC_SCHEMA;
-    info._host = vhost;
-    info._app = app;
-    info._streamid = stream;
-    try {
-        auto rtc = WebRtcPlayer::create(EventPollerPool::Instance().getPoller(), std::dynamic_pointer_cast<RtspMediaSource>(srcfound), info);
-        cb(user_data, srcfound.get(), rtc->getAnswerSdp(offer).c_str(), "");
-    } catch (std::exception &ex) {
-        cb(user_data, nullptr, nullptr, ex.what());
-    }
-#endif
-}
-
 ///////////////////////////////////////////HttpBody/////////////////////////////////////////////
 API_EXPORT mk_http_body API_CALL mk_http_body_from_string(const char *str, size_t len){
     assert(str);
@@ -348,53 +324,6 @@ API_EXPORT void API_CALL mk_http_response_invoker_do(const mk_http_response_invo
     HttpBody::Ptr *body = (HttpBody::Ptr*) response_body;
     (*invoker)(response_code,header,*body);
 }
-
-API_EXPORT void API_CALL mk_webrtc_http_response_invoker_do(const mk_http_response_invoker ctx_invoker,
-                                                            const mk_parser ctx_parser,
-                                                             const mk_sock_info ctx_sock ) {
-    assert(ctx_parser && ctx_invoker && ctx_sock);
-#ifdef ENABLE_WEBRTC
-    static auto webrtc_cb = [](API_ARGS_STRING_ASYNC){
-        CHECK_ARGS("type");
-        auto type = allArgs["type"];
-        auto offer = allArgs.getArgs();
-        CHECK(!offer.empty(), "http body(webrtc offer sdp) is empty");
-
-        WebRtcPluginManager::Instance().getAnswerSdp(
-            *(static_cast<Session *>(&sender)), type, offer, WebRtcArgsImp(allArgs, sender.getIdentifier()),
-            [invoker, val, offer, headerOut](const WebRtcInterface &exchanger) mutable {
-                //设置返回类型
-                headerOut["Content-Type"] = HttpFileManager::getContentType(".json");
-                //设置跨域
-                headerOut["Access-Control-Allow-Origin"] = "*";
-
-                try {
-                    val["sdp"] = const_cast<WebRtcInterface &>(exchanger).getAnswerSdp(offer);
-                    val["id"] = exchanger.getIdentifier();
-                    val["type"] = "answer";
-                    invoker(200, headerOut, val.toStyledString());
-                } catch (std::exception &ex) {
-                    val["code"] = API::Exception;
-                    val["msg"] = ex.what();
-                    invoker(200, headerOut, val.toStyledString());
-                }
-            });
-    };
-
-    Parser *parser = (Parser *)ctx_parser;
-    HttpSession::HttpResponseInvoker *invoker = (HttpSession::HttpResponseInvoker *)ctx_invoker;
-    SockInfo* sender = (SockInfo*)ctx_sock;
-
-    GET_CONFIG(std::string, charSet, Http::kCharSet);
-    HttpSession::KeyValue headerOut;
-    headerOut["Content-Type"] = std::string("application/json; charset=") + charSet;
-
-    Json::Value val;
-    val["code"] = API::Success;
-
-    webrtc_cb(*sender, headerOut, HttpAllArgs<std::string>(*parser, (std::string &)parser->Content()), val, *invoker);
-#endif
-};
 
 API_EXPORT mk_http_response_invoker API_CALL mk_http_response_invoker_clone(const mk_http_response_invoker ctx){
     assert(ctx);
