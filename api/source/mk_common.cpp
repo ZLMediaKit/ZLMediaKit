@@ -266,6 +266,7 @@ API_EXPORT uint16_t API_CALL mk_rtc_server_start(uint16_t port) {
 #endif
 }
 
+#ifdef ENABLE_WEBRTC
 class WebRtcArgsUrl : public mediakit::WebRtcArgs {
 public:
     WebRtcArgsUrl(std::string url) { _url = std::move(url); }
@@ -281,6 +282,7 @@ public:
 private:
     std::string _url;
 };
+#endif
 
 API_EXPORT void API_CALL mk_webrtc_get_answer_sdp(void *user_data, on_mk_webrtc_get_answer_sdp cb, const char *type,
                                                   const char *offer, const char *url) {
@@ -331,7 +333,6 @@ API_EXPORT uint16_t API_CALL mk_srt_server_start(uint16_t port) {
     return 0;
 #endif
 }
-
 
 API_EXPORT uint16_t API_CALL mk_shell_server_start(uint16_t port){
     try {
