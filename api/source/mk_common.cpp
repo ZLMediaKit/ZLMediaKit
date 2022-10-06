@@ -261,8 +261,45 @@ API_EXPORT uint16_t API_CALL mk_rtc_server_start(uint16_t port) {
         return 0;
     }
 #else
-    WarnL << "未启用该功能!";
+    WarnL << "未启用webrtc功能, 编译时请开启ENABLE_WEBRTC";
     return 0;
+#endif
+}
+
+class WebRtcArgsUrl : public mediakit::WebRtcArgs {
+public:
+    WebRtcArgsUrl(std::string url) { _url = std::move(url); }
+    ~WebRtcArgsUrl() = default;
+
+    toolkit::variant operator[](const std::string &key) const override {
+        if (key == "url") {
+            return _url;
+        }
+        return "";
+    }
+
+private:
+    std::string _url;
+};
+
+API_EXPORT void API_CALL mk_webrtc_get_answer_sdp(void *user_data, on_mk_webrtc_get_answer_sdp cb, const char *type,
+                                                  const char *offer, const char *url) {
+#ifdef ENABLE_WEBRTC
+    assert(type && offer && url && cb);
+    auto session = std::make_shared<HttpSession>(Socket::createSocket());
+    std::string offer_str = offer;
+    WebRtcPluginManager::Instance().getAnswerSdp(*session, type, WebRtcArgsUrl(url),
+                                                 [offer_str, session, user_data, cb](const WebRtcInterface &exchanger) mutable {
+        std::string sdp_answer;
+        try {
+            sdp_answer = const_cast<WebRtcInterface &>(exchanger).getAnswerSdp(offer_str);
+            cb(user_data, sdp_answer.data(), nullptr);
+        } catch (std::exception &ex) {
+            cb(user_data, nullptr, ex.what());
+        }
+    });
+#else
+    WarnL << "未启用webrtc功能, 编译时请开启ENABLE_WEBRTC";
 #endif
 }
 

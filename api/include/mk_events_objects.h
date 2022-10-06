@@ -82,8 +82,6 @@ API_EXPORT uint16_t API_CALL mk_media_info_get_port(const mk_media_info ctx);
 typedef void* mk_media_source;
 //查找MediaSource的回调函数
 typedef void(API_CALL *on_mk_media_source_find_cb)(void *user_data, const mk_media_source ctx);
-//生成AnswerSdp回调函数
-typedef void(API_CALL *on_mk_media_source_answersdp_cb)(void *user_data, const mk_media_source ctx, const char *answer, const char *err);
 
 //MediaSource::getSchema()
 API_EXPORT const char* API_CALL mk_media_source_get_schema(const mk_media_source ctx);
@@ -136,9 +134,6 @@ API_EXPORT void API_CALL mk_media_source_find(const char *schema,
 //MediaSource::for_each_media()
 API_EXPORT void API_CALL mk_media_source_for_each(void *user_data, on_mk_media_source_find_cb cb, const char *schema,
                                                   const char *vhost, const char *app, const char *stream);
-//MediaSource::find() + WebRtcPlayer::create + getOffer
-API_EXPORT void API_CALL mk_media_source_answersdp(void *user_data, on_mk_media_source_answersdp_cb cb, const char *offer, 
-                                                   const char *schema, const char *vhost, const char *app, const char *stream, int from_mp4);
 
 ///////////////////////////////////////////HttpBody/////////////////////////////////////////////
 //HttpBody对象的C映射
@@ -182,14 +177,6 @@ API_EXPORT void API_CALL mk_http_response_invoker_do(const mk_http_response_invo
                                                      int response_code,
                                                      const char **response_header,
                                                      const mk_http_body response_body);
-/**
- * HttpSession::HttpResponseInvoker(const string &codeOut, const StrCaseMap &headerOut, const HttpBody::Ptr &body);
-   Parser();
-   SockInfo();
- */
-API_EXPORT void API_CALL mk_webrtc_http_response_invoker_do( const mk_http_response_invoker invoker,
-                                                            const mk_parser parser,
-                                                            const mk_sock_info sender);
 
 /**
  * HttpSession::HttpResponseInvoker(const string &codeOut, const StrCaseMap &headerOut, const string &body);
