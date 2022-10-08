@@ -61,8 +61,9 @@ void RtpSender::startSend(const MediaSourceEvent::SendRtpArgs &args, const funct
             }
             // tcp服务器默认开启5秒
             auto delay_task = _poller->doDelayTask(_args.tcp_passive_close_delay_ms, [tcp_listener, cb,is_wait]() mutable {
-                if(is_wait)
+                if (is_wait) {
                     cb(0, SockException(Err_timeout, "wait tcp connection timeout"));
+                }
                 tcp_listener = nullptr;
                 return 0;
             });
@@ -75,12 +76,13 @@ void RtpSender::startSend(const MediaSourceEvent::SendRtpArgs &args, const funct
                 delay_task->cancel();
                 strong_self->_socket_rtp = sock;
                 strong_self->onConnect();
-                if(is_wait)
+                if (is_wait) {
                     cb(sock->get_local_port(), SockException());
+                }
                 InfoL << "accept connection from:" << sock->get_peer_ip() << ":" << sock->get_peer_port();
             });
             InfoL << "start tcp passive server on:" << tcp_listener->get_local_port();
-            if(!is_wait){
+            if (!is_wait) {
                 // 随机端口马上返回端口，保证调用者知道端口
                 cb(tcp_listener->get_local_port(), SockException());
             }
