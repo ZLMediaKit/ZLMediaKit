@@ -292,9 +292,8 @@ API_EXPORT void API_CALL mk_webrtc_get_answer_sdp(void *user_data, on_mk_webrtc_
     std::string offer_str = offer;
     WebRtcPluginManager::Instance().getAnswerSdp(*session, type, WebRtcArgsUrl(url),
                                                  [offer_str, session, user_data, cb](const WebRtcInterface &exchanger) mutable {
-        std::string sdp_answer;
         try {
-            sdp_answer = const_cast<WebRtcInterface &>(exchanger).getAnswerSdp(offer_str);
+            auto sdp_answer = const_cast<WebRtcInterface &>(exchanger).getAnswerSdp(offer_str);
             cb(user_data, sdp_answer.data(), nullptr);
         } catch (std::exception &ex) {
             cb(user_data, nullptr, ex.what());
