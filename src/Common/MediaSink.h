@@ -61,7 +61,7 @@ public:
     bool inputFrame(const Frame::Ptr &frame) override;
 
 private:
-    uint32_t _audio_idx = 0;
+    uint64_t _audio_idx = 0;
 };
 
 /**

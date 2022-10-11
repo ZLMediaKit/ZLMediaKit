@@ -223,7 +223,7 @@ static uint8_t s_mute_adts[] = {0xff, 0xf1, 0x6c, 0x40, 0x2d, 0x3f, 0xfc, 0x00, 
 
 #define MUTE_ADTS_DATA s_mute_adts
 #define MUTE_ADTS_DATA_LEN sizeof(s_mute_adts)
-#define MUTE_ADTS_DATA_MS 130
+#define MUTE_ADTS_DATA_MS 128
 
 bool MuteAudioMaker::inputFrame(const Frame::Ptr &frame) {
     if (frame->getTrackType() == TrackVideo) {
