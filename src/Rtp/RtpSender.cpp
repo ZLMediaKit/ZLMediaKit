@@ -25,6 +25,10 @@ RtpSender::RtpSender(EventPoller::Ptr poller) {
     _socket_rtp = Socket::createSocket(_poller, false);
 }
 
+RtpSender::~RtpSender() {
+    flush();
+}
+
 void RtpSender::startSend(const MediaSourceEvent::SendRtpArgs &args, const function<void(uint16_t local_port, const SockException &ex)> &cb){
     _args = args;
     if (!_interface) {
@@ -229,6 +233,12 @@ void RtpSender::addTrackCompleted(){
 
 void RtpSender::resetTracks(){
     _interface->resetTracks();
+}
+
+void RtpSender::flush() {
+    if (_interface) {
+        _interface->flush();
+    }
 }
 
 //此函数在其他线程执行

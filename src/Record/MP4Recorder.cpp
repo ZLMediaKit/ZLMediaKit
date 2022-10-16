@@ -33,6 +33,7 @@ MP4Recorder::MP4Recorder(const string &path, const string &vhost, const string &
 }
 
 MP4Recorder::~MP4Recorder() {
+    flush();
     closeFile();
 }
 
@@ -93,6 +94,12 @@ void MP4Recorder::closeFile() {
     if (_muxer) {
         asyncClose();
         _muxer = nullptr;
+    }
+}
+
+void MP4Recorder::flush() {
+    if (_muxer) {
+        _muxer->flush();
     }
 }
 

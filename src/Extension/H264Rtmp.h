@@ -62,13 +62,18 @@ public:
      * @param track
      */
     H264RtmpEncoder(const Track::Ptr &track);
-    ~H264RtmpEncoder() {}
+    ~H264RtmpEncoder() = default;
 
     /**
      * 输入264帧，可以不带sps pps
      * @param frame 帧数据
      */
     bool inputFrame(const Frame::Ptr &frame) override;
+
+    /**
+     * 刷新输出所有frame缓存
+     */
+    void flush() override;
 
     /**
      * 生成config包

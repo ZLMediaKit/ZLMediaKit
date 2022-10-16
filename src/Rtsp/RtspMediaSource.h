@@ -56,7 +56,7 @@ public:
                     int ring_size = RTP_GOP_SIZE) :
             MediaSource(RTSP_SCHEMA, vhost, app, stream_id), _ring_size(ring_size) {}
 
-    ~RtspMediaSource() override{}
+    ~RtspMediaSource() override { flush(); }
 
     /**
      * 获取媒体源的环形缓冲

@@ -291,6 +291,14 @@ bool H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     return true;
 }
 
+void H264RtpEncoder::flush() {
+    if (_last_frame) {
+        // 如果时间戳发生了变化，那么markbit才置true
+        inputFrame_l(_last_frame, true);
+        _last_frame = nullptr;
+    }
+}
+
 bool H264RtpEncoder::inputFrame_l(const Frame::Ptr &frame, bool is_mark){
     if (frame->keyFrame()) {
         //保证每一个关键帧前都有SPS与PPS

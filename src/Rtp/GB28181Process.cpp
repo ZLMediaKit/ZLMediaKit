@@ -59,10 +59,14 @@ GB28181Process::GB28181Process(const MediaInfo &media_info, MediaSinkInterface *
     _interface = sink;
 }
 
-GB28181Process::~GB28181Process() {}
-
 void GB28181Process::onRtpSorted(RtpPacket::Ptr rtp) {
     _rtp_decoder[rtp->getHeader()->pt]->inputRtp(rtp, false);
+}
+
+void GB28181Process::flush() {
+    if (_decoder) {
+        _decoder->flush();
+    }
 }
 
 bool GB28181Process::inputRtp(bool, const char *data, size_t data_len) {

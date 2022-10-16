@@ -74,6 +74,11 @@ public:
     bool inputFrame(const Frame::Ptr &frame) override;
 
     /**
+     * 刷新输出所有frame缓存
+     */
+    void flush() override;
+
+    /**
      * 重置所有track
      */
     void resetTracks() override ;

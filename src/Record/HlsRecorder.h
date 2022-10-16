@@ -16,7 +16,7 @@
 
 namespace mediakit {
 
-class HlsRecorder : public MediaSourceEventInterceptor, public MpegMuxer, public std::enable_shared_from_this<HlsRecorder> {
+class HlsRecorder final : public MediaSourceEventInterceptor, public MpegMuxer, public std::enable_shared_from_this<HlsRecorder> {
 public:
     using Ptr = std::shared_ptr<HlsRecorder>;
 
@@ -30,7 +30,7 @@ public:
         _hls->clearCache();
     }
 
-    ~HlsRecorder() = default;
+    ~HlsRecorder() { MpegMuxer::flush(); };
 
     void setMediaSource(const std::string &vhost, const std::string &app, const std::string &stream_id) {
         _hls->setMediaSource(vhost, app, stream_id);

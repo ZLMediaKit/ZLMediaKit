@@ -138,33 +138,39 @@ void H265RtmpEncoder::makeConfigPacket(){
     }
 }
 
+void H265RtmpEncoder::flush() {
+    inputFrame(nullptr);
+}
+
 bool H265RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
-    auto data = frame->data() + frame->prefixSize();
-    auto len = frame->size() - frame->prefixSize();
-    auto type = H265_TYPE(data[0]);
-    switch (type) {
-        case H265Frame::NAL_SPS: {
-            if (!_got_config_frame) {
-                _sps = string(data, len);
-                makeConfigPacket();
+    if (frame) {
+        auto data = frame->data() + frame->prefixSize();
+        auto len = frame->size() - frame->prefixSize();
+        auto type = H265_TYPE(data[0]);
+        switch (type) {
+            case H265Frame::NAL_SPS: {
+                if (!_got_config_frame) {
+                    _sps = string(data, len);
+                    makeConfigPacket();
+                }
+                break;
             }
-            break;
-        }
-        case H265Frame::NAL_PPS: {
-            if (!_got_config_frame) {
-                _pps = string(data, len);
-                makeConfigPacket();
+            case H265Frame::NAL_PPS: {
+                if (!_got_config_frame) {
+                    _pps = string(data, len);
+                    makeConfigPacket();
+                }
+                break;
             }
-            break;
-        }
-        case H265Frame::NAL_VPS: {
-            if (!_got_config_frame) {
-                _vps = string(data, len);
-                makeConfigPacket();
+            case H265Frame::NAL_VPS: {
+                if (!_got_config_frame) {
+                    _vps = string(data, len);
+                    makeConfigPacket();
+                }
+                break;
             }
-            break;
+            default: break;
         }
-        default: break;
     }
 
     if (!_rtmp_packet) {

@@ -31,7 +31,7 @@ public:
 };
 
 //TS直播源
-class TSMediaSource : public MediaSource, public toolkit::RingDelegate<TSPacket::Ptr>, private PacketCache<TSPacket>{
+class TSMediaSource final : public MediaSource, public toolkit::RingDelegate<TSPacket::Ptr>, private PacketCache<TSPacket>{
 public:
     using Ptr = std::shared_ptr<TSMediaSource>;
     using RingDataType = std::shared_ptr<toolkit::List<TSPacket::Ptr> >;
@@ -42,7 +42,7 @@ public:
                   const std::string &stream_id,
                   int ring_size = TS_GOP_SIZE) : MediaSource(TS_SCHEMA, vhost, app, stream_id), _ring_size(ring_size) {}
 
-    ~TSMediaSource() override = default;
+    ~TSMediaSource() override { flush(); }
 
     /**
      * 获取媒体源的环形缓冲

@@ -44,6 +44,11 @@ public:
     void resetTracks() override;
 
     /**
+     * 刷新输出所有frame缓存
+     */
+    void flush() override;
+
+    /**
      * 是否包含视频
      */
     bool haveVideo() const;

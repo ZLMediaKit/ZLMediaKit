@@ -31,6 +31,11 @@ public:
       * @return 是否解析成功
       */
     virtual bool inputRtp(bool is_udp, const char *data, size_t data_len) = 0;
+
+    /**
+     * 刷新输出所有缓存
+     */
+    virtual void flush() {}
 };
 
 }//namespace mediakit

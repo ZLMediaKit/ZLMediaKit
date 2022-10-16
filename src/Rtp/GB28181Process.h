@@ -26,7 +26,7 @@ class GB28181Process : public ProcessInterface {
 public:
     typedef std::shared_ptr<GB28181Process> Ptr;
     GB28181Process(const MediaInfo &media_info, MediaSinkInterface *sink);
-    ~GB28181Process() override;
+    ~GB28181Process() override = default;
 
     /**
      * 输入rtp
@@ -35,6 +35,11 @@ public:
      * @return 是否解析成功
      */
     bool inputRtp(bool, const char *data, size_t data_len) override;
+
+    /**
+     * 刷新输出所有缓存
+     */
+    void flush() override;
 
 protected:
     void onRtpSorted(RtpPacket::Ptr rtp);

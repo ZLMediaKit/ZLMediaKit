@@ -39,16 +39,14 @@ protected:
 
 class DecoderImp{
 public:
-    typedef enum {
-        decoder_ts = 0,
-        decoder_ps
-    }Type;
+    typedef enum { decoder_ts = 0, decoder_ps } Type;
 
     typedef std::shared_ptr<DecoderImp> Ptr;
     ~DecoderImp() = default;
 
     static Ptr createDecoder(Type type, MediaSinkInterface *sink);
     ssize_t input(const uint8_t *data, size_t bytes);
+    void flush();
 
 protected:
     void onTrack(const Track::Ptr &track);
@@ -63,7 +61,6 @@ private:
     Decoder::Ptr _decoder;
     MediaSinkInterface *_sink;
     FrameMerger _merger{FrameMerger::none};
-    toolkit::Ticker _last_unsported_print;
     Track::Ptr _tracks[TrackMax];
 };
 

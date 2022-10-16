@@ -19,7 +19,7 @@
 
 namespace mediakit{
 
-class RtpCache : private PacketCache<toolkit::Buffer> {
+class RtpCache : protected PacketCache<toolkit::Buffer> {
 public:
     using onFlushed = std::function<void(std::shared_ptr<toolkit::List<toolkit::Buffer::Ptr> >)>;
     RtpCache(onFlushed cb);
@@ -33,30 +33,33 @@ protected:
     void input(uint64_t stamp, toolkit::Buffer::Ptr buffer,bool is_key = false);
 
     bool firstKeyReady(bool in);
+
 protected:
     void onFlush(std::shared_ptr<toolkit::List<toolkit::Buffer::Ptr> > rtp_list, bool) override;
 
 private:
-    onFlushed _cb;
     bool _first_key = false;
+    onFlushed _cb;
 };
 
-class RtpCachePS : public RtpCache, public PSEncoderImp{
+class RtpCachePS : public RtpCache, public PSEncoderImp {
 public:
     RtpCachePS(onFlushed cb, uint32_t ssrc, uint8_t payload_type = 96) : RtpCache(std::move(cb)), PSEncoderImp(ssrc, payload_type) {};
     ~RtpCachePS() override = default;
+    void flush() override;
 
 protected:
-    void onRTP(toolkit::Buffer::Ptr rtp,bool is_key = false)  override;
+    void onRTP(toolkit::Buffer::Ptr rtp, bool is_key = false) override;
 };
 
-class RtpCacheRaw : public RtpCache, public RawEncoderImp{
+class RtpCacheRaw : public RtpCache, public RawEncoderImp {
 public:
-    RtpCacheRaw(onFlushed cb, uint32_t ssrc, uint8_t payload_type = 96, bool sendAudio = true) : RtpCache(std::move(cb)), RawEncoderImp(ssrc, payload_type,sendAudio) {};
+    RtpCacheRaw(onFlushed cb, uint32_t ssrc, uint8_t payload_type = 96, bool send_audio = true) : RtpCache(std::move(cb)), RawEncoderImp(ssrc, payload_type, send_audio) {};
     ~RtpCacheRaw() override = default;
+    void flush() override;
 
 protected:
-    void onRTP(toolkit::Buffer::Ptr rtp,bool is_key = false)  override;
+    void onRTP(toolkit::Buffer::Ptr rtp, bool is_key = false) override;
 };
 
 }//namespace mediakit

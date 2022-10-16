@@ -155,7 +155,7 @@ void FrameMerger::doMerge(BufferLikeString &merged, const Frame::Ptr &frame) con
     }
 }
 
-bool FrameMerger::inputFrame(const Frame::Ptr &frame, const onOutput &cb, BufferLikeString *buffer) {
+bool FrameMerger::inputFrame(const Frame::Ptr &frame, onOutput cb, BufferLikeString *buffer) {
     if (willFlush(frame)) {
         Frame::Ptr back = _frame_cache.back();
         Buffer::Ptr merged_frame = back;
@@ -190,6 +190,7 @@ bool FrameMerger::inputFrame(const Frame::Ptr &frame, const onOutput &cb, Buffer
     if (frame->decodeAble()) {
         _have_decode_able_frame = true;
     }
+    _cb = std::move(cb);
     _frame_cache.emplace_back(Frame::getCacheAbleFrame(frame));
     return true;
 }
@@ -201,6 +202,13 @@ FrameMerger::FrameMerger(int type) {
 void FrameMerger::clear() {
     _frame_cache.clear();
     _have_decode_able_frame = false;
+}
+
+void FrameMerger::flush() {
+    if (_cb) {
+        inputFrame(nullptr, std::move(_cb), nullptr);
+    }
+    clear();
 }
 
 }//namespace mediakit

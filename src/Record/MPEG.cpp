@@ -63,7 +63,7 @@ bool MpegMuxer::inputFrame(const Frame::Ptr &frame) {
         case CodecH264:
         case CodecH265: {
             //这里的代码逻辑是让SPS、PPS、IDR这些时间戳相同的帧打包到一起当做一个帧处理，
-            return _frame_merger.inputFrame(frame,[&](uint64_t dts, uint64_t pts, const Buffer::Ptr &buffer, bool have_idr) {
+            return _frame_merger.inputFrame(frame,[this, track_id](uint64_t dts, uint64_t pts, const Buffer::Ptr &buffer, bool have_idr) {
                 _key_pos = have_idr;
                 //取视频时间戳为TS的时间戳
                 _timestamp = dts;
@@ -151,6 +151,10 @@ void MpegMuxer::releaseContext() {
     }
     _codec_to_trackid.clear();
     _frame_merger.clear();
+}
+
+void MpegMuxer::flush() {
+    _frame_merger.flush();
 }
 
 }//mediakit

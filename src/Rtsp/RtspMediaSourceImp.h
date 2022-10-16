@@ -17,9 +17,9 @@
 #include "Common/MultiMediaSourceMuxer.h"
 
 namespace mediakit {
-class RtspMediaSourceImp : public RtspMediaSource, private TrackListener, public MultiMediaSourceMuxer::Listener  {
+class RtspMediaSourceImp final : public RtspMediaSource, private TrackListener, public MultiMediaSourceMuxer::Listener  {
 public:
-    typedef std::shared_ptr<RtspMediaSourceImp> Ptr;
+    using Ptr = std::shared_ptr<RtspMediaSourceImp>;
 
     /**
      * 构造函数
@@ -33,7 +33,7 @@ public:
         _demuxer->setTrackListener(this);
     }
 
-    ~RtspMediaSourceImp() = default;
+    ~RtspMediaSourceImp() override = default;
 
     /**
      * 设置sdp
