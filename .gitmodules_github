@@ -4,3 +4,6 @@
 [submodule "3rdpart/media-server"]
 	path = 3rdpart/media-server
 	url = https://github.com/ireader/media-server
+[submodule "3rdpart/jsoncpp"]
+    path = 3rdpart/jsoncpp
+    url = https://github.com/open-source-parsers/jsoncpp.git

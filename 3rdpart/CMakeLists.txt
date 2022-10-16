@@ -24,15 +24,15 @@
 ##############################################################################
 
 # jsoncpp
-aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/jsoncpp JSONCPP_SRC_LIST)
+aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/jsoncpp/src/lib_json JSONCPP_SRC_LIST)
 add_library(jsoncpp STATIC ${JSONCPP_SRC_LIST})
 target_compile_options(jsoncpp
   PRIVATE ${COMPILE_OPTIONS_DEFAULT})
 target_include_directories(jsoncpp
   PRIVATE
-    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>/jsoncpp/include"
   PUBLIC
-    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>")
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>/jsoncpp/include")
 
 update_cached_list(MK_LINK_LIBRARIES jsoncpp)
 
