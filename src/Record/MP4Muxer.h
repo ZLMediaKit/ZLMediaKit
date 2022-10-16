@@ -58,6 +58,11 @@ public:
      */
     void initSegment();
 
+    /**
+     * 获取mp4时长,单位毫秒
+     */
+    uint64_t getDuration() const;
+
 protected:
     virtual MP4FileIO::Writer createWriter() = 0;
 
@@ -73,7 +78,7 @@ private:
         Stamp stamp;
     };
     std::unordered_map<int, track_info> _codec_to_trackid;
-    FrameMerger _frame_merger{FrameMerger::mp4_nal_size};
+    FrameMerger _frame_merger { FrameMerger::mp4_nal_size };
 };
 
 class MP4Muxer : public MP4MuxerInterface{

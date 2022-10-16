@@ -70,24 +70,21 @@ void MP4Recorder::asyncClose() {
     auto full_path = _full_path;
     auto info = _info;
     WorkThreadPool::Instance().getExecutor()->async([muxer, full_path_tmp, full_path, info]() mutable {
-        //获取文件录制时间，放在关闭mp4之前是为了忽略关闭mp4执行时间
-        info.time_len = (float) (::time(NULL) - info.start_time);
-        //关闭mp4非常耗时，所以要放在后台线程执行
+        info.time_len = muxer->getDuration() / 1000.0f;
+        // 关闭mp4可能非常耗时，所以要放在后台线程执行
         muxer->closeMP4();
-        
-        if(!full_path_tmp.empty()) {
-            //获取文件大小
+        if (!full_path_tmp.empty()) {
+            // 获取文件大小
             info.file_size = File::fileSize(full_path_tmp.data());
             if (info.file_size < 1024) {
-                //录像文件太小，删除之
+                // 录像文件太小，删除之
                 File::delete_file(full_path_tmp.data());
                 return;
             }
-            //临时文件名改成正式文件名，防止mp4未完成时被访问
+            // 临时文件名改成正式文件名，防止mp4未完成时被访问
             rename(full_path_tmp.data(), full_path.data());
         }
-
-        /////record 业务逻辑//////
+        //触发mp4录制切片生成事件
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRecordMP4, info);
     });
 }

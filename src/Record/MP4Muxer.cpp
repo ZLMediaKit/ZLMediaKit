@@ -61,6 +61,16 @@ bool MP4MuxerInterface::haveVideo() const {
     return _have_video;
 }
 
+uint64_t MP4MuxerInterface::getDuration() const {
+    uint64_t ret = 0;
+    for (auto &pr : _codec_to_trackid) {
+        if (pr.second.stamp.getRelativeStamp() > ret) {
+            ret = pr.second.stamp.getRelativeStamp();
+        }
+    }
+    return ret;
+}
+
 void MP4MuxerInterface::resetTracks() {
     _started = false;
     _have_video = false;
