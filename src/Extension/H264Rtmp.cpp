@@ -124,26 +124,32 @@ void H264RtmpEncoder::makeConfigPacket(){
     }
 }
 
+void H264RtmpEncoder::flush() {
+    inputFrame(nullptr);
+}
+
 bool H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
-    auto data = frame->data() + frame->prefixSize();
-    auto len = frame->size() - frame->prefixSize();
-    auto type = H264_TYPE(data[0]);
-    switch (type) {
-        case H264Frame::NAL_SPS: {
-            if (!_got_config_frame) {
-                _sps = string(data, len);
-                makeConfigPacket();
+    if (frame) {
+        auto data = frame->data() + frame->prefixSize();
+        auto len = frame->size() - frame->prefixSize();
+        auto type = H264_TYPE(data[0]);
+        switch (type) {
+            case H264Frame::NAL_SPS: {
+                if (!_got_config_frame) {
+                    _sps = string(data, len);
+                    makeConfigPacket();
+                }
+                break;
             }
-            break;
-        }
-        case H264Frame::NAL_PPS: {
-            if (!_got_config_frame) {
-                _pps = string(data, len);
-                makeConfigPacket();
+            case H264Frame::NAL_PPS: {
+                if (!_got_config_frame) {
+                    _pps = string(data, len);
+                    makeConfigPacket();
+                }
+                break;
             }
-            break;
+            default: break;
         }
-        default : break;
     }
 
     if (!_rtmp_packet) {

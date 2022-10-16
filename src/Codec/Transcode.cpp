@@ -420,9 +420,7 @@ FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num) {
 FFmpegDecoder::~FFmpegDecoder() {
     stopThread(true);
     if (_do_merger) {
-        _merger.inputFrame(nullptr, [&](uint64_t dts, uint64_t pts, const Buffer::Ptr &buffer, bool have_idr) {
-            decodeFrame(buffer->data(), buffer->size(), dts, pts, false);
-        });
+        _merger.flush();
     }
     flush();
 }
@@ -452,7 +450,7 @@ const AVCodecContext *FFmpegDecoder::getContext() const {
 
 bool FFmpegDecoder::inputFrame_l(const Frame::Ptr &frame, bool live, bool enable_merge) {
     if (_do_merger && enable_merge) {
-        return _merger.inputFrame(frame, [&](uint64_t dts, uint64_t pts, const Buffer::Ptr &buffer, bool have_idr) {
+        return _merger.inputFrame(frame, [this, live](uint64_t dts, uint64_t pts, const Buffer::Ptr &buffer, bool have_idr) {
             decodeFrame(buffer->data(), buffer->size(), dts, pts, live);
         });
     }

@@ -108,6 +108,9 @@ void SrtTransportImp::onSRTData(DataPacket::Ptr pkt) {
 }
 
 void SrtTransportImp::onShutdown(const SockException &ex) {
+    if (_decoder) {
+        _decoder->flush();
+    }
     SrtTransport::onShutdown(ex);
 }
 

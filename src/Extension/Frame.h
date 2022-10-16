@@ -271,6 +271,11 @@ public:
      * 写入帧数据
      */
     virtual bool inputFrame(const Frame::Ptr &frame) = 0;
+
+    /**
+     * 刷新输出所有frame缓存
+     */
+    virtual void flush() {};
 };
 
 /**
@@ -542,8 +547,13 @@ public:
     FrameMerger(int type);
     ~FrameMerger() = default;
 
+    /**
+     * 刷新输出缓冲，注意此时会调用FrameMerger::inputFrame传入的onOutput回调
+     * 请注意回调捕获参数此时是否有效
+     */
+    void flush();
     void clear();
-    bool inputFrame(const Frame::Ptr &frame, const onOutput &cb, toolkit::BufferLikeString *buffer = nullptr);
+    bool inputFrame(const Frame::Ptr &frame, onOutput cb, toolkit::BufferLikeString *buffer = nullptr);
 
 private:
     bool willFlush(const Frame::Ptr &frame) const;
@@ -552,6 +562,7 @@ private:
 private:
     int _type;
     bool _have_decode_able_frame = false;
+    onOutput _cb;
     toolkit::List<Frame::Ptr> _frame_cache;
 };
 

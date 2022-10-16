@@ -26,9 +26,9 @@
 
 namespace mediakit {
 
-class RtmpMediaSourceImp: public RtmpMediaSource, private TrackListener, public MultiMediaSourceMuxer::Listener {
+class RtmpMediaSourceImp final : public RtmpMediaSource, private TrackListener, public MultiMediaSourceMuxer::Listener {
 public:
-    typedef std::shared_ptr<RtmpMediaSourceImp> Ptr;
+    using Ptr = std::shared_ptr<RtmpMediaSourceImp>;
 
     /**
      * 构造函数
@@ -42,7 +42,7 @@ public:
         _demuxer->setTrackListener(this);
     }
 
-    ~RtmpMediaSourceImp() = default;
+    ~RtmpMediaSourceImp() override = default;
 
     /**
      * 设置metadata

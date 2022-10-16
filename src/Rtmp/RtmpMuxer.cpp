@@ -43,6 +43,14 @@ bool RtmpMuxer::inputFrame(const Frame::Ptr &frame) {
     return encoder ? encoder->inputFrame(frame) : false;
 }
 
+void RtmpMuxer::flush() {
+    for (auto &encoder : _encoder) {
+        if (encoder) {
+            encoder->flush();
+        }
+    }
+}
+
 void RtmpMuxer::makeConfigPacket(){
     for(auto &encoder : _encoder){
         if(encoder){

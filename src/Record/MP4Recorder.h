@@ -24,7 +24,7 @@
 namespace mediakit {
 
 #ifdef ENABLE_MP4
-class MP4Recorder : public MediaSinkInterface {
+class MP4Recorder final : public MediaSinkInterface {
 public:
     using Ptr = std::shared_ptr<MP4Recorder>;
 
@@ -40,6 +40,11 @@ public:
      * 输入frame
      */
     bool inputFrame(const Frame::Ptr &frame) override;
+
+    /**
+     * 刷新输出所有frame缓存
+     */
+    void flush() override;
 
     /**
      * 添加ready状态的track

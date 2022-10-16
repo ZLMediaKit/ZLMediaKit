@@ -86,6 +86,14 @@ bool RtspMuxer::inputFrame(const Frame::Ptr &frame) {
     return encoder ? encoder->inputFrame(frame) : false;
 }
 
+void RtspMuxer::flush() {
+    for (auto &encoder : _encoder) {
+        if (encoder) {
+            encoder->flush();
+        }
+    }
+}
+
 string RtspMuxer::getSdp() {
     return _sdp;
 }

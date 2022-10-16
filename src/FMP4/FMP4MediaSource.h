@@ -31,7 +31,7 @@ public:
 };
 
 //FMP4直播源
-class FMP4MediaSource : public MediaSource, public toolkit::RingDelegate<FMP4Packet::Ptr>, private PacketCache<FMP4Packet>{
+class FMP4MediaSource final : public MediaSource, public toolkit::RingDelegate<FMP4Packet::Ptr>, private PacketCache<FMP4Packet>{
 public:
     using Ptr = std::shared_ptr<FMP4MediaSource>;
     using RingDataType = std::shared_ptr<toolkit::List<FMP4Packet::Ptr> >;
@@ -42,7 +42,7 @@ public:
                     const std::string &stream_id,
                     int ring_size = FMP4_GOP_SIZE) : MediaSource(FMP4_SCHEMA, vhost, app, stream_id), _ring_size(ring_size) {}
 
-    ~FMP4MediaSource() override = default;
+    ~FMP4MediaSource() override { flush(); }
 
     /**
      * 获取媒体源的环形缓冲

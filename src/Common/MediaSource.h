@@ -359,9 +359,9 @@ public:
     virtual ~PacketCache() = default;
 
     void inputPacket(uint64_t stamp, bool is_video, std::shared_ptr<packet> pkt, bool key_pos) {
-        bool flush = flushImmediatelyWhenCloseMerge();
-        if (!flush && _policy.isFlushAble(is_video, key_pos, stamp, _cache->size())) {
-            flushAll();
+        bool flag = flushImmediatelyWhenCloseMerge();
+        if (!flag && _policy.isFlushAble(is_video, key_pos, stamp, _cache->size())) {
+            flush();
         }
 
         //追加数据到最后
@@ -370,9 +370,18 @@ public:
             _key_pos = key_pos;
         }
 
-        if (flush) {
-            flushAll();
+        if (flag) {
+            flush();
         }
+    }
+
+    void flush() {
+        if (_cache->empty()) {
+            return;
+        }
+        onFlush(std::move(_cache), _key_pos);
+        _cache = std::make_shared<packet_list>();
+        _key_pos = false;
     }
 
     virtual void clearCache() {
@@ -382,15 +391,6 @@ public:
     virtual void onFlush(std::shared_ptr<packet_list>, bool key_pos) = 0;
 
 private:
-    void flushAll() {
-        if (_cache->empty()) {
-            return;
-        }
-        onFlush(std::move(_cache), _key_pos);
-        _cache = std::make_shared<packet_list>();
-        _key_pos = false;
-    }
-
     bool flushImmediatelyWhenCloseMerge() {
         //一般的协议关闭合并写时，立即刷新缓存，这样可以减少一帧的延时，但是rtp例外
         //因为rtp的包很小，一个RtpPacket包中也不是完整的一帧图像，所以在关闭合并写时，

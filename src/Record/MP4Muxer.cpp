@@ -79,6 +79,10 @@ void MP4MuxerInterface::resetTracks() {
     _codec_to_trackid.clear();
 }
 
+void MP4MuxerInterface::flush() {
+    _frame_merger.flush();
+}
+
 bool MP4MuxerInterface::inputFrame(const Frame::Ptr &frame) {
     auto it = _codec_to_trackid.find(frame->getCodecId());
     if (it == _codec_to_trackid.end()) {
@@ -98,12 +102,12 @@ bool MP4MuxerInterface::inputFrame(const Frame::Ptr &frame) {
 
     //mp4文件时间戳需要从0开始
     auto &track_info = it->second;
-    int64_t dts_out, pts_out;
     switch (frame->getCodecId()) {
         case CodecH264:
         case CodecH265: {
             //这里的代码逻辑是让SPS、PPS、IDR这些时间戳相同的帧打包到一起当做一个帧处理，
-            _frame_merger.inputFrame(frame, [&](uint64_t dts, uint64_t pts, const Buffer::Ptr &buffer, bool have_idr) {
+            _frame_merger.inputFrame(frame, [this, &track_info](uint64_t dts, uint64_t pts, const Buffer::Ptr &buffer, bool have_idr) {
+                int64_t dts_out, pts_out;
                 track_info.stamp.revise(dts, pts, dts_out, pts_out);
                 mp4_writer_write(_mov_writter.get(),
                                  track_info.track_id,
@@ -117,6 +121,7 @@ bool MP4MuxerInterface::inputFrame(const Frame::Ptr &frame) {
         }
 
         default: {
+            int64_t dts_out, pts_out;
             track_info.stamp.revise(frame->dts(), frame->pts(), dts_out, pts_out);
             mp4_writer_write(_mov_writter.get(),
                              track_info.track_id,

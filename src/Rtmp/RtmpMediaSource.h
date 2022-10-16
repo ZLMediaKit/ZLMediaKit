@@ -60,7 +60,7 @@ public:
             MediaSource(RTMP_SCHEMA, vhost, app, stream_id), _ring_size(ring_size) {
     }
 
-    ~RtmpMediaSource() override{}
+    ~RtmpMediaSource() override { flush(); }
 
     /**
      * 	获取媒体源的环形缓冲

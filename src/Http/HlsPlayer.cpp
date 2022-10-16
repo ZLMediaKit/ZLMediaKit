@@ -393,6 +393,9 @@ void HlsPlayerImp::onShutdown(const SockException &ex) {
             break;
         }
     }
+    if (_decoder) {
+        _decoder->flush();
+    }
     PlayerImp<HlsPlayer, PlayerBase>::onShutdown(ex);
 }
 

@@ -85,6 +85,11 @@ public:
      */
     bool inputFrame(const Frame::Ptr &frame) override;
 
+    /**
+     * 刷新输出所有frame缓存
+     */
+    void flush() override;
+
 private:
     void insertConfigFrame(uint64_t pts);
     bool inputFrame_l(const Frame::Ptr &frame, bool is_mark);
