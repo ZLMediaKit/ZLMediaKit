@@ -274,7 +274,7 @@ static onceToken token([]() {
     mINI::Instance()[kFileBufSize] = 64 * 1024;
     mINI::Instance()[kFilePath] = "./www";
     mINI::Instance()[kBroadcastRecordTs] = false;
-    mINI::Instance()[kDeleteDelaySec] = 0;
+    mINI::Instance()[kDeleteDelaySec] = 10;
 });
 } // namespace Hls
 
