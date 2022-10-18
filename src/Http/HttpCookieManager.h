@@ -91,8 +91,8 @@ public:
      * 获取附加数据
      */
     template <class T>
-    const T& getAttach() const {
-        return *static_cast<const T *>(_attach.get());
+    T& getAttach() {
+        return *static_cast<T *>(_attach.get());
     }
 
 private:
