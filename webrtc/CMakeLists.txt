@@ -53,7 +53,7 @@ file(GLOB WEBRTC_SRC_LIST
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
-add_library(webrtc ${WEBRTC_SRC_LIST})
+add_library(webrtc STATIC ${WEBRTC_SRC_LIST})
 add_library(ZLMediaKit::WebRTC ALIAS webrtc)
 target_compile_definitions(webrtc
   # ENABLE_SCTP 暂时需要暴露
