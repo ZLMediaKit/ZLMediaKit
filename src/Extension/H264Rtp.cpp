@@ -283,7 +283,7 @@ bool H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
         default: break;
     }
 
-    GET_CONFIG(int,lowLatency,Rtp::KLowLatency);
+    GET_CONFIG(int,lowLatency,Rtp::kLowLatency);
     if (lowLatency) { // 低延迟模式
         if (_last_frame) {
             flush();
