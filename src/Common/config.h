@@ -253,7 +253,7 @@ extern const std::string kKeepAliveSecond;
 extern const std::string kDirectProxy;
 
 // rtsp 转发是否使用低延迟模式，当开启时，不会缓存rtp包，来提高并发，可以降低一帧的延迟
-extern const std::string KLowLatency;
+extern const std::string kLowLatency;
 } // namespace Rtsp
 
 ////////////RTMP服务器配置///////////
@@ -275,7 +275,7 @@ extern const std::string kAudioMtuSize;
 // rtp包最大长度限制, 单位KB
 extern const std::string kRtpMaxSize;
 // rtp 打包时，低延迟开关，默认关闭（为0），h264存在一帧多个slice（NAL）的情况，在这种情况下，如果开启可能会导致画面花屏
-extern const std::string KLowLatency;
+extern const std::string kLowLatency;
 } // namespace Rtp
 
 ////////////组播配置///////////

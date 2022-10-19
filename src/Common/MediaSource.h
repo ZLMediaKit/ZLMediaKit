@@ -399,7 +399,7 @@ private:
 
         GET_CONFIG(int, mergeWriteMS, General::kMergeWriteMS);
 
-        GET_CONFIG(int, rtspLowLatency, Rtsp::KLowLatency);
+        GET_CONFIG(int, rtspLowLatency, Rtsp::kLowLatency);
         if(std::is_same<packet, RtpPacket>::value && rtspLowLatency){
             return true;
         }
