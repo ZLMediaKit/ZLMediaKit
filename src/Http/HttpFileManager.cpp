@@ -33,8 +33,9 @@ static int kHlsCookieSecond = 60;
 static const string kCookieName = "ZL_COOKIE";
 static const string kHlsSuffix = "/hls.m3u8";
 
-class HttpCookieAttachment {
-public:
+struct HttpCookieAttachment {
+    //是否已经查找到过MediaSource
+    bool _find_src = false;
     //cookie生效作用域，本cookie只对该目录下的文件生效
     string _path;
     //上次鉴权失败信息,为空则上次鉴权成功
@@ -425,6 +426,11 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
             response_file(cookie, cb, file_path, parser, src->getIndexFile());
             return;
         }
+        if (cookie->getAttach<HttpCookieAttachment>()._find_src) {
+            //查找过MediaSource，但是流已经注销了，不用再查找
+            response_file(cookie, cb, file_path, parser);
+            return;
+        }
 
         //hls流可能未注册，MediaSource::findAsync可以触发not_found事件，然后再按需推拉流
         MediaSource::findAsync(media_info, strongSession, [response_file, cookie, cb, file_path, parser](const MediaSource::Ptr &src) {
@@ -439,6 +445,8 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
             attach._hls_data->setMediaSource(hls);
             //添加HlsMediaSource的观看人数(HLS是按需生成的，这样可以触发HLS文件的生成)
             attach._hls_data->addByteUsage(0);
+            //标记找到MediaSource
+            attach._find_src = true;
 
             // m3u8文件可能不存在, 等待m3u8索引文件按需生成
             hls->getIndexFile([response_file, file_path, cookie, cb, parser](const string &file) {
