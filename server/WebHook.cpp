@@ -296,7 +296,12 @@ static mINI jsonToMini(const Value &obj) {
     mINI ret;
     if (obj.isObject()) {
         for (auto it = obj.begin(); it != obj.end(); ++it) {
-            ret[it.name()] = (*it).asString();
+            try {
+                auto str = (*it).asString();
+                ret[it.name()] = std::move(str);
+            } catch (std::exception &) {
+                WarnL << "Json is not convertible to string, key: " << it.name() << ", value: " << (*it);
+            }
         }
     }
     return ret;
