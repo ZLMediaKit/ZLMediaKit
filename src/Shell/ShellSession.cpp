@@ -124,7 +124,7 @@ inline void ShellSession::pleaseInputPasswd() {
         };
 
         weak_ptr<ShellSession> weakSelf = dynamic_pointer_cast<ShellSession>(shared_from_this());
-        Broadcast::AuthInvoker invoker = [weakSelf,onAuth](const string &errMessage){
+        Broadcast::AuthInvoker invoker = [weakSelf,onAuth](int code, const string &errMessage){
             auto strongSelf =  weakSelf.lock();
             if(!strongSelf){
                 return;

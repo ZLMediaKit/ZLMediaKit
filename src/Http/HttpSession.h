@@ -33,11 +33,12 @@ public:
     typedef HttpResponseInvokerImp HttpResponseInvoker;
     friend class AsyncSender;
     /**
+     * @param code 鉴权未通过时返回的状态码
      * @param errMsg 如果为空，则代表鉴权通过，否则为错误提示
      * @param accessPath 运行或禁止访问的根目录
      * @param cookieLifeSecond 鉴权cookie有效期
      **/
-    typedef std::function<void(const std::string &errMsg,const std::string &accessPath, int cookieLifeSecond)> HttpAccessPathInvoker;
+    typedef std::function<void(int code, const std::string &errMsg, const std::string &accessPath, int cookieLifeSecond)> HttpAccessPathInvoker;
 
     HttpSession(const toolkit::Socket::Ptr &pSock);
     ~HttpSession() override;

@@ -37,6 +37,8 @@ class HttpCookieAttachment {
 public:
     //cookie生效作用域，本cookie只对该目录下的文件生效
     string _path;
+    //上次鉴权失败Code
+    int _err_code = 401;
     //上次鉴权失败信息,为空则上次鉴权成功
     string _err_msg;
     //hls直播时的其他一些信息，主要用于播放器个数计数以及流量计数
@@ -182,14 +184,14 @@ static bool makeFolderMenu(const string &httpPath, const string &strFullPath, st
 //拦截hls的播放请求
 static bool emitHlsPlayed(const Parser &parser, const MediaInfo &media_info, const HttpSession::HttpAccessPathInvoker &invoker,TcpSession &sender){
     //访问的hls.m3u8结尾，我们转换成kBroadcastMediaPlayed事件
-    Broadcast::AuthInvoker auth_invoker = [invoker](const string &err) {
+    Broadcast::AuthInvoker auth_invoker = [invoker](int code, const string &err) {
         //cookie有效期为kHlsCookieSecond
-        invoker(err, "", kHlsCookieSecond);
+        invoker(code, err, "", kHlsCookieSecond);
     };
     bool flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed, media_info, auth_invoker, static_cast<SockInfo &>(sender));
     if (!flag) {
         //未开启鉴权，那么允许播放
-        auth_invoker("");
+        auth_invoker(200, "");
     }
     return flag;
 }
@@ -236,7 +238,7 @@ public:
  * 5、触发kBroadcastHttpAccess事件
  */
 static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaInfo &media_info, bool is_dir,
-                          const function<void(const string &err_msg, const HttpServerCookie::Ptr &cookie)> &callback) {
+                          const function<void(int code, const string &err_msg, const HttpServerCookie::Ptr &cookie)> &callback) {
     //获取用户唯一id
     auto uid = parser.Params();
     auto path = parser.Url();
@@ -262,13 +264,13 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
                     cookie->updateTime();
                     update_cookie = true;
                 }
-                callback("", update_cookie ? cookie : nullptr);
+                callback(attach._err_code, "", update_cookie ? cookie : nullptr);
                 return;
             }
             //上次鉴权失败，但是如果url参数发生变更，那么也重新鉴权下
             if (parser.Params().empty() || parser.Params() == cookie->getUid()) {
                 //url参数未变，或者本来就没有url参数，那么判断本次请求为重复请求，无访问权限
-                callback(attach._err_msg, update_cookie ? cookie : nullptr);
+                callback(attach._err_code, attach._err_msg, update_cookie ? cookie : nullptr);
                 return;
             }
         }
@@ -287,7 +289,7 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
 
     //该用户从来未获取过cookie，这个时候我们广播是否允许该用户访问该http目录
     HttpSession::HttpAccessPathInvoker accessPathInvoker = [callback, uid, path, is_dir, is_hls, media_info, info]
-            (const string &err_msg, const string &cookie_path_in, int life_second) {
+            (int code, const string &err_msg, const string &cookie_path_in, int life_second) {
         HttpServerCookie::Ptr cookie;
         if (life_second) {
             //本次鉴权设置了有效期，我们把鉴权结果缓存在cookie中
@@ -301,14 +303,15 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
             //记录用户能访问的路径
             attach->_path = cookie_path;
             //记录能否访问
+            attach->_err_code = code;
             attach->_err_msg = err_msg;
             if (is_hls) {
                 // hls相关信息
                 attach->_hls_data = std::make_shared<HlsCookieData>(media_info, info);
             }
-            callback(err_msg, HttpCookieManager::Instance().addCookie(kCookieName, uid, life_second, attach));
+            callback(code, err_msg, HttpCookieManager::Instance().addCookie(kCookieName, uid, life_second, attach));
         } else {
-            callback(err_msg, nullptr);
+            callback(code, err_msg, nullptr);
         }
     };
 
@@ -322,7 +325,7 @@ static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaI
     bool flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpAccess, parser, path, is_dir, accessPathInvoker, static_cast<SockInfo &>(sender));
     if (!flag) {
         //此事件无人监听，我们默认都有权限访问
-        callback("", nullptr);
+        callback(200, "", nullptr);
     }
 }
 
@@ -367,7 +370,7 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
 
     weak_ptr<TcpSession> weakSession = sender.shared_from_this();
     //判断是否有权限访问该文件
-    canAccessPath(sender, parser, media_info, false, [cb, file_path, parser, is_hls, media_info, weakSession](const string &err_msg, const HttpServerCookie::Ptr &cookie) {
+    canAccessPath(sender, parser, media_info, false, [cb, file_path, parser, is_hls, media_info, weakSession](int code, const string &err_msg, const HttpServerCookie::Ptr &cookie) {
         auto strongSession = weakSession.lock();
         if (!strongSession) {
             // http客户端已经断开，不需要回复
@@ -379,7 +382,7 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
             if (cookie) {
                 headerOut["Set-Cookie"] = cookie->getCookie(cookie->getAttach<HttpCookieAttachment>()._path);
             }
-            cb(401, "text/html", headerOut, std::make_shared<HttpStringBody>(err_msg));
+            cb(code, "text/html", headerOut, std::make_shared<HttpStringBody>(err_msg));
             return;
         }
 
@@ -505,7 +508,7 @@ void HttpFileManager::onAccessPath(TcpSession &sender, Parser &parser, const Htt
             return;
         }
         //判断是否有权限访问该目录
-        canAccessPath(sender, parser, media_info, true, [strMenu, cb](const string &err_msg, const HttpServerCookie::Ptr &cookie) mutable{
+        canAccessPath(sender, parser, media_info, true, [strMenu, cb](int code, const string &err_msg, const HttpServerCookie::Ptr &cookie) mutable{
             if (!err_msg.empty()) {
                 strMenu = err_msg;
             }
@@ -513,7 +516,7 @@ void HttpFileManager::onAccessPath(TcpSession &sender, Parser &parser, const Htt
             if (cookie) {
                 headerOut["Set-Cookie"] = cookie->getCookie(cookie->getAttach<HttpCookieAttachment>()._path);
             }
-            cb(err_msg.empty() ? 200 : 401, "text/html", headerOut, std::make_shared<HttpStringBody>(strMenu));
+            cb(err_msg.empty() ? 200 : code, "text/html", headerOut, std::make_shared<HttpStringBody>(strMenu));
         });
         return;
     }

@@ -143,14 +143,14 @@ void initEventListener() {
         //监听rtsp/rtsps/rtmp/http-flv播放事件，返回结果告知是否有播放权限(rtsp通过kBroadcastOnRtspAuth或此事件都可以实现鉴权)
         NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastMediaPlayed, [](BroadcastMediaPlayedArgs) {
             DebugL << "播放鉴权:" << args.getUrl() << " " << args._param_strs;
-            invoker("");//鉴权成功
+            invoker(200, "");//鉴权成功
             //invoker("this is auth failed message");//鉴权失败
         });
 
         //shell登录事件，通过shell可以登录进服务器执行一些命令
         NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastShellLogin, [](BroadcastShellLoginArgs) {
             DebugL << "shell login:" << user_name << " " << passwd;
-            invoker("");//鉴权成功
+            invoker(200, "");//鉴权成功
             //invoker("this is auth failed message");//鉴权失败
         });
 

@@ -311,9 +311,13 @@ typedef void* mk_auth_invoker;
 
 /**
  * 执行Broadcast::AuthInvoker
+ * @param err_code 响应状态码，当err_msg参数不为空时生效
+ *                 200 返回成功响应
+ *                 401 返回未授权响应
+ *                 404 返回未找到流响应
  * @param err_msg 为空或null则代表鉴权成功
  */
-API_EXPORT void API_CALL mk_auth_invoker_do(const mk_auth_invoker ctx, const char *err_msg);
+API_EXPORT void API_CALL mk_auth_invoker_do(const mk_auth_invoker ctx, int err_code, const char *err_msg);
 
 /**
  * 克隆mk_auth_invoker对象，通过克隆对象为堆对象，可以实现跨线程异步执行mk_auth_invoker_do

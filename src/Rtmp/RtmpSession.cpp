@@ -332,7 +332,7 @@ void RtmpSession::sendPlayResponse(const string &err, const RtmpMediaSource::Ptr
     setSocketFlags();
 }
 
-void RtmpSession::doPlayResponse(const string &err,const std::function<void(bool)> &cb){
+void RtmpSession::doPlayResponse(int code, const string &err,const std::function<void(bool)> &cb){
     if(!err.empty()){
         //鉴权失败，直接返回播放失败
         sendPlayResponse(err, nullptr);
@@ -361,24 +361,24 @@ void RtmpSession::doPlay(AMFDecoder &dec){
             DebugP(strong_self.get()) << "play 回复时间:" << ticker->elapsedTime() << "ms";
         }
     }));
-    Broadcast::AuthInvoker invoker = [weak_self,token](const string &err){
+    Broadcast::AuthInvoker invoker = [weak_self,token](int code, const string &err){
         auto strong_self = weak_self.lock();
         if (!strong_self) {
             return;
         }
-        strong_self->async([weak_self, err, token]() {
+        strong_self->async([weak_self, code, err, token]() {
             auto strong_self = weak_self.lock();
             if (!strong_self) {
                 return;
             }
-            strong_self->doPlayResponse(err, [token](bool) {});
+            strong_self->doPlayResponse(code, err, [token](bool) {});
         });
     };
 
     auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed, _media_info, invoker, static_cast<SockInfo &>(*this));
     if(!flag){
         //该事件无人监听,默认不鉴权
-        doPlayResponse("",[token](bool){});
+        doPlayResponse(200, "",[token](bool){});
     }
 }
 

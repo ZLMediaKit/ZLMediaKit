@@ -80,8 +80,12 @@ extern const std::string kBroadcastMediaPublish;
     const MediaOriginType &type, const MediaInfo &args, const Broadcast::PublishAuthInvoker &invoker, SockInfo &sender
 
 // 播放鉴权结果回调对象
+// code 响应状态码，当err参数不为空时生效
+//      200返回成功响应
+//      401返回未授权响应
+//      404返回未找到流响应
 // 如果err为空则代表鉴权成功
-using AuthInvoker = std::function<void(const std::string &err)>;
+using AuthInvoker = std::function<void(int code, const std::string &err)>;
 
 // 播放rtsp/rtmp/http-flv事件广播，通过该事件控制播放鉴权
 extern const std::string kBroadcastMediaPlayed;

@@ -61,7 +61,7 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
                                            (mk_http_access_path_invoker)&invoker,
                                            (mk_sock_info)&sender);
             } else{
-                invoker("","",0);
+                invoker(200, "","",0);
             }
         });
 
@@ -114,7 +114,7 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
                                           (mk_auth_invoker) &invoker,
                                           (mk_sock_info) &sender);
             }else{
-                invoker("");
+                invoker(200, "");
             }
         });
 
@@ -125,7 +125,7 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
                                            (mk_auth_invoker) &invoker,
                                            (mk_sock_info) &sender);
             }else{
-                invoker("");
+                invoker(200, "");
             }
         });
 

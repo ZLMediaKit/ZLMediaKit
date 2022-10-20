@@ -328,27 +328,33 @@ void RtspSession::handleReq_RECORD(const Parser &parser){
 void RtspSession::emitOnPlay(){
     weak_ptr<RtspSession> weak_self = dynamic_pointer_cast<RtspSession>(shared_from_this());
     //url鉴权回调
-    auto onRes = [weak_self](const string &err) {
+    auto onRes = [weak_self](int code, const string &err) {
         auto strong_self = weak_self.lock();
         if (!strong_self) {
             return;
         }
         if (!err.empty()) {
             //播放url鉴权失败
-            strong_self->sendRtspResponse("401 Unauthorized", {"Content-Type", "text/plain"}, err);
-            strong_self->shutdown(SockException(Err_shutdown, StrPrinter << "401 Unauthorized:" << err));
+            if (code == 404) {
+                strong_self->sendRtspResponse("404 NotFound", {"Content-Type", "text/plain"}, err);
+                strong_self->shutdown(SockException(Err_shutdown, StrPrinter << "404 NotFound:" << err));
+            } else {
+                strong_self->sendRtspResponse("401 Unauthorized", {"Content-Type", "text/plain"}, err);
+                strong_self->shutdown(SockException(Err_shutdown, StrPrinter << "401 Unauthorized:" << err));
+            }
+
             return;
         }
         strong_self->onAuthSuccess();
     };
 
-    Broadcast::AuthInvoker invoker = [weak_self, onRes](const string &err) {
+    Broadcast::AuthInvoker invoker = [weak_self, onRes](int code, const string &err) {
         auto strong_self = weak_self.lock();
         if (!strong_self) {
             return;
         }
-        strong_self->async([onRes, err, weak_self]() {
-            onRes(err);
+        strong_self->async([onRes, code, err, weak_self]() {
+            onRes(code, err);
         });
     };
 
@@ -356,7 +362,7 @@ void RtspSession::emitOnPlay(){
     auto flag = _emit_on_play ? false : NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed, _media_info, invoker, static_cast<SockInfo &>(*this));
     if (!flag) {
         //该事件无人监听,默认不鉴权
-        onRes("");
+        onRes(200, "");
     }
     //已经鉴权过了
     _emit_on_play = true;

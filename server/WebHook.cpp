@@ -334,7 +334,7 @@ void installWebHook(){
     NoticeCenter::Instance().addListener(&web_hook_tag,Broadcast::kBroadcastMediaPlayed,[](BroadcastMediaPlayedArgs){
         GET_CONFIG(string,hook_play,Hook::kOnPlay);
         if(!hook_enable || args._param_strs == hook_adminparams || hook_play.empty() || sender.get_peer_ip() == "127.0.0.1"){
-            invoker("");
+            invoker(200, "");
             return;
         }
         auto body = make_json(args);
@@ -343,7 +343,11 @@ void installWebHook(){
         body["id"] = sender.getIdentifier();
         //执行hook
         do_http_hook(hook_play,body,[invoker](const Value &obj,const string &err){
-            invoker(err);
+            if (!err.empty()) {
+                invoker(401, err);
+                return;
+            }
+            invoker(obj["err_code"].asInt(), obj["err"].asString());
         });
     });
 
@@ -524,7 +528,7 @@ void installWebHook(){
     NoticeCenter::Instance().addListener(&web_hook_tag,Broadcast::kBroadcastShellLogin,[](BroadcastShellLoginArgs){
         GET_CONFIG(string,hook_shell_login,Hook::kOnShellLogin);
         if(!hook_enable || hook_shell_login.empty() || sender.get_peer_ip() == "127.0.0.1"){
-            invoker("");
+            invoker(200, "");
             return;
         }
         ArgsType body;
@@ -536,7 +540,7 @@ void installWebHook(){
 
         //执行hook
         do_http_hook(hook_shell_login,body, [invoker](const Value &,const string &err){
-            invoker(err);
+            invoker(401, err);
         });
     });
 
@@ -609,13 +613,13 @@ void installWebHook(){
         GET_CONFIG(string,hook_http_access,Hook::kOnHttpAccess);
         if(sender.get_peer_ip() == "127.0.0.1" || parser.Params() == hook_adminparams){
             //如果是本机或超级管理员访问，那么不做访问鉴权；权限有效期1个小时
-            invoker("","",60 * 60);
+            invoker(200, "","",60 * 60);
             return;
         }
         if(!hook_enable || hook_http_access.empty()){
             //未开启http文件访问鉴权，那么允许访问，但是每次访问都要鉴权；
             //因为后续随时都可能开启鉴权(重载配置文件后可能重新开启鉴权)
-            invoker("","",0);
+            invoker(200, "","",0);
             return;
         }
 
@@ -633,13 +637,13 @@ void installWebHook(){
         do_http_hook(hook_http_access,body, [invoker](const Value &obj,const string &err){
             if(!err.empty()){
                 //如果接口访问失败，那么仅限本次没有访问http服务器的权限
-                invoker(err,"",0);
+                invoker(401, err,"",0);
                 return;
             }
             //err参数代表不能访问的原因，空则代表可以访问
             //path参数是该客户端能访问或被禁止的顶端目录，如果path为空字符串，则表述为当前目录
             //second参数规定该cookie超时时间，如果second为0，本次鉴权结果不缓存
-            invoker(obj["err"].asString(),obj["path"].asString(),obj["second"].asInt());
+            invoker(401, obj["err"].asString(),obj["path"].asString(),obj["second"].asInt());
         });
     });
 

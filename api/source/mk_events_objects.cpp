@@ -344,7 +344,8 @@ API_EXPORT void API_CALL mk_http_access_path_invoker_do(const mk_http_access_pat
                                                         int cookie_life_second){
     assert(ctx);
     HttpSession::HttpAccessPathInvoker *invoker = (HttpSession::HttpAccessPathInvoker *)ctx;
-    (*invoker)(err_msg ? err_msg : "",
+    (*invoker)(401,
+              err_msg ? err_msg : "",
               access_path? access_path : "",
               cookie_life_second);
 }
@@ -428,10 +429,10 @@ API_EXPORT void API_CALL mk_publish_auth_invoker_clone_release(const mk_publish_
 }
 
 ///////////////////////////////////////////Broadcast::AuthInvoker/////////////////////////////////////////////
-API_EXPORT void API_CALL mk_auth_invoker_do(const mk_auth_invoker ctx, const char *err_msg){
+API_EXPORT void API_CALL mk_auth_invoker_do(const mk_auth_invoker ctx, int err_code, const char *err_msg){
     assert(ctx);
     Broadcast::AuthInvoker *invoker = (Broadcast::AuthInvoker *)ctx;
-    (*invoker)(err_msg ? err_msg : "");
+    (*invoker)(err_code, err_msg ? err_msg : "");
 }
 
 API_EXPORT mk_auth_invoker API_CALL mk_auth_invoker_clone(const mk_auth_invoker ctx){

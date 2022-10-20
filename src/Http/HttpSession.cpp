@@ -211,7 +211,7 @@ bool HttpSession::checkLiveStream(const string &schema, const string  &url_suffi
     weak_ptr<HttpSession> weak_self = dynamic_pointer_cast<HttpSession>(shared_from_this());
 
     //鉴权结果回调
-    auto onRes = [cb, weak_self, close_flag](const string &err) {
+    auto onRes = [cb, weak_self, close_flag](int code, const string &err) {
         auto strong_self = weak_self.lock();
         if (!strong_self) {
             //本对象已经销毁
@@ -220,7 +220,7 @@ bool HttpSession::checkLiveStream(const string &schema, const string  &url_suffi
 
         if (!err.empty()) {
             //播放鉴权失败
-            strong_self->sendResponse(401, close_flag, nullptr, KeyValue(), std::make_shared<HttpStringBody>(err));
+            strong_self->sendResponse(code, close_flag, nullptr, KeyValue(), std::make_shared<HttpStringBody>(err));
             return;
         }
 
@@ -242,16 +242,16 @@ bool HttpSession::checkLiveStream(const string &schema, const string  &url_suffi
         });
     };
 
-    Broadcast::AuthInvoker invoker = [weak_self, onRes](const string &err) {
+    Broadcast::AuthInvoker invoker = [weak_self, onRes](int code, const string &err) {
         if (auto strong_self = weak_self.lock()) {
-            strong_self->async([onRes, err]() { onRes(err); });
+            strong_self->async([onRes, code, err]() { onRes(code, err); });
         }
     };
 
     auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed, _mediaInfo, invoker, static_cast<SockInfo &>(*this));
     if (!flag) {
         //该事件无人监听,默认不鉴权
-        onRes("");
+        onRes(200, "");
     }
     return true;
 }

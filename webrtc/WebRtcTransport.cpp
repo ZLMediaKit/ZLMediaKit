@@ -1185,7 +1185,7 @@ void push_plugin(Session &sender, const WebRtcArgs &args, const WebRtcPluginMana
 void play_plugin(Session &sender, const WebRtcArgs &args, const WebRtcPluginManager::onCreateRtc &cb) {
     MediaInfo info(args["url"]);
     auto session_ptr = sender.shared_from_this();
-    Broadcast::AuthInvoker invoker = [cb, info, session_ptr](const string &err) mutable {
+    Broadcast::AuthInvoker invoker = [cb, info, session_ptr](int code, const string &err) mutable {
         if (!err.empty()) {
             cb(WebRtcException(SockException(Err_other, err)));
             return;
@@ -1210,7 +1210,7 @@ void play_plugin(Session &sender, const WebRtcArgs &args, const WebRtcPluginMana
     auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed, info, invoker, static_cast<SockInfo &>(sender));
     if (!flag) {
         // 该事件无人监听,默认不鉴权
-        invoker("");
+        invoker(200, "");
     }
 }
 

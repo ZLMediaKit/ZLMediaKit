@@ -81,7 +81,7 @@ void API_CALL on_mk_media_play(const mk_media_info url_info,
                mk_media_info_get_params(url_info));
 
     //允许播放
-    mk_auth_invoker_do(invoker, NULL);
+    mk_auth_invoker_do(invoker, 200, NULL);
 }
 
 /**
@@ -427,7 +427,7 @@ void API_CALL on_mk_shell_login(const char *user_name,
               mk_sock_info_peer_port(sender),
               user_name, passwd);
     //允许登录shell
-    mk_auth_invoker_do(invoker, NULL);
+    mk_auth_invoker_do(invoker, 200, NULL);
 }
 
 /**

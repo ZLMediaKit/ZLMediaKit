@@ -182,7 +182,7 @@ void SrtTransportImp::emitOnPublish() {
 
 void SrtTransportImp::emitOnPlay() {
     std::weak_ptr<SrtTransportImp> weak_self = static_pointer_cast<SrtTransportImp>(shared_from_this());
-    Broadcast::AuthInvoker invoker = [weak_self](const string &err) {
+    Broadcast::AuthInvoker invoker = [weak_self](int code, const string &err) {
         auto strong_self = weak_self.lock();
         if (!strong_self) {
             return;

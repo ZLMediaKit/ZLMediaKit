@@ -47,7 +47,7 @@ private:
     void onCmd_play(AMFDecoder &dec);
     void onCmd_play2(AMFDecoder &dec);
     void doPlay(AMFDecoder &dec);
-    void doPlayResponse(const std::string &err,const std::function<void(bool)> &cb);
+    void doPlayResponse(int code, const std::string &err,const std::function<void(bool)> &cb);
     void sendPlayResponse(const std::string &err,const RtmpMediaSource::Ptr &src);
 
     void onCmd_seek(AMFDecoder &dec);
