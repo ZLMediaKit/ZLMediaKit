@@ -398,6 +398,12 @@ private:
         //但是却对性能提升很大，这样做还是比较划算的
 
         GET_CONFIG(int, mergeWriteMS, General::kMergeWriteMS);
+
+        GET_CONFIG(int, rtspLowLatency, Rtsp::kLowLatency);
+        if(std::is_same<packet, RtpPacket>::value && rtspLowLatency){
+            return true;
+        }
+
         return std::is_same<packet, RtpPacket>::value ? false : (mergeWriteMS <= 0);
     }
 
