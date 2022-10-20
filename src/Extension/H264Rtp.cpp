@@ -283,11 +283,19 @@ bool H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
         default: break;
     }
 
-    if (_last_frame) {
-        //如果时间戳发生了变化，那么markbit才置true
-        inputFrame_l(_last_frame, _last_frame->pts() != frame->pts());
+    GET_CONFIG(int,lowLatency,Rtp::kLowLatency);
+    if (lowLatency) { // 低延迟模式
+        if (_last_frame) {
+            flush();
+        }
+        inputFrame_l(frame, true);
+    } else {
+        if (_last_frame) {
+            //如果时间戳发生了变化，那么markbit才置true
+            inputFrame_l(_last_frame, _last_frame->pts() != frame->pts());
+        }
+        _last_frame = Frame::getCacheAbleFrame(frame);
     }
-    _last_frame = Frame::getCacheAbleFrame(frame);
     return true;
 }
 
