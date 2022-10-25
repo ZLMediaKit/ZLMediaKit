@@ -33,6 +33,9 @@ jobs:
         with:
           cosign-release: 'v1.7.1'
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
 
       # Workaround: https://github.com/docker/build-push-action/issues/461
       - name: Setup Docker buildx
@@ -67,6 +70,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: MODEL=Release
+          platforms: linux/amd64,linux/arm64
 
       # Sign the resulting Docker image digest except on PRs.
       # This will only write to the public Rekor transparency log when the Docker
