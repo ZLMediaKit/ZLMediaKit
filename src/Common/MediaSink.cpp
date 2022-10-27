@@ -222,18 +222,65 @@ static uint8_t s_mute_adts[] = {0xff, 0xf1, 0x6c, 0x40, 0x2d, 0x3f, 0xfc, 0x00, 
                                 0x39, 0x1a, 0x77, 0x92, 0x9b, 0xff, 0xc6, 0xae, 0xf8, 0x36, 0xba, 0xa8, 0xaa, 0x6b, 0x1e, 0x8c,
                                 0xc5, 0x97, 0x39, 0x6a, 0xb8, 0xa2, 0x55, 0xa8, 0xf8};
 
-#define MUTE_ADTS_DATA s_mute_adts
-#define MUTE_ADTS_DATA_LEN sizeof(s_mute_adts)
-#define MUTE_ADTS_DATA_MS 128
+static uint8_t opus_silence[] = {
+  0xf8, 0xff, 0xfe, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
+static uint8_t g711_silence[160] = { 0 };
+
+MuteAudioMaker::MuteAudioMaker(CodecId codec /*= CodecAAC*/) : _codec(codec)
+{
+    switch (codec)
+    {
+    case CodecAAC:
+        _frame_ms = 128;
+        break;
+    case CodecOpus:
+        _frame_ms = 20;
+        break;
+    case CodecG711A:
+    case CodecG711U:
+        _frame_ms = 20;
+        break;
+    default:
+        _frame_ms = 0;
+        break;
+    }
+}
+
+Frame::Ptr MuteAudioMaker::makeSlienceFrame(int64_t dts) {
+    switch (_codec)
+    {
+    case CodecAAC:
+        return std::make_shared<FrameFromStaticPtr>(_codec, (char*)s_mute_adts, sizeof(s_mute_adts),
+            dts, 0, ADTS_HEADER_LEN);
+        break;
+    case CodecOpus:
+        return std::make_shared<FrameFromStaticPtr>(_codec, (char*)opus_silence, sizeof(opus_silence),
+            dts, 0, 0);
+    case CodecG711A:
+    case CodecG711U:
+        return std::make_shared<FrameFromStaticPtr>(_codec, (char*)g711_silence, sizeof(g711_silence),
+            dts, 0, 0);
+    default:
+        return nullptr;
+    }
+}
 
 bool MuteAudioMaker::inputFrame(const Frame::Ptr &frame) {
-    if (frame->getTrackType() == TrackVideo) {
-        auto audio_idx = frame->dts() / MUTE_ADTS_DATA_MS;
+    if (frame->getTrackType() == TrackVideo && _frame_ms > 0) {
+        auto audio_idx = frame->dts() / _frame_ms;
         if (_audio_idx != audio_idx) {
             _audio_idx = audio_idx;
-            auto aacFrame = std::make_shared<FrameFromStaticPtr>(CodecAAC, (char *) MUTE_ADTS_DATA, MUTE_ADTS_DATA_LEN,
-                                                                 _audio_idx * MUTE_ADTS_DATA_MS, 0, ADTS_HEADER_LEN);
-            return FrameDispatcher::inputFrame(aacFrame);
+            return FrameDispatcher::inputFrame(makeSlienceFrame(_audio_idx * _frame_ms));
         }
     }
     return false;
@@ -246,7 +293,7 @@ bool MediaSink::addMuteAudioTrack() {
     if (_track_map.find(TrackAudio) != _track_map.end()) {
         return false;
     }
-    auto audio = std::make_shared<AACTrack>(makeAacConfig(MUTE_ADTS_DATA, ADTS_HEADER_LEN));
+    auto audio = std::make_shared<AACTrack>(makeAacConfig(s_mute_adts, ADTS_HEADER_LEN));
     _track_map[audio->getTrackType()] = std::make_pair(audio, true);
     audio->addDelegate([this](const Frame::Ptr &frame) {
         return onTrackFrame(frame);

@@ -53,14 +53,17 @@ public:
 /**
  * aac静音音频添加器
  */
-class MuteAudioMaker : public FrameDispatcher {
+class MuteAudioMaker : public FrameDispatcher, public CodecInfo {
 public:
     using Ptr = std::shared_ptr<MuteAudioMaker>;
-    MuteAudioMaker() = default;
+    MuteAudioMaker(CodecId codec = CodecAAC);
     ~MuteAudioMaker() override = default;
     bool inputFrame(const Frame::Ptr &frame) override;
-
+    Frame::Ptr makeSlienceFrame(int64_t dts);
+    CodecId getCodecId() const override { return _codec; }
 private:
+    CodecId _codec;
+    int _frame_ms = 0;
     uint64_t _audio_idx = 0;
 };
 
@@ -119,7 +122,10 @@ public:
      * 设置是否开启添加静音音频
      */
     void enableMuteAudio(bool flag);
-
+    bool hasMuteAudio() const { return _mute_audio_maker != nullptr; }
+    bool isMuteCodec(CodecId codec) const {
+        return _mute_audio_maker && codec == _mute_audio_maker->getCodecId();
+    }
 protected:
     /**
      * 某track已经准备好，其ready()状态返回true，
