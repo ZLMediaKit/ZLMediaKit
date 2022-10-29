@@ -14,8 +14,8 @@
 using namespace toolkit;
 using namespace std;
 
-//协议解析最大缓存1兆数据
-static constexpr size_t kMaxCacheSize = 1 * 1024 * 1024;
+//协议解析最大缓存4兆数据
+static constexpr size_t kMaxCacheSize = 4 * 1024 * 1024;
 
 namespace mediakit {
 
