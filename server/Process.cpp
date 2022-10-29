@@ -58,6 +58,12 @@ static int runChildProcess(string cmd, string log_file) {
         log_file = StrPrinter << log_file << "." << getpid();
     }
 
+    if (isatty(STDIN_FILENO)) {
+        /* bb_error_msg("ignoring input"); */
+        close(STDIN_FILENO);
+        open("/dev/null", O_RDONLY, 0666); /* will be fd 0 (STDIN_FILENO) */
+    }
+
     //重定向shell日志至文件
     auto fp = File::create_file(log_file.data(), "ab");
     if (!fp) {
