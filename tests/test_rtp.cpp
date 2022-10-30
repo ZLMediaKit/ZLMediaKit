@@ -42,6 +42,8 @@ static bool loadFile(const char *path){
     addr.ss_family = AF_INET;
     auto sock = Socket::createSocket();
     size_t total_size = 0;
+    RtpProcess::Ptr process;
+    uint32_t ssrc = 0;
     while (true) {
         if (2 != fread(&len, 1, 2, fp)) {
             WarnL;
@@ -58,9 +60,24 @@ static bool loadFile(const char *path){
             break;
         }
         total_size += len;
-        uint64_t timeStamp;
+        uint64_t timeStamp = 0;
 
-        RtpSelector::Instance().inputRtp(sock, rtp, len, (struct sockaddr *)&addr, &timeStamp);
+        if (!process) {
+            if (!RtpSelector::getSSRC(rtp, len, ssrc)) {
+                WarnL << "get ssrc from rtp failed:" << len;
+                return false;
+            }
+            process = RtpSelector::Instance().getProcess(printSSRC(ssrc), true);
+        }
+        if (process) {
+            try {
+                process->inputRtp(true, sock, rtp, len, (struct sockaddr *)&addr, &timeStamp);
+            } catch (...) {
+                RtpSelector::Instance().delProcess(printSSRC(ssrc), process.get());
+                throw;
+            }
+        }
+
         auto diff = timeStamp - timeStamp_last;
         if (diff > 0 && diff < 500) {
             usleep(diff * 1000);

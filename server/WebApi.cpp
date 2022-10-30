@@ -400,7 +400,7 @@ uint16_t openRtpServer(uint16_t local_port, const string &stream_id, int tcp_mod
         //设置rtp超时移除事件
         lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
         s_rtpServerMap.erase(stream_id);
-        });
+    });
 
     //保存对象
     s_rtpServerMap.emplace(stream_id, server);

@@ -66,18 +66,6 @@ RtpProcess::~RtpProcess() {
 }
 
 bool RtpProcess::inputRtp(bool is_udp, const Socket::Ptr &sock, const char *data, size_t len, const struct sockaddr *addr, uint64_t *dts_out) {
-    auto is_busy = _busy_flag.test_and_set();
-    if (is_busy) {
-        //其他线程正在执行本函数
-        WarnP(this) << "其他线程正在执行本函数";
-        return false;
-    }
-    //没有其他线程执行本函数
-    onceToken token(nullptr, [&]() {
-        //本函数执行完毕时，释放状态
-        _busy_flag.clear();
-    });
-
     if (!_sock) {
         //第一次运行本函数
         _sock = sock;
