@@ -47,10 +47,14 @@ void TsPlayerImp::onPlayResult(const SockException &ex) {
 void TsPlayerImp::onShutdown(const SockException &ex) {
     while (_demuxer) {
         try {
+            //shared_from_this()可能抛异常
             std::weak_ptr<TsPlayerImp> weak_self = static_pointer_cast<TsPlayerImp>(shared_from_this());
+            if (_decoder) {
+                _decoder->flush();
+            }
+            //等待所有frame flush输出后，再触发onShutdown事件
             static_pointer_cast<HlsDemuxer>(_demuxer)->pushTask([weak_self, ex]() {
-                auto strong_self = weak_self.lock();
-                if (strong_self) {
+                if (auto strong_self = weak_self.lock()) {
                     strong_self->_demuxer = nullptr;
                     strong_self->onShutdown(ex);
                 }
@@ -59,9 +63,6 @@ void TsPlayerImp::onShutdown(const SockException &ex) {
         } catch (...) {
             break;
         }
-    }
-    if (_decoder) {
-        _decoder->flush();
     }
     PlayerImp<TsPlayer, PlayerBase>::onShutdown(ex);
 }
