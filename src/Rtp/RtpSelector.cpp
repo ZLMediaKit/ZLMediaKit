@@ -25,25 +25,6 @@ void RtpSelector::clear(){
     _map_rtp_process.clear();
 }
 
-bool RtpSelector::inputRtp(const Socket::Ptr &sock, const char *data, size_t data_len, const struct sockaddr *addr,
-                           uint64_t *dts_out) {
-    uint32_t ssrc = 0;
-    if (!getSSRC(data, data_len, ssrc)) {
-        WarnL << "get ssrc from rtp failed:" << data_len;
-        return false;
-    }
-    auto process = getProcess(printSSRC(ssrc), true);
-    if (process) {
-        try {
-            return process->inputRtp(true, sock, data, data_len, addr, dts_out);
-        } catch (...) {
-            delProcess(printSSRC(ssrc), process.get());
-            throw;
-        }
-    }
-    return false;
-}
-
 bool RtpSelector::getSSRC(const char *data, size_t data_len, uint32_t &ssrc){
     if (data_len < 12) {
         return false;
@@ -58,6 +39,10 @@ RtpProcess::Ptr RtpSelector::getProcess(const string &stream_id,bool makeNew) {
     auto it = _map_rtp_process.find(stream_id);
     if (it == _map_rtp_process.end() && !makeNew) {
         return nullptr;
+    }
+    if (it != _map_rtp_process.end() && makeNew) {
+        //已经被其他线程持有了，不得再被持有，否则会存在线程安全的问题
+        throw std::runtime_error(StrPrinter << "RtpProcess(" << stream_id << ") already existed");
     }
     RtpProcessHelper::Ptr &ref = _map_rtp_process[stream_id];
     if (!ref) {

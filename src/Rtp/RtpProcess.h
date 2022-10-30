@@ -94,7 +94,6 @@ private:
     ProcessInterface::Ptr _process;
     MultiMediaSourceMuxer::Ptr _muxer;
     std::atomic_bool _stop_rtp_check{false};
-    std::atomic_flag _busy_flag{false};
     toolkit::Ticker _last_check_alive;
     std::recursive_mutex _func_mtx;
     std::deque<std::function<void()> > _cached_func;
