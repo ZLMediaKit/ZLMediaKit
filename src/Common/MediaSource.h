@@ -24,9 +24,9 @@
 #include "Extension/Track.h"
 #include "Record/Recorder.h"
 
-namespace toolkit{
-    class Session;
-}// namespace toolkit
+namespace toolkit {
+class Session;
+} // namespace toolkit
 
 namespace mediakit {
 
@@ -57,8 +57,8 @@ public:
         ~NotImplemented() override = default;
     };
 
-    MediaSourceEvent(){};
-    virtual ~MediaSourceEvent(){};
+    MediaSourceEvent() {};
+    virtual ~MediaSourceEvent() {};
 
     // 获取媒体源类型
     virtual MediaOriginType getOriginType(MediaSource &sender) const { return MediaOriginType::unknown; }
@@ -135,10 +135,10 @@ private:
 };
 
 //该对象用于拦截感兴趣的MediaSourceEvent事件
-class MediaSourceEventInterceptor : public MediaSourceEvent{
+class MediaSourceEventInterceptor : public MediaSourceEvent {
 public:
-    MediaSourceEventInterceptor(){}
-    ~MediaSourceEventInterceptor() override {}
+    MediaSourceEventInterceptor() = default;
+    ~MediaSourceEventInterceptor() override = default;
 
     void setDelegate(const std::weak_ptr<MediaSourceEvent> &listener);
     std::shared_ptr<MediaSourceEvent> getDelegate() const;
@@ -169,23 +169,20 @@ private:
 /**
  * 解析url获取媒体相关信息
  */
-class MediaInfo{
+class MediaInfo {
 public:
-    ~MediaInfo() {}
-    MediaInfo() {}
+    ~MediaInfo() = default;
+    MediaInfo() = default;
     MediaInfo(const std::string &url) { parse(url); }
     void parse(const std::string &url);
-    std::string shortUrl() const {
-        return _vhost + "/" + _app + "/" + _streamid;
-    }
-    std::string getUrl() const {
-        return _schema + "://" + shortUrl();
-    }
+    std::string shortUrl() const { return _vhost + "/" + _app + "/" + _streamid; }
+    std::string getUrl() const { return _schema + "://" + shortUrl(); }
+
 public:
+    uint16_t _port = 0;
     std::string _full_url;
     std::string _schema;
     std::string _host;
-    uint16_t _port = 0;
     std::string _vhost;
     std::string _app;
     std::string _streamid;
@@ -200,7 +197,7 @@ public:
     static MediaSource& NullMediaSource();
     using Ptr = std::shared_ptr<MediaSource>;
 
-    MediaSource(const std::string &schema, const std::string &vhost, const std::string &app, const std::string &stream_id) ;
+    MediaSource(const std::string &schema, const std::string &vhost, const std::string &app, const std::string &stream_id);
     virtual ~MediaSource();
 
     ////////////////获取MediaSource相关信息////////////////
@@ -214,13 +211,10 @@ public:
     // 流id
     const std::string& getId() const;
 
-    std::string shortUrl() const {
-        return  _vhost + "/" + _app + "/" + _stream_id;
-    }
-    std::string getUrl() const {
-        return _schema + "://" + shortUrl();
-    }
-    
+    std::string shortUrl() const { return _vhost + "/" + _app + "/" + _stream_id; }
+
+    std::string getUrl() const { return _schema + "://" + shortUrl(); }
+
     //获取对象所有权
     std::shared_ptr<void> getOwnership();
 
@@ -235,7 +229,7 @@ public:
     // 获取数据速率，单位bytes/s
     int getBytesSpeed(TrackType type = TrackInvalid);
     // 获取流创建GMT unix时间戳，单位秒
-    uint64_t getCreateStamp() const {return _create_stamp;}
+    uint64_t getCreateStamp() const { return _create_stamp; }
     // 获取流上线时间，单位秒
     uint64_t getAliveSecond() const;
 
@@ -266,9 +260,9 @@ public:
 
     // 拖动进度条
     bool seekTo(uint32_t stamp);
-    //暂停
+    // 暂停
     bool pause(bool pause);
-    //倍数播放
+    // 倍数播放
     bool speed(float speed);
     // 关闭该流
     bool close(bool force);
@@ -310,9 +304,9 @@ protected:
     void regist();
 
 private:
-    //媒体注销
+    // 媒体注销
     bool unregist();
-    //触发媒体事件
+    // 触发媒体事件
     void emitEvent(bool regist);
 
 protected:
@@ -327,12 +321,11 @@ private:
     std::string _app;
     std::string _stream_id;
     std::weak_ptr<MediaSourceEvent> _listener;
-    toolkit::EventPoller::Ptr _default_poller;
-    //对象个数统计
+    // 对象个数统计
     toolkit::ObjectStatistic<MediaSource> _statistic;
 };
 
-///缓存刷新策略类
+/// 缓存刷新策略类
 class FlushPolicy {
 public:
     FlushPolicy() = default;
@@ -342,7 +335,7 @@ public:
 
 private:
     // 音视频的最后时间戳
-    uint64_t _last_stamp[2] = {0, 0};
+    uint64_t _last_stamp[2] = { 0, 0 };
 };
 
 /// 合并写缓存模板
@@ -352,9 +345,7 @@ private:
 template<typename packet, typename policy = FlushPolicy, typename packet_list = toolkit::List<std::shared_ptr<packet> > >
 class PacketCache {
 public:
-    PacketCache(){
-        _cache = std::make_shared<packet_list>();
-    }
+    PacketCache() { _cache = std::make_shared<packet_list>(); }
 
     virtual ~PacketCache() = default;
 
@@ -392,15 +383,15 @@ public:
 
 private:
     bool flushImmediatelyWhenCloseMerge() {
-        //一般的协议关闭合并写时，立即刷新缓存，这样可以减少一帧的延时，但是rtp例外
-        //因为rtp的包很小，一个RtpPacket包中也不是完整的一帧图像，所以在关闭合并写时，
-        //还是有必要缓冲一帧的rtp(也就是时间戳相同的rtp)再输出，这样虽然会增加一帧的延时
-        //但是却对性能提升很大，这样做还是比较划算的
+        // 一般的协议关闭合并写时，立即刷新缓存，这样可以减少一帧的延时，但是rtp例外
+        // 因为rtp的包很小，一个RtpPacket包中也不是完整的一帧图像，所以在关闭合并写时，
+        // 还是有必要缓冲一帧的rtp(也就是时间戳相同的rtp)再输出，这样虽然会增加一帧的延时
+        // 但是却对性能提升很大，这样做还是比较划算的
 
         GET_CONFIG(int, mergeWriteMS, General::kMergeWriteMS);
 
         GET_CONFIG(int, rtspLowLatency, Rtsp::kLowLatency);
-        if(std::is_same<packet, RtpPacket>::value && rtspLowLatency){
+        if (std::is_same<packet, RtpPacket>::value && rtspLowLatency) {
             return true;
         }
 

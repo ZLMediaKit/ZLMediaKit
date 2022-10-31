@@ -66,11 +66,14 @@ RtpProcess::~RtpProcess() {
 }
 
 bool RtpProcess::inputRtp(bool is_udp, const Socket::Ptr &sock, const char *data, size_t len, const struct sockaddr *addr, uint64_t *dts_out) {
-    if (!_sock) {
-        //第一次运行本函数
+    if (_sock != sock) {
+        // 第一次运行本函数
+        bool first = !_sock;
         _sock = sock;
         _addr.reset(new sockaddr_storage(*((sockaddr_storage *)addr)));
-        emitOnPublish();
+        if (first) {
+            emitOnPublish();
+        }
     }
 
     _total_bytes += len;
@@ -228,7 +231,7 @@ void RtpProcess::emitOnPublish() {
         if (!strong_self) {
             return;
         }
-        auto poller = strong_self->_sock ? strong_self->_sock->getPoller() : EventPollerPool::Instance().getPoller();
+        auto poller = strong_self->getOwnerPoller(MediaSource::NullMediaSource());
         poller->async([weak_self, err, option]() {
             auto strong_self = weak_self.lock();
             if (!strong_self) {
@@ -269,7 +272,10 @@ std::shared_ptr<SockInfo> RtpProcess::getOriginSock(MediaSource &sender) const {
 }
 
 toolkit::EventPoller::Ptr RtpProcess::getOwnerPoller(MediaSource &sender) {
-    return _sock ? _sock->getPoller() : EventPollerPool::Instance().getPoller();
+    if (_sock) {
+        return _sock->getPoller();
+    }
+    throw std::runtime_error("RtpProcess::getOwnerPoller failed:" + _media_info._streamid);
 }
 
 float RtpProcess::getLossRate(MediaSource &sender, TrackType type) {

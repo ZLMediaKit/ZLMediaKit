@@ -74,6 +74,10 @@ std::shared_ptr<SockInfo> WebRtcPusher::getOriginSock(MediaSource &sender) const
     return static_pointer_cast<SockInfo>(getSession());
 }
 
+toolkit::EventPoller::Ptr WebRtcPusher::getOwnerPoller(MediaSource &sender) {
+    return getPoller();
+}
+
 void WebRtcPusher::onRecvRtp(MediaTrack &track, const string &rid, RtpPacket::Ptr rtp) {
     if (!_simulcast) {
         assert(_push_src);

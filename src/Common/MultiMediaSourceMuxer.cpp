@@ -91,6 +91,7 @@ const std::string &MultiMediaSourceMuxer::getStreamId() const {
 
 MultiMediaSourceMuxer::MultiMediaSourceMuxer(const string &vhost, const string &app, const string &stream, float dur_sec, const ProtocolOption &option) {
     _poller = EventPollerPool::Instance().getPoller();
+    _create_in_poller = _poller->isCurrentThread();
     _vhost = vhost;
     _app = app;
     _stream_id = stream;
@@ -310,7 +311,12 @@ EventPoller::Ptr MultiMediaSourceMuxer::getOwnerPoller(MediaSource &sender) {
         return _poller;
     }
     try {
-        return listener->getOwnerPoller(sender);
+        auto ret = listener->getOwnerPoller(sender);
+        if (ret != _poller) {
+            WarnL << "OwnerPoller changed:" << _get_origin_url();
+            _poller = ret;
+        }
+        return ret;
     } catch (MediaSourceEvent::NotImplemented &) {
         // listener未重载getOwnerPoller
         return _poller;
@@ -348,6 +354,7 @@ bool MultiMediaSourceMuxer::onTrackReady(const Track::Ptr &track) {
 }
 
 void MultiMediaSourceMuxer::onAllTrackReady() {
+    CHECK(!_create_in_poller || getOwnerPoller(MediaSource::NullMediaSource())->isCurrentThread());
     setMediaListener(getDelegate());
 
     if (_rtmp) {
