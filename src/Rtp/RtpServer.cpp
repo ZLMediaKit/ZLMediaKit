@@ -130,8 +130,8 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_
     RtpProcess::Ptr process;
     if (!stream_id.empty()) {
         //指定了流id，那么一个端口一个流(不管是否包含多个ssrc的多个流，绑定rtp源后，会筛选掉ip端口不匹配的流)
-        process = RtpSelector::Instance().getProcess(stream_id, true);
-        if (tcp_mode != ACTIVE) {
+        if (tcp_mode == NONE) {
+            process = RtpSelector::Instance().getProcess(stream_id, true);
             RtcpHelper::Ptr helper = std::make_shared<RtcpHelper>(std::move(rtcp_socket), process);
             helper->startRtcp();
             rtp_socket->setOnRead(
