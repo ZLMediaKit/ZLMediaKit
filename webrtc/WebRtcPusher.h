@@ -44,6 +44,8 @@ protected:
     std::string getOriginUrl(MediaSource &sender) const override;
     // 获取媒体源客户端相关信息
     std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
+    // 由于支持断连续推，存在OwnerPoller变更的可能
+    toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;
     // 获取丢包率
     float getLossRate(MediaSource &sender,TrackType type) override;
 

@@ -70,7 +70,6 @@ MediaSource::MediaSource(const string &schema, const string &vhost, const string
     _app = app;
     _stream_id = stream_id;
     _create_stamp = time(NULL);
-    _default_poller = EventPollerPool::Instance().getPoller();
 }
 
 MediaSource::~MediaSource() {
@@ -233,22 +232,23 @@ toolkit::EventPoller::Ptr MediaSource::getOwnerPoller() {
     toolkit::EventPoller::Ptr ret;
     auto listener = _listener.lock();
     if (listener) {
-        ret = listener->getOwnerPoller(*this);
+        return listener->getOwnerPoller(*this);
     }
-    return ret ? ret : _default_poller;
+    throw std::runtime_error(toolkit::demangle(typeid(*this).name()) + "::getOwnerPoller failed:" + getUrl());
 }
 
 void MediaSource::onReaderChanged(int size) {
     weak_ptr<MediaSource> weak_self = shared_from_this();
-    getOwnerPoller()->async([weak_self, size]() {
+    auto listener = _listener.lock();
+    if (!listener) {
+        return;
+    }
+    getOwnerPoller()->async([weak_self, size, listener]() {
         auto strong_self = weak_self.lock();
         if (!strong_self) {
             return;
         }
-        auto listener = strong_self->_listener.lock();
-        if (listener) {
-            listener->onReaderChanged(*strong_self, size);
-        }
+        listener->onReaderChanged(*strong_self, size);
     });
 }
 
@@ -729,7 +729,7 @@ toolkit::EventPoller::Ptr MediaSourceEventInterceptor::getOwnerPoller(MediaSourc
     if (listener) {
         return listener->getOwnerPoller(sender);
     }
-    return EventPollerPool::Instance().getPoller();
+    throw std::runtime_error(toolkit::demangle(typeid(*this).name()) + "::getOwnerPoller failed");
 }
 
 bool MediaSourceEventInterceptor::setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path, size_t max_second) {
