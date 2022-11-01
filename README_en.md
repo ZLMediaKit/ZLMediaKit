@@ -213,9 +213,9 @@ git submodule update --init
             WarnL << "none video Track!";
             return;
         }
-        viedoTrack->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([](const Frame::Ptr &frame) {
+        viedoTrack->addDelegate([](const Frame::Ptr &frame) {
             //please decode video here
-        }));
+        });
     });
 
     player->setOnShutdown([](const SockException &ex) {

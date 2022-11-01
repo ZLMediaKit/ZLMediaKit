@@ -112,9 +112,9 @@ bool Demuxer::addTrack(const Track::Ptr &track) {
     }
 
     if (_sink->addTrack(track)) {
-        track->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([this](const Frame::Ptr &frame) {
+        track->addDelegate([this](const Frame::Ptr &frame) {
             return _sink->inputFrame(frame);
-        }));
+        });
         return true;
     }
     return false;

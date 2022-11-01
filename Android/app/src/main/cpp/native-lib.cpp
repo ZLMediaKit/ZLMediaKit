@@ -232,18 +232,18 @@ JNI_API(jlong, createMediaPlayer, jstring url, jobject callback){
 
         auto viedoTrack = strongPlayer->getTrack(TrackVideo);
         if (viedoTrack) {
-            viedoTrack->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([globalWeakRef](const Frame::Ptr &frame) {
+            viedoTrack->addDelegate([globalWeakRef](const Frame::Ptr &frame) {
                 emitEvent((jobject)globalWeakRef,"onData","(L" MediaFrameSign ";)V",makeJavaFrame(env,frame));
                 return true;
-            }));
+            });
         }
 
         auto audioTrack = strongPlayer->getTrack(TrackAudio);
         if (audioTrack) {
-            audioTrack->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([globalWeakRef](const Frame::Ptr &frame) {
+            audioTrack->addDelegate([globalWeakRef](const Frame::Ptr &frame) {
                 emitEvent((jobject)globalWeakRef,"onData","(L" MediaFrameSign ";)V",makeJavaFrame(env,frame));
                 return true;
-            }));
+            });
         }
 
     });
