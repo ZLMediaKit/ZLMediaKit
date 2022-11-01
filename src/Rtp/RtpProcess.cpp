@@ -49,10 +49,13 @@ RtpProcess::RtpProcess(const string &stream_id) {
     }
 }
 
-RtpProcess::~RtpProcess() {
+void RtpProcess::flush() {
     if (_process) {
         _process->flush();
     }
+}
+
+RtpProcess::~RtpProcess() {
     uint64_t duration = (_last_frame_time.createdTime() - _last_frame_time.elapsedTime()) / 1000;
     WarnP(this) << "RTP推流器("
                 << _media_info.shortUrl()
