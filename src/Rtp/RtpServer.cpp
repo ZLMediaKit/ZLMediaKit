@@ -55,6 +55,8 @@ public:
         if (!_process) {
             _process = RtpSelector::Instance().getProcess(_stream_id, true);
             _process->setOnDetach(std::move(_on_detach));
+            _delay_task->cancel();
+            _delay_task = nullptr;
         }
         _process->inputRtp(true, sock, buf->data(), buf->size(), addr);
 
@@ -80,6 +82,17 @@ public:
             for (auto &rtcp : rtcps) {
                 strong_self->_process->onRtcp(rtcp);
             }
+        });
+
+        GET_CONFIG(uint64_t, timeoutSec, RtpProxy::kTimeoutSec);
+        _delay_task = _rtcp_sock->getPoller()->doDelayTask(timeoutSec * 1000, [weak_self]() {
+            if (auto strong_self = weak_self.lock()) {
+                auto process = RtpSelector::Instance().getProcess(strong_self->_stream_id, false);
+                if (!process && strong_self->_on_detach) {
+                    strong_self->_on_detach();
+                }
+            }
+            return 0;
         });
     }
 
@@ -111,6 +124,7 @@ private:
     std::string _stream_id;
     function<void()> _on_detach;
     std::shared_ptr<struct sockaddr_storage> _rtcp_addr;
+    EventPoller::DelayTask::Ptr _delay_task;
 };
 
 void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_mode, const char *local_ip, bool re_use_port, uint32_t ssrc) {
