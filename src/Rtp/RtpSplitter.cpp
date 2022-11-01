@@ -38,7 +38,11 @@ static bool isEhome(const char *data, size_t len){
     if (len < 4) {
         return false;
     }
-    return memcmp(data, kEHOME_MAGIC, sizeof(kEHOME_MAGIC) - 1) == 0;
+    if((data[0] == 0x01) && (data[1] == 0x00) && (data[2] >=0x01)){
+        return true;
+    }
+    return false;
+    //return memcmp(data, kEHOME_MAGIC, sizeof(kEHOME_MAGIC) - 1) == 0;
 }
 
 const char *RtpSplitter::onSearchPacketTail(const char *data, size_t len) {
