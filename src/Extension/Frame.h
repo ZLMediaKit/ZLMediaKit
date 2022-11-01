@@ -318,6 +318,12 @@ public:
         _delegates.emplace(delegate.get(), delegate);
     }
 
+    FrameWriterInterface* addDelegate(const std::function<bool(const Frame::Ptr &frame)> &cb) {
+        auto delegate = std::make_shared<FrameWriterInterfaceHelper>(cb);
+        std::lock_guard<std::mutex> lck(_mtx);
+        _delegates.emplace(delegate.get(), delegate);
+        return delegate.get();
+    }
     /**
      * 删除代理
      */

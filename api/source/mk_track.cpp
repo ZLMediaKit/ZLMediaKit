@@ -115,12 +115,10 @@ API_EXPORT int API_CALL mk_track_bit_rate(mk_track track) {
 
 API_EXPORT void *API_CALL mk_track_add_delegate(mk_track track, on_mk_frame_out cb, void *user_data) {
     assert(track && cb);
-    auto delegate = std::make_shared<FrameWriterInterfaceHelper>([cb, user_data](const Frame::Ptr &frame) {
+    return (*((Track::Ptr *) track))->addDelegate([cb, user_data](const Frame::Ptr &frame) {
         cb(user_data, (mk_frame) &frame);
         return true;
     });
-    (*((Track::Ptr *) track))->addDelegate(delegate);
-    return delegate.get();
 }
 
 API_EXPORT void API_CALL mk_track_del_delegate(mk_track track, void *tag) {

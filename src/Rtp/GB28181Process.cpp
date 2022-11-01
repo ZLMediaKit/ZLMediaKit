@@ -136,10 +136,10 @@ bool GB28181Process::inputRtp(bool, const char *data, size_t data_len) {
             }
         }
         // 设置frame回调
-        _rtp_decoder[pt]->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([this](const Frame::Ptr &frame) {
+        _rtp_decoder[pt]->addDelegate([this](const Frame::Ptr &frame) {
             onRtpDecode(frame);
             return true;
-        }));
+        });
     }
 
     return ref->inputRtp(TrackVideo, (unsigned char *)data, data_len);
