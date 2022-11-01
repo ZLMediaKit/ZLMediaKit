@@ -18,7 +18,9 @@
 #include "Network/UdpServer.h"
 #include "RtpSession.h"
 
-namespace mediakit{
+namespace mediakit {
+
+class RtcpHelper;
 
 /**
  * RTP服务器，支持UDP/TCP
@@ -60,7 +62,7 @@ public:
     /**
      * 设置RtpProcess onDetach事件回调
      */
-    void setOnDetach(const std::function<void()> &cb);
+    void setOnDetach(std::function<void()> cb);
 
 private:
     // tcp主动模式连接服务器成功回调
@@ -70,7 +72,7 @@ protected:
     toolkit::Socket::Ptr _rtp_socket;
     toolkit::UdpServer::Ptr _udp_server;
     toolkit::TcpServer::Ptr _tcp_server;
-    RtpProcess::Ptr _rtp_process;
+    std::shared_ptr<RtcpHelper> _rtcp_helper;
     std::function<void()> _on_cleanup;
 
     //用于tcp主动模式

@@ -50,7 +50,7 @@ public:
     /**
      * 设置onDetach事件回调
      */
-    void setOnDetach(const std::function<void()> &cb);
+    void setOnDetach(std::function<void()> cb);
 
     /**
      * 设置onDetach事件回调,false检查RTP超时，true停止
