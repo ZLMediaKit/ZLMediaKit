@@ -191,8 +191,8 @@ void RtpProcess::onDetach() {
     }
 }
 
-void RtpProcess::setOnDetach(const function<void()> &cb) {
-    _on_detach = cb;
+void RtpProcess::setOnDetach(function<void()> cb) {
+    _on_detach = std::move(cb);
 }
 
 string RtpProcess::get_peer_ip() {
