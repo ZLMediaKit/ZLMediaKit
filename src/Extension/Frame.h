@@ -290,12 +290,13 @@ public:
     /**
      * 添加代理
      */
-    void addDelegate(const FrameWriterInterface::Ptr &delegate) {
+    FrameWriterInterface* addDelegate(FrameWriterInterface::Ptr delegate) {
         std::lock_guard<std::mutex> lck(_mtx);
-        _delegates.emplace(delegate.get(), delegate);
+        return _delegates.emplace(delegate.get(), std::move(delegate)).first->second.get();
     }
 
-    FrameWriterInterface* addDelegate(const std::function<bool(const Frame::Ptr &frame)> &cb);
+    FrameWriterInterface* addDelegate(std::function<bool(const Frame::Ptr &frame)> cb);
+
     /**
      * 删除代理
      */
