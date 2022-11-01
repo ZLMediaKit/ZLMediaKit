@@ -111,9 +111,10 @@ void MP4Reader::startReadMP4(uint64_t sample_ms, bool ref_self, bool file_repeat
     GET_CONFIG(uint32_t, sampleMS, Record::kSampleMS);
     auto strong_self = shared_from_this();
     if (_muxer) {
-        _muxer->setMediaListener(strong_self);
         //一直读到所有track就绪为止
-        while (!_muxer->isAllTrackReady() && readNextSample()) {}
+        while (!_muxer->isAllTrackReady() && readNextSample());
+        //注册后再切换OwnerPoller
+        _muxer->setMediaListener(strong_self);
     }
 
     auto timer_sec = (sample_ms ? sample_ms : sampleMS) / 1000.0f;
