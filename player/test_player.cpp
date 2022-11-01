@@ -83,10 +83,9 @@ int main(int argc, char *argv[]) {
                     return true;
                 });
             });
-            auto delegate = std::make_shared<FrameWriterInterfaceHelper>([decoder](const Frame::Ptr &frame) {
+            videoTrack->addDelegate([decoder](const Frame::Ptr &frame) {
                 return decoder->inputFrame(frame, false, true);
             });
-            videoTrack->addDelegate(delegate);
         }
 
         if (audioTrack) {
@@ -105,10 +104,9 @@ int main(int argc, char *argv[]) {
                 auto len = pcm->get()->nb_samples * pcm->get()->channels * av_get_bytes_per_sample((enum AVSampleFormat)pcm->get()->format);
                 audio_player->playPCM((const char *) (pcm->get()->data[0]), MIN(len, frame->get()->linesize[0]));
             });
-            auto audio_delegate = std::make_shared<FrameWriterInterfaceHelper>( [decoder](const Frame::Ptr &frame) {
+            audioTrack->addDelegate([decoder](const Frame::Ptr &frame) {
                 return decoder->inputFrame(frame, false, true);
             });
-            audioTrack->addDelegate(audio_delegate);
         }
     });
 
