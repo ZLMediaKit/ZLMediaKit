@@ -215,34 +215,27 @@ void FrameMerger::flush() {
  */
 class FrameWriterInterfaceHelper : public FrameWriterInterface {
 public:
-    typedef std::shared_ptr<FrameWriterInterfaceHelper> Ptr;
-    typedef std::function<bool(const Frame::Ptr &frame)> onWriteFrame;
+    using Ptr = std::shared_ptr<FrameWriterInterfaceHelper>;
+    using onWriteFrame = std::function<bool(const Frame::Ptr &frame)>;
 
     /**
      * inputFrame后触发onWriteFrame回调
      */
-    FrameWriterInterfaceHelper(const onWriteFrame& cb){
-        _writeCallback = cb;
-    }
+    FrameWriterInterfaceHelper(onWriteFrame cb) { _callback = std::move(cb); }
 
-    virtual ~FrameWriterInterfaceHelper(){}
+    virtual ~FrameWriterInterfaceHelper() = default;
 
     /**
      * 写入帧数据
      */
-    bool inputFrame(const Frame::Ptr &frame) override {
-        return _writeCallback(frame);
-    }
+    bool inputFrame(const Frame::Ptr &frame) override { return _callback(frame); }
 
 private:
-    onWriteFrame _writeCallback;
+    onWriteFrame _callback;
 };
 
-FrameWriterInterface* FrameDispatcher::addDelegate(const std::function<bool(const Frame::Ptr &frame)> &cb) {
-    auto delegate = std::make_shared<FrameWriterInterfaceHelper>(cb);
-    std::lock_guard<std::mutex> lck(_mtx);
-    _delegates.emplace(delegate.get(), delegate);
-    return delegate.get();
+FrameWriterInterface* FrameDispatcher::addDelegate(std::function<bool(const Frame::Ptr &frame)> cb) {
+    return addDelegate(std::make_shared<FrameWriterInterfaceHelper>(std::move(cb)));
 }
 
 }//namespace mediakit
