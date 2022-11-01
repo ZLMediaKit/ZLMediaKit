@@ -112,6 +112,13 @@ RtpProcessHelper::RtpProcessHelper(const string &stream_id, const weak_ptr<RtpSe
 }
 
 RtpProcessHelper::~RtpProcessHelper() {
+    auto process = std::move(_process);
+    try {
+        // flush时，确保线程安全
+        process->getOwnerPoller(MediaSource::NullMediaSource())->async([process]() { process->flush(); });
+    } catch (...) {
+        // 忽略getOwnerPoller可能抛出的异常
+    }
 }
 
 void RtpProcessHelper::attachEvent() {
