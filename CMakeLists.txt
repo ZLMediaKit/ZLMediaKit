@@ -172,12 +172,12 @@ if(UNIX)
     "-Wno-unused-function;-Wno-unused-parameter;-Wno-unused-variable"
     "-Wno-error=extra;-Wno-error=missing-field-initializers;-Wno-error=type-limits")
 elseif(WIN32)
-  set(COMPILE_OPTIONS_DEFAULT
-    # TODO: /wd4819 应该是不会生效
-    "/wd4566;/wd4819"
-    # warning C4530: C++ exception handler used, but unwind semantics are not enabled.
-    "/EHsc")
   if (MSVC)
+    set(COMPILE_OPTIONS_DEFAULT
+            # TODO: /wd4819 应该是不会生效
+            "/wd4566;/wd4819"
+            # warning C4530: C++ exception handler used, but unwind semantics are not enabled.
+            "/EHsc")
     # disable Windows logo
     list(APPEND COMPILE_OPTIONS_DEFAULT "/nologo")
     list(APPEND CMAKE_STATIC_LINKER_FLAGS "/nologo")

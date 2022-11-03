@@ -11,8 +11,10 @@
 #ifndef ZLMEDIAKIT_PROCESS_H
 #define ZLMEDIAKIT_PROCESS_H
 
-#ifdef _WIN32
+#if defined(_WIN32)
+#if !defined(__MINGW32__)
 typedef int pid_t;
+#endif
 #else
 #include <sys/wait.h>
 #endif // _WIN32
