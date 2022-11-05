@@ -89,6 +89,14 @@ const std::string &MultiMediaSourceMuxer::getStreamId() const {
     return _stream_id;
 }
 
+std::string MultiMediaSourceMuxer::shortUrl() const {
+    auto ret = getOriginUrl(MediaSource::NullMediaSource());
+    if (!ret.empty()) {
+        return ret;
+    }
+    return _vhost + "/" + _app + "/" + _stream_id;
+}
+
 MultiMediaSourceMuxer::MultiMediaSourceMuxer(const string &vhost, const string &app, const string &stream, float dur_sec, const ProtocolOption &option) {
     _poller = EventPollerPool::Instance().getPoller();
     _create_in_poller = _poller->isCurrentThread();
@@ -96,13 +104,6 @@ MultiMediaSourceMuxer::MultiMediaSourceMuxer(const string &vhost, const string &
     _app = app;
     _stream_id = stream;
     _option = option;
-    _get_origin_url = [this, vhost, app, stream]() {
-        auto ret = getOriginUrl(MediaSource::NullMediaSource());
-        if (!ret.empty()) {
-            return ret;
-        }
-        return vhost + "/" + app + "/" + stream;
-    };
 
     if (option.enable_rtmp) {
         _rtmp = std::make_shared<RtmpMediaSourceMuxer>(vhost, app, stream, std::make_shared<TitleMeta>(dur_sec));
@@ -267,7 +268,7 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const MediaSourceE
         auto ssrc = args.ssrc;
         rtp_sender->setOnClose([weak_self, ssrc](const toolkit::SockException &ex) {
             if (auto strong_self = weak_self.lock()) {
-                WarnL << "stream:" << strong_self->_get_origin_url() << " stop send rtp:" << ssrc << ", reason:" << ex.what();
+                WarnL << "stream:" << strong_self->shortUrl() << " stop send rtp:" << ssrc << ", reason:" << ex.what();
                 strong_self->_rtp_sender.erase(ssrc);
                 //触发观看人数统计
                 strong_self->onReaderChanged(MediaSource::NullMediaSource(), strong_self->totalReaderCount());
@@ -313,7 +314,7 @@ EventPoller::Ptr MultiMediaSourceMuxer::getOwnerPoller(MediaSource &sender) {
     try {
         auto ret = listener->getOwnerPoller(sender);
         if (ret != _poller) {
-            WarnL << "OwnerPoller changed:" << _get_origin_url();
+            WarnL << "OwnerPoller changed:" << shortUrl();
             _poller = ret;
         }
         return ret;
@@ -372,7 +373,7 @@ void MultiMediaSourceMuxer::onAllTrackReady() {
     if (listener) {
         listener->onAllTrackReady();
     }
-    InfoL << "stream: " << _get_origin_url() << " , codec info: " << getTrackInfoStr(this);
+    InfoL << "stream: " << shortUrl() << " , codec info: " << getTrackInfoStr(this);
 }
 
 void MultiMediaSourceMuxer::resetTracks() {
