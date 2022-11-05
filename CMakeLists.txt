@@ -97,11 +97,12 @@ set(LIBRARY_OUTPUT_PATH    ${OUTPUT_DIR})
 set(EXECUTABLE_OUTPUT_PATH ${OUTPUT_DIR})
 
 # 添加 git 版本信息
-set(COMMIT_HASH "Git_NotFound_Unkown_commit")
-set(BRANCH_NAME "Git_NotFound_Unkown_branch")
+set(COMMIT_HASH "Git_Unkown_commit")
+set(COMMIT_TIME "Git_Unkown_time")
+set(BRANCH_NAME "Git_Unkown_branch")
 set(BUILD_TIME "")
 
-string(TIMESTAMP BUILD_TIME "%Y-%m-%d %H:%M:%S")
+string(TIMESTAMP BUILD_TIME "%Y-%m-%dT%H:%M:%S")
 
 find_package(Git QUIET)
 if(GIT_FOUND)
@@ -117,6 +118,13 @@ if(GIT_FOUND)
     OUTPUT_STRIP_TRAILING_WHITESPACE
     ERROR_QUIET
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} log --format=format:%aI -1
+    OUTPUT_VARIABLE COMMIT_TIME
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 endif()
 
 configure_file(
@@ -124,7 +132,7 @@ configure_file(
   ${CMAKE_CURRENT_BINARY_DIR}/version.h
   @ONLY)
 
-message(STATUS "Git version is ${BRANCH_NAME}:${COMMIT_HASH}:${BUILD_TIME}")
+message(STATUS "Git version is ${BRANCH_NAME} ${COMMIT_HASH}/${COMMIT_TIME} ${BUILD_TIME}")
 
 ##############################################################################
 
