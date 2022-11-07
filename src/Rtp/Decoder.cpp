@@ -18,7 +18,7 @@
 #include "Extension/Opus.h"
 
 #if defined(ENABLE_RTPPROXY) || defined(ENABLE_HLS)
-#include "mpeg-ts-proto.h"
+#include "mpeg-ts.h"
 #endif
 
 using namespace toolkit;
