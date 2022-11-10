@@ -1761,6 +1761,11 @@ void installWebApi() {
     api_regist("/index/hook/on_server_keepalive",[](API_ARGS_JSON){
         //心跳hook
     });
+
+    api_regist("/index/hook/on_rtp_server_timeout",[](API_ARGS_JSON){
+        //rtp server 超时
+        TraceL <<allArgs.getArgs().toStyledString();
+    });
 }
 
 void unInstallWebApi(){

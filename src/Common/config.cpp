@@ -56,6 +56,7 @@ const string kBroadcastNotFoundStream = "kBroadcastNotFoundStream";
 const string kBroadcastStreamNoneReader = "kBroadcastStreamNoneReader";
 const string kBroadcastHttpBeforeAccess = "kBroadcastHttpBeforeAccess";
 const string kBroadcastSendRtpStopped = "kBroadcastSendRtpStopped";
+const string KBroadcastRtpServerTimeout = "KBroadcastRtpServerTimeout";
 
 } // namespace Broadcast
 
