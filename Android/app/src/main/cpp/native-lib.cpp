@@ -177,11 +177,11 @@ JNI_API(jboolean, startDemo, jstring ini_dir){
         s_tread_id = pthread_self();
         try {
             //http根目录修改默认路径
-            mINI::Instance()[Http::kRootPath] = mINI::Instance()[Hls::kFilePath] = sd_path + "/httpRoot";
+            mINI::Instance()[Http::kRootPath] = sd_path + "/httpRoot";
             //mp4录制点播根目录修改默认路径
-            mINI::Instance()[Record::kFilePath] = mINI::Instance()[Hls::kFilePath] = sd_path + "/httpRoot";
+            mINI::Instance()[Protocol::kMP4SavePath] = sd_path + "/httpRoot";
             //hls根目录修改默认路径
-            mINI::Instance()[Hls::kFilePath] = mINI::Instance()[Hls::kFilePath] = sd_path + "/httpRoot";
+            mINI::Instance()[Protocol::kHlsSavePath]  = sd_path + "/httpRoot";
             //替换默认端口号(在配置文件未生成时有效)
             mINI::Instance()["http.port"] = 8080;
             mINI::Instance()["http.sslport"] = 8443;
