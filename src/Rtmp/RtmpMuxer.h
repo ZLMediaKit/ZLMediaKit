@@ -18,7 +18,7 @@
 
 namespace mediakit{
 
-class RtmpMuxer : public MediaSinkInterface{
+class RtmpMuxer : public MediaSinkInterface {
 public:
     typedef std::shared_ptr<RtmpMuxer> Ptr;
 
@@ -26,7 +26,7 @@ public:
      * 构造函数
      */
     RtmpMuxer(const TitleMeta::Ptr &title);
-    virtual ~RtmpMuxer(){}
+    ~RtmpMuxer() override = default;
 
     /**
      * 获取完整的SDP字符串

@@ -90,7 +90,7 @@ class MP4Muxer : public MP4MuxerInterface{
 public:
     typedef std::shared_ptr<MP4Muxer> Ptr;
 
-    MP4Muxer();
+    MP4Muxer() = default;
     ~MP4Muxer() override;
 
     /**

@@ -13,7 +13,7 @@
 
 #if defined(ENABLE_HLS) || defined(ENABLE_RTPPROXY)
 
-#include "mpeg-ts-proto.h"
+#include "mpeg-ts.h"
 #include "mpeg-muxer.h"
 
 using namespace toolkit;

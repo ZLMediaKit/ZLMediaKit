@@ -37,7 +37,7 @@ public:
     using Ptr = std::shared_ptr<BufferRtp>;
 
     BufferRtp(Buffer::Ptr pkt, size_t offset = 0) : _offset(offset), _rtp(std::move(pkt)) {}
-    ~BufferRtp() override {}
+    ~BufferRtp() override = default;
 
     char *data() const override {
         return (char *)_rtp->data() + _offset;

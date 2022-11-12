@@ -56,8 +56,8 @@ protected:
 class RtmpCodec : public RtmpRing, public FrameDispatcher , public CodecInfo{
 public:
     typedef std::shared_ptr<RtmpCodec> Ptr;
-    RtmpCodec(){}
-    virtual ~RtmpCodec(){}
+    RtmpCodec() = default;
+    ~RtmpCodec() override = default;
     virtual void makeConfigPacket() {};
 };
 

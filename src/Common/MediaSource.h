@@ -57,8 +57,8 @@ public:
         ~NotImplemented() override = default;
     };
 
-    MediaSourceEvent() {};
-    virtual ~MediaSourceEvent() {};
+    MediaSourceEvent() = default;
+    virtual ~MediaSourceEvent() = default;
 
     // 获取媒体源类型
     virtual MediaOriginType getOriginType(MediaSource &sender) const { return MediaOriginType::unknown; }
