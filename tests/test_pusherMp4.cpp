@@ -105,11 +105,11 @@ int domain(const string &filePath, const string &pushUrl) {
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
     //循环点播mp4文件
     mINI::Instance()[Record::kFileRepeat] = 1;
-    mINI::Instance()[General::kHlsDemand] = 1;
-    mINI::Instance()[General::kTSDemand] = 1;
-    mINI::Instance()[General::kFMP4Demand] = 1;
-    //mINI::Instance()[General::kRtspDemand] = 1;
-    //mINI::Instance()[General::kRtmpDemand] = 1;
+    mINI::Instance()[Protocol::kHlsDemand] = 1;
+    mINI::Instance()[Protocol::kTSDemand] = 1;
+    mINI::Instance()[Protocol::kFMP4Demand] = 1;
+    //mINI::Instance()[Protocol::kRtspDemand] = 1;
+    //mINI::Instance()[Protocol::kRtmpDemand] = 1;
 
     auto poller = EventPollerPool::Instance().getPoller();
     //vhost/app/stream可以随便自己填，现在不限制app应用名了

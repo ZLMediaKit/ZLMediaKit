@@ -96,8 +96,6 @@ private:
     //消耗的总流量
     uint64_t _total_bytes = 0;
     std::string _tc_url;
-    //推流时间戳修整器
-    Stamp _stamp[2];
     //数据接收超时计时器
     toolkit::Ticker _ticker;
     MediaInfo _media_info;

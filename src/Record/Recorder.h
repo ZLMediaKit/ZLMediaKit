@@ -10,11 +10,13 @@
 
 #ifndef SRC_MEDIAFILE_RECORDER_H_
 #define SRC_MEDIAFILE_RECORDER_H_
+
 #include <memory>
 #include <string>
 
 namespace mediakit {
 class MediaSinkInterface;
+class ProtocolOption;
 
 class RecordInfo {
 public:
@@ -60,7 +62,7 @@ public:
      * @param max_second mp4录制最大切片时间，单位秒，置0则采用配置文件配置
      * @return 对象指针，可能为nullptr
      */
-    static std::shared_ptr<MediaSinkInterface> createRecorder(type type, const std::string &vhost, const std::string &app, const std::string &stream_id, const std::string &customized_path = "", size_t max_second = 0);
+    static std::shared_ptr<MediaSinkInterface> createRecorder(type type, const std::string &vhost, const std::string &app, const std::string &stream_id, const ProtocolOption &option);
 
 private:
     Recorder() = delete;

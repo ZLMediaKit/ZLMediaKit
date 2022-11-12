@@ -24,7 +24,7 @@ MP4Reader::MP4Reader(const string &vhost, const string &app, const string &strea
     _poller = WorkThreadPool::Instance().getPoller();
     _file_path = file_path;
     if (_file_path.empty()) {
-        GET_CONFIG(string, recordPath, Record::kFilePath);
+        GET_CONFIG(string, recordPath, Protocol::kMP4SavePath);
         GET_CONFIG(bool, enableVhost, General::kEnableVhost);
         if (enableVhost) {
             _file_path = vhost + "/" + app + "/" + stream_id;

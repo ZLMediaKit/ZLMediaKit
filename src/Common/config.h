@@ -45,14 +45,11 @@ extern const std::string kBroadcastRecordTs;
 
 // 收到http api请求广播
 extern const std::string kBroadcastHttpRequest;
-#define BroadcastHttpRequestArgs                                                                                       \
-    const Parser &parser, const HttpSession::HttpResponseInvoker &invoker, bool &consumed, SockInfo &sender
+#define BroadcastHttpRequestArgs const Parser &parser, const HttpSession::HttpResponseInvoker &invoker, bool &consumed, SockInfo &sender
 
 // 在http文件服务器中,收到http访问文件或目录的广播,通过该事件控制访问http目录的权限
 extern const std::string kBroadcastHttpAccess;
-#define BroadcastHttpAccessArgs                                                                                        \
-    const Parser &parser, const std::string &path, const bool &is_dir,                                                 \
-        const HttpSession::HttpAccessPathInvoker &invoker, SockInfo &sender
+#define BroadcastHttpAccessArgs const Parser &parser, const std::string &path, const bool &is_dir, const HttpSession::HttpAccessPathInvoker &invoker, SockInfo &sender
 
 // 在http文件服务器中,收到http访问文件或目录前的广播,通过该事件可以控制http url到文件路径的映射
 // 在该事件中通过自行覆盖path参数，可以做到譬如根据虚拟主机或者app选择不同http根目录的目的
@@ -66,9 +63,7 @@ extern const std::string kBroadcastOnGetRtspRealm;
 // 请求认证用户密码事件，user_name为用户名，must_no_encrypt如果为true，则必须提供明文密码(因为此时是base64认证方式),否则会导致认证失败
 // 获取到密码后请调用invoker并输入对应类型的密码和密码类型，invoker执行时会匹配密码
 extern const std::string kBroadcastOnRtspAuth;
-#define BroadcastOnRtspAuthArgs                                                                                        \
-    const MediaInfo &args, const std::string &realm, const std::string &user_name, const bool &must_no_encrypt,        \
-        const RtspSession::onAuth &invoker, SockInfo &sender
+#define BroadcastOnRtspAuthArgs const MediaInfo &args, const std::string &realm, const std::string &user_name, const bool &must_no_encrypt, const RtspSession::onAuth &invoker, SockInfo &sender
 
 // 推流鉴权结果回调对象
 // 如果err为空则代表鉴权成功
@@ -76,8 +71,7 @@ using PublishAuthInvoker = std::function<void(const std::string &err, const Prot
 
 // 收到rtsp/rtmp推流事件广播，通过该事件控制推流鉴权
 extern const std::string kBroadcastMediaPublish;
-#define BroadcastMediaPublishArgs                                                                                      \
-    const MediaOriginType &type, const MediaInfo &args, const Broadcast::PublishAuthInvoker &invoker, SockInfo &sender
+#define BroadcastMediaPublishArgs const MediaOriginType &type, const MediaInfo &args, const Broadcast::PublishAuthInvoker &invoker, SockInfo &sender
 
 // 播放鉴权结果回调对象
 // 如果err为空则代表鉴权成功
@@ -89,14 +83,11 @@ extern const std::string kBroadcastMediaPlayed;
 
 // shell登录鉴权
 extern const std::string kBroadcastShellLogin;
-#define BroadcastShellLoginArgs                                                                                        \
-    const std::string &user_name, const std::string &passwd, const Broadcast::AuthInvoker &invoker, SockInfo &sender
+#define BroadcastShellLoginArgs const std::string &user_name, const std::string &passwd, const Broadcast::AuthInvoker &invoker, SockInfo &sender
 
 // 停止rtsp/rtmp/http-flv会话后流量汇报事件广播
 extern const std::string kBroadcastFlowReport;
-#define BroadcastFlowReportArgs                                                                                        \
-    const MediaInfo &args, const uint64_t &totalBytes, const uint64_t &totalDuration, const bool &isPlayer,            \
-        SockInfo &sender
+#define BroadcastFlowReportArgs const MediaInfo &args, const uint64_t &totalBytes, const uint64_t &totalDuration, const bool &isPlayer, SockInfo &sender
 
 // 未找到流后会广播该事件，请在监听该事件后去拉流或其他方式产生流，这样就能按需拉流了
 extern const std::string kBroadcastNotFoundStream;
@@ -173,28 +164,12 @@ extern const std::string kStreamNoneReaderDelayMS;
 extern const std::string kMaxStreamWaitTimeMS;
 // 是否启动虚拟主机
 extern const std::string kEnableVhost;
-// 拉流代理时是否添加静音音频
-extern const std::string kAddMuteAudio;
 // 拉流代理时如果断流再重连成功是否删除前一次的媒体流数据，如果删除将重新开始，
 // 如果不删除将会接着上一次的数据继续写(录制hls/mp4时会继续在前一个文件后面写)
 extern const std::string kResetWhenRePlay;
-// 是否默认推流时转换成hls，hook接口(on_publish)中可以覆盖该设置
-extern const std::string kPublishToHls;
-// 是否默认推流时mp4录像，hook接口(on_publish)中可以覆盖该设置
-extern const std::string kPublishToMP4;
 // 合并写缓存大小(单位毫秒)，合并写指服务器缓存一定的数据后才会一次性写入socket，这样能提高性能，但是会提高延时
 // 开启后会同时关闭TCP_NODELAY并开启MSG_MORE
 extern const std::string kMergeWriteMS;
-// 全局的时间戳覆盖开关，在转协议时，对frame进行时间戳覆盖
-extern const std::string kModifyStamp;
-// 按需转协议的开关
-extern const std::string kHlsDemand;
-extern const std::string kRtspDemand;
-extern const std::string kRtmpDemand;
-extern const std::string kTSDemand;
-extern const std::string kFMP4Demand;
-// 转协议是否全局开启或忽略音频
-extern const std::string kEnableAudio;
 // 在docker环境下，不能通过英伟达驱动是否存在来判断是否支持硬件转码
 extern const std::string kCheckNvidiaDev;
 // 是否开启ffmpeg日志
@@ -206,10 +181,48 @@ extern const std::string kWaitTrackReadyMS;
 extern const std::string kWaitAddTrackMS;
 // 如果track未就绪，我们先缓存帧数据，但是有最大个数限制(100帧时大约4秒)，防止内存溢出
 extern const std::string kUnreadyFrameCache;
-// 推流断开后可以在超时时间内重新连接上继续推流，这样播放器会接着播放。
-// 置0关闭此特性(推流断开会导致立即断开播放器)
-extern const std::string kContinuePushMS;
 } // namespace General
+
+namespace Protocol {
+//时间戳修复这一路流标志位
+extern const std::string kModifyStamp;
+//转协议是否开启音频
+extern const std::string kEnableAudio;
+//添加静音音频，在关闭音频时，此开关无效
+extern const std::string kAddMuteAudio;
+//断连续推延时，单位毫秒，默认采用配置文件
+extern const std::string kContinuePushMS;
+
+//是否开启转换为hls
+extern const std::string kEnableHls;
+//是否开启MP4录制
+extern const std::string kEnableMP4;
+//是否开启转换为rtsp/webrtc
+extern const std::string kEnableRtsp;
+//是否开启转换为rtmp/flv
+extern const std::string kEnableRtmp;
+//是否开启转换为http-ts/ws-ts
+extern const std::string kEnableTS;
+//是否开启转换为http-fmp4/ws-fmp4
+extern const std::string kEnableFMP4;
+
+//是否将mp4录制当做观看者
+extern const std::string kMP4AsPlayer;
+//mp4切片大小，单位秒
+extern const std::string kMP4MaxSecond;
+//mp4录制保存路径
+extern const std::string kMP4SavePath;
+
+//hls录制保存路径
+extern const std::string kHlsSavePath;
+
+// 按需转协议的开关
+extern const std::string kHlsDemand;
+extern const std::string kRtspDemand;
+extern const std::string kRtmpDemand;
+extern const std::string kTSDemand;
+extern const std::string kFMP4Demand;
+} // !Protocol
 
 ////////////HTTP配置///////////
 namespace Http {
@@ -262,8 +275,6 @@ extern const std::string kLowLatency;
 
 ////////////RTMP服务器配置///////////
 namespace Rtmp {
-// rtmp推流时间戳覆盖开关
-extern const std::string kModifyStamp;
 // 握手超时时间，默认15秒
 extern const std::string kHandshakeSecond;
 // 维持链接超时时间，默认15秒
@@ -298,18 +309,12 @@ namespace Record {
 extern const std::string kAppName;
 // 每次流化MP4文件的时长,单位毫秒
 extern const std::string kSampleMS;
-// MP4文件录制大小,默认一个小时
-extern const std::string kFileSecond;
-// 录制文件路径
-extern const std::string kFilePath;
 // mp4文件写缓存大小
 extern const std::string kFileBufSize;
 // mp4录制完成后是否进行二次关键帧索引写入头部
 extern const std::string kFastStart;
 // mp4文件是否重头循环读取
 extern const std::string kFileRepeat;
-// MP4录制是否当做播放器参与播放人数统计
-extern const std::string kMP4AsPlayer;
 } // namespace Record
 
 ////////////HLS相关配置///////////
@@ -324,8 +329,6 @@ extern const std::string kSegmentKeep;
 extern const std::string kSegmentRetain;
 // HLS文件写缓存大小
 extern const std::string kFileBufSize;
-// 录制文件路径
-extern const std::string kFilePath;
 // 是否广播 ts 切片完成通知
 extern const std::string kBroadcastRecordTs;
 // hls直播文件删除延时，单位秒

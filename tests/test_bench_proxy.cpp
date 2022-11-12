@@ -125,11 +125,11 @@ int main(int argc, char *argv[]) {
 
         //设置合并写
         mINI::Instance()[General::kMergeWriteMS] = merge_ms;
-        mINI::Instance()[General::kRtspDemand] = demand;
-        mINI::Instance()[General::kRtmpDemand] = demand;
-        mINI::Instance()[General::kHlsDemand] = demand;
-        mINI::Instance()[General::kTSDemand] = demand;
-        mINI::Instance()[General::kFMP4Demand] = demand;
+        mINI::Instance()[Protocol::kRtspDemand] = demand;
+        mINI::Instance()[Protocol::kRtmpDemand] = demand;
+        mINI::Instance()[Protocol::kHlsDemand] = demand;
+        mINI::Instance()[Protocol::kTSDemand] = demand;
+        mINI::Instance()[Protocol::kFMP4Demand] = demand;
 
         map<string, PlayerProxy::Ptr> proxyMap;
         ProtocolOption option;

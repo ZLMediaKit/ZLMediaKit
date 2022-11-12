@@ -68,52 +68,83 @@ const string kFlowThreshold = GENERAL_FIELD "flowThreshold";
 const string kStreamNoneReaderDelayMS = GENERAL_FIELD "streamNoneReaderDelayMS";
 const string kMaxStreamWaitTimeMS = GENERAL_FIELD "maxStreamWaitMS";
 const string kEnableVhost = GENERAL_FIELD "enableVhost";
-const string kAddMuteAudio = GENERAL_FIELD "addMuteAudio";
 const string kResetWhenRePlay = GENERAL_FIELD "resetWhenRePlay";
-const string kPublishToHls = GENERAL_FIELD "publishToHls";
-const string kPublishToMP4 = GENERAL_FIELD "publishToMP4";
 const string kMergeWriteMS = GENERAL_FIELD "mergeWriteMS";
-const string kModifyStamp = GENERAL_FIELD "modifyStamp";
-const string kHlsDemand = GENERAL_FIELD "hls_demand";
-const string kRtspDemand = GENERAL_FIELD "rtsp_demand";
-const string kRtmpDemand = GENERAL_FIELD "rtmp_demand";
-const string kTSDemand = GENERAL_FIELD "ts_demand";
-const string kFMP4Demand = GENERAL_FIELD "fmp4_demand";
-const string kEnableAudio = GENERAL_FIELD "enable_audio";
 const string kCheckNvidiaDev = GENERAL_FIELD "check_nvidia_dev";
 const string kEnableFFmpegLog = GENERAL_FIELD "enable_ffmpeg_log";
 const string kWaitTrackReadyMS = GENERAL_FIELD "wait_track_ready_ms";
 const string kWaitAddTrackMS = GENERAL_FIELD "wait_add_track_ms";
 const string kUnreadyFrameCache = GENERAL_FIELD "unready_frame_cache";
-const string kContinuePushMS = GENERAL_FIELD "continue_push_ms";
 
 static onceToken token([]() {
     mINI::Instance()[kFlowThreshold] = 1024;
     mINI::Instance()[kStreamNoneReaderDelayMS] = 20 * 1000;
     mINI::Instance()[kMaxStreamWaitTimeMS] = 15 * 1000;
     mINI::Instance()[kEnableVhost] = 0;
-    mINI::Instance()[kAddMuteAudio] = 1;
     mINI::Instance()[kResetWhenRePlay] = 1;
-    mINI::Instance()[kPublishToHls] = 1;
-    mINI::Instance()[kPublishToMP4] = 0;
     mINI::Instance()[kMergeWriteMS] = 0;
-    mINI::Instance()[kModifyStamp] = 0;
     mINI::Instance()[kMediaServerId] = makeRandStr(16);
-    mINI::Instance()[kHlsDemand] = 0;
-    mINI::Instance()[kRtspDemand] = 0;
-    mINI::Instance()[kRtmpDemand] = 0;
-    mINI::Instance()[kTSDemand] = 0;
-    mINI::Instance()[kFMP4Demand] = 0;
-    mINI::Instance()[kEnableAudio] = 1;
     mINI::Instance()[kCheckNvidiaDev] = 1;
     mINI::Instance()[kEnableFFmpegLog] = 0;
     mINI::Instance()[kWaitTrackReadyMS] = 10000;
     mINI::Instance()[kWaitAddTrackMS] = 3000;
     mINI::Instance()[kUnreadyFrameCache] = 100;
-    mINI::Instance()[kContinuePushMS] = 15 * 1000;
 });
 
 } // namespace General
+
+namespace Protocol {
+#define PROTOCOL_FIELD "protocol."
+const string kModifyStamp = PROTOCOL_FIELD "modify_stamp";
+const string kEnableAudio = PROTOCOL_FIELD "enable_audio";
+const string kAddMuteAudio = PROTOCOL_FIELD "add_mute_audio";
+const string kContinuePushMS = PROTOCOL_FIELD "continue_push_ms";
+
+const string kEnableHls = PROTOCOL_FIELD "enable_hls";
+const string kEnableMP4 = PROTOCOL_FIELD "enable_mp4";
+const string kEnableRtsp = PROTOCOL_FIELD "enable_rtsp";
+const string kEnableRtmp = PROTOCOL_FIELD "enable_rtmp";
+const string kEnableTS = PROTOCOL_FIELD "enable_ts";
+const string kEnableFMP4 = PROTOCOL_FIELD "enable_fmp4";
+
+const string kMP4AsPlayer = PROTOCOL_FIELD "mp4_as_player";
+const string kMP4MaxSecond = PROTOCOL_FIELD "mp4_max_second";
+const string kMP4SavePath = PROTOCOL_FIELD "mp4_save_path";
+
+const string kHlsSavePath = PROTOCOL_FIELD "hls_save_path";
+
+const string kHlsDemand = PROTOCOL_FIELD "hls_demand";
+const string kRtspDemand = PROTOCOL_FIELD "rtsp_demand";
+const string kRtmpDemand = PROTOCOL_FIELD "rtmp_demand";
+const string kTSDemand = PROTOCOL_FIELD "ts_demand";
+const string kFMP4Demand = PROTOCOL_FIELD "fmp4_demand";
+
+static onceToken token([]() {
+    mINI::Instance()[kModifyStamp] = 0;
+    mINI::Instance()[kEnableAudio] = 1;
+    mINI::Instance()[kAddMuteAudio] = 1;
+    mINI::Instance()[kContinuePushMS] = 15000;
+
+    mINI::Instance()[kEnableHls] = 1;
+    mINI::Instance()[kEnableMP4] = 0;
+    mINI::Instance()[kEnableRtsp] = 1;
+    mINI::Instance()[kEnableRtmp] = 1;
+    mINI::Instance()[kEnableTS] = 1;
+    mINI::Instance()[kEnableFMP4] = 1;
+
+    mINI::Instance()[kMP4AsPlayer] = 0;
+    mINI::Instance()[kMP4MaxSecond] = 3600;
+    mINI::Instance()[kMP4SavePath] = "./www";
+
+    mINI::Instance()[kHlsSavePath] = "./www";
+
+    mINI::Instance()[kHlsDemand] = 0;
+    mINI::Instance()[kRtspDemand] = 0;
+    mINI::Instance()[kRtmpDemand] = 0;
+    mINI::Instance()[kTSDemand] = 0;
+    mINI::Instance()[kFMP4Demand] = 0;
+});
+} // !Protocol
 
 ////////////HTTP配置///////////
 namespace Http {
@@ -242,22 +273,16 @@ namespace Record {
 #define RECORD_FIELD "record."
 const string kAppName = RECORD_FIELD "appName";
 const string kSampleMS = RECORD_FIELD "sampleMS";
-const string kFileSecond = RECORD_FIELD "fileSecond";
-const string kFilePath = RECORD_FIELD "filePath";
 const string kFileBufSize = RECORD_FIELD "fileBufSize";
 const string kFastStart = RECORD_FIELD "fastStart";
 const string kFileRepeat = RECORD_FIELD "fileRepeat";
-const string kMP4AsPlayer = RECORD_FIELD "mp4_as_player";
 
 static onceToken token([]() {
     mINI::Instance()[kAppName] = "record";
     mINI::Instance()[kSampleMS] = 500;
-    mINI::Instance()[kFileSecond] = 60 * 60;
-    mINI::Instance()[kFilePath] = "./www";
     mINI::Instance()[kFileBufSize] = 64 * 1024;
     mINI::Instance()[kFastStart] = false;
     mINI::Instance()[kFileRepeat] = false;
-    mINI::Instance()[kMP4AsPlayer] = false;
 });
 } // namespace Record
 
@@ -269,7 +294,6 @@ const string kSegmentNum = HLS_FIELD "segNum";
 const string kSegmentKeep = HLS_FIELD "segKeep";
 const string kSegmentRetain = HLS_FIELD "segRetain";
 const string kFileBufSize = HLS_FIELD "fileBufSize";
-const string kFilePath = HLS_FIELD "filePath";
 const string kBroadcastRecordTs = HLS_FIELD "broadcastRecordTs";
 const string kDeleteDelaySec = HLS_FIELD "deleteDelaySec";
 
@@ -279,7 +303,6 @@ static onceToken token([]() {
     mINI::Instance()[kSegmentKeep] = false;
     mINI::Instance()[kSegmentRetain] = 5;
     mINI::Instance()[kFileBufSize] = 64 * 1024;
-    mINI::Instance()[kFilePath] = "./www";
     mINI::Instance()[kBroadcastRecordTs] = false;
     mINI::Instance()[kDeleteDelaySec] = 10;
 });

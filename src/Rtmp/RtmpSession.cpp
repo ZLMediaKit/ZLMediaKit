@@ -530,12 +530,6 @@ void RtmpSession::onRtmpChunk(RtmpPacket::Ptr packet) {
             WarnL << "Not a rtmp push!";
             return;
         }
-        GET_CONFIG(bool, rtmp_modify_stamp, Rtmp::kModifyStamp);
-        if (rtmp_modify_stamp) {
-            int64_t dts_out;
-            _stamp[chunk_data.type_id % 2].revise(chunk_data.time_stamp, chunk_data.time_stamp, dts_out, dts_out, true);
-            chunk_data.time_stamp = (uint32_t)dts_out;
-        }
 
         if (!_set_meta_data) {
             _set_meta_data = true;
