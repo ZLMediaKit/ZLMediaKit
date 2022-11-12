@@ -321,6 +321,7 @@ private:
     std::string _app;
     std::string _stream_id;
     std::weak_ptr<MediaSourceEvent> _listener;
+    toolkit::EventPoller::Ptr _default_poller;
     // 对象个数统计
     toolkit::ObjectStatistic<MediaSource> _statistic;
 };
