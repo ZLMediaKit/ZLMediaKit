@@ -650,9 +650,9 @@ void installWebHook(){
         });
     });
 
-    NoticeCenter::Instance().addListener(&web_hook_tag,Broadcast::KBroadcastRtpServerTimeout,[](BroadcastRtpServerTimeout){
-        GET_CONFIG(string,rtp_server_timeout,Hook::kOnRtpServerTimeout);
-        if(!hook_enable || rtp_server_timeout.empty()){
+    NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::KBroadcastRtpServerTimeout, [](BroadcastRtpServerTimeout) {
+        GET_CONFIG(string, rtp_server_timeout, Hook::kOnRtpServerTimeout);
+        if (!hook_enable || rtp_server_timeout.empty()) {
             return;
         }
 
@@ -662,8 +662,7 @@ void installWebHook(){
         body["tcp_mode"] = tcp_mode;
         body["re_use_port"] = re_use_port;
         body["ssrc"] = ssrc;
-        do_http_hook(rtp_server_timeout,body);
-
+        do_http_hook(rtp_server_timeout, body);
     });
 
     //汇报服务器重新启动

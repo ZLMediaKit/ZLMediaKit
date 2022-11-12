@@ -36,14 +36,13 @@ public:
         _stream_id = std::move(stream_id);
     }
 
-    
-
     ~RtcpHelper() {
         if (_process) {
             // 删除rtp处理器
             RtpSelector::Instance().delProcess(_stream_id, _process.get());
         }
     }
+
     void setRtpServerInfo(uint16_t local_port,RtpServer::TcpMode mode,bool re_use_port,uint32_t ssrc){
         _local_port = local_port;
         _tcp_mode = mode;
@@ -98,16 +97,16 @@ public:
                 if (!process && strong_self->_on_detach) {
                     strong_self->_on_detach();
                 }
-             if(!process){ // process 未创建，触发rtp server 超时事件
-                NoticeCenter::Instance().emitEvent(Broadcast::KBroadcastRtpServerTimeout,strong_self->_local_port,strong_self->_stream_id,(int)strong_self->_tcp_mode,strong_self->_re_use_port,strong_self->_ssrc);
-             }
+                if (!process) { // process 未创建，触发rtp server 超时事件
+                    NoticeCenter::Instance().emitEvent(Broadcast::KBroadcastRtpServerTimeout,strong_self->_local_port,strong_self->_stream_id,(int)strong_self->_tcp_mode,strong_self->_re_use_port,strong_self->_ssrc);
+                }
             }
             return 0;
         });
     }
 
-    void cancelDelayTask(){
-        if(_delay_task){
+    void cancelDelayTask() {
+        if (_delay_task) {
             _delay_task->cancel();
             _delay_task = nullptr;
         }
@@ -135,11 +134,10 @@ private:
     }
 
 private:
-    uint16_t _local_port = 0;
-    RtpServer::TcpMode _tcp_mode = RtpServer::NONE;
     bool _re_use_port = false;
+    uint16_t _local_port = 0;
     uint32_t _ssrc = 0;
-
+    RtpServer::TcpMode _tcp_mode = RtpServer::NONE;
 
     Ticker _ticker;
     Socket::Ptr _rtcp_sock;
