@@ -70,6 +70,7 @@ MediaSource::MediaSource(const string &schema, const string &vhost, const string
     _app = app;
     _stream_id = stream_id;
     _create_stamp = time(NULL);
+    _default_poller = EventPollerPool::Instance().getPoller();
 }
 
 MediaSource::~MediaSource() {
@@ -234,7 +235,8 @@ toolkit::EventPoller::Ptr MediaSource::getOwnerPoller() {
     if (listener) {
         return listener->getOwnerPoller(*this);
     }
-    throw std::runtime_error(toolkit::demangle(typeid(*this).name()) + "::getOwnerPoller failed:" + getUrl());
+    WarnL << toolkit::demangle(typeid(*this).name()) + "::getOwnerPoller failed, now return default poller: " + getUrl();
+    return _default_poller;
 }
 
 void MediaSource::onReaderChanged(int size) {
