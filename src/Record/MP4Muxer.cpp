@@ -19,8 +19,6 @@ using namespace toolkit;
 
 namespace mediakit {
 
-MP4Muxer::MP4Muxer() {}
-
 MP4Muxer::~MP4Muxer() {
     closeMP4();
 }
@@ -64,7 +62,7 @@ bool MP4MuxerInterface::haveVideo() const {
 uint64_t MP4MuxerInterface::getDuration() const {
     uint64_t ret = 0;
     for (auto &pr : _codec_to_trackid) {
-        if (pr.second.stamp.getRelativeStamp() > ret) {
+        if (pr.second.stamp.getRelativeStamp() > (int64_t)ret) {
             ret = pr.second.stamp.getRelativeStamp();
         }
     }

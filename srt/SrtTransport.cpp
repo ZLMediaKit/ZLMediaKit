@@ -407,9 +407,9 @@ void SrtTransport::handleDropReq(uint8_t *buf, int len, struct sockaddr_storage 
     if (list.empty()) {
         return;
     }
-    uint32_t max_seq = 0;
+    // uint32_t max_seq = 0;
     for (auto& data : list) {
-        max_seq = data->packet_seq_number;
+        // max_seq = data->packet_seq_number;
         if (_last_pkt_seq + 1 != data->packet_seq_number) {
             TraceL << "pkt lost " << _last_pkt_seq + 1 << "->" << data->packet_seq_number;
         }
@@ -620,9 +620,9 @@ void SrtTransport::handleDataPacket(uint8_t *buf, int len, struct sockaddr_stora
     if (list.empty()) {
         // when no data ok send nack to sender immediately
     } else {
-        uint32_t last_seq;
+        // uint32_t last_seq;
         for (auto& data : list) {
-            last_seq = data->packet_seq_number;
+            // last_seq = data->packet_seq_number;
             if (_last_pkt_seq + 1 != data->packet_seq_number) {
                 TraceL << "pkt lost " << _last_pkt_seq + 1 << "->" << data->packet_seq_number;
             }

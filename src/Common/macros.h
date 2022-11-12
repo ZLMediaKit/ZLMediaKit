@@ -41,7 +41,7 @@
 #endif
 
 #ifndef CHECK
-#define CHECK(exp, ...) mediakit::Assert_ThrowCpp(!(exp), #exp, __FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__)
+#define CHECK(exp, ...) ::mediakit::Assert_ThrowCpp(!(exp), #exp, __FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__)
 #endif // CHECK
 
 #ifndef MAX

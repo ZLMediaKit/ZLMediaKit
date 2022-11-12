@@ -19,8 +19,6 @@ using namespace toolkit;
 
 namespace mediakit{
 
-RtpServer::RtpServer() {}
-
 RtpServer::~RtpServer() {
     if (_on_cleanup) {
         _on_cleanup();

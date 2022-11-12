@@ -22,7 +22,7 @@ class RingDelegateHelper : public toolkit::RingDelegate<RtpPacket::Ptr> {
 public:
     using onRtp = std::function<void(RtpPacket::Ptr in, bool is_key)> ;
 
-    ~RingDelegateHelper() override {}
+    ~RingDelegateHelper() override = default;
 
     RingDelegateHelper(onRtp on_rtp) {
         _on_rtp = std::move(on_rtp);
@@ -39,7 +39,7 @@ private:
 /**
 * rtsp生成器
 */
-class RtspMuxer : public MediaSinkInterface{
+class RtspMuxer : public MediaSinkInterface {
 public:
     using Ptr = std::shared_ptr<RtspMuxer>;
 
@@ -47,8 +47,7 @@ public:
      * 构造函数
      */
     RtspMuxer(const TitleSdp::Ptr &title = nullptr);
-
-    virtual ~RtspMuxer(){}
+    ~RtspMuxer() override = default;
 
     /**
      * 获取完整的SDP字符串
