@@ -23,7 +23,9 @@ public:
 
     TSMediaSourceMuxer(const std::string &vhost,
                        const std::string &app,
-                       const std::string &stream_id) : MpegMuxer(false) {
+                       const std::string &stream_id,
+                       const ProtocolOption &option) : MpegMuxer(false) {
+        _option = option;
         _media_src = std::make_shared<TSMediaSource>(vhost, app, stream_id);
     }
 
@@ -39,30 +41,27 @@ public:
     }
 
     void onReaderChanged(MediaSource &sender, int size) override {
-        GET_CONFIG(bool, ts_demand, General::kTSDemand);
-        _enabled = ts_demand ? size : true;
-        if (!size && ts_demand) {
+        _enabled = _option.ts_demand ? size : true;
+        if (!size && _option.ts_demand) {
             _clear_cache = true;
         }
         MediaSourceEventInterceptor::onReaderChanged(sender, size);
     }
 
     bool inputFrame(const Frame::Ptr &frame) override {
-        GET_CONFIG(bool, ts_demand, General::kTSDemand);
-        if (_clear_cache && ts_demand) {
+        if (_clear_cache && _option.ts_demand) {
             _clear_cache = false;
             _media_src->clearCache();
         }
-        if (_enabled || !ts_demand) {
+        if (_enabled || !_option.ts_demand) {
             return MpegMuxer::inputFrame(frame);
         }
         return false;
     }
 
     bool isEnabled() {
-        GET_CONFIG(bool, ts_demand, General::kTSDemand);
         //缓存尚未清空时，还允许触发inputFrame函数，以便及时清空缓存
-        return ts_demand ? (_clear_cache ? true : _enabled) : true;
+        return _option.ts_demand ? (_clear_cache ? true : _enabled) : true;
     }
 
 protected:
@@ -78,6 +77,7 @@ protected:
 private:
     bool _enabled = true;
     bool _clear_cache = false;
+    ProtocolOption _option;
     TSMediaSource::Ptr _media_src;
 };
 

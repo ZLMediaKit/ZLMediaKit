@@ -21,26 +21,8 @@ namespace toolkit {
 
 namespace mediakit {
 
-ProtocolOption::ProtocolOption() {
-    GET_CONFIG(bool, s_to_hls, General::kPublishToHls);
-    GET_CONFIG(bool, s_to_mp4, General::kPublishToMP4);
-    GET_CONFIG(bool, s_enabel_audio, General::kEnableAudio);
-    GET_CONFIG(bool, s_add_mute_audio, General::kAddMuteAudio);
-    GET_CONFIG(bool, s_mp4_as_player, Record::kMP4AsPlayer);
-    GET_CONFIG(uint32_t, s_continue_push_ms, General::kContinuePushMS);
-    GET_CONFIG(bool, s_modify_stamp, General::kModifyStamp);
-
-    enable_hls = s_to_hls;
-    enable_mp4 = s_to_mp4;
-    enable_audio = s_enabel_audio;
-    add_mute_audio = s_add_mute_audio;
-    continue_push_ms = s_continue_push_ms;
-    mp4_as_player = s_mp4_as_player;
-    modify_stamp = s_modify_stamp;	
-}
-
-static std::shared_ptr<MediaSinkInterface> makeRecorder(MediaSource &sender, const vector<Track::Ptr> &tracks, Recorder::type type, const string &custom_path, size_t max_second){
-    auto recorder = Recorder::createRecorder(type, sender.getVhost(), sender.getApp(), sender.getId(), custom_path, max_second);
+static std::shared_ptr<MediaSinkInterface> makeRecorder(MediaSource &sender, const vector<Track::Ptr> &tracks, Recorder::type type, const ProtocolOption &option){
+    auto recorder = Recorder::createRecorder(type, sender.getVhost(), sender.getApp(), sender.getId(), option);
     for (auto &track : tracks) {
         recorder->addTrack(track);
     }
@@ -106,23 +88,23 @@ MultiMediaSourceMuxer::MultiMediaSourceMuxer(const string &vhost, const string &
     _option = option;
 
     if (option.enable_rtmp) {
-        _rtmp = std::make_shared<RtmpMediaSourceMuxer>(vhost, app, stream, std::make_shared<TitleMeta>(dur_sec));
+        _rtmp = std::make_shared<RtmpMediaSourceMuxer>(vhost, app, stream, option, std::make_shared<TitleMeta>(dur_sec));
     }
     if (option.enable_rtsp) {
-        _rtsp = std::make_shared<RtspMediaSourceMuxer>(vhost, app, stream, std::make_shared<TitleSdp>(dur_sec));
+        _rtsp = std::make_shared<RtspMediaSourceMuxer>(vhost, app, stream, option, std::make_shared<TitleSdp>(dur_sec));
     }
     if (option.enable_hls) {
-        _hls = dynamic_pointer_cast<HlsRecorder>(Recorder::createRecorder(Recorder::type_hls, vhost, app, stream, option.hls_save_path));
+        _hls = dynamic_pointer_cast<HlsRecorder>(Recorder::createRecorder(Recorder::type_hls, vhost, app, stream, option));
     }
     if (option.enable_mp4) {
-        _mp4 = Recorder::createRecorder(Recorder::type_mp4, vhost, app, stream, option.mp4_save_path, option.mp4_max_second);
+        _mp4 = Recorder::createRecorder(Recorder::type_mp4, vhost, app, stream, option);
     }
     if (option.enable_ts) {
-        _ts = std::make_shared<TSMediaSourceMuxer>(vhost, app, stream);
+        _ts = std::make_shared<TSMediaSourceMuxer>(vhost, app, stream, option);
     }
 #if defined(ENABLE_MP4)
     if (option.enable_fmp4) {
-        _fmp4 = std::make_shared<FMP4MediaSourceMuxer>(vhost, app, stream);
+        _fmp4 = std::make_shared<FMP4MediaSourceMuxer>(vhost, app, stream, option);
     }
 #endif
 
@@ -212,7 +194,8 @@ bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type
         case Recorder::type_hls : {
             if (start && !_hls) {
                 //开始录制
-                auto hls = dynamic_pointer_cast<HlsRecorder>(makeRecorder(sender, getTracks(), type, custom_path, max_second));
+                _option.hls_save_path = custom_path;
+                auto hls = dynamic_pointer_cast<HlsRecorder>(makeRecorder(sender, getTracks(), type, _option));
                 if (hls) {
                     //设置HlsMediaSource的事件监听器
                     hls->setListener(shared_from_this());
@@ -227,7 +210,9 @@ bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type
         case Recorder::type_mp4 : {
             if (start && !_mp4) {
                 //开始录制
-                _mp4 = makeRecorder(sender, getTracks(), type, custom_path, max_second);
+                _option.mp4_save_path = custom_path;
+                _option.mp4_max_second = max_second;
+                _mp4 = makeRecorder(sender, getTracks(), type, _option);
             } else if (!start && _mp4) {
                 //停止录制
                 _mp4 = nullptr;

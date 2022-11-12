@@ -134,6 +134,91 @@ private:
     toolkit::Timer::Ptr _async_close_timer;
 };
 
+class ProtocolOption {
+public:
+    ProtocolOption();
+
+    //时间戳修复这一路流标志位
+    bool modify_stamp;
+    //转协议是否开启音频
+    bool enable_audio;
+    //添加静音音频，在关闭音频时，此开关无效
+    bool add_mute_audio;
+    //断连续推延时，单位毫秒，默认采用配置文件
+    uint32_t continue_push_ms;
+
+    //是否开启转换为hls
+    bool enable_hls;
+    //是否开启MP4录制
+    bool enable_mp4;
+    //是否开启转换为rtsp/webrtc
+    bool enable_rtsp;
+    //是否开启转换为rtmp/flv
+    bool enable_rtmp;
+    //是否开启转换为http-ts/ws-ts
+    bool enable_ts;
+    //是否开启转换为http-fmp4/ws-fmp4
+    bool enable_fmp4;
+
+    // hls协议是否按需生成，如果hls.segNum配置为0(意味着hls录制)，那么hls将一直生成(不管此开关)
+    bool hls_demand;
+    // rtsp[s]协议是否按需生成
+    bool rtsp_demand;
+    // rtmp[s]、http[s]-flv、ws[s]-flv协议是否按需生成
+    bool rtmp_demand;
+    // http[s]-ts协议是否按需生成
+    bool ts_demand;
+    // http[s]-fmp4、ws[s]-fmp4协议是否按需生成
+    bool fmp4_demand;
+
+    //是否将mp4录制当做观看者
+    bool mp4_as_player;
+    //mp4切片大小，单位秒
+    size_t mp4_max_second;
+    //mp4录制保存路径
+    std::string mp4_save_path;
+
+    //hls录制保存路径
+    std::string hls_save_path;
+
+    template <typename MAP>
+    ProtocolOption(const MAP &allArgs) : ProtocolOption() {
+#define GET_OPT_VALUE(key) getArgsValue(allArgs, #key, key)
+        GET_OPT_VALUE(modify_stamp);
+        GET_OPT_VALUE(enable_audio);
+        GET_OPT_VALUE(add_mute_audio);
+        GET_OPT_VALUE(continue_push_ms);
+
+        GET_OPT_VALUE(enable_hls);
+        GET_OPT_VALUE(enable_mp4);
+        GET_OPT_VALUE(enable_rtsp);
+        GET_OPT_VALUE(enable_rtmp);
+        GET_OPT_VALUE(enable_ts);
+        GET_OPT_VALUE(enable_fmp4);
+
+        GET_OPT_VALUE(hls_demand);
+        GET_OPT_VALUE(rtsp_demand);
+        GET_OPT_VALUE(rtmp_demand);
+        GET_OPT_VALUE(ts_demand);
+        GET_OPT_VALUE(fmp4_demand);
+
+        GET_OPT_VALUE(mp4_max_second);
+        GET_OPT_VALUE(mp4_as_player);
+        GET_OPT_VALUE(mp4_save_path);
+
+        GET_OPT_VALUE(hls_save_path);
+    }
+
+private:
+    template <typename MAP, typename KEY, typename TYPE>
+    static void getArgsValue(const MAP &allArgs, const KEY &key, TYPE &value) {
+        auto val = ((MAP &)allArgs)[key];
+        if (!val.empty()) {
+            value = (TYPE)val;
+        }
+    }
+};
+
 //该对象用于拦截感兴趣的MediaSourceEvent事件
 class MediaSourceEventInterceptor : public MediaSourceEvent {
 public:

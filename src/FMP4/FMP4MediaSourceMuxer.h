@@ -25,7 +25,9 @@ public:
 
     FMP4MediaSourceMuxer(const std::string &vhost,
                          const std::string &app,
-                         const std::string &stream_id) {
+                         const std::string &stream_id,
+                         const ProtocolOption &option) {
+        _option = option;
         _media_src = std::make_shared<FMP4MediaSource>(vhost, app, stream_id);
     }
 
@@ -41,30 +43,27 @@ public:
     }
 
     void onReaderChanged(MediaSource &sender, int size) override {
-        GET_CONFIG(bool, fmp4_demand, General::kFMP4Demand);
-        _enabled = fmp4_demand ? size : true;
-        if (!size && fmp4_demand) {
+        _enabled = _option.fmp4_demand ? size : true;
+        if (!size && _option.fmp4_demand) {
             _clear_cache = true;
         }
         MediaSourceEventInterceptor::onReaderChanged(sender, size);
     }
 
     bool inputFrame(const Frame::Ptr &frame) override {
-        GET_CONFIG(bool, fmp4_demand, General::kFMP4Demand);
-        if (_clear_cache && fmp4_demand) {
+        if (_clear_cache && _option.fmp4_demand) {
             _clear_cache = false;
             _media_src->clearCache();
         }
-        if (_enabled || !fmp4_demand) {
+        if (_enabled || !_option.fmp4_demand) {
             return MP4MuxerMemory::inputFrame(frame);
         }
         return false;
     }
 
     bool isEnabled() {
-        GET_CONFIG(bool, fmp4_demand, General::kFMP4Demand);
         //缓存尚未清空时，还允许触发inputFrame函数，以便及时清空缓存
-        return fmp4_demand ? (_clear_cache ? true : _enabled) : true;
+        return _option.fmp4_demand ? (_clear_cache ? true : _enabled) : true;
     }
 
     void onAllTrackReady() {
@@ -84,6 +83,7 @@ protected:
 private:
     bool _enabled = true;
     bool _clear_cache = false;
+    ProtocolOption _option;
     FMP4MediaSource::Ptr _media_src;
 };
 
