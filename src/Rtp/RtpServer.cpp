@@ -95,6 +95,9 @@ public:
                 if (!process && strong_self->_on_detach) {
                     strong_self->_on_detach();
                 }
+                if(process && strong_self->_on_detach){// tcp 链接防止断开不删除rtpServer
+                    process->setOnDetach(std::move(strong_self->_on_detach));
+                }
                 if (!process) { // process 未创建，触发rtp server 超时事件
                     NoticeCenter::Instance().emitEvent(Broadcast::KBroadcastRtpServerTimeout,strong_self->_local_port,strong_self->_stream_id,(int)strong_self->_tcp_mode,strong_self->_re_use_port,strong_self->_ssrc);
                 }
