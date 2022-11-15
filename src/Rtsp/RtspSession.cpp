@@ -448,31 +448,26 @@ void RtspSession::onAuthSuccess() {
 }
 
 void RtspSession::onAuthFailed(const string &realm,const string &why,bool close) {
-    GET_CONFIG(bool,authBasic,Rtsp::kAuthBasic);
+    GET_CONFIG(bool, authBasic, Rtsp::kAuthBasic);
     if (!authBasic) {
-        //我们需要客户端优先以md5方式认证
+        // 我们需要客户端优先以md5方式认证
         _auth_nonce = makeRandStr(32);
-        sendRtspResponse("401 Unauthorized",
-                         {"WWW-Authenticate",
-                          StrPrinter << "Digest realm=\"" << realm << "\",nonce=\"" << _auth_nonce << "\"" });
-    }else {
-        //当然我们也支持base64认证,但是我们不建议这样做
-        sendRtspResponse("401 Unauthorized",
-                         {"WWW-Authenticate",
-                          StrPrinter << "Basic realm=\"" << realm << "\"" });
+        sendRtspResponse("401 Unauthorized", { "WWW-Authenticate", StrPrinter << "Digest realm=\"" << realm << "\",nonce=\"" << _auth_nonce << "\"" });
+    } else {
+        // 当然我们也支持base64认证,但是我们不建议这样做
+        sendRtspResponse("401 Unauthorized", { "WWW-Authenticate", StrPrinter << "Basic realm=\"" << realm << "\"" });
     }
-    if(close){
-        shutdown(SockException(Err_shutdown,StrPrinter << "401 Unauthorized:" << why));
+    if (close) {
+        shutdown(SockException(Err_shutdown, StrPrinter << "401 Unauthorized:" << why));
     }
 }
 
-void RtspSession::onAuthBasic(const string &realm,const string &auth_base64){
+void RtspSession::onAuthBasic(const string &realm, const string &auth_base64) {
     //base64认证
-    char user_pwd_buf[512];
-    av_base64_decode((uint8_t *) user_pwd_buf, auth_base64.data(), (int)auth_base64.size());
-    auto user_pwd_vec = split(user_pwd_buf, ":");
+    auto user_passwd = decodeBase64(auth_base64);
+    auto user_pwd_vec = split(user_passwd, ":");
     if (user_pwd_vec.size() < 2) {
-        //认证信息格式不合法，回复401 Unauthorized
+        // 认证信息格式不合法，回复401 Unauthorized
         onAuthFailed(realm, "can not find user and passwd when basic64 auth");
         return;
     }

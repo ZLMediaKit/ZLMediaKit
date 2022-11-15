@@ -537,10 +537,8 @@ void RtspPusher::sendRtspRequest(const string &cmd, const string &url,const StrC
             printer << "response=\"" << response << "\"";
             header.emplace("Authorization", printer);
         } else if (!(*this)[Client::kRtspPwdIsMD5].as<bool>()) {
-            //base64认证
-            string authStr = StrPrinter << (*this)[Client::kRtspUser] << ":" << (*this)[Client::kRtspPwd];
-            char authStrBase64[1024] = {0};
-            av_base64_encode(authStrBase64, sizeof(authStrBase64), (uint8_t *) authStr.data(), (int)authStr.size());
+            // base64认证
+            auto authStrBase64 = encodeBase64((*this)[Client::kRtspUser] + ":" + (*this)[Client::kRtspPwd]);
             header.emplace("Authorization", StrPrinter << "Basic " << authStrBase64);
         }
     }
