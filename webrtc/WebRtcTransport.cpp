@@ -432,7 +432,7 @@ void WebRtcTransportImp::onSendSockData(Buffer::Ptr buf, bool flush, RTC::Transp
 
     // 一次性发送一帧的rtp数据，提高网络io性能
     _selected_session->setSendFlushFlag(flush);
-    _selected_session->send(std::move(buf));
+    _selected_session->send(std::move(pkt));
 }
 
 ///////////////////////////////////////////////////////////////////

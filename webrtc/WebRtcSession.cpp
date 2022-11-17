@@ -54,6 +54,21 @@ WebRtcSession::~WebRtcSession() {
     InfoP(this);
 }
 
+/*
+ * Framing RFC 4571
+ *     0                   1                   2                   3
+ *     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ *     ---------------------------------------------------------------
+ *     |             LENGTH            |  RTP or RTCP packet ...   |
+ *     ---------------------------------------------------------------
+ *      The bit field definition of the framing method
+ * A 16-bit unsigned integer LENGTH field, coded in network byte order
+ * (big-endian), begins the frame.  If LENGTH is non-zero, an RTP or
+ * RTCP packet follows the LENGTH field.  The value coded in the LENGTH
+ * field MUST equal the number of octets in the RTP or RTCP packet.
+ * Zero is a valid value for LENGTH, and it codes the null packet.
+ */
+
 void WebRtcSession::onRecv(const Buffer::Ptr &buffer) {
     //只允许寻找一次transport
     if (!_transport) {
@@ -67,7 +82,45 @@ void WebRtcSession::onRecv(const Buffer::Ptr &buffer) {
     }
     _ticker.resetTime();
     CHECK(_transport);
-    _transport->inputSockData(buffer->data() + 2, buffer->size() - 2, (struct sockaddr *)&_peer_addr);
+    //_transport->inputSockData(buffer->data() + 2, buffer->size() - 2, (struct sockaddr *)&_peer_addr);
+
+    //一个tcp数据包里面可能会有多帧
+    uint8_t* buf = reinterpret_cast<uint8_t *>(buffer->data());
+    size_t buf_size = buffer->size();
+    size_t frame_start = 0;
+    size_t remian_len  = 0;
+    size_t frame_size = 0;
+    for (;;) {
+        remian_len = buf_size - frame_start;
+        if(remian_len >= 2){
+            frame_size = size_t { Utils::Byte::Get2Bytes(buf + frame_start, 0) };
+        }
+        //解析出来了一帧tcp frame
+        if (remian_len >= 2 && remian_len >= 2 + frame_size) {
+            const uint8_t *frame = buf + frame_start + 2;
+            if(frame_size != 0){
+                _transport->inputSockData((char *)frame, frame_size, (struct sockaddr *)&_peer_addr);
+            }
+            //数据全部解析完毕
+            if((frame_start + 2 + frame_size) == buf_size){
+                break;
+            }
+            //更新解析buf的起始位置
+            else{
+                frame_start += (2 + frame_size);
+            }
+            //还有数据 需要继续解析
+            if (buf_size > frame_start) {
+                continue;
+            }
+            break;
+        }
+        //包解析出错了 丢弃
+        else{
+            WarnL<<"Incomplete packet";
+            break;
+        }
+    }
 }
 
 void WebRtcSession::onError(const SockException &err) {
