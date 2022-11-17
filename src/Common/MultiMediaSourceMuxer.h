@@ -179,7 +179,7 @@ private:
     std::shared_ptr<TSMediaSourceMuxer> _ts;
     std::shared_ptr<RtspMediaSourceMuxer> _rtc;
 #if defined(ENABLE_FFMPEG)
-    bool _audio_transcode = false;
+    MuteAudioMaker::Ptr _opus_mute_maker;
     std::shared_ptr<FFmpegDecoder> _audio_dec;
     std::shared_ptr<FFmpegEncoder> _audio_enc;
 #endif

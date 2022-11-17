@@ -139,10 +139,10 @@ MultiMediaSourceMuxer::MultiMediaSourceMuxer(const MediaTuple& tuple, float dur_
     }
     if (option.audio_transcode) {
 #if defined(ENABLE_FFMPEG)
-        _audio_transcode = option.audio_transcode;
         InfoL << "enable audio_transcode";
 #else
         InfoL << "without ffmpeg disable audio_transcode";
+        _option.audio_transcode = false;
 #endif
     }
 
@@ -410,7 +410,7 @@ bool MultiMediaSourceMuxer::onTrackReady(const Track::Ptr &track) {
     auto rtmp = _rtmp;
     auto rtc = _rtc;
 #if defined(ENABLE_FFMPEG)
-    if (_audio_transcode) {
+    if (_option.audio_transcode) {
         if (track->getCodecId() == CodecAAC) {
             if (rtmp) {
                 rtmp->addTrack(track);
@@ -418,24 +418,34 @@ bool MultiMediaSourceMuxer::onTrackReady(const Track::Ptr &track) {
             }
             _audio_dec = nullptr;
             _audio_enc = nullptr;
+            _opus_mute_maker = nullptr;
             if (rtc) {
                 Track::Ptr newTrack(new OpusTrack());
                 GET_CONFIG(int, bitrate, General::kOpusBitrate);
                 newTrack->setBitRate(bitrate);
                 rtc->addTrack(newTrack);
                 rtc = nullptr;
-
-                // aac to opus
-                _audio_dec.reset(new FFmpegDecoder(track));
-                _audio_enc.reset(new FFmpegEncoder(newTrack));
-                _audio_dec->setOnDecode([this](const FFmpegFrame::Ptr & frame) {
-                    _audio_enc->inputFrame(frame, false);
-                });
-                _audio_enc->setOnEncode([this](const Frame::Ptr& frame) {
-                    // fill data to _rtc
-                    if (_rtc && _rtc->isEnabled())
-                        _rtc->inputFrame(frame);
-                });
+                if (!hasMuteAudio()) {
+                    // aac to opus
+                    _audio_dec.reset(new FFmpegDecoder(track));
+                    _audio_enc.reset(new FFmpegEncoder(newTrack));
+                    _audio_dec->setOnDecode([this](const FFmpegFrame::Ptr & frame) {
+                        _audio_enc->inputFrame(frame, false);
+                    });
+                    _audio_enc->setOnEncode([this](const Frame::Ptr& frame) {
+                        // fill data to _rtc
+                        if (_rtc && _rtc->isEnabled())
+                            _rtc->inputFrame(frame);
+                     });
+                }
+                else {
+                    _opus_mute_maker = std::make_shared<MuteAudioMaker>(CodecOpus);
+                    _opus_mute_maker->addDelegate([this](const Frame::Ptr &frame) {
+                        if (_rtc && _rtc->isEnabled())
+                            _rtc->inputFrame(frame);
+                        return true;
+                    });
+                }
             }
         }
         else if (track->getTrackType() == TrackAudio) {
@@ -445,6 +455,7 @@ bool MultiMediaSourceMuxer::onTrackReady(const Track::Ptr &track) {
             }
             _audio_dec = nullptr;
             _audio_enc = nullptr;
+            _opus_mute_maker = nullptr;
             if (rtmp) {
                 Track::Ptr newTrack(new AACTrack(44100, std::dynamic_pointer_cast<AudioTrack>(track)->getAudioChannel()));
                 GET_CONFIG(int, bitrate, General::kAacBitrate);
@@ -571,6 +582,7 @@ void MultiMediaSourceMuxer::resetTracks() {
 #if defined(ENABLE_FFMPEG)
     _audio_dec = nullptr;
     _audio_dec = nullptr;
+    _opus_mute_maker = nullptr;
 #endif
     if (_fmp4) {
         _fmp4->resetTracks();
@@ -601,7 +613,7 @@ bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
     if (_rtmp && _rtmp->isEnabled())
         rtmp = _rtmp;
 #if defined(ENABLE_FFMPEG)
-    if (_audio_transcode) {
+    if (_option.audio_transcode) {
         if (frame->getCodecId() == CodecAAC) {
             if (rtc) {
                 if (_audio_dec && rtc->readerCount())
@@ -615,6 +627,8 @@ bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
                     _audio_dec->inputFrame(frame, true, false, false);
                 rtmp = nullptr;
             }
+        } else if (_opus_mute_maker && rtc) {
+            _opus_mute_maker->inputFrame(frame);
         }
     }
 #endif
