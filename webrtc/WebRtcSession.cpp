@@ -16,8 +16,8 @@ using namespace std;
 namespace mediakit {
 
 static string getUserName(const Buffer::Ptr &buffer) {
-    auto buf = buffer->data();
-    auto len = buffer->size();
+    auto buf = buffer->data() + 2;
+    auto len = buffer->size() - 2;
     if (!RTC::StunPacket::IsStun((const uint8_t *) buf, len)) {
         return "";
     }
@@ -55,9 +55,8 @@ WebRtcSession::~WebRtcSession() {
 }
 
 void WebRtcSession::onRecv(const Buffer::Ptr &buffer) {
-    if (_find_transport) {
-        //只允许寻找一次transport
-        _find_transport = false;
+    //只允许寻找一次transport
+    if (!_transport) {
         auto user_name = getUserName(buffer);
         auto transport = WebRtcTransportManager::Instance().getItem(user_name);
         //TODO fix this poller is not current thread
@@ -68,7 +67,7 @@ void WebRtcSession::onRecv(const Buffer::Ptr &buffer) {
     }
     _ticker.resetTime();
     CHECK(_transport);
-    _transport->inputSockData(buffer->data(), buffer->size(), (struct sockaddr *)&_peer_addr);
+    _transport->inputSockData(buffer->data() + 2, buffer->size() - 2, (struct sockaddr *)&_peer_addr);
 }
 
 void WebRtcSession::onError(const SockException &err) {

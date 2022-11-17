@@ -418,6 +418,18 @@ void WebRtcTransportImp::onSendSockData(Buffer::Ptr buf, bool flush, RTC::Transp
         WarnL << "send data failed:" << buf->size();
         return;
     }
+
+    //增加tcp两字节头
+    auto pkt = _packet_pool.obtain2();
+    int len = buf->size();
+    pkt->setCapacity(buf->size() + 2 + 1);
+    char tcp_len[2] = {0};
+    tcp_len[0] = ((int16_t)len >> 8)&0xff;
+    tcp_len[1] = (int16_t)len & 0xff;
+    pkt->assign2(tcp_len, 2);
+    pkt->assign2(buf->data(), len , 2);
+    pkt->setSize(len + 2);
+
     // 一次性发送一帧的rtp数据，提高网络io性能
     _selected_session->setSendFlushFlag(flush);
     _selected_session->send(std::move(buf));

@@ -31,7 +31,6 @@ public:
     static EventPoller::Ptr queryPoller(const Buffer::Ptr &buffer);
 
 private:
-    bool _find_transport = true;
     Ticker _ticker;
     struct sockaddr_storage _peer_addr;
     std::shared_ptr<WebRtcTransportImp> _transport;
