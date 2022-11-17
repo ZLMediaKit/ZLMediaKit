@@ -608,12 +608,12 @@ void WebRtcTransportImp::onRtcConfigure(RtcConfigure &configure) const {
     });
     if (extern_ips.empty()) {
         std::string localIp = SockUtil::get_local_ip();
-        configure.addCandidate(*makeIceCandidate(localIp, local_port, 120, "udp"));
+        configure.addCandidate(*makeIceCandidate(localIp, local_port, 120, "tcp"));
     } else {
         const uint32_t delta = 10;
         uint32_t priority = 100 + delta * extern_ips.size();
         for (auto ip : extern_ips) {
-            configure.addCandidate(*makeIceCandidate(ip, local_port, priority, "udp"));
+            configure.addCandidate(*makeIceCandidate(ip, local_port, priority, "tcp"));
             priority -= delta;
         }
     }

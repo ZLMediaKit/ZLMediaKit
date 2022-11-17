@@ -18,7 +18,7 @@
 
 namespace mediakit {
 
-class WebRtcSession : public UdpSession {
+class WebRtcSession : public TcpSession {
 public:
     WebRtcSession(const Socket::Ptr &sock);
     ~WebRtcSession() override;

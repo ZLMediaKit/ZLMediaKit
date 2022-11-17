@@ -45,7 +45,7 @@ EventPoller::Ptr WebRtcSession::queryPoller(const Buffer::Ptr &buffer) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-WebRtcSession::WebRtcSession(const Socket::Ptr &sock) : UdpSession(sock) {
+WebRtcSession::WebRtcSession(const Socket::Ptr &sock) : TcpSession(sock) {
     socklen_t addr_len = sizeof(_peer_addr);
     getpeername(sock->rawFD(), (struct sockaddr *)&_peer_addr, &addr_len);
 }
