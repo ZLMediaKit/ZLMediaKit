@@ -20,27 +20,22 @@ using namespace toolkit;
 namespace mediakit{
 
 const string RtpSession::kStreamID = "stream_id";
-const string RtpSession::kIsUDP = "is_udp";
 const string RtpSession::kSSRC = "ssrc";
 
 void RtpSession::attachServer(const Server &server) {
     _stream_id = const_cast<Server &>(server)[kStreamID];
-    _is_udp = const_cast<Server &>(server)[kIsUDP];
     _ssrc = const_cast<Server &>(server)[kSSRC];
-
-    if (_is_udp) {
-        //设置udp socket读缓存
-        SockUtil::setRecvBuf(getSock()->rawFD(), 4 * 1024 * 1024);
-        _statistic_udp = std::make_shared<ObjectStatistic<UdpSession> >();
-    } else {
-        _statistic_tcp = std::make_shared<ObjectStatistic<TcpSession> >();
-    }
 }
 
 RtpSession::RtpSession(const Socket::Ptr &sock) : Session(sock) {
     DebugP(this);
     socklen_t addr_len = sizeof(_addr);
     getpeername(sock->rawFD(), (struct sockaddr *)&_addr, &addr_len);
+    _is_udp = sock->sockType() == SockNum::Sock_UDP;
+    if (_is_udp) {
+        // 设置udp socket读缓存
+        SockUtil::setRecvBuf(getSock()->rawFD(), 4 * 1024 * 1024);
+    }
 }
 
 RtpSession::~RtpSession() {
