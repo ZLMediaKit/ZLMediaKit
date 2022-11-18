@@ -15,9 +15,7 @@ using namespace std;
 
 namespace mediakit {
 
-static string getUserName(const Buffer::Ptr &buffer) {
-    auto buf = buffer->data() + 2;
-    auto len = buffer->size() - 2;
+static string getUserName(const char *buf, size_t len) {
     if (!RTC::StunPacket::IsStun((const uint8_t *) buf, len)) {
         return "";
     }
@@ -35,7 +33,7 @@ static string getUserName(const Buffer::Ptr &buffer) {
 }
 
 EventPoller::Ptr WebRtcSession::queryPoller(const Buffer::Ptr &buffer) {
-    auto user_name = getUserName(buffer);
+    auto user_name = getUserName(buffer->data(), buffer->size());
     if (user_name.empty()) {
         return nullptr;
     }
@@ -45,86 +43,42 @@ EventPoller::Ptr WebRtcSession::queryPoller(const Buffer::Ptr &buffer) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-WebRtcSession::WebRtcSession(const Socket::Ptr &sock) : TcpSession(sock) {
+WebRtcSession::WebRtcSession(const Socket::Ptr &sock) : Session(sock) {
     socklen_t addr_len = sizeof(_peer_addr);
     getpeername(sock->rawFD(), (struct sockaddr *)&_peer_addr, &addr_len);
+    _over_tcp = sock->sockType() == SockNum::Sock_TCP;
 }
 
 WebRtcSession::~WebRtcSession() {
     InfoP(this);
 }
 
-/*
- * Framing RFC 4571
- *     0                   1                   2                   3
- *     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
- *     ---------------------------------------------------------------
- *     |             LENGTH            |  RTP or RTCP packet ...   |
- *     ---------------------------------------------------------------
- *      The bit field definition of the framing method
- * A 16-bit unsigned integer LENGTH field, coded in network byte order
- * (big-endian), begins the frame.  If LENGTH is non-zero, an RTP or
- * RTCP packet follows the LENGTH field.  The value coded in the LENGTH
- * field MUST equal the number of octets in the RTP or RTCP packet.
- * Zero is a valid value for LENGTH, and it codes the null packet.
- */
-
-void WebRtcSession::onRecv(const Buffer::Ptr &buffer) {
-    //只允许寻找一次transport
-    if (!_transport) {
-        auto user_name = getUserName(buffer);
+void WebRtcSession::onRecv_l(const char *data, size_t len) {
+    if (_find_transport) {
+        // 只允许寻找一次transport
+        _find_transport = false;
+        auto user_name = getUserName(data, len);
         auto transport = WebRtcTransportManager::Instance().getItem(user_name);
-        //TODO fix this poller is not current thread
-        //CHECK(transport && transport->getPoller()->isCurrentThread());
+        CHECK(transport && transport->getPoller()->isCurrentThread());
         transport->setSession(shared_from_this());
         _transport = std::move(transport);
         InfoP(this);
     }
     _ticker.resetTime();
     CHECK(_transport);
-    //_transport->inputSockData(buffer->data() + 2, buffer->size() - 2, (struct sockaddr *)&_peer_addr);
+    _transport->inputSockData((char *)data, len, (struct sockaddr *)&_peer_addr);
+}
 
-    //一个tcp数据包里面可能会有多帧
-    uint8_t* buf = reinterpret_cast<uint8_t *>(buffer->data());
-    size_t buf_size = buffer->size();
-    size_t frame_start = 0;
-    size_t remian_len  = 0;
-    size_t frame_size = 0;
-    for (;;) {
-        remian_len = buf_size - frame_start;
-        if(remian_len >= 2){
-            frame_size = size_t { Utils::Byte::Get2Bytes(buf + frame_start, 0) };
-        }
-        //解析出来了一帧tcp frame
-        if (remian_len >= 2 && remian_len >= 2 + frame_size) {
-            const uint8_t *frame = buf + frame_start + 2;
-            if(frame_size != 0){
-                _transport->inputSockData((char *)frame, frame_size, (struct sockaddr *)&_peer_addr);
-            }
-            //数据全部解析完毕
-            if((frame_start + 2 + frame_size) == buf_size){
-                break;
-            }
-            //更新解析buf的起始位置
-            else{
-                frame_start += (2 + frame_size);
-            }
-            //还有数据 需要继续解析
-            if (buf_size > frame_start) {
-                continue;
-            }
-            break;
-        }
-        //包解析出错了 丢弃
-        else{
-            WarnL<<"Incomplete packet";
-            break;
-        }
+void WebRtcSession::onRecv(const Buffer::Ptr &buffer) {
+    if (_over_tcp) {
+        input(buffer->data(), buffer->size());
+    } else {
+        onRecv_l(buffer->data(), buffer->size());
     }
 }
 
 void WebRtcSession::onError(const SockException &err) {
-    //udp链接超时，但是rtc链接不一定超时，因为可能存在udp链接迁移的情况
+    //udp链接超时，但是rtc链接不一定超时，因为可能存在链接迁移的情况
     //在udp链接迁移时，新的WebRtcSession对象将接管WebRtcTransport对象的生命周期
     //本WebRtcSession对象将在超时后自动销毁
     WarnP(this) << err.what();
@@ -148,6 +102,25 @@ void WebRtcSession::onManager() {
         shutdown(SockException(Err_timeout, "webrtc connection timeout"));
         return;
     }
+}
+
+ssize_t WebRtcSession::onRecvHeader(const char *data, size_t len) {
+    onRecv_l(data + 2, len - 2);
+    return 0;
+}
+
+const char *WebRtcSession::onSearchPacketTail(const char *data, size_t len) {
+    if (len < 2) {
+        // 数据不够
+        return nullptr;
+    }
+    uint16_t length = (((uint8_t *)data)[0] << 8) | ((uint8_t *)data)[1];
+    if (len < (size_t)(length + 2)) {
+        // 数据不够
+        return nullptr;
+    }
+    // 返回rtp包末尾
+    return data + 2 + length;
 }
 
 }// namespace mediakit
