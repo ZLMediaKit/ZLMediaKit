@@ -23,7 +23,6 @@ namespace mediakit{
 class RtpSession : public toolkit::Session, public RtpSplitter, public MediaSourceEvent {
 public:
     static const std::string kStreamID;
-    static const std::string kIsUDP;
     static const std::string kSSRC;
 
     RtpSession(const toolkit::Socket::Ptr &sock);
@@ -50,8 +49,6 @@ private:
     std::string _stream_id;
     struct sockaddr_storage _addr;
     RtpProcess::Ptr _process;
-    std::shared_ptr<toolkit::ObjectStatistic<toolkit::TcpSession> > _statistic_tcp;
-    std::shared_ptr<toolkit::ObjectStatistic<toolkit::UdpSession> > _statistic_udp;
 };
 
 }//namespace mediakit
