@@ -128,7 +128,7 @@ a=rtcp-fb:108 nack pli
 a=fmtp:108 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f
 a=rtpmap:109 rtx/90000
 a=fmtp:109 apt=108
-a=rtpmap:35 AV1X/90000
+a=rtpmap:35 AV1/90000
 a=rtcp-fb:35 goog-remb
 a=rtcp-fb:35 transport-cc
 a=rtcp-fb:35 ccm fir
