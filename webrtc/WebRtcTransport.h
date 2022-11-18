@@ -179,7 +179,7 @@ private:
     std::shared_ptr<RTC::SrtpSession> _srtp_session_send;
     std::shared_ptr<RTC::SrtpSession> _srtp_session_recv;
     Ticker _ticker;
-    //循环池
+    // 循环池
     ResourcePool<BufferRaw> _packet_pool;
 
 #ifdef ENABLE_SCTP

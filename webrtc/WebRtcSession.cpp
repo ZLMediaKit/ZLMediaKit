@@ -15,9 +15,7 @@ using namespace std;
 
 namespace mediakit {
 
-static string getUserName(const Buffer::Ptr &buffer) {
-    auto buf = buffer->data();
-    auto len = buffer->size();
+static string getUserName(const char *buf, size_t len) {
     if (!RTC::StunPacket::IsStun((const uint8_t *) buf, len)) {
         return "";
     }
@@ -35,7 +33,7 @@ static string getUserName(const Buffer::Ptr &buffer) {
 }
 
 EventPoller::Ptr WebRtcSession::queryPoller(const Buffer::Ptr &buffer) {
-    auto user_name = getUserName(buffer);
+    auto user_name = getUserName(buffer->data(), buffer->size());
     if (user_name.empty()) {
         return nullptr;
     }
@@ -45,20 +43,21 @@ EventPoller::Ptr WebRtcSession::queryPoller(const Buffer::Ptr &buffer) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-WebRtcSession::WebRtcSession(const Socket::Ptr &sock) : UdpSession(sock) {
+WebRtcSession::WebRtcSession(const Socket::Ptr &sock) : Session(sock) {
     socklen_t addr_len = sizeof(_peer_addr);
     getpeername(sock->rawFD(), (struct sockaddr *)&_peer_addr, &addr_len);
+    _over_tcp = sock->sockType() == SockNum::Sock_TCP;
 }
 
 WebRtcSession::~WebRtcSession() {
     InfoP(this);
 }
 
-void WebRtcSession::onRecv(const Buffer::Ptr &buffer) {
+void WebRtcSession::onRecv_l(const char *data, size_t len) {
     if (_find_transport) {
-        //只允许寻找一次transport
+        // 只允许寻找一次transport
         _find_transport = false;
-        auto user_name = getUserName(buffer);
+        auto user_name = getUserName(data, len);
         auto transport = WebRtcTransportManager::Instance().getItem(user_name);
         CHECK(transport && transport->getPoller()->isCurrentThread());
         transport->setSession(shared_from_this());
@@ -67,11 +66,19 @@ void WebRtcSession::onRecv(const Buffer::Ptr &buffer) {
     }
     _ticker.resetTime();
     CHECK(_transport);
-    _transport->inputSockData(buffer->data(), buffer->size(), (struct sockaddr *)&_peer_addr);
+    _transport->inputSockData((char *)data, len, (struct sockaddr *)&_peer_addr);
+}
+
+void WebRtcSession::onRecv(const Buffer::Ptr &buffer) {
+    if (_over_tcp) {
+        input(buffer->data(), buffer->size());
+    } else {
+        onRecv_l(buffer->data(), buffer->size());
+    }
 }
 
 void WebRtcSession::onError(const SockException &err) {
-    //udp链接超时，但是rtc链接不一定超时，因为可能存在udp链接迁移的情况
+    //udp链接超时，但是rtc链接不一定超时，因为可能存在链接迁移的情况
     //在udp链接迁移时，新的WebRtcSession对象将接管WebRtcTransport对象的生命周期
     //本WebRtcSession对象将在超时后自动销毁
     WarnP(this) << err.what();
@@ -95,6 +102,25 @@ void WebRtcSession::onManager() {
         shutdown(SockException(Err_timeout, "webrtc connection timeout"));
         return;
     }
+}
+
+ssize_t WebRtcSession::onRecvHeader(const char *data, size_t len) {
+    onRecv_l(data + 2, len - 2);
+    return 0;
+}
+
+const char *WebRtcSession::onSearchPacketTail(const char *data, size_t len) {
+    if (len < 2) {
+        // 数据不够
+        return nullptr;
+    }
+    uint16_t length = (((uint8_t *)data)[0] << 8) | ((uint8_t *)data)[1];
+    if (len < (size_t)(length + 2)) {
+        // 数据不够
+        return nullptr;
+    }
+    // 返回rtp包末尾
+    return data + 2 + length;
 }
 
 }// namespace mediakit

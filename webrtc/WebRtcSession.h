@@ -15,10 +15,11 @@
 #include "Network/Session.h"
 #include "IceServer.hpp"
 #include "WebRtcTransport.h"
+#include "Http/HttpRequestSplitter.h"
 
 namespace mediakit {
 
-class WebRtcSession : public UdpSession {
+class WebRtcSession : public Session, public HttpRequestSplitter {
 public:
     WebRtcSession(const Socket::Ptr &sock);
     ~WebRtcSession() override;
@@ -26,11 +27,17 @@ public:
     void onRecv(const Buffer::Ptr &) override;
     void onError(const SockException &err) override;
     void onManager() override;
-    //std::string getIdentifier() const override;
-
     static EventPoller::Ptr queryPoller(const Buffer::Ptr &buffer);
 
 private:
+    //// HttpRequestSplitter override ////
+    ssize_t onRecvHeader(const char *data, size_t len) override;
+    const char *onSearchPacketTail(const char *data, size_t len) override;
+
+    void onRecv_l(const char *data, size_t len);
+
+private:
+    bool _over_tcp = false;
     bool _find_transport = true;
     Ticker _ticker;
     struct sockaddr_storage _peer_addr;
