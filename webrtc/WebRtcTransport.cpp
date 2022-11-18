@@ -418,9 +418,21 @@ void WebRtcTransportImp::onSendSockData(Buffer::Ptr buf, bool flush, RTC::Transp
         WarnL << "send data failed:" << buf->size();
         return;
     }
+
     // 一次性发送一帧的rtp数据，提高网络io性能
-    _selected_session->setSendFlushFlag(flush);
+    if (_selected_session->getSock()->sockType() == SockNum::Sock_TCP) {
+        // 增加tcp两字节头
+        auto len = buf->size();
+        char tcp_len[2] = { 0 };
+        tcp_len[0] = (len >> 8) & 0xff;
+        tcp_len[1] = len & 0xff;
+        _selected_session->SockSender::send(tcp_len, 2);
+    }
     _selected_session->send(std::move(buf));
+
+    if (flush) {
+        _selected_session->flushAll();
+    }
 }
 
 ///////////////////////////////////////////////////////////////////
@@ -590,6 +602,9 @@ makeIceCandidate(std::string ip, uint16_t port, uint32_t priority = 100, std::st
     candidate->address = ip;
     candidate->port = port;
     candidate->type = "host";
+    if (proto == "tcp") {
+        candidate->type += " tcptype passive";
+    }
     return candidate;
 }
 
@@ -609,11 +624,13 @@ void WebRtcTransportImp::onRtcConfigure(RtcConfigure &configure) const {
     if (extern_ips.empty()) {
         std::string localIp = SockUtil::get_local_ip();
         configure.addCandidate(*makeIceCandidate(localIp, local_port, 120, "udp"));
+        configure.addCandidate(*makeIceCandidate(localIp, local_port, 110, "tcp"));
     } else {
         const uint32_t delta = 10;
         uint32_t priority = 100 + delta * extern_ips.size();
         for (auto ip : extern_ips) {
-            configure.addCandidate(*makeIceCandidate(ip, local_port, priority, "udp"));
+            configure.addCandidate(*makeIceCandidate(ip, local_port, priority + 5, "udp"));
+            configure.addCandidate(*makeIceCandidate(ip, local_port, priority, "tcp"));
             priority -= delta;
         }
     }
@@ -1042,6 +1059,7 @@ void WebRtcTransportImp::setSession(Session::Ptr session) {
               << session->get_peer_port() << ", id:" << getIdentifier();
     }
     _selected_session = std::move(session);
+    _selected_session->setSendFlushFlag(false);
     unrefSelf();
 }
 
