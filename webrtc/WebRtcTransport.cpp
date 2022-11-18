@@ -602,6 +602,9 @@ makeIceCandidate(std::string ip, uint16_t port, uint32_t priority = 100, std::st
     candidate->address = ip;
     candidate->port = port;
     candidate->type = "host";
+    if (proto == "tcp") {
+        candidate->type += " tcptype passive";
+    }
     return candidate;
 }
 
