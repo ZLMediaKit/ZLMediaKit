@@ -17,6 +17,10 @@
 #include "WebRtcTransport.h"
 #include "Http/HttpRequestSplitter.h"
 
+namespace toolkit {
+    class TcpServer;
+}
+
 namespace mediakit {
 
 class WebRtcSession : public Session, public HttpRequestSplitter {
@@ -24,6 +28,7 @@ public:
     WebRtcSession(const Socket::Ptr &sock);
     ~WebRtcSession() override;
 
+    void attachServer(const Server &server) override;
     void onRecv(const Buffer::Ptr &) override;
     void onError(const SockException &err) override;
     void onManager() override;
@@ -41,6 +46,7 @@ private:
     bool _find_transport = true;
     Ticker _ticker;
     struct sockaddr_storage _peer_addr;
+    std::weak_ptr<toolkit::TcpServer> _server;
     std::shared_ptr<WebRtcTransportImp> _transport;
 };
 

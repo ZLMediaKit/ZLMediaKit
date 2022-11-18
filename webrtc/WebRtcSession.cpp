@@ -10,6 +10,7 @@
 
 #include "WebRtcSession.h"
 #include "Util/util.h"
+#include "Network/TcpServer.h"
 
 using namespace std;
 
@@ -53,13 +54,34 @@ WebRtcSession::~WebRtcSession() {
     InfoP(this);
 }
 
+void WebRtcSession::attachServer(const Server &server) {
+    _server = std::dynamic_pointer_cast<toolkit::TcpServer>(const_cast<Server &>(server).shared_from_this());
+}
+
 void WebRtcSession::onRecv_l(const char *data, size_t len) {
     if (_find_transport) {
         // 只允许寻找一次transport
         _find_transport = false;
         auto user_name = getUserName(data, len);
         auto transport = WebRtcTransportManager::Instance().getItem(user_name);
-        CHECK(transport && transport->getPoller()->isCurrentThread());
+        CHECK(transport);
+
+        //WebRtcTransport在其他poller线程上，需要切换poller线程并重新创建WebRtcSession对象
+        if (!transport->getPoller()->isCurrentThread()) {
+            auto sock = Socket::createSocket(transport->getPoller());
+            sock->cloneFromPeerSocket(*(getSock()));
+            auto server = _server;
+            std::string str(data, len);
+            sock->getPoller()->async([sock, server, str](){
+                auto strong_server = server.lock();
+                if (strong_server) {
+                    auto session = static_pointer_cast<WebRtcSession>(strong_server->createSession(sock));
+                    session->onRecv_l(str.data(), str.size());
+                }
+            });
+            throw std::runtime_error("webrtc over tcp change poller: " + getPoller()->getThreadName() + " -> " + sock->getPoller()->getThreadName());
+        }
+
         transport->setSession(shared_from_this());
         _transport = std::move(transport);
         InfoP(this);
