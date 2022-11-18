@@ -292,6 +292,7 @@ int start_main(int argc,char *argv[]) {
             return Socket::createSocket(new_poller, false);
         });
         uint16_t rtcPort = mINI::Instance()[Rtc::kPort];
+        uint16_t rtcTcpPort = mINI::Instance()[Rtc::kTcpPort];
 #endif//defined(ENABLE_WEBRTC)
 
 
@@ -338,7 +339,10 @@ int start_main(int argc,char *argv[]) {
 
 #if defined(ENABLE_WEBRTC)
             //webrtc udp服务器
-            if (rtcPort) { rtcSrv_udp->start<WebRtcSession>(rtcPort); rtcSrv_tcp->start<WebRtcSession>(rtcPort); }
+            if (rtcPort) { rtcSrv_udp->start<WebRtcSession>(rtcPort);}
+
+            if (rtcTcpPort) { rtcSrv_tcp->start<WebRtcSession>(rtcTcpPort);}
+             
 #endif//defined(ENABLE_WEBRTC)
 
 #if defined(ENABLE_SRT)
