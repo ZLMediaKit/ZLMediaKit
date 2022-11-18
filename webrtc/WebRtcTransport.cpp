@@ -44,11 +44,14 @@ const string kRembBitRate = RTC_FIELD "rembBitRate";
 // webrtc单端口udp服务器
 const string kPort = RTC_FIELD "port";
 
+const string kTcpPort = RTC_FIELD "tcpPort";
+
 static onceToken token([]() {
     mINI::Instance()[kTimeOutSec] = 15;
     mINI::Instance()[kExternIP] = "";
     mINI::Instance()[kRembBitRate] = 0;
     mINI::Instance()[kPort] = 8000;
+    mINI::Instance()[kTcpPort] = 8000;
 });
 
 } // namespace RTC
@@ -612,6 +615,7 @@ void WebRtcTransportImp::onRtcConfigure(RtcConfigure &configure) const {
     WebRtcTransport::onRtcConfigure(configure);
 
     GET_CONFIG(uint16_t, local_port, Rtc::kPort);
+    GET_CONFIG(uint16_t, local_tcp_port, Rtc::kTcpPort);
     // 添加接收端口candidate信息
     GET_CONFIG_FUNC(std::vector<std::string>, extern_ips, Rtc::kExternIP, [](string str) {
         std::vector<std::string> ret;
@@ -624,13 +628,13 @@ void WebRtcTransportImp::onRtcConfigure(RtcConfigure &configure) const {
     if (extern_ips.empty()) {
         std::string localIp = SockUtil::get_local_ip();
         configure.addCandidate(*makeIceCandidate(localIp, local_port, 120, "udp"));
-        configure.addCandidate(*makeIceCandidate(localIp, local_port, 110, "tcp"));
+        configure.addCandidate(*makeIceCandidate(localIp, local_tcp_port, 110, "tcp"));
     } else {
         const uint32_t delta = 10;
         uint32_t priority = 100 + delta * extern_ips.size();
         for (auto ip : extern_ips) {
             configure.addCandidate(*makeIceCandidate(ip, local_port, priority + 5, "udp"));
-            configure.addCandidate(*makeIceCandidate(ip, local_port, priority, "tcp"));
+            configure.addCandidate(*makeIceCandidate(ip, local_tcp_port, priority, "tcp"));
             priority -= delta;
         }
     }
