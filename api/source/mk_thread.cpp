@@ -18,7 +18,7 @@ using namespace toolkit;
 
 API_EXPORT mk_thread API_CALL mk_thread_from_tcp_session(mk_tcp_session ctx){
     assert(ctx);
-    TcpSessionForC *obj = (TcpSessionForC *)ctx;
+    SessionForC *obj = (SessionForC *)ctx;
     return obj->getPoller().get();
 }
 

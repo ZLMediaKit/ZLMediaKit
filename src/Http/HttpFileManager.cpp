@@ -181,7 +181,7 @@ static bool makeFolderMenu(const string &httpPath, const string &strFullPath, st
 }
 
 //拦截hls的播放请求
-static bool emitHlsPlayed(const Parser &parser, const MediaInfo &media_info, const HttpSession::HttpAccessPathInvoker &invoker,TcpSession &sender){
+static bool emitHlsPlayed(const Parser &parser, const MediaInfo &media_info, const HttpSession::HttpAccessPathInvoker &invoker,Session &sender){
     //访问的hls.m3u8结尾，我们转换成kBroadcastMediaPlayed事件
     Broadcast::AuthInvoker auth_invoker = [invoker](const string &err) {
         //cookie有效期为kHlsCookieSecond
@@ -236,7 +236,7 @@ public:
  * 4、cookie中记录的url参数是否跟本次url参数一致，如果一致直接返回客户端错误码
  * 5、触发kBroadcastHttpAccess事件
  */
-static void canAccessPath(TcpSession &sender, const Parser &parser, const MediaInfo &media_info, bool is_dir,
+static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo &media_info, bool is_dir,
                           const function<void(const string &err_msg, const HttpServerCookie::Ptr &cookie)> &callback) {
     //获取用户唯一id
     auto uid = parser.Params();
@@ -353,7 +353,7 @@ static string pathCat(const string &a, const string &b){
  * @param file_path 文件绝对路径
  * @param cb 回调对象
  */
-static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo &media_info, const string &file_path, const HttpFileManager::invoker &cb) {
+static void accessFile(Session &sender, const Parser &parser, const MediaInfo &media_info, const string &file_path, const HttpFileManager::invoker &cb) {
     bool is_hls = end_with(file_path, kHlsSuffix);
     if (!is_hls && !File::fileExist(file_path.data())) {
         //文件不存在且不是hls,那么直接返回404
@@ -366,7 +366,7 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
         replace(const_cast<string &>(media_info._streamid), kHlsSuffix, "");
     }
 
-    weak_ptr<TcpSession> weakSession = sender.shared_from_this();
+    weak_ptr<Session> weakSession = sender.shared_from_this();
     //判断是否有权限访问该文件
     canAccessPath(sender, parser, media_info, false, [cb, file_path, parser, is_hls, media_info, weakSession](const string &err_msg, const HttpServerCookie::Ptr &cookie) {
         auto strongSession = weakSession.lock();
@@ -456,7 +456,7 @@ static void accessFile(TcpSession &sender, const Parser &parser, const MediaInfo
     });
 }
 
-static string getFilePath(const Parser &parser,const MediaInfo &media_info, TcpSession &sender){
+static string getFilePath(const Parser &parser,const MediaInfo &media_info, Session &sender){
     GET_CONFIG(bool, enableVhost, General::kEnableVhost);
     GET_CONFIG(string, rootPath, Http::kRootPath);
     GET_CONFIG_FUNC(StrCaseMap, virtualPathMap, Http::kVirtualPath, [](const string &str) {
@@ -491,7 +491,7 @@ static string getFilePath(const Parser &parser,const MediaInfo &media_info, TcpS
  * @param parser http请求
  * @param cb 回调对象
  */
-void HttpFileManager::onAccessPath(TcpSession &sender, Parser &parser, const HttpFileManager::invoker &cb) {
+void HttpFileManager::onAccessPath(Session &sender, Parser &parser, const HttpFileManager::invoker &cb) {
     auto fullUrl = string(HTTP_SCHEMA) + "://" + parser["Host"] + parser.FullUrl();
     MediaInfo media_info(fullUrl);
     auto file_path = getFilePath(parser, media_info, sender);

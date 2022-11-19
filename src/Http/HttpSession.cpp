@@ -23,7 +23,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-HttpSession::HttpSession(const Socket::Ptr &pSock) : TcpSession(pSock) {
+HttpSession::HttpSession(const Socket::Ptr &pSock) : Session(pSock) {
     TraceP(this);
     GET_CONFIG(uint32_t,keep_alive_sec,Http::kKeepAliveSecond);
     pSock->setSendTimeOutSecond(keep_alive_sec);
@@ -440,7 +440,7 @@ class AsyncSenderData {
 public:
     friend class AsyncSender;
     typedef std::shared_ptr<AsyncSenderData> Ptr;
-    AsyncSenderData(const TcpSession::Ptr &session, const HttpBody::Ptr &body, bool close_when_complete) {
+    AsyncSenderData(const Session::Ptr &session, const HttpBody::Ptr &body, bool close_when_complete) {
         _session = dynamic_pointer_cast<HttpSession>(session);
         _body = body;
         _close_when_complete = close_when_complete;
@@ -675,7 +675,7 @@ std::string HttpSession::get_peer_ip() {
     if(!forwarded_ip_header.empty() && !_parser.getHeader()[forwarded_ip_header].empty()){
         return _parser.getHeader()[forwarded_ip_header];
     }
-    return TcpSession::get_peer_ip();
+    return Session::get_peer_ip();
 }
 
 void HttpSession::Handle_Req_POST(ssize_t &content_len) {

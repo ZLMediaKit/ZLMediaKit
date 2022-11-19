@@ -49,7 +49,7 @@ static unordered_map<string, weak_ptr<RtspSession> > g_mapGetter;
 //对g_mapGetter上锁保护
 static recursive_mutex g_mtxGetter;
 
-RtspSession::RtspSession(const Socket::Ptr &sock) : TcpSession(sock) {
+RtspSession::RtspSession(const Socket::Ptr &sock) : Session(sock) {
     DebugP(this);
     GET_CONFIG(uint32_t,keep_alive_sec,Rtsp::kKeepAliveSecond);
     sock->setSendTimeOutSecond(keep_alive_sec);
@@ -1078,7 +1078,7 @@ ssize_t RtspSession::send(Buffer::Ptr pkt){
 //		DebugP(this) << pkt->data();
 //	}
     _bytes_usage += pkt->size();
-    return TcpSession::send(std::move(pkt));
+    return Session::send(std::move(pkt));
 }
 
 bool RtspSession::sendRtspResponse(const string &res_code, const std::initializer_list<string> &header, const string &sdp, const char *protocol) {

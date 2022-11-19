@@ -22,9 +22,9 @@ using namespace mediakit;
 /**
 * 回显会话
 */
-class EchoSession : public TcpSession {
+class EchoSession : public Session {
 public:
-    EchoSession(const Socket::Ptr &pSock) : TcpSession(pSock){
+    EchoSession(const Socket::Ptr &pSock) : Session(pSock){
         DebugL;
     }
     virtual ~EchoSession(){
@@ -32,7 +32,7 @@ public:
     }
 
     void attachServer(const Server &server) override{
-        DebugL << getIdentifier() << " " << TcpSession::getIdentifier();
+        DebugL << getIdentifier() << " " << Session::getIdentifier();
     }
     void onRecv(const Buffer::Ptr &buffer) override {
         //回显数据
@@ -49,9 +49,9 @@ public:
 };
 
 
-class EchoSessionWithUrl : public TcpSession {
+class EchoSessionWithUrl : public Session {
 public:
-    EchoSessionWithUrl(const Socket::Ptr &pSock) : TcpSession(pSock){
+    EchoSessionWithUrl(const Socket::Ptr &pSock) : Session(pSock){
         DebugL;
     }
     virtual ~EchoSessionWithUrl(){
@@ -59,7 +59,7 @@ public:
     }
 
     void attachServer(const Server &server) override{
-        DebugL << getIdentifier() << " " << TcpSession::getIdentifier();
+        DebugL << getIdentifier() << " " << Session::getIdentifier();
     }
     void onRecv(const Buffer::Ptr &buffer) override {
         //回显数据
@@ -80,13 +80,13 @@ public:
  * 此对象可以根据websocket 客户端访问的url选择创建不同的对象
  */
 struct EchoSessionCreator {
-    //返回的TcpSession必须派生于SendInterceptor，可以返回null(拒绝连接)
-    TcpSession::Ptr operator()(const Parser &header, const HttpSession &parent, const Socket::Ptr &pSock) {
+    //返回的Session必须派生于SendInterceptor，可以返回null(拒绝连接)
+    Session::Ptr operator()(const Parser &header, const HttpSession &parent, const Socket::Ptr &pSock) {
 //        return nullptr;
         if (header.Url() == "/") {
-            return std::make_shared<TcpSessionTypeImp<EchoSession> >(header, parent, pSock);
+            return std::make_shared<SessionTypeImp<EchoSession> >(header, parent, pSock);
         }
-        return std::make_shared<TcpSessionTypeImp<EchoSessionWithUrl> >(header, parent, pSock);
+        return std::make_shared<SessionTypeImp<EchoSessionWithUrl> >(header, parent, pSock);
     }
 };
 
@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) {
         httpsSrv->start<WebSocketSessionBase<EchoSessionCreator, HttpsSession> >(443);//默认443
 
         TcpServer::Ptr httpSrvOld(new TcpServer());
-        //兼容之前的代码(但是不支持根据url选择生成TcpSession类型)
+        //兼容之前的代码(但是不支持根据url选择生成Session类型)
         httpSrvOld->start<WebSocketSession<EchoSession, HttpSession> >(8080);
 
         DebugL << "请打开网页:http://www.websocket-test.com/,进行测试";

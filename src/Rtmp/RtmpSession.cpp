@@ -17,7 +17,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-RtmpSession::RtmpSession(const Socket::Ptr &sock) : TcpSession(sock) {
+RtmpSession::RtmpSession(const Socket::Ptr &sock) : Session(sock) {
     DebugP(this);
     GET_CONFIG(uint32_t,keep_alive_sec,Rtmp::kKeepAliveSecond);
     sock->setSendTimeOutSecond(keep_alive_sec);

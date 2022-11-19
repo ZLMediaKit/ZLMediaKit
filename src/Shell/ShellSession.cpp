@@ -24,7 +24,7 @@ static onceToken s_token([]() {
     REGIST_CMD(media);
 }, nullptr);
 
-ShellSession::ShellSession(const Socket::Ptr &_sock) : TcpSession(_sock) {
+ShellSession::ShellSession(const Socket::Ptr &_sock) : Session(_sock) {
     DebugP(this);
     pleaseInputUser();
 }
