@@ -8,7 +8,7 @@ namespace SRT {
 using namespace mediakit;
 
 SrtSession::SrtSession(const Socket::Ptr &sock)
-    : UdpSession(sock) {
+    : Session(sock) {
     socklen_t addr_len = sizeof(_peer_addr);
     memset(&_peer_addr, 0, addr_len);
     // TraceL<<"before addr len "<<addr_len;

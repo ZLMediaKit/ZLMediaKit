@@ -13,7 +13,7 @@
 
 #if defined(ENABLE_RTPPROXY)
 
-#include "Network/TcpSession.h"
+#include "Network/Session.h"
 #include "RtpSplitter.h"
 #include "RtpProcess.h"
 #include "Util/TimeTicker.h"

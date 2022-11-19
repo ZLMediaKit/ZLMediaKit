@@ -18,7 +18,7 @@
 #include "Util/util.h"
 #include "Util/logger.h"
 #include "Common/config.h"
-#include "Network/TcpSession.h"
+#include "Network/Session.h"
 #include "Player/PlayerBase.h"
 #include "RtpMultiCaster.h"
 #include "RtspMediaSource.h"
@@ -52,7 +52,7 @@ private:
     Buffer::Ptr _rtp;
 };
 
-class RtspSession : public toolkit::TcpSession, public RtspSplitter, public RtpReceiver, public MediaSourceEvent {
+class RtspSession : public toolkit::Session, public RtspSplitter, public RtpReceiver, public MediaSourceEvent {
 public:
     using Ptr = std::shared_ptr<RtspSession>;
     using onGetRealm = std::function<void(const std::string &realm)>;
@@ -62,7 +62,7 @@ public:
 
     RtspSession(const toolkit::Socket::Ptr &sock);
     virtual ~RtspSession();
-    ////TcpSession override////
+    ////Session override////
     void onRecv(const toolkit::Buffer::Ptr &buf) override;
     void onError(const toolkit::SockException &err) override;
     void onManager() override;
@@ -94,7 +94,7 @@ protected:
     // 由于支持断连续推，存在OwnerPoller变更的可能
     toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;
 
-    /////TcpSession override////
+    /////Session override////
     ssize_t send(toolkit::Buffer::Ptr pkt) override;
     //收到RTCP包回调
     virtual void onRtcpPacket(int track_idx, SdpTrack::Ptr &track, const char *data, size_t len);
@@ -225,7 +225,7 @@ private:
 /**
  * 支持ssl加密的rtsp服务器，可用于诸如亚马逊echo show这样的设备访问
  */
-using RtspSessionWithSSL = toolkit::TcpSessionWithSSL<RtspSession>;
+using RtspSessionWithSSL = toolkit::SessionWithSSL<RtspSession>;
 
 } /* namespace mediakit */
 

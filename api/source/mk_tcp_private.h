@@ -13,7 +13,7 @@
 
 #include "mk_tcp.h"
 #include "Network/TcpClient.h"
-#include "Network/TcpSession.h"
+#include "Network/Session.h"
 
 class TcpClientForC : public toolkit::TcpClient {
 public:
@@ -31,10 +31,10 @@ private:
     mk_tcp_client _client;
 };
 
-class TcpSessionForC : public toolkit::TcpSession {
+class SessionForC : public toolkit::Session {
 public:
-    TcpSessionForC(const toolkit::Socket::Ptr &pSock) ;
-    ~TcpSessionForC() override = default;
+    SessionForC(const toolkit::Socket::Ptr &pSock) ;
+    ~SessionForC() override = default;
     void onRecv(const toolkit::Buffer::Ptr &buffer) override ;
     void onError(const toolkit::SockException &err) override;
     void onManager() override;

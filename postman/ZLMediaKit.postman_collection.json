@@ -348,7 +348,7 @@
 			"response": []
 		},
 		{
-			"name": "获取TcpSession列表(getAllSession)",
+			"name": "获取Session列表(getAllSession)",
 			"request": {
 				"method": "GET",
 				"header": [],

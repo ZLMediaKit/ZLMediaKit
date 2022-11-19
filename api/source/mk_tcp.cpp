@@ -109,19 +109,19 @@ API_EXPORT uint16_t API_CALL mk_sock_info_local_port(const mk_sock_info ctx){
 ////////////////////////////////////////////////////////////////////////////////////////
 API_EXPORT mk_sock_info API_CALL mk_tcp_session_get_sock_info(const mk_tcp_session ctx){
     assert(ctx);
-    TcpSessionForC *session = (TcpSessionForC *)ctx;
+    SessionForC *session = (SessionForC *)ctx;
     return (SockInfo *)session;
 }
 
 API_EXPORT void API_CALL mk_tcp_session_shutdown(const mk_tcp_session ctx,int err,const char *err_msg){
     assert(ctx);
-    TcpSessionForC *session = (TcpSessionForC *)ctx;
+    SessionForC *session = (SessionForC *)ctx;
     session->safeShutdown(SockException((ErrCode)err,err_msg));
 }
 
 API_EXPORT void API_CALL mk_tcp_session_send_buffer(const mk_tcp_session ctx, mk_buffer buffer) {
     assert(ctx && buffer);
-    TcpSessionForC *session = (TcpSessionForC *) ctx;
+    SessionForC *session = (SessionForC *) ctx;
     session->send(*((Buffer::Ptr *) buffer));
 }
 
@@ -134,9 +134,9 @@ API_EXPORT void API_CALL mk_tcp_session_send(const mk_tcp_session ctx, const cha
 API_EXPORT void API_CALL mk_tcp_session_send_buffer_safe(const mk_tcp_session ctx, mk_buffer buffer) {
     assert(ctx && buffer);
     try {
-        std::weak_ptr<TcpSession> weak_session = ((TcpSessionForC *) ctx)->shared_from_this();
+        std::weak_ptr<Session> weak_session = ((SessionForC *) ctx)->shared_from_this();
         auto ref = mk_buffer_ref(buffer);
-        ((TcpSessionForC *) ctx)->async([weak_session, ref]() {
+        ((SessionForC *) ctx)->async([weak_session, ref]() {
             auto session_session = weak_session.lock();
             if (session_session) {
                 session_session->send(*((Buffer::Ptr *) ref));
@@ -149,16 +149,16 @@ API_EXPORT void API_CALL mk_tcp_session_send_buffer_safe(const mk_tcp_session ct
 }
 
 API_EXPORT mk_tcp_session_ref API_CALL mk_tcp_session_ref_from(const mk_tcp_session ctx) {
-    auto ref = ((TcpSessionForC *) ctx)->shared_from_this();
-    return new std::shared_ptr<TcpSessionForC>(std::dynamic_pointer_cast<TcpSessionForC>(ref));
+    auto ref = ((SessionForC *) ctx)->shared_from_this();
+    return new std::shared_ptr<SessionForC>(std::dynamic_pointer_cast<SessionForC>(ref));
 }
 
 API_EXPORT void mk_tcp_session_ref_release(const mk_tcp_session_ref ref) {
-    delete (std::shared_ptr<TcpSessionForC> *) ref;
+    delete (std::shared_ptr<SessionForC> *) ref;
 }
 
 API_EXPORT mk_tcp_session mk_tcp_session_from_ref(const mk_tcp_session_ref ref) {
-    return ((std::shared_ptr<TcpSessionForC> *) ref)->get();
+    return ((std::shared_ptr<SessionForC> *) ref)->get();
 }
 
 API_EXPORT void API_CALL mk_tcp_session_send_safe(const mk_tcp_session ctx, const char *data, size_t len) {
@@ -167,30 +167,30 @@ API_EXPORT void API_CALL mk_tcp_session_send_safe(const mk_tcp_session ctx, cons
     mk_buffer_unref(buffer);
 }
 
-////////////////////////////////////////TcpSessionForC////////////////////////////////////////////////
+////////////////////////////////////////SessionForC////////////////////////////////////////////////
 static TcpServer::Ptr s_tcp_server[4];
 static mk_tcp_session_events s_events_server = {0};
 
-TcpSessionForC::TcpSessionForC(const Socket::Ptr &pSock) : TcpSession(pSock) {
+SessionForC::SessionForC(const Socket::Ptr &pSock) : Session(pSock) {
     _local_port = get_local_port();
     if (s_events_server.on_mk_tcp_session_create) {
         s_events_server.on_mk_tcp_session_create(_local_port,this);
     }
 }
 
-void TcpSessionForC::onRecv(const Buffer::Ptr &buffer) {
+void SessionForC::onRecv(const Buffer::Ptr &buffer) {
     if (s_events_server.on_mk_tcp_session_data) {
         s_events_server.on_mk_tcp_session_data(_local_port, this, (mk_buffer)&buffer);
     }
 }
 
-void TcpSessionForC::onError(const SockException &err) {
+void SessionForC::onError(const SockException &err) {
     if (s_events_server.on_mk_tcp_session_disconnect) {
         s_events_server.on_mk_tcp_session_disconnect(_local_port,this, err.getErrCode(), err.what());
     }
 }
 
-void TcpSessionForC::onManager() {
+void SessionForC::onManager() {
     if (s_events_server.on_mk_tcp_session_manager) {
         s_events_server.on_mk_tcp_session_manager(_local_port,this);
     }
@@ -202,13 +202,13 @@ void stopAllTcpServer(){
 
 API_EXPORT void API_CALL mk_tcp_session_set_user_data(mk_tcp_session session,void *user_data){
     assert(session);
-    TcpSessionForC *obj = (TcpSessionForC *)session;
+    SessionForC *obj = (SessionForC *)session;
     obj->_user_data = user_data;
 }
 
 API_EXPORT void* API_CALL mk_tcp_session_get_user_data(mk_tcp_session session){
     assert(session);
-    TcpSessionForC *obj = (TcpSessionForC *)session;
+    SessionForC *obj = (SessionForC *)session;
     return obj->_user_data;
 }
 
@@ -226,18 +226,18 @@ API_EXPORT uint16_t API_CALL mk_tcp_server_start(uint16_t port, mk_tcp_type type
         s_tcp_server[type] = std::make_shared<TcpServer>();
         switch (type) {
             case mk_type_tcp:
-                s_tcp_server[type]->start<TcpSessionForC>(port);
+                s_tcp_server[type]->start<SessionForC>(port);
                 break;
             case mk_type_ssl:
-                s_tcp_server[type]->start<TcpSessionWithSSL<TcpSessionForC> >(port);
+                s_tcp_server[type]->start<SessionWithSSL<SessionForC> >(port);
                 break;
             case mk_type_ws:
                 //此处你也可以修改WebSocketHeader::BINARY
-                s_tcp_server[type]->start<WebSocketSession<TcpSessionForC, HttpSession, WebSocketHeader::TEXT> >(port);
+                s_tcp_server[type]->start<WebSocketSession<SessionForC, HttpSession, WebSocketHeader::TEXT> >(port);
                 break;
             case mk_type_wss:
                 //此处你也可以修改WebSocketHeader::BINARY
-                s_tcp_server[type]->start<WebSocketSession<TcpSessionForC, HttpsSession, WebSocketHeader::TEXT> >(port);
+                s_tcp_server[type]->start<WebSocketSession<SessionForC, HttpsSession, WebSocketHeader::TEXT> >(port);
                 break;
             default:
                 return 0;
@@ -295,7 +295,7 @@ TcpClientForC::Ptr *mk_tcp_client_create_l(mk_tcp_client_events *events, mk_tcp_
         case mk_type_tcp:
             return new TcpClientForC::Ptr(new TcpClientForC(events));
         case mk_type_ssl:
-            return (TcpClientForC::Ptr *)new std::shared_ptr<TcpSessionWithSSL<TcpClientForC> >(new TcpSessionWithSSL<TcpClientForC>(events));
+            return (TcpClientForC::Ptr *)new std::shared_ptr<SessionWithSSL<TcpClientForC> >(new SessionWithSSL<TcpClientForC>(events));
         case mk_type_ws:
             //此处你也可以修改WebSocketHeader::BINARY
             return (TcpClientForC::Ptr *)new std::shared_ptr<WebSocketClient<TcpClientForC, WebSocketHeader::TEXT, false> >(new WebSocketClient<TcpClientForC, WebSocketHeader::TEXT, false>(events));

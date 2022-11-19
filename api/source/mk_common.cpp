@@ -174,7 +174,7 @@ API_EXPORT uint16_t API_CALL mk_http_server_start(uint16_t port, int ssl) {
     try {
         http_server[ssl] = std::make_shared<TcpServer>();
         if(ssl){
-            http_server[ssl]->start<TcpSessionWithSSL<HttpSession> >(port);
+            http_server[ssl]->start<SessionWithSSL<HttpSession> >(port);
         } else{
             http_server[ssl]->start<HttpSession>(port);
         }
@@ -191,7 +191,7 @@ API_EXPORT uint16_t API_CALL mk_rtsp_server_start(uint16_t port, int ssl) {
     try {
         rtsp_server[ssl] = std::make_shared<TcpServer>();
         if(ssl){
-            rtsp_server[ssl]->start<TcpSessionWithSSL<RtspSession> >(port);
+            rtsp_server[ssl]->start<SessionWithSSL<RtspSession> >(port);
         }else{
             rtsp_server[ssl]->start<RtspSession>(port);
         }
@@ -208,7 +208,7 @@ API_EXPORT uint16_t API_CALL mk_rtmp_server_start(uint16_t port, int ssl) {
     try {
         rtmp_server[ssl] = std::make_shared<TcpServer>();
         if(ssl){
-            rtmp_server[ssl]->start<TcpSessionWithSSL<RtmpSession> >(port);
+            rtmp_server[ssl]->start<SessionWithSSL<RtmpSession> >(port);
         }else{
             rtmp_server[ssl]->start<RtmpSession>(port);
         }

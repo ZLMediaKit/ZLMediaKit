@@ -11,7 +11,7 @@
 #include "Util/util.h"
 #include "Util/NoticeCenter.h"
 #include "Network/sockutil.h"
-#include "Network/TcpSession.h"
+#include "Network/Session.h"
 #include "MediaSource.h"
 #include "Common/config.h"
 #include "Record/MP4Reader.h"
