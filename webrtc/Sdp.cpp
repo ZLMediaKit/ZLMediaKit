@@ -1204,7 +1204,7 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
         }
 
         for (auto &cand : m.candidate) {
-            if(cand.port){
+            if (cand.port) {
                 sdp_media.addAttr(std::make_shared<SdpAttrCandidate>(cand));
             }
         }
