@@ -185,7 +185,7 @@ static void on_mk_webrtc_get_answer_sdp_func(void *user_data, const char *answer
     mk_http_response_invoker_clone_release(user_data);
     free(response_content);
     if (answer) {
-        free(answer);
+        free((void *)answer);
     }
 }
 /**
