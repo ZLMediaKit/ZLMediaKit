@@ -19,7 +19,7 @@ class WebRtcPlayer : public WebRtcTransportImp {
 public:
     using Ptr = std::shared_ptr<WebRtcPlayer>;
     ~WebRtcPlayer() override = default;
-    static Ptr create(const EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src, const MediaInfo &info);
+    static Ptr create(const EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src, const MediaInfo &info, bool force_tcp = false);
 
 protected:
     ///////WebRtcTransportImp override///////
@@ -29,7 +29,7 @@ protected:
     void onRecvRtp(MediaTrack &track, const std::string &rid, RtpPacket::Ptr rtp) override {};
 
 private:
-    WebRtcPlayer(const EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src, const MediaInfo &info);
+    WebRtcPlayer(const EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src, const MediaInfo &info, bool force_tcp);
 
 private:
     //媒体相关元数据
