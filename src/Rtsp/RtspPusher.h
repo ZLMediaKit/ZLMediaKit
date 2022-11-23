@@ -14,17 +14,14 @@
 #include <string>
 #include <memory>
 #include "RtspMediaSource.h"
-#include "Util/util.h"
-#include "Util/logger.h"
 #include "Poller/Timer.h"
 #include "Network/Socket.h"
 #include "Network/TcpClient.h"
 #include "RtspSplitter.h"
 #include "Pusher/PusherBase.h"
-#include "Rtcp/RtcpContext.h"
 
 namespace mediakit {
-
+class RtcpContext;
 class RtspPusher : public toolkit::TcpClient, public RtspSplitter, public PusherBase {
 public:
     typedef std::shared_ptr<RtspPusher> Ptr;
@@ -96,7 +93,7 @@ private:
     //rtcp发送时间,trackid idx 为数组下标
     toolkit::Ticker _rtcp_send_ticker[2];
     //统计rtp并发送rtcp
-    std::vector<RtcpContext::Ptr> _rtcp_context;
+    std::vector<std::shared_ptr<RtcpContext>> _rtcp_context;
 };
 
 using RtspPusherImp = PusherImp<RtspPusher, PusherBase>;

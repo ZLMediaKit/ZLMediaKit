@@ -59,7 +59,7 @@ protected:
     RingType::Ptr _ring;
 };
 
-class RtpInfo{
+class RtpInfo {
 public:
     using Ptr = std::shared_ptr<RtpInfo>;
 

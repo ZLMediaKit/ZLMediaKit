@@ -14,18 +14,16 @@
 #include <set>
 #include <vector>
 #include <unordered_set>
-#include <unordered_map>
 #include "Network/Session.h"
-#include "RtspMediaSource.h"
 #include "RtspSplitter.h"
 #include "RtpReceiver.h"
+#include "RtspMediaSource.h"
 #include "RtspMediaSourceImp.h"
-#include "Rtcp/RtcpContext.h"
 
 namespace mediakit {
 class RtpMultiCaster;
 class RtspSession;
-
+class RtcpContext;
 using BufferRtp = toolkit::BufferOffset<toolkit::Buffer::Ptr>;
 
 class RtspSession : public toolkit::Session, public RtspSplitter, public RtpReceiver, public MediaSourceEvent {
@@ -195,7 +193,7 @@ private:
     //rtcp发送时间,trackid idx 为数组下标
     toolkit::Ticker _rtcp_send_tickers[2];
     //统计rtp并发送rtcp
-    std::vector<RtcpContext::Ptr> _rtcp_context;
+    std::vector<std::shared_ptr<RtcpContext>> _rtcp_context;
 };
 
 /**

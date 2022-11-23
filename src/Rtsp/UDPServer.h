@@ -15,9 +15,6 @@
 #include <mutex>
 #include <memory>
 #include <unordered_map>
-#include <unordered_set>
-#include "Util/util.h"
-#include "Util/logger.h"
 #include "Network/Socket.h"
 
 namespace mediakit {

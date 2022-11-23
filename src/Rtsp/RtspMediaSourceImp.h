@@ -11,12 +11,11 @@
 #ifndef SRC_RTSP_RTSPTORTMPMEDIASOURCE_H_
 #define SRC_RTSP_RTSPTORTMPMEDIASOURCE_H_
 
-#include "Rtmp/amf.h"
 #include "RtspMediaSource.h"
-#include "RtspDemuxer.h"
 #include "Common/MultiMediaSourceMuxer.h"
 
 namespace mediakit {
+class RtspDemuxer;
 class RtspMediaSourceImp final : public RtspMediaSource, private TrackListener, public MultiMediaSourceMuxer::Listener  {
 public:
     using Ptr = std::shared_ptr<RtspMediaSourceImp>;
@@ -28,70 +27,31 @@ public:
      * @param id 流id
      * @param ringSize 环形缓存大小
      */
-    RtspMediaSourceImp(const std::string &vhost, const std::string &app, const std::string &id, int ringSize = RTP_GOP_SIZE) : RtspMediaSource(vhost, app, id,ringSize) {
-        _demuxer = std::make_shared<RtspDemuxer>();
-        _demuxer->setTrackListener(this);
-    }
+    RtspMediaSourceImp(const std::string &vhost, const std::string &app, const std::string &id, int ringSize = RTP_GOP_SIZE);
 
     ~RtspMediaSourceImp() override = default;
 
     /**
      * 设置sdp
      */
-    void setSdp(const std::string &strSdp) override {
-        if (!getSdp().empty()) {
-            return;
-        }
-        _demuxer->loadSdp(strSdp);
-        RtspMediaSource::setSdp(strSdp);
-    }
+    void setSdp(const std::string &strSdp) override;
 
     /**
      * 输入rtp并解析
      */
-    void onWrite(RtpPacket::Ptr rtp, bool key_pos) override {
-        if (_all_track_ready && !_muxer->isEnabled()) {
-            //获取到所有Track后，并且未开启转协议，那么不需要解复用rtp
-            //在关闭rtp解复用后，无法知道是否为关键帧，这样会导致无法秒开，或者开播花屏
-            key_pos = rtp->type == TrackVideo;
-        } else {
-            //需要解复用rtp
-            key_pos = _demuxer->inputRtp(rtp);
-        }
-        GET_CONFIG(bool, directProxy, Rtsp::kDirectProxy);
-        if (directProxy) {
-            //直接代理模式才直接使用原始rtp
-            RtspMediaSource::onWrite(std::move(rtp), key_pos);
-        }
-    }
+    void onWrite(RtpPacket::Ptr rtp, bool key_pos) override;
 
     /**
      * 获取观看总人数，包括(hls/rtsp/rtmp)
      */
-    int totalReaderCount() override{
+    int totalReaderCount() override {
         return readerCount() + (_muxer ? _muxer->totalReaderCount() : 0);
     }
 
     /**
      * 设置协议转换选项
      */
-    void setProtocolOption(const ProtocolOption &option) {
-        GET_CONFIG(bool, direct_proxy, Rtsp::kDirectProxy);
-        //开启直接代理模式时，rtsp直接代理，不重复产生；但是有些rtsp推流端，由于sdp中已有sps pps，rtp中就不再包括sps pps,
-        //导致rtc无法播放，所以在rtsp推流rtc播放时，建议关闭直接代理模式
-        _option = option;
-        _option.enable_rtsp = !direct_proxy;
-        _muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(), getApp(), getId(), _demuxer->getDuration(), _option);
-        _muxer->setMediaListener(getListener());
-        _muxer->setTrackListener(std::static_pointer_cast<RtspMediaSourceImp>(shared_from_this()));
-        //让_muxer对象拦截一部分事件(比如说录像相关事件)
-        MediaSource::setListener(_muxer);
-
-        for (auto &track : _demuxer->getTracks(false)) {
-            _muxer->addTrack(track);
-            track->addDelegate(_muxer);
-        }
-    }
+    void setProtocolOption(const ProtocolOption &option);
 
     const ProtocolOption &getProtocolOption() const {
         return _option;
@@ -149,7 +109,7 @@ public:
 private:
     bool _all_track_ready = false;
     ProtocolOption _option;
-    RtspDemuxer::Ptr _demuxer;
+    std::shared_ptr<RtspDemuxer> _demuxer;
     MultiMediaSourceMuxer::Ptr _muxer;
 };
 } /* namespace mediakit */
