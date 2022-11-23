@@ -14,12 +14,9 @@
 #include <memory>
 #include <string>
 #include <functional>
+#include <unordered_map>
 #include "amf.h"
 #include "Rtmp.h"
-#include "Util/util.h"
-#include "Util/logger.h"
-#include "Util/TimeTicker.h"
-#include "Network/Socket.h"
 #include "Util/ResourcePool.h"
 #include "Http/HttpRequestSplitter.h"
 

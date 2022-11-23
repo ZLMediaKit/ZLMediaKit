@@ -18,8 +18,6 @@
 #include "Rtmp.h"
 #include "RtmpProtocol.h"
 #include "Player/PlayerBase.h"
-#include "Util/util.h"
-#include "Util/logger.h"
 #include "Util/TimeTicker.h"
 #include "Network/Socket.h"
 #include "Network/TcpClient.h"

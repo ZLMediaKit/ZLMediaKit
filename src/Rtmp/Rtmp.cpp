@@ -12,6 +12,16 @@
 #include "Extension/Factory.h"
 namespace mediakit{
 
+TitleMeta::TitleMeta(float dur_sec, size_t fileSize, const std::map<std::string, std::string> &header)
+{
+    _metadata.set("duration", dur_sec);
+    _metadata.set("fileSize", (int)fileSize);
+    _metadata.set("server", kServerName);
+    for (auto &pr : header) {
+        _metadata.set(pr.first, pr.second);
+    }
+}
+
 VideoMeta::VideoMeta(const VideoTrack::Ptr &video){
     if(video->getVideoWidth() > 0 ){
         _metadata.set("width", video->getVideoWidth());
@@ -144,6 +154,108 @@ RtmpPacket::Ptr RtmpPacket::create(){
 #else
     return Ptr(new RtmpPacket);
 #endif
+}
+
+void RtmpPacket::clear()
+{
+    is_abs_stamp = false;
+    time_stamp = 0;
+    ts_field = 0;
+    body_size = 0;
+    buffer.clear();
+}
+
+bool RtmpPacket::isVideoKeyFrame() const
+{
+    return type_id == MSG_VIDEO && (uint8_t)buffer[0] >> 4 == FLV_KEY_FRAME && (uint8_t)buffer[1] == 1;
+}
+
+bool RtmpPacket::isCfgFrame() const
+{
+    switch (type_id) {
+    case MSG_VIDEO: return buffer[1] == 0;
+    case MSG_AUDIO: {
+        switch (getMediaType()) {
+        case FLV_CODEC_AAC: return buffer[1] == 0;
+        default: return false;
+        }
+    }
+    default: return false;
+    }
+}
+
+int RtmpPacket::getMediaType() const
+{
+    switch (type_id) {
+    case MSG_VIDEO: return (uint8_t)buffer[0] & 0x0F;
+    case MSG_AUDIO: return (uint8_t)buffer[0] >> 4;
+    default: return 0;
+    }
+}
+
+int RtmpPacket::getAudioSampleRate() const
+{
+    if (type_id != MSG_AUDIO) {
+        return 0;
+    }
+    int flvSampleRate = ((uint8_t)buffer[0] & 0x0C) >> 2;
+    const static int sampleRate[] = { 5512, 11025, 22050, 44100 };
+    return sampleRate[flvSampleRate];
+}
+
+int RtmpPacket::getAudioSampleBit() const
+{
+    if (type_id != MSG_AUDIO) {
+        return 0;
+    }
+    int flvSampleBit = ((uint8_t)buffer[0] & 0x02) >> 1;
+    const static int sampleBit[] = { 8, 16 };
+    return sampleBit[flvSampleBit];
+}
+
+int RtmpPacket::getAudioChannel() const
+{
+    if (type_id != MSG_AUDIO) {
+        return 0;
+    }
+    int flvStereoOrMono = (uint8_t)buffer[0] & 0x01;
+    const static int channel[] = { 1, 2 };
+    return channel[flvStereoOrMono];
+}
+
+RtmpPacket & RtmpPacket::operator=(const RtmpPacket &that)
+{
+    is_abs_stamp = that.is_abs_stamp;
+    stream_index = that.stream_index;
+    body_size = that.body_size;
+    type_id = that.type_id;
+    ts_field = that.ts_field;
+    time_stamp = that.time_stamp;
+    return *this;
+}
+
+RtmpHandshake::RtmpHandshake(uint32_t _time, uint8_t *_random /*= nullptr*/)
+{
+    _time = htonl(_time);
+    memcpy(time_stamp, &_time, 4);
+    if (!_random) {
+        random_generate((char *)random, sizeof(random));
+    }
+    else {
+        memcpy(random, _random, sizeof(random));
+    }
+}
+
+void RtmpHandshake::random_generate(char *bytes, int size)
+{
+    static char cdata[] = { 0x73, 0x69, 0x6d, 0x70, 0x6c, 0x65, 0x2d, 0x72,
+                           0x74, 0x6d, 0x70, 0x2d, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72,
+                           0x2d, 0x77, 0x69, 0x6e, 0x6c, 0x69, 0x6e, 0x2d, 0x77, 0x69,
+                           0x6e, 0x74, 0x65, 0x72, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72,
+                           0x40, 0x31, 0x32, 0x36, 0x2e, 0x63, 0x6f, 0x6d };
+    for (int i = 0; i < size; i++) {
+        bytes[i] = cdata[rand() % (sizeof(cdata) - 1)];
+    }
 }
 
 }//namespace mediakit

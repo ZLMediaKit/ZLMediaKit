@@ -128,7 +128,7 @@ void RtmpPusher::onRecv(const Buffer::Ptr &buf){
     }
 }
 
-inline void RtmpPusher::send_connect() {
+void RtmpPusher::send_connect() {
     AMFValue obj(AMF_OBJECT);
     obj.set("app", _app);
     obj.set("type", "nonprivate");
@@ -148,7 +148,7 @@ inline void RtmpPusher::send_connect() {
     });
 }
 
-inline void RtmpPusher::send_createStream() {
+void RtmpPusher::send_createStream() {
     AMFValue obj(AMF_NULL);
     sendInvoke("createStream", obj);
     addOnResultCB([this](AMFDecoder &dec) {
@@ -160,7 +160,7 @@ inline void RtmpPusher::send_createStream() {
 }
 
 #define RTMP_STREAM_LIVE    "live"
-inline void RtmpPusher::send_publish() {
+void RtmpPusher::send_publish() {
     AMFEncoder enc;
     enc << "publish" << ++_send_req_id << nullptr << _stream_id << RTMP_STREAM_LIVE;
     sendRequest(MSG_CMD, enc.data());
@@ -176,7 +176,7 @@ inline void RtmpPusher::send_publish() {
     });
 }
 
-inline void RtmpPusher::send_metaData(){
+void RtmpPusher::send_metaData(){
     auto src = _publish_src.lock();
     if (!src) {
         throw std::runtime_error("the media source was released");

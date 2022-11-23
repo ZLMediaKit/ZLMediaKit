@@ -13,15 +13,11 @@
 
 #include <memory>
 #include <functional>
-#include "Common/config.h"
 #include "RtmpPlayer.h"
 #include "RtmpMediaSource.h"
-#include "RtmpDemuxer.h"
-#include "Poller/Timer.h"
-#include "Util/TimeTicker.h"
 
 namespace mediakit {
-
+class RtmpDemuxer;
 class RtmpPlayerImp: public PlayerImp<RtmpPlayer,PlayerBase>, private TrackListener {
 public:
     using Ptr = std::shared_ptr<RtmpPlayerImp>;
@@ -50,33 +46,15 @@ public:
         seekToMilliSecond(pos);
     }
 
-    float getDuration() const override {
-        return _demuxer ? _demuxer->getDuration() : 0;
-    }
+    float getDuration() const override;
 
-    std::vector<Track::Ptr> getTracks(bool ready = true) const override {
-        return _demuxer ? _demuxer->getTracks(ready) : Super::getTracks(ready);
-    }
+    std::vector<Track::Ptr> getTracks(bool ready = true) const override;
 
 private:
     //派生类回调函数
-    bool onCheckMeta(const AMFValue &val) override {
-        //无metadata或metadata中无track信息时，需要从数据包中获取track
-        _wait_track_ready = (*this)[Client::kWaitTrackReady].as<bool>() || RtmpDemuxer::trackCount(val) == 0;
-        onCheckMeta_l(val);
-        return true;
-    }
+    bool onCheckMeta(const AMFValue &val) override;
 
-    void onMediaData(RtmpPacket::Ptr chunkData) override {
-        if (!_demuxer) {
-            //有些rtmp流没metadata
-            onCheckMeta_l(TitleMeta().getMetadata());
-        }
-        _demuxer->inputRtmp(chunkData);
-        if (_rtmp_src) {
-            _rtmp_src->onWrite(std::move(chunkData));
-        }
-    }
+    void onMediaData(RtmpPacket::Ptr chunkData) override;
 
     void onPlayResult(const toolkit::SockException &ex) override {
         if (!_wait_track_ready || ex) {
@@ -94,23 +72,11 @@ private:
     }
 
 private:
-    void onCheckMeta_l(const AMFValue &val) {
-        _rtmp_src = std::dynamic_pointer_cast<RtmpMediaSource>(_media_src);
-        if (_rtmp_src) {
-            _rtmp_src->setMetaData(val);
-        }
-        if(_demuxer){
-            return;
-        }
-        _demuxer = std::make_shared<RtmpDemuxer>();
-        //TraceL<<" _wait_track_ready "<<_wait_track_ready;
-        _demuxer->setTrackListener(this, _wait_track_ready);
-        _demuxer->loadMetaData(val);
-    }
+    void onCheckMeta_l(const AMFValue &val);
 
 private:
     bool _wait_track_ready = true;
-    RtmpDemuxer::Ptr _demuxer;
+    std::shared_ptr<RtmpDemuxer> _demuxer;
     RtmpMediaSource::Ptr _rtmp_src;
 };
 
