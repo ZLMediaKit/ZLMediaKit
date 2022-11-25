@@ -19,8 +19,7 @@
 #include "Extension/Frame.h"
 #include "Extension/Track.h"
 #include "Common/MediaSink.h"
-#include "Common/Stamp.h"
-
+#include "Util/ResourcePool.h"
 namespace mediakit {
 
 //该类用于产生MPEG-TS/MPEG-PS

@@ -22,6 +22,7 @@
 #include "Opus.h"
 #include "G711.h"
 #include "L16.h"
+#include "Util/base64.h"
 #include "Common/Parser.h"
 #include "Common/config.h"
 

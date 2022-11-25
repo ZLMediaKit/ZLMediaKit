@@ -19,7 +19,6 @@
 #include "RtmpMediaSourceImp.h"
 #include "Util/TimeTicker.h"
 #include "Network/Session.h"
-#include "Common/Stamp.h"
 
 namespace mediakit {
 
