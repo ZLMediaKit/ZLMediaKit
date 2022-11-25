@@ -13,8 +13,6 @@
 #define ZLMEDIAKIT_WEBRTCSESSION_H
 
 #include "Network/Session.h"
-#include "IceServer.hpp"
-#include "WebRtcTransport.h"
 #include "Http/HttpRequestSplitter.h"
 
 namespace toolkit {
@@ -22,6 +20,8 @@ namespace toolkit {
 }
 
 namespace mediakit {
+class WebRtcTransportImp;
+using namespace toolkit;
 
 class WebRtcSession : public Session, public HttpRequestSplitter {
 public:
