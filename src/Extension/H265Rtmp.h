@@ -13,7 +13,6 @@
 
 #include "Rtmp/RtmpCodec.h"
 #include "Extension/Track.h"
-#include "Util/ResourcePool.h"
 #include "Extension/H265.h"
 
 namespace mediakit{

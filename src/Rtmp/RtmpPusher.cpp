@@ -14,6 +14,7 @@
 #include "Util/onceToken.h"
 #include "Thread/ThreadPool.h"
 #include "Common/Parser.h"
+#include "Common/config.h"
 
 using namespace std;
 using namespace toolkit;

@@ -11,6 +11,7 @@
 #include <signal.h>
 #include "Util/logger.h"
 #include <iostream>
+#include "Common/config.h"
 #include "Rtsp/UDPServer.h"
 #include "Player/MediaPlayer.h"
 #include "Util/onceToken.h"

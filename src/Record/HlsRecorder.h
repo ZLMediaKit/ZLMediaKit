@@ -13,6 +13,7 @@
 
 #include "HlsMakerImp.h"
 #include "MPEG.h"
+#include "Common/config.h"
 
 namespace mediakit {
 

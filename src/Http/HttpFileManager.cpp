@@ -19,6 +19,7 @@
 #include "HttpSession.h"
 #include "Record/HlsMediaSource.h"
 #include "Common/Parser.h"
+#include "Common/config.h"
 #include "strCoding.h"
 
 using namespace std;

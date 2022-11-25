@@ -13,6 +13,7 @@
 #include "RtspPusher.h"
 #include "RtspSession.h"
 #include "Rtcp/RtcpContext.h"
+#include "Common/config.h"
 
 using namespace std;
 using namespace toolkit;

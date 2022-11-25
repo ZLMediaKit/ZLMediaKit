@@ -14,7 +14,6 @@
 #include <memory>
 #include <string>
 #include "PusherBase.h"
-#include "Thread/TaskExecutor.h"
 
 namespace mediakit {
 

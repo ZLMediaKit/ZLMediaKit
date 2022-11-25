@@ -15,12 +15,12 @@
 
 #include "Decoder.h"
 #include "ProcessInterface.h"
-#include "Rtsp/RtpCodec.h"
-#include "Rtsp/RtpReceiver.h"
 #include "Http/HttpRequestSplitter.h"
+// for MediaInfo
+#include "Common/MediaSource.h"
 
 namespace mediakit{
-
+class RtpCodec;
 class RtpReceiverImp;
 class GB28181Process : public ProcessInterface {
 public:
