@@ -13,6 +13,7 @@
 
 #include "Common/MediaSource.h"
 #include "Util/TimeTicker.h"
+#include "Util/RingBuffer.h"
 #include <atomic>
 
 namespace mediakit {
@@ -41,42 +42,12 @@ public:
     /**
      * 设置或清空m3u8索引文件内容
      */
-    void setIndexFile(std::string index_file) {
-        if (!_ring) {
-            std::weak_ptr<HlsMediaSource> weakSelf = std::dynamic_pointer_cast<HlsMediaSource>(shared_from_this());
-            auto lam = [weakSelf](int size) {
-                auto strongSelf = weakSelf.lock();
-                if (!strongSelf) {
-                    return;
-                }
-                strongSelf->onReaderChanged(size);
-            };
-            _ring = std::make_shared<RingType>(0, std::move(lam));
-            regist();
-        }
-
-        //赋值m3u8索引文件内容
-        std::lock_guard<std::mutex> lck(_mtx_index);
-        _index_file = std::move(index_file);
-
-        if (!_index_file.empty()) {
-            _list_cb.for_each([&](const std::function<void(const std::string &str)> &cb) { cb(_index_file); });
-            _list_cb.clear();
-        }
-    }
+    void setIndexFile(std::string index_file);
 
     /**
      * 异步获取m3u8文件
      */
-    void getIndexFile(std::function<void(const std::string &str)> cb) {
-        std::lock_guard<std::mutex> lck(_mtx_index);
-        if (!_index_file.empty()) {
-            cb(_index_file);
-            return;
-        }
-        //等待生成m3u8文件
-        _list_cb.emplace_back(std::move(cb));
-    }
+    void getIndexFile(std::function<void(const std::string &str)> cb);
 
     /**
      * 同步获取m3u8文件

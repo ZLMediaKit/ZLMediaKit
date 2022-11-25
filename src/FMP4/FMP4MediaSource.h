@@ -12,6 +12,8 @@
 #define ZLMEDIAKIT_FMP4MEDIASOURCE_H
 
 #include "Common/MediaSource.h"
+#include "Common/PacketCache.h"
+#include "Util/RingBuffer.h"
 
 #define FMP4_GOP_SIZE 512
 

@@ -13,6 +13,7 @@
 #include "MP4Muxer.h"
 #include "Util/File.h"
 #include "Extension/H264.h"
+#include "Common/config.h"
 
 using namespace std;
 using namespace toolkit;

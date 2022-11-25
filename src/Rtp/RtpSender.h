@@ -15,6 +15,8 @@
 #include "Extension/CommonRtp.h"
 #include "Rtcp/RtcpContext.h"
 #include "Common/MediaSource.h"
+#include "Common/MediaSink.h"
+
 namespace mediakit{
 
 //rtp发送客户端，支持发送GB28181协议

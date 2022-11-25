@@ -13,6 +13,7 @@
 #include "PSEncoder.h"
 #include "Extension/H264.h"
 #include "Rtsp/RtspMuxer.h"
+#include "Common/config.h"
 
 using namespace toolkit;
 
