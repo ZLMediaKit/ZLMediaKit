@@ -124,7 +124,6 @@ MediaSource::MediaSource(const string &schema, const string &vhost, const string
     _app = app;
     _stream_id = stream_id;
     _create_stamp = time(NULL);
-    _default_poller = EventPollerPool::Instance().getPoller();
 }
 
 MediaSource::~MediaSource() {
@@ -289,23 +288,29 @@ toolkit::EventPoller::Ptr MediaSource::getOwnerPoller() {
     if (listener) {
         return listener->getOwnerPoller(*this);
     }
-    WarnL << toolkit::demangle(typeid(*this).name()) + "::getOwnerPoller failed, now return default poller: " + getUrl();
-    return _default_poller;
+    throw std::runtime_error(toolkit::demangle(typeid(*this).name()) + "::getOwnerPoller failed: " + getUrl());
 }
 
 void MediaSource::onReaderChanged(int size) {
-    weak_ptr<MediaSource> weak_self = shared_from_this();
-    auto listener = _listener.lock();
-    if (!listener) {
-        return;
+    try {
+        weak_ptr<MediaSource> weak_self = shared_from_this();
+        getOwnerPoller()->async([weak_self, size]() {
+            auto strong_self = weak_self.lock();
+            if (!strong_self) {
+                return;
+            }
+            auto listener = strong_self->_listener.lock();
+            if (listener) {
+                listener->onReaderChanged(*strong_self, size);
+            }
+        });
+    } catch (MediaSourceEvent::NotImplemented &ex) {
+        // 未实现接口，应该打印异常
+        WarnL << ex.what();
+    } catch (...) {
+        // getOwnerPoller()接口抛异常机制应该只对外不对内
+        // 所以listener已经销毁导致获取归属线程失败的异常直接忽略
     }
-    getOwnerPoller()->async([weak_self, size, listener]() {
-        auto strong_self = weak_self.lock();
-        if (!strong_self) {
-            return;
-        }
-        listener->onReaderChanged(*strong_self, size);
-    });
 }
 
 bool MediaSource::setupRecord(Recorder::type type, bool start, const string &custom_path, size_t max_second){
