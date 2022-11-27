@@ -69,6 +69,7 @@ void WebRtcSession::onRecv_l(const char *data, size_t len) {
         //WebRtcTransport在其他poller线程上，需要切换poller线程并重新创建WebRtcSession对象
         if (!transport->getPoller()->isCurrentThread()) {
             auto sock = Socket::createSocket(transport->getPoller());
+            //1、克隆socket(fd不变)，切换poller线程到WebRtcTransport所在线程
             sock->cloneFromPeerSocket(*(getSock()));
             auto server = _server;
             std::string str(data, len);
@@ -76,9 +77,11 @@ void WebRtcSession::onRecv_l(const char *data, size_t len) {
                 auto strong_server = server.lock();
                 if (strong_server) {
                     auto session = static_pointer_cast<WebRtcSession>(strong_server->createSession(sock));
+                    //2、创建新的WebRtcSession对象(绑定到WebRtcTransport所在线程)，重新处理一遍ice binding request命令
                     session->onRecv_l(str.data(), str.size());
                 }
             });
+            //3、销毁原先的socket和WebRtcSession(原先的对象跟WebRtcTransport不在同一条线程)
             throw std::runtime_error("webrtc over tcp change poller: " + getPoller()->getThreadName() + " -> " + sock->getPoller()->getThreadName());
         }
 

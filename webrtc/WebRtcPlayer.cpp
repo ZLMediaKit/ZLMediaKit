@@ -16,8 +16,9 @@ namespace mediakit {
 
 WebRtcPlayer::Ptr WebRtcPlayer::create(const EventPoller::Ptr &poller,
                                        const RtspMediaSource::Ptr &src,
-                                       const MediaInfo &info) {
-    WebRtcPlayer::Ptr ret(new WebRtcPlayer(poller, src, info), [](WebRtcPlayer *ptr) {
+                                       const MediaInfo &info,
+                                       bool perferred_tcp) {
+    WebRtcPlayer::Ptr ret(new WebRtcPlayer(poller, src, info, perferred_tcp), [](WebRtcPlayer *ptr) {
         ptr->onDestory();
         delete ptr;
     });
@@ -27,7 +28,8 @@ WebRtcPlayer::Ptr WebRtcPlayer::create(const EventPoller::Ptr &poller,
 
 WebRtcPlayer::WebRtcPlayer(const EventPoller::Ptr &poller,
                            const RtspMediaSource::Ptr &src,
-                           const MediaInfo &info) : WebRtcTransportImp(poller) {
+                           const MediaInfo &info,
+                           bool perferred_tcp) : WebRtcTransportImp(poller,perferred_tcp) {
     _media_info = info;
     _play_src = src;
     CHECK(_play_src);
