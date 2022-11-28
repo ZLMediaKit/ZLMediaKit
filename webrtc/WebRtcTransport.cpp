@@ -794,7 +794,7 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
                 _ssrc_to_track.erase(it);
             }
             onRtcpBye();
-            onShutdown(SockException(Err_eof, "rtcp bye message received"));
+            // bye 会在 sender audio track mute 时出现, 因此不能作为 shutdown 的依据
             break;
         }
         case RtcpType::RTCP_PSFB:
