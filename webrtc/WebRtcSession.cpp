@@ -68,7 +68,7 @@ void WebRtcSession::onRecv_l(const char *data, size_t len) {
 
         //WebRtcTransport在其他poller线程上，需要切换poller线程并重新创建WebRtcSession对象
         if (!transport->getPoller()->isCurrentThread()) {
-            auto sock = Socket::createSocket(transport->getPoller());
+            auto sock = Socket::createSocket(transport->getPoller(), false);
             //1、克隆socket(fd不变)，切换poller线程到WebRtcTransport所在线程
             sock->cloneFromPeerSocket(*(getSock()));
             auto server = _server;
