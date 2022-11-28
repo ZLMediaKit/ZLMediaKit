@@ -160,7 +160,6 @@ void WebRtcPusher::OnDtlsTransportClosed(const RTC::DtlsTransport *dtlsTransport
 }
 
 void WebRtcPusher::onRtcpBye(){
-    _push_src = nullptr;
      WebRtcTransportImp::onRtcpBye();
 }
 
