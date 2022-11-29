@@ -16,6 +16,7 @@
 #include "Player/PlayerProxy.h"
 #include "Rtmp/RtmpPusher.h"
 #include "Common/config.h"
+#include "Common/Parser.h"
 #include "Pusher/MediaPusher.h"
 #include "Record/MP4Reader.h"
 

@@ -13,6 +13,7 @@
 #include "RtpServer.h"
 #include "RtpSelector.h"
 #include "Rtcp/RtcpContext.h"
+#include "Common/config.h"
 
 using namespace std;
 using namespace toolkit;

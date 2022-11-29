@@ -15,9 +15,7 @@
 #include <memory>
 #include <unordered_set>
 #include <unordered_map>
-#include "Common/config.h"
 #include "RtspMediaSource.h"
-#include "Util/mini.h"
 #include "Network/Socket.h"
 
 namespace mediakit{

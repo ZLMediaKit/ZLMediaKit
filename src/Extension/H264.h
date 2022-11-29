@@ -13,7 +13,6 @@
 
 #include "Frame.h"
 #include "Track.h"
-#include "Util/base64.h"
 
 #define H264_TYPE(v) ((uint8_t)(v) & 0x1F)
 

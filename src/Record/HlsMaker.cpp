@@ -9,6 +9,7 @@
  */
 
 #include "HlsMaker.h"
+#include "Common/config.h"
 
 using namespace std;
 

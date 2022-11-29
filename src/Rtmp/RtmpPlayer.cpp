@@ -13,6 +13,12 @@
 #include "Util/util.h"
 #include "Util/onceToken.h"
 #include "Thread/ThreadPool.h"
+#include "Common/config.h"
+#include "Common/Parser.h"
+
+#include "RtmpDemuxer.h"
+#include "RtmpPlayerImp.h"
+
 using namespace toolkit;
 using namespace std;
 
@@ -171,7 +177,7 @@ void RtmpPlayer::speed(float speed) {
     //todo
 }
 
-inline void RtmpPlayer::send_connect() {
+void RtmpPlayer::send_connect() {
     AMFValue obj(AMF_OBJECT);
     obj.set("app", _app);
     obj.set("tcUrl", _tc_url);
@@ -199,7 +205,7 @@ inline void RtmpPlayer::send_connect() {
     });
 }
 
-inline void RtmpPlayer::send_createStream() {
+void RtmpPlayer::send_createStream() {
     AMFValue obj(AMF_NULL);
     sendInvoke("createStream", obj);
     addOnResultCB([this](AMFDecoder &dec) {
@@ -210,7 +216,7 @@ inline void RtmpPlayer::send_createStream() {
     });
 }
 
-inline void RtmpPlayer::send_play() {
+void RtmpPlayer::send_play() {
     AMFEncoder enc;
     enc << "play" << ++_send_req_id << nullptr << _stream_id << -2000;
     sendRequest(MSG_CMD, enc.data());
@@ -226,7 +232,7 @@ inline void RtmpPlayer::send_play() {
     addOnStatusCB(fun);
 }
 
-inline void RtmpPlayer::send_pause(bool pause) {
+void RtmpPlayer::send_pause(bool pause) {
     AMFEncoder enc;
     enc << "pause" << ++_send_req_id << nullptr << pause;
     sendRequest(MSG_CMD, enc.data());
@@ -414,4 +420,49 @@ void RtmpPlayer::seekToMilliSecond(uint32_t seekMS){
     });
 }
 
+////////////////////////////////////////////
+float RtmpPlayerImp::getDuration() const
+{
+    return _demuxer ? _demuxer->getDuration() : 0;
+}
+
+std::vector<mediakit::Track::Ptr> RtmpPlayerImp::getTracks(bool ready /*= true*/) const
+{
+    return _demuxer ? _demuxer->getTracks(ready) : Super::getTracks(ready);
+}
+
+bool RtmpPlayerImp::onCheckMeta(const AMFValue &val)
+{
+    //无metadata或metadata中无track信息时，需要从数据包中获取track
+    _wait_track_ready = (*this)[Client::kWaitTrackReady].as<bool>() || RtmpDemuxer::trackCount(val) == 0;
+    onCheckMeta_l(val);
+    return true;
+}
+
+void RtmpPlayerImp::onMediaData(RtmpPacket::Ptr chunkData)
+{
+    if (!_demuxer) {
+        //有些rtmp流没metadata
+        onCheckMeta_l(TitleMeta().getMetadata());
+    }
+    _demuxer->inputRtmp(chunkData);
+    if (_rtmp_src) {
+        _rtmp_src->onWrite(std::move(chunkData));
+    }
+}
+
+void RtmpPlayerImp::onCheckMeta_l(const AMFValue &val)
+{
+    _rtmp_src = std::dynamic_pointer_cast<RtmpMediaSource>(_media_src);
+    if (_rtmp_src) {
+        _rtmp_src->setMetaData(val);
+    }
+    if (_demuxer) {
+        return;
+    }
+    _demuxer = std::make_shared<RtmpDemuxer>();
+    //TraceL<<" _wait_track_ready "<<_wait_track_ready;
+    _demuxer->setTrackListener(this, _wait_track_ready);
+    _demuxer->loadMetaData(val);
+}
 } /* namespace mediakit */

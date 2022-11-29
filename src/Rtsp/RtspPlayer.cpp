@@ -17,6 +17,11 @@
 #include "Util/MD5.h"
 #include "Util/base64.h"
 #include "Rtcp/Rtcp.h"
+#include "Rtcp/RtcpContext.h"
+#include "RtspMediaSource.h"
+#include "RtspDemuxer.h"
+#include "RtspPlayerImp.h"
+
 using namespace toolkit;
 using namespace std;
 
@@ -743,6 +748,51 @@ int RtspPlayer::getTrackIndexByTrackType(TrackType track_type) const {
         return 0;
     }
     throw SockException(Err_shutdown, StrPrinter << "no such track with type:" << getTrackString(track_type));
+}
+
+///////////////////////////////////////////////////
+// RtspPlayerImp
+float RtspPlayerImp::getDuration() const
+{
+    return _demuxer ? _demuxer->getDuration() : 0;
+}
+
+void RtspPlayerImp::onPlayResult(const toolkit::SockException &ex) {
+    if (!(*this)[Client::kWaitTrackReady].as<bool>() || ex) {
+        Super::onPlayResult(ex);
+        return;
+    }
+}
+
+void RtspPlayerImp::addTrackCompleted() {
+    if ((*this)[Client::kWaitTrackReady].as<bool>()) {
+        Super::onPlayResult(toolkit::SockException(toolkit::Err_success, "play success"));
+    }
+}
+
+std::vector<Track::Ptr> RtspPlayerImp::getTracks(bool ready /*= true*/) const
+{
+    return _demuxer ? _demuxer->getTracks(ready) : Super::getTracks(ready);
+}
+
+bool RtspPlayerImp::onCheckSDP(const std::string &sdp)
+{
+    _rtsp_media_src = std::dynamic_pointer_cast<RtspMediaSource>(_media_src);
+    if (_rtsp_media_src) {
+        _rtsp_media_src->setSdp(sdp);
+    }
+    _demuxer = std::make_shared<RtspDemuxer>();
+    _demuxer->setTrackListener(this, (*this)[Client::kWaitTrackReady].as<bool>());
+    _demuxer->loadSdp(sdp);
+    return true;
+}
+
+void RtspPlayerImp::onRecvRTP(RtpPacket::Ptr rtp, const SdpTrack::Ptr &track) {
+    //rtp解复用时可以判断是否为关键帧起始位置
+    auto key_pos = _demuxer->inputRtp(rtp);
+    if (_rtsp_media_src) {
+        _rtsp_media_src->onWrite(std::move(rtp), key_pos);
+    }
 }
 
 } /* namespace mediakit */

@@ -9,6 +9,7 @@
  */
 
 #include "WebRtcPlayer.h"
+#include "Common/config.h"
 
 using namespace std;
 

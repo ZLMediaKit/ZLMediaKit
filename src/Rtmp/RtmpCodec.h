@@ -53,7 +53,7 @@ protected:
     RingType::Ptr _ring;
 };
 
-class RtmpCodec : public RtmpRing, public FrameDispatcher , public CodecInfo{
+class RtmpCodec : public RtmpRing, public FrameDispatcher, public CodecInfo {
 public:
     typedef std::shared_ptr<RtmpCodec> Ptr;
     RtmpCodec() = default;

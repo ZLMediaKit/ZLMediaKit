@@ -168,6 +168,44 @@ private:
 };
 
 
+class MediaSinkDelegate : public MediaSink {
+public:
+    MediaSinkDelegate() = default;
+    ~MediaSinkDelegate() override = default;
+
+    /**
+     * 设置track监听器
+     */
+    void setTrackListener(TrackListener *listener);
+
+protected:
+    void resetTracks() override;
+    bool onTrackReady(const Track::Ptr & track) override;
+    void onAllTrackReady() override;
+
+private:
+    TrackListener *_listener = nullptr;
+};
+
+class Demuxer : protected TrackListener, public TrackSource {
+public:
+    Demuxer() = default;
+    ~Demuxer() override = default;
+
+    void setTrackListener(TrackListener *listener, bool wait_track_ready = false);
+    std::vector<Track::Ptr> getTracks(bool trackReady = true) const override;
+
+protected:
+    bool addTrack(const Track::Ptr &track) override;
+    void addTrackCompleted() override;
+    void resetTracks() override;
+
+private:
+    MediaSink::Ptr _sink;
+    TrackListener *_listener = nullptr;
+    std::vector<Track::Ptr> _origin_track;
+};
+
 }//namespace mediakit
 
 #endif //ZLMEDIAKIT_MEDIASINK_H

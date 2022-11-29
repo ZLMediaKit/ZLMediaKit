@@ -12,6 +12,8 @@
 #include "GB28181Process.h"
 #include "RtpProcess.h"
 #include "Http/HttpTSPlayer.h"
+#include "Util/File.h"
+#include "Common/config.h"
 
 using namespace std;
 using namespace toolkit;

@@ -17,18 +17,16 @@
 #include "SrtpSession.hpp"
 #include "StunPacket.hpp"
 #include "Sdp.h"
+#include "Util/mini.h"
 #include "Poller/EventPoller.h"
 #include "Network/Socket.h"
-#include "Rtsp/RtspMediaSourceImp.h"
-#include "Rtcp/RtcpContext.h"
-#include "Rtcp/RtcpFCI.h"
-#include "Nack.h"
 #include "Network/Session.h"
+#include "Nack.h"
 #include "TwccContext.h"
 #include "SctpAssociation.hpp"
 
 namespace mediakit {
-
+class RtcpContext;
 //RTC配置项目
 namespace Rtc {
 extern const std::string kPort;
@@ -203,7 +201,7 @@ public:
 
     //for send rtp
     NackList nack_list;
-    RtcpContext::Ptr rtcp_context_send;
+    std::shared_ptr<RtcpContext> rtcp_context_send;
 
     //for recv rtp
     std::unordered_map<std::string/*rid*/, std::shared_ptr<RtpChannel> > rtp_channel;

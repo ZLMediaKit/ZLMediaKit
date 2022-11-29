@@ -14,6 +14,8 @@
 #include "Util/logger.h"
 #include "Util/onceToken.h"
 #include "Util/CMD.h"
+#include "Common/config.h"
+#include "Common/Parser.h"
 #include "Rtsp/Rtsp.h"
 #include "Thread/WorkThreadPool.h"
 #include "Pusher/MediaPusher.h"

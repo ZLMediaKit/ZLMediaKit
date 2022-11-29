@@ -10,6 +10,7 @@
 
 #include "TsPlayerImp.h"
 #include "HlsPlayer.h"
+#include "Common/config.h"
 
 using namespace std;
 using namespace toolkit;

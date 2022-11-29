@@ -12,7 +12,6 @@
 #define SRC_SHELL_SHELLSESSION_H_
 
 #include <functional>
-#include "Common/config.h"
 #include "Util/TimeTicker.h"
 #include "Network/Session.h"
 

@@ -11,6 +11,9 @@
 #include "WebRtcSession.h"
 #include "Util/util.h"
 #include "Network/TcpServer.h"
+#include "Common/config.h"
+#include "IceServer.hpp"
+#include "WebRtcTransport.h"
 
 using namespace std;
 

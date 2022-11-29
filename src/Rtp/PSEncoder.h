@@ -15,11 +15,9 @@
 
 #include "Record/MPEG.h"
 #include "Common/MediaSink.h"
-#include "Common/Stamp.h"
-#include "Extension/CommonRtp.h"
 
 namespace mediakit{
-
+class CommonRtpEncoder;
 class PSEncoderImp : public MpegMuxer{
 public:
     PSEncoderImp(uint32_t ssrc, uint8_t payload_type = 96);

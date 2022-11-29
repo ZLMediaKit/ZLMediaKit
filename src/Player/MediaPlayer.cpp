@@ -10,8 +10,6 @@
 
 #include <algorithm>
 #include "MediaPlayer.h"
-#include "Rtmp/RtmpPlayerImp.h"
-#include "Rtsp/RtspPlayerImp.h"
 
 using namespace std;
 using namespace toolkit;

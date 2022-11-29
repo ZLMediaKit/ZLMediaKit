@@ -11,14 +11,14 @@
 #ifndef ZLMEDIAKIT_FRAME_H
 #define ZLMEDIAKIT_FRAME_H
 
+#include <map>
 #include <mutex>
 #include <functional>
-#include "Util/RingBuffer.h"
-#include "Network/Socket.h"
-#include "Common/Stamp.h"
+#include "Util/List.h"
+#include "Network/Buffer.h"
 
 namespace mediakit {
-
+class Stamp;
 typedef enum {
     TrackInvalid = -1,
     TrackVideo = 0,
@@ -441,11 +441,7 @@ private:
 class FrameStamp : public Frame {
 public:
     using Ptr = std::shared_ptr<FrameStamp>;
-    FrameStamp(Frame::Ptr frame, Stamp &stamp, bool modify_stamp) {
-        _frame = std::move(frame);
-        //覆盖时间戳
-        stamp.revise(_frame->dts(), _frame->pts(), _dts, _pts, modify_stamp);
-    }
+    FrameStamp(Frame::Ptr frame, Stamp &stamp, bool modify_stamp);
     ~FrameStamp() override {}
 
     uint64_t dts() const override { return (uint64_t)_dts; }

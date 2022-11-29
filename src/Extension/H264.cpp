@@ -11,6 +11,8 @@
 #include "H264.h"
 #include "SPSParser.h"
 #include "Util/logger.h"
+#include "Util/base64.h"
+
 using namespace toolkit;
 using namespace std;
 

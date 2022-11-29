@@ -11,7 +11,6 @@
 #ifndef HTTP_HLSPLAYER_H
 #define HTTP_HLSPLAYER_H
 
-#include "Common/Stamp.h"
 #include "Player/PlayerBase.h"
 #include "HttpTSPlayer.h"
 #include "HlsParser.h"

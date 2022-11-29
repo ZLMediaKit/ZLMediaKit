@@ -15,7 +15,7 @@
 #include "Util/util.h"
 #include "Util/logger.h"
 #include "Network/sockutil.h"
-#include "Util/util.h"
+#include "Network/Buffer.h"
 
 using namespace std;
 using namespace toolkit;

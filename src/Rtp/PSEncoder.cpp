@@ -11,7 +11,9 @@
 #if defined(ENABLE_RTPPROXY)
 
 #include "PSEncoder.h"
+#include "Common/config.h"
 #include "Extension/H264.h"
+#include "Extension/CommonRtp.h"
 #include "Rtsp/RtspMuxer.h"
 
 using namespace toolkit;

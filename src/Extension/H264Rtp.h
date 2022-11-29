@@ -12,8 +12,8 @@
 #define ZLMEDIAKIT_H264RTPCODEC_H
 
 #include "Rtsp/RtpCodec.h"
-#include "Util/ResourcePool.h"
 #include "Extension/H264.h"
+// for DtsGenerator
 #include "Common/Stamp.h"
 
 namespace mediakit{

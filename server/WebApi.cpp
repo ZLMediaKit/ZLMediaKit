@@ -17,6 +17,7 @@
 #include "Util/logger.h"
 #include "Util/onceToken.h"
 #include "Util/NoticeCenter.h"
+#include "Util/File.h"
 #ifdef ENABLE_MYSQL
 #include "Util/SqlPool.h"
 #endif //ENABLE_MYSQL

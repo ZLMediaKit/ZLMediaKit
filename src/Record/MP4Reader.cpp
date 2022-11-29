@@ -13,6 +13,7 @@
 #include "MP4Reader.h"
 #include "Common/config.h"
 #include "Thread/WorkThreadPool.h"
+#include "Util/File.h"
 
 using namespace std;
 using namespace toolkit;

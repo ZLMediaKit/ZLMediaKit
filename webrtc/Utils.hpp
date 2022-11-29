@@ -22,30 +22,14 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #if defined(_WIN32)
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#include <Iphlpapi.h>
 #pragma comment (lib, "Ws2_32.lib")
-#pragma comment(lib,"Iphlpapi.lib")
 #else
-#include <netdb.h>
 #include <arpa/inet.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <net/if.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
 #endif // defined(_WIN32)
 
-#include <algorithm>// std::transform(), std::find(), std::min(), std::max()
 #include <cinttypes>// PRIu64, etc
-#include <cmath>
 #include <cstddef>// size_t
 #include <cstdint>// uint8_t, etc
-#include <cstring>// std::memcmp(), std::memcpy()
-#include <memory>
-#include <openssl/bio.h>
-#include <openssl/ssl.h>
-#include <openssl/x509.h>
-#include <string>
 
 namespace Utils {
 

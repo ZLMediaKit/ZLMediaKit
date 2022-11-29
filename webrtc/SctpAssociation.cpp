@@ -5,6 +5,7 @@
 
 #include "SctpAssociation.hpp"
 #include "logger.h"
+#include <stdarg.h>
 #include <cstdlib> // std::malloc(), std::free()
 #include <cstring> // std::memset(), std::memcpy()
 #include <string>

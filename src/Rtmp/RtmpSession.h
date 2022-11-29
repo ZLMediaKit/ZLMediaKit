@@ -15,13 +15,10 @@
 #include "amf.h"
 #include "Rtmp.h"
 #include "utils.h"
-#include "Common/config.h"
 #include "RtmpProtocol.h"
 #include "RtmpMediaSourceImp.h"
-#include "Util/util.h"
 #include "Util/TimeTicker.h"
 #include "Network/Session.h"
-#include "Common/Stamp.h"
 
 namespace mediakit {
 

@@ -11,6 +11,8 @@
 #ifndef ZLMEDIAKIT_SDP_H
 #define ZLMEDIAKIT_SDP_H
 
+#include <set>
+#include <map>
 #include <string>
 #include <vector>
 #include "RtpExt.h"

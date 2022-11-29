@@ -14,11 +14,8 @@
 #include <memory>
 #include <string>
 #include <cstdlib>
-#include "Util/util.h"
-#include "Util/logger.h"
-#include "Network/Buffer.h"
-#include "Network/sockutil.h"
 #include "amf.h"
+#include "Network/Buffer.h"
 #include "Extension/Track.h"
 
 #if !defined(_WIN32)
@@ -86,30 +83,13 @@ namespace mediakit {
 
 class RtmpHandshake {
 public:
-    RtmpHandshake(uint32_t _time, uint8_t *_random = nullptr) {
-        _time = htonl(_time);
-        memcpy(time_stamp, &_time, 4);
-        if (!_random) {
-            random_generate((char *) random, sizeof(random));
-        } else {
-            memcpy(random, _random, sizeof(random));
-        }
-    }
+    RtmpHandshake(uint32_t _time, uint8_t *_random = nullptr);
 
     uint8_t time_stamp[4];
     uint8_t zero[4] = {0};
     uint8_t random[RANDOM_LEN];
 
-    void random_generate(char *bytes, int size) {
-        static char cdata[] = {0x73, 0x69, 0x6d, 0x70, 0x6c, 0x65, 0x2d, 0x72,
-                               0x74, 0x6d, 0x70, 0x2d, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72,
-                               0x2d, 0x77, 0x69, 0x6e, 0x6c, 0x69, 0x6e, 0x2d, 0x77, 0x69,
-                               0x6e, 0x74, 0x65, 0x72, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72,
-                               0x40, 0x31, 0x32, 0x36, 0x2e, 0x63, 0x6f, 0x6d};
-        for (int i = 0; i < size; i++) {
-            bytes[i] = cdata[rand() % (sizeof(cdata) - 1)];
-        }
-    }
+    void random_generate(char *bytes, int size);
 
     void create_complex_c0c1();
 
@@ -196,65 +176,16 @@ public:
         return buffer.size();
     }
 
-    void clear(){
-        is_abs_stamp = false;
-        time_stamp = 0;
-        ts_field = 0;
-        body_size = 0;
-        buffer.clear();
-    }
+    void clear();
 
-    bool isVideoKeyFrame() const {
-        return type_id == MSG_VIDEO && (uint8_t) buffer[0] >> 4 == FLV_KEY_FRAME && (uint8_t) buffer[1] == 1;
-    }
+    bool isVideoKeyFrame() const;
+    bool isCfgFrame() const;
 
-    bool isCfgFrame() const {
-        switch (type_id){
-            case MSG_VIDEO : return buffer[1] == 0;
-            case MSG_AUDIO : {
-                switch (getMediaType()){
-                    case FLV_CODEC_AAC : return buffer[1] == 0;
-                    default : return false;
-                }
-            }
-            default : return false;
-        }
-    }
+    int getMediaType() const;
 
-    int getMediaType() const {
-        switch (type_id) {
-            case MSG_VIDEO : return (uint8_t) buffer[0] & 0x0F;
-            case MSG_AUDIO : return (uint8_t) buffer[0] >> 4;
-            default : return 0;
-        }
-    }
-
-    int getAudioSampleRate() const {
-        if (type_id != MSG_AUDIO) {
-            return 0;
-        }
-        int flvSampleRate = ((uint8_t) buffer[0] & 0x0C) >> 2;
-        const static int sampleRate[] = { 5512, 11025, 22050, 44100 };
-        return sampleRate[flvSampleRate];
-    }
-
-    int getAudioSampleBit() const {
-        if (type_id != MSG_AUDIO) {
-            return 0;
-        }
-        int flvSampleBit = ((uint8_t) buffer[0] & 0x02) >> 1;
-        const static int sampleBit[] = { 8, 16 };
-        return sampleBit[flvSampleBit];
-    }
-
-    int getAudioChannel() const {
-        if (type_id != MSG_AUDIO) {
-            return 0;
-        }
-        int flvStereoOrMono = (uint8_t) buffer[0] & 0x01;
-        const static int channel[] = { 1, 2 };
-        return channel[flvStereoOrMono];
-    }
+    int getAudioSampleRate() const;
+    int getAudioSampleBit() const;
+    int getAudioChannel() const;
 
 private:
     friend class toolkit::ResourcePool_l<RtmpPacket>;
@@ -262,15 +193,7 @@ private:
         clear();
     }
 
-    RtmpPacket &operator=(const RtmpPacket &that) {
-        is_abs_stamp = that.is_abs_stamp;
-        stream_index = that.stream_index;
-        body_size = that.body_size;
-        type_id = that.type_id;
-        ts_field = that.ts_field;
-        time_stamp = that.time_stamp;
-        return *this;
-    }
+    RtmpPacket &operator=(const RtmpPacket &that);
 
 private:
     //对象个数统计
@@ -304,14 +227,7 @@ public:
 
     TitleMeta(float dur_sec = 0,
               size_t fileSize = 0,
-              const std::map<std::string, std::string> &header = std::map<std::string, std::string>()){
-        _metadata.set("duration", dur_sec);
-        _metadata.set("fileSize", (int)fileSize);
-        _metadata.set("server",kServerName);
-        for (auto &pr : header){
-            _metadata.set(pr.first, pr.second);
-        }
-    }
+              const std::map<std::string, std::string> &header = std::map<std::string, std::string>());
 
     CodecId getCodecId() const override{
         return CodecInvalid;

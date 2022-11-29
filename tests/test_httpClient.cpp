@@ -12,7 +12,6 @@
 #include <string>
 #include <iostream>
 #include "Util/MD5.h"
-#include "Util/File.h"
 #include "Util/logger.h"
 #include "Util/onceToken.h"
 #include "Poller/EventPoller.h"
