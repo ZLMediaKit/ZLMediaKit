@@ -10,6 +10,7 @@
 
 #include "WebRtcPusher.h"
 #include "Common/config.h"
+#include "RtcMediaSource.h"
 
 using namespace std;
 
@@ -98,7 +99,7 @@ void WebRtcPusher::onRecvRtp(MediaTrack &track, const string &rid, RtpPacket::Pt
         auto &src = _push_src_sim[rid];
         if (!src) {
             auto stream_id = rid.empty() ? _push_src->getId() : _push_src->getId() + "_" + rid;
-            auto src_imp = std::make_shared<RtspMediaSourceImp>(_push_src->getVhost(), _push_src->getApp(), stream_id, _push_src->getSchema());
+            auto src_imp = std::make_shared<RtcMediaSourceImp>(_push_src->getVhost(), _push_src->getApp(), stream_id);
             _push_src_sim_ownership[rid] = src_imp->getOwnership();
             src_imp->setSdp(_push_src->getSdp());
             src_imp->setProtocolOption(_push_src->getProtocolOption());
