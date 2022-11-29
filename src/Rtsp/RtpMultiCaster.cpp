@@ -14,6 +14,7 @@
 #include "Util/util.h"
 #include "Network/sockutil.h"
 #include "RtspSession.h"
+#include "Common/config.h"
 
 using namespace std;
 using namespace toolkit;

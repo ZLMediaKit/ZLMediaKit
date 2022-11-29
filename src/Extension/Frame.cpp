@@ -12,6 +12,8 @@
 #include "H264.h"
 #include "H265.h"
 #include "Common/Parser.h"
+#include "Common/Stamp.h"
+
 using namespace std;
 using namespace toolkit;
 
@@ -27,6 +29,13 @@ Frame::Ptr Frame::getCacheAbleFrame(const Frame::Ptr &frame){
         return frame;
     }
     return std::make_shared<FrameCacheAble>(frame);
+}
+
+FrameStamp::FrameStamp(Frame::Ptr frame, Stamp &stamp, bool modify_stamp)
+{
+    _frame = std::move(frame);
+    //覆盖时间戳
+    stamp.revise(_frame->dts(), _frame->pts(), _dts, _pts, modify_stamp);
 }
 
 TrackType getTrackType(CodecId codecId) {

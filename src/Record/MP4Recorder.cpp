@@ -15,6 +15,7 @@
 #include "Common/config.h"
 #include "MP4Recorder.h"
 #include "Thread/WorkThreadPool.h"
+#include "MP4Muxer.h"
 
 using namespace std;
 using namespace toolkit;

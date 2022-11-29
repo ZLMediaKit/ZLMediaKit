@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include "Util/logger.h"
 #include "Util/SSLBox.h"
+#include "Util/File.h"
 #include "Network/TcpServer.h"
 #include "Network/UdpServer.h"
 #include "Thread/WorkThreadPool.h"
@@ -37,6 +38,7 @@ static std::shared_ptr<RtpServer> rtpServer;
 
 #ifdef ENABLE_WEBRTC
 #include "../webrtc/WebRtcSession.h"
+#include "../webrtc/WebRtcTransport.h"
 static std::shared_ptr<UdpServer> rtcServer_udp;
 static std::shared_ptr<TcpServer> rtcServer_tcp;
 #endif

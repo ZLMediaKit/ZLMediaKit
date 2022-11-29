@@ -12,9 +12,8 @@
 #define SRC_DEVICE_PLAYERPROXY_H_
 
 #include <memory>
-#include "Common/Device.h"
+#include "Common/MultiMediaSourceMuxer.h"
 #include "Player/MediaPlayer.h"
-#include "Util/TimeTicker.h"
 
 namespace mediakit {
 
@@ -72,7 +71,7 @@ private:
     std::string _app;
     std::string _stream_id;
     std::string _pull_url;
-    toolkit::Timer::Ptr _timer;
+    std::shared_ptr<toolkit::Timer> _timer;
     std::function<void(const toolkit::SockException &ex)> _on_close;
     std::function<void(const toolkit::SockException &ex)> _on_play;
     MultiMediaSourceMuxer::Ptr _muxer;

@@ -16,7 +16,6 @@
 #include <functional>
 #include "Process.h"
 #include "Util/TimeTicker.h"
-#include "Network/Socket.h"
 #include "Common/MediaSource.h"
 
 namespace FFmpeg {

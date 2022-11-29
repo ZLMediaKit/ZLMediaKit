@@ -12,6 +12,7 @@
 #define ZLMEDIAKIT_WEBRTCPUSHER_H
 
 #include "WebRtcTransport.h"
+#include "Rtsp/RtspMediaSourceImp.h"
 
 namespace mediakit {
 

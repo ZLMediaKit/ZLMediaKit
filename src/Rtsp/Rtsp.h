@@ -15,10 +15,11 @@
 #include <string>
 #include <memory>
 #include <unordered_map>
-#include "Util/util.h"
-#include "Common/config.h"
 #include "Common/macros.h"
 #include "Extension/Frame.h"
+namespace toolkit {
+    class Socket;
+}
 
 namespace mediakit {
 
@@ -312,30 +313,7 @@ public:
      */
     TitleSdp(float dur_sec = 0,
              const std::map<std::string, std::string> &header = std::map<std::string, std::string>(),
-             int version = 0) : Sdp(0, 0) {
-        _printer << "v=" << version << "\r\n";
-
-        if (!header.empty()) {
-            for (auto &pr : header) {
-                _printer << pr.first << "=" << pr.second << "\r\n";
-            }
-        } else {
-            _printer << "o=- 0 0 IN IP4 0.0.0.0\r\n";
-            _printer << "s=Streamed by " << kServerName << "\r\n";
-            _printer << "c=IN IP4 0.0.0.0\r\n";
-            _printer << "t=0 0\r\n";
-        }
-
-        if (dur_sec <= 0) {
-            //直播
-            _printer << "a=range:npt=now-\r\n";
-        } else {
-            //点播
-            _dur_sec = dur_sec;
-            _printer << "a=range:npt=0-" << dur_sec << "\r\n";
-        }
-        _printer << "a=control:*\r\n";
-    }
+             int version = 0);
 
     std::string getSdp() const override {
         return _printer;
@@ -357,7 +335,7 @@ private:
 //创建rtp over tcp4个字节的头
 toolkit::Buffer::Ptr makeRtpOverTcpPrefix(uint16_t size, uint8_t interleaved);
 //创建rtp-rtcp端口对
-void makeSockPair(std::pair<toolkit::Socket::Ptr, toolkit::Socket::Ptr> &pair, const std::string &local_ip, bool re_use_port = false, bool is_udp = true);
+void makeSockPair(std::pair<std::shared_ptr<toolkit::Socket>, std::shared_ptr<toolkit::Socket>> &pair, const std::string &local_ip, bool re_use_port = false, bool is_udp = true);
 //十六进制方式打印ssrc
 std::string printSSRC(uint32_t ui32Ssrc);
 

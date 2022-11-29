@@ -13,6 +13,8 @@
 #include "HlsMakerImp.h"
 #include "Util/util.h"
 #include "Util/uv_errno.h"
+#include "Util/File.h"
+#include "Common/config.h"
 
 using namespace std;
 using namespace toolkit;

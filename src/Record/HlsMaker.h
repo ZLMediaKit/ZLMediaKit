@@ -11,13 +11,9 @@
 #ifndef HLSMAKER_H
 #define HLSMAKER_H
 
+#include <string>
 #include <deque>
 #include <tuple>
-#include "Common/config.h"
-#include "Util/TimeTicker.h"
-#include "Util/File.h"
-#include "Util/util.h"
-#include "Util/logger.h"
 
 namespace mediakit {
 

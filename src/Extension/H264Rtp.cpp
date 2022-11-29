@@ -9,6 +9,7 @@
  */
 
 #include "H264Rtp.h"
+#include "Common/config.h"
 
 namespace mediakit{
 

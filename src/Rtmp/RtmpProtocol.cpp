@@ -12,6 +12,7 @@
 #include "RtmpProtocol.h"
 #include "Rtmp/utils.h"
 #include "RtmpMediaSource.h"
+#include "Util/util.h"
 
 using namespace std;
 using namespace toolkit;

@@ -13,8 +13,7 @@
 
 #include "Rtmp/Rtmp.h"
 #include "Rtmp/RtmpMediaSource.h"
-#include "Network/Socket.h"
-#include "Common/Stamp.h"
+#include "Poller/EventPoller.h"
 
 namespace mediakit {
 

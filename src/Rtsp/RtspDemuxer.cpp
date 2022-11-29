@@ -10,6 +10,7 @@
 
 #include <cctype>
 #include <algorithm>
+#include "RtpCodec.h"
 #include "RtspDemuxer.h"
 #include "Util/base64.h"
 #include "Extension/Factory.h"

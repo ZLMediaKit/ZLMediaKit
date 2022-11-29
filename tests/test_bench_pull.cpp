@@ -14,6 +14,7 @@
 #include "Util/logger.h"
 #include "Util/onceToken.h"
 #include "Util/CMD.h"
+#include "Common/config.h"
 #include "Rtsp/UDPServer.h"
 #include "Thread/WorkThreadPool.h"
 #include "Player/PlayerProxy.h"

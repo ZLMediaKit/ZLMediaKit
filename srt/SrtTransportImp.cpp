@@ -1,6 +1,7 @@
 ﻿#include "Util/util.h"
 #include <memory>
-
+#include "Common/Parser.h"
+#include "Common/config.h"
 #include "SrtTransportImp.hpp"
 
 namespace SRT {

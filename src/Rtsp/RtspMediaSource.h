@@ -15,16 +15,9 @@
 #include <string>
 #include <memory>
 #include <functional>
-#include <unordered_map>
-#include "Common/config.h"
 #include "Common/MediaSource.h"
-#include "RtpCodec.h"
-#include "Util/logger.h"
+#include "Common/PacketCache.h"
 #include "Util/RingBuffer.h"
-#include "Util/TimeTicker.h"
-#include "Util/ResourcePool.h"
-#include "Util/NoticeCenter.h"
-#include "Thread/ThreadPool.h"
 
 #define RTP_GOP_SIZE 512
 
@@ -38,7 +31,6 @@ namespace mediakit {
  */
 class RtspMediaSource : public MediaSource, public toolkit::RingDelegate<RtpPacket::Ptr>, private PacketCache<RtpPacket> {
 public:
-    using PoolType = toolkit::ResourcePool<RtpPacket>;
     using Ptr = std::shared_ptr<RtspMediaSource>;
     using RingDataType = std::shared_ptr<toolkit::List<RtpPacket::Ptr> >;
     using RingType = toolkit::RingBuffer<RingDataType>;
@@ -111,85 +103,24 @@ public:
     /**
      * 获取相应轨道的时间戳，单位毫秒
      */
-    uint32_t getTimeStamp(TrackType trackType) override {
-        assert(trackType >= TrackInvalid && trackType < TrackMax);
-        if (trackType != TrackInvalid) {
-            //获取某track的时间戳
-            auto &track = _tracks[trackType];
-            if (track) {
-                return track->_time_stamp;
-            }
-        }
-
-        //获取所有track的最小时间戳
-        uint32_t ret = UINT32_MAX;
-        for (auto &track : _tracks) {
-            if (track && track->_time_stamp < ret) {
-                ret = track->_time_stamp;
-            }
-        }
-        return ret;
-    }
+    uint32_t getTimeStamp(TrackType trackType) override;
 
     /**
      * 更新时间戳
      */
-     void setTimeStamp(uint32_t stamp) override {
-        for (auto &track : _tracks) {
-            if (track) {
-                track->_time_stamp = stamp;
-            }
-        }
-    }
+    void setTimeStamp(uint32_t stamp) override;
 
     /**
      * 设置sdp
      */
-    virtual void setSdp(const std::string &sdp) {
-        SdpParser sdp_parser(sdp);
-        _tracks[TrackVideo] = sdp_parser.getTrack(TrackVideo);
-        _tracks[TrackAudio] = sdp_parser.getTrack(TrackAudio);
-        _have_video = (bool) _tracks[TrackVideo];
-        _sdp = sdp_parser.toString();
-        if (_ring) {
-            regist();
-        }
-    }
+    virtual void setSdp(const std::string &sdp);
 
     /**
      * 输入rtp
      * @param rtp rtp包
      * @param keyPos 该包是否为关键帧的第一个包
      */
-    void onWrite(RtpPacket::Ptr rtp, bool keyPos) override {
-        _speed[rtp->type] += rtp->size();
-        assert(rtp->type >= 0 && rtp->type < TrackMax);
-        auto &track = _tracks[rtp->type];
-        auto stamp = rtp->getStampMS();
-        if (track) {
-            track->_seq = rtp->getSeq();
-            track->_time_stamp = rtp->getStamp() * uint64_t(1000) / rtp->sample_rate;
-            track->_ssrc = rtp->getSSRC();
-        }
-        if (!_ring) {
-            std::weak_ptr<RtspMediaSource> weakSelf = std::dynamic_pointer_cast<RtspMediaSource>(shared_from_this());
-            auto lam = [weakSelf](int size) {
-                auto strongSelf = weakSelf.lock();
-                if (!strongSelf) {
-                    return;
-                }
-                strongSelf->onReaderChanged(size);
-            };
-            //GOP默认缓冲512组RTP包，每组RTP包时间戳相同(如果开启合并写了，那么每组为合并写时间内的RTP包),
-            //每次遇到关键帧第一个RTP包，则会清空GOP缓存(因为有新的关键帧了，同样可以实现秒开)
-            _ring = std::make_shared<RingType>(_ring_size, std::move(lam));
-            if (!_sdp.empty()) {
-                regist();
-            }
-        }
-        bool is_video = rtp->type == TrackVideo;
-        PacketCache<RtpPacket>::inputPacket(stamp, is_video, std::move(rtp), keyPos);
-    }
+    void onWrite(RtpPacket::Ptr rtp, bool keyPos) override;
 
     void clearCache() override{
         PacketCache<RtpPacket>::clearCache();

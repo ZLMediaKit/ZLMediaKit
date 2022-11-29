@@ -14,43 +14,17 @@
 #include <set>
 #include <vector>
 #include <unordered_set>
-#include <unordered_map>
-#include "Util/util.h"
-#include "Util/logger.h"
-#include "Common/config.h"
 #include "Network/Session.h"
-#include "Player/PlayerBase.h"
-#include "RtpMultiCaster.h"
-#include "RtspMediaSource.h"
 #include "RtspSplitter.h"
 #include "RtpReceiver.h"
+#include "RtspMediaSource.h"
 #include "RtspMediaSourceImp.h"
-#include "Common/Stamp.h"
-#include "Rtcp/RtcpContext.h"
 
 namespace mediakit {
-
+class RtpMultiCaster;
 class RtspSession;
-
-class BufferRtp : public toolkit::Buffer{
-public:
-    using Ptr = std::shared_ptr<BufferRtp>;
-
-    BufferRtp(Buffer::Ptr pkt, size_t offset = 0) : _offset(offset), _rtp(std::move(pkt)) {}
-    ~BufferRtp() override = default;
-
-    char *data() const override {
-        return (char *)_rtp->data() + _offset;
-    }
-
-    size_t size() const override {
-        return _rtp->size() - _offset;
-    }
-
-private:
-    size_t _offset;
-    Buffer::Ptr _rtp;
-};
+class RtcpContext;
+using BufferRtp = toolkit::BufferOffset<toolkit::Buffer::Ptr>;
 
 class RtspSession : public toolkit::Session, public RtspSplitter, public RtpReceiver, public MediaSourceEvent {
 public:
@@ -209,7 +183,7 @@ private:
     std::unordered_set<int> _udp_connected_flags;
     ////////RTP over udp_multicast////////
     //共享的rtp组播对象
-    RtpMultiCaster::Ptr _multicaster;
+    std::shared_ptr<RtpMultiCaster> _multicaster;
     ////////RTSP over HTTP  ////////
     //quicktime 请求rtsp会产生两次tcp连接，
     //一次发送 get 一次发送post，需要通过x-sessioncookie关联起来
@@ -219,7 +193,7 @@ private:
     //rtcp发送时间,trackid idx 为数组下标
     toolkit::Ticker _rtcp_send_tickers[2];
     //统计rtp并发送rtcp
-    std::vector<RtcpContext::Ptr> _rtcp_context;
+    std::vector<std::shared_ptr<RtcpContext>> _rtcp_context;
 };
 
 /**

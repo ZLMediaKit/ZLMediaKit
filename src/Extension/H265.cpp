@@ -10,6 +10,7 @@
 
 #include "H265.h"
 #include "SPSParser.h"
+#include "Util/base64.h"
 
 using namespace std;
 using namespace toolkit;

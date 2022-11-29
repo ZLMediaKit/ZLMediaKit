@@ -12,6 +12,8 @@
 #define ZLMEDIAKIT_TSMEDIASOURCE_H
 
 #include "Common/MediaSource.h"
+#include "Common/PacketCache.h"
+#include "Util/RingBuffer.h"
 
 #define TS_GOP_SIZE 512
 
