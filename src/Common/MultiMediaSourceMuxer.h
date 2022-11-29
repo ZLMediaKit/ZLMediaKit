@@ -24,10 +24,6 @@ class RtmpMediaSourceMuxer;
 class TSMediaSourceMuxer;
 class FMP4MediaSourceMuxer;
 class RtpSender;
-#ifdef ENABLE_FFMPEG
-class FFmpegDecoder;
-class FFmpegEncoder;
-#endif
 
 class MultiMediaSourceMuxer : public MediaSourceEventInterceptor, public MediaSink, public std::enable_shared_from_this<MultiMediaSourceMuxer>{
 public:
@@ -178,11 +174,6 @@ private:
     std::shared_ptr<RtspMediaSourceMuxer> _rtsp;
     std::shared_ptr<TSMediaSourceMuxer> _ts;
     std::shared_ptr<RtspMediaSourceMuxer> _rtc;
-#if defined(ENABLE_FFMPEG)
-    MuteAudioMaker::Ptr _opus_mute_maker;
-    std::shared_ptr<FFmpegDecoder> _audio_dec;
-    std::shared_ptr<FFmpegEncoder> _audio_enc;
-#endif
     MediaSinkInterface::Ptr _mp4;
     std::shared_ptr<HlsRecorder> _hls;
     std::shared_ptr<HlsFMP4Recorder> _hls_fmp4;
