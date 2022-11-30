@@ -20,8 +20,8 @@ WebRtcPusher::Ptr WebRtcPusher::create(const EventPoller::Ptr &poller,
                                        const std::shared_ptr<void> &ownership,
                                        const MediaInfo &info,
                                        const ProtocolOption &option,
-                                       bool perferred_tcp) {
-    WebRtcPusher::Ptr ret(new WebRtcPusher(poller, src, ownership, info, option,perferred_tcp), [](WebRtcPusher *ptr) {
+                                       bool preferred_tcp) {
+    WebRtcPusher::Ptr ret(new WebRtcPusher(poller, src, ownership, info, option,preferred_tcp), [](WebRtcPusher *ptr) {
         ptr->onDestory();
         delete ptr;
     });
@@ -34,7 +34,7 @@ WebRtcPusher::WebRtcPusher(const EventPoller::Ptr &poller,
                            const std::shared_ptr<void> &ownership,
                            const MediaInfo &info,
                            const ProtocolOption &option,
-                           bool perferred_tcp) : WebRtcTransportImp(poller,perferred_tcp) {
+                           bool preferred_tcp) : WebRtcTransportImp(poller,preferred_tcp) {
     _media_info = info;
     _push_src = src;
     _push_src_ownership = ownership;
