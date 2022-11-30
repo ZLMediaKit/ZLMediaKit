@@ -395,8 +395,8 @@ std::shared_ptr<MultiMediaSourceMuxer> MultiMediaSourceMuxer::getMuxer(MediaSour
 
 bool MultiMediaSourceMuxer::onTrackReady(const Track::Ptr &track) {
     bool ret = false;
-    if (_rtc && _rtc->addTrack(track))
-        ret = true;
+    if (_rtc && !isMuteCodec(track->getCodecId()))
+        ret = _rtc->addTrack(track);
     if (_rtmp && _rtmp->addTrack(track))
         ret = true;
     if (_rtsp && _rtsp->addTrack(track))
@@ -519,8 +519,8 @@ bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
     }
 
     bool ret = false;
-    if (_rtc && _rtc->inputFrame(frame))
-      ret = true;
+    if (_rtc && !isMuteCodec(frame->getCodecId()))
+      ret = _rtc->inputFrame(frame);
 
     if (_rtmp && _rtmp->inputFrame(frame))
       ret = true;
