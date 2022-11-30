@@ -53,7 +53,7 @@ public:
      * 获取完整的SDP字符串
      * @return SDP字符串
      */
-    std::string getSdp() ;
+    std::string getSdp();
 
     /**
      * 获取rtp环形缓存
@@ -80,7 +80,7 @@ public:
     /**
      * 重置所有track
      */
-    void resetTracks() override ;
+    void resetTracks() override;
 
 private:
     void onRtp(RtpPacket::Ptr in, bool is_key);
@@ -88,6 +88,7 @@ private:
 
 private:
     bool _live = true;
+    uint16_t _rtp_seq[TrackMax]{0};
     uint32_t _rtp_stamp[TrackMax]{0};
     uint64_t _ntp_stamp[TrackMax]{0};
     uint64_t _ntp_stamp_start;
