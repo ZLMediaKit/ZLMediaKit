@@ -38,6 +38,7 @@ void RtspMuxer::onRtp(RtpPacket::Ptr in, bool is_key) {
         in->ntp_stamp = _ntp_stamp_start + (in->getStamp() * uint64_t(1000) / in->sample_rate);
     }
 #endif
+    _rtp_seq[in->type] = in->getSeq() + 1;
     _rtpRing->write(std::move(in), is_key);
 }
 
@@ -71,7 +72,8 @@ bool RtspMuxer::addTrack(const Track::Ptr &track) {
     if (!encoder) {
         return false;
     }
-
+    auto rtp = std::dynamic_pointer_cast<RtpInfo>(encoder);
+    rtp->setSeq(_rtp_seq[track->getTrackType()]);
     //设置rtp输出环形缓存
     encoder->setRtpRing(_rtpInterceptor);
 
