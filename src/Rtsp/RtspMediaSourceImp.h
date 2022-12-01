@@ -12,6 +12,7 @@
 #define SRC_RTSP_RTSPTORTMPMEDIASOURCE_H_
 
 #include "RtspMediaSource.h"
+#include "RtspDemuxer.h"
 #include "Common/MultiMediaSourceMuxer.h"
 
 namespace mediakit {
@@ -109,7 +110,7 @@ public:
 private:
     bool _all_track_ready = false;
     ProtocolOption _option;
-    std::shared_ptr<RtspDemuxer> _demuxer;
+    RtspDemuxer::Ptr _demuxer;
     MultiMediaSourceMuxer::Ptr _muxer;
 };
 } /* namespace mediakit */

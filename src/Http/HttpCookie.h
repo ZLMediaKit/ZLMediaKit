@@ -25,7 +25,7 @@ namespace mediakit {
  */
 class HttpCookie {
 public:
-    typedef std::shared_ptr<HttpCookie> Ptr;
+    using Ptr = std::shared_ptr<HttpCookie>;
     friend class HttpCookieStorage;
     HttpCookie(){}
     ~HttpCookie(){}

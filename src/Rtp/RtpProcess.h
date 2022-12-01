@@ -20,7 +20,7 @@ namespace mediakit {
 
 class RtpProcess final : public RtcpContextForRecv, public toolkit::SockInfo, public MediaSinkInterface, public MediaSourceEventInterceptor, public std::enable_shared_from_this<RtpProcess>{
 public:
-    typedef std::shared_ptr<RtpProcess> Ptr;
+    using Ptr = std::shared_ptr<RtpProcess>;
     friend class RtpProcessHelper;
     RtpProcess(const std::string &stream_id);
     ~RtpProcess();

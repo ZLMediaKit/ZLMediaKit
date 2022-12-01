@@ -14,9 +14,10 @@
 #if defined(ENABLE_RTPPROXY)
 
 #include "Common/MediaSink.h"
+#include "Rtsp/RtpCodec.h"
 
 namespace mediakit {
-class RtpCodec;
+
 class RawEncoderImp : public MediaSinkInterface {
 public:
     RawEncoderImp(uint32_t ssrc, uint8_t payload_type = 96, bool send_audio = true);
@@ -48,7 +49,7 @@ private:
     bool _send_audio;
     uint8_t _payload_type;
     uint32_t _ssrc;
-    std::shared_ptr<RtpCodec> _rtp_encoder;
+    RtpCodec::Ptr _rtp_encoder;
 };
 
 } // namespace mediakit

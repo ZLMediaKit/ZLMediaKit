@@ -18,7 +18,7 @@ using namespace mediakit;
 
 class MediaHelper : public MediaSourceEvent , public std::enable_shared_from_this<MediaHelper> {
 public:
-    typedef std::shared_ptr<MediaHelper> Ptr;
+    using Ptr = std::shared_ptr<MediaHelper>;
     template<typename ...ArgsType>
     MediaHelper(ArgsType &&...args){
         _channel = std::make_shared<DevChannel>(std::forward<ArgsType>(args)...);

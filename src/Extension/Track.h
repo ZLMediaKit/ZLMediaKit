@@ -23,7 +23,7 @@ namespace mediakit{
  */
 class Track : public FrameDispatcher , public CodecInfo{
 public:
-    typedef std::shared_ptr<Track> Ptr;
+    using Ptr = std::shared_ptr<Track>;
     Track(){}
 
     virtual ~Track(){}
@@ -75,7 +75,7 @@ private:
  */
 class VideoTrack : public Track {
 public:
-    typedef std::shared_ptr<VideoTrack> Ptr;
+    using Ptr = std::shared_ptr<VideoTrack>;
 
     /**
      * 返回视频高度
@@ -98,7 +98,7 @@ public:
  */
 class AudioTrack : public Track {
 public:
-    typedef std::shared_ptr<AudioTrack> Ptr;
+    using Ptr = std::shared_ptr<AudioTrack>;
 
     /**
      * 返回音频采样率
@@ -118,7 +118,7 @@ public:
 
 class AudioTrackImp : public AudioTrack{
 public:
-    typedef std::shared_ptr<AudioTrackImp> Ptr;
+    using Ptr = std::shared_ptr<AudioTrackImp>;
 
     /**
      * 构造函数

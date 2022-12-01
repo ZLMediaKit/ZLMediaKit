@@ -21,7 +21,7 @@ namespace mediakit{
  */
 class AACRtmpDecoder : public RtmpCodec{
 public:
-    typedef std::shared_ptr<AACRtmpDecoder> Ptr;
+    using Ptr = std::shared_ptr<AACRtmpDecoder>;
 
     AACRtmpDecoder() {}
     ~AACRtmpDecoder() {}
@@ -49,7 +49,7 @@ private:
  */
 class AACRtmpEncoder : public AACRtmpDecoder{
 public:
-    typedef std::shared_ptr<AACRtmpEncoder> Ptr;
+    using Ptr = std::shared_ptr<AACRtmpEncoder>;
 
     /**
      * 构造函数，track可以为空，此时则在inputFrame时输入adts头

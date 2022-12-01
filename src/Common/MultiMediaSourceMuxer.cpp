@@ -11,13 +11,6 @@
 #include <math.h>
 #include "Common/config.h"
 #include "MultiMediaSourceMuxer.h"
-#include "Rtp/RtpSender.h"
-#include "Record/HlsRecorder.h"
-#include "Record/HlsMediaSource.h"
-#include "Rtsp/RtspMediaSourceMuxer.h"
-#include "Rtmp/RtmpMediaSourceMuxer.h"
-#include "TS/TSMediaSourceMuxer.h"
-#include "FMP4/FMP4MediaSourceMuxer.h"
 
 using namespace std;
 using namespace toolkit;

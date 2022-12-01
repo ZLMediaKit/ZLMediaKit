@@ -12,13 +12,14 @@
 #define SRC_RTP_RTSPDEMUXER_H_
 
 #include <unordered_map>
+#include "Rtsp/RtpCodec.h"
 #include "Common/MediaSink.h"
 
 namespace mediakit {
-class RtpCodec;
+
 class RtspDemuxer : public Demuxer {
 public:
-    typedef std::shared_ptr<RtspDemuxer> Ptr;
+    using Ptr = std::shared_ptr<RtspDemuxer>;
     RtspDemuxer() = default;
     virtual ~RtspDemuxer() = default;
 
@@ -49,8 +50,8 @@ private:
     float _duration = 0;
     AudioTrack::Ptr _audio_track;
     VideoTrack::Ptr _video_track;
-    std::shared_ptr<RtpCodec> _audio_rtp_decoder;
-    std::shared_ptr<RtpCodec> _video_rtp_decoder;
+    RtpCodec::Ptr _audio_rtp_decoder;
+    RtpCodec::Ptr _video_rtp_decoder;
 };
 
 } /* namespace mediakit */
