@@ -20,7 +20,7 @@ namespace mediakit{
 
 class RtmpMuxer : public MediaSinkInterface {
 public:
-    typedef std::shared_ptr<RtmpMuxer> Ptr;
+    using Ptr = std::shared_ptr<RtmpMuxer>;
 
     /**
      * 构造函数

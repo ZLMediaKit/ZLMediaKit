@@ -27,7 +27,7 @@ namespace mediakit {
 //实现了rtmp播放器协议部分的功能，及数据接收功能
 class RtmpPlayer : public PlayerBase, public toolkit::TcpClient, public RtmpProtocol {
 public:
-    typedef std::shared_ptr<RtmpPlayer> Ptr;
+    using Ptr = std::shared_ptr<RtmpPlayer>;
     RtmpPlayer(const toolkit::EventPoller::Ptr &poller);
     ~RtmpPlayer() override;
 

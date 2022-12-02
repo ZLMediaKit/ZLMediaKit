@@ -80,7 +80,7 @@ TrackType getTrackType(CodecId codecId);
  */
 class CodecInfo {
 public:
-    typedef std::shared_ptr<CodecInfo> Ptr;
+    using Ptr = std::shared_ptr<CodecInfo>;
 
     CodecInfo() = default;
     virtual ~CodecInfo() = default;
@@ -226,7 +226,7 @@ protected:
 template <typename Parent>
 class FrameInternal : public Parent {
 public:
-    typedef std::shared_ptr<FrameInternal> Ptr;
+    using Ptr = std::shared_ptr<FrameInternal>;
     FrameInternal(const Frame::Ptr &parent_frame, char *ptr, size_t size, size_t prefix_size)
         : Parent(ptr, size, parent_frame->dts(), parent_frame->pts(), prefix_size) {
         _parent_frame = parent_frame;
@@ -246,7 +246,7 @@ private:
 template <typename Parent>
 class FrameTSInternal : public Parent {
 public:
-    typedef std::shared_ptr<FrameTSInternal> Ptr;
+    using Ptr = std::shared_ptr<FrameTSInternal>;
     FrameTSInternal(
         const Frame::Ptr &parent_frame, char *ptr, size_t size, size_t prefix_size, uint64_t dts, uint64_t pts)
         : Parent(ptr, size, dts, pts, prefix_size) {
@@ -263,7 +263,7 @@ private:
  */
 class FrameWriterInterface {
 public:
-    typedef std::shared_ptr<FrameWriterInterface> Ptr;
+    using Ptr = std::shared_ptr<FrameWriterInterface>;
     FrameWriterInterface() = default;
     virtual ~FrameWriterInterface() = default;
 
@@ -342,7 +342,7 @@ private:
  */
 class FrameFromPtr : public Frame {
 public:
-    typedef std::shared_ptr<FrameFromPtr> Ptr;
+    using Ptr = std::shared_ptr<FrameFromPtr>;
 
     FrameFromPtr(
         CodecId codec_id, char *ptr, size_t size, uint64_t dts, uint64_t pts = 0, size_t prefix_size = 0,
@@ -395,7 +395,7 @@ protected:
  */
 class FrameCacheAble : public FrameFromPtr {
 public:
-    typedef std::shared_ptr<FrameCacheAble> Ptr;
+    using Ptr = std::shared_ptr<FrameCacheAble>;
 
     FrameCacheAble(const Frame::Ptr &frame, bool force_key_frame = false) {
         if (frame->cacheAble()) {

@@ -39,13 +39,13 @@ static std::shared_ptr<RtpServer> rtpServer;
 #ifdef ENABLE_WEBRTC
 #include "../webrtc/WebRtcSession.h"
 #include "../webrtc/WebRtcTransport.h"
-static std::shared_ptr<UdpServer> rtcServer_udp;
-static std::shared_ptr<TcpServer> rtcServer_tcp;
+static UdpServer::Ptr rtcServer_udp;
+static TcpServer::Ptr rtcServer_tcp;
 #endif
 
 #if defined(ENABLE_SRT)
 #include "../srt/SrtSession.hpp"
-static std::shared_ptr<UdpServer> srtServer;
+static UdpServer::Ptr srtServer;
 #endif
 
 //////////////////////////environment init///////////////////////////

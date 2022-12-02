@@ -15,10 +15,11 @@
 #include <algorithm>
 #include <functional>
 #include "RtspPlayer.h"
+#include "RtspDemuxer.h"
+#include "RtspMediaSource.h"
 
 namespace mediakit {
-class RtspDemuxer;
-class RtspMediaSource;
+
 class RtspPlayerImp : public PlayerImp<RtspPlayer, PlayerBase> ,private TrackListener {
 public:
     using Ptr = std::shared_ptr<RtspPlayerImp>;
@@ -71,8 +72,8 @@ private:
     void addTrackCompleted() override;
 
 private:
-    std::shared_ptr<RtspDemuxer> _demuxer;
-    std::shared_ptr<RtspMediaSource> _rtsp_media_src;
+    RtspDemuxer::Ptr _demuxer;
+    RtspMediaSource::Ptr _rtsp_media_src;
 };
 
 } /* namespace mediakit */

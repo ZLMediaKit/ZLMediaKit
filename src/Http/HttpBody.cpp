@@ -183,7 +183,7 @@ int HttpFileBody::sendFile(int fd) {
 
 class BufferMmap : public Buffer {
 public:
-    typedef std::shared_ptr<BufferMmap> Ptr;
+    using Ptr = std::shared_ptr<BufferMmap>;
     BufferMmap(const std::shared_ptr<char> &map_addr, size_t offset, size_t size) {
         _map_addr = map_addr;
         _data = map_addr.get() + offset;

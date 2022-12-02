@@ -19,7 +19,7 @@ namespace mediakit {
 class RtmpMediaSourceMuxer final : public RtmpMuxer, public MediaSourceEventInterceptor,
                                    public std::enable_shared_from_this<RtmpMediaSourceMuxer> {
 public:
-    typedef std::shared_ptr<RtmpMediaSourceMuxer> Ptr;
+    using Ptr = std::shared_ptr<RtmpMediaSourceMuxer>;
 
     RtmpMediaSourceMuxer(const std::string &vhost,
                          const std::string &strApp,

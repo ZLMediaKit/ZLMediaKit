@@ -20,9 +20,10 @@
 #include "Network/TcpClient.h"
 #include "RtspSplitter.h"
 #include "RtpReceiver.h"
+#include "Rtcp/RtcpContext.h"
 
 namespace mediakit {
-class RtcpContext;
+
 //实现了rtsp播放器协议部分的功能，及数据接收功能
 class RtspPlayer : public PlayerBase, public toolkit::TcpClient, public RtspSplitter, public RtpReceiver {
 public:
@@ -143,7 +144,7 @@ private:
     //rtcp发送时间,trackid idx 为数组下标
     toolkit::Ticker _rtcp_send_ticker[2];
     //统计rtp并发送rtcp
-    std::vector<std::shared_ptr<RtcpContext>> _rtcp_context;
+    std::vector<RtcpContext::Ptr> _rtcp_context;
 };
 
 } /* namespace mediakit */

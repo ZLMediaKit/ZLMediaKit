@@ -15,6 +15,7 @@
 #include <memory>
 #include "Common/MediaSink.h"
 #include "Record/Recorder.h"
+#include "MP4Muxer.h"
 
 namespace mediakit {
 
@@ -60,7 +61,7 @@ private:
     std::string _full_path;
     std::string _full_path_tmp;
     RecordInfo _info;
-    std::shared_ptr<MP4Muxer> _muxer;
+    MP4Muxer::Ptr _muxer;
     std::list<Track::Ptr> _tracks;
     uint64_t _last_dts = 0;
 };

@@ -19,7 +19,7 @@ using namespace mediakit;
 
 class MediaPlayerForC : public std::enable_shared_from_this<MediaPlayerForC>{
 public:
-    typedef std::shared_ptr<MediaPlayerForC> Ptr;
+    using Ptr = std::shared_ptr<MediaPlayerForC>;
 
     MediaPlayerForC(){
         _player = std::make_shared<MediaPlayer>();

@@ -205,7 +205,7 @@ private:
  */
 class Metadata : public CodecInfo{
 public:
-    typedef std::shared_ptr<Metadata> Ptr;
+    using Ptr = std::shared_ptr<Metadata>;
 
     Metadata():_metadata(AMF_OBJECT){}
     virtual ~Metadata(){}
@@ -223,7 +223,7 @@ protected:
 */
 class TitleMeta : public Metadata{
 public:
-    typedef std::shared_ptr<TitleMeta> Ptr;
+    using Ptr = std::shared_ptr<TitleMeta>;
 
     TitleMeta(float dur_sec = 0,
               size_t fileSize = 0,
@@ -236,7 +236,7 @@ public:
 
 class VideoMeta : public Metadata{
 public:
-    typedef std::shared_ptr<VideoMeta> Ptr;
+    using Ptr = std::shared_ptr<VideoMeta>;
 
     VideoMeta(const VideoTrack::Ptr &video);
     virtual ~VideoMeta(){}
@@ -250,7 +250,7 @@ private:
 
 class AudioMeta : public Metadata{
 public:
-    typedef std::shared_ptr<AudioMeta> Ptr;
+    using Ptr = std::shared_ptr<AudioMeta>;
 
     AudioMeta(const AudioTrack::Ptr &audio);
 

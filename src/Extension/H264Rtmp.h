@@ -22,7 +22,7 @@ namespace mediakit{
  */
 class H264RtmpDecoder : public RtmpCodec {
 public:
-    typedef std::shared_ptr<H264RtmpDecoder> Ptr;
+    using Ptr = std::shared_ptr<H264RtmpDecoder>;
 
     H264RtmpDecoder();
     ~H264RtmpDecoder() {}
@@ -52,7 +52,7 @@ protected:
  */
 class H264RtmpEncoder : public H264RtmpDecoder{
 public:
-    typedef std::shared_ptr<H264RtmpEncoder> Ptr;
+    using Ptr = std::shared_ptr<H264RtmpEncoder>;
 
     /**
      * 构造函数，track可以为空，此时则在inputFrame时输入sps pps

@@ -21,7 +21,7 @@ namespace mediakit{
  */
 class CommonRtmpDecoder : public RtmpCodec {
 public:
-    typedef std::shared_ptr<CommonRtmpDecoder> Ptr;
+    using Ptr = std::shared_ptr<CommonRtmpDecoder>;
 
     ~CommonRtmpDecoder() override {}
 
@@ -55,7 +55,7 @@ private:
  */
 class CommonRtmpEncoder : public CommonRtmpDecoder {
 public:
-    typedef std::shared_ptr<CommonRtmpEncoder> Ptr;
+    using Ptr = std::shared_ptr<CommonRtmpEncoder>;
 
     CommonRtmpEncoder(const Track::Ptr &track);
     ~CommonRtmpEncoder() override{}

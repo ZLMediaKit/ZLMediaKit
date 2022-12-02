@@ -23,7 +23,7 @@ namespace mediakit{
 class RtpSelector;
 class RtpProcessHelper : public MediaSourceEvent , public std::enable_shared_from_this<RtpProcessHelper> {
 public:
-    typedef std::shared_ptr<RtpProcessHelper> Ptr;
+    using Ptr = std::shared_ptr<RtpProcessHelper>;
     RtpProcessHelper(const std::string &stream_id, const std::weak_ptr<RtpSelector > &parent);
     ~RtpProcessHelper();
     void attachEvent();

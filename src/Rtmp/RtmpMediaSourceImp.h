@@ -18,11 +18,12 @@
 #include <unordered_map>
 #include "amf.h"
 #include "Rtmp.h"
+#include "RtmpDemuxer.h"
 #include "RtmpMediaSource.h"
 #include "Common/MultiMediaSourceMuxer.h"
 
 namespace mediakit {
-class RtmpDemuxer;
+
 class RtmpMediaSourceImp final : public RtmpMediaSource, private TrackListener, public MultiMediaSourceMuxer::Listener {
 public:
     using Ptr = std::shared_ptr<RtmpMediaSourceImp>;
@@ -90,7 +91,7 @@ private:
     bool _recreate_metadata = false;
     ProtocolOption _option;
     AMFValue _metadata;
-    std::shared_ptr<RtmpDemuxer> _demuxer;
+    RtmpDemuxer::Ptr _demuxer;
     MultiMediaSourceMuxer::Ptr _muxer;
 
 };

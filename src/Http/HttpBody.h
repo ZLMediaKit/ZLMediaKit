@@ -29,7 +29,7 @@ namespace mediakit {
  */
 class HttpBody : public std::enable_shared_from_this<HttpBody>{
 public:
-    typedef std::shared_ptr<HttpBody> Ptr;
+    using Ptr = std::shared_ptr<HttpBody>;
     HttpBody(){}
 
     virtual ~HttpBody(){}
@@ -73,7 +73,7 @@ public:
  */
 class HttpStringBody : public HttpBody{
 public:
-    typedef std::shared_ptr<HttpStringBody> Ptr;
+    using Ptr = std::shared_ptr<HttpStringBody>;
     HttpStringBody(std::string str);
     ~HttpStringBody() override = default;
 
@@ -90,7 +90,7 @@ private:
  */
 class HttpBufferBody : public HttpBody{
 public:
-    typedef std::shared_ptr<HttpBufferBody> Ptr;
+    using Ptr = std::shared_ptr<HttpBufferBody>;
     HttpBufferBody(toolkit::Buffer::Ptr buffer);
     ~HttpBufferBody() override = default;
 
@@ -106,7 +106,7 @@ private:
  */
 class HttpFileBody : public HttpBody {
 public:
-    typedef std::shared_ptr<HttpFileBody> Ptr;
+    using Ptr = std::shared_ptr<HttpFileBody>;
 
     /**
      * 构造函数
@@ -142,7 +142,7 @@ class HttpArgs;
  */
 class HttpMultiFormBody : public HttpBody {
 public:
-    typedef std::shared_ptr<HttpMultiFormBody> Ptr;
+    using Ptr = std::shared_ptr<HttpMultiFormBody>;
 
     /**
      * 构造函数

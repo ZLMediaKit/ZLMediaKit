@@ -198,7 +198,7 @@ static bool emitHlsPlayed(const Parser &parser, const MediaInfo &media_info, con
 
 class SockInfoImp : public SockInfo{
 public:
-    typedef std::shared_ptr<SockInfoImp> Ptr;
+    using Ptr = std::shared_ptr<SockInfoImp>;
     SockInfoImp() = default;
     ~SockInfoImp() override = default;
 

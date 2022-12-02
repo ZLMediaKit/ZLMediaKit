@@ -70,7 +70,7 @@ private:
 template <typename ClientType,WebSocketHeader::Type DataType = WebSocketHeader::TEXT>
 class HttpWsClient : public HttpClientImp , public WebSocketSplitter{
 public:
-    typedef std::shared_ptr<HttpWsClient> Ptr;
+    using Ptr = std::shared_ptr<HttpWsClient>;
 
     HttpWsClient(const std::shared_ptr<ClientTypeImp<ClientType, DataType> > &delegate) : _weak_delegate(delegate),
                                                                                           _delegate(*delegate) {
@@ -361,7 +361,7 @@ private:
 template <typename ClientType,WebSocketHeader::Type DataType = WebSocketHeader::TEXT,bool useWSS = false >
 class WebSocketClient : public ClientTypeImp<ClientType,DataType>{
 public:
-    typedef std::shared_ptr<WebSocketClient> Ptr;
+    using Ptr = std::shared_ptr<WebSocketClient>;
 
     template<typename ...ArgsType>
     WebSocketClient(ArgsType &&...args) : ClientTypeImp<ClientType,DataType>(std::forward<ArgsType>(args)...){

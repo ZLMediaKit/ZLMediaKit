@@ -24,9 +24,10 @@
 #include "Nack.h"
 #include "TwccContext.h"
 #include "SctpAssociation.hpp"
+#include "Rtcp/RtcpContext.h"
 
 namespace mediakit {
-class RtcpContext;
+
 //RTC配置项目
 namespace Rtc {
 extern const std::string kPort;
@@ -201,7 +202,7 @@ public:
 
     //for send rtp
     NackList nack_list;
-    std::shared_ptr<RtcpContext> rtcp_context_send;
+    RtcpContext::Ptr rtcp_context_send;
 
     //for recv rtp
     std::unordered_map<std::string/*rid*/, std::shared_ptr<RtpChannel> > rtp_channel;
