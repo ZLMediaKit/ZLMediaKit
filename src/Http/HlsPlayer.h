@@ -111,7 +111,7 @@ private:
 
 class HlsPlayerImp : public PlayerImp<HlsPlayer, PlayerBase>, private TrackListener {
 public:
-    typedef std::shared_ptr<HlsPlayerImp> Ptr;
+    using Ptr = std::shared_ptr<HlsPlayerImp>;
     HlsPlayerImp(const toolkit::EventPoller::Ptr &poller = nullptr);
     ~HlsPlayerImp() override = default;
 

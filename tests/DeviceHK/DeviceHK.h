@@ -52,7 +52,7 @@ typedef function<void(bool success)> relustCB;
 
 class Device: public enable_shared_from_this<Device> {
 public:
-    typedef std::shared_ptr<Device> Ptr;
+    using Ptr = std::shared_ptr<Device>;
     Device() {
     }
     virtual ~Device(){ disconnect([](bool bSuccess){
@@ -81,7 +81,7 @@ protected:
 class DevChannelHK;
 class DeviceHK: public Device {
 public:
-    typedef std::shared_ptr<DeviceHK> Ptr;
+    using Ptr = std::shared_ptr<DeviceHK>;
     DeviceHK();
     virtual ~DeviceHK();
 
@@ -100,7 +100,7 @@ private:
 
 class DevChannelHK: public DevChannel {
 public:
-    typedef std::shared_ptr<DevChannel> Ptr;
+    using Ptr = std::shared_ptr<DevChannel>;
     DevChannelHK(int64_t i64LoginId, const char *pcDevName, int iChn, bool bMainStream = true);
     virtual ~DevChannelHK();
 protected:

@@ -14,10 +14,11 @@
 #include <memory>
 #include <functional>
 #include "RtmpPlayer.h"
+#include "RtmpDemuxer.h"
 #include "RtmpMediaSource.h"
 
 namespace mediakit {
-class RtmpDemuxer;
+
 class RtmpPlayerImp: public PlayerImp<RtmpPlayer,PlayerBase>, private TrackListener {
 public:
     using Ptr = std::shared_ptr<RtmpPlayerImp>;
@@ -76,7 +77,7 @@ private:
 
 private:
     bool _wait_track_ready = true;
-    std::shared_ptr<RtmpDemuxer> _demuxer;
+    RtmpDemuxer::Ptr _demuxer;
     RtmpMediaSource::Ptr _rtmp_src;
 };
 

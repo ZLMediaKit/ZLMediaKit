@@ -24,7 +24,7 @@ namespace mediakit {
 
 class WebSocketHeader {
 public:
-    typedef std::shared_ptr<WebSocketHeader> Ptr;
+    using Ptr = std::shared_ptr<WebSocketHeader>;
     typedef enum {
         CONTINUATION = 0x0,
         TEXT = 0x1,
@@ -65,7 +65,7 @@ public:
 //websocket协议收到的字符串类型缓存，用户协议层获取该数据传输的方式
 class WebSocketBuffer : public toolkit::BufferString {
 public:
-    typedef std::shared_ptr<WebSocketBuffer> Ptr;
+    using Ptr = std::shared_ptr<WebSocketBuffer>;
 
     template<typename ...ARGS>
     WebSocketBuffer(WebSocketHeader::Type headType, bool fin, ARGS &&...args)

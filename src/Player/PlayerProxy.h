@@ -14,12 +14,13 @@
 #include <memory>
 #include "Common/MultiMediaSourceMuxer.h"
 #include "Player/MediaPlayer.h"
+#include "Util/TimeTicker.h"
 
 namespace mediakit {
 
 class PlayerProxy : public MediaPlayer, public MediaSourceEvent, public std::enable_shared_from_this<PlayerProxy> {
 public:
-    typedef std::shared_ptr<PlayerProxy> Ptr;
+    using Ptr = std::shared_ptr<PlayerProxy>;
 
     //如果retry_count<0,则一直重试播放；否则重试retry_count次数
     //默认一直重试
@@ -71,7 +72,7 @@ private:
     std::string _app;
     std::string _stream_id;
     std::string _pull_url;
-    std::shared_ptr<toolkit::Timer> _timer;
+    toolkit::Timer::Ptr _timer;
     std::function<void(const toolkit::SockException &ex)> _on_close;
     std::function<void(const toolkit::SockException &ex)> _on_play;
     MultiMediaSourceMuxer::Ptr _muxer;

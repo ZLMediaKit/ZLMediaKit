@@ -17,9 +17,7 @@
 #include <unordered_map>
 #include "Common/macros.h"
 #include "Extension/Frame.h"
-namespace toolkit {
-    class Socket;
-}
+#include "Network/Socket.h"
 
 namespace mediakit {
 
@@ -335,7 +333,7 @@ private:
 //创建rtp over tcp4个字节的头
 toolkit::Buffer::Ptr makeRtpOverTcpPrefix(uint16_t size, uint8_t interleaved);
 //创建rtp-rtcp端口对
-void makeSockPair(std::pair<std::shared_ptr<toolkit::Socket>, std::shared_ptr<toolkit::Socket>> &pair, const std::string &local_ip, bool re_use_port = false, bool is_udp = true);
+void makeSockPair(std::pair<toolkit::Socket::Ptr, toolkit::Socket::Ptr> &pair, const std::string &local_ip, bool re_use_port = false, bool is_udp = true);
 //十六进制方式打印ssrc
 std::string printSSRC(uint32_t ui32Ssrc);
 

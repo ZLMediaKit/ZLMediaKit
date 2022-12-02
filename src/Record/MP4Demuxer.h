@@ -18,7 +18,7 @@ namespace mediakit {
 
 class MP4Demuxer : public TrackSource {
 public:
-    typedef std::shared_ptr<MP4Demuxer> Ptr;
+    using Ptr = std::shared_ptr<MP4Demuxer>;
 
     /**
      * 创建mp4解复用器

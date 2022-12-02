@@ -63,7 +63,7 @@ API_EXPORT void API_CALL mk_sync_do(mk_thread ctx,on_mk_async cb, void *user_dat
 
 class TimerForC : public std::enable_shared_from_this<TimerForC>{
 public:
-    typedef std::shared_ptr<TimerForC> Ptr;
+    using Ptr = std::shared_ptr<TimerForC>;
 
     TimerForC(on_mk_timer cb, void *user_data){
         _cb = cb;

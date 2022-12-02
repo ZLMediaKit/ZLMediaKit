@@ -17,7 +17,7 @@
 
 class TcpClientForC : public toolkit::TcpClient {
 public:
-    typedef std::shared_ptr<TcpClientForC> Ptr;
+    using Ptr = std::shared_ptr<TcpClientForC>;
     TcpClientForC(mk_tcp_client_events *events) ;
     ~TcpClientForC() override ;
     void onRecv(const toolkit::Buffer::Ptr &pBuf) override;

@@ -25,7 +25,7 @@ namespace mediakit{
  */
 class H265RtpDecoder : public RtpCodec {
 public:
-    typedef std::shared_ptr<H265RtpDecoder> Ptr;
+    using Ptr = std::shared_ptr<H265RtpDecoder>;
 
     H265RtpDecoder();
     ~H265RtpDecoder() {}
@@ -64,7 +64,7 @@ private:
  */
 class H265RtpEncoder : public H265RtpDecoder ,public RtpInfo{
 public:
-    typedef std::shared_ptr<H265RtpEncoder> Ptr;
+    using Ptr = std::shared_ptr<H265RtpEncoder>;
 
     /**
      * @param ui32Ssrc ssrc

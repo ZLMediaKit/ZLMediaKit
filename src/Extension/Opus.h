@@ -21,7 +21,7 @@ namespace mediakit{
  */
 class OpusTrack : public AudioTrackImp{
 public:
-    typedef std::shared_ptr<OpusTrack> Ptr;
+    using Ptr = std::shared_ptr<OpusTrack>;
     OpusTrack() : AudioTrackImp(CodecOpus,48000,2,16){}
 
 private:

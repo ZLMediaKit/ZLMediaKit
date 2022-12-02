@@ -44,7 +44,7 @@ public:
 
 class MediaSinkInterface : public FrameWriterInterface, public TrackListener {
 public:
-    typedef std::shared_ptr<MediaSinkInterface> Ptr;
+    using Ptr = std::shared_ptr<MediaSinkInterface>;
 
     MediaSinkInterface() = default;
     ~MediaSinkInterface() override = default;
@@ -55,7 +55,7 @@ public:
  */
 class MuteAudioMaker : public FrameDispatcher {
 public:
-    typedef std::shared_ptr<MuteAudioMaker> Ptr;
+    using Ptr = std::shared_ptr<MuteAudioMaker>;
     MuteAudioMaker() = default;
     ~MuteAudioMaker() override = default;
     bool inputFrame(const Frame::Ptr &frame) override;
@@ -70,7 +70,7 @@ private:
  */
 class MediaSink : public MediaSinkInterface, public TrackSource{
 public:
-    typedef std::shared_ptr<MediaSink> Ptr;
+    using Ptr = std::shared_ptr<MediaSink>;
     MediaSink() = default;
     ~MediaSink() override = default;
 

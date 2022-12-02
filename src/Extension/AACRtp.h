@@ -19,7 +19,7 @@ namespace mediakit{
  */
 class AACRtpDecoder : public RtpCodec {
 public:
-    typedef std::shared_ptr<AACRtpDecoder> Ptr;
+    using Ptr = std::shared_ptr<AACRtpDecoder>;
 
     AACRtpDecoder(const Track::Ptr &track);
     ~AACRtpDecoder() {}
@@ -54,7 +54,7 @@ private:
  */
 class AACRtpEncoder : public AACRtpDecoder , public RtpInfo {
 public:
-    typedef std::shared_ptr<AACRtpEncoder> Ptr;
+    using Ptr = std::shared_ptr<AACRtpEncoder>;
 
     /**
      * @param ui32Ssrc ssrc

@@ -1,9 +1,19 @@
-﻿#ifndef _SRC_PACKET_CACHE_H_
-#define _SRC_PACKET_CACHE_H_
+﻿/*
+* Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+*
+* This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+*
+* Use of this source code is governed by MIT license that can be found in the
+* LICENSE file in the root of the source tree. All contributing project authors
+* may be found in the AUTHORS file in the root of the source tree.
+*/
+
+#ifndef ZLMEDIAKIT_PACKET_CACHE_H_
+#define ZLMEDIAKIT_PACKET_CACHE_H_
+
 #include "Common/config.h"
 #include "Util/List.h"
 
-#pragma once
 namespace mediakit {
 /// 缓存刷新策略类
 class FlushPolicy {
@@ -84,4 +94,5 @@ private:
     std::shared_ptr<packet_list> _cache;
 };
 }
-#endif
+
+#endif //ZLMEDIAKIT_PACKET_CACHE_H_
