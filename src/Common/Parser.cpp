@@ -220,7 +220,7 @@ void splitUrl(const std::string &url, std::string &host, uint16_t &port) {
         checkHost(host);
         return;
     }
-    CHECK(pos > 0, "invalid url:", port);
+    CHECK(pos > 0, "invalid url:", url);
     CHECK(sscanf(url.data() + pos + 1, "%" SCNu16, &port) == 1, "parse port from url failed:", url);
     host = url.substr(0, pos);
     checkHost(host);
