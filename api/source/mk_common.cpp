@@ -182,7 +182,7 @@ API_EXPORT uint16_t API_CALL mk_http_server_start(uint16_t port, int ssl) {
         }
         return http_server[ssl]->getPort();
     } catch (std::exception &ex) {
-        http_server[ssl] = nullptr;;
+        http_server[ssl] = nullptr;
         WarnL << ex.what();
         return 0;
     }
@@ -199,7 +199,7 @@ API_EXPORT uint16_t API_CALL mk_rtsp_server_start(uint16_t port, int ssl) {
         }
         return rtsp_server[ssl]->getPort();
     } catch (std::exception &ex) {
-        rtsp_server[ssl] = nullptr;;
+        rtsp_server[ssl] = nullptr;
         WarnL << ex.what();
         return 0;
     }
@@ -216,7 +216,7 @@ API_EXPORT uint16_t API_CALL mk_rtmp_server_start(uint16_t port, int ssl) {
         }
         return rtmp_server[ssl]->getPort();
     } catch (std::exception &ex) {
-        rtmp_server[ssl] = nullptr;;
+        rtmp_server[ssl] = nullptr;
         WarnL << ex.what();
         return 0;
     }
@@ -230,7 +230,7 @@ API_EXPORT uint16_t API_CALL mk_rtp_server_start(uint16_t port){
         rtpServer->start(port);
         return rtpServer->getPort();
     } catch (std::exception &ex) {
-        rtpServer = nullptr;;
+        rtpServer = nullptr;
         WarnL << ex.what();
         return 0;
     }
@@ -331,7 +331,7 @@ API_EXPORT uint16_t API_CALL mk_srt_server_start(uint16_t port) {
         return srtServer->getPort();
 
     } catch (std::exception &ex) {
-        srtServer = nullptr;;
+        srtServer = nullptr;
         WarnL << ex.what();
         return 0;
     }
@@ -347,7 +347,7 @@ API_EXPORT uint16_t API_CALL mk_shell_server_start(uint16_t port){
         shell_server->start<ShellSession>(port);
         return shell_server->getPort();
     } catch (std::exception &ex) {
-        shell_server = nullptr;;
+        shell_server = nullptr;
         WarnL << ex.what();
         return 0;
     }
