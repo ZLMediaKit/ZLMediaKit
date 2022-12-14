@@ -166,9 +166,10 @@ void SdpParser::load(const string &sdp) {
                     break;
                 case 'm': {
                     track = std::make_shared<SdpTrack>();
-                    int pt, port;
+                    int pt, port, port_count;
                     char rtp[16] = {0}, type[16];
-                    if (4 == sscanf(opt_val.data(), " %15[^ ] %d %15[^ ] %d", type, &port, rtp, &pt)) {
+                    if (4 == sscanf(opt_val.data(), " %15[^ ] %d %15[^ ] %d", type, &port, rtp, &pt) ||
+                        5 == sscanf(opt_val.data(), " %15[^ ] %d/%d %15[^ ] %d", type, &port, &port_count, rtp, &pt)) {
                         track->_pt = pt;
                         track->_samplerate = RtpPayload::getClockRate(pt);
                         track->_channel = RtpPayload::getAudioChannel(pt);
