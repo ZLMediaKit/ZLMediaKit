@@ -360,7 +360,7 @@ void WebRtcTransport::sendRtcpPacket(const char *buf, int len, bool flush, void 
         auto pkt = _packet_pool.obtain2();
         // 预留rtx加入的两个字节
         pkt->setCapacity((size_t)len + SRTP_MAX_TRAILER_LEN + 2);
-        pkt->assign(buf, len);
+        memcpy(pkt->data(), buf, len);
         onBeforeEncryptRtcp(pkt->data(), len, ctx);
         if (_srtp_session_send->EncryptRtcp(reinterpret_cast<uint8_t *>(pkt->data()), &len)) {
             pkt->setSize(len);
