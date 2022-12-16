@@ -4,6 +4,8 @@
 #include "Frame.h"
 #include "Rtsp/RtpCodec.h"
 
+struct AVFormatContext;
+
 namespace mediakit{
 
 /**
@@ -45,6 +47,7 @@ private:
     struct PayloadContext _ctx;
 };
 
+struct JPEGRtpContext;
 class JPEGRtpEncoder : public JPEGRtpDecoder , public RtpInfo {
 public:
     typedef std::shared_ptr<JPEGRtpEncoder> Ptr;
@@ -54,6 +57,8 @@ public:
     ~JPEGRtpEncoder() {}
 
     bool inputFrame(const Frame::Ptr &frame) override;
+private:
+    void rtp_send_jpeg(JPEGRtpContext *ctx, const uint8_t *buf, int size);
 };
 }//namespace mediakit
 #endif //ZLMEDIAKIT_JPEGRTP_H
