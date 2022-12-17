@@ -15,6 +15,7 @@
 #include "AACRtmp.h"
 #include "CommonRtmp.h"
 #include "H264Rtp.h"
+#include "JPEGRtp.h"
 #include "AACRtp.h"
 #include "H265Rtp.h"
 #include "CommonRtp.h"
@@ -141,6 +142,7 @@ RtpCodec::Ptr Factory::getRtpEncoderByCodecId(CodecId codec_id, uint32_t sample_
             }
             return std::make_shared<CommonRtpEncoder>(codec_id, ssrc, mtu, sample_rate, pt, interleaved);
         }
+        case CodecJPEG: return std::make_shared<JPEGRtpEncoder>(codec_id, ssrc, mtu, sample_rate, pt);
         default: WarnL << "暂不支持该CodecId:" << codec_id; return nullptr;
     }
 }
