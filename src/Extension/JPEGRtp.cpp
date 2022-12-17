@@ -832,7 +832,7 @@ bool JPEGRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool) {
 
     if (0 == jpeg_parse_packet(nullptr, &_ctx, &stamp, payload, size, seq, marker ? RTP_FLAG_MARKER : 0)) {
         auto buffer = std::make_shared<toolkit::BufferString>(std::move(_ctx.frame));
-        auto frame = std::make_shared<FrameJPEG>(std::move(buffer), stamp / 90);
+        auto frame = std::make_shared<JPEGFrame>(std::move(buffer), stamp / 90);
         _ctx.frame.clear();
         RtpCodec::inputFrame(std::move(frame));
     }

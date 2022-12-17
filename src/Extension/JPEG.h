@@ -27,13 +27,14 @@ private:
     float _fps = 0;
 };
 
-class FrameJPEG : public Frame {
+class JPEGFrame : public FrameImp {
 public:
-    FrameJPEG(toolkit::Buffer::Ptr buffer, uint64_t dts) {
+    using Ptr = std::shared_ptr<JPEGFrame>;
+    JPEGFrame(toolkit::Buffer::Ptr buffer, uint64_t dts) {
         _buffer = std::move(buffer);
         _dts = dts;
     }
-    ~FrameJPEG() override = default;
+    ~JPEGFrame() override = default;
 
     uint64_t dts() const override { return _dts; }
     size_t prefixSize() const override { return 0; }
