@@ -18,7 +18,7 @@ public:
     bool inputFrame(const Frame::Ptr &frame) override { return VideoTrack::inputFrame(frame); }
 
 private:
-    Sdp::Ptr getSdp() override { return nullptr;/*std::make_shared<MJPEGSdp>(getBitRate() / 1024);*/ };
+    Sdp::Ptr getSdp() override;
     Track::Ptr clone() override { return std::make_shared<std::remove_reference<decltype(*this)>::type>(*this); }
 
 private:

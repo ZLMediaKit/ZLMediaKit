@@ -23,6 +23,7 @@
 #include "Opus.h"
 #include "G711.h"
 #include "L16.h"
+#include "JPEG.h"
 #include "Util/base64.h"
 #include "Common/Parser.h"
 #include "Common/config.h"
@@ -90,6 +91,10 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
             return std::make_shared<H265Track>(vps, sps, pps, 0, 0, 0);
         }
 
+        case CodecJPEG : {
+            return std::make_shared<JPEGTrack>();
+        }
+
         default: {
             //其他codec不支持
             WarnL << "暂不支持该rtsp编码类型:" << track->getName();
@@ -114,6 +119,7 @@ Track::Ptr Factory::getTrackByAbstractTrack(const Track::Ptr& track) {
         case CodecOpus: return std::make_shared<OpusTrack>();
         case CodecH265: return std::make_shared<H265Track>();
         case CodecH264: return std::make_shared<H264Track>();
+        case CodecJPEG: return std::make_shared<JPEGTrack>();
 
         default: {
             //其他codec不支持
@@ -174,6 +180,7 @@ RtpCodec::Ptr Factory::getRtpDecoderByTrack(const Track::Ptr &track) {
         case CodecOpus :
         case CodecG711A :
         case CodecG711U : return std::make_shared<CommonRtpDecoder>(track->getCodecId());
+        case CodecJPEG: return std::make_shared<JPEGRtpDecoder>();
         default : WarnL << "暂不支持该CodecId:" << track->getCodecName(); return nullptr;
     }
 }
@@ -212,6 +219,7 @@ Track::Ptr getTrackByCodecId(CodecId codecId, int sample_rate = 0, int channels 
         case CodecOpus: return std::make_shared<OpusTrack>();
         case CodecG711A :
         case CodecG711U : return (sample_rate && channels && sample_bit) ? std::make_shared<G711Track>(codecId, sample_rate, channels, sample_bit) : nullptr;
+        case CodecJPEG : return std::make_shared<JPEGTrack>();
         default : WarnL << "暂不支持该CodecId:" << codecId; return nullptr;
     }
 }
