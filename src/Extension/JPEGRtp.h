@@ -48,15 +48,16 @@ private:
 };
 
 struct JPEGRtpContext;
-class JPEGRtpEncoder : public JPEGRtpDecoder , public RtpInfo {
-public:
-    typedef std::shared_ptr<JPEGRtpEncoder> Ptr;
 
-    JPEGRtpEncoder(
-        uint32_t ui32Ssrc, uint32_t ui32MtuSize = 1400, uint32_t ui32SampleRate = 90000, uint8_t ui8PayloadType = 96, uint8_t ui8Interleaved = TrackVideo * 2);
-    ~JPEGRtpEncoder() {}
+class JPEGRtpEncoder : public JPEGRtpDecoder, public RtpInfo {
+public:
+    using Ptr = std::shared_ptr<JPEGRtpEncoder>;
+
+    JPEGRtpEncoder(uint32_t ssrc, uint32_t mtu = 1400, uint32_t sample_rate = 90000, uint8_t payload_type = 96, uint8_t interleaved = TrackVideo * 2);
+    ~JPEGRtpEncoder() = default;
 
     bool inputFrame(const Frame::Ptr &frame) override;
+
 private:
     void rtp_send_jpeg(JPEGRtpContext *ctx, const uint8_t *buf, int size);
 };

@@ -1,12 +1,8 @@
 #include "JPEGRtp.h"
+#include "JPEG.h"
 
 using namespace std;
 using namespace mediakit;
-
-extern "C" {
-#include <libavformat/avformat.h>
-#include <libavutil/intreadwrite.h>
-}
 
 /* JPEG marker codes */
 enum JpegMarker {
@@ -139,7 +135,7 @@ static unsigned int bytestream2_put_buffer(PutByteContext *p, const uint8_t *src
         return 0;
     }
     size2 = MIN(p->buffer_end - p->buffer, size);
-    if (size2 != size) {
+    if (size2 != (int)size) {
         p->eof = 1;
     }
     memcpy(p->buffer, src, size2);
@@ -360,11 +356,11 @@ static int jpeg_create_header(uint8_t *buf, int size, uint32_t type, uint32_t w,
     return bytestream2_tell_p(&pbc);
 }
 
-/*static inline int av_clip(int a, int amin, int amax) {
+static inline int av_clip(int a, int amin, int amax) {
     if (a < amin) { return amin; }
     else if (a > amax) { return amax; }
     else { return a; }
-}*/
+}
 
 static void create_default_qtables(uint8_t *qtables, uint8_t q) {
     int factor = q;
@@ -564,21 +560,32 @@ static int jpeg_parse_packet(void *ctx, PayloadContext *jpeg, uint32_t *timestam
 }
 
 //----------------------------------------------------------------------------------
-#define DEF(type, name, bytes, write)                                          \
-static av_always_inline void bytestream_put_ ## name(uint8_t **b,              \
-                                                     const type value)         \
-{                                                                              \
-    write(*b, value);                                                          \
-    (*b) += bytes;                                                             \
-}
+#define DEF(type, name, bytes, write)                                                                                  \
+    static inline void bytestream_put_##name(uint8_t **b, const type value) {                                          \
+        write(*b, value);                                                                                              \
+        (*b) += bytes;                                                                                                 \
+    }
+
+#define AV_WB24(p, d)                                                                                                  \
+    do {                                                                                                               \
+        ((uint8_t *)(p))[2] = (d);                                                                                     \
+        ((uint8_t *)(p))[1] = (d) >> 8;                                                                                \
+        ((uint8_t *)(p))[0] = (d) >> 16;                                                                               \
+    } while (0)
+
+#define AV_WB16(p, d)                                                                                                  \
+    do {                                                                                                               \
+        ((uint8_t *)(p))[1] = (d);                                                                                     \
+        ((uint8_t *)(p))[0] = (d) >> 8;                                                                           \
+    } while (0)
+
+#define AV_WB8(p, d)  do { ((uint8_t*)(p))[0] = (d); } while(0)
+
 DEF(unsigned int, be24, 3, AV_WB24)
 DEF(unsigned int, be16, 2, AV_WB16)
 DEF(unsigned int, byte, 1, AV_WB8)
 
-static av_always_inline void bytestream_put_buffer(uint8_t **b,
-                                                   const uint8_t *src,
-                                                   unsigned int size)
-{
+static inline void bytestream_put_buffer(uint8_t **b, const uint8_t *src, unsigned int size) {
     memcpy(*b, src, size);
     (*b) += size;
 }
@@ -612,11 +619,12 @@ void JPEGRtpEncoder::rtp_send_jpeg(JPEGRtpContext *s, const uint8_t *buf, int si
     s->timestamp = s->cur_timestamp;
 
     int w1, h1;
-    if(JPEGRtpDecoder::getVideoResolution(buf, size, w1, h1)) {
-    /* convert video pixel dimensions from pixels to blocks */
-    w = w1;
-    h = h1;
-    } else w = h = 0;
+    if (JPEGRtpDecoder::getVideoResolution(buf, size, w1, h1)) {
+        /* convert video pixel dimensions from pixels to blocks */
+        w = w1;
+        h = h1;
+    } else
+        w = h = 0;
 
     /* get the pixel format type or fail */
     /*if (s1->streams[0]->codecpar->format == AV_PIX_FMT_YUVJ422P ||
@@ -767,7 +775,7 @@ void JPEGRtpEncoder::rtp_send_jpeg(JPEGRtpContext *s, const uint8_t *buf, int si
             hdr_size += 4 + 64 * nb_qtables;
 
         /* payload max in one packet */
-        len = FFMIN(size, s->max_payload_size - hdr_size);
+        len = MIN(size, s->max_payload_size - hdr_size);
 
         /* set main header */
         bytestream_put_byte(&p, 0);
@@ -811,20 +819,6 @@ CodecId JPEGRtpDecoder::getCodecId() const {
     return CodecJPEG;
 }
 
-class FrameJPEG : public FrameImp {
-public:
-    FrameJPEG() = default;
-    ~FrameJPEG() override = default;
-
-    CodecId getCodecId() const override {
-        return CodecJPEG;
-    }
-
-    bool keyFrame() const override {
-        return true;
-    }
-};
-
 bool JPEGRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool) {
     auto payload = rtp->getPayload();
     auto size = rtp->getPayloadSize();
@@ -837,9 +831,8 @@ bool JPEGRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool) {
     }
 
     if (0 == jpeg_parse_packet(nullptr, &_ctx, &stamp, payload, size, seq, marker ? RTP_FLAG_MARKER : 0)) {
-        auto frame = FrameImp::create<FrameJPEG>();
-        frame->_dts = frame->_dts = stamp / 90;
-        frame->_buffer = std::move(_ctx.frame);
+        auto buffer = std::make_shared<toolkit::BufferString>(std::move(_ctx.frame));
+        auto frame = std::make_shared<FrameJPEG>(std::move(buffer), stamp / 90);
         _ctx.frame.clear();
         RtpCodec::inputFrame(std::move(frame));
     }
@@ -861,22 +854,16 @@ bool JPEGRtpDecoder::getVideoResolution(const uint8_t *buf, int len, int &width,
 
 ////////////////////////////////////////////////////////////////////////
 
-JPEGRtpEncoder::JPEGRtpEncoder(uint32_t ui32Ssrc,
-                               uint32_t ui32MtuSize,
-                               uint32_t ui32SampleRate,
-                               uint8_t ui8PayloadType,
-                               uint8_t ui8Interleaved) :
-        RtpInfo(ui32Ssrc,
-                ui32MtuSize,
-                ui32SampleRate,
-                ui8PayloadType,
-                ui8Interleaved) {
-}
+JPEGRtpEncoder::JPEGRtpEncoder(
+    uint32_t ssrc, uint32_t mtu, uint32_t sample_rate, uint8_t payload_type, uint8_t interleaved)
+    : RtpInfo(ssrc, mtu, sample_rate, payload_type, interleaved) {}
+
 
 bool JPEGRtpEncoder::inputFrame(const Frame::Ptr &frame) {
-    auto ptr = (uint8_t *) frame->data() + frame->prefixSize();
+    auto ptr = (uint8_t *)frame->data() + frame->prefixSize();
     auto len = frame->size() - frame->prefixSize();
     auto pts = frame->pts();
+
     JPEGRtpContext _ctx;
     _ctx.buf = ptr;
     _ctx.pts = pts;
