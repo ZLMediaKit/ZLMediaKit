@@ -9,7 +9,7 @@ namespace mediakit {
 class JPEGSdp : public Sdp {
 public:
     JPEGSdp(int bitrate): Sdp(90000, Rtsp::PT_JPEG) {
-        _printer << "m=video 0 RTP/AVP " << getPayloadType() << "\r\n";
+        _printer << "m=video 0 RTP/AVP " << (int)getPayloadType() << "\r\n";
         if (bitrate) {
             _printer << "b=AS:" << bitrate << "\r\n";
         }
