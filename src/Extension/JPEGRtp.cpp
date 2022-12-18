@@ -590,21 +590,8 @@ static inline void bytestream_put_buffer(uint8_t **b, const uint8_t *src, unsign
     (*b) += size;
 }
 
-struct mediakit::JPEGRtpContext {
-    uint32_t timestamp;
-    uint32_t cur_timestamp;
-    int max_payload_size;
-
-    /* buffer for output */
-    uint8_t *buf;
-    uint8_t *buf_ptr;
-
-    uint64_t pts;
-};
-
-void JPEGRtpEncoder::rtp_send_jpeg(JPEGRtpContext *s, const uint8_t *buf, int size)
+void JPEGRtpEncoder::rtp_send_jpeg(const uint8_t *buf, int size, uint64_t pts)
 {
-    //RTPMuxContext *s = s1->priv_data;
     const uint8_t *qtables[4] = { NULL };
     int nb_qtables = 0;
     uint8_t type;
@@ -614,17 +601,7 @@ void JPEGRtpEncoder::rtp_send_jpeg(JPEGRtpContext *s, const uint8_t *buf, int si
     int len;
     int i;
     int default_huffman_tables = 0;
-
-    s->buf_ptr   = s->buf;
-    s->timestamp = s->cur_timestamp;
-
-    int w1, h1;
-    if (JPEGRtpDecoder::getVideoResolution(buf, size, w1, h1)) {
-        /* convert video pixel dimensions from pixels to blocks */
-        w = w1;
-        h = h1;
-    } else
-        w = h = 0;
+    uint8_t *out = nullptr;
 
     /* get the pixel format type or fail */
     /*if (s1->streams[0]->codecpar->format == AV_PIX_FMT_YUVJ422P ||
@@ -672,6 +649,8 @@ void JPEGRtpEncoder::rtp_send_jpeg(JPEGRtpContext *s, const uint8_t *buf, int si
                        "Only 1x1 chroma blocks are supported. Aborted!\n");
                 return;
             }
+            h = (buf[i + 5] * 256 + buf[i + 6]) / 8;
+            w = (buf[i + 7] * 256 + buf[i + 8]) / 8;
         } else if (buf[i + 1] == DHT) {
             int dht_size = AV_RB16(&buf[i + 2]);
             default_huffman_tables |= 1 << 4;
@@ -767,7 +746,6 @@ void JPEGRtpEncoder::rtp_send_jpeg(JPEGRtpContext *s, const uint8_t *buf, int si
         }
     }
 
-    p = s->buf_ptr;
     while (size > 0) {
         int hdr_size = 8;
 
@@ -775,7 +753,10 @@ void JPEGRtpEncoder::rtp_send_jpeg(JPEGRtpContext *s, const uint8_t *buf, int si
             hdr_size += 4 + 64 * nb_qtables;
 
         /* payload max in one packet */
-        len = MIN(size, s->max_payload_size - hdr_size);
+        len = MIN(size, (int)getMaxSize() - hdr_size);
+
+        out = (uint8_t*)realloc(out, len + hdr_size);
+        p = out;
 
         /* set main header */
         bytestream_put_byte(&p, 0);
@@ -800,13 +781,13 @@ void JPEGRtpEncoder::rtp_send_jpeg(JPEGRtpContext *s, const uint8_t *buf, int si
 
         /* marker bit is last packet in frame */
 //        ff_rtp_send_data(s1, s->buf, len + hdr_size, size == len);
-        RtpCodec::inputRtp(makeRtp(getTrackType(), s->buf, len, false, s->pts), size == len);
+        RtpCodec::inputRtp(makeRtp(getTrackType(), out, len + hdr_size, size == len, pts), false);
 
         buf  += len;
         size -= len;
         off  += len;
-        p     = s->buf;
     }
+    free(out);
 }
 
 ////////////////////////////////////////////////////////////
@@ -864,12 +845,7 @@ bool JPEGRtpEncoder::inputFrame(const Frame::Ptr &frame) {
     auto len = frame->size() - frame->prefixSize();
     auto pts = frame->pts();
 
-    JPEGRtpContext _ctx;
-    _ctx.buf = ptr;
-    _ctx.pts = pts;
-    _ctx.cur_timestamp = pts; //???
-    _ctx.max_payload_size = len; //???
-    rtp_send_jpeg(&_ctx, ptr, len);
+    rtp_send_jpeg(ptr, len, pts);
 
     return len > 0;
 }

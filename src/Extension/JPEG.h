@@ -27,9 +27,8 @@ private:
     float _fps = 0;
 };
 
-class JPEGFrame : public FrameImp {
+class JPEGFrame : public Frame {
 public:
-    using Ptr = std::shared_ptr<JPEGFrame>;
     JPEGFrame(toolkit::Buffer::Ptr buffer, uint64_t dts) {
         _buffer = std::move(buffer);
         _dts = dts;

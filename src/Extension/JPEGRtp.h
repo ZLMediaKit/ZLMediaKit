@@ -47,8 +47,6 @@ private:
     struct PayloadContext _ctx;
 };
 
-struct JPEGRtpContext;
-
 class JPEGRtpEncoder : public JPEGRtpDecoder, public RtpInfo {
 public:
     using Ptr = std::shared_ptr<JPEGRtpEncoder>;
@@ -59,7 +57,7 @@ public:
     bool inputFrame(const Frame::Ptr &frame) override;
 
 private:
-    void rtp_send_jpeg(JPEGRtpContext *ctx, const uint8_t *buf, int size);
+    void rtp_send_jpeg(const uint8_t *buf, int size, uint64_t pts);
 };
 }//namespace mediakit
 #endif //ZLMEDIAKIT_JPEGRTP_H
