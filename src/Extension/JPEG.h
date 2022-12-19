@@ -14,17 +14,19 @@ public:
     int getVideoHeight() const override { return _height; }
     int getVideoWidth() const override { return _width; }
     float getVideoFps() const override { return _fps; }
-    bool ready() override { return true; }
-    bool inputFrame(const Frame::Ptr &frame) override { return VideoTrack::inputFrame(frame); }
+    bool ready() override { return _fps > 0; }
+    bool inputFrame(const Frame::Ptr &frame) override;
 
 private:
     Sdp::Ptr getSdp() override;
     Track::Ptr clone() override { return std::make_shared<std::remove_reference<decltype(*this)>::type>(*this); }
+    void getVideoResolution(const uint8_t *buf, int len);
 
 private:
     int _width = 0;
     int _height = 0;
     float _fps = 0;
+    uint64_t _tmp = 0;
 };
 
 class JPEGFrame : public Frame {
