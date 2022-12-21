@@ -529,6 +529,7 @@ static int jpeg_parse_packet(void *ctx, PayloadContext *jpeg, uint32_t *timestam
         /* Skip the current frame in case of the end packet
          * has been lost somewhere. */
         jpeg->frame.clear();
+        jpeg->frame.reserve(1024 + len);
         jpeg->timestamp = *timestamp;
 
         /* Generate a frame and scan headers that can be prepended to the
@@ -630,6 +631,8 @@ void JPEGRtpEncoder::rtpSendJpeg(const uint8_t *buf, int size, uint64_t pts, uin
             for (j = 0; j < tables; j++)
                 qtables[nb_qtables + j] = buf + i + 5 + j * 65;
             nb_qtables += tables;
+            // 大致忽略DQT/qtable所占字节数，提高搜寻速度
+            i += tables << 6;
         } else if (buf[i + 1] == SOF0) {
             if (buf[i + 14] != 17 || buf[i + 17] != 17) {
                 av_log(s1, AV_LOG_ERROR,
@@ -638,6 +641,8 @@ void JPEGRtpEncoder::rtpSendJpeg(const uint8_t *buf, int size, uint64_t pts, uin
             }
             h = (buf[i + 5] * 256 + buf[i + 6]) / 8;
             w = (buf[i + 7] * 256 + buf[i + 8]) / 8;
+            // 大致忽略SOF0所占字节数，提高搜寻速度
+            i += 16;
         } else if (buf[i + 1] == DHT) {
             int dht_size = AV_RB16(&buf[i + 2]);
             default_huffman_tables |= 1 << 4;
