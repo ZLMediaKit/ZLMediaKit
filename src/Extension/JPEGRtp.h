@@ -4,8 +4,6 @@
 #include "Frame.h"
 #include "Rtsp/RtpCodec.h"
 
-struct AVFormatContext;
-
 namespace mediakit{
 
 /**
@@ -40,8 +38,6 @@ public:
      * @param key_pos 此参数内部强制转换为false,请忽略之
      */
     bool inputRtp(const RtpPacket::Ptr &rtp, bool key_pos = false) override;
-
-    static bool getVideoResolution(const uint8_t *buf, int len, int &width, int &height);
 
 private:
     struct PayloadContext _ctx;

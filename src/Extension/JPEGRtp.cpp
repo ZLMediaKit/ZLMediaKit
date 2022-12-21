@@ -4,6 +4,21 @@
 using namespace std;
 using namespace mediakit;
 
+#define AV_WB24(p, d)                                                                                                  \
+    do {                                                                                                               \
+        ((uint8_t *)(p))[2] = (d);                                                                                     \
+        ((uint8_t *)(p))[1] = (d) >> 8;                                                                                \
+        ((uint8_t *)(p))[0] = (d) >> 16;                                                                               \
+    } while (0)
+
+#define AV_WB16(p, d)                                                                                                  \
+    do {                                                                                                               \
+        ((uint8_t *)(p))[1] = (d);                                                                                     \
+        ((uint8_t *)(p))[0] = (d) >> 8;                                                                           \
+    } while (0)
+
+#define AV_WB8(p, d)  do { ((uint8_t*)(p))[0] = (d); } while(0)
+
 /* JPEG marker codes */
 enum JpegMarker {
     /* start of frame */
@@ -266,6 +281,7 @@ static int jpeg_create_header(uint8_t *buf, int size, uint32_t type, uint32_t w,
                               uint32_t h, const uint8_t *qtable, int nb_qtable,
                               int dri) {
     PutByteContext pbc;
+    uint8_t *dht_size_ptr;
     int dht_size = 0, i = 0;
 
     bytestream2_init_writer(&pbc, buf, size);
@@ -309,6 +325,8 @@ static int jpeg_create_header(uint8_t *buf, int size, uint32_t type, uint32_t w,
 
     /* DHT */
     jpeg_put_marker(&pbc, DHT);
+    dht_size_ptr = pbc.buffer;
+    bytestream2_put_be16(&pbc, 0);
 
     dht_size = 2;
     dht_size += jpeg_create_huffman_table(&pbc, 0, 0, avpriv_mjpeg_bits_dc_luminance,
@@ -319,7 +337,7 @@ static int jpeg_create_header(uint8_t *buf, int size, uint32_t type, uint32_t w,
                                           avpriv_mjpeg_val_ac_luminance);
     dht_size += jpeg_create_huffman_table(&pbc, 1, 1, avpriv_mjpeg_bits_ac_chrominance,
                                           avpriv_mjpeg_val_ac_chrominance);
-    bytestream2_put_be16(&pbc, dht_size);
+    AV_WB16(dht_size_ptr, dht_size);
 
     /* SOF0 */
     jpeg_put_marker(&pbc, SOF0);
@@ -566,21 +584,6 @@ static int jpeg_parse_packet(void *ctx, PayloadContext *jpeg, uint32_t *timestam
         (*b) += bytes;                                                                                                 \
     }
 
-#define AV_WB24(p, d)                                                                                                  \
-    do {                                                                                                               \
-        ((uint8_t *)(p))[2] = (d);                                                                                     \
-        ((uint8_t *)(p))[1] = (d) >> 8;                                                                                \
-        ((uint8_t *)(p))[0] = (d) >> 16;                                                                               \
-    } while (0)
-
-#define AV_WB16(p, d)                                                                                                  \
-    do {                                                                                                               \
-        ((uint8_t *)(p))[1] = (d);                                                                                     \
-        ((uint8_t *)(p))[0] = (d) >> 8;                                                                           \
-    } while (0)
-
-#define AV_WB8(p, d)  do { ((uint8_t*)(p))[0] = (d); } while(0)
-
 DEF(unsigned int, be24, 3, AV_WB24)
 DEF(unsigned int, be16, 2, AV_WB16)
 DEF(unsigned int, byte, 1, AV_WB8)
@@ -604,7 +607,8 @@ void JPEGRtpEncoder::rtp_send_jpeg(const uint8_t *buf, int size, uint64_t pts)
     uint8_t *out = nullptr;
 
     /* get the pixel format type or fail */
-    /*if (s1->streams[0]->codecpar->format == AV_PIX_FMT_YUVJ422P ||
+#if 0
+    if (s1->streams[0]->codecpar->format == AV_PIX_FMT_YUVJ422P ||
         (s1->streams[0]->codecpar->color_range == AVCOL_RANGE_JPEG &&
          s1->streams[0]->codecpar->format == AV_PIX_FMT_YUV422P)) {
         type = 0;
@@ -615,7 +619,8 @@ void JPEGRtpEncoder::rtp_send_jpeg(const uint8_t *buf, int size, uint64_t pts)
     } else {
         av_log(s1, AV_LOG_ERROR, "Unsupported pixel format\n");
         return;
-    }*/
+    }
+#endif
     type = 1;
 
     /* preparse the header for getting some info */
@@ -755,8 +760,9 @@ void JPEGRtpEncoder::rtp_send_jpeg(const uint8_t *buf, int size, uint64_t pts)
         /* payload max in one packet */
         len = MIN(size, (int)getMaxSize() - hdr_size);
 
-        out = (uint8_t*)realloc(out, len + hdr_size);
-        p = out;
+        /* marker bit is last packet in frame */
+        auto rtp_packet = makeRtp(getTrackType(), nullptr, len + hdr_size, size == len, pts);
+        p = rtp_packet->getPayload();
 
         /* set main header */
         bytestream_put_byte(&p, 0);
@@ -779,9 +785,8 @@ void JPEGRtpEncoder::rtp_send_jpeg(const uint8_t *buf, int size, uint64_t pts)
         /* copy payload data */
         memcpy(p, buf, len);
 
-        /* marker bit is last packet in frame */
-//        ff_rtp_send_data(s1, s->buf, len + hdr_size, size == len);
-        RtpCodec::inputRtp(makeRtp(getTrackType(), out, len + hdr_size, size == len, pts), false);
+        // output rtp packet
+        RtpCodec::inputRtp(std::move(rtp_packet), false);
 
         buf  += len;
         size -= len;
@@ -813,24 +818,13 @@ bool JPEGRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool) {
 
     if (0 == jpeg_parse_packet(nullptr, &_ctx, &stamp, payload, size, seq, marker ? RTP_FLAG_MARKER : 0)) {
         auto buffer = std::make_shared<toolkit::BufferString>(std::move(_ctx.frame));
-        auto frame = std::make_shared<JPEGFrame>(std::move(buffer), stamp / 90);
+        // JFIF头固定20个字节长度
+        auto frame = std::make_shared<JPEGFrame>(std::move(buffer), stamp / 90, 20);
         _ctx.frame.clear();
         RtpCodec::inputFrame(std::move(frame));
     }
 
     return false;
-}
-
-bool JPEGRtpDecoder::getVideoResolution(const uint8_t *buf, int len, int &width, int &height) {
-    if (len < 8) {
-        av_log(ctx, AV_LOG_ERROR, "Too short RTP/JPEG packet.\n");
-        return false;
-    }
-
-    /* Parse the main JPEG header. */
-    width = AV_RB8(buf + 6);   /* frame width in 8 pixel blocks */
-    height = AV_RB8(buf + 7);   /* frame height in 8 pixel blocks */
-    return true;
 }
 
 ////////////////////////////////////////////////////////////////////////

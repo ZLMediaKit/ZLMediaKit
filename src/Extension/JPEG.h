@@ -31,14 +31,15 @@ private:
 
 class JPEGFrame : public Frame {
 public:
-    JPEGFrame(toolkit::Buffer::Ptr buffer, uint64_t dts) {
+    JPEGFrame(toolkit::Buffer::Ptr buffer, uint64_t dts, size_t prefix_size = 0) {
         _buffer = std::move(buffer);
         _dts = dts;
+        _prefix_size = prefix_size;
     }
     ~JPEGFrame() override = default;
 
     uint64_t dts() const override { return _dts; }
-    size_t prefixSize() const override { return 0; }
+    size_t prefixSize() const override { return _prefix_size; }
     bool keyFrame() const override { return true; }
     bool configFrame() const override { return false; }
     CodecId getCodecId() const override { return CodecJPEG; }
@@ -47,6 +48,7 @@ public:
     size_t size() const override { return _buffer->size(); }
 
 private:
+    size_t _prefix_size;
     uint64_t _dts;
     toolkit::Buffer::Ptr _buffer;
 };
