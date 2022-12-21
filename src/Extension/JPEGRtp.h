@@ -53,7 +53,7 @@ public:
     bool inputFrame(const Frame::Ptr &frame) override;
 
 private:
-    void rtp_send_jpeg(const uint8_t *buf, int size, uint64_t pts);
+    void rtpSendJpeg(const uint8_t *buf, int size, uint64_t pts, uint8_t type);
 };
 }//namespace mediakit
 #endif //ZLMEDIAKIT_JPEGRTP_H

@@ -31,9 +31,17 @@ private:
 
 class JPEGFrame : public Frame {
 public:
-    JPEGFrame(toolkit::Buffer::Ptr buffer, uint64_t dts, size_t prefix_size = 0) {
+    /**
+     *  JPEG/MJPEG帧
+     * @param buffer 帧数据
+     * @param dts 时间戳,单位毫秒
+     * @param pix_type pixel format type; AV_PIX_FMT_YUVJ422P || (AVCOL_RANGE_JPEG && AV_PIX_FMT_YUV422P) : 1; AV_PIX_FMT_YUVJ420P || (AVCOL_RANGE_JPEG && AV_PIX_FMT_YUV420P) : 0
+     * @param prefix_size JFIF头大小
+     */
+    JPEGFrame(toolkit::Buffer::Ptr buffer, uint64_t dts, uint8_t pix_type = 0, size_t prefix_size = 0) {
         _buffer = std::move(buffer);
         _dts = dts;
+        _pix_type = pix_type;
         _prefix_size = prefix_size;
     }
     ~JPEGFrame() override = default;
@@ -47,7 +55,10 @@ public:
     char *data() const override { return _buffer->data(); }
     size_t size() const override { return _buffer->size(); }
 
+    uint8_t pixType() const {return _pix_type; }
+
 private:
+    uint8_t _pix_type;
     size_t _prefix_size;
     uint64_t _dts;
     toolkit::Buffer::Ptr _buffer;

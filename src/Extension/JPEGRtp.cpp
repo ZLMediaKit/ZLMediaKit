@@ -423,8 +423,8 @@ static void create_default_qtables(uint8_t *qtables, uint8_t q) {
 #endif
 
 static int jpeg_parse_packet(void *ctx, PayloadContext *jpeg, uint32_t *timestamp, const uint8_t *buf, int len,
-                             uint16_t seq, int flags) {
-    uint8_t type = 0, q = 0, width = 0, height = 0;
+                             uint16_t seq, int flags, uint8_t *type) {
+    uint8_t q = 0, width = 0, height = 0;
     const uint8_t *qtables = NULL;
     uint16_t qtable_len = 0;
     uint32_t off = 0;
@@ -437,14 +437,14 @@ static int jpeg_parse_packet(void *ctx, PayloadContext *jpeg, uint32_t *timestam
 
     /* Parse the main JPEG header. */
     off = AV_RB24(buf + 1);  /* fragment byte offset */
-    type = AV_RB8(buf + 4);   /* id of jpeg decoder params */
+    *type = AV_RB8(buf + 4);   /* id of jpeg decoder params */
     q = AV_RB8(buf + 5);   /* quantization factor (or table id) */
     width = AV_RB8(buf + 6);   /* frame width in 8 pixel blocks */
     height = AV_RB8(buf + 7);   /* frame height in 8 pixel blocks */
     buf += 8;
     len -= 8;
 
-    if (type & 0x40) {
+    if (*type & 0x40) {
         if (len < 4) {
             av_log(ctx, AV_LOG_ERROR, "Too short RTP/JPEG packet.\n");
             return AVERROR_INVALIDDATA;
@@ -452,10 +452,10 @@ static int jpeg_parse_packet(void *ctx, PayloadContext *jpeg, uint32_t *timestam
         dri = AV_RB16(buf);
         buf += 4;
         len -= 4;
-        type &= ~0x40;
+        *type &= ~0x40;
     }
-    if (type > 1) {
-        av_log(ctx, AV_LOG_ERROR, "RTP/JPEG type %d", (int) type);
+    if (*type > 1) {
+        av_log(ctx, AV_LOG_ERROR, "RTP/JPEG type %d", (int) *type);
         return AVERROR_PATCHWELCOME;
     }
 
@@ -534,7 +534,7 @@ static int jpeg_parse_packet(void *ctx, PayloadContext *jpeg, uint32_t *timestam
         /* Generate a frame and scan headers that can be prepended to the
          * RTP/JPEG data payload to produce a JPEG compressed image in
          * interchange format. */
-        jpeg->hdr_size = jpeg_create_header(hdr, sizeof(hdr), type, width,
+        jpeg->hdr_size = jpeg_create_header(hdr, sizeof(hdr), *type, width,
                                             height, qtables,
                                             qtable_len / 64, dri);
 
@@ -593,11 +593,10 @@ static inline void bytestream_put_buffer(uint8_t **b, const uint8_t *src, unsign
     (*b) += size;
 }
 
-void JPEGRtpEncoder::rtp_send_jpeg(const uint8_t *buf, int size, uint64_t pts)
+void JPEGRtpEncoder::rtpSendJpeg(const uint8_t *buf, int size, uint64_t pts, uint8_t type)
 {
     const uint8_t *qtables[4] = { NULL };
     int nb_qtables = 0;
-    uint8_t type;
     uint8_t w, h;
     uint8_t *p;
     int off = 0; /* fragment offset of the current JPEG frame */
@@ -605,23 +604,6 @@ void JPEGRtpEncoder::rtp_send_jpeg(const uint8_t *buf, int size, uint64_t pts)
     int i;
     int default_huffman_tables = 0;
     uint8_t *out = nullptr;
-
-    /* get the pixel format type or fail */
-#if 0
-    if (s1->streams[0]->codecpar->format == AV_PIX_FMT_YUVJ422P ||
-        (s1->streams[0]->codecpar->color_range == AVCOL_RANGE_JPEG &&
-         s1->streams[0]->codecpar->format == AV_PIX_FMT_YUV422P)) {
-        type = 0;
-    } else if (s1->streams[0]->codecpar->format == AV_PIX_FMT_YUVJ420P ||
-               (s1->streams[0]->codecpar->color_range == AVCOL_RANGE_JPEG &&
-                s1->streams[0]->codecpar->format == AV_PIX_FMT_YUV420P)) {
-        type = 1;
-    } else {
-        av_log(s1, AV_LOG_ERROR, "Unsupported pixel format\n");
-        return;
-    }
-#endif
-    type = 1;
 
     /* preparse the header for getting some info */
     for (i = 0; i < size; i++) {
@@ -816,10 +798,11 @@ bool JPEGRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool) {
         return false;
     }
 
-    if (0 == jpeg_parse_packet(nullptr, &_ctx, &stamp, payload, size, seq, marker ? RTP_FLAG_MARKER : 0)) {
+    uint8_t type;
+    if (0 == jpeg_parse_packet(nullptr, &_ctx, &stamp, payload, size, seq, marker ? RTP_FLAG_MARKER : 0, &type)) {
         auto buffer = std::make_shared<toolkit::BufferString>(std::move(_ctx.frame));
         // JFIF头固定20个字节长度
-        auto frame = std::make_shared<JPEGFrame>(std::move(buffer), stamp / 90, 20);
+        auto frame = std::make_shared<JPEGFrame>(std::move(buffer), stamp / 90, type, 20);
         _ctx.frame.clear();
         RtpCodec::inputFrame(std::move(frame));
     }
@@ -838,8 +821,11 @@ bool JPEGRtpEncoder::inputFrame(const Frame::Ptr &frame) {
     auto ptr = (uint8_t *)frame->data() + frame->prefixSize();
     auto len = frame->size() - frame->prefixSize();
     auto pts = frame->pts();
-
-    rtp_send_jpeg(ptr, len, pts);
-
+    auto type = 1;
+    auto jpeg = dynamic_pointer_cast<JPEGFrame>(frame);
+    if (jpeg) {
+        type = jpeg->pixType();
+    }
+    rtpSendJpeg(ptr, len, pts, type);
     return len > 0;
 }
