@@ -1,4 +1,4 @@
-#ifndef ZLMEDIAKIT_JPEG_H
+﻿#ifndef ZLMEDIAKIT_JPEG_H
 #define ZLMEDIAKIT_JPEG_H
 
 #include "Frame.h"
