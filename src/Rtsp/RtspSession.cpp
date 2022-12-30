@@ -307,7 +307,7 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
 void RtspSession::handleReq_RECORD(const Parser &parser){
     if (_sdp_track.empty() || parser["Session"] != _sessionid) {
         send_SessionNotFound();
-        throw SockException(Err_shutdown, _sdp_track.empty() ? "can not find any availabe track when record" : "session not found when record");
+        throw SockException(Err_shutdown, _sdp_track.empty() ? "can not find any available track when record" : "session not found when record");
     }
 
     _StrPrinter rtp_info;
