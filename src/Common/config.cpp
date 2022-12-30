@@ -317,10 +317,7 @@ const string kPortRange = RTP_PROXY_FIELD "port_range";
 const string kH264PT = RTP_PROXY_FIELD "h264_pt";
 const string kH265PT = RTP_PROXY_FIELD "h265_pt";
 const string kPSPT = RTP_PROXY_FIELD "ps_pt";
-const string kTSPT = RTP_PROXY_FIELD "ts_pt";
 const string kOpusPT = RTP_PROXY_FIELD "opus_pt";
-const string kG711UPT = RTP_PROXY_FIELD "g711u_pt";
-const string kG711APT = RTP_PROXY_FIELD "g711a_pt";
 
 static onceToken token([]() {
     mINI::Instance()[kDumpDir] = "";
@@ -329,10 +326,7 @@ static onceToken token([]() {
     mINI::Instance()[kH264PT] = 98;
     mINI::Instance()[kH265PT] = 99;
     mINI::Instance()[kPSPT] = 96;
-    mINI::Instance()[kTSPT] = 33;
     mINI::Instance()[kOpusPT] = 100;
-    mINI::Instance()[kG711UPT] = 0;
-    mINI::Instance()[kG711APT] = 8;
 });
 } // namespace RtpProxy
 
