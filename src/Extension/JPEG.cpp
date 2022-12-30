@@ -8,7 +8,7 @@ namespace mediakit {
 
 bool JPEGTrack::inputFrame(const Frame::Ptr &frame) {
     if (!ready()) {
-        if ((_height & _width) > 0) {
+        if (_height > 0 && _width > 0) {
             if (_tmp == 0) _tmp = frame->dts();
             else _fps = 1000.0 / (frame->dts() - _tmp);
         } else getVideoResolution((uint8_t*)frame->data(), frame->size());
