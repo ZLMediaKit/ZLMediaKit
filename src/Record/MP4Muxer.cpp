@@ -15,6 +15,7 @@
 #include "Extension/G711.h"
 #include "Extension/H264.h"
 #include "Extension/H265.h"
+#include "Extension/JPEG.h"
 #include "Common/config.h"
 
 using namespace std;
@@ -145,6 +146,7 @@ static uint8_t getObject(CodecId codecId) {
         case CodecAAC : return MOV_OBJECT_AAC;
         case CodecH264 : return MOV_OBJECT_H264;
         case CodecH265 : return MOV_OBJECT_HEVC;
+        case CodecJPEG : return MOV_OBJECT_JPEG;
         default : return 0;
     }
 }
@@ -295,6 +297,28 @@ bool MP4MuxerInterface::addTrack(const Track::Ptr &track) {
                                                  extra_data_size);
             if (track_id < 0) {
                 WarnL << "添加H265 Track失败:" << track_id;
+                return false;
+            }
+            _codec_to_trackid[track->getCodecId()].track_id = track_id;
+            _have_video = true;
+            break;
+        }
+
+    case CodecJPEG: {
+            auto jpeg_track = dynamic_pointer_cast<JPEGTrack>(track);
+            if (!jpeg_track) {
+                WarnL << "不是JPEG Track";
+                return false;
+            }
+
+            auto track_id = mp4_writer_add_video(_mov_writter.get(),
+                                                 mp4_object,
+                                                 jpeg_track->getVideoWidth(),
+                                                 jpeg_track->getVideoHeight(),
+                                                 nullptr,
+                                                 0);
+            if (track_id < 0) {
+                WarnL << "添加JPEG Track失败:" << track_id;
                 return false;
             }
             _codec_to_trackid[track->getCodecId()].track_id = track_id;
