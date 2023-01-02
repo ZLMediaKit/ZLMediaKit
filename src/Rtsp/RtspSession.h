@@ -74,6 +74,8 @@ protected:
 
     //回复客户端
     virtual bool sendRtspResponse(const std::string &res_code, const StrCaseMap &header = StrCaseMap(), const std::string &sdp = "", const char *protocol = "RTSP/1.0");
+
+protected:
     //url解析后保存的相关信息
     MediaInfo _media_info;
 
