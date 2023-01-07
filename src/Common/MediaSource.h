@@ -118,6 +118,9 @@ public:
         uint32_t rtcp_timeout_ms = 30 * 1000;
         //udp 发送时，发送sr rtcp包间隔，单位毫秒
         uint32_t rtcp_send_interval_ms = 5 * 1000;
+
+        //发送rtp同时接收，一般用于双向语言对讲, 如果不为空，说明开启接收
+        std::string recv_stream_id;
     };
 
     // 开始发送ps-rtp

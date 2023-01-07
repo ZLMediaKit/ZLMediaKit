@@ -1661,6 +1661,12 @@
 							"value": "0",
 							"description": "udp方式推流时，是否开启rtcp发送和rtcp接收超时判断，开启后(默认关闭)，如果接收rr rtcp超时，将导致主动停止rtp发送",
 							"disabled": true
+						},
+						{
+							"key": "recv_stream_id",
+							"value": "",
+							"description": "发送rtp同时接收，一般用于双向语言对讲, 如果不为空，说明开启接收，值为接收流的id",
+							"disabled": true
 						}
 					]
 				}
