@@ -258,7 +258,7 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const MediaSourceE
                 strong_self->_rtp_sender.erase(ssrc);
                 //触发观看人数统计
                 auto strong_sender = weak_sender.lock();
-                if(strong_sender) {
+                if (strong_sender) {
                     strong_self->onReaderChanged(*strong_sender, strong_self->totalReaderCount());
                 }
                 NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastSendRtpStopped, *strong_self, ssrc, ex);
@@ -266,7 +266,7 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const MediaSourceE
         });
         strong_self->_rtp_sender[args.ssrc] = std::move(rtp_sender);
         auto strong_sender = weak_sender.lock();
-        if(strong_sender) {
+        if (strong_sender) {
             strong_self->onReaderChanged(*strong_sender, strong_self->totalReaderCount());
         }
     });
