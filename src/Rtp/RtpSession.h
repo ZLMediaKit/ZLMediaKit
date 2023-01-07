@@ -30,6 +30,7 @@ public:
     void onRecv(const toolkit::Buffer::Ptr &) override;
     void onError(const toolkit::SockException &err) override;
     void onManager() override;
+    void setParams(toolkit::mINI &ini);
     void attachServer(const toolkit::Server &server) override;
 
 protected:

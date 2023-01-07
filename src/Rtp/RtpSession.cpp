@@ -24,8 +24,12 @@ const string RtpSession::kStreamID = "stream_id";
 const string RtpSession::kSSRC = "ssrc";
 
 void RtpSession::attachServer(const Server &server) {
-    _stream_id = const_cast<Server &>(server)[kStreamID];
-    _ssrc = const_cast<Server &>(server)[kSSRC];
+    setParams(const_cast<Server &>(server));
+}
+
+void RtpSession::setParams(mINI &ini) {
+    _stream_id = ini[kStreamID];
+    _ssrc = ini[kSSRC];
 }
 
 RtpSession::RtpSession(const Socket::Ptr &sock) : Session(sock) {
