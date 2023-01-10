@@ -1,0 +1,58 @@
+// For format details, see https://aka.ms/vscode-remote/devcontainer.json or this file's README at:
+// https://github.com/microsoft/vscode-dev-containers/tree/v0.195.0/containers/cpp
+{
+	"name": "ZLMediaKit",
+	"build": {
+		"dockerfile": "Dockerfile",
+		// Update 'VARIANT' to pick an Debian / Ubuntu OS version: debian-11, debian-10, debian-9, ubuntu-21.04, ubuntu-20.04, ubuntu-18.04
+		// Use Debian 11, Debian 9, Ubuntu 18.04 or Ubuntu 21.04 on local arm64/Apple Silicon
+		"args": { "VARIANT": "ubuntu-18.04" }
+	},///EXPOSE 9000/tcp
+
+   
+	"runArgs": [
+		"--network=host",
+		"--cap-add=SYS_PTRACE",
+		"--security-opt",		
+		"seccomp=unconfined"
+	],
+
+	/*"runArgs": [		 
+		 "-p 1935:1935", 
+		 "-p 8080:80",
+		 "-p 8443:443",
+		 "-p 8554:554",
+		 "-p 10000:10000/udp",
+		 "-p 10000:10000",
+		 "-p 30000-30010:30000-30010/udp",
+		 "-p 30000-30010:30000-30010",
+		 "--cap-add=SYS_PTRACE", 
+		 "--security-opt", 
+		 "seccomp=unconfined"],*/
+		
+	// Configure tool-specific properties.
+	"customizations": {
+		// Configure properties specific to VS Code.
+		"vscode": {
+			// Set *default* container specific settings.json values on container create.
+			"settings": {},
+			
+			// Add the IDs of extensions you want installed when the container is created.
+			"extensions": [
+				"ms-vscode.cpptools"
+			]
+		}
+	},
+
+	//"workspaceFolder": "${workspaceFolder} ",
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	 "forwardPorts": [1935,554,80,443,1000,10000,30000,30001,9000],
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	// "postCreateCommand": "git submodule update --init"
+
+	// Comment out this line to run as root instead.
+	"remoteUser": "root"
+
+}
