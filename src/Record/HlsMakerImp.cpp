@@ -40,7 +40,12 @@ HlsMakerImp::HlsMakerImp(const string &m3u8_file,
 }
 
 HlsMakerImp::~HlsMakerImp() {
-    clearCache(false, true);
+    try {
+        // 可能hls注册时导致抛异常
+        clearCache(false, true);
+    } catch (std::exception &ex) {
+        WarnL << ex.what();
+    }
 }
 
 void HlsMakerImp::clearCache() {
