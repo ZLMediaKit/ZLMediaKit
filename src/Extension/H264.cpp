@@ -151,6 +151,7 @@ bool H264Track::ready() {
 bool H264Track::inputFrame(const Frame::Ptr &frame) {
     using H264FrameInternal = FrameInternal<H264FrameNoCacheAble>;
     int type = H264_TYPE(frame->data()[frame->prefixSize()]);
+   
     if ((type == H264Frame::NAL_B_P || type == H264Frame::NAL_IDR) && ready()) {
         return inputFrame_l(frame);
     }
@@ -204,7 +205,9 @@ bool H264Track::inputFrame_l(const Frame::Ptr &frame) {
             if (frame->keyFrame() && !_latest_is_config_frame) {
                 insertConfigFrame(frame);
             }
-            _latest_is_config_frame = false;
+            if(!frame->dropAble()){
+                _latest_is_config_frame = false;
+            }
             ret = VideoTrack::inputFrame(frame);
             break;
     }
