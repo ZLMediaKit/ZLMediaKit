@@ -90,7 +90,7 @@ using H264FrameNoCacheAble = H264FrameHelper<FrameFromPtr>;
 /**
  * 264视频通道
  */
-class H264Track : public VideoTrack{
+class H264Track : public VideoTrack {
 public:
     using Ptr = std::shared_ptr<H264Track>;
 
