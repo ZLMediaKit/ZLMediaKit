@@ -311,6 +311,10 @@ public:
      */
     bool inputFrame(const Frame::Ptr &frame) override {
         std::lock_guard<std::mutex> lck(_mtx);
+        ++_frames;
+        if (frame->keyFrame() && frame->getTrackType() == TrackVideo) {
+            ++_video_key_frames;
+        }
         bool ret = false;
         for (auto &pr : _delegates) {
             if (pr.second->inputFrame(frame)) {
@@ -333,7 +337,25 @@ public:
         _delegates.clear();
     }
 
+    /**
+     * 获取累计关键帧数
+     */
+    uint64_t getVideoKeyFrames() const {
+        std::lock_guard<std::mutex> lck(_mtx);
+        return _video_key_frames;
+    }
+
+    /**
+     *  获取帧数
+     */
+    uint64_t getFrames() const {
+        std::lock_guard<std::mutex> lck(_mtx);
+        return _frames;
+    }
+
 private:
+    uint64_t _frames = 0;
+    uint64_t _video_key_frames = 0;
     mutable std::mutex _mtx;
     std::map<void *, FrameWriterInterface::Ptr> _delegates;
 };

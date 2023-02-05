@@ -365,6 +365,7 @@ Value makeMediaSourceJson(MediaSource &media){
             }
             obj["loss"] = loss;
         }
+        obj["frames"] = track->getFrames();
         switch(codec_type){
             case TrackAudio : {
                 auto audio_track = dynamic_pointer_cast<AudioTrack>(track);
@@ -378,6 +379,7 @@ Value makeMediaSourceJson(MediaSource &media){
                 obj["width"] = video_track->getVideoWidth();
                 obj["height"] = video_track->getVideoHeight();
                 obj["fps"] = round(video_track->getVideoFps());
+                obj["key_frames"] = video_track->getVideoKeyFrames();
                 break;
             }
             default:
