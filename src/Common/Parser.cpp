@@ -159,7 +159,50 @@ StrCaseMap Parser::parseArgs(const string &str, const char *pair_delim, const ch
     }
     return ret;
 }
+std::string Parser::merge_url(const string &base_url, const string &path) {
+    if (path.empty()) return base_url;
+    if (path.find("://") != string::npos) return path;  // 如果包含协议，则直接返回
+    if (path.find("./") == 0) return base_url.substr(0, base_url.rfind('/') + 1) + path.substr(2);
+    if (path.find("../") != 0) return base_url.substr(0, base_url.rfind('/') + 1) + path;
+    vector<string> path_parts;
+    size_t pos = 0, next_pos = 0;
+    if (path[0] == '/') {
+        path_parts.emplace_back("");  // 新的URL从根开始
+    } else {
+        while ((next_pos = base_url.find('/', pos)) != string::npos) {
+            path_parts.emplace_back(base_url.substr(pos, next_pos - pos));
+            pos = next_pos + 1;
+        }
+        //        path_parts.pop_back();  // 去掉文件名部分
+    }
+    pos = 0;
+    while ((next_pos = path.find('/', pos)) != string::npos) {
+        string part = path.substr(pos, next_pos - pos);
+        if (part == "..") {
+            if (!path_parts.empty() && !path_parts.back().empty()) {
+                path_parts.pop_back();
+            }
+        } else {
+            path_parts.emplace_back(part);
+        }
+        pos = next_pos + 1;
+    }
 
+    string part = path.substr(pos);
+    if (part != "..") {
+        path_parts.emplace_back(part);
+    }
+
+    stringstream ss;
+    for (size_t i = 0; i < path_parts.size(); ++i) {
+        if (i == 0) {
+            ss << path_parts[i];
+        } else {
+            ss << '/' << path_parts[i];
+        }
+    }
+    return ss.str();
+}
 void RtspUrl::parse(const string &strUrl) {
     auto schema = FindField(strUrl.data(), nullptr, "://");
     bool is_ssl = strcasecmp(schema.data(), "rtsps") == 0;
