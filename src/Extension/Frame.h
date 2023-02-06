@@ -292,7 +292,7 @@ public:
      * 添加代理
      */
     FrameWriterInterface* addDelegate(FrameWriterInterface::Ptr delegate) {
-        std::lock_guard<std::mutex> lck(_mtx);
+        std::lock_guard<std::recursive_mutex> lck(_mtx);
         return _delegates.emplace(delegate.get(), std::move(delegate)).first->second.get();
     }
 
@@ -302,7 +302,7 @@ public:
      * 删除代理
      */
     void delDelegate(FrameWriterInterface *ptr) {
-        std::lock_guard<std::mutex> lck(_mtx);
+        std::lock_guard<std::recursive_mutex> lck(_mtx);
         _delegates.erase(ptr);
     }
 
@@ -310,7 +310,7 @@ public:
      * 写入帧并派发
      */
     bool inputFrame(const Frame::Ptr &frame) override {
-        std::lock_guard<std::mutex> lck(_mtx);
+        std::lock_guard<std::recursive_mutex> lck(_mtx);
         ++_frames;
         if (frame->keyFrame() && frame->getTrackType() == TrackVideo) {
             ++_video_key_frames;
@@ -328,12 +328,12 @@ public:
      * 返回代理个数
      */
     size_t size() const {
-        std::lock_guard<std::mutex> lck(_mtx);
+        std::lock_guard<std::recursive_mutex> lck(_mtx);
         return _delegates.size();
     }
 
     void clear() {
-        std::lock_guard<std::mutex> lck(_mtx);
+        std::lock_guard<std::recursive_mutex> lck(_mtx);
         _delegates.clear();
     }
 
@@ -341,7 +341,7 @@ public:
      * 获取累计关键帧数
      */
     uint64_t getVideoKeyFrames() const {
-        std::lock_guard<std::mutex> lck(_mtx);
+        std::lock_guard<std::recursive_mutex> lck(_mtx);
         return _video_key_frames;
     }
 
@@ -349,14 +349,14 @@ public:
      *  获取帧数
      */
     uint64_t getFrames() const {
-        std::lock_guard<std::mutex> lck(_mtx);
+        std::lock_guard<std::recursive_mutex> lck(_mtx);
         return _frames;
     }
 
 private:
     uint64_t _frames = 0;
     uint64_t _video_key_frames = 0;
-    mutable std::mutex _mtx;
+    mutable std::recursive_mutex _mtx;
     std::map<void *, FrameWriterInterface::Ptr> _delegates;
 };
 
