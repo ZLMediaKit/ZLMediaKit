@@ -20,6 +20,19 @@ static constexpr size_t kMaxCacheSize = 4 * 1024 * 1024;
 namespace mediakit {
 
 void HttpRequestSplitter::input(const char *data,size_t len) {
+    
+    if (_remain_data_size == 0) {
+        //拦截非 http 请求，打印相关数据
+		if (len > 0) {
+			char firstChar = data[0];
+			//GET POST HEAD OPTIONS
+			if (!(firstChar == 'G' || firstChar == 'P' || firstChar == 'H' || firstChar == 'O')) {
+				WarnL << "attack data: " << hexdump(data, len);
+				reset();
+				return;
+			}
+		}
+	}
     {
         auto size = remainDataSize();
         if (size > kMaxCacheSize) {
