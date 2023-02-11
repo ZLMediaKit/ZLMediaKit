@@ -163,6 +163,14 @@ API_EXPORT mk_media API_CALL mk_media_create(const char *vhost, const char *app,
     return (mk_media) obj;
 }
 
+API_EXPORT mk_media API_CALL mk_media_create2(const char *vhost, const char *app, const char *stream, float duration, mk_ini ini) {
+    assert(vhost && app && stream && ini);
+    ProtocolOption option(*((mINI *)ini));
+    MediaHelper::Ptr *obj(new MediaHelper::Ptr(new MediaHelper(vhost, app, stream, duration, option)));
+    (*obj)->attachEvent();
+    return (mk_media) obj;
+}
+
 API_EXPORT void API_CALL mk_media_release(mk_media ctx) {
     assert(ctx);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
