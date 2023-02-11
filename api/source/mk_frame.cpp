@@ -27,17 +27,17 @@ public:
     using Ptr = std::shared_ptr<FrameFromPtrForC>;
 
     template<typename ...ARGS>
-    FrameFromPtrForC(bool cache_able, uint32_t flags, on_mk_frame_data_release cb, void *user_data, ARGS &&...args) : FrameFromPtr(
+    FrameFromPtrForC(bool cache_able, uint32_t flags, on_mk_frame_data_release cb, std::shared_ptr<void> user_data, ARGS &&...args) : FrameFromPtr(
             std::forward<ARGS>(args)...) {
         _flags = flags;
         _cb = cb;
-        _user_data = user_data;
+        _user_data = std::move(user_data);
         _cache_able = cache_able;
     }
 
     ~FrameFromPtrForC() override {
         if (_cb) {
-            _cb(_user_data, _ptr);
+            _cb(_user_data.get(), _ptr);
         }
     }
 
@@ -66,43 +66,47 @@ public:
 private:
     uint32_t _flags;
     on_mk_frame_data_release _cb;
-    void *_user_data;
+    std::shared_ptr<void> _user_data;
     bool _cache_able;
 };
 
 static mk_frame mk_frame_create_complex(int codec_id, uint64_t dts, uint64_t pts, uint32_t frame_flags, size_t prefix_size,
-                                       char *data, size_t size, on_mk_frame_data_release cb, void *user_data) {
+                                       char *data, size_t size, on_mk_frame_data_release cb, std::shared_ptr<void> user_data) {
     switch (codec_id) {
         case CodecH264:
-            return new Frame::Ptr(new H264FrameHelper<FrameFromPtrForC>(cb, frame_flags, cb, user_data, (CodecId) codec_id,
-                                                                        data, size, dts, pts, prefix_size));
+            return new Frame::Ptr(new H264FrameHelper<FrameFromPtrForC>(
+                cb, frame_flags, cb, std::move(user_data), (CodecId)codec_id, data, size, dts, pts, prefix_size));
         case CodecH265:
-            return new Frame::Ptr(new H265FrameHelper<FrameFromPtrForC>(cb, frame_flags, cb, user_data, (CodecId) codec_id,
-                                                                        data, size, dts, pts, prefix_size));
+            return new Frame::Ptr(new H265FrameHelper<FrameFromPtrForC>(
+                cb, frame_flags, cb, std::move(user_data), (CodecId)codec_id, data, size, dts, pts, prefix_size));
         default:
-            return new Frame::Ptr(new FrameFromPtrForC(cb, frame_flags, cb, user_data, (CodecId) codec_id, data,
-                                                       size, dts, pts, prefix_size));
+            return new Frame::Ptr(new FrameFromPtrForC(
+                cb, frame_flags, cb, std::move(user_data), (CodecId)codec_id, data, size, dts, pts, prefix_size));
     }
 }
 
 API_EXPORT mk_frame API_CALL mk_frame_create(int codec_id, uint64_t dts, uint64_t pts, const char *data, size_t size,
-                                            on_mk_frame_data_release cb, void *user_data) {
-
+                                              on_mk_frame_data_release cb, void *user_data) {
+    return mk_frame_create2(codec_id, dts, pts, data, size, cb, user_data, nullptr);
+}
+API_EXPORT mk_frame API_CALL mk_frame_create2(int codec_id, uint64_t dts, uint64_t pts, const char *data, size_t size,
+                                            on_mk_frame_data_release cb, void *user_data, on_user_data_free user_data_free) {
+    std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
     switch (codec_id) {
         case CodecH264:
         case CodecH265:
-            return mk_frame_create_complex(codec_id, dts, pts, 0, prefixSize(data, size), (char *)data, size, cb, user_data);
+            return mk_frame_create_complex(codec_id, dts, pts, 0, prefixSize(data, size), (char *)data, size, cb, std::move(ptr));
 
         case CodecAAC: {
             int prefix = 0;
             if ((((uint8_t *) data)[0] == 0xFF && (((uint8_t *) data)[1] & 0xF0) == 0xF0) && size > ADTS_HEADER_LEN) {
                 prefix = ADTS_HEADER_LEN;
             }
-            return mk_frame_create_complex(codec_id, dts, pts, 0, prefix, (char *)data, size, cb, user_data);
+            return mk_frame_create_complex(codec_id, dts, pts, 0, prefix, (char *)data, size, cb, std::move(ptr));
         }
 
         default:
-            return mk_frame_create_complex(codec_id, dts, pts, 0, 0, (char *)data, size, cb, user_data);
+            return mk_frame_create_complex(codec_id, dts, pts, 0, 0, (char *)data, size, cb, std::move(ptr));
     }
 }
 

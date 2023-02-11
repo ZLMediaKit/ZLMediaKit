@@ -31,6 +31,7 @@ typedef void(API_CALL *on_mk_buffer_free)(void *user_data, void *data);
  * @return buffer对象
  */
 API_EXPORT mk_buffer API_CALL mk_buffer_from_char(const char *data, size_t len, on_mk_buffer_free cb, void *user_data);
+API_EXPORT mk_buffer API_CALL mk_buffer_from_char2(const char *data, size_t len, on_mk_buffer_free cb, void *user_data, on_user_data_free user_data_free);
 API_EXPORT mk_buffer API_CALL mk_buffer_ref(mk_buffer buffer);
 API_EXPORT void API_CALL mk_buffer_unref(mk_buffer buffer);
 API_EXPORT const char* API_CALL mk_buffer_get_data(mk_buffer buffer);
@@ -141,7 +142,8 @@ typedef enum {
  * @param session 会话对象
  * @param user_data 用户数据指针
  */
-API_EXPORT void API_CALL mk_tcp_session_set_user_data(mk_tcp_session session,void *user_data);
+API_EXPORT void API_CALL mk_tcp_session_set_user_data(mk_tcp_session session, void *user_data);
+API_EXPORT void API_CALL mk_tcp_session_set_user_data2(mk_tcp_session session, void *user_data, on_user_data_free user_data_free);
 
 /**
  * 获取tcp会话对象上附着的用户数据
@@ -250,7 +252,8 @@ API_EXPORT void API_CALL mk_tcp_client_send_buffer_safe(mk_tcp_client ctx, mk_bu
  * @param ctx 客户端对象
  * @param user_data 用户数据指针
  */
-API_EXPORT void API_CALL mk_tcp_client_set_user_data(mk_tcp_client ctx,void *user_data);
+API_EXPORT void API_CALL mk_tcp_client_set_user_data(mk_tcp_client ctx, void *user_data);
+API_EXPORT void API_CALL mk_tcp_client_set_user_data2(mk_tcp_client ctx, void *user_data, on_user_data_free user_data_free);
 
 /**
  * 获取客户端对象上附着的用户数据

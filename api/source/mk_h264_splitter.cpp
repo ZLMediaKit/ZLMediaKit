@@ -86,12 +86,17 @@ const char *H264Splitter::onSearchPacketTail(const char *data, size_t len) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 API_EXPORT mk_h264_splitter API_CALL mk_h264_splitter_create(on_mk_h264_splitter_frame cb, void *user_data, int is_h265) {
+    return mk_h264_splitter_create2(cb, user_data, nullptr, is_h265);
+}
+
+API_EXPORT mk_h264_splitter API_CALL mk_h264_splitter_create2(on_mk_h264_splitter_frame cb, void *user_data, on_user_data_free user_data_free, int is_h265) {
     assert(cb);
-    auto ptr = new H264Splitter(is_h265);
-    ptr->setOnSplitted([cb, ptr, user_data](const char *data, size_t len) {
-        cb(user_data, reinterpret_cast<mk_h264_splitter>(ptr), data, len);
+    auto ret = new H264Splitter(is_h265);
+    std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
+    ret->setOnSplitted([cb, ptr, ret](const char *data, size_t len) {
+        cb(ptr.get(), reinterpret_cast<mk_h264_splitter>(ret), data, len);
     });
-    return reinterpret_cast<mk_h264_splitter>(ptr);
+    return reinterpret_cast<mk_h264_splitter>(ret);
 }
 
 API_EXPORT void API_CALL mk_h264_splitter_release(mk_h264_splitter ctx){

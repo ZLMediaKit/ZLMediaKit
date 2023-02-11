@@ -79,6 +79,7 @@ API_EXPORT void API_CALL mk_pusher_publish(mk_pusher ctx,const char *url);
  * @param user_data 用户数据指针
  */
 API_EXPORT void API_CALL mk_pusher_set_on_result(mk_pusher ctx, on_mk_push_event cb, void *user_data);
+API_EXPORT void API_CALL mk_pusher_set_on_result2(mk_pusher ctx, on_mk_push_event cb, void *user_data, on_user_data_free user_data_free);
 
 /**
  * 设置推流被异常中断的回调
@@ -87,6 +88,7 @@ API_EXPORT void API_CALL mk_pusher_set_on_result(mk_pusher ctx, on_mk_push_event
  * @param user_data 用户数据指针
  */
 API_EXPORT void API_CALL mk_pusher_set_on_shutdown(mk_pusher ctx, on_mk_push_event cb, void *user_data);
+API_EXPORT void API_CALL mk_pusher_set_on_shutdown2(mk_pusher ctx, on_mk_push_event cb, void *user_data, on_user_data_free user_data_free);
 
 #ifdef __cplusplus
 }

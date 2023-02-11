@@ -40,6 +40,7 @@ typedef void(API_CALL *on_mk_rtp_server_connected)(void *user_data, int err, con
  * @return
  */
 API_EXPORT void API_CALL mk_rtp_server_connect(mk_rtp_server ctx, const char *dst_url, uint16_t dst_port, on_mk_rtp_server_connected cb, void *user_data);
+API_EXPORT void API_CALL mk_rtp_server_connect2(mk_rtp_server ctx, const char *dst_url, uint16_t dst_port, on_mk_rtp_server_connected cb, void *user_data, on_user_data_free user_data_free);
 
 /**
  * 销毁GB28181 RTP 服务器
@@ -67,7 +68,7 @@ typedef void(API_CALL *on_mk_rtp_server_detach)(void *user_data);
  * @param user_data 回调函数用户数据指针
  */
 API_EXPORT void API_CALL mk_rtp_server_set_on_detach(mk_rtp_server ctx, on_mk_rtp_server_detach cb, void *user_data);
-
+API_EXPORT void API_CALL mk_rtp_server_set_on_detach2(mk_rtp_server ctx, on_mk_rtp_server_detach cb, void *user_data, on_user_data_free user_data_free);
 
 #ifdef __cplusplus
 }

@@ -78,6 +78,7 @@ API_EXPORT void API_CALL mk_decoder_set_max_async_frame_size(mk_decoder ctx, siz
  * @param user_data 回调函数用户指针参数
  */
 API_EXPORT void API_CALL mk_decoder_set_cb(mk_decoder ctx, on_mk_decode cb, void *user_data);
+API_EXPORT void API_CALL mk_decoder_set_cb2(mk_decoder ctx, on_mk_decode cb, void *user_data, on_user_data_free user_data_free);
 
 /**
  * 获取FFmpeg原始AVCodecContext对象

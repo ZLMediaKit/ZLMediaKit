@@ -114,9 +114,14 @@ API_EXPORT int API_CALL mk_track_bit_rate(mk_track track) {
 }
 
 API_EXPORT void *API_CALL mk_track_add_delegate(mk_track track, on_mk_frame_out cb, void *user_data) {
+    return mk_track_add_delegate2(track, cb, user_data, nullptr);
+}
+
+API_EXPORT void *API_CALL mk_track_add_delegate2(mk_track track, on_mk_frame_out cb, void *user_data, on_user_data_free user_data_free){
     assert(track && cb);
-    return (*((Track::Ptr *) track))->addDelegate([cb, user_data](const Frame::Ptr &frame) {
-        cb(user_data, (mk_frame) &frame);
+    std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
+    return (*((Track::Ptr *) track))->addDelegate([cb, ptr](const Frame::Ptr &frame) {
+        cb(ptr.get(), (mk_frame) &frame);
         return true;
     });
 }

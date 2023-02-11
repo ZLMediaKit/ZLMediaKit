@@ -57,9 +57,14 @@ API_EXPORT void API_CALL mk_decoder_set_max_async_frame_size(mk_decoder ctx, siz
 }
 
 API_EXPORT void API_CALL mk_decoder_set_cb(mk_decoder ctx, on_mk_decode cb, void *user_data) {
+    mk_decoder_set_cb2(ctx, cb, user_data, nullptr);
+}
+
+API_EXPORT void API_CALL mk_decoder_set_cb2(mk_decoder ctx, on_mk_decode cb, void *user_data, on_user_data_free user_data_free){
     assert(ctx && cb);
-    ((FFmpegDecoder *) ctx)->setOnDecode([cb, user_data](const FFmpegFrame::Ptr &pix_frame) {
-        cb(user_data, (mk_frame_pix) &pix_frame);
+    std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
+    ((FFmpegDecoder *) ctx)->setOnDecode([cb, ptr](const FFmpegFrame::Ptr &pix_frame) {
+        cb(ptr.get(), (mk_frame_pix) &pix_frame);
     });
 }
 

@@ -30,16 +30,20 @@ API_EXPORT void API_CALL mk_http_downloader_release(mk_http_downloader ctx) {
 }
 
 API_EXPORT void API_CALL mk_http_downloader_start(mk_http_downloader ctx, const char *url, const char *file, on_mk_download_complete cb, void *user_data) {
+    mk_http_downloader_start2(ctx, url, file, cb, user_data, nullptr);
+}
+
+API_EXPORT void API_CALL mk_http_downloader_start2(mk_http_downloader ctx, const char *url, const char *file, on_mk_download_complete cb, void *user_data, on_user_data_free user_data_free) {
     assert(ctx && url && file);
     HttpDownloader::Ptr *obj = (HttpDownloader::Ptr *) ctx;
-    (*obj)->setOnResult([cb, user_data](const SockException &ex, const string &filePath) {
+    std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
+    (*obj)->setOnResult([cb, ptr](const SockException &ex, const string &filePath) {
         if (cb) {
-            cb(user_data, ex.getErrCode(), ex.what(), filePath.data());
+            cb(ptr.get(), ex.getErrCode(), ex.what(), filePath.data());
         }
     });
     (*obj)->startDownload(url, file, false);
 }
-
 
 ///////////////////////////////////////////HttpRequester/////////////////////////////////////////////
 API_EXPORT mk_http_requester API_CALL mk_http_requester_create(){
@@ -128,11 +132,16 @@ API_EXPORT mk_parser API_CALL mk_http_requester_get_response(mk_http_requester c
     return (mk_parser)&((*obj)->response());
 }
 
-API_EXPORT void API_CALL mk_http_requester_set_cb(mk_http_requester ctx,on_mk_http_requester_complete cb, void *user_data){
+API_EXPORT void API_CALL mk_http_requester_set_cb(mk_http_requester ctx,on_mk_http_requester_complete cb, void *user_data) {
+    mk_http_requester_set_cb2(ctx, cb, user_data, nullptr);
+}
+
+API_EXPORT void API_CALL mk_http_requester_set_cb2(mk_http_requester ctx,on_mk_http_requester_complete cb, void *user_data, on_user_data_free user_data_free) {
     assert(ctx && cb);
     HttpRequester::Ptr *obj = (HttpRequester::Ptr *)ctx;
-    (*obj)->setOnResult([cb, user_data](const SockException &ex, const Parser &res) {
-        cb(user_data, ex.getErrCode(), ex.what());
+    std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
+    (*obj)->setOnResult([cb, ptr](const SockException &ex, const Parser &res) {
+        cb(ptr.get(), ex.getErrCode(), ex.what());
     });
 }
 
