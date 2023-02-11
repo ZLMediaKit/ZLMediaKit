@@ -59,7 +59,6 @@ protected:
 
     /**
      * 收到content分片或全部数据
-     * onRecvHeader函数返回>0,则为全部数据
      * @param data content分片或全部数据
      * @param len 数据长度
      */
