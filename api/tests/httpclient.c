@@ -16,7 +16,7 @@ typedef struct {
     mk_http_requester requester;
 } Context;
 
-void API_CALL on_requester_complete(void *user_data, int code, const char *err_msg){
+static void API_CALL on_requester_complete(void *user_data, int code, const char *err_msg){
     Context *ctx = (Context *)user_data;
     log_debug("code: %d %s", code, err_msg);
     size_t res_len = 0;
