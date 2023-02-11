@@ -47,13 +47,13 @@ static void on_ffmpeg_log(void *ctx, int level, const char *fmt, va_list args) {
     }
     LogLevel lev;
     switch (level) {
-        case AV_LOG_FATAL:
+        case AV_LOG_FATAL: lev = LError; break;
         case AV_LOG_ERROR: lev = LError; break;
         case AV_LOG_WARNING: lev = LWarn; break;
         case AV_LOG_INFO: lev = LInfo; break;
-        case AV_LOG_VERBOSE:
+        case AV_LOG_VERBOSE: lev = LDebug; break;
         case AV_LOG_DEBUG: lev = LDebug; break;
-        case AV_LOG_TRACE:
+        case AV_LOG_TRACE: lev = LTrace; break;
         default: lev = LTrace; break;
     }
     LoggerWrapper::printLogV(::toolkit::getLogger(), lev, __FILE__, ctx ? av_default_item_name(ctx) : "NULL", level, fmt, args);
@@ -303,13 +303,31 @@ static inline const AVCodec *getCodec(const std::initializer_list<CodecName> &co
     return ret;
 }
 
-FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num) {
+template<bool decoder = true>
+static inline const AVCodec *getCodecByName(const std::vector<std::string> &codec_list) {
+    const AVCodec *ret = nullptr;
+    for (auto &codec : codec_list) {
+        ret = getCodec_l<decoder>(codec.data());
+        if (ret) {
+            return ret;
+        }
+    }
+    return ret;
+}
+
+FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num, const std::vector<std::string> &codec_name) {
     setupFFmpeg();
     const AVCodec *codec = nullptr;
     const AVCodec *codec_default = nullptr;
+    if (!codec_name.empty()) {
+        codec = getCodecByName(codec_name);
+    }
     switch (track->getCodecId()) {
         case CodecH264:
             codec_default = getCodec({AV_CODEC_ID_H264});
+            if (codec && codec->id == AV_CODEC_ID_H264) {
+                break;
+            }
             if (checkIfSupportedNvidia()) {
                 codec = getCodec({{"libopenh264"}, {AV_CODEC_ID_H264}, {"h264_qsv"}, {"h264_videotoolbox"}, {"h264_cuvid"}, {"h264_nvmpi"}});
             } else {
@@ -318,6 +336,9 @@ FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num) {
             break;
         case CodecH265:
             codec_default = getCodec({AV_CODEC_ID_HEVC});
+            if (codec && codec->id == AV_CODEC_ID_HEVC) {
+                break;
+            }
             if (checkIfSupportedNvidia()) {
                 codec = getCodec({{AV_CODEC_ID_HEVC}, {"hevc_qsv"}, {"hevc_videotoolbox"}, {"hevc_cuvid"}, {"hevc_nvmpi"}});
             } else {
@@ -325,27 +346,51 @@ FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num) {
             }
             break;
         case CodecAAC:
+            if (codec && codec->id == AV_CODEC_ID_AAC) {
+                break;
+            }
             codec = getCodec({AV_CODEC_ID_AAC});
             break;
         case CodecG711A:
+            if (codec && codec->id == AV_CODEC_ID_PCM_ALAW) {
+                break;
+            }
             codec = getCodec({AV_CODEC_ID_PCM_ALAW});
             break;
         case CodecG711U:
+            if (codec && codec->id == AV_CODEC_ID_PCM_MULAW) {
+                break;
+            }
             codec = getCodec({AV_CODEC_ID_PCM_MULAW});
             break;
         case CodecOpus:
+            if (codec && codec->id == AV_CODEC_ID_OPUS) {
+                break;
+            }
             codec = getCodec({AV_CODEC_ID_OPUS});
             break;
+        case CodecJPEG:
+            if (codec && codec->id == AV_CODEC_ID_MJPEG) {
+                break;
+            }
+            codec = getCodec({AV_CODEC_ID_MJPEG});
+            break;
         case CodecVP8:
+            if (codec && codec->id == AV_CODEC_ID_VP8) {
+                break;
+            }
             codec = getCodec({AV_CODEC_ID_VP8});
             break;
         case CodecVP9:
+            if (codec && codec->id == AV_CODEC_ID_VP9) {
+                break;
+            }
             codec = getCodec({AV_CODEC_ID_VP9});
             break;
-        default:
-            break;
+        default: codec = nullptr; break;
     }
 
+    codec = codec ? codec : codec_default;
     if (!codec) {
         throw std::runtime_error("未找到解码器");
     }
@@ -451,11 +496,11 @@ const AVCodecContext *FFmpegDecoder::getContext() const {
 bool FFmpegDecoder::inputFrame_l(const Frame::Ptr &frame, bool live, bool enable_merge) {
     if (_do_merger && enable_merge) {
         return _merger.inputFrame(frame, [this, live](uint64_t dts, uint64_t pts, const Buffer::Ptr &buffer, bool have_idr) {
-            decodeFrame(buffer->data(), buffer->size(), dts, pts, live);
+            decodeFrame(buffer->data(), buffer->size(), dts, pts, live, have_idr);
         });
     }
 
-    return decodeFrame(frame->data(), frame->size(), frame->dts(), frame->pts(), live);
+    return decodeFrame(frame->data(), frame->size(), frame->dts(), frame->pts(), live, frame->keyFrame());
 }
 
 bool FFmpegDecoder::inputFrame(const Frame::Ptr &frame, bool live, bool async, bool enable_merge) {
@@ -476,7 +521,7 @@ bool FFmpegDecoder::inputFrame(const Frame::Ptr &frame, bool live, bool async, b
     });
 }
 
-bool FFmpegDecoder::decodeFrame(const char *data, size_t size, uint64_t dts, uint64_t pts, bool live) {
+bool FFmpegDecoder::decodeFrame(const char *data, size_t size, uint64_t dts, uint64_t pts, bool live, bool key_frame) {
     TimeTicker2(30, TraceL);
 
     auto pkt = alloc_av_packet();
@@ -484,6 +529,9 @@ bool FFmpegDecoder::decodeFrame(const char *data, size_t size, uint64_t dts, uin
     pkt->size = size;
     pkt->dts = dts;
     pkt->pts = pts;
+    if (key_frame) {
+        pkt->flags |= AV_PKT_FLAG_KEY;
+    }
 
     auto ret = avcodec_send_packet(_context.get(), pkt.get());
     if (ret < 0) {
@@ -589,68 +637,54 @@ FFmpegSws::~FFmpegSws() {
 }
 
 int FFmpegSws::inputFrame(const FFmpegFrame::Ptr &frame, uint8_t *data) {
-    TimeTicker2(30, TraceL);
-    if (!_target_width) {
-        _target_width = frame->get()->width;
-    }
-    if (!_target_height) {
-        _target_height = frame->get()->height;
-    }
-    AVFrame dst;
-    memset(&dst, 0, sizeof(dst));
-    av_image_fill_arrays(dst.data, dst.linesize, data,  _target_format, _target_width, _target_height,1);
-
-    if (!_ctx) {
-        _ctx = sws_getContext(frame->get()->width, frame->get()->height, (enum AVPixelFormat) frame->get()->format,
-                              _target_width, _target_height, _target_format, SWS_FAST_BILINEAR, NULL, NULL, NULL);
-        InfoL << "sws_getContext:" << av_get_pix_fmt_name((enum AVPixelFormat) frame->get()->format) << " -> "
-              << av_get_pix_fmt_name(_target_format);
-    }
-    assert(_ctx);
-    int ret = 0;
-    if (0 >= (ret = sws_scale(_ctx, frame->get()->data, frame->get()->linesize, 0, frame->get()->height, dst.data,
-                              dst.linesize))) {
-        WarnL << "sws_scale failed:" << ffmpeg_err(ret);
-    }
+    int ret;
+    inputFrame(frame, ret, data);
     return ret;
 }
 
 FFmpegFrame::Ptr FFmpegSws::inputFrame(const FFmpegFrame::Ptr &frame) {
-    TimeTicker2(30, TraceL);
+    int ret;
+    return inputFrame(frame, ret, nullptr);
+}
 
-    if (!_target_width) {
-        _target_width = frame->get()->width;
-    }
-    if (!_target_height) {
-        _target_height = frame->get()->height;
-    }
-    if (frame->get()->format == _target_format && frame->get()->width == _target_width
-        && frame->get()->height == _target_height) {
+FFmpegFrame::Ptr FFmpegSws::inputFrame(const FFmpegFrame::Ptr &frame, int &ret, uint8_t *data) {
+    ret = -1;
+    TimeTicker2(30, TraceL);
+    auto target_width = _target_width ? _target_width : frame->get()->width;
+    auto target_height = _target_height ? _target_height : frame->get()->height;
+    if (frame->get()->format == _target_format && frame->get()->width == target_width && frame->get()->height == target_height) {
         //不转格式
         return frame;
     }
+    if (_ctx && (_src_width != frame->get()->width || _src_height != frame->get()->height || _src_format != (enum AVPixelFormat) frame->get()->format)) {
+        //输入分辨率发生变化了
+        sws_freeContext(_ctx);
+        _ctx = nullptr;
+    }
     if (!_ctx) {
-        _ctx = sws_getContext(frame->get()->width, frame->get()->height, (enum AVPixelFormat) frame->get()->format,
-                              _target_width, _target_height, _target_format,
-                              SWS_FAST_BILINEAR, NULL, NULL, NULL);
-        InfoL << "sws_getContext:" << av_get_pix_fmt_name((enum AVPixelFormat) frame->get()->format) << " -> "
-              << av_get_pix_fmt_name(_target_format);
+        _src_format = (enum AVPixelFormat) frame->get()->format;
+        _src_width = frame->get()->width;
+        _src_height = frame->get()->height;
+        _ctx = sws_getContext(frame->get()->width, frame->get()->height, (enum AVPixelFormat) frame->get()->format, target_width, target_height, _target_format, SWS_FAST_BILINEAR, NULL, NULL, NULL);
+        InfoL << "sws_getContext:" << av_get_pix_fmt_name((enum AVPixelFormat) frame->get()->format) << " -> " << av_get_pix_fmt_name(_target_format);
     }
     if (_ctx) {
         auto out = std::make_shared<FFmpegFrame>();
         if (!out->get()->data[0]) {
-            out->fillPicture(_target_format, _target_width, _target_height);
+            if (data) {
+                avpicture_fill((AVPicture *) out->get(), data, _target_format, target_width, target_height);
+            } else {
+                out->fillPicture(_target_format, target_width, target_height);
+            }
         }
-        int ret = 0;
-        if (0 == (ret = sws_scale(_ctx, frame->get()->data, frame->get()->linesize, 0, frame->get()->height,
-                                  out->get()->data, out->get()->linesize))) {
+        if (0 >= (ret = sws_scale(_ctx, frame->get()->data, frame->get()->linesize, 0, frame->get()->height, out->get()->data, out->get()->linesize))) {
             WarnL << "sws_scale failed:" << ffmpeg_err(ret);
             return nullptr;
         }
 
         out->get()->format = _target_format;
-        out->get()->width = _target_width;
-        out->get()->height = _target_height;
+        out->get()->width = target_width;
+        out->get()->height = target_height;
         out->get()->pkt_dts = frame->get()->pkt_dts;
         out->get()->pts = frame->get()->pts;
         return out;

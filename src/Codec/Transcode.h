@@ -102,7 +102,7 @@ public:
     using Ptr = std::shared_ptr<FFmpegDecoder>;
     using onDec = std::function<void(const FFmpegFrame::Ptr &)>;
 
-    FFmpegDecoder(const Track::Ptr &track, int thread_num = 2);
+    FFmpegDecoder(const Track::Ptr &track, int thread_num = 2, const std::vector<std::string> &codec_name = {});
     ~FFmpegDecoder() override;
 
     bool inputFrame(const Frame::Ptr &frame, bool live, bool async, bool enable_merge = true);
@@ -113,7 +113,7 @@ public:
 private:
     void onDecode(const FFmpegFrame::Ptr &frame);
     bool inputFrame_l(const Frame::Ptr &frame, bool live, bool enable_merge);
-    bool decodeFrame(const char *data, size_t size, uint64_t dts, uint64_t pts, bool live);
+    bool decodeFrame(const char *data, size_t size, uint64_t dts, uint64_t pts, bool live, bool key_frame);
 
 private:
     bool _do_merger = false;
@@ -133,10 +133,16 @@ public:
     int inputFrame(const FFmpegFrame::Ptr &frame, uint8_t *data);
 
 private:
-    int _target_width;
-    int _target_height;
+    FFmpegFrame::Ptr inputFrame(const FFmpegFrame::Ptr &frame, int &ret, uint8_t *data);
+
+private:
+    int _target_width = 0;
+    int _target_height = 0;
+    int _src_width = 0;
+    int _src_height = 0;
     SwsContext *_ctx = nullptr;
-    AVPixelFormat _target_format;
+    AVPixelFormat _src_format = AV_PIX_FMT_NONE;
+    AVPixelFormat _target_format = AV_PIX_FMT_NONE;
 };
 
 }//namespace mediakit
