@@ -16,6 +16,7 @@
 #include "mk_frame.h"
 #include "mk_events_objects.h"
 #include "mk_thread.h"
+#include "mk_util.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,6 +36,17 @@ typedef void *mk_media;
  */
 API_EXPORT mk_media API_CALL mk_media_create(const char *vhost, const char *app, const char *stream,
                                              float duration, int hls_enabled, int mp4_enabled);
+
+/**
+ * 创建一个媒体源
+ * @param vhost 虚拟主机名，一般为__defaultVhost__
+ * @param app 应用名，推荐为live
+ * @param stream 流id，例如camera
+ * @param duration 时长(单位秒)，直播则为0
+ * @param option ProtocolOption相关配置
+ * @return 对象指针
+ */
+API_EXPORT mk_media API_CALL mk_media_create2(const char *vhost, const char *app, const char *stream, float duration, mk_ini option);
 
 /**
  * 销毁媒体源
