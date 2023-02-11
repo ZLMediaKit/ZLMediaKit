@@ -117,6 +117,7 @@ API_EXPORT void API_CALL mk_set_log(int file_max_size, int file_max_count);
 
 /**
  * 设置配置项
+ * @deprecated 请使用mk_ini_set_option替代
  * @param key 配置项名
  * @param val 配置项值
  */
@@ -124,6 +125,7 @@ API_EXPORT void API_CALL mk_set_option(const char *key, const char *val);
 
 /**
  * 获取配置项的值
+ * @deprecated 请使用mk_ini_get_option替代
  * @param key 配置项名
  */
 API_EXPORT const char * API_CALL mk_get_option(const char *key);
