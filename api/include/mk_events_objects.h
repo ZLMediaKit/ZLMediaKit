@@ -146,6 +146,13 @@ typedef void* mk_http_body;
 API_EXPORT mk_http_body API_CALL mk_http_body_from_string(const char *str,size_t len);
 
 /**
+ * 生成HttpBufferBody
+ * @param buffer mk_buffer对象
+ */
+API_EXPORT mk_http_body API_CALL mk_http_body_from_buffer(mk_buffer buffer);
+
+
+/**
  * 生成HttpFileBody
  * @param file_path 文件完整路径
  */

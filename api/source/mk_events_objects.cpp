@@ -253,12 +253,18 @@ API_EXPORT void API_CALL mk_media_source_for_each(void *user_data, on_mk_media_s
 }
 
 ///////////////////////////////////////////HttpBody/////////////////////////////////////////////
+
 API_EXPORT mk_http_body API_CALL mk_http_body_from_string(const char *str, size_t len){
     assert(str);
     if(!len){
         len = strlen(str);
     }
     return new HttpBody::Ptr(new HttpStringBody(std::string(str, len)));
+}
+
+API_EXPORT mk_http_body API_CALL mk_http_body_from_buffer(mk_buffer buffer) {
+    assert(buffer);
+    return new HttpBody::Ptr(new HttpBufferBody(*((Buffer::Ptr *) buffer)));
 }
 
 API_EXPORT mk_http_body API_CALL mk_http_body_from_file(const char *file_path){
