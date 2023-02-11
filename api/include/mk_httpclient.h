@@ -51,7 +51,7 @@ API_EXPORT void API_CALL mk_http_downloader_release(mk_http_downloader ctx);
  * @param user_data 用户数据指针
  */
 API_EXPORT void API_CALL mk_http_downloader_start(mk_http_downloader ctx, const char *url, const char *file, on_mk_download_complete cb, void *user_data);
-
+API_EXPORT void API_CALL mk_http_downloader_start2(mk_http_downloader ctx, const char *url, const char *file, on_mk_download_complete cb, void *user_data, on_user_data_free user_data_free);
 
 ///////////////////////////////////////////HttpRequester/////////////////////////////////////////////
 typedef void *mk_http_requester;
@@ -143,6 +143,7 @@ API_EXPORT mk_parser API_CALL mk_http_requester_get_response(mk_http_requester c
  * @param user_data 用户数据指针
  */
 API_EXPORT void API_CALL mk_http_requester_set_cb(mk_http_requester ctx,on_mk_http_requester_complete cb, void *user_data);
+API_EXPORT void API_CALL mk_http_requester_set_cb2(mk_http_requester ctx,on_mk_http_requester_complete cb, void *user_data, on_user_data_free user_data_free);
 
 /**
  * 开始url请求

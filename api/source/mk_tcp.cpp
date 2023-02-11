@@ -20,7 +20,7 @@ using namespace mediakit;
 
 class BufferForC : public Buffer {
 public:
-    BufferForC(const char *data, size_t len, on_mk_buffer_free cb, void *user_data) {
+    BufferForC(const char *data, size_t len, on_mk_buffer_free cb, std::shared_ptr<void> user_data) {
         if (len <= 0) {
             len = strlen(data);
         }
@@ -36,11 +36,11 @@ public:
         _data = (char *) data;
         _size = len;
         _cb = cb;
-        _user_data = user_data;
+        _user_data = std::move(user_data);
     }
 
     ~BufferForC() override {
-        _cb(_user_data, _data);
+        _cb(_user_data.get(), _data);
     }
 
     char *data() const override {
@@ -55,12 +55,17 @@ private:
     char *_data;
     size_t _size;
     on_mk_buffer_free _cb;
-    void *_user_data;
+    std::shared_ptr<void> _user_data;
 };
 
 API_EXPORT mk_buffer API_CALL mk_buffer_from_char(const char *data, size_t len, on_mk_buffer_free cb, void *user_data) {
+    return mk_buffer_from_char2(data, len, cb, user_data, nullptr);
+}
+
+API_EXPORT mk_buffer API_CALL mk_buffer_from_char2(const char *data, size_t len, on_mk_buffer_free cb, void *user_data, on_user_data_free user_data_free) {
     assert(data);
-    return new Buffer::Ptr(std::make_shared<BufferForC>(data, len, cb, user_data));
+    std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
+    return new Buffer::Ptr(std::make_shared<BufferForC>(data, len, cb, std::move(ptr)));
 }
 
 API_EXPORT mk_buffer API_CALL mk_buffer_ref(mk_buffer buffer) {
@@ -200,16 +205,21 @@ void stopAllTcpServer(){
     CLEAR_ARR(s_tcp_server);
 }
 
-API_EXPORT void API_CALL mk_tcp_session_set_user_data(mk_tcp_session session,void *user_data){
+API_EXPORT void API_CALL mk_tcp_session_set_user_data(mk_tcp_session session, void *user_data) {
+    mk_tcp_session_set_user_data2(session, user_data, nullptr);
+}
+
+API_EXPORT void API_CALL mk_tcp_session_set_user_data2(mk_tcp_session session, void *user_data, on_user_data_free user_data_free) {
     assert(session);
     SessionForC *obj = (SessionForC *)session;
-    obj->_user_data = user_data;
+    std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
+    obj->_user_data = std::move(ptr);
 }
 
 API_EXPORT void* API_CALL mk_tcp_session_get_user_data(mk_tcp_session session){
     assert(session);
     SessionForC *obj = (SessionForC *)session;
-    return obj->_user_data;
+    return obj->_user_data.get();
 }
 
 API_EXPORT void API_CALL mk_tcp_server_events_listen(const mk_tcp_session_events *events){
@@ -364,13 +374,18 @@ API_EXPORT void API_CALL mk_tcp_client_send_safe(mk_tcp_client ctx, const char *
 }
 
 API_EXPORT void API_CALL mk_tcp_client_set_user_data(mk_tcp_client ctx,void *user_data){
+    mk_tcp_client_set_user_data2(ctx, user_data, nullptr);
+}
+
+API_EXPORT void API_CALL mk_tcp_client_set_user_data2(mk_tcp_client ctx, void *user_data, on_user_data_free user_data_free) {
     assert(ctx);
     TcpClientForC::Ptr *client = (TcpClientForC::Ptr *)ctx;
-    (*client)->_user_data = user_data;
+    std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
+    (*client)->_user_data = std::move(ptr);
 }
 
 API_EXPORT void* API_CALL mk_tcp_client_get_user_data(mk_tcp_client ctx){
     assert(ctx);
     TcpClientForC::Ptr *client = (TcpClientForC::Ptr *)ctx;
-    return (*client)->_user_data;
+    return (*client)->_user_data.get();
 }

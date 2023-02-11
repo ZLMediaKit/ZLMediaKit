@@ -94,6 +94,7 @@ API_EXPORT void API_CALL mk_player_seekto_pos(mk_player ctx, int seek_pos);
  * @param user_data 用户数据指针
  */
 API_EXPORT void API_CALL mk_player_set_on_result(mk_player ctx, on_mk_play_event cb, void *user_data);
+API_EXPORT void API_CALL mk_player_set_on_result2(mk_player ctx, on_mk_play_event cb, void *user_data, on_user_data_free user_data_free);
 
 /**
  * 设置播放被异常中断的回调
@@ -102,6 +103,7 @@ API_EXPORT void API_CALL mk_player_set_on_result(mk_player ctx, on_mk_play_event
  * @param user_data 用户数据指针
  */
 API_EXPORT void API_CALL mk_player_set_on_shutdown(mk_player ctx, on_mk_play_event cb, void *user_data);
+API_EXPORT void API_CALL mk_player_set_on_shutdown2(mk_player ctx, on_mk_play_event cb, void *user_data, on_user_data_free user_data_free);
 
 ///////////////////////////获取音视频相关信息接口在播放成功回调触发后才有效///////////////////////////////
 

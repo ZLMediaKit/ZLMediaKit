@@ -23,11 +23,16 @@ API_EXPORT mk_rtp_server API_CALL mk_rtp_server_create(uint16_t port, int tcp_mo
 }
 
 API_EXPORT void API_CALL mk_rtp_server_connect(mk_rtp_server ctx, const char *dst_url, uint16_t dst_port, on_mk_rtp_server_connected cb, void *user_data) {
+    mk_rtp_server_connect2(ctx, dst_url, dst_port, cb, user_data, nullptr);
+}
+
+API_EXPORT void API_CALL mk_rtp_server_connect2(mk_rtp_server ctx, const char *dst_url, uint16_t dst_port, on_mk_rtp_server_connected cb, void *user_data, on_user_data_free user_data_free){
     RtpServer::Ptr *server = (RtpServer::Ptr *)ctx;
     if (server) {
-        (*server)->connectToServer(dst_url, dst_port, [cb, user_data](const SockException &ex) {
+        std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
+        (*server)->connectToServer(dst_url, dst_port, [cb, ptr](const SockException &ex) {
             if (cb) {
-                cb(user_data, ex.getErrCode(), ex.what(), ex.getCustomCode());
+                cb(ptr.get(), ex.getErrCode(), ex.what(), ex.getCustomCode());
             }
         });
     }
@@ -44,10 +49,15 @@ API_EXPORT uint16_t API_CALL mk_rtp_server_port(mk_rtp_server ctx) {
 }
 
 API_EXPORT void API_CALL mk_rtp_server_set_on_detach(mk_rtp_server ctx, on_mk_rtp_server_detach cb, void *user_data) {
+    mk_rtp_server_set_on_detach2(ctx, cb, user_data, nullptr);
+}
+
+API_EXPORT void API_CALL mk_rtp_server_set_on_detach2(mk_rtp_server ctx, on_mk_rtp_server_detach cb, void *user_data, on_user_data_free user_data_free){
     RtpServer::Ptr *server = (RtpServer::Ptr *) ctx;
     if (cb) {
-        (*server)->setOnDetach([cb, user_data]() {
-            cb(user_data);
+        std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
+        (*server)->setOnDetach([cb, ptr]() {
+            cb(ptr.get());
         });
     } else {
         (*server)->setOnDetach(nullptr);

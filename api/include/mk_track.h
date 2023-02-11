@@ -80,6 +80,7 @@ API_EXPORT int API_CALL mk_track_bit_rate(mk_track track);
  * @param user_data frame输出回调用户指针参数
  */
 API_EXPORT void *API_CALL mk_track_add_delegate(mk_track track, on_mk_frame_out cb, void *user_data);
+API_EXPORT void *API_CALL mk_track_add_delegate2(mk_track track, on_mk_frame_out cb, void *user_data, on_user_data_free user_data_free);
 
 /**
  * 取消frame输出事件监听

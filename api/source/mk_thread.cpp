@@ -44,11 +44,23 @@ API_EXPORT void API_CALL mk_async_do(mk_thread ctx,on_mk_async cb, void *user_da
     });
 }
 
+API_EXPORT void API_CALL mk_async_do2(mk_thread ctx, on_mk_async cb, void *user_data, on_user_data_free user_data_free){
+    assert(ctx && cb);
+    EventPoller *poller = (EventPoller *)ctx;
+    std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
+    poller->async([cb, ptr]() { cb(ptr.get()); });
+}
+
 API_EXPORT void API_CALL mk_async_do_delay(mk_thread ctx, size_t ms, on_mk_async cb, void *user_data) {
+    mk_async_do_delay2(ctx, ms, cb, user_data, nullptr);
+}
+
+API_EXPORT void API_CALL mk_async_do_delay2(mk_thread ctx, size_t ms, on_mk_async cb, void *user_data, on_user_data_free user_data_free){
     assert(ctx && cb && ms);
-    EventPoller *poller = (EventPoller *) ctx;
-    poller->doDelayTask(ms, [cb, user_data]() {
-        cb(user_data);
+    EventPoller *poller = (EventPoller *)ctx;
+    std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
+    poller->doDelayTask(ms, [cb, ptr]() {
+        cb(ptr.get());
         return 0;
     });
 }
@@ -56,28 +68,26 @@ API_EXPORT void API_CALL mk_async_do_delay(mk_thread ctx, size_t ms, on_mk_async
 API_EXPORT void API_CALL mk_sync_do(mk_thread ctx,on_mk_async cb, void *user_data){
     assert(ctx && cb);
     EventPoller *poller = (EventPoller *)ctx;
-    poller->sync([cb,user_data](){
-        cb(user_data);
-    });
+    poller->sync([cb, user_data]() { cb(user_data); });
 }
 
 class TimerForC : public std::enable_shared_from_this<TimerForC>{
 public:
     using Ptr = std::shared_ptr<TimerForC>;
 
-    TimerForC(on_mk_timer cb, void *user_data){
+    TimerForC(on_mk_timer cb, std::shared_ptr<void> user_data) {
         _cb = cb;
-        _user_data = user_data;
+        _user_data = std::move(user_data);
     }
 
-    ~TimerForC(){}
+    ~TimerForC() = default;
 
     uint64_t operator()(){
         lock_guard<recursive_mutex> lck(_mxt);
         if(!_cb){
             return 0;
         }
-        return _cb(_user_data);
+        return _cb(_user_data.get());
     }
 
     void cancel(){
@@ -98,15 +108,20 @@ public:
     }
 private:
     on_mk_timer _cb = nullptr;
-    void *_user_data = nullptr;
+    std::shared_ptr<void> _user_data;
     recursive_mutex _mxt;
     EventPoller::DelayTask::Ptr _task;
 };
 
-API_EXPORT mk_timer API_CALL mk_timer_create(mk_thread ctx,uint64_t delay_ms,on_mk_timer cb, void *user_data){
+API_EXPORT mk_timer API_CALL mk_timer_create(mk_thread ctx, uint64_t delay_ms, on_mk_timer cb, void *user_data) {
+    return mk_timer_create2(ctx, delay_ms, cb, user_data, nullptr);
+}
+
+API_EXPORT mk_timer API_CALL mk_timer_create2(mk_thread ctx, uint64_t delay_ms, on_mk_timer cb, void *user_data, on_user_data_free user_data_free){
     assert(ctx && cb);
     EventPoller *poller = (EventPoller *)ctx;
-    TimerForC::Ptr *ret = new TimerForC::Ptr(new TimerForC(cb, user_data));
+    std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
+    TimerForC::Ptr *ret = new TimerForC::Ptr(new TimerForC(cb, ptr));
     (*ret)->start(delay_ms,*poller);
     return ret;
 }

@@ -61,7 +61,7 @@ public:
         if (is_shutdown) {
             //播放中断
             if (_on_shutdown) {
-                _on_shutdown(_on_shutdown_data, ex.getErrCode(), ex.what(), nullptr, 0);
+                _on_shutdown(_on_shutdown_data.get(), ex.getErrCode(), ex.what(), nullptr, 0);
             }
             return;
         }
@@ -74,17 +74,17 @@ public:
             for (auto &track : cpp_tracks) {
                 tracks[track_count++] = (mk_track) &track;
             }
-            _on_play(_on_play_data, ex.getErrCode(), ex.what(), tracks, track_count);
+            _on_play(_on_play_data.get(), ex.getErrCode(), ex.what(), tracks, track_count);
         }
     }
 
-    void setOnEvent(on_mk_play_event cb, void *user_data, int type) {
+    void setOnEvent(on_mk_play_event cb, std::shared_ptr<void> user_data, int type) {
         lock_guard<recursive_mutex> lck(_mtx);
-        if(type == 0){
-            _on_play_data = user_data;
+        if (type == 0) {
+            _on_play_data = std::move(user_data);
             _on_play = cb;
-        }else{
-            _on_shutdown_data = user_data;
+        } else {
+            _on_shutdown_data = std::move(user_data);
             _on_shutdown = cb;
         }
     }
@@ -98,8 +98,8 @@ private:
     on_mk_play_event _on_play = nullptr;
     on_mk_play_event _on_shutdown = nullptr;
 
-    void *_on_play_data = nullptr;
-    void *_on_shutdown_data = nullptr;
+    std::shared_ptr<void> _on_play_data;
+    std::shared_ptr<void> _on_shutdown_data;
 };
 
 API_EXPORT mk_player API_CALL mk_player_create() {
@@ -175,18 +175,28 @@ API_EXPORT void API_CALL mk_player_seekto_pos(mk_player ctx, int seek_pos) {
     });
 }
 
-static void mk_player_set_on_event(mk_player ctx, on_mk_play_event cb, void *user_data, int type) {
+static void mk_player_set_on_event(mk_player ctx, on_mk_play_event cb, std::shared_ptr<void> user_data, int type) {
     assert(ctx);
     MediaPlayerForC &obj = **((MediaPlayerForC::Ptr *)ctx);
-    obj.setOnEvent(cb,user_data, type);
+    obj.setOnEvent(cb, std::move(user_data), type);
 }
 
 API_EXPORT void API_CALL mk_player_set_on_result(mk_player ctx, on_mk_play_event cb, void *user_data) {
-    mk_player_set_on_event(ctx,cb,user_data,0);
+    mk_player_set_on_result2(ctx, cb, user_data, nullptr);
+}
+
+API_EXPORT void API_CALL mk_player_set_on_result2(mk_player ctx, on_mk_play_event cb, void *user_data, on_user_data_free user_data_free) {
+    std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
+    mk_player_set_on_event(ctx, cb, std::move(ptr), 0);
 }
 
 API_EXPORT void API_CALL mk_player_set_on_shutdown(mk_player ctx, on_mk_play_event cb, void *user_data) {
-    mk_player_set_on_event(ctx,cb,user_data,1);
+    mk_player_set_on_shutdown2(ctx, cb, user_data, nullptr);
+}
+
+API_EXPORT void API_CALL mk_player_set_on_shutdown2(mk_player ctx, on_mk_play_event cb, void *user_data, on_user_data_free user_data_free){
+    std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
+    mk_player_set_on_event(ctx, cb, std::move(ptr), 1);
 }
 
 API_EXPORT float API_CALL mk_player_duration(mk_player ctx) {
