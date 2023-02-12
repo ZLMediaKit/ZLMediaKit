@@ -34,6 +34,6 @@ jobs:
       run: mkdir -p build && cd build && cmake .. &&  make -j $(nproc)
 
     - name: 运行MediaServer
-      run: pwd && cd release/linux/Debug && sudo ./MediaServer -d &
+      run: pwd && cd release/darwin/Debug && sudo ./MediaServer -d &
 
       
