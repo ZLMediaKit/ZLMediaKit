@@ -24,6 +24,7 @@ class RtpSession : public toolkit::Session, public RtpSplitter, public MediaSour
 public:
     static const std::string kStreamID;
     static const std::string kSSRC;
+    static const std::string kOnlyAudio;
 
     RtpSession(const toolkit::Socket::Ptr &sock);
     ~RtpSession() override;
@@ -45,6 +46,7 @@ private:
     bool _is_udp = false;
     bool _search_rtp = false;
     bool _search_rtp_finished = false;
+    bool _only_audio = false;
     uint32_t _ssrc = 0;
     toolkit::Ticker _ticker;
     std::string _stream_id;
