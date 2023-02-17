@@ -1238,6 +1238,8 @@ void installWebApi() {
         args.use_ps = allArgs["use_ps"].empty() ? true : allArgs["use_ps"].as<bool>();
         args.only_audio = allArgs["only_audio"].as<bool>();
         args.recv_stream_id = allArgs["recv_stream_id"];
+        //tcp被动服务器等待链接超时时间
+        args.tcp_passive_close_delay_ms = allArgs["close_delay_ms"];
         TraceL << "startSendRtpPassive, pt " << int(args.pt) << " ps " << args.use_ps << " audio " <<  args.only_audio;
 
         src->getOwnerPoller()->async([=]() mutable {

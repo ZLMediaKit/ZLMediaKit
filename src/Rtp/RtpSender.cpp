@@ -66,7 +66,8 @@ void RtpSender::startSend(const MediaSourceEvent::SendRtpArgs &args, const funct
                 is_wait = false;
             }
             // tcp服务器默认开启5秒
-            auto delay_task = _poller->doDelayTask(_args.tcp_passive_close_delay_ms, [tcp_listener, cb,is_wait]() mutable {
+            auto delay = _args.tcp_passive_close_delay_ms ? _args.tcp_passive_close_delay_ms : 5000;
+            auto delay_task = _poller->doDelayTask(delay, [tcp_listener, cb, is_wait]() mutable {
                 if (is_wait) {
                     cb(0, SockException(Err_timeout, "wait tcp connection timeout"));
                 }
