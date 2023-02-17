@@ -1755,6 +1755,12 @@
 							"value": "",
 							"description": "发送rtp同时接收，一般用于双向语言对讲, 如果不为空，说明开启接收，值为接收流的id",
 							"disabled": true
+						},
+						{
+							"key": "close_delay_ms",
+							"value": "5000",
+							"description": "等待tcp连接超时时间，单位毫秒，默认5000毫秒",
+							"disabled": true
 						}
 					]
 				}

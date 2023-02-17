@@ -112,8 +112,8 @@ public:
 
         //udp发送时，是否开启rr rtcp接收超时判断
         bool udp_rtcp_timeout = false;
-        //tcp被动发送服务器延时关闭事件，单位毫秒
-        uint32_t tcp_passive_close_delay_ms = 5 * 1000;
+        //tcp被动发送服务器延时关闭事件，单位毫秒；设置为0时，则使用默认值5000ms
+        uint32_t tcp_passive_close_delay_ms = 0;
         //udp 发送时，rr rtcp包接收超时时间，单位毫秒
         uint32_t rtcp_timeout_ms = 30 * 1000;
         //udp 发送时，发送sr rtcp包间隔，单位毫秒
