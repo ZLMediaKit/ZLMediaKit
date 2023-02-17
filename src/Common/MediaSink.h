@@ -95,6 +95,12 @@ public:
     void addTrackCompleted() override;
 
     /**
+     * 设置最大track数，取值范围1~2；该方法与addTrackCompleted类型；
+     * 在设置单track时，可以加快媒体注册速度
+     */
+    void setMaxTrackCount(size_t i);
+
+    /**
      * 重置track
      */
     void resetTracks() override;
@@ -114,6 +120,11 @@ public:
      * 设置是否开启音频
      */
     void enableAudio(bool flag);
+
+    /**
+     * 设置单音频
+     */
+    void setOnlyAudio();
 
     /**
      * 设置是否开启添加静音音频
@@ -157,6 +168,7 @@ private:
 
 private:
     bool _enable_audio = true;
+    bool _only_audio = false;
     bool _add_mute_audio = true;
     bool _all_track_ready = false;
     size_t _max_track_size = 2;

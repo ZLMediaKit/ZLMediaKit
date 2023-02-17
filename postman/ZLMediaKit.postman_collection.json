@@ -1404,6 +1404,12 @@
 							"value": "0",
 							"description": "是否指定收流的rtp ssrc, 十进制数字，不指定或指定0时则不过滤rtp，非必选参数",
 							"disabled": true
+						},
+						{
+							"key": "only_audio",
+							"value": "1",
+							"description": "是否为单音频track，用于语音对讲",
+							"disabled": true
 						}
 					]
 				}
