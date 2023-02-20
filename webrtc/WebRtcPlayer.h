@@ -36,7 +36,7 @@ private:
     //媒体相关元数据
     MediaInfo _media_info;
     //播放的rtsp源
-    RtspMediaSource::Ptr _play_src;
+    std::weak_ptr<RtspMediaSource> _play_src;
     //播放rtsp源的reader对象
     RtspMediaSource::RingType::RingReader::Ptr _reader;
 };
