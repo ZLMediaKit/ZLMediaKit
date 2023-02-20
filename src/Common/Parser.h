@@ -105,6 +105,8 @@ public:
     //解析?后面的参数
     static StrCaseMap parseArgs(const std::string &str, const char *pair_delim = "&", const char *key_delim = "=");
 
+    static std::string merge_url(const std::string &base_url, const std::string &path);
+
 private:
     std::string _strMethod;
     std::string _strUrl;

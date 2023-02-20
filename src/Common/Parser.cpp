@@ -159,7 +159,81 @@ StrCaseMap Parser::parseArgs(const string &str, const char *pair_delim, const ch
     }
     return ret;
 }
+std::string Parser::merge_url(const string &base_url, const string &path) {
+    //以base_url为基础, 合并path路径生成新的url, path支持相对路径和绝对路径
+    if (base_url.empty()) {
+        return path;
+    }
+    if (path.empty()) {
+        return base_url;
+    }
+    // 如果包含协议，则直接返回
+    if (path.find("://") != string::npos) {
+        return path;
+    }
 
+    string protocol = "http://";
+    size_t protocol_end = base_url.find("://");
+    if (protocol_end != string::npos) {
+        protocol = base_url.substr(0, protocol_end + 3);
+    }
+    // 如果path以"//"开头，则直接拼接协议
+    if (path.find("//") == 0) {
+        return protocol + path.substr(2);
+    }
+    string host;
+    size_t pos = 0;
+    if (protocol_end != string::npos) {
+        pos = base_url.find('/', protocol_end + 3);
+        host = base_url.substr(0, pos);
+        if (pos == string::npos) {
+            pos = base_url.size();
+        } else {
+            pos++;
+        }
+    }
+    // 如果path以"/"开头，则直接拼接协议和主机
+    if (path[0] == '/') {
+        return host + path;
+    }
+    vector<string> path_parts;
+    size_t next_pos = 0;
+    if (!host.empty()) {
+        path_parts.emplace_back(host);
+    }
+    while ((next_pos = base_url.find('/', pos)) != string::npos) {
+        path_parts.emplace_back(base_url.substr(pos, next_pos - pos));
+        pos = next_pos + 1;
+    }
+    pos = 0;
+    while ((next_pos = path.find('/', pos)) != string::npos) {
+        string part = path.substr(pos, next_pos - pos);
+        if (part == "..") {
+            if (!path_parts.empty() && !path_parts.back().empty()) {
+                if (path_parts.size() > 1 || protocol_end == string::npos) {
+                    path_parts.pop_back();
+                }
+            }
+        } else if (part != "." && !part.empty()) {
+            path_parts.emplace_back(part);
+        }
+        pos = next_pos + 1;
+    }
+
+    string part = path.substr(pos);
+    if (part != ".." && part != "." && !part.empty()) {
+        path_parts.emplace_back(part);
+    }
+    stringstream final_url;
+    for (size_t i = 0; i < path_parts.size(); ++i) {
+        if (i == 0) {
+            final_url << path_parts[i];
+        } else {
+            final_url << '/' << path_parts[i];
+        }
+    }
+    return final_url.str();
+}
 void RtspUrl::parse(const string &strUrl) {
     auto schema = FindField(strUrl.data(), nullptr, "://");
     bool is_ssl = strcasecmp(schema.data(), "rtsps") == 0;

@@ -37,15 +37,7 @@ bool HlsParser::parse(const string &http_url, const string &m3u8) {
 
         if ((_is_m3u8_inner || extinf_dur != 0) && line[0] != '#') {
             segment.duration = extinf_dur;
-            if (line.find("http://") == 0 || line.find("https://") == 0) {
-                segment.url = line;
-            } else {
-                if (line.find("/") == 0) {
-                    segment.url = http_url.substr(0, http_url.find("/", 8)) + line;
-                } else {
-                    segment.url = http_url.substr(0, http_url.rfind("/") + 1) + line;
-                }
-            }
+            segment.url = Parser::merge_url(http_url, line);
             if (!_is_m3u8_inner) {
                 //ts按照先后顺序排序
                 ts_map.emplace(index++, segment);
