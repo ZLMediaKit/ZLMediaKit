@@ -378,8 +378,16 @@ Value makeMediaSourceJson(MediaSource &media){
                 auto video_track = dynamic_pointer_cast<VideoTrack>(track);
                 obj["width"] = video_track->getVideoWidth();
                 obj["height"] = video_track->getVideoHeight();
-                obj["fps"] = round(video_track->getVideoFps());
                 obj["key_frames"] = video_track->getVideoKeyFrames();
+                int gop_size = video_track->getVideoGopSize();
+                int gop_interval_ms = video_track->getVideoGopInterval();
+                float fps = video_track->getVideoFps();
+                if (fps <= 1) {
+                    fps = gop_size * 1000.0 / gop_interval_ms;
+                }
+                obj["fps"] = round(fps);
+                obj["gop_size"] = gop_size;
+                obj["gop_interval_ms"] = gop_interval_ms;
                 break;
             }
             default:

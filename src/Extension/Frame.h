@@ -15,6 +15,7 @@
 #include <mutex>
 #include <functional>
 #include "Util/List.h"
+#include "Util/TimeTicker.h"
 #include "Network/Buffer.h"
 
 namespace mediakit {
@@ -311,10 +312,7 @@ public:
      */
     bool inputFrame(const Frame::Ptr &frame) override {
         std::lock_guard<std::recursive_mutex> lck(_mtx);
-        ++_frames;
-        if (frame->keyFrame() && frame->getTrackType() == TrackVideo) {
-            ++_video_key_frames;
-        }
+        doStatistics(frame);
         bool ret = false;
         for (auto &pr : _delegates) {
             if (pr.second->inputFrame(frame)) {
@@ -353,7 +351,37 @@ public:
         return _frames;
     }
 
+    size_t getVideoGopSize() const {
+        std::lock_guard<std::recursive_mutex> lck(_mtx);
+        return _gop_size;
+    }
+
+    size_t getVideoGopInterval() const {
+        std::lock_guard<std::recursive_mutex> lck(_mtx);
+        return _gop_interval_ms;
+    }
+
 private:
+    void doStatistics(const Frame::Ptr &frame) {
+        if (!frame->configFrame() && !frame->dropAble()) {
+            // 忽略配置帧与可丢弃的帧
+            ++_frames;
+            if (frame->keyFrame() && frame->getTrackType() == TrackVideo) {
+                // 遇视频关键帧时统计
+                ++_video_key_frames;
+                _gop_size = _frames - _last_frames;
+                _gop_interval_ms = _ticker.elapsedTime();
+                _last_frames = _frames;
+                _ticker.resetTime();
+            }
+        }
+    }
+
+private:
+    toolkit::Ticker _ticker;
+    size_t _gop_interval_ms = 0;
+    size_t _gop_size = 0;
+    uint64_t _last_frames = 0;
     uint64_t _frames = 0;
     uint64_t _video_key_frames = 0;
     mutable std::recursive_mutex _mtx;
