@@ -33,15 +33,19 @@ WebRtcPlayer::WebRtcPlayer(const EventPoller::Ptr &poller,
                            bool preferred_tcp) : WebRtcTransportImp(poller,preferred_tcp) {
     _media_info = info;
     _play_src = src;
-    CHECK(_play_src);
+    CHECK(src);
 }
 
 void WebRtcPlayer::onStartWebRTC() {
-    CHECK(_play_src);
+    auto playSrc = _play_src.lock();
+    if(!playSrc){
+        onShutdown(SockException(Err_shutdown, "rtsp media source was shutdown"));
+        return ;
+    }
     WebRtcTransportImp::onStartWebRTC();
     if (canSendRtp()) {
-        _play_src->pause(false);
-        _reader = _play_src->getRing()->attach(getPoller(), true);
+        playSrc->pause(false);
+        _reader = playSrc->getRing()->attach(getPoller(), true);
         weak_ptr<WebRtcPlayer> weak_self = static_pointer_cast<WebRtcPlayer>(shared_from_this());
         weak_ptr<Session> weak_session = getSession();
         _reader->setGetInfoCB([weak_session]() { return weak_session.lock(); });
@@ -64,8 +68,6 @@ void WebRtcPlayer::onStartWebRTC() {
             strong_self->onShutdown(SockException(Err_shutdown, "rtsp ring buffer detached"));
         });
     }
-    //使用完毕后，释放强引用，这样确保推流器断开后能及时注销媒体
-    _play_src = nullptr;
 }
 void WebRtcPlayer::onDestory() {
     WebRtcTransportImp::onDestory();
@@ -86,11 +88,14 @@ void WebRtcPlayer::onDestory() {
 }
 
 void WebRtcPlayer::onRtcConfigure(RtcConfigure &configure) const {
-    CHECK(_play_src);
+    auto playSrc = _play_src.lock();
+    if(!playSrc){
+        return ;
+    }
     WebRtcTransportImp::onRtcConfigure(configure);
     //这是播放
     configure.audio.direction = configure.video.direction = RtpDirection::sendonly;
-    configure.setPlayRtspInfo(_play_src->getSdp());
+    configure.setPlayRtspInfo(playSrc->getSdp());
 }
 
 }// namespace mediakit
