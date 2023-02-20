@@ -70,6 +70,7 @@ typedef void(API_CALL *on_mk_proxy_player_close)(void *user_data, int err, const
  * @param user_data 用户数据指针
  */
 API_EXPORT void API_CALL mk_proxy_player_set_on_close(mk_proxy_player ctx, on_mk_proxy_player_close cb, void *user_data);
+API_EXPORT void API_CALL mk_proxy_player_set_on_close2(mk_proxy_player ctx, on_mk_proxy_player_close cb, void *user_data, on_user_data_free user_data_free);
 
 /**
  * 获取总的观看人数

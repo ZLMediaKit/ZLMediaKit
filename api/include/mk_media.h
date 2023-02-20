@@ -16,6 +16,7 @@
 #include "mk_frame.h"
 #include "mk_events_objects.h"
 #include "mk_thread.h"
+#include "mk_util.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,6 +36,17 @@ typedef void *mk_media;
  */
 API_EXPORT mk_media API_CALL mk_media_create(const char *vhost, const char *app, const char *stream,
                                              float duration, int hls_enabled, int mp4_enabled);
+
+/**
+ * 创建一个媒体源
+ * @param vhost 虚拟主机名，一般为__defaultVhost__
+ * @param app 应用名，推荐为live
+ * @param stream 流id，例如camera
+ * @param duration 时长(单位秒)，直播则为0
+ * @param option ProtocolOption相关配置
+ * @return 对象指针
+ */
+API_EXPORT mk_media API_CALL mk_media_create2(const char *vhost, const char *app, const char *stream, float duration, mk_ini option);
 
 /**
  * 销毁媒体源
@@ -171,6 +183,7 @@ typedef void(API_CALL *on_mk_media_close)(void *user_data);
  * @param user_data 用户数据指针
  */
 API_EXPORT void API_CALL mk_media_set_on_close(mk_media ctx, on_mk_media_close cb, void *user_data);
+API_EXPORT void API_CALL mk_media_set_on_close2(mk_media ctx, on_mk_media_close cb, void *user_data, on_user_data_free user_data_free);
 
 /**
  * 收到客户端的seek请求时触发该回调
@@ -201,6 +214,7 @@ typedef int(API_CALL* on_mk_media_speed)(void* user_data, float speed);
  * @param user_data 用户数据指针
  */
 API_EXPORT void API_CALL mk_media_set_on_seek(mk_media ctx, on_mk_media_seek cb, void *user_data);
+API_EXPORT void API_CALL mk_media_set_on_seek2(mk_media ctx, on_mk_media_seek cb, void *user_data, on_user_data_free user_data_free);
 
 /**
  * 监听播放器pause请求事件
@@ -208,7 +222,8 @@ API_EXPORT void API_CALL mk_media_set_on_seek(mk_media ctx, on_mk_media_seek cb,
  * @param cb 回调指针
  * @param user_data 用户数据指针
  */
-API_EXPORT void API_CALL mk_media_set_on_pause(mk_media ctx, on_mk_media_pause cb, void* user_data);
+API_EXPORT void API_CALL mk_media_set_on_pause(mk_media ctx, on_mk_media_pause cb, void *user_data);
+API_EXPORT void API_CALL mk_media_set_on_pause2(mk_media ctx, on_mk_media_pause cb, void *user_data, on_user_data_free user_data_free);
 
 /**
  * 监听播放器pause请求事件
@@ -216,7 +231,8 @@ API_EXPORT void API_CALL mk_media_set_on_pause(mk_media ctx, on_mk_media_pause c
  * @param cb 回调指针
  * @param user_data 用户数据指针
  */
-API_EXPORT void API_CALL mk_media_set_on_speed(mk_media ctx, on_mk_media_speed cb, void* user_data);
+API_EXPORT void API_CALL mk_media_set_on_speed(mk_media ctx, on_mk_media_speed cb, void *user_data);
+API_EXPORT void API_CALL mk_media_set_on_speed2(mk_media ctx, on_mk_media_speed cb, void *user_data, on_user_data_free user_data_free);
 
 /**
  * 获取总的观看人数
@@ -240,6 +256,7 @@ typedef void(API_CALL *on_mk_media_source_regist)(void *user_data, mk_media_sour
  * @param user_data 用户数据指针
  */
 API_EXPORT void API_CALL mk_media_set_on_regist(mk_media ctx, on_mk_media_source_regist cb, void *user_data);
+API_EXPORT void API_CALL mk_media_set_on_regist2(mk_media ctx, on_mk_media_source_regist cb, void *user_data, on_user_data_free user_data_free);
 
 /**
  * rtp推流成功与否的回调(第一次成功后，后面将一直重试)
@@ -257,6 +274,7 @@ typedef on_mk_media_source_send_rtp_result on_mk_media_send_rtp_result;
  * @param user_data 回调用户指针
  */
 API_EXPORT void API_CALL mk_media_start_send_rtp(mk_media ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int is_udp, on_mk_media_send_rtp_result cb, void *user_data);
+API_EXPORT void API_CALL mk_media_start_send_rtp2(mk_media ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int is_udp, on_mk_media_send_rtp_result cb, void *user_data, on_user_data_free user_data_free);
 
 /**
  * 停止某路或全部ps-rtp发送，此api线程安全

@@ -267,9 +267,9 @@ bool MultiMediaSourceMuxer::isRecording(MediaSource &sender, Recorder::type type
 void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const MediaSourceEvent::SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb) {
 #if defined(ENABLE_RTPPROXY)
     auto rtp_sender = std::make_shared<RtpSender>(getOwnerPoller(sender));
-    auto sender_ptr = sender.shared_from_this();
+    weak_ptr<MediaSource> weak_sender = sender.shared_from_this();
     weak_ptr<MultiMediaSourceMuxer> weak_self = shared_from_this();
-    rtp_sender->startSend(args, [args, weak_self, rtp_sender, cb, sender_ptr](uint16_t local_port, const SockException &ex) mutable {
+    rtp_sender->startSend(args, [args, weak_self, rtp_sender, cb, weak_sender](uint16_t local_port, const SockException &ex) mutable {
         cb(local_port, ex);
         auto strong_self = weak_self.lock();
         if (!strong_self || ex) {
@@ -281,17 +281,23 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const MediaSourceE
         rtp_sender->addTrackCompleted();
 
         auto ssrc = args.ssrc;
-        rtp_sender->setOnClose([weak_self, ssrc, sender_ptr](const toolkit::SockException &ex) {
+        rtp_sender->setOnClose([weak_self, ssrc, weak_sender](const toolkit::SockException &ex) {
             if (auto strong_self = weak_self.lock()) {
                 WarnL << "stream:" << strong_self->shortUrl() << " stop send rtp:" << ssrc << ", reason:" << ex.what();
                 strong_self->_rtp_sender.erase(ssrc);
                 //触发观看人数统计
-                strong_self->onReaderChanged(*sender_ptr, strong_self->totalReaderCount());
+                auto strong_sender = weak_sender.lock();
+                if (strong_sender) {
+                    strong_self->onReaderChanged(*strong_sender, strong_self->totalReaderCount());
+                }
                 NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastSendRtpStopped, *strong_self, ssrc, ex);
             }
         });
         strong_self->_rtp_sender[args.ssrc] = std::move(rtp_sender);
-        strong_self->onReaderChanged(*sender_ptr, strong_self->totalReaderCount());
+        auto strong_sender = weak_sender.lock();
+        if (strong_sender) {
+            strong_self->onReaderChanged(*strong_sender, strong_self->totalReaderCount());
+        }
     });
 #else
     cb(0, SockException(Err_other, "该功能未启用，编译时请打开ENABLE_RTPPROXY宏"));

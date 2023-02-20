@@ -182,8 +182,8 @@ void HttpClient::onErr(const SockException &ex) {
 
 ssize_t HttpClient::onRecvHeader(const char *data, size_t len) {
     _parser.Parse(data);
-    if (_parser.Url() == "302" || _parser.Url() == "301") {
-        auto new_url = _parser["Location"];
+    if (_parser.Url() == "302" || _parser.Url() == "301" || _parser.Url() == "303") {
+        auto new_url = Parser::merge_url(_url, _parser["Location"]);
         if (new_url.empty()) {
             throw invalid_argument("未找到Location字段(跳转url)");
         }
@@ -206,7 +206,11 @@ ssize_t HttpClient::onRecvHeader(const char *data, size_t len) {
                 onResponseBody(data, len);
             } else {
                 _total_body_size = _recved_body_size;
-                onResponseCompleted_l(SockException(Err_success, "success"));
+                if (_recved_body_size > 0) {
+                    onResponseCompleted_l(SockException(Err_success, "success"));
+                }else{
+                    onResponseCompleted_l(SockException(Err_other, "no body"));
+                }
             }
         });
         //后续为源源不断的body

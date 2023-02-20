@@ -53,7 +53,7 @@
   - 服务器/客户端完整支持Basic/Digest方式的登录鉴权，全异步可配置化的鉴权接口
   - 支持H265编码
   - 服务器支持RTSP推流(包括`rtp over udp` `rtp over tcp`方式)
-  - 支持H264/H265/AAC/G711/OPUS编码，其他编码能转发但不能转协议
+  - 支持H264/H265/AAC/G711/OPUS/MJPEG编码，其他编码能转发但不能转协议
 
 - RTMP[S]
   - RTMP[S] 播放服务器，支持RTSP/MP4/HLS转RTMP
@@ -80,7 +80,7 @@
 - fMP4
   - 支持http[s]-fmp4直播
   - 支持ws[s]-fmp4直播
-  - 支持H264/H265/AAC/G711/OPUS编码
+  - 支持H264/H265/AAC/G711/OPUS/MJPEG编码
 
 - HTTP[S]与WebSocket
   - 服务器支持`目录索引生成`,`文件下载`,`表单提交请求`
@@ -290,6 +290,7 @@ bash build_docker_images.sh
 [PioLing](https://github.com/PioLing)
 [KevinZang](https://github.com/ZSC714725)
 [gongluck](https://github.com/gongluck)
+[a-ucontrol](https://github.com/a-ucontrol)
 
 ## 使用案例
 

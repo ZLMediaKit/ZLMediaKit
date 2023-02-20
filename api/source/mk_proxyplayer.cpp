@@ -50,13 +50,18 @@ API_EXPORT void API_CALL mk_proxy_player_play(mk_proxy_player ctx, const char *u
 }
 
 API_EXPORT void API_CALL mk_proxy_player_set_on_close(mk_proxy_player ctx, on_mk_proxy_player_close cb, void *user_data){
+    mk_proxy_player_set_on_close2(ctx, cb, user_data, nullptr);
+}
+
+API_EXPORT void API_CALL mk_proxy_player_set_on_close2(mk_proxy_player ctx, on_mk_proxy_player_close cb, void *user_data, on_user_data_free user_data_free) {
     assert(ctx);
-    PlayerProxy::Ptr &obj = *((PlayerProxy::Ptr *) ctx);
-    obj->getPoller()->async([obj,cb,user_data](){
-        //切换线程再操作
-        obj->setOnClose([cb,user_data](const SockException &ex){
-            if(cb){
-                cb(user_data, ex.getErrCode(), ex.what(), ex.getCustomCode());
+    PlayerProxy::Ptr &obj = *((PlayerProxy::Ptr *)ctx);
+    std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
+    obj->getPoller()->async([obj, cb, ptr]() {
+        // 切换线程再操作
+        obj->setOnClose([cb, ptr](const SockException &ex) {
+            if (cb) {
+                cb(ptr.get(), ex.getErrCode(), ex.what(), ex.getCustomCode());
             }
         });
     });

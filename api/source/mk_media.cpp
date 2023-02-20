@@ -23,7 +23,8 @@ public:
     MediaHelper(ArgsType &&...args){
         _channel = std::make_shared<DevChannel>(std::forward<ArgsType>(args)...);
     }
-    ~MediaHelper(){}
+
+    ~MediaHelper() = default;
 
     void attachEvent(){
         _channel->setMediaListener(shared_from_this());
@@ -33,29 +34,29 @@ public:
         return _channel;
     }
 
-    void setOnClose(on_mk_media_close cb, void *user_data){
+    void setOnClose(on_mk_media_close cb, std::shared_ptr<void> user_data){
         _on_close = cb;
-        _on_close_data = user_data;
+        _on_close_data = std::move(user_data);
     }
 
-    void setOnSeek(on_mk_media_seek cb, void *user_data){
+    void setOnSeek(on_mk_media_seek cb, std::shared_ptr<void> user_data){
         _on_seek = cb;
-        _on_seek_data = user_data;
+        _on_seek_data = std::move(user_data);
     }
 
-    void setOnPause(on_mk_media_pause cb, void* user_data) {
+    void setOnPause(on_mk_media_pause cb, std::shared_ptr<void> user_data) {
         _on_pause = cb;
-        _on_pause_data = user_data;
+        _on_pause_data = std::move(user_data);
     }
 
-    void setOnSpeed(on_mk_media_speed cb, void* user_data) {
+    void setOnSpeed(on_mk_media_speed cb, std::shared_ptr<void> user_data) {
         _on_speed = cb;
-        _on_speed_data = user_data;
+        _on_speed_data = std::move(user_data);
     }
 
-    void setOnRegist(on_mk_media_source_regist cb, void *user_data){
+    void setOnRegist(on_mk_media_source_regist cb, std::shared_ptr<void> user_data){
         _on_regist = cb;
-        _on_regist_data = user_data;
+        _on_regist_data = std::move(user_data);
     }
 
 protected:
@@ -67,7 +68,7 @@ protected:
             return false;
         }
         //请在回调中调用mk_media_release函数释放资源,否则MediaSource::close()操作不会生效
-        _on_close(_on_close_data);
+        _on_close(_on_close_data.get());
         WarnL << "close media: " << sender.getUrl();
         return true;
     }
@@ -76,7 +77,7 @@ protected:
         if (!_on_seek) {
             return false;
         }
-        return _on_seek(_on_seek_data, stamp);
+        return _on_seek(_on_seek_data.get(), stamp);
     }
 
     // 通知暂停或恢复
@@ -84,7 +85,7 @@ protected:
         if (!_on_pause) {
             return false;
         }
-        return _on_pause(_on_pause_data, pause);
+        return _on_pause(_on_pause_data.get(), pause);
     }
 
     //通知倍数播放
@@ -92,12 +93,12 @@ protected:
         if (!_on_speed) {
             return false;
         }
-        return _on_speed(_on_speed_data, speed);
+        return _on_speed(_on_speed_data.get(), speed);
     }
 
     void onRegist(MediaSource &sender, bool regist) override{
         if (_on_regist) {
-            _on_regist(_on_regist_data, &sender, regist);
+            _on_regist(_on_regist_data.get(), &sender, regist);
         }
     }
 
@@ -108,41 +109,66 @@ private:
     on_mk_media_pause _on_pause = nullptr;
     on_mk_media_speed _on_speed = nullptr;
     on_mk_media_source_regist _on_regist = nullptr;
-    void* _on_seek_data;
-    void* _on_pause_data;
-    void* _on_speed_data;
-    void *_on_close_data;
-    void *_on_regist_data;
+    std::shared_ptr<void> _on_seek_data;
+    std::shared_ptr<void> _on_pause_data;
+    std::shared_ptr<void> _on_speed_data;
+    std::shared_ptr<void> _on_close_data;
+    std::shared_ptr<void> _on_regist_data;
 };
 
 API_EXPORT void API_CALL mk_media_set_on_close(mk_media ctx, on_mk_media_close cb, void *user_data){
+    mk_media_set_on_close2(ctx, cb, user_data, nullptr);
+}
+
+API_EXPORT void API_CALL mk_media_set_on_close2(mk_media ctx, on_mk_media_close cb, void *user_data, on_user_data_free user_data_free) {
     assert(ctx);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
-    (*obj)->setOnClose(cb, user_data);
+    std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
+    (*obj)->setOnClose(cb, std::move(ptr));
 }
 
 API_EXPORT void API_CALL mk_media_set_on_seek(mk_media ctx, on_mk_media_seek cb, void *user_data) {
+    mk_media_set_on_seek2(ctx, cb, user_data, nullptr);
+}
+
+API_EXPORT void API_CALL mk_media_set_on_seek2(mk_media ctx, on_mk_media_seek cb, void *user_data, on_user_data_free user_data_free) {
     assert(ctx);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
-    (*obj)->setOnSeek(cb, user_data);
+    std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
+    (*obj)->setOnSeek(cb, std::move(ptr));
 }
 
 API_EXPORT void API_CALL mk_media_set_on_pause(mk_media ctx, on_mk_media_pause cb, void *user_data) {
+    mk_media_set_on_pause2(ctx, cb, user_data, nullptr);
+}
+
+API_EXPORT void API_CALL mk_media_set_on_pause2(mk_media ctx, on_mk_media_pause cb, void *user_data, on_user_data_free user_data_free) {
     assert(ctx);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
-    (*obj)->setOnPause(cb, user_data);
+    std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
+    (*obj)->setOnPause(cb, std::move(ptr));
 }
 
 API_EXPORT void API_CALL mk_media_set_on_speed(mk_media ctx, on_mk_media_speed cb, void *user_data) {
+    mk_media_set_on_speed2(ctx, cb, user_data, nullptr);
+}
+
+API_EXPORT void API_CALL mk_media_set_on_speed2(mk_media ctx, on_mk_media_speed cb, void *user_data, on_user_data_free user_data_free){
     assert(ctx);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
-    (*obj)->setOnSpeed(cb, user_data);
+    std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
+    (*obj)->setOnSpeed(cb, std::move(ptr));
 }
 
 API_EXPORT void API_CALL mk_media_set_on_regist(mk_media ctx, on_mk_media_source_regist cb, void *user_data){
+    mk_media_set_on_regist2(ctx, cb, user_data, nullptr);
+}
+
+API_EXPORT void API_CALL mk_media_set_on_regist2(mk_media ctx, on_mk_media_source_regist cb, void *user_data, on_user_data_free user_data_free) {
     assert(ctx);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
-    (*obj)->setOnRegist(cb, user_data);
+    std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
+    (*obj)->setOnRegist(cb, std::move(ptr));
 }
 
 API_EXPORT int API_CALL mk_media_total_reader_count(mk_media ctx){
@@ -158,6 +184,14 @@ API_EXPORT mk_media API_CALL mk_media_create(const char *vhost, const char *app,
     option.enable_hls = hls_enabled;
     option.enable_mp4 = mp4_enabled;
 
+    MediaHelper::Ptr *obj(new MediaHelper::Ptr(new MediaHelper(vhost, app, stream, duration, option)));
+    (*obj)->attachEvent();
+    return (mk_media) obj;
+}
+
+API_EXPORT mk_media API_CALL mk_media_create2(const char *vhost, const char *app, const char *stream, float duration, mk_ini ini) {
+    assert(vhost && app && stream && ini);
+    ProtocolOption option(*((mINI *)ini));
     MediaHelper::Ptr *obj(new MediaHelper::Ptr(new MediaHelper(vhost, app, stream, duration, option)));
     (*obj)->attachEvent();
     return (mk_media) obj;
@@ -246,7 +280,11 @@ API_EXPORT int API_CALL mk_media_input_audio(mk_media ctx, const void* data, int
     return (*obj)->getChannel()->inputAudio((const char*)data, len, dts);
 }
 
-API_EXPORT void API_CALL mk_media_start_send_rtp(mk_media ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int is_udp, on_mk_media_send_rtp_result cb, void *user_data){
+API_EXPORT void API_CALL mk_media_start_send_rtp(mk_media ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int is_udp, on_mk_media_send_rtp_result cb, void *user_data) {
+    mk_media_start_send_rtp2(ctx, dst_url, dst_port, ssrc, is_udp, cb, user_data, nullptr);
+}
+
+API_EXPORT void API_CALL mk_media_start_send_rtp2(mk_media ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int is_udp, on_mk_media_send_rtp_result cb, void *user_data, on_user_data_free user_data_free){
     assert(ctx && dst_url && ssrc);
     MediaHelper::Ptr* obj = (MediaHelper::Ptr*) ctx;
 
@@ -258,10 +296,11 @@ API_EXPORT void API_CALL mk_media_start_send_rtp(mk_media ctx, const char *dst_u
 
     // sender参数无用
     auto ref = *obj;
-    (*obj)->getChannel()->getOwnerPoller(MediaSource::NullMediaSource())->async([args, ref, cb, user_data]() {
-        ref->getChannel()->startSendRtp(MediaSource::NullMediaSource(), args, [cb, user_data](uint16_t local_port, const SockException &ex) {
+    std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
+    (*obj)->getChannel()->getOwnerPoller(MediaSource::NullMediaSource())->async([args, ref, cb, ptr]() {
+        ref->getChannel()->startSendRtp(MediaSource::NullMediaSource(), args, [cb, ptr](uint16_t local_port, const SockException &ex) {
             if (cb) {
-                cb(user_data, local_port, ex.getErrCode(), ex.what());
+                cb(ptr.get(), local_port, ex.getErrCode(), ex.what());
             }
         });
     });

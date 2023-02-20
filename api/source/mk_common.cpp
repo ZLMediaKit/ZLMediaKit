@@ -158,6 +158,8 @@ API_EXPORT void API_CALL mk_set_option(const char *key, const char *val) {
         return;
     }
     mINI::Instance()[key] = val;
+    //广播配置文件热加载
+    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastReloadConfig);
 }
 
 API_EXPORT const char * API_CALL mk_get_option(const char *key)
@@ -292,19 +294,24 @@ private:
 };
 #endif
 
-API_EXPORT void API_CALL mk_webrtc_get_answer_sdp(void *user_data, on_mk_webrtc_get_answer_sdp cb, const char *type,
+API_EXPORT void API_CALL mk_webrtc_get_answer_sdp(void *user_data,  on_mk_webrtc_get_answer_sdp cb, const char *type,
+                                                   const char *offer, const char *url) {
+    mk_webrtc_get_answer_sdp2(user_data, nullptr, cb, type, offer, url);
+}
+API_EXPORT void API_CALL mk_webrtc_get_answer_sdp2(void *user_data, on_user_data_free user_data_free, on_mk_webrtc_get_answer_sdp cb, const char *type,
                                                   const char *offer, const char *url) {
 #ifdef ENABLE_WEBRTC
     assert(type && offer && url && cb);
     auto session = std::make_shared<HttpSession>(Socket::createSocket());
     std::string offer_str = offer;
+    std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
     WebRtcPluginManager::Instance().getAnswerSdp(*session, type, WebRtcArgsUrl(url),
-                                                 [offer_str, session, user_data, cb](const WebRtcInterface &exchanger) mutable {
+                                                 [offer_str, session, ptr, cb](const WebRtcInterface &exchanger) mutable {
         try {
             auto sdp_answer = const_cast<WebRtcInterface &>(exchanger).getAnswerSdp(offer_str);
-            cb(user_data, sdp_answer.data(), nullptr);
+            cb(ptr.get(), sdp_answer.data(), nullptr);
         } catch (std::exception &ex) {
-            cb(user_data, nullptr, ex.what());
+            cb(ptr.get(), nullptr, ex.what());
         }
     });
 #else

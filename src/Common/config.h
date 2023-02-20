@@ -355,14 +355,8 @@ extern const std::string kH264PT;
 extern const std::string kH265PT;
 // rtp server ps 的pt
 extern const std::string kPSPT;
-// rtp server ts 的pt
-extern const std::string kTSPT;
 // rtp server opus 的pt
 extern const std::string kOpusPT;
-// rtp server g711u 的pt
-extern const std::string kG711UPT;
-// rtp server g711a 的pt
-extern const std::string kG711APT;
 } // namespace RtpProxy
 
 /**

@@ -32,9 +32,11 @@ typedef void(API_CALL *on_mk_h264_splitter_frame)(void *user_data, mk_h264_split
  * 创建h264分帧器
  * @param cb 分帧回调函数
  * @param user_data 回调用户数据指针
+ * @param is_h265 是否是265
  * @return 分帧器对象
  */
-API_EXPORT mk_h264_splitter API_CALL mk_h264_splitter_create(on_mk_h264_splitter_frame cb, void *user_data);
+API_EXPORT mk_h264_splitter API_CALL mk_h264_splitter_create(on_mk_h264_splitter_frame cb, void *user_data, int is_h265);
+API_EXPORT mk_h264_splitter API_CALL mk_h264_splitter_create2(on_mk_h264_splitter_frame cb, void *user_data, on_user_data_free user_data_free, int is_h265);
 
 /**
  * 删除h264分帧器

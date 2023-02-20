@@ -307,7 +307,7 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
 void RtspSession::handleReq_RECORD(const Parser &parser){
     if (_sdp_track.empty() || parser["Session"] != _sessionid) {
         send_SessionNotFound();
-        throw SockException(Err_shutdown, _sdp_track.empty() ? "can not find any availabe track when record" : "session not found when record");
+        throw SockException(Err_shutdown, _sdp_track.empty() ? "can not find any available track when record" : "session not found when record");
     }
 
     _StrPrinter rtp_info;
@@ -721,7 +721,7 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
         break;
     case Rtsp::RTP_MULTICAST: {
         if(!_multicaster){
-            _multicaster = RtpMultiCaster::get(*this, get_local_ip(), _media_info._vhost, _media_info._app, _media_info._streamid);
+            _multicaster = RtpMultiCaster::get(*this, get_local_ip(), _media_info._vhost, _media_info._app, _media_info._streamid, _multicast_ip, _multicast_video_port, _multicast_audio_port);
             if (!_multicaster) {
                 send_NotAcceptable();
                 throw SockException(Err_shutdown, "can not get a available udp multicast socket");

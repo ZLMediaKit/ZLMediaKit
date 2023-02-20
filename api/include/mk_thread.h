@@ -87,6 +87,7 @@ typedef void (API_CALL *on_mk_async)(void *user_data);
  * @param user_data 用户数据指针
  */
 API_EXPORT void API_CALL mk_async_do(mk_thread ctx, on_mk_async cb, void *user_data);
+API_EXPORT void API_CALL mk_async_do2(mk_thread ctx, on_mk_async cb, void *user_data, on_user_data_free user_data_free);
 
 /**
  * 切换到事件线程并延时执行
@@ -96,6 +97,7 @@ API_EXPORT void API_CALL mk_async_do(mk_thread ctx, on_mk_async cb, void *user_d
  * @param user_data 用户数据指针
  */
 API_EXPORT void API_CALL mk_async_do_delay(mk_thread ctx, size_t ms, on_mk_async cb, void *user_data);
+API_EXPORT void API_CALL mk_async_do_delay2(mk_thread ctx, size_t ms, on_mk_async cb, void *user_data, on_user_data_free user_data_free);
 
 /**
  * 切换到事件线程并同步执行
@@ -123,6 +125,7 @@ typedef uint64_t (API_CALL *on_mk_timer)(void *user_data);
  * @return 定时器对象
  */
 API_EXPORT mk_timer API_CALL mk_timer_create(mk_thread ctx, uint64_t delay_ms, on_mk_timer cb, void *user_data);
+API_EXPORT mk_timer API_CALL mk_timer_create2(mk_thread ctx, uint64_t delay_ms, on_mk_timer cb, void *user_data, on_user_data_free user_data_free);
 
 /**
  * 销毁和取消定时器

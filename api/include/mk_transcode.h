@@ -13,6 +13,7 @@
 
 #include "mk_common.h"
 #include "mk_track.h"
+#include "mk_tcp.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,6 +39,16 @@ typedef void(API_CALL *on_mk_decode)(void *user_data, mk_frame_pix frame);
  * @return 返回解码器对象，NULL代表失败
  */
 API_EXPORT mk_decoder API_CALL mk_decoder_create(mk_track track, int thread_num);
+
+/**
+ * 创建解码器
+ * @param track track对象
+ * @param thread_num 解码线程数，0时为自动
+ * @param codec_name_list 偏好的ffmpeg codec name列表，以NULL结尾，譬如：{"libopenh264", "h264_nvdec", NULL};
+ *                        在数组中越前，优先级越高;如果指定的codec不存在，或跟mk_track_codec_id类型不匹配时，则使用内部默认codec列表
+ * @return 返回解码器对象，NULL代表失败
+ */
+API_EXPORT mk_decoder API_CALL mk_decoder_create2(mk_track track, int thread_num, const char *codec_name_list[]);
 
 /**
  * 销毁解码器
@@ -67,6 +78,7 @@ API_EXPORT void API_CALL mk_decoder_set_max_async_frame_size(mk_decoder ctx, siz
  * @param user_data 回调函数用户指针参数
  */
 API_EXPORT void API_CALL mk_decoder_set_cb(mk_decoder ctx, on_mk_decode cb, void *user_data);
+API_EXPORT void API_CALL mk_decoder_set_cb2(mk_decoder ctx, on_mk_decode cb, void *user_data, on_user_data_free user_data_free);
 
 /**
  * 获取FFmpeg原始AVCodecContext对象
@@ -95,6 +107,15 @@ API_EXPORT void API_CALL mk_frame_pix_unref(mk_frame_pix frame);
  * @return mk_frame_pix对象
  */
 API_EXPORT mk_frame_pix API_CALL mk_frame_pix_from_av_frame(AVFrame *frame);
+
+/**
+ * 可无内存拷贝的创建mk_frame_pix对象
+ * @param plane_data 多个平面数据, 通过mk_buffer_get_data获取其数据指针
+ * @param line_size 平面数据line size
+ * @param plane 数据平面个数
+ * @return mk_frame_pix对象
+ */
+API_EXPORT mk_frame_pix API_CALL mk_frame_pix_from_buffer(mk_buffer plane_data[], int line_size[], int plane);
 
 /**
  * 获取FFmpeg AVFrame对象
@@ -139,13 +160,26 @@ API_EXPORT mk_frame_pix mk_swscale_input_frame2(mk_swscale ctx, mk_frame_pix fra
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 
-API_EXPORT uint8_t** API_CALL mk_get_av_frame_data(AVFrame *frame);
-API_EXPORT int* API_CALL mk_get_av_frame_line_size(AVFrame *frame);
+API_EXPORT uint8_t **API_CALL mk_get_av_frame_data(AVFrame *frame);
+API_EXPORT void API_CALL mk_set_av_frame_data(AVFrame *frame, uint8_t *data, int plane);
+
+API_EXPORT int *API_CALL mk_get_av_frame_line_size(AVFrame *frame);
+API_EXPORT void API_CALL mk_set_av_frame_line_size(AVFrame *frame, int line_size, int plane);
+
 API_EXPORT int64_t API_CALL mk_get_av_frame_dts(AVFrame *frame);
+API_EXPORT void API_CALL mk_set_av_frame_dts(AVFrame *frame, int64_t dts);
+
 API_EXPORT int64_t API_CALL mk_get_av_frame_pts(AVFrame *frame);
+API_EXPORT void API_CALL mk_set_av_frame_pts(AVFrame *frame, int64_t pts);
+
 API_EXPORT int API_CALL mk_get_av_frame_width(AVFrame *frame);
+API_EXPORT void API_CALL mk_set_av_frame_width(AVFrame *frame, int width);
+
 API_EXPORT int API_CALL mk_get_av_frame_height(AVFrame *frame);
+API_EXPORT void API_CALL mk_set_av_frame_height(AVFrame *frame, int height);
+
 API_EXPORT int API_CALL mk_get_av_frame_format(AVFrame *frame);
+API_EXPORT void API_CALL mk_set_av_frame_format(AVFrame *frame, int format);
 
 #ifdef __cplusplus
 }

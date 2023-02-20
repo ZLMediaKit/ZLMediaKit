@@ -10,6 +10,7 @@
 
 #if defined(ENABLE_RTPPROXY)
 #include "RtpSender.h"
+#include "RtpSession.h"
 #include "Rtsp/RtspSession.h"
 #include "Thread/WorkThreadPool.h"
 #include "Util/uv_errno.h"
@@ -65,7 +66,8 @@ void RtpSender::startSend(const MediaSourceEvent::SendRtpArgs &args, const funct
                 is_wait = false;
             }
             // tcp服务器默认开启5秒
-            auto delay_task = _poller->doDelayTask(_args.tcp_passive_close_delay_ms, [tcp_listener, cb,is_wait]() mutable {
+            auto delay = _args.tcp_passive_close_delay_ms ? _args.tcp_passive_close_delay_ms : 5000;
+            auto delay_task = _poller->doDelayTask(delay, [tcp_listener, cb, is_wait]() mutable {
                 if (is_wait) {
                     cb(0, SockException(Err_timeout, "wait tcp connection timeout"));
                 }
@@ -213,6 +215,25 @@ void RtpSender::onConnect(){
     }
     //连接建立成功事件
     weak_ptr<RtpSender> weak_self = shared_from_this();
+    if (!_args.recv_stream_id.empty()) {
+        mINI ini;
+        ini[RtpSession::kStreamID] = _args.recv_stream_id;
+        _rtp_session = std::make_shared<RtpSession>(_socket_rtp);
+        _rtp_session->setParams(ini);
+
+        _socket_rtp->setOnRead([weak_self](const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len) {
+            auto strong_self = weak_self.lock();
+            if (!strong_self) {
+                return;
+            }
+            try {
+                strong_self->_rtp_session->onRecv(buf);
+            } catch (std::exception &ex){
+                SockException err(toolkit::Err_shutdown, ex.what());
+                strong_self->_rtp_session->shutdown(err);
+            }
+        });
+    }
     _socket_rtp->setOnErr([weak_self](const SockException &err) {
         auto strong_self = weak_self.lock();
         if (strong_self) {

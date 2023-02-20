@@ -55,23 +55,29 @@ API_EXPORT void API_CALL mk_pusher_publish(mk_pusher ctx,const char *url){
 }
 
 API_EXPORT void API_CALL mk_pusher_set_on_result(mk_pusher ctx, on_mk_push_event cb, void *user_data){
+    mk_pusher_set_on_result2(ctx, cb, user_data, nullptr);
+}
+
+API_EXPORT void API_CALL mk_pusher_set_on_result2(mk_pusher ctx, on_mk_push_event cb, void *user_data, on_user_data_free user_data_free) {
     assert(ctx && cb);
     MediaPusher::Ptr &obj = *((MediaPusher::Ptr *)ctx);
-    obj->getPoller()->async([obj,cb,user_data](){
-        //切换线程再操作
-        obj->setOnPublished([cb,user_data](const SockException &ex){
-            cb(user_data,ex.getErrCode(),ex.what());
-        });
+    std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
+    obj->getPoller()->async([obj, cb, ptr]() {
+        // 切换线程再操作
+        obj->setOnPublished([cb, ptr](const SockException &ex) { cb(ptr.get(), ex.getErrCode(), ex.what()); });
     });
 }
 
 API_EXPORT void API_CALL mk_pusher_set_on_shutdown(mk_pusher ctx, on_mk_push_event cb, void *user_data){
+    mk_pusher_set_on_shutdown2(ctx, cb, user_data, nullptr);
+}
+
+API_EXPORT void API_CALL mk_pusher_set_on_shutdown2(mk_pusher ctx, on_mk_push_event cb, void *user_data, on_user_data_free user_data_free) {
     assert(ctx && cb);
     MediaPusher::Ptr &obj = *((MediaPusher::Ptr *)ctx);
-    obj->getPoller()->async([obj,cb,user_data](){
-        //切换线程再操作
-        obj->setOnShutdown([cb,user_data](const SockException &ex){
-            cb(user_data,ex.getErrCode(),ex.what());
-        });
+    std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
+    obj->getPoller()->async([obj, cb, ptr]() {
+        // 切换线程再操作
+        obj->setOnShutdown([cb, ptr](const SockException &ex) { cb(ptr.get(), ex.getErrCode(), ex.what()); });
     });
 }

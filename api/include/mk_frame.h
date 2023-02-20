@@ -57,7 +57,8 @@ typedef void(API_CALL *on_mk_frame_data_release)(void *user_data, char *ptr);
  */
 API_EXPORT mk_frame API_CALL mk_frame_create(int codec_id, uint64_t dts, uint64_t pts, const char *data, size_t size,
                                             on_mk_frame_data_release cb, void *user_data);
-
+API_EXPORT mk_frame API_CALL mk_frame_create2(int codec_id, uint64_t dts, uint64_t pts, const char *data, size_t size,
+                                             on_mk_frame_data_release cb, void *user_data, on_user_data_free user_data_free);
 /**
  * 减引用frame对象
  * @param frame 帧对象引用

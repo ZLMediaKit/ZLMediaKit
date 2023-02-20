@@ -22,10 +22,16 @@ namespace mediakit{
 
 const string RtpSession::kStreamID = "stream_id";
 const string RtpSession::kSSRC = "ssrc";
+const string RtpSession::kOnlyAudio = "only_audio";
 
 void RtpSession::attachServer(const Server &server) {
-    _stream_id = const_cast<Server &>(server)[kStreamID];
-    _ssrc = const_cast<Server &>(server)[kSSRC];
+    setParams(const_cast<Server &>(server));
+}
+
+void RtpSession::setParams(mINI &ini) {
+    _stream_id = ini[kStreamID];
+    _ssrc = ini[kSSRC];
+    _only_audio = ini[kOnlyAudio];
 }
 
 RtpSession::RtpSession(const Socket::Ptr &sock) : Session(sock) {
@@ -97,6 +103,7 @@ void RtpSession::onRtpPacket(const char *data, size_t len) {
         }
         //tcp情况下，一个tcp链接只可能是一路流，不需要通过多个ssrc来区分，所以不需要频繁getProcess
         _process = RtpSelector::Instance().getProcess(_stream_id, true);
+        _process->setOnlyAudio(_only_audio);
         _process->setDelegate(dynamic_pointer_cast<RtpSession>(shared_from_this()));
     }
     try {

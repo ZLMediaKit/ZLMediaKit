@@ -208,8 +208,11 @@ API_EXPORT int API_CALL mk_media_source_seek_to(const mk_media_source ctx,uint32
     MediaSource *src = (MediaSource *)ctx;
     return src->seekTo(stamp);
 }
+API_EXPORT void API_CALL mk_media_source_start_send_rtp(const mk_media_source ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int is_udp, on_mk_media_source_send_rtp_result cb, void *user_data) {
+    mk_media_source_start_send_rtp2(ctx, dst_url, dst_port, ssrc, is_udp, cb, user_data, nullptr);
+}
 
-API_EXPORT void API_CALL mk_media_source_start_send_rtp(const mk_media_source ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int is_udp, on_mk_media_source_send_rtp_result cb, void *user_data){
+API_EXPORT void API_CALL mk_media_source_start_send_rtp2(const mk_media_source ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int is_udp, on_mk_media_source_send_rtp_result cb, void *user_data, on_user_data_free user_data_free){
     assert(ctx && dst_url && ssrc);
     MediaSource *src = (MediaSource *)ctx;
 
@@ -219,9 +222,10 @@ API_EXPORT void API_CALL mk_media_source_start_send_rtp(const mk_media_source ct
     args.ssrc = ssrc;
     args.is_udp = is_udp;
 
-    src->startSendRtp(args, [cb, user_data](uint16_t local_port, const SockException &ex){
+    std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
+    src->startSendRtp(args, [cb, ptr](uint16_t local_port, const SockException &ex){
         if (cb) {
-            cb(user_data, local_port, ex.getErrCode(), ex.what());
+            cb(ptr.get(), local_port, ex.getErrCode(), ex.what());
         }
     });
 }
@@ -253,12 +257,18 @@ API_EXPORT void API_CALL mk_media_source_for_each(void *user_data, on_mk_media_s
 }
 
 ///////////////////////////////////////////HttpBody/////////////////////////////////////////////
+
 API_EXPORT mk_http_body API_CALL mk_http_body_from_string(const char *str, size_t len){
     assert(str);
     if(!len){
         len = strlen(str);
     }
     return new HttpBody::Ptr(new HttpStringBody(std::string(str, len)));
+}
+
+API_EXPORT mk_http_body API_CALL mk_http_body_from_buffer(mk_buffer buffer) {
+    assert(buffer);
+    return new HttpBody::Ptr(new HttpBufferBody(*((Buffer::Ptr *) buffer)));
 }
 
 API_EXPORT mk_http_body API_CALL mk_http_body_from_file(const char *file_path){

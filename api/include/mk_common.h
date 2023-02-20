@@ -47,6 +47,9 @@ extern "C" {
 //输出日志到回调函数(mk_events::on_mk_log)
 #define LOG_CALLBACK    (1 << 2)
 
+//回调user_data回调函数
+typedef void(API_CALL *on_user_data_free)(void *user_data);
+
 typedef struct {
     // 线程数
     int thread_num;
@@ -117,6 +120,7 @@ API_EXPORT void API_CALL mk_set_log(int file_max_size, int file_max_count);
 
 /**
  * 设置配置项
+ * @deprecated 请使用mk_ini_set_option替代
  * @param key 配置项名
  * @param val 配置项值
  */
@@ -124,6 +128,7 @@ API_EXPORT void API_CALL mk_set_option(const char *key, const char *val);
 
 /**
  * 获取配置项的值
+ * @deprecated 请使用mk_ini_get_option替代
  * @param key 配置项名
  */
 API_EXPORT const char * API_CALL mk_get_option(const char *key);
@@ -179,6 +184,9 @@ typedef void(API_CALL *on_mk_webrtc_get_answer_sdp)(void *user_data, const char 
  * @param url rtc url, 例如 rtc://__defaultVhost/app/stream?key1=val1&key2=val2
  */
 API_EXPORT void API_CALL mk_webrtc_get_answer_sdp(void *user_data, on_mk_webrtc_get_answer_sdp cb, const char *type,
+                                                  const char *offer, const char *url);
+
+API_EXPORT void API_CALL mk_webrtc_get_answer_sdp2(void *user_data, on_user_data_free user_data_free, on_mk_webrtc_get_answer_sdp cb, const char *type,
                                                   const char *offer, const char *url);
 
 /**
