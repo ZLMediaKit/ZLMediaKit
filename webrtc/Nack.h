@@ -53,7 +53,7 @@ public:
     // nack重传频率，rtt的倍数
     static constexpr auto kNackIntervalRatio = 1.0f;
 
-    NackContext() = default;
+    NackContext();
     ~NackContext() = default;
 
     void received(uint16_t seq, bool is_rtx = false);
@@ -64,13 +64,16 @@ private:
     void eraseFrontSeq();
     void doNack(const FCI_NACK &nack, bool record_nack);
     void recordNack(const FCI_NACK &nack);
-    void onRtx(uint16_t seq);
+    void clearNackStatus(uint16_t seq);
+    void makeNack(uint16_t max, bool flush = false);
 
 private:
+    bool _started = false;
     int _rtt = 50;
     onNack _cb;
     std::set<uint16_t> _seq;
-    uint16_t _last_max_seq = 0;
+    // 最新nack包中的rtp seq值
+    uint16_t _nack_seq = 0;
 
     struct NackStatus {
         uint64_t first_stamp;
