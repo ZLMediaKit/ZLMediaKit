@@ -70,7 +70,16 @@ RtpProcess::~RtpProcess() {
     }
 }
 
+static bool is_rtp(const char *buf) {
+    RtpHeader *header = (RtpHeader *)buf;
+    return ((header->pt < 64) || (header->pt >= 96));
+}
+
 bool RtpProcess::inputRtp(bool is_udp, const Socket::Ptr &sock, const char *data, size_t len, const struct sockaddr *addr, uint64_t *dts_out) {
+    if (!is_rtp(data)) {
+        WarnL << "Not rtp packet";
+        return false;
+    }
     if (_sock != sock) {
         // 第一次运行本函数
         bool first = !_sock;
