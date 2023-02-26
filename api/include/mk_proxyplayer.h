@@ -17,7 +17,7 @@
 extern "C" {
 #endif
 
-typedef void *mk_proxy_player;
+typedef struct mk_proxy_player_t *mk_proxy_player;
 
 /**
  * 创建一个代理播放器

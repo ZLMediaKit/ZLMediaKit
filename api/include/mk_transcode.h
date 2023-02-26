@@ -20,11 +20,11 @@ extern "C" {
 #endif
 
 //解码器对象
-typedef void *mk_decoder;
+typedef struct mk_decoder_t *mk_decoder;
 //解码后的frame
-typedef void *mk_frame_pix;
+typedef struct mk_frame_pix_t *mk_frame_pix;
 //SwsContext的包装
-typedef void *mk_swscale;
+typedef struct mk_swscale_t *mk_swscale;
 //FFmpeg原始解码帧对象
 typedef struct AVFrame AVFrame;
 //FFmpeg编解码器对象

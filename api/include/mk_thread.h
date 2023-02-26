@@ -20,7 +20,7 @@ extern "C" {
 #endif
 
 ///////////////////////////////////////////事件线程/////////////////////////////////////////////
-typedef void* mk_thread;
+typedef struct mk_thread_t *mk_thread;
 
 /**
  * 获取tcp会话对象所在事件线程
@@ -52,7 +52,7 @@ API_EXPORT mk_thread API_CALL mk_thread_from_pool();
  */
 API_EXPORT mk_thread API_CALL mk_thread_from_pool_work();
 
-typedef void* mk_thread_pool;
+typedef struct mk_thread_pool_t *mk_thread_pool;
 
 /**
  * 创建线程池
@@ -108,7 +108,7 @@ API_EXPORT void API_CALL mk_async_do_delay2(mk_thread ctx, size_t ms, on_mk_asyn
 API_EXPORT void API_CALL mk_sync_do(mk_thread ctx, on_mk_async cb, void *user_data);
 
 ///////////////////////////////////////////定时器/////////////////////////////////////////////
-typedef void* mk_timer;
+typedef struct mk_timer_t *mk_timer;
 
 /**
  * 定时器触发事件
@@ -135,7 +135,7 @@ API_EXPORT void API_CALL mk_timer_release(mk_timer ctx);
 
 ///////////////////////////////////////////信号量/////////////////////////////////////////////
 
-typedef void* mk_sem;
+typedef struct mk_sem_t *mk_sem;
 
 /**
  * 创建信号量

@@ -19,7 +19,7 @@ extern "C" {
 #endif
 
 //音视频轨道
-typedef void* mk_track;
+typedef struct mk_track_t *mk_track;
 //输出frame回调
 typedef void(API_CALL *on_mk_frame_out)(void *user_data, mk_frame frame);
 
