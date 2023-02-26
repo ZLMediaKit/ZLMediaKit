@@ -245,14 +245,14 @@ API_EXPORT void API_CALL mk_media_source_find(const char *schema,
                                               on_mk_media_source_find_cb cb) {
     assert(schema && vhost && app && stream && cb);
     auto src = MediaSource::find(schema, vhost, app, stream, from_mp4);
-    cb(user_data, src.get());
+    cb(user_data, (mk_media_source)src.get());
 }
 
 API_EXPORT void API_CALL mk_media_source_for_each(void *user_data, on_mk_media_source_find_cb cb, const char *schema,
                                                   const char *vhost, const char *app, const char *stream) {
     assert(cb);
     MediaSource::for_each_media([&](const MediaSource::Ptr &src) {
-        cb(user_data, src.get());
+        cb(user_data, (mk_media_source)src.get());
     }, schema ? schema : "", vhost ? vhost : "", app ? app : "", stream ? stream : "");
 }
 
@@ -263,17 +263,17 @@ API_EXPORT mk_http_body API_CALL mk_http_body_from_string(const char *str, size_
     if(!len){
         len = strlen(str);
     }
-    return new HttpBody::Ptr(new HttpStringBody(std::string(str, len)));
+    return (mk_http_body)new HttpBody::Ptr(new HttpStringBody(std::string(str, len)));
 }
 
 API_EXPORT mk_http_body API_CALL mk_http_body_from_buffer(mk_buffer buffer) {
     assert(buffer);
-    return new HttpBody::Ptr(new HttpBufferBody(*((Buffer::Ptr *) buffer)));
+    return (mk_http_body)new HttpBody::Ptr(new HttpBufferBody(*((Buffer::Ptr *) buffer)));
 }
 
 API_EXPORT mk_http_body API_CALL mk_http_body_from_file(const char *file_path){
     assert(file_path);
-    return new HttpBody::Ptr(new HttpFileBody(file_path));
+    return (mk_http_body)new HttpBody::Ptr(new HttpFileBody(file_path));
 }
 
 template <typename C = StrCaseMap>
@@ -294,7 +294,7 @@ static C get_http_header( const char *response_header[]){
 
 API_EXPORT mk_http_body API_CALL mk_http_body_from_multi_form(const char *key_val[],const char *file_path){
     assert(key_val && file_path);
-    return new HttpBody::Ptr(new HttpMultiFormBody(get_http_header<HttpArgs>(key_val),file_path));
+    return (mk_http_body)new HttpBody::Ptr(new HttpMultiFormBody(get_http_header<HttpArgs>(key_val),file_path));
 }
 
 API_EXPORT void API_CALL mk_http_body_release(mk_http_body ctx){
@@ -338,7 +338,7 @@ API_EXPORT void API_CALL mk_http_response_invoker_do(const mk_http_response_invo
 API_EXPORT mk_http_response_invoker API_CALL mk_http_response_invoker_clone(const mk_http_response_invoker ctx){
     assert(ctx);
     HttpSession::HttpResponseInvoker *invoker = (HttpSession::HttpResponseInvoker *)ctx;
-    return new  HttpSession::HttpResponseInvoker (*invoker);
+    return (mk_http_response_invoker)new HttpSession::HttpResponseInvoker (*invoker);
 }
 
 API_EXPORT void API_CALL mk_http_response_invoker_clone_release(const mk_http_response_invoker ctx){
@@ -362,7 +362,7 @@ API_EXPORT void API_CALL mk_http_access_path_invoker_do(const mk_http_access_pat
 API_EXPORT mk_http_access_path_invoker API_CALL mk_http_access_path_invoker_clone(const mk_http_access_path_invoker ctx){
     assert(ctx);
     HttpSession::HttpAccessPathInvoker *invoker = (HttpSession::HttpAccessPathInvoker *)ctx;
-    return new HttpSession::HttpAccessPathInvoker(*invoker);
+    return (mk_http_access_path_invoker)new HttpSession::HttpAccessPathInvoker(*invoker);
 }
 
 API_EXPORT void API_CALL mk_http_access_path_invoker_clone_release(const mk_http_access_path_invoker ctx){
@@ -382,7 +382,7 @@ API_EXPORT void API_CALL mk_rtsp_get_realm_invoker_do(const mk_rtsp_get_realm_in
 API_EXPORT mk_rtsp_get_realm_invoker API_CALL mk_rtsp_get_realm_invoker_clone(const mk_rtsp_get_realm_invoker ctx){
     assert(ctx);
     RtspSession::onGetRealm *invoker = (RtspSession::onGetRealm *)ctx;
-    return new RtspSession::onGetRealm (*invoker);
+    return (mk_rtsp_get_realm_invoker)new RtspSession::onGetRealm (*invoker);
 }
 
 API_EXPORT void API_CALL mk_rtsp_get_realm_invoker_clone_release(const mk_rtsp_get_realm_invoker ctx){
@@ -403,7 +403,7 @@ API_EXPORT void API_CALL mk_rtsp_auth_invoker_do(const mk_rtsp_auth_invoker ctx,
 API_EXPORT mk_rtsp_auth_invoker API_CALL mk_rtsp_auth_invoker_clone(const mk_rtsp_auth_invoker ctx){
     assert(ctx);
     RtspSession::onAuth *invoker = (RtspSession::onAuth *)ctx;
-    return new RtspSession::onAuth(*invoker);
+    return (mk_rtsp_auth_invoker)new RtspSession::onAuth(*invoker);
 }
 
 API_EXPORT void API_CALL mk_rtsp_auth_invoker_clone_release(const mk_rtsp_auth_invoker ctx){
@@ -428,7 +428,7 @@ API_EXPORT void API_CALL mk_publish_auth_invoker_do(const mk_publish_auth_invoke
 API_EXPORT mk_publish_auth_invoker API_CALL mk_publish_auth_invoker_clone(const mk_publish_auth_invoker ctx){
     assert(ctx);
     Broadcast::PublishAuthInvoker *invoker = (Broadcast::PublishAuthInvoker *)ctx;
-    return new Broadcast::PublishAuthInvoker(*invoker);
+    return (mk_publish_auth_invoker)new Broadcast::PublishAuthInvoker(*invoker);
 }
 
 API_EXPORT void API_CALL mk_publish_auth_invoker_clone_release(const mk_publish_auth_invoker ctx){
@@ -447,7 +447,7 @@ API_EXPORT void API_CALL mk_auth_invoker_do(const mk_auth_invoker ctx, const cha
 API_EXPORT mk_auth_invoker API_CALL mk_auth_invoker_clone(const mk_auth_invoker ctx){
     assert(ctx);
     Broadcast::AuthInvoker *invoker = (Broadcast::AuthInvoker *)ctx;
-    return new Broadcast::AuthInvoker(*invoker);
+    return (mk_auth_invoker)new Broadcast::AuthInvoker(*invoker);
 }
 
 API_EXPORT void API_CALL mk_auth_invoker_clone_release(const mk_auth_invoker ctx){

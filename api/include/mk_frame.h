@@ -39,7 +39,7 @@ API_EXPORT extern const int MKCodecVP9;
 API_EXPORT extern const int MKCodecAV1;
 API_EXPORT extern const int MKCodecJPEG;
 
-typedef void *mk_frame;
+typedef struct mk_frame_t *mk_frame;
 
 // 用户自定义free回调函数
 typedef void(API_CALL *on_mk_frame_data_release)(void *user_data, char *ptr);

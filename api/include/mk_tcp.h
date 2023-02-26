@@ -19,7 +19,7 @@ extern "C" {
 
 ///////////////////////////////////////////Buffer::Ptr/////////////////////////////////////////////
 
-typedef void *mk_buffer;
+typedef struct mk_buffer_t *mk_buffer;
 typedef void(API_CALL *on_mk_buffer_free)(void *user_data, void *data);
 
 /**
@@ -39,7 +39,7 @@ API_EXPORT size_t API_CALL mk_buffer_get_size(mk_buffer buffer);
 
 ///////////////////////////////////////////SockInfo/////////////////////////////////////////////
 //SockInfo对象的C映射
-typedef void* mk_sock_info;
+typedef struct mk_sock_info_t *mk_sock_info;
 
 //SockInfo::get_peer_ip()
 API_EXPORT const char* API_CALL mk_sock_info_peer_ip(const mk_sock_info ctx, char *buf);
@@ -66,8 +66,8 @@ API_EXPORT uint16_t API_CALL mk_sock_info_local_port(const mk_sock_info ctx);
 #endif
 ///////////////////////////////////////////TcpSession/////////////////////////////////////////////
 //TcpSession对象的C映射
-typedef void* mk_tcp_session;
-typedef void* mk_tcp_session_ref;
+typedef struct mk_tcp_session_t *mk_tcp_session;
+typedef struct mk_tcp_session_ref_t *mk_tcp_session_ref;
 
 //获取基类指针以便获取其网络相关信息
 API_EXPORT mk_sock_info API_CALL mk_tcp_session_get_sock_info(const mk_tcp_session ctx);
@@ -168,7 +168,7 @@ API_EXPORT void API_CALL mk_tcp_server_events_listen(const mk_tcp_session_events
 
 ///////////////////////////////////////////自定义tcp客户端/////////////////////////////////////////////
 
-typedef void* mk_tcp_client;
+typedef struct mk_tcp_client_t *mk_tcp_client;
 //获取基类指针以便获取其网络相关信息
 API_EXPORT mk_sock_info API_CALL mk_tcp_client_get_sock_info(const mk_tcp_client ctx);
 

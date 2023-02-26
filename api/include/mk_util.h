@@ -58,7 +58,7 @@ API_EXPORT char* API_CALL mk_util_get_current_time_string(const char *fmt);
 API_EXPORT char* API_CALL mk_util_hex_dump(const void *buf, int len);
 
 ///////////////////////////////////////////mk ini/////////////////////////////////////////////
-typedef void* mk_ini;
+typedef struct mk_ini_t *mk_ini;
 
 /**
  * 创建ini配置对象

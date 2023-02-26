@@ -48,7 +48,7 @@ API_EXPORT void API_CALL mk_http_downloader_start2(mk_http_downloader ctx, const
 ///////////////////////////////////////////HttpRequester/////////////////////////////////////////////
 API_EXPORT mk_http_requester API_CALL mk_http_requester_create(){
     HttpRequester::Ptr *ret = new HttpRequester::Ptr(new HttpRequester);
-    return ret;
+    return (mk_http_requester)ret;
 }
 
 API_EXPORT void API_CALL mk_http_requester_clear(mk_http_requester ctx){

@@ -19,7 +19,7 @@ using namespace mediakit;
 API_EXPORT mk_rtp_server API_CALL mk_rtp_server_create(uint16_t port, int tcp_mode, const char *stream_id) {
     RtpServer::Ptr *server = new RtpServer::Ptr(new RtpServer);
     (*server)->start(port, stream_id, (RtpServer::TcpMode)tcp_mode);
-    return server;
+    return (mk_rtp_server)server;
 }
 
 API_EXPORT void API_CALL mk_rtp_server_connect(mk_rtp_server ctx, const char *dst_url, uint16_t dst_port, on_mk_rtp_server_connected cb, void *user_data) {

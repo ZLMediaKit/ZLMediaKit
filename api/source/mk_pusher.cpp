@@ -18,14 +18,14 @@ using namespace mediakit;
 API_EXPORT mk_pusher API_CALL mk_pusher_create(const char *schema,const char *vhost,const char *app, const char *stream){
     assert(schema && vhost && app && schema);
     MediaPusher::Ptr *obj = new MediaPusher::Ptr(new MediaPusher(schema,vhost,app,stream));
-    return obj;
+    return (mk_pusher)obj;
 }
 
 API_EXPORT mk_pusher API_CALL mk_pusher_create_src(mk_media_source ctx){
     assert(ctx);
     MediaSource *src = (MediaSource *)ctx;
     MediaPusher::Ptr *obj = new MediaPusher::Ptr(new MediaPusher(src->shared_from_this()));
-    return obj;
+    return (mk_pusher)obj;
 }
 
 API_EXPORT void API_CALL mk_pusher_release(mk_pusher ctx){

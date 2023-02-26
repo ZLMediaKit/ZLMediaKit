@@ -105,7 +105,7 @@ private:
 API_EXPORT mk_player API_CALL mk_player_create() {
     MediaPlayerForC::Ptr *obj = new MediaPlayerForC::Ptr(new MediaPlayerForC());
     (*obj)->setup();
-    return obj;
+    return (mk_player)obj;
 }
 API_EXPORT void API_CALL mk_player_release(mk_player ctx) {
     assert(ctx);

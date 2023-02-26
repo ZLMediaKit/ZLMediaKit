@@ -18,7 +18,7 @@ extern "C" {
 
 ///////////////////////////////////////////MP4Info/////////////////////////////////////////////
 //MP4Info对象的C映射
-typedef void* mk_mp4_info;
+typedef struct mk_mp4_info_t *mk_mp4_info;
 // GMT 标准时间，单位秒
 API_EXPORT uint64_t API_CALL mk_mp4_info_get_start_time(const mk_mp4_info ctx);
 // 录像长度，单位秒
@@ -42,7 +42,7 @@ API_EXPORT const char* API_CALL mk_mp4_info_get_stream(const mk_mp4_info ctx);
 
 ///////////////////////////////////////////Parser/////////////////////////////////////////////
 //Parser对象的C映射
-typedef void* mk_parser;
+typedef struct mk_parser_t *mk_parser;
 //Parser::Method(),获取命令字，譬如GET/POST
 API_EXPORT const char* API_CALL mk_parser_get_method(const mk_parser ctx);
 //Parser::Url(),获取HTTP的访问url(不包括?后面的参数)
@@ -60,7 +60,7 @@ API_EXPORT const char* API_CALL mk_parser_get_content(const mk_parser ctx, size_
 
 ///////////////////////////////////////////MediaInfo/////////////////////////////////////////////
 //MediaInfo对象的C映射
-typedef void* mk_media_info;
+typedef struct mk_media_info_t *mk_media_info;
 //MediaInfo::_param_strs
 API_EXPORT const char* API_CALL mk_media_info_get_params(const mk_media_info ctx);
 //MediaInfo::_schema
@@ -79,7 +79,7 @@ API_EXPORT uint16_t API_CALL mk_media_info_get_port(const mk_media_info ctx);
 
 ///////////////////////////////////////////MediaSource/////////////////////////////////////////////
 //MediaSource对象的C映射
-typedef void* mk_media_source;
+typedef struct mk_media_source_t *mk_media_source;
 //查找MediaSource的回调函数
 typedef void(API_CALL *on_mk_media_source_find_cb)(void *user_data, const mk_media_source ctx);
 
@@ -138,7 +138,7 @@ API_EXPORT void API_CALL mk_media_source_for_each(void *user_data, on_mk_media_s
 
 ///////////////////////////////////////////HttpBody/////////////////////////////////////////////
 //HttpBody对象的C映射
-typedef void* mk_http_body;
+typedef struct mk_http_body_t *mk_http_body;
 /**
  * 生成HttpStringBody
  * @param str 字符串指针
@@ -173,7 +173,7 @@ API_EXPORT void API_CALL mk_http_body_release(mk_http_body ctx);
 
 ///////////////////////////////////////////HttpResponseInvoker/////////////////////////////////////////////
 //HttpSession::HttpResponseInvoker对象的C映射
-typedef void* mk_http_response_invoker;
+typedef struct mk_http_response_invoker_t *mk_http_response_invoker;
 
 /**
  * HttpSession::HttpResponseInvoker(const string &codeOut, const StrCaseMap &headerOut, const HttpBody::Ptr &body);
@@ -219,7 +219,8 @@ API_EXPORT void API_CALL mk_http_response_invoker_clone_release(const mk_http_re
 
 ///////////////////////////////////////////HttpAccessPathInvoker/////////////////////////////////////////////
 //HttpSession::HttpAccessPathInvoker对象的C映射
-typedef void* mk_http_access_path_invoker;
+typedef struct mk_http_access_path_invoker_t *mk_http_access_path_invoker;
+
 /**
  * HttpSession::HttpAccessPathInvoker(const string &errMsg,const string &accessPath, int cookieLifeSecond);
  * @param err_msg 如果为空，则代表鉴权通过，否则为错误提示,可以为null
@@ -244,7 +245,7 @@ API_EXPORT void API_CALL mk_http_access_path_invoker_clone_release(const mk_http
 
 ///////////////////////////////////////////RtspSession::onGetRealm/////////////////////////////////////////////
 //RtspSession::onGetRealm对象的C映射
-typedef void* mk_rtsp_get_realm_invoker;
+typedef struct mk_rtsp_get_realm_invoker_t *mk_rtsp_get_realm_invoker;
 /**
  * 执行RtspSession::onGetRealm
  * @param realm 该rtsp流是否需要开启rtsp专属鉴权，至null或空字符串则不鉴权
@@ -265,7 +266,7 @@ API_EXPORT void API_CALL mk_rtsp_get_realm_invoker_clone_release(const mk_rtsp_g
 
 ///////////////////////////////////////////RtspSession::onAuth/////////////////////////////////////////////
 //RtspSession::onAuth对象的C映射
-typedef void* mk_rtsp_auth_invoker;
+typedef struct mk_rtsp_auth_invoker_t *mk_rtsp_auth_invoker;
 
 /**
  * 执行RtspSession::onAuth
@@ -289,7 +290,7 @@ API_EXPORT void API_CALL mk_rtsp_auth_invoker_clone_release(const mk_rtsp_auth_i
 
 ///////////////////////////////////////////Broadcast::PublishAuthInvoker/////////////////////////////////////////////
 //Broadcast::PublishAuthInvoker对象的C映射
-typedef void* mk_publish_auth_invoker;
+typedef struct mk_publish_auth_invoker_t *mk_publish_auth_invoker;
 
 /**
  * 执行Broadcast::PublishAuthInvoker
@@ -315,7 +316,7 @@ API_EXPORT void API_CALL mk_publish_auth_invoker_clone_release(const mk_publish_
 
 ///////////////////////////////////////////Broadcast::AuthInvoker/////////////////////////////////////////////
 //Broadcast::AuthInvoker对象的C映射
-typedef void* mk_auth_invoker;
+typedef struct mk_auth_invoker_t *mk_auth_invoker;
 
 /**
  * 执行Broadcast::AuthInvoker

@@ -17,7 +17,7 @@
 extern "C" {
 #endif
 
-typedef void *mk_h264_splitter;
+typedef struct mk_h264_splitter_t *mk_h264_splitter;
 
 /**
  * h264 分帧器输出回调函数

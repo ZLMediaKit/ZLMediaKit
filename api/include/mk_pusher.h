@@ -18,7 +18,7 @@
 extern "C" {
 #endif
 
-typedef void* mk_pusher;
+typedef struct mk_pusher_t *mk_pusher;
 
 /**
  * 推流结果或推流中断事件的回调

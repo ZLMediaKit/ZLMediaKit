@@ -20,7 +20,7 @@ extern "C" {
 
 ///////////////////////////////////////////HttpDownloader/////////////////////////////////////////////
 
-typedef void *mk_http_downloader;
+typedef struct mk_http_downloader_t *mk_http_downloader;
 
 /**
  * @param user_data 用户数据指针
@@ -54,7 +54,7 @@ API_EXPORT void API_CALL mk_http_downloader_start(mk_http_downloader ctx, const 
 API_EXPORT void API_CALL mk_http_downloader_start2(mk_http_downloader ctx, const char *url, const char *file, on_mk_download_complete cb, void *user_data, on_user_data_free user_data_free);
 
 ///////////////////////////////////////////HttpRequester/////////////////////////////////////////////
-typedef void *mk_http_requester;
+typedef struct mk_http_requester_t *mk_http_requester;
 
 /**
  * http请求结果回调

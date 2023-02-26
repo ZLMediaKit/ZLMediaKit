@@ -74,13 +74,13 @@ static mk_frame mk_frame_create_complex(int codec_id, uint64_t dts, uint64_t pts
                                        char *data, size_t size, on_mk_frame_data_release cb, std::shared_ptr<void> user_data) {
     switch (codec_id) {
         case CodecH264:
-            return new Frame::Ptr(new H264FrameHelper<FrameFromPtrForC>(
+            return (mk_frame)new Frame::Ptr(new H264FrameHelper<FrameFromPtrForC>(
                 cb, frame_flags, cb, std::move(user_data), (CodecId)codec_id, data, size, dts, pts, prefix_size));
         case CodecH265:
-            return new Frame::Ptr(new H265FrameHelper<FrameFromPtrForC>(
+            return (mk_frame)new Frame::Ptr(new H265FrameHelper<FrameFromPtrForC>(
                 cb, frame_flags, cb, std::move(user_data), (CodecId)codec_id, data, size, dts, pts, prefix_size));
         default:
-            return new Frame::Ptr(new FrameFromPtrForC(
+            return (mk_frame)new Frame::Ptr(new FrameFromPtrForC(
                 cb, frame_flags, cb, std::move(user_data), (CodecId)codec_id, data, size, dts, pts, prefix_size));
     }
 }
@@ -117,7 +117,7 @@ API_EXPORT void API_CALL mk_frame_unref(mk_frame frame) {
 
 API_EXPORT mk_frame API_CALL mk_frame_ref(mk_frame frame) {
     assert(frame);
-    return new Frame::Ptr(Frame::getCacheAbleFrame(*((Frame::Ptr *) frame)));
+    return (mk_frame)new Frame::Ptr(Frame::getCacheAbleFrame(*((Frame::Ptr *) frame)));
 }
 
 API_EXPORT int API_CALL mk_frame_codec_id(mk_frame frame) {

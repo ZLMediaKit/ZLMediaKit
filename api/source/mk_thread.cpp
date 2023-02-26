@@ -19,21 +19,21 @@ using namespace toolkit;
 API_EXPORT mk_thread API_CALL mk_thread_from_tcp_session(mk_tcp_session ctx){
     assert(ctx);
     SessionForC *obj = (SessionForC *)ctx;
-    return obj->getPoller().get();
+    return (mk_thread)(obj->getPoller().get());
 }
 
 API_EXPORT mk_thread API_CALL mk_thread_from_tcp_client(mk_tcp_client ctx){
     assert(ctx);
     TcpClientForC::Ptr *client = (TcpClientForC::Ptr *)ctx;
-    return (*client)->getPoller().get();
+    return (mk_thread)((*client)->getPoller().get());
 }
 
 API_EXPORT mk_thread API_CALL mk_thread_from_pool(){
-    return EventPollerPool::Instance().getPoller().get();
+    return (mk_thread)(EventPollerPool::Instance().getPoller().get());
 }
 
 API_EXPORT mk_thread API_CALL mk_thread_from_pool_work(){
-    return WorkThreadPool::Instance().getPoller().get();
+    return (mk_thread)(WorkThreadPool::Instance().getPoller().get());
 }
 
 API_EXPORT void API_CALL mk_async_do(mk_thread ctx,on_mk_async cb, void *user_data){
@@ -123,7 +123,7 @@ API_EXPORT mk_timer API_CALL mk_timer_create2(mk_thread ctx, uint64_t delay_ms, 
     std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
     TimerForC::Ptr *ret = new TimerForC::Ptr(new TimerForC(cb, ptr));
     (*ret)->start(delay_ms,*poller);
-    return ret;
+    return (mk_timer)ret;
 }
 
 API_EXPORT void API_CALL mk_timer_release(mk_timer ctx){
@@ -148,7 +148,7 @@ public:
 };
 
 API_EXPORT mk_thread_pool API_CALL mk_thread_pool_create(const char *name, size_t n_thread, int priority) {
-    return new WorkThreadPoolForC(name, n_thread, priority);
+    return (mk_thread_pool)new WorkThreadPoolForC(name, n_thread, priority);
 }
 
 API_EXPORT int API_CALL mk_thread_pool_release(mk_thread_pool pool) {
@@ -159,11 +159,11 @@ API_EXPORT int API_CALL mk_thread_pool_release(mk_thread_pool pool) {
 
 API_EXPORT mk_thread API_CALL mk_thread_from_thread_pool(mk_thread_pool pool) {
     assert(pool);
-    return ((WorkThreadPoolForC *) pool)->getPoller().get();
+    return (mk_thread)(((WorkThreadPoolForC *) pool)->getPoller().get());
 }
 
 API_EXPORT mk_sem API_CALL mk_sem_create() {
-    return new toolkit::semaphore;
+    return (mk_sem)new toolkit::semaphore;
 }
 
 API_EXPORT void API_CALL mk_sem_release(mk_sem sem) {

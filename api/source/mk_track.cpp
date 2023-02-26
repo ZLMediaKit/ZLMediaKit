@@ -82,8 +82,8 @@ public:
 
 API_EXPORT mk_track API_CALL mk_track_create(int codec_id, codec_args *args) {
     switch (getTrackType((CodecId) codec_id)) {
-        case TrackVideo: return new Track::Ptr(std::make_shared<VideoTrackForC>(codec_id, args));
-        case TrackAudio: return new Track::Ptr(std::make_shared<AudioTrackForC>(codec_id, args));
+        case TrackVideo: return (mk_track)new Track::Ptr(std::make_shared<VideoTrackForC>(codec_id, args));
+        case TrackAudio: return (mk_track)new Track::Ptr(std::make_shared<AudioTrackForC>(codec_id, args));
         default: WarnL << "unrecognized codec:" << codec_id; return nullptr;
     }
 }
@@ -95,7 +95,7 @@ API_EXPORT void API_CALL mk_track_unref(mk_track track) {
 
 API_EXPORT mk_track API_CALL mk_track_ref(mk_track track) {
     assert(track);
-    return new Track::Ptr(*( (Track::Ptr *)track));
+    return (mk_track)new Track::Ptr(*( (Track::Ptr *)track));
 }
 
 API_EXPORT int API_CALL mk_track_codec_id(mk_track track) {

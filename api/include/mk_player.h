@@ -19,7 +19,7 @@
 extern "C" {
 #endif
 
-typedef void* mk_player;
+typedef struct mk_player_t *mk_player;
 
 /**
  * 播放结果或播放中断事件的回调

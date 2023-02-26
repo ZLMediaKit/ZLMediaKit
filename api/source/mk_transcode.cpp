@@ -29,12 +29,12 @@ std::vector<std::string> toCodecList(const char *codec_name_list[]) {
 
 API_EXPORT mk_decoder API_CALL mk_decoder_create(mk_track track, int thread_num) {
     assert(track);
-    return new FFmpegDecoder(*((Track::Ptr *) track), thread_num);
+    return (mk_decoder)new FFmpegDecoder(*((Track::Ptr *) track), thread_num);
 }
 
 API_EXPORT mk_decoder API_CALL mk_decoder_create2(mk_track track, int thread_num, const char *codec_name_list[]) {
     assert(track && codec_name_list);
-    return new FFmpegDecoder(*((Track::Ptr *) track), thread_num, toCodecList(codec_name_list));
+    return (mk_decoder)new FFmpegDecoder(*((Track::Ptr *) track), thread_num, toCodecList(codec_name_list));
 }
 
 API_EXPORT void API_CALL mk_decoder_release(mk_decoder ctx, int flush_frame) {
@@ -77,12 +77,12 @@ API_EXPORT const AVCodecContext *API_CALL mk_decoder_get_context(mk_decoder ctx)
 
 API_EXPORT mk_frame_pix API_CALL mk_frame_pix_ref(mk_frame_pix frame) {
     assert(frame);
-    return new FFmpegFrame::Ptr(*(FFmpegFrame::Ptr *) frame);
+    return (mk_frame_pix)new FFmpegFrame::Ptr(*(FFmpegFrame::Ptr *) frame);
 }
 
 API_EXPORT mk_frame_pix API_CALL mk_frame_pix_from_av_frame(AVFrame *frame) {
     assert(frame);
-    return new FFmpegFrame::Ptr(std::make_shared<FFmpegFrame>(std::shared_ptr<AVFrame>(av_frame_clone(frame), [](AVFrame *frame){
+    return (mk_frame_pix)new FFmpegFrame::Ptr(std::make_shared<FFmpegFrame>(std::shared_ptr<AVFrame>(av_frame_clone(frame), [](AVFrame *frame){
         av_frame_free(&frame);
     })));
 }
@@ -99,7 +99,7 @@ API_EXPORT mk_frame_pix API_CALL mk_frame_pix_from_buffer(mk_buffer plane_data[]
         frame->linesize[i] = line_size[i];
         buffer_array.emplace_back(buffer);
     }
-    return new FFmpegFrame::Ptr(new FFmpegFrame(std::move(frame)), [buffer_array](FFmpegFrame *frame) {
+    return (mk_frame_pix)new FFmpegFrame::Ptr(new FFmpegFrame(std::move(frame)), [buffer_array](FFmpegFrame *frame) {
         for (auto &buffer : buffer_array) {
             mk_buffer_unref(buffer);
         }
@@ -120,7 +120,7 @@ API_EXPORT AVFrame *API_CALL mk_frame_pix_get_av_frame(mk_frame_pix frame) {
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 API_EXPORT mk_swscale mk_swscale_create(int output, int width, int height) {
-    return new FFmpegSws((AVPixelFormat) output, width, height);
+    return (mk_swscale)new FFmpegSws((AVPixelFormat) output, width, height);
 }
 
 API_EXPORT void mk_swscale_release(mk_swscale ctx) {
@@ -132,7 +132,7 @@ API_EXPORT int mk_swscale_input_frame(mk_swscale ctx, mk_frame_pix frame, uint8_
 }
 
 API_EXPORT mk_frame_pix mk_swscale_input_frame2(mk_swscale ctx, mk_frame_pix frame){
-    return new FFmpegFrame::Ptr(((FFmpegSws *) ctx)->inputFrame(*(FFmpegFrame::Ptr *) frame));
+    return (mk_frame_pix)new FFmpegFrame::Ptr(((FFmpegSws *) ctx)->inputFrame(*(FFmpegFrame::Ptr *) frame));
 }
 
 API_EXPORT uint8_t **API_CALL mk_get_av_frame_data(AVFrame *frame) {
