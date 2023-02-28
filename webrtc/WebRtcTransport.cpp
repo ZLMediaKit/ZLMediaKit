@@ -15,6 +15,7 @@
 #include "Rtcp/Rtcp.h"
 #include "Rtcp/RtcpFCI.h"
 #include "Rtcp/RtcpContext.h"
+#include "Rtsp/Rtsp.h"
 #include "Rtsp/RtpReceiver.h"
 #include "WebRtcTransport.h"
 
@@ -287,18 +288,8 @@ std::string WebRtcTransport::getAnswerSdp(const string &offer) {
     }
 }
 
-static bool is_dtls(char *buf) {
+static bool isDtls(char *buf) {
     return ((*buf > 19) && (*buf < 64));
-}
-
-static bool is_rtp(char *buf) {
-    RtpHeader *header = (RtpHeader *)buf;
-    return ((header->pt < 64) || (header->pt >= 96));
-}
-
-static bool is_rtcp(char *buf) {
-    RtpHeader *header = (RtpHeader *)buf;
-    return ((header->pt >= 64) && (header->pt < 96));
 }
 
 static string getPeerAddress(RTC::TransportTuple *tuple) {
@@ -315,11 +306,11 @@ void WebRtcTransport::inputSockData(char *buf, int len, RTC::TransportTuple *tup
         _ice_server->ProcessStunPacket(packet.get(), tuple);
         return;
     }
-    if (is_dtls(buf)) {
+    if (isDtls(buf)) {
         _dtls_transport->ProcessDtlsData((uint8_t *)buf, len);
         return;
     }
-    if (is_rtp(buf)) {
+    if (isRtp(buf, len)) {
         if (!_srtp_session_recv) {
             WarnL << "received rtp packet when dtls not completed from:" << getPeerAddress(tuple);
             return;
@@ -329,7 +320,7 @@ void WebRtcTransport::inputSockData(char *buf, int len, RTC::TransportTuple *tup
         }
         return;
     }
-    if (is_rtcp(buf)) {
+    if (isRtcp(buf, len)) {
         if (!_srtp_session_recv) {
             WarnL << "received rtcp packet when dtls not completed from:" << getPeerAddress(tuple);
             return;

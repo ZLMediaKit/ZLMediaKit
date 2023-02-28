@@ -442,6 +442,22 @@ string printSSRC(uint32_t ui32Ssrc) {
     return tmp;
 }
 
+bool isRtp(const char *buf, size_t size) {
+    if (size < 2) {
+        return false;
+    }
+    RtpHeader *header = (RtpHeader *)buf;
+    return ((header->pt < 64) || (header->pt >= 96));
+}
+
+bool isRtcp(const char *buf, size_t size) {
+    if (size < 2) {
+        return false;
+    }
+    RtpHeader *header = (RtpHeader *)buf;
+    return ((header->pt >= 64) && (header->pt < 96));
+}
+
 Buffer::Ptr makeRtpOverTcpPrefix(uint16_t size, uint8_t interleaved) {
     auto rtp_tcp = BufferRaw::create();
     rtp_tcp->setCapacity(RtpPacket::kRtpTcpHeaderSize);
