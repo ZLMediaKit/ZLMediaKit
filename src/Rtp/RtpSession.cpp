@@ -76,6 +76,15 @@ void RtpSession::onManager() {
 }
 
 void RtpSession::onRtpPacket(const char *data, size_t len) {
+    if (_delay_close) {
+        // 正在延时关闭中，忽略所有数据
+        return;
+    }
+    if (!isRtp(data, len)) {
+        // 忽略非rtp数据
+        WarnP(this) << "Not rtp packet";
+        return;
+    }
     if (!_is_udp) {
         if (_search_rtp) {
             //搜索上下文期间，数据丢弃
@@ -94,10 +103,6 @@ void RtpSession::onRtpPacket(const char *data, size_t len) {
         }
     }
     if (!_process) {
-        if (!isRtp(data, len)) {
-            WarnP(this) << "Not rtp packet";
-            return;
-        }
         //未设置ssrc时，尝试获取ssrc
         if (!_ssrc && !RtpSelector::getSSRC(data, len, _ssrc)) {
             return;
@@ -106,8 +111,18 @@ void RtpSession::onRtpPacket(const char *data, size_t len) {
             //未指定流id就使用ssrc为流id
             _stream_id = printSSRC(_ssrc);
         }
-        //tcp情况下，一个tcp链接只可能是一路流，不需要通过多个ssrc来区分，所以不需要频繁getProcess
-        _process = RtpSelector::Instance().getProcess(_stream_id, true);
+        try {
+            _process = RtpSelector::Instance().getProcess(_stream_id, true);
+        } catch (RtpSelector::ProcessExisted &ex) {
+            if (!_is_udp) {
+                // tcp情况下立即断开连接
+                throw;
+            }
+            // udp情况下延时断开连接(等待超时自动关闭)，防止频繁创建销毁RtpSession对象
+            WarnP(this) << ex.what();
+            _delay_close = true;
+            return;
+        }
         _process->setOnlyAudio(_only_audio);
         _process->setDelegate(dynamic_pointer_cast<RtpSession>(shared_from_this()));
     }

@@ -42,7 +42,7 @@ RtpProcess::Ptr RtpSelector::getProcess(const string &stream_id,bool makeNew) {
     }
     if (it != _map_rtp_process.end() && makeNew) {
         //已经被其他线程持有了，不得再被持有，否则会存在线程安全的问题
-        throw std::runtime_error(StrPrinter << "RtpProcess(" << stream_id << ") already existed");
+        throw ProcessExisted(StrPrinter << "RtpProcess(" << stream_id << ") already existed");
     }
     RtpProcessHelper::Ptr &ref = _map_rtp_process[stream_id];
     if (!ref) {
