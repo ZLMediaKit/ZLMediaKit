@@ -12,6 +12,7 @@
 #include "RtpSession.h"
 #include "RtpSelector.h"
 #include "Network/TcpServer.h"
+#include "Rtsp/Rtsp.h"
 #include "Rtsp/RtpReceiver.h"
 #include "Common/config.h"
 
@@ -93,6 +94,10 @@ void RtpSession::onRtpPacket(const char *data, size_t len) {
         }
     }
     if (!_process) {
+        if (!isRtp(data, len)) {
+            WarnP(this) << "Not rtp packet";
+            return;
+        }
         //未设置ssrc时，尝试获取ssrc
         if (!_ssrc && !RtpSelector::getSSRC(data, len, _ssrc)) {
             return;

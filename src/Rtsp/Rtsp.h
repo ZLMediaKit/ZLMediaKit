@@ -337,5 +337,8 @@ void makeSockPair(std::pair<toolkit::Socket::Ptr, toolkit::Socket::Ptr> &pair, c
 //十六进制方式打印ssrc
 std::string printSSRC(uint32_t ui32Ssrc);
 
+bool isRtp(const char *buf, size_t size);
+bool isRtcp(const char *buf,  size_t size);
+
 } //namespace mediakit
 #endif //RTSP_RTSP_H_
