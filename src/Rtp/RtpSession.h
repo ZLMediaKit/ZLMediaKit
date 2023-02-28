@@ -43,6 +43,7 @@ protected:
     const char *onSearchPacketTail(const char *data, size_t len) override;
 
 private:
+    bool _delay_close = false;
     bool _is_udp = false;
     bool _search_rtp = false;
     bool _search_rtp_finished = false;
