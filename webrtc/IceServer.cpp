@@ -26,6 +26,10 @@ namespace RTC
 {
 	/* Static. */
 	/* Instance methods. */
+	bool isSameTuple(const TransportTuple* tuple1, const TransportTuple* tuple2) {
+		return tuple1 == tuple2;
+		// return memcmp(tuple1, tuple2, sizeof(RTC::TransportTuple)) == 0);
+	}
 
 	IceServer::IceServer(Listener* listener, const std::string& usernameFragment, const std::string& password)
 	  : listener(listener), usernameFragment(usernameFragment), password(password)
@@ -198,8 +202,12 @@ namespace RTC
 				// Create a success response.
 				RTC::StunPacket* response = packet->CreateSuccessResponse();
 
+				sockaddr_storage peerAddr;
+				socklen_t addr_len = sizeof(peerAddr);
+				getpeername(tuple->getSock()->rawFD(), (struct sockaddr *)&peerAddr, &addr_len);
+
 				// Add XOR-MAPPED-ADDRESS.
-				response->SetXorMappedAddress(tuple);
+				response->SetXorMappedAddress((struct sockaddr *)&peerAddr);
 
 				// Authenticate the response.
 				if (this->oldPassword.empty())
@@ -260,9 +268,9 @@ namespace RTC
 
 		for (; it != this->tuples.end(); ++it)
 		{
-			RTC::TransportTuple* storedTuple = std::addressof(*it);
+			RTC::TransportTuple* storedTuple = *it;
 
-			if (memcmp(storedTuple, tuple, sizeof (RTC::TransportTuple)) == 0)
+			if (isSameTuple(storedTuple,tuple))
 			{
 				removedTuple = storedTuple;
 
@@ -287,7 +295,7 @@ namespace RTC
 		// Mark the first tuple as selected tuple (if any).
 		if (this->tuples.begin() != this->tuples.end())
 		{
-			SetSelectedTuple(std::addressof(*this->tuples.begin()));
+			SetSelectedTuple(*this->tuples.begin());
 		}
 		// Or just emit 'disconnected'.
 		else
@@ -477,9 +485,9 @@ namespace RTC
 		MS_TRACE();
 
 		// Add the new tuple at the beginning of the list.
-		this->tuples.push_front(*tuple);
+		this->tuples.push_front(tuple);
 
-		auto* storedTuple = std::addressof(*this->tuples.begin());
+		auto* storedTuple = tuple; //std::addressof(*this->tuples.begin());
 
 		// Return the address of the inserted tuple.
 		return storedTuple;
@@ -495,15 +503,15 @@ namespace RTC
 			return nullptr;
 
 		// Check the current selected tuple.
-		if (memcmp(selectedTuple, tuple, sizeof (RTC::TransportTuple)) == 0)
+		if (isSameTuple(selectedTuple, tuple))
 			return this->selectedTuple;
 
 		// Otherwise check other stored tuples.
 		for (const auto& it : this->tuples)
 		{
-			auto* storedTuple = const_cast<RTC::TransportTuple*>(std::addressof(it));
+			auto* storedTuple = const_cast<RTC::TransportTuple*>(it);
 
-			if (memcmp(storedTuple, tuple, sizeof (RTC::TransportTuple)) == 0)
+			if (isSameTuple(storedTuple, tuple))
 				return storedTuple;
 		}
 

@@ -94,7 +94,7 @@ void WebRtcSession::onRecv_l(const char *data, size_t len) {
     }
     _ticker.resetTime();
     CHECK(_transport);
-    _transport->inputSockData((char *)data, len, (struct sockaddr *)&_peer_addr);
+    _transport->inputSockData((char *)data, len, this);// (struct sockaddr *)&_peer_addr);
 }
 
 void WebRtcSession::onRecv(const Buffer::Ptr &buffer) {
@@ -114,9 +114,11 @@ void WebRtcSession::onError(const SockException &err) {
     if (!_transport) {
         return;
     }
+    auto self = shared_from_this();
     auto transport = std::move(_transport);
-    getPoller()->async([transport] {
+    getPoller()->async([transport, self] {
         //延时减引用，防止使用transport对象时，销毁对象
+        transport->RemoveTuple(self.get());
     }, false);
 }
 

@@ -20,6 +20,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #define MS_RTC_ICE_SERVER_HPP
 
 #include "StunPacket.hpp"
+#include "Network/Session.h"
 #include "logger.h"
 #include "Utils.hpp"
 #include <list>
@@ -27,11 +28,11 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <functional>
 #include <memory>
 
-using _TransportTuple = struct sockaddr;
+//using _TransportTuple = struct sockaddr;
 
 namespace RTC
 {
-    using TransportTuple = _TransportTuple;
+	using TransportTuple = toolkit::Session;
 	class IceServer
 	{
 	public:
@@ -125,7 +126,7 @@ namespace RTC
 		std::string oldUsernameFragment;
 		std::string oldPassword;
 		IceState state{ IceState::NEW };
-		std::list<RTC::TransportTuple> tuples;
+		std::list<RTC::TransportTuple*> tuples;
 		RTC::TransportTuple* selectedTuple{ nullptr };
 		//最大不超过mtu
         static constexpr size_t StunSerializeBufferSize{ 1600 };

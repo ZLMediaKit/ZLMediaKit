@@ -130,7 +130,6 @@ protected:
 protected:
     //// ice相关的回调 ///
     void OnIceServerSendStunPacket(const RTC::IceServer *iceServer, const RTC::StunPacket *packet, RTC::TransportTuple *tuple) override;
-    void OnIceServerSelectedTuple(const RTC::IceServer *iceServer, RTC::TransportTuple *tuple) override;
     void OnIceServerConnected(const RTC::IceServer *iceServer) override;
     void OnIceServerCompleted(const RTC::IceServer *iceServer) override;
     void OnIceServerDisconnected(const RTC::IceServer *iceServer) override;
@@ -170,11 +169,11 @@ private:
 protected:
     RtcSession::Ptr _offer_sdp;
     RtcSession::Ptr _answer_sdp;
+    std::shared_ptr<RTC::IceServer> _ice_server;
 
 private:
     std::string _identifier;
     EventPoller::Ptr _poller;
-    std::shared_ptr<RTC::IceServer> _ice_server;
     std::shared_ptr<RTC::DtlsTransport> _dtls_transport;
     std::shared_ptr<RTC::SrtpSession> _srtp_session_send;
     std::shared_ptr<RTC::SrtpSession> _srtp_session_recv;
@@ -249,7 +248,9 @@ public:
 
     void createRtpChannel(const std::string &rid, uint32_t ssrc, MediaTrack &track);
 
+    void RemoveTuple(RTC::TransportTuple* tuple);
 protected:
+    void OnIceServerSelectedTuple(const RTC::IceServer *iceServer, RTC::TransportTuple *tuple) override;
     WebRtcTransportImp(const EventPoller::Ptr &poller,bool preferred_tcp = false);
     void OnDtlsTransportApplicationDataReceived(const RTC::DtlsTransport *dtlsTransport, const uint8_t *data, size_t len) override;
     void onStartWebRTC() override;
