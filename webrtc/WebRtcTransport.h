@@ -293,8 +293,6 @@ private:
     Ticker _alive_ticker;
     //pli rtcp计时器
     Ticker _pli_ticker;
-    //当前选中的udp链接
-    Session::Ptr _selected_session;
     //链接迁移前后使用过的udp链接
     std::unordered_map<Session *, std::weak_ptr<Session> > _history_sessions;
     //twcc rtcp发送上下文对象

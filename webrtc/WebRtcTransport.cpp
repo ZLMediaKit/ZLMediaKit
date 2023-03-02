@@ -123,7 +123,6 @@ void WebRtcTransport::OnIceServerSendStunPacket(
 
 void WebRtcTransportImp::OnIceServerSelectedTuple(const RTC::IceServer *iceServer, RTC::TransportTuple *tuple) {
     InfoL << getIdentifier() << " select tuple " << sockTypeStr(tuple) << " " << tuple->get_peer_ip() << ":" << tuple->get_peer_port();
-    _selected_session = tuple->shared_from_this();
 }
 
 void WebRtcTransport::OnIceServerConnected(const RTC::IceServer *iceServer) {
@@ -148,7 +147,7 @@ void WebRtcTransport::OnIceServerDisconnected(const RTC::IceServer *iceServer) {
 void WebRtcTransport::OnDtlsTransportConnected(
     const RTC::DtlsTransport *dtlsTransport, RTC::SrtpSession::CryptoSuite srtpCryptoSuite, uint8_t *srtpLocalKey,
     size_t srtpLocalKeyLen, uint8_t *srtpRemoteKey, size_t srtpRemoteKeyLen, std::string &remoteCert) {
-    InfoL;
+    InfoL << getIdentifier();
     _srtp_session_send = std::make_shared<RTC::SrtpSession>(
         RTC::SrtpSession::Type::OUTBOUND, srtpCryptoSuite, srtpLocalKey, srtpLocalKeyLen);
     _srtp_session_recv = std::make_shared<RTC::SrtpSession>(
@@ -423,11 +422,11 @@ void WebRtcTransportImp::onDestory() {
 
 void WebRtcTransportImp::onSendSockData(Buffer::Ptr buf, bool flush, RTC::TransportTuple *tuple) {
     if (tuple == nullptr) {
-        if (!_selected_session) {
+        tuple = _ice_server->GetSelectedTuple();
+        if (!tuple) {
             WarnL << "send data failed:" << buf->size();
             return;
         }
-        tuple = _selected_session.get();
     }
 
     // 一次性发送一帧的rtp数据，提高网络io性能
@@ -1078,7 +1077,8 @@ void WebRtcTransportImp::setSession(Session::Ptr session) {
 }
 
 const Session::Ptr &WebRtcTransportImp::getSession() const {
-    return _selected_session;
+    Session* ret = _ice_server?_ice_server->GetSelectedTuple():nullptr;  
+    return ret ? ret->shared_from_this() : nullptr;
 }
 
 uint64_t WebRtcTransportImp::getBytesUsage() const {

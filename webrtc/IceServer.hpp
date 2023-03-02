@@ -126,7 +126,7 @@ namespace RTC
 		std::string oldUsernameFragment;
 		std::string oldPassword;
 		IceState state{ IceState::NEW };
-		std::list<RTC::TransportTuple*> tuples;
+		std::list<std::shared_ptr<RTC::TransportTuple>> tuples;
 		RTC::TransportTuple* selectedTuple{ nullptr };
 		//最大不超过mtu
         static constexpr size_t StunSerializeBufferSize{ 1600 };

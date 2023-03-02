@@ -26,11 +26,6 @@ namespace RTC
 {
 	/* Static. */
 	/* Instance methods. */
-	bool isSameTuple(const TransportTuple* tuple1, const TransportTuple* tuple2) {
-		return tuple1 == tuple2;
-		// return memcmp(tuple1, tuple2, sizeof(RTC::TransportTuple)) == 0);
-	}
-
 	IceServer::IceServer(Listener* listener, const std::string& usernameFragment, const std::string& password)
 	  : listener(listener), usernameFragment(usernameFragment), password(password)
 	{
@@ -268,9 +263,9 @@ namespace RTC
 
 		for (; it != this->tuples.end(); ++it)
 		{
-			RTC::TransportTuple* storedTuple = *it;
+			RTC::TransportTuple* storedTuple = it->get();
 
-			if (isSameTuple(storedTuple,tuple))
+			if (storedTuple == tuple)
 			{
 				removedTuple = storedTuple;
 
@@ -295,7 +290,7 @@ namespace RTC
 		// Mark the first tuple as selected tuple (if any).
 		if (this->tuples.begin() != this->tuples.end())
 		{
-			SetSelectedTuple(*this->tuples.begin());
+			SetSelectedTuple(this->tuples.begin()->get());
 		}
 		// Or just emit 'disconnected'.
 		else
@@ -485,12 +480,10 @@ namespace RTC
 		MS_TRACE();
 
 		// Add the new tuple at the beginning of the list.
-		this->tuples.push_front(tuple);
-
-		auto* storedTuple = tuple; //std::addressof(*this->tuples.begin());
+		this->tuples.push_front(tuple->shared_from_this());
 
 		// Return the address of the inserted tuple.
-		return storedTuple;
+		return tuple;
 	}
 
 	inline RTC::TransportTuple* IceServer::HasTuple(const RTC::TransportTuple* tuple) const
@@ -503,15 +496,14 @@ namespace RTC
 			return nullptr;
 
 		// Check the current selected tuple.
-		if (isSameTuple(selectedTuple, tuple))
+		if (selectedTuple == tuple)
 			return this->selectedTuple;
 
 		// Otherwise check other stored tuples.
-		for (const auto& it : this->tuples)
+		for (auto it : this->tuples)
 		{
-			auto* storedTuple = const_cast<RTC::TransportTuple*>(it);
-
-			if (isSameTuple(storedTuple, tuple))
+			auto storedTuple = it.get();
+			if (storedTuple == tuple)
 				return storedTuple;
 		}
 
