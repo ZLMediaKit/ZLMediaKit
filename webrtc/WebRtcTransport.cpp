@@ -78,10 +78,9 @@ static void translateIPFromEnv(std::vector<std::string> &v) {
 const char* sockTypeStr(Session* session) {
     if (session) {
         switch (session->getSock()->sockType()) {
-        case SockNum::Sock_TCP:
-            return "tcp";
-        case SockNum::Sock_UDP:
-            return "udp";
+            case SockNum::Sock_TCP: return "tcp";
+            case SockNum::Sock_UDP: return "udp";
+            default: break;
         }
     }
     return "unknown";
@@ -123,6 +122,8 @@ void WebRtcTransport::OnIceServerSendStunPacket(
 
 void WebRtcTransportImp::OnIceServerSelectedTuple(const RTC::IceServer *iceServer, RTC::TransportTuple *tuple) {
     InfoL << getIdentifier() << " select tuple " << sockTypeStr(tuple) << " " << tuple->get_peer_ip() << ":" << tuple->get_peer_port();
+    tuple->setSendFlushFlag(false);
+    unrefSelf();
 }
 
 void WebRtcTransport::OnIceServerConnected(const RTC::IceServer *iceServer) {
@@ -227,8 +228,9 @@ void WebRtcTransport::sendSockData(const char *buf, size_t len, RTC::TransportTu
     onSendSockData(std::move(pkt), true, tuple ? tuple : _ice_server->GetSelectedTuple());
 }
 
-RTC::TransportTuple *WebRtcTransport::getSelectedTuple() const {
-    return _ice_server->GetSelectedTuple();
+Session::Ptr WebRtcTransport::getSession() const {
+    auto tuple = _ice_server->GetSelectedTuple();
+    return tuple ? tuple->shared_from_this() : nullptr;
 }
 
 void WebRtcTransport::sendRtcpRemb(uint32_t ssrc, size_t bit_rate) {
@@ -1055,30 +1057,14 @@ void WebRtcTransportImp::onBeforeEncryptRtp(const char *buf, int &len, void *ctx
 void WebRtcTransportImp::onShutdown(const SockException &ex) {
     WarnL << ex.what();
     unrefSelf();
-    for (auto &pr : _history_sessions) {
-        auto session = pr.second.lock();
-        if (session) {
-            session->shutdown(ex);
-        }
+    for (auto &tuple : _ice_server->GetTuples()) {
+        tuple->shutdown(ex);
     }
 }
 
-void WebRtcTransportImp::RemoveTuple(RTC::TransportTuple* tuple)
-{
-    InfoL << getIdentifier() << " RemoveTuple " << tuple->get_peer_ip() << ":" << tuple->get_peer_port();
-    this->_history_sessions.erase(tuple);
+void WebRtcTransportImp::removeTuple(RTC::TransportTuple *tuple) {
+    InfoL << getIdentifier() << " remove tuple " << tuple->get_peer_ip() << ":" << tuple->get_peer_port();
     this->_ice_server->RemoveTuple(tuple);
-}
-
-void WebRtcTransportImp::setSession(Session::Ptr session) {
-    _history_sessions.emplace(session.get(), session);
-    session->setSendFlushFlag(false);
-    unrefSelf();
-}
-
-const Session::Ptr &WebRtcTransportImp::getSession() const {
-    Session* ret = _ice_server?_ice_server->GetSelectedTuple():nullptr;  
-    return ret ? ret->shared_from_this() : nullptr;
 }
 
 uint64_t WebRtcTransportImp::getBytesUsage() const {

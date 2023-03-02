@@ -83,7 +83,7 @@ namespace RTC
 		}
 		RTC::TransportTuple* GetSelectedTuple() const
 		{
-			return this->selectedTuple;
+			return this->selectedTuple.lock().get();
 		}
 		void SetUsernameFragment(const std::string& usernameFragment)
 		{
@@ -101,7 +101,9 @@ namespace RTC
 		// and the given tuple must be an already valid tuple.
 		void ForceSelectedTuple(const RTC::TransportTuple* tuple);
 
-	private:
+        const std::list<RTC::TransportTuple *>& GetTuples() const { return tuples; }
+
+    private:
 		void HandleTuple(RTC::TransportTuple* tuple, bool hasUseCandidate);
 		/**
 		 * Store the given tuple and return its stored address.
@@ -126,8 +128,8 @@ namespace RTC
 		std::string oldUsernameFragment;
 		std::string oldPassword;
 		IceState state{ IceState::NEW };
-		std::list<std::shared_ptr<RTC::TransportTuple>> tuples;
-		RTC::TransportTuple* selectedTuple{ nullptr };
+		std::list<RTC::TransportTuple *> tuples;
+		std::weak_ptr<RTC::TransportTuple> selectedTuple;
 		//最大不超过mtu
         static constexpr size_t StunSerializeBufferSize{ 1600 };
         uint8_t StunSerializeBuffer[StunSerializeBufferSize];
