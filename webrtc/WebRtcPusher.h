@@ -27,11 +27,9 @@ protected:
     ///////WebRtcTransportImp override///////
     void onStartWebRTC() override;
     void onDestory() override;
+    void onShutdown(const SockException &ex) override;
     void onRtcConfigure(RtcConfigure &configure) const override;
     void onRecvRtp(MediaTrack &track, const std::string &rid, RtpPacket::Ptr rtp) override;
-    void onRtcpBye() override;
-    ////  dtls相关的回调 ////
-   void OnDtlsTransportClosed(const RTC::DtlsTransport *dtlsTransport) override;
 
 protected:
     ///////MediaSourceEvent override///////

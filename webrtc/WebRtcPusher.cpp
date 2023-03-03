@@ -130,14 +130,21 @@ void WebRtcPusher::onDestory() {
         }
     }
 
-    if (_push_src && _continue_push_ms) {
+    WebRtcTransportImp::onDestory();
+}
+
+void WebRtcPusher::onShutdown(const SockException &ex) {
+
+    if (_push_src && _continue_push_ms && ex.getErrCode() != Err_shutdown) {
         //取消所有权
         _push_src_ownership = nullptr;
-        //延时10秒注销流
+        //延时注销流
         auto push_src = std::move(_push_src);
         getPoller()->doDelayTask(_continue_push_ms, [push_src]() { return 0; });
     }
-    WebRtcTransportImp::onDestory();
+
+    WebRtcTransportImp::onShutdown(ex);
+
 }
 
 void WebRtcPusher::onRtcConfigure(RtcConfigure &configure) const {
@@ -150,14 +157,5 @@ float WebRtcPusher::getLossRate(MediaSource &sender,TrackType type){
     return WebRtcTransportImp::getLossRate(type);
 }
 
-void WebRtcPusher::OnDtlsTransportClosed(const RTC::DtlsTransport *dtlsTransport) {
-   //主动关闭推流，那么不等待重推
-    _push_src = nullptr;
-    WebRtcTransportImp::OnDtlsTransportClosed(dtlsTransport);
-}
-
-void WebRtcPusher::onRtcpBye(){
-     WebRtcTransportImp::onRtcpBye();
-}
 
 }// namespace mediakit

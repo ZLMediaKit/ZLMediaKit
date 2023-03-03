@@ -802,7 +802,6 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
                 }
                 _ssrc_to_track.erase(it);
             }
-            onRtcpBye();
             // bye 会在 sender audio track mute 时出现, 因此不能作为 shutdown 的依据
             break;
         }
@@ -1075,7 +1074,6 @@ uint64_t WebRtcTransportImp::getDuration() const {
     return _alive_ticker.createdTime() / 1000;
 }
 
-void WebRtcTransportImp::onRtcpBye(){}
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 
