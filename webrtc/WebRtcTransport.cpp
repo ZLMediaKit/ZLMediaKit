@@ -229,7 +229,7 @@ void WebRtcTransport::sendSockData(const char *buf, size_t len, RTC::TransportTu
 }
 
 Session::Ptr WebRtcTransport::getSession() const {
-    auto tuple = _ice_server->GetSelectedTuple();
+    auto tuple = _ice_server->GetSelectedTuple(true);
     return tuple ? tuple->shared_from_this() : nullptr;
 }
 
@@ -307,7 +307,7 @@ static bool isDtls(char *buf) {
 }
 
 static string getPeerAddress(RTC::TransportTuple *tuple) {
-    return tuple->get_peer_ip();// SockUtil::inet_ntoa(tuple);
+    return tuple->get_peer_ip();
 }
 
 void WebRtcTransport::inputSockData(char *buf, int len, RTC::TransportTuple *tuple) {

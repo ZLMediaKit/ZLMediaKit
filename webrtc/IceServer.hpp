@@ -28,8 +28,6 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <functional>
 #include <memory>
 
-//using _TransportTuple = struct sockaddr;
-
 namespace RTC
 {
 	using TransportTuple = toolkit::Session;
@@ -81,10 +79,10 @@ namespace RTC
 		{
 			return this->state;
 		}
-		RTC::TransportTuple* GetSelectedTuple() const
+		RTC::TransportTuple* GetSelectedTuple(bool try_last_tuple = false) const
 		{
-			return this->selectedTuple.lock().get();
-		}
+            return try_last_tuple ? this->lastSelectedTuple.lock().get() : this->selectedTuple;
+        }
 		void SetUsernameFragment(const std::string& usernameFragment)
 		{
 			this->oldUsernameFragment = this->usernameFragment;
@@ -129,7 +127,8 @@ namespace RTC
 		std::string oldPassword;
 		IceState state{ IceState::NEW };
 		std::list<RTC::TransportTuple *> tuples;
-		std::weak_ptr<RTC::TransportTuple> selectedTuple;
+        RTC::TransportTuple *selectedTuple;
+        std::weak_ptr<RTC::TransportTuple> lastSelectedTuple;
 		//最大不超过mtu
         static constexpr size_t StunSerializeBufferSize{ 1600 };
         uint8_t StunSerializeBuffer[StunSerializeBufferSize];

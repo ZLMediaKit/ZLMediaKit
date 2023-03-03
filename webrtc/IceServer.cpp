@@ -26,6 +26,7 @@ namespace RTC
 {
 	/* Static. */
 	/* Instance methods. */
+
 	IceServer::IceServer(Listener* listener, const std::string& usernameFragment, const std::string& password)
 	  : listener(listener), usernameFragment(usernameFragment), password(password)
 	{
@@ -281,11 +282,11 @@ namespace RTC
 		this->tuples.erase(it);
 
 		// If this is not the selected tuple, stop here.
-		if (removedTuple != this->selectedTuple.lock().get())
+		if (removedTuple != this->selectedTuple)
 			return;
 
 		// Otherwise this was the selected tuple.
-		// this->selectedTuple = nullptr;
+		this->selectedTuple = nullptr;
 
 		// Mark the first tuple as selected tuple (if any).
 		if (!this->tuples.empty())
@@ -306,7 +307,8 @@ namespace RTC
 	{
 		MS_TRACE();
 
-		MS_ASSERT(!this->selectedTuple.expired(), "cannot force the selected tuple if there was not a selected tuple");
+		MS_ASSERT(
+		  this->selectedTuple, "cannot force the selected tuple if there was not a selected tuple");
 
 		auto* storedTuple = HasTuple(tuple);
 
@@ -331,7 +333,7 @@ namespace RTC
 				  this->tuples.empty(), "state is 'new' but there are %zu tuples", this->tuples.size());
 
 				// There shouldn't be a selected tuple.
-				MS_ASSERT(!this->selectedTuple.expired(), "state is 'new' but there is selected tuple");
+				MS_ASSERT(!this->selectedTuple, "state is 'new' but there is selected tuple");
 
 				if (!hasUseCandidate)
 				{
@@ -374,7 +376,7 @@ namespace RTC
 				  this->tuples.size());
 
 				// There shouldn't be a selected tuple.
-				MS_ASSERT(!this->selectedTuple.expired(), "state is 'disconnected' but there is selected tuple");
+				MS_ASSERT(!this->selectedTuple, "state is 'disconnected' but there is selected tuple");
 
 				if (!hasUseCandidate)
 				{
@@ -414,7 +416,7 @@ namespace RTC
 				MS_ASSERT(!this->tuples.empty(), "state is 'connected' but there are no tuples");
 
 				// There should be a selected tuple.
-				MS_ASSERT(!this->selectedTuple.expired(), "state is 'connected' but there is not selected tuple");
+				MS_ASSERT(this->selectedTuple, "state is 'connected' but there is not selected tuple");
 
 				if (!hasUseCandidate)
 				{
@@ -449,7 +451,7 @@ namespace RTC
 				MS_ASSERT(!this->tuples.empty(), "state is 'completed' but there are no tuples");
 
 				// There should be a selected tuple.
-				MS_ASSERT(!this->selectedTuple.expired(), "state is 'completed' but there is not selected tuple");
+				MS_ASSERT(this->selectedTuple, "state is 'completed' but there is not selected tuple");
 
 				if (!hasUseCandidate)
 				{
@@ -491,17 +493,17 @@ namespace RTC
 
 		// If there is no selected tuple yet then we know that the tuples list
 		// is empty.
-		if (this->selectedTuple.expired())
+		if (!this->selectedTuple)
 			return nullptr;
 
 		// Check the current selected tuple.
-		if (selectedTuple.lock().get() == tuple)
-			return this->selectedTuple.lock().get();
+		if (selectedTuple == tuple)
+			return this->selectedTuple;
 
 		// Otherwise check other stored tuples.
-		for (auto it : this->tuples)
+		for (const auto& it : this->tuples)
 		{
-			auto storedTuple = it;
+			auto& storedTuple = it;
 			if (storedTuple == tuple)
 				return storedTuple;
 		}
@@ -514,12 +516,13 @@ namespace RTC
 		MS_TRACE();
 
 		// If already the selected tuple do nothing.
-		if (storedTuple == this->selectedTuple.lock().get())
+		if (storedTuple == this->selectedTuple)
 			return;
 
-		this->selectedTuple = storedTuple->shared_from_this();
+		this->selectedTuple = storedTuple;
+        this->lastSelectedTuple = storedTuple->shared_from_this();
 
 		// Notify the listener.
-		this->listener->OnIceServerSelectedTuple(this, storedTuple);
+		this->listener->OnIceServerSelectedTuple(this, this->selectedTuple);
 	}
 } // namespace RTC
