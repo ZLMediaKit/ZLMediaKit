@@ -1591,29 +1591,47 @@ void installWebApi() {
     api_regist("/index/api/webrtc",[](API_ARGS_STRING_ASYNC){
         CHECK_ARGS("type");
         auto type = allArgs["type"];
-        auto offer = allArgs.getArgs();
-        CHECK(!offer.empty(), "http body(webrtc offer sdp) is empty");
 
-        WebRtcPluginManager::Instance().getAnswerSdp(*(static_cast<Session *>(&sender)), type,
-                                                     WebRtcArgsImp(allArgs, sender.getIdentifier()),
-                                                     [invoker, val, offer, headerOut](const WebRtcInterface &exchanger) mutable {
-            //设置返回类型
-            headerOut["Content-Type"] = HttpFileManager::getContentType(".json");
-            //设置跨域
-            headerOut["Access-Control-Allow-Origin"] = "*";
+        if(type == "stop") {
+            WebRtcPluginManager::Instance().handleRtcPlugin(
+                *(static_cast<Session *>(&sender)), type, WebRtcArgsImp(allArgs, sender.getIdentifier()),
+                [invoker, val, headerOut](const WebRtcInterface &exchanger) mutable {
+                    try {
+                        std::string tmp = "";
+                        const_cast<WebRtcInterface &>(exchanger).getAnswerSdp(tmp);
 
-            try {
-                val["sdp"] = const_cast<WebRtcInterface &>(exchanger).getAnswerSdp(offer);
-                val["id"] = exchanger.getIdentifier();
-                val["type"] = "answer";
-                invoker(200, headerOut, val.toStyledString());
-            } catch (std::exception &ex) {
-                val["code"] = API::Exception;
-                val["msg"] = ex.what();
-                invoker(200, headerOut, val.toStyledString());
-            }
-        });
-    });
+                    } catch (std::exception &ex) {
+                        val["code"] = const_cast<WebRtcInterface &>(exchanger).getErrcode();
+                        val["msg"] = ex.what();
+                        invoker(200, headerOut, val.toStyledString());
+                    }
+                });
+
+        }else{
+
+            auto offer = allArgs.getArgs();
+            CHECK(!offer.empty(), "http body(webrtc offer sdp) is empty");
+
+            WebRtcPluginManager::Instance().handleRtcPlugin(*(static_cast<Session *>(&sender)), type,
+                                                            WebRtcArgsImp(allArgs, sender.getIdentifier()),
+            [invoker, val, offer, headerOut](const WebRtcInterface &exchanger) mutable {
+                //设置返回类型
+                headerOut["Content-Type"] = HttpFileManager::getContentType(".json");
+                //设置跨域
+                headerOut["Access-Control-Allow-Origin"] = "*";
+
+                try {
+                    val["sdp"] = const_cast<WebRtcInterface &>(exchanger).getAnswerSdp(offer);
+                    val["id"] = exchanger.getIdentifier();
+                    val["type"] = "answer";
+                    invoker(200, headerOut, val.toStyledString());
+                } catch (std::exception &ex) {
+                    val["code"] = API::Exception;
+                    val["msg"] = ex.what();
+                    invoker(200, headerOut, val.toStyledString());
+                }
+            });
+        }});
 #endif
 
 #if defined(ENABLE_VERSION)

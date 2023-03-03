@@ -305,7 +305,7 @@ API_EXPORT void API_CALL mk_webrtc_get_answer_sdp2(void *user_data, on_user_data
     auto session = std::make_shared<HttpSession>(Socket::createSocket());
     std::string offer_str = offer;
     std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
-    WebRtcPluginManager::Instance().getAnswerSdp(*session, type, WebRtcArgsUrl(url),
+    WebRtcPluginManager::Instance().handleRtcPlugin(*session, type, WebRtcArgsUrl(url),
                                                  [offer_str, session, ptr, cb](const WebRtcInterface &exchanger) mutable {
         try {
             auto sdp_answer = const_cast<WebRtcInterface &>(exchanger).getAnswerSdp(offer_str);

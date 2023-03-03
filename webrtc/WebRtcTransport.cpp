@@ -1130,7 +1130,7 @@ void WebRtcPluginManager::registerPlugin(const string &type, Plugin cb) {
     _map_creator[type] = std::move(cb);
 }
 
-void WebRtcPluginManager::getAnswerSdp(Session &sender, const string &type, const WebRtcArgs &args, const onCreateRtc &cb) {
+void WebRtcPluginManager::handleRtcPlugin(Session &sender, const string &type, const WebRtcArgs &args, const onRtcEvent &cb) {
     lock_guard<mutex> lck(_mtx_creator);
     auto it = _map_creator.find(type);
     if (it == _map_creator.end()) {
@@ -1140,11 +1140,31 @@ void WebRtcPluginManager::getAnswerSdp(Session &sender, const string &type, cons
     it->second(sender, args, cb);
 }
 
-void echo_plugin(Session &sender, const WebRtcArgs &args, const WebRtcPluginManager::onCreateRtc &cb) {
+void echo_plugin(Session &sender, const WebRtcArgs &args, const WebRtcPluginManager::onRtcEvent &cb) {
     cb(*WebRtcEchoTest::create(EventPollerPool::Instance().getPoller()));
 }
 
-void push_plugin(Session &sender, const WebRtcArgs &args, const WebRtcPluginManager::onCreateRtc &cb) {
+void stop_plugin(Session &sender, const WebRtcArgs &args, const WebRtcPluginManager::onRtcEvent &cb) {
+    MediaInfo info(args["url"]);
+    std::string id = args["id"];
+
+    bool push_exist = (bool)MediaSource::find(RTSP_SCHEMA, info._vhost, info._app, info._streamid);
+    if(!push_exist){
+        cb(WebRtcException(SockException(Err_other, "cannot find media source")));
+        return;
+    }
+
+    auto rtc = WebRtcTransportManager::Instance().getItem(id);
+    if(!rtc){
+        cb(WebRtcException(SockException(Err_other, "cannot find rtc transport")));
+        return;
+    }
+    rtc->onShutdown(SockException(Err_shutdown, "http(signal) close notify received"));
+    cb(WebRtcException(SockException(Err_success, "success")));
+
+}
+
+void push_plugin(Session &sender, const WebRtcArgs &args, const WebRtcPluginManager::onRtcEvent &cb) {
     MediaInfo info(args["url"]);
     bool preferred_tcp = args["preferred_tcp"];
 
@@ -1200,7 +1220,7 @@ void push_plugin(Session &sender, const WebRtcArgs &args, const WebRtcPluginMana
     }
 }
 
-void play_plugin(Session &sender, const WebRtcArgs &args, const WebRtcPluginManager::onCreateRtc &cb) {
+void play_plugin(Session &sender, const WebRtcArgs &args, const WebRtcPluginManager::onRtcEvent &cb) {
     MediaInfo info(args["url"]);
     bool preferred_tcp = args["preferred_tcp"];
 
@@ -1238,6 +1258,7 @@ static onceToken s_rtc_auto_register([]() {
     WebRtcPluginManager::Instance().registerPlugin("echo", echo_plugin);
     WebRtcPluginManager::Instance().registerPlugin("push", push_plugin);
     WebRtcPluginManager::Instance().registerPlugin("play", play_plugin);
+    WebRtcPluginManager::Instance().registerPlugin("stop", stop_plugin);
 });
 
 }// namespace mediakit

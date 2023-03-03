@@ -40,6 +40,7 @@ public:
     WebRtcInterface() = default;
     virtual ~WebRtcInterface() = default;
     virtual std::string getAnswerSdp(const std::string &offer) = 0;
+    virtual int getErrcode(){return 0;}
     virtual const std::string &getIdentifier() const = 0;
 };
 
@@ -50,6 +51,11 @@ public:
     std::string getAnswerSdp(const std::string &offer) override {
         throw _ex;
     }
+
+    int getErrcode() override {
+        return  _ex.getErrCode();
+    }
+
     const std::string &getIdentifier() const override {
         static std::string s_null;
         return s_null;
@@ -246,6 +252,8 @@ public:
     void createRtpChannel(const std::string &rid, uint32_t ssrc, MediaTrack &track);
     void removeTuple(RTC::TransportTuple* tuple);
 
+    void onShutdown(const SockException &ex) override;
+
 protected:
     void OnIceServerSelectedTuple(const RTC::IceServer *iceServer, RTC::TransportTuple *tuple) override;
     WebRtcTransportImp(const EventPoller::Ptr &poller,bool preferred_tcp = false);
@@ -261,7 +269,6 @@ protected:
     void onBeforeEncryptRtcp(const char *buf, int &len, void *ctx) override {};
     void onCreate() override;
     void onDestory() override;
-    void onShutdown(const SockException &ex) override;
     virtual void onRecvRtp(MediaTrack &track, const std::string &rid, RtpPacket::Ptr rtp) = 0;
     void updateTicker();
     float getLossRate(TrackType type);
@@ -325,13 +332,13 @@ public:
 
 class WebRtcPluginManager {
 public:
-    using onCreateRtc = std::function<void(const WebRtcInterface &rtc)>;
-    using Plugin = std::function<void(Session &sender, const WebRtcArgs &args, const onCreateRtc &cb)>;
+    using onRtcEvent = std::function<void(const WebRtcInterface &rtc)>;
+    using Plugin = std::function<void(Session &sender, const WebRtcArgs &args, const onRtcEvent &cb)>;
 
     static WebRtcPluginManager &Instance();
 
     void registerPlugin(const std::string &type, Plugin cb);
-    void getAnswerSdp(Session &sender, const std::string &type, const WebRtcArgs &args, const onCreateRtc &cb);
+    void handleRtcPlugin(Session &sender, const std::string &type, const WebRtcArgs &args, const onRtcEvent &cb);
 
 private:
     WebRtcPluginManager() = default;
