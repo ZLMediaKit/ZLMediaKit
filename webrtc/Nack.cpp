@@ -109,8 +109,6 @@ void NackContext::received(uint16_t seq, bool is_rtx) {
     if (seq < _nack_seq && _nack_seq != UINT16_MAX && seq < 1024 && _nack_seq > UINT16_MAX - 1024) {
         // seq回环,清空回环前状态
         makeNack(UINT16_MAX, true);
-        // 等待下一个seq为0的包
-        _nack_seq = UINT16_MAX;
         _seq.emplace(seq);
         return;
     }
@@ -135,7 +133,7 @@ void NackContext::received(uint16_t seq, bool is_rtx) {
         _seq.erase(max_seq);
         return;
     }
-    if (min_seq == (uint16_t)(_nack_seq + 1) && _seq.size() == diff + 1) {
+    if (min_seq == (uint16_t)(_nack_seq + 1) && _seq.size() == (size_t)diff + 1) {
         // 都是连续的seq，未丢包
         _seq.clear();
         _nack_seq = max_seq;
@@ -148,23 +146,15 @@ void NackContext::received(uint16_t seq, bool is_rtx) {
 void NackContext::makeNack(uint16_t max_seq, bool flush) {
     // 尝试移除前面部分连续的seq
     eraseFrontSeq();
-
-    if (max_seq == _nack_seq) {
-        // 完成所有seq丢包判断
-        return;
-    }
-
-    // 有丢包，丢包从_last_max_seq开始统计丢包
-    uint16_t nack_rtp_count;
-    if (flush) {
-        nack_rtp_count = max_seq - _nack_seq - 1;
-        nack_rtp_count = MIN(FCI_NACK::kBitSize, nack_rtp_count);
-    } else {
-        nack_rtp_count = FCI_NACK::kBitSize;
-    }
-    auto max_nack = 5u;
     // 最多生成5个nack包，防止seq大幅跳跃导致一直循环
-    while (max_nack-- && max_seq > (uint16_t)(nack_rtp_count + _nack_seq)) {
+    auto max_nack = 5u;
+    while (_nack_seq != max_seq && max_nack--) {
+        // 一次不能发送超过16+1个rtp的状态
+        uint16_t nack_rtp_count = std::min<uint16_t>(FCI_NACK::kBitSize, max_seq - (uint16_t)(_nack_seq + 1));
+        if (!flush && nack_rtp_count < kNackRtpSize) {
+            // 非flush状态下，seq个数不足以发送一次nack
+            break;
+        }
         vector<bool> vec;
         vec.resize(nack_rtp_count, false);
         for (size_t i = 0; i < nack_rtp_count; ++i) {
@@ -172,14 +162,10 @@ void NackContext::makeNack(uint16_t max_seq, bool flush) {
         }
         doNack(FCI_NACK(_nack_seq + 1, vec), true);
         _nack_seq += nack_rtp_count + 1;
-        if (_nack_seq >= max_seq) {
-            _seq.clear();
-        } else {
-            // 返回第一个比_last_max_seq大的元素
-            auto it = _seq.upper_bound(_nack_seq);
-            // 移除 <=_last_max_seq 的seq
-            _seq.erase(_seq.begin(), it);
-        }
+        // 返回第一个比_last_max_seq大的元素
+        auto it = _seq.upper_bound(_nack_seq);
+        // 移除 <=_last_max_seq 的seq
+        _seq.erase(_seq.begin(), it);
     }
 }
 
@@ -268,11 +254,6 @@ uint64_t NackContext::reSendNack() {
         ++it;
     }
 
-    if (_nack_send_status.empty()) {
-        // 不需要再发送nack
-        return 0;
-    }
-
     int pid = -1;
     vector<bool> vec;
     for (auto it = nack_rtp.begin(); it != nack_rtp.end();) {
@@ -297,8 +278,8 @@ uint64_t NackContext::reSendNack() {
         doNack(FCI_NACK(pid, vec), false);
     }
 
-    // 重传间隔不得低于5ms
-    return max(_rtt, 5);
+    // 没有任何包需要重传时返回0，否则返回下次重传间隔(不得低于5ms)
+    return _nack_send_status.empty() ? 0 : max(_rtt, 5);
 }
 
 } // namespace mediakit
