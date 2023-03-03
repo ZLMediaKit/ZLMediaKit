@@ -520,7 +520,7 @@ namespace RTC
 			return;
 
 		this->selectedTuple = storedTuple;
-        this->lastSelectedTuple = storedTuple->shared_from_this();
+		this->lastSelectedTuple = storedTuple->weak_from_this();
 
 		// Notify the listener.
 		this->listener->OnIceServerSelectedTuple(this, this->selectedTuple);
