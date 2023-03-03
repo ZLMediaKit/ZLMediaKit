@@ -127,7 +127,7 @@ namespace RTC
         std::string oldPassword;
         IceState state{ IceState::NEW };
         std::list<RTC::TransportTuple *> tuples;
-        RTC::TransportTuple *selectedTuple;
+        RTC::TransportTuple *selectedTuple { nullptr };
         std::weak_ptr<RTC::TransportTuple> lastSelectedTuple;
         //最大不超过mtu
         static constexpr size_t StunSerializeBufferSize{ 1600 };
