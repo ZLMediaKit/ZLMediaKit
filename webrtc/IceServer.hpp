@@ -20,6 +20,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #define MS_RTC_ICE_SERVER_HPP
 
 #include "StunPacket.hpp"
+#include "Network/Session.h"
 #include "logger.h"
 #include "Utils.hpp"
 #include <list>
@@ -27,11 +28,9 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <functional>
 #include <memory>
 
-using _TransportTuple = struct sockaddr;
-
 namespace RTC
 {
-    using TransportTuple = _TransportTuple;
+	using TransportTuple = toolkit::Session;
 	class IceServer
 	{
 	public:
@@ -80,10 +79,10 @@ namespace RTC
 		{
 			return this->state;
 		}
-		RTC::TransportTuple* GetSelectedTuple() const
+		RTC::TransportTuple* GetSelectedTuple(bool try_last_tuple = false) const
 		{
-			return this->selectedTuple;
-		}
+            return try_last_tuple ? this->lastSelectedTuple.lock().get() : this->selectedTuple;
+        }
 		void SetUsernameFragment(const std::string& usernameFragment)
 		{
 			this->oldUsernameFragment = this->usernameFragment;
@@ -100,7 +99,9 @@ namespace RTC
 		// and the given tuple must be an already valid tuple.
 		void ForceSelectedTuple(const RTC::TransportTuple* tuple);
 
-	private:
+        const std::list<RTC::TransportTuple *>& GetTuples() const { return tuples; }
+
+    private:
 		void HandleTuple(RTC::TransportTuple* tuple, bool hasUseCandidate);
 		/**
 		 * Store the given tuple and return its stored address.
@@ -125,8 +126,9 @@ namespace RTC
 		std::string oldUsernameFragment;
 		std::string oldPassword;
 		IceState state{ IceState::NEW };
-		std::list<RTC::TransportTuple> tuples;
-		RTC::TransportTuple* selectedTuple{ nullptr };
+		std::list<RTC::TransportTuple *> tuples;
+        RTC::TransportTuple *selectedTuple;
+        std::weak_ptr<RTC::TransportTuple> lastSelectedTuple;
 		//最大不超过mtu
         static constexpr size_t StunSerializeBufferSize{ 1600 };
         uint8_t StunSerializeBuffer[StunSerializeBufferSize];

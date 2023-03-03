@@ -118,20 +118,15 @@ void WebRtcPusher::onStartWebRTC() {
 }
 
 void WebRtcPusher::onDestory() {
-    WebRtcTransportImp::onDestory();
-
     auto duration = getDuration();
     auto bytes_usage = getBytesUsage();
     //流量统计事件广播
     GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
 
     if (getSession()) {
-        WarnL << "RTC推流器("
-              << _media_info.shortUrl()
-              << ")结束推流,耗时(s):" << duration;
+        WarnL << "RTC推流器(" << _media_info.shortUrl() << ")结束推流,耗时(s):" << duration;
         if (bytes_usage >= iFlowThreshold * 1024) {
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, bytes_usage, duration,
-                                               false, static_cast<SockInfo &>(*getSession()));
+            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, bytes_usage, duration, false, static_cast<SockInfo &>(*getSession()));
         }
     }
 
@@ -142,6 +137,7 @@ void WebRtcPusher::onDestory() {
         auto push_src = std::move(_push_src);
         getPoller()->doDelayTask(_continue_push_ms, [push_src]() { return 0; });
     }
+    WebRtcTransportImp::onDestory();
 }
 
 void WebRtcPusher::onRtcConfigure(RtcConfigure &configure) const {

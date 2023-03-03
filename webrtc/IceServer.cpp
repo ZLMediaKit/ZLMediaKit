@@ -198,8 +198,12 @@ namespace RTC
 				// Create a success response.
 				RTC::StunPacket* response = packet->CreateSuccessResponse();
 
+				sockaddr_storage peerAddr;
+				socklen_t addr_len = sizeof(peerAddr);
+				getpeername(tuple->getSock()->rawFD(), (struct sockaddr *)&peerAddr, &addr_len);
+
 				// Add XOR-MAPPED-ADDRESS.
-				response->SetXorMappedAddress(tuple);
+				response->SetXorMappedAddress((struct sockaddr *)&peerAddr);
 
 				// Authenticate the response.
 				if (this->oldPassword.empty())
@@ -260,9 +264,9 @@ namespace RTC
 
 		for (; it != this->tuples.end(); ++it)
 		{
-			RTC::TransportTuple* storedTuple = std::addressof(*it);
+			RTC::TransportTuple* storedTuple = *it;
 
-			if (memcmp(storedTuple, tuple, sizeof (RTC::TransportTuple)) == 0)
+			if (storedTuple == tuple)
 			{
 				removedTuple = storedTuple;
 
@@ -285,9 +289,9 @@ namespace RTC
 		this->selectedTuple = nullptr;
 
 		// Mark the first tuple as selected tuple (if any).
-		if (this->tuples.begin() != this->tuples.end())
+		if (!this->tuples.empty())
 		{
-			SetSelectedTuple(std::addressof(*this->tuples.begin()));
+			SetSelectedTuple(this->tuples.front());
 		}
 		// Or just emit 'disconnected'.
 		else
@@ -477,12 +481,10 @@ namespace RTC
 		MS_TRACE();
 
 		// Add the new tuple at the beginning of the list.
-		this->tuples.push_front(*tuple);
-
-		auto* storedTuple = std::addressof(*this->tuples.begin());
+		this->tuples.push_front(tuple);
 
 		// Return the address of the inserted tuple.
-		return storedTuple;
+		return tuple;
 	}
 
 	inline RTC::TransportTuple* IceServer::HasTuple(const RTC::TransportTuple* tuple) const
@@ -495,15 +497,14 @@ namespace RTC
 			return nullptr;
 
 		// Check the current selected tuple.
-		if (memcmp(selectedTuple, tuple, sizeof (RTC::TransportTuple)) == 0)
+		if (selectedTuple == tuple)
 			return this->selectedTuple;
 
 		// Otherwise check other stored tuples.
 		for (const auto& it : this->tuples)
 		{
-			auto* storedTuple = const_cast<RTC::TransportTuple*>(std::addressof(it));
-
-			if (memcmp(storedTuple, tuple, sizeof (RTC::TransportTuple)) == 0)
+			auto& storedTuple = it;
+			if (storedTuple == tuple)
 				return storedTuple;
 		}
 
@@ -519,6 +520,7 @@ namespace RTC
 			return;
 
 		this->selectedTuple = storedTuple;
+        this->lastSelectedTuple = storedTuple->shared_from_this();
 
 		// Notify the listener.
 		this->listener->OnIceServerSelectedTuple(this, this->selectedTuple);

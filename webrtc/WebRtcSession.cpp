@@ -48,8 +48,6 @@ EventPoller::Ptr WebRtcSession::queryPoller(const Buffer::Ptr &buffer) {
 ////////////////////////////////////////////////////////////////////////////////
 
 WebRtcSession::WebRtcSession(const Socket::Ptr &sock) : Session(sock) {
-    socklen_t addr_len = sizeof(_peer_addr);
-    getpeername(sock->rawFD(), (struct sockaddr *)&_peer_addr, &addr_len);
     _over_tcp = sock->sockType() == SockNum::Sock_TCP;
 }
 
@@ -87,14 +85,12 @@ void WebRtcSession::onRecv_l(const char *data, size_t len) {
             //3、销毁原先的socket和WebRtcSession(原先的对象跟WebRtcTransport不在同一条线程)
             throw std::runtime_error("webrtc over tcp change poller: " + getPoller()->getThreadName() + " -> " + sock->getPoller()->getThreadName());
         }
-
-        transport->setSession(shared_from_this());
         _transport = std::move(transport);
         InfoP(this);
     }
     _ticker.resetTime();
     CHECK(_transport);
-    _transport->inputSockData((char *)data, len, (struct sockaddr *)&_peer_addr);
+    _transport->inputSockData((char *)data, len, this);
 }
 
 void WebRtcSession::onRecv(const Buffer::Ptr &buffer) {
@@ -114,9 +110,13 @@ void WebRtcSession::onError(const SockException &err) {
     if (!_transport) {
         return;
     }
+    auto self = shared_from_this();
     auto transport = std::move(_transport);
-    getPoller()->async([transport] {
+    getPoller()->async([transport, self]() mutable {
         //延时减引用，防止使用transport对象时，销毁对象
+        transport->removeTuple(self.get());
+        //确保transport在Session对象前销毁，防止WebRtcTransport::onDestory()时获取不到Session对象
+        transport = nullptr;
     }, false);
 }
 

@@ -46,7 +46,6 @@ private:
     bool _over_tcp = false;
     bool _find_transport = true;
     Ticker _ticker;
-    struct sockaddr_storage _peer_addr;
     std::weak_ptr<toolkit::TcpServer> _server;
     WebRtcTransportImp::Ptr _transport;
 };
