@@ -269,9 +269,9 @@ API_EXPORT int API_CALL mk_media_input_aac(mk_media ctx, const void *data, int l
 }
 
 API_EXPORT int API_CALL mk_media_input_pcm(mk_media ctx, void *data , int len, uint64_t pts){
-	assert(ctx && data && len > 0);
-	MediaHelper::Ptr* obj = (MediaHelper::Ptr*) ctx;
-	return (*obj)->getChannel()->inputPCM((char*)data, len, pts);
+    assert(ctx && data && len > 0);
+    MediaHelper::Ptr* obj = (MediaHelper::Ptr*) ctx;
+    return (*obj)->getChannel()->inputPCM((char*)data, len, pts);
 }
 
 API_EXPORT int API_CALL mk_media_input_audio(mk_media ctx, const void* data, int len, uint64_t dts){
