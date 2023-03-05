@@ -201,7 +201,8 @@ void NackContext::clearNackStatus(uint16_t seq) {
     if (it == _nack_send_status.end()) {
         return;
     }
-    auto rtt = getCurrentMillisecond() - it->second.update_stamp;
+    //收到重传包与第一个nack包间的时间约等于rtt时间
+    auto rtt = getCurrentMillisecond() - it->second.first_stamp;
     _nack_send_status.erase(it);
 
     if (rtt >= 0) {
