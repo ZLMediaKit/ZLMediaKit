@@ -1469,8 +1469,7 @@ namespace RTC
         // Workaround for https://github.com/openssl/openssl/issues/7998.
         if (this->handshakeDone)
         {
-            MS_DEBUG_DEV("handshake is done so return");
-
+            // MS_DEBUG_DEV("handshake is done so return");
             return;
         }
 
