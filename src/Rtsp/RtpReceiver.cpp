@@ -14,7 +14,7 @@
 namespace mediakit {
 
 RtpTrack::RtpTrack() {
-    setOnSort([this](uint16_t seq, RtpPacket::Ptr &packet) {
+    setOnSort([this](uint16_t seq, RtpPacket::Ptr packet) {
         onRtpSorted(std::move(packet));
     });
 }
