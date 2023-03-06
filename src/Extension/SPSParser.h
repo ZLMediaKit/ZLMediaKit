@@ -439,11 +439,11 @@ typedef struct T_HEVCSPS {
 
 
 typedef struct T_GetBitContext{
-    uint8_t *pu8Buf;         /*Ö¸ÏòSPS start*/
-    int     iBufSize;     /*SPS ³¤¶È*/
-    int     iBitPos;      /*bitÒÑ¶ÁÈ¡Î»ÖÃ*/
-    int     iTotalBit;    /*bit×Ü³¤¶È*/
-    int     iCurBitPos;  /*µ±Ç°¶ÁÈ¡Î»ÖÃ*/
+    uint8_t *pu8Buf;       // buf 
+    int     iBufSize;     // buf size 
+    int     iBitPos;      // bit position
+    int     iTotalBit;    // bit number
+    int     iCurBitPos;  // current bit position
 }T_GetBitContext;
 
 
