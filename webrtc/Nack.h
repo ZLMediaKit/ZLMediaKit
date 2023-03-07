@@ -49,7 +49,7 @@ public:
     // rtp丢包状态最长保留时间
     static constexpr auto kNackMaxMS = 3 * 1000;
     // nack最多请求重传10次
-    static constexpr auto kNackMaxCount = 10;
+    static constexpr auto kNackMaxCount = 15;
     // nack重传频率，rtt的倍数
     static constexpr auto kNackIntervalRatio = 1.0f;
     // nack包中rtp个数，减小此值可以让nack包响应更灵敏
