@@ -99,7 +99,7 @@ protected:
 
     void onRegist(MediaSource &sender, bool regist) override{
         if (_on_regist) {
-            _on_regist(_on_regist_data.get(), &sender, regist);
+            _on_regist(_on_regist_data.get(), (mk_media_source)&sender, regist);
         }
     }
 
@@ -270,9 +270,9 @@ API_EXPORT int API_CALL mk_media_input_aac(mk_media ctx, const void *data, int l
 }
 
 API_EXPORT int API_CALL mk_media_input_pcm(mk_media ctx, void *data , int len, uint64_t pts){
-	assert(ctx && data && len > 0);
-	MediaHelper::Ptr* obj = (MediaHelper::Ptr*) ctx;
-	return (*obj)->getChannel()->inputPCM((char*)data, len, pts);
+    assert(ctx && data && len > 0);
+    MediaHelper::Ptr* obj = (MediaHelper::Ptr*) ctx;
+    return (*obj)->getChannel()->inputPCM((char*)data, len, pts);
 }
 
 API_EXPORT int API_CALL mk_media_input_audio(mk_media ctx, const void* data, int len, uint64_t dts){
@@ -320,5 +320,5 @@ API_EXPORT void API_CALL mk_media_stop_send_rtp(mk_media ctx, const char *ssrc){
 
 API_EXPORT mk_thread API_CALL mk_media_get_owner_thread(mk_media ctx) {
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *)ctx;
-    return (*obj)->getChannel()->getOwnerPoller(MediaSource::NullMediaSource()).get();
+    return (mk_thread)(*obj)->getChannel()->getOwnerPoller(MediaSource::NullMediaSource()).get();
 }

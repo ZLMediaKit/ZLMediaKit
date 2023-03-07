@@ -19,7 +19,7 @@ extern "C" {
 
 ///////////////////////////////////////////flv录制/////////////////////////////////////////////
 
-typedef void* mk_flv_recorder;
+typedef struct mk_flv_recorder_t *mk_flv_recorder;
 
 /**
  * 创建flv录制器

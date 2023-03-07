@@ -14,7 +14,7 @@
 extern "C" {
 #endif
 
-typedef void* mk_rtp_server;
+typedef struct mk_rtp_server_t *mk_rtp_server;
 
 /**
  * 创建GB28181 RTP 服务器

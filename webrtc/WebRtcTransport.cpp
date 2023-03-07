@@ -15,6 +15,7 @@
 #include "Rtcp/Rtcp.h"
 #include "Rtcp/RtcpFCI.h"
 #include "Rtcp/RtcpContext.h"
+#include "Rtsp/Rtsp.h"
 #include "Rtsp/RtpReceiver.h"
 #include "WebRtcTransport.h"
 
@@ -74,6 +75,17 @@ static void translateIPFromEnv(std::vector<std::string> &v) {
     }
 }
 
+const char* sockTypeStr(Session* session) {
+    if (session) {
+        switch (session->getSock()->sockType()) {
+            case SockNum::Sock_TCP: return "tcp";
+            case SockNum::Sock_UDP: return "udp";
+            default: break;
+        }
+    }
+    return "unknown";
+}
+
 WebRtcTransport::WebRtcTransport(const EventPoller::Ptr &poller) {
     _poller = poller;
     _identifier = "zlm_" + to_string(++s_key);
@@ -108,16 +120,18 @@ void WebRtcTransport::OnIceServerSendStunPacket(
     sendSockData((char *)packet->GetData(), packet->GetSize(), tuple);
 }
 
-void WebRtcTransport::OnIceServerSelectedTuple(const RTC::IceServer *iceServer, RTC::TransportTuple *tuple) {
-    InfoL;
+void WebRtcTransportImp::OnIceServerSelectedTuple(const RTC::IceServer *iceServer, RTC::TransportTuple *tuple) {
+    InfoL << getIdentifier() << " select tuple " << sockTypeStr(tuple) << " " << tuple->get_peer_ip() << ":" << tuple->get_peer_port();
+    tuple->setSendFlushFlag(false);
+    unrefSelf();
 }
 
 void WebRtcTransport::OnIceServerConnected(const RTC::IceServer *iceServer) {
-    InfoL;
+    InfoL << getIdentifier();
 }
 
 void WebRtcTransport::OnIceServerCompleted(const RTC::IceServer *iceServer) {
-    InfoL;
+    InfoL << getIdentifier();
     if (_answer_sdp->media[0].role == DtlsRole::passive) {
         _dtls_transport->Run(RTC::DtlsTransport::Role::SERVER);
     } else {
@@ -126,7 +140,7 @@ void WebRtcTransport::OnIceServerCompleted(const RTC::IceServer *iceServer) {
 }
 
 void WebRtcTransport::OnIceServerDisconnected(const RTC::IceServer *iceServer) {
-    InfoL;
+    InfoL << getIdentifier();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -134,7 +148,7 @@ void WebRtcTransport::OnIceServerDisconnected(const RTC::IceServer *iceServer) {
 void WebRtcTransport::OnDtlsTransportConnected(
     const RTC::DtlsTransport *dtlsTransport, RTC::SrtpSession::CryptoSuite srtpCryptoSuite, uint8_t *srtpLocalKey,
     size_t srtpLocalKeyLen, uint8_t *srtpRemoteKey, size_t srtpRemoteKeyLen, std::string &remoteCert) {
-    InfoL;
+    InfoL << getIdentifier();
     _srtp_session_send = std::make_shared<RTC::SrtpSession>(
         RTC::SrtpSession::Type::OUTBOUND, srtpCryptoSuite, srtpLocalKey, srtpLocalKeyLen);
     _srtp_session_recv = std::make_shared<RTC::SrtpSession>(
@@ -152,16 +166,16 @@ void WebRtcTransport::OnDtlsTransportSendData(
 }
 
 void WebRtcTransport::OnDtlsTransportConnecting(const RTC::DtlsTransport *dtlsTransport) {
-    InfoL;
+    InfoL << getIdentifier();
 }
 
 void WebRtcTransport::OnDtlsTransportFailed(const RTC::DtlsTransport *dtlsTransport) {
-    InfoL;
+    InfoL << getIdentifier();
     onShutdown(SockException(Err_shutdown, "dtls transport failed"));
 }
 
 void WebRtcTransport::OnDtlsTransportClosed(const RTC::DtlsTransport *dtlsTransport) {
-    InfoL;
+    InfoL << getIdentifier();
     onShutdown(SockException(Err_shutdown, "dtls close notify received"));
 }
 
@@ -177,7 +191,7 @@ void WebRtcTransport::OnDtlsTransportApplicationDataReceived(
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifdef ENABLE_SCTP
 void WebRtcTransport::OnSctpAssociationConnecting(RTC::SctpAssociation *sctpAssociation) {
-    TraceL;
+    TraceL << getIdentifier();
 }
 
 void WebRtcTransport::OnSctpAssociationConnected(RTC::SctpAssociation *sctpAssociation) {
@@ -214,8 +228,9 @@ void WebRtcTransport::sendSockData(const char *buf, size_t len, RTC::TransportTu
     onSendSockData(std::move(pkt), true, tuple ? tuple : _ice_server->GetSelectedTuple());
 }
 
-RTC::TransportTuple *WebRtcTransport::getSelectedTuple() const {
-    return _ice_server->GetSelectedTuple();
+Session::Ptr WebRtcTransport::getSession() const {
+    auto tuple = _ice_server->GetSelectedTuple(true);
+    return tuple ? tuple->shared_from_this() : nullptr;
 }
 
 void WebRtcTransport::sendRtcpRemb(uint32_t ssrc, size_t bit_rate) {
@@ -287,22 +302,12 @@ std::string WebRtcTransport::getAnswerSdp(const string &offer) {
     }
 }
 
-static bool is_dtls(char *buf) {
+static bool isDtls(char *buf) {
     return ((*buf > 19) && (*buf < 64));
 }
 
-static bool is_rtp(char *buf) {
-    RtpHeader *header = (RtpHeader *)buf;
-    return ((header->pt < 64) || (header->pt >= 96));
-}
-
-static bool is_rtcp(char *buf) {
-    RtpHeader *header = (RtpHeader *)buf;
-    return ((header->pt >= 64) && (header->pt < 96));
-}
-
 static string getPeerAddress(RTC::TransportTuple *tuple) {
-    return SockUtil::inet_ntoa(tuple);
+    return tuple->get_peer_ip();
 }
 
 void WebRtcTransport::inputSockData(char *buf, int len, RTC::TransportTuple *tuple) {
@@ -315,11 +320,11 @@ void WebRtcTransport::inputSockData(char *buf, int len, RTC::TransportTuple *tup
         _ice_server->ProcessStunPacket(packet.get(), tuple);
         return;
     }
-    if (is_dtls(buf)) {
+    if (isDtls(buf)) {
         _dtls_transport->ProcessDtlsData((uint8_t *)buf, len);
         return;
     }
-    if (is_rtp(buf)) {
+    if (isRtp(buf, len)) {
         if (!_srtp_session_recv) {
             WarnL << "received rtp packet when dtls not completed from:" << getPeerAddress(tuple);
             return;
@@ -329,7 +334,7 @@ void WebRtcTransport::inputSockData(char *buf, int len, RTC::TransportTuple *tup
         }
         return;
     }
-    if (is_rtcp(buf)) {
+    if (isRtcp(buf, len)) {
         if (!_srtp_session_recv) {
             WarnL << "received rtcp packet when dtls not completed from:" << getPeerAddress(tuple);
             return;
@@ -418,24 +423,27 @@ void WebRtcTransportImp::onDestory() {
 }
 
 void WebRtcTransportImp::onSendSockData(Buffer::Ptr buf, bool flush, RTC::TransportTuple *tuple) {
-    if (!_selected_session) {
-        WarnL << "send data failed:" << buf->size();
-        return;
+    if (tuple == nullptr) {
+        tuple = _ice_server->GetSelectedTuple();
+        if (!tuple) {
+            WarnL << "send data failed:" << buf->size();
+            return;
+        }
     }
 
     // 一次性发送一帧的rtp数据，提高网络io性能
-    if (_selected_session->getSock()->sockType() == SockNum::Sock_TCP) {
+    if (tuple->getSock()->sockType() == SockNum::Sock_TCP) {
         // 增加tcp两字节头
         auto len = buf->size();
         char tcp_len[2] = { 0 };
         tcp_len[0] = (len >> 8) & 0xff;
         tcp_len[1] = len & 0xff;
-        _selected_session->SockSender::send(tcp_len, 2);
+        tuple->SockSender::send(tcp_len, 2);
     }
-    _selected_session->send(std::move(buf));
+    tuple->send(std::move(buf));
 
     if (flush) {
-        _selected_session->flushAll();
+        tuple->flushAll();
     }
 }
 
@@ -1049,28 +1057,14 @@ void WebRtcTransportImp::onBeforeEncryptRtp(const char *buf, int &len, void *ctx
 void WebRtcTransportImp::onShutdown(const SockException &ex) {
     WarnL << ex.what();
     unrefSelf();
-    for (auto &pr : _history_sessions) {
-        auto session = pr.second.lock();
-        if (session) {
-            session->shutdown(ex);
-        }
+    for (auto &tuple : _ice_server->GetTuples()) {
+        tuple->shutdown(ex);
     }
 }
 
-void WebRtcTransportImp::setSession(Session::Ptr session) {
-    _history_sessions.emplace(session.get(), session);
-    if (_selected_session) {
-        InfoL << "rtc network changed: " << _selected_session->get_peer_ip() << ":"
-              << _selected_session->get_peer_port() << " -> " << session->get_peer_ip() << ":"
-              << session->get_peer_port() << ", id:" << getIdentifier();
-    }
-    _selected_session = std::move(session);
-    _selected_session->setSendFlushFlag(false);
-    unrefSelf();
-}
-
-const Session::Ptr &WebRtcTransportImp::getSession() const {
-    return _selected_session;
+void WebRtcTransportImp::removeTuple(RTC::TransportTuple *tuple) {
+    InfoL << getIdentifier() << " remove tuple " << tuple->get_peer_ip() << ":" << tuple->get_peer_port();
+    this->_ice_server->RemoveTuple(tuple);
 }
 
 uint64_t WebRtcTransportImp::getBytesUsage() const {

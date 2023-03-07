@@ -55,11 +55,11 @@ API_EXPORT char* API_CALL mk_util_hex_dump(const void *buf, int len){
 }
 
 API_EXPORT mk_ini API_CALL mk_ini_create() {
-    return new mINI;
+    return (mk_ini)new mINI;
 }
 
 API_EXPORT mk_ini API_CALL mk_ini_default() {
-    return &(mINI::Instance());
+    return (mk_ini)&(mINI::Instance());
 }
 
 static void emit_ini_file_reload(mk_ini ini) {

@@ -291,6 +291,7 @@ bash build_docker_images.sh
 [KevinZang](https://github.com/ZSC714725)
 [gongluck](https://github.com/gongluck)
 [a-ucontrol](https://github.com/a-ucontrol)
+[TalusL](https://github.com/TalusL)
 
 ## 使用案例
 

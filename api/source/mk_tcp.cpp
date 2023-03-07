@@ -65,12 +65,12 @@ API_EXPORT mk_buffer API_CALL mk_buffer_from_char(const char *data, size_t len, 
 API_EXPORT mk_buffer API_CALL mk_buffer_from_char2(const char *data, size_t len, on_mk_buffer_free cb, void *user_data, on_user_data_free user_data_free) {
     assert(data);
     std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
-    return new Buffer::Ptr(std::make_shared<BufferForC>(data, len, cb, std::move(ptr)));
+    return (mk_buffer)new Buffer::Ptr(std::make_shared<BufferForC>(data, len, cb, std::move(ptr)));
 }
 
 API_EXPORT mk_buffer API_CALL mk_buffer_ref(mk_buffer buffer) {
     assert(buffer);
-    return new Buffer::Ptr(*((Buffer::Ptr *) buffer));
+    return (mk_buffer)new Buffer::Ptr(*((Buffer::Ptr *) buffer));
 }
 
 API_EXPORT void API_CALL mk_buffer_unref(mk_buffer buffer) {
@@ -115,7 +115,7 @@ API_EXPORT uint16_t API_CALL mk_sock_info_local_port(const mk_sock_info ctx){
 API_EXPORT mk_sock_info API_CALL mk_tcp_session_get_sock_info(const mk_tcp_session ctx){
     assert(ctx);
     SessionForC *session = (SessionForC *)ctx;
-    return (SockInfo *)session;
+    return (mk_sock_info)session;
 }
 
 API_EXPORT void API_CALL mk_tcp_session_shutdown(const mk_tcp_session ctx,int err,const char *err_msg){
@@ -155,7 +155,7 @@ API_EXPORT void API_CALL mk_tcp_session_send_buffer_safe(const mk_tcp_session ct
 
 API_EXPORT mk_tcp_session_ref API_CALL mk_tcp_session_ref_from(const mk_tcp_session ctx) {
     auto ref = ((SessionForC *) ctx)->shared_from_this();
-    return new std::shared_ptr<SessionForC>(std::dynamic_pointer_cast<SessionForC>(ref));
+    return (mk_tcp_session_ref)new std::shared_ptr<SessionForC>(std::dynamic_pointer_cast<SessionForC>(ref));
 }
 
 API_EXPORT void mk_tcp_session_ref_release(const mk_tcp_session_ref ref) {
@@ -163,7 +163,7 @@ API_EXPORT void mk_tcp_session_ref_release(const mk_tcp_session_ref ref) {
 }
 
 API_EXPORT mk_tcp_session mk_tcp_session_from_ref(const mk_tcp_session_ref ref) {
-    return ((std::shared_ptr<SessionForC> *) ref)->get();
+    return (mk_tcp_session)((std::shared_ptr<SessionForC> *) ref)->get();
 }
 
 API_EXPORT void API_CALL mk_tcp_session_send_safe(const mk_tcp_session ctx, const char *data, size_t len) {
@@ -179,25 +179,25 @@ static mk_tcp_session_events s_events_server = {0};
 SessionForC::SessionForC(const Socket::Ptr &pSock) : Session(pSock) {
     _local_port = get_local_port();
     if (s_events_server.on_mk_tcp_session_create) {
-        s_events_server.on_mk_tcp_session_create(_local_port,this);
+        s_events_server.on_mk_tcp_session_create(_local_port, (mk_tcp_session) this);
     }
 }
 
 void SessionForC::onRecv(const Buffer::Ptr &buffer) {
     if (s_events_server.on_mk_tcp_session_data) {
-        s_events_server.on_mk_tcp_session_data(_local_port, this, (mk_buffer)&buffer);
+        s_events_server.on_mk_tcp_session_data(_local_port, (mk_tcp_session)this, (mk_buffer)&buffer);
     }
 }
 
 void SessionForC::onError(const SockException &err) {
     if (s_events_server.on_mk_tcp_session_disconnect) {
-        s_events_server.on_mk_tcp_session_disconnect(_local_port,this, err.getErrCode(), err.what());
+        s_events_server.on_mk_tcp_session_disconnect(_local_port, (mk_tcp_session)this, err.getErrCode(), err.what());
     }
 }
 
 void SessionForC::onManager() {
     if (s_events_server.on_mk_tcp_session_manager) {
-        s_events_server.on_mk_tcp_session_manager(_local_port,this);
+        s_events_server.on_mk_tcp_session_manager(_local_port, (mk_tcp_session)this);
     }
 }
 
@@ -320,13 +320,13 @@ TcpClientForC::Ptr *mk_tcp_client_create_l(mk_tcp_client_events *events, mk_tcp_
 API_EXPORT mk_sock_info API_CALL mk_tcp_client_get_sock_info(const mk_tcp_client ctx){
     assert(ctx);
     TcpClientForC::Ptr *client = (TcpClientForC::Ptr *)ctx;
-    return (SockInfo *)client->get();
+    return (mk_sock_info)(SockInfo *)client->get();
 }
 
 API_EXPORT mk_tcp_client API_CALL mk_tcp_client_create(mk_tcp_client_events *events, mk_tcp_type type){
     auto ret = mk_tcp_client_create_l(events,type);
-    (*ret)->setClient(ret);
-    return ret;
+    (*ret)->setClient((mk_tcp_client)ret);
+    return (mk_tcp_client)ret;
 }
 
 API_EXPORT void API_CALL mk_tcp_client_release(mk_tcp_client ctx){

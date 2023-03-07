@@ -102,7 +102,7 @@ void test_real() {
 
     PacketSortor<uint16_t, uint16_t> sortor;
     list<uint16_t> sorted_list;
-    sortor.setOnSort([&](uint16_t seq, const uint16_t &packet) {
+    sortor.setOnSort([&](uint16_t seq, uint16_t packet) {
         sorted_list.push_back(seq);
     });
 

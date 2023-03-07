@@ -22,7 +22,7 @@
 extern "C" {
 #endif
 
-typedef void *mk_media;
+typedef struct mk_media_t *mk_media;
 
 /**
  * 创建一个媒体源

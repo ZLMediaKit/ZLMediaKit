@@ -18,7 +18,7 @@ using namespace mediakit;
 
 API_EXPORT mk_flv_recorder API_CALL mk_flv_recorder_create(){
     FlvRecorder::Ptr *ret = new FlvRecorder::Ptr(new FlvRecorder);
-    return ret;
+    return (mk_flv_recorder)ret;
 }
 API_EXPORT void API_CALL mk_flv_recorder_release(mk_flv_recorder ctx){
     assert(ctx);

@@ -71,6 +71,10 @@ RtpProcess::~RtpProcess() {
 }
 
 bool RtpProcess::inputRtp(bool is_udp, const Socket::Ptr &sock, const char *data, size_t len, const struct sockaddr *addr, uint64_t *dts_out) {
+    if (!isRtp(data, len)) {
+        WarnP(this) << "Not rtp packet";
+        return false;
+    }
     if (_sock != sock) {
         // 第一次运行本函数
         bool first = !_sock;

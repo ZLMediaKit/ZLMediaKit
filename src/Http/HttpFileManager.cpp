@@ -496,6 +496,10 @@ void HttpFileManager::onAccessPath(Session &sender, Parser &parser, const HttpFi
     auto fullUrl = string(HTTP_SCHEMA) + "://" + parser["Host"] + parser.FullUrl();
     MediaInfo media_info(fullUrl);
     auto file_path = getFilePath(parser, media_info, sender);
+    if (file_path.size() == 0) {
+        sendNotFound(cb);
+        return;
+    }
     //访问的是文件夹
     if (File::is_dir(file_path.data())) {
         auto indexFile = searchIndexFile(file_path);
