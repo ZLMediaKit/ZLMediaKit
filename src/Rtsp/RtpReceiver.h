@@ -143,7 +143,7 @@ private:
 private:
     bool _started = false;
     //排序缓存最大保存数据长度，单位毫秒
-    size_t _max_buffer_ms = 1000;
+    size_t _max_buffer_ms = 3000;
     //排序缓存最大保存数据个数
     size_t _max_buffer_size = 1024;
     //记录上次output至今的时间
