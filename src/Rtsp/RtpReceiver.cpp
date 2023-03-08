@@ -114,7 +114,7 @@ void RtpTrack::setNtpStamp(uint32_t rtp_stamp, uint64_t ntp_stamp_ms) {
     }
 }
 
-void RtpTrack::setPT(uint8_t pt){
+void RtpTrack::setPayloadType(uint8_t pt) {
     _pt = pt;
 }
 
