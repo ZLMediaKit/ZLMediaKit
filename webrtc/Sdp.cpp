@@ -680,11 +680,11 @@ string SdpAttrSctpMap::toString() const  {
 void SdpAttrCandidate::parse(const string &str)  {
     char foundation_buf[40] = {0};
     char transport_buf[16] = {0};
-    char address_buf[32] = {0};
+    char address_buf[8*4+7+1] = {0};
     char type_buf[16] = {0};
 
     // https://datatracker.ietf.org/doc/html/rfc5245#section-15.1
-    CHECK_SDP(sscanf(str.data(), "%32[^ ] %" SCNu32 " %15[^ ] %" SCNu32 " %31[^ ] %" SCNu16 " typ %15[^ ]",
+    CHECK_SDP(sscanf(str.data(), "%32[^ ] %" SCNu32 " %15[^ ] %" SCNu32 " %39[^ ] %" SCNu16 " typ %15[^ ]",
             foundation_buf, &component, transport_buf, &priority, address_buf, &port, type_buf) == 7);
     foundation = foundation_buf;
     transport = transport_buf;
@@ -1064,6 +1064,9 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
     }
     sdp.addAttr(std::make_shared<SdpAttrGroup>(group));
     sdp.addAttr(std::make_shared<SdpAttrMsidSemantic>(msid_semantic));
+
+    bool ice_lite = false;
+
     for (auto &m : media) {
         sdp.medias.emplace_back();
         auto &sdp_media = sdp.medias.back();
@@ -1099,6 +1102,7 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
         sdp_media.addAttr(std::make_shared<SdpAttrMid>(m.mid));
         if (m.ice_lite) {
             sdp_media.addAttr(std::make_shared<SdpCommon>("ice-lite"));
+            ice_lite = true;
         }
         for (auto &ext : m.extmap) {
             sdp_media.addAttr(std::make_shared<SdpAttrExtmap>(ext));
@@ -1210,6 +1214,9 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
             }
         }
     }
+    if(ice_lite)
+        sdp.addAttr(std::make_shared<SdpCommon>("ice-lite"));
+    
     return ret;
 }
 
