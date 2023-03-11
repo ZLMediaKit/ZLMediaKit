@@ -36,7 +36,7 @@ public:
     using Ptr = std::shared_ptr<SessionTypeImp>;
 
     SessionTypeImp(const mediakit::Parser &header, const mediakit::HttpSession &parent, const toolkit::Socket::Ptr &pSock) :
-            SessionType(pSock), _identifier(parent.getIdentifier()) {}
+            SessionType(pSock) {}
 
     ~SessionTypeImp() = default;
 
@@ -61,12 +61,7 @@ protected:
         return SessionType::send(std::move(buf));
     }
 
-    std::string getIdentifier() const override {
-        return _identifier;
-    }
-
 private:
-    std::string _identifier;
     onBeforeSendCB _beforeSendCB;
 };
 
@@ -98,10 +93,25 @@ public:
     }
     //每隔一段时间触发，用来做超时管理
     void onManager() override{
-        if(_session){
+        if (_session) {
             _session->onManager();
-        }else{
+        } else {
             HttpSessionType::onManager();
+        }
+        if (!_session) {
+            // websocket尚未链接
+            return;
+        }
+        if (_recv_ticker.elapsedTime() > 30 * 1000) {
+            HttpSessionType::shutdown(toolkit::SockException(toolkit::Err_timeout, "websocket timeout"));
+        } else if (_recv_ticker.elapsedTime() > 10 * 1000) {
+            // 没收到回复，每10秒发送次ping 包
+            mediakit::WebSocketHeader header;
+            header._fin = true;
+            header._reserved = 0;
+            header._opcode = mediakit::WebSocketHeader::PING;
+            header._mask_flag = false;
+            HttpSessionType::encode(header, nullptr);
         }
     }
 
@@ -118,13 +128,13 @@ protected:
      */
     bool onWebSocketConnect(const mediakit::Parser &header) override{
         //创建websocket session类
-        _session = _creator(header, *this,HttpSessionType::getSock());
-        if(!_session){
-            //此url不允许创建websocket连接
+        _session = _creator(header, *this, HttpSessionType::getSock());
+        if (!_session) {
+            // 此url不允许创建websocket连接
             return false;
         }
         auto strongServer = _weak_server.lock();
-        if(strongServer){
+        if (strongServer) {
             _session->attachServer(*strongServer);
         }
 
@@ -170,7 +180,7 @@ protected:
         auto header = const_cast<mediakit::WebSocketHeader&>(header_in);
         auto  flag = header._mask_flag;
         header._mask_flag = false;
-
+        _recv_ticker.resetTime();
         switch (header._opcode){
             case mediakit::WebSocketHeader::CLOSE:{
                 HttpSessionType::encode(header,nullptr);
@@ -230,6 +240,7 @@ private:
     std::weak_ptr<toolkit::Server> _weak_server;
     toolkit::Session::Ptr _session;
     Creator _creator;
+    toolkit::Ticker _recv_ticker;
 };
 
 
