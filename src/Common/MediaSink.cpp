@@ -172,7 +172,7 @@ void MediaSink::emitAllTrackReady() {
                 continue;
             }
             pr.second.for_each([&](const Frame::Ptr &frame) {
-                inputFrame(frame);
+                MediaSink::inputFrame(frame);
             });
         }
         _frame_unread.clear();

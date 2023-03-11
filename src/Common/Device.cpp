@@ -179,6 +179,27 @@ bool DevChannel::initAudio(const AudioInfo &info) {
     }
 }
 
+bool DevChannel::inputFrame(const Frame::Ptr &frame) {
+    auto cached_frame = Frame::getCacheAbleFrame(frame);
+    weak_ptr<MultiMediaSourceMuxer> weak_self = shared_from_this();
+    getOwnerPoller(MediaSource::NullMediaSource())->async([weak_self, cached_frame]() {
+        if (auto strong_self = weak_self.lock()) {
+            strong_self->MultiMediaSourceMuxer::inputFrame(cached_frame);
+        }
+    });
+    return true;
+}
+
+bool DevChannel::addTrack(const Track::Ptr &track) {
+    bool ret;
+    getOwnerPoller(MediaSource::NullMediaSource())->sync([&]() { ret = MultiMediaSourceMuxer::addTrack(track); });
+    return ret;
+}
+
+void DevChannel::addTrackCompleted() {
+    getOwnerPoller(MediaSource::NullMediaSource())->sync([&]() { MultiMediaSourceMuxer::addTrackCompleted(); });
+}
+
 MediaOriginType DevChannel::getOriginType(MediaSource &sender) const {
     return MediaOriginType::device_chn;
 }
