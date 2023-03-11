@@ -246,6 +246,10 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const MediaSourceE
         if (!strong_self || ex) {
             return;
         }
+        if (!strong_self->getOwnerPoller(MediaSource::NullMediaSource())->isCurrentThread()) {
+            // poller线程发生变更了
+            return;
+        }
         for (auto &track : strong_self->getTracks(false)) {
             rtp_sender->addTrack(track);
         }
