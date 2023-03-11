@@ -20,8 +20,10 @@ class MediaHelper : public MediaSourceEvent , public std::enable_shared_from_thi
 public:
     using Ptr = std::shared_ptr<MediaHelper>;
     template<typename ...ArgsType>
-    MediaHelper(ArgsType &&...args){
-        _channel = std::make_shared<DevChannel>(std::forward<ArgsType>(args)...);
+    MediaHelper(ArgsType &&...args) {
+        _poller = EventPollerPool::Instance().getPoller();
+        // 在poller线程中创建DevChannel(MultiMediaSourceMuxer)对象，确保严格的线程安全限制
+        _poller->sync([&]() { _channel = std::make_shared<DevChannel>(std::forward<ArgsType>(args)...); });
     }
 
     ~MediaHelper() = default;
@@ -102,7 +104,12 @@ protected:
         }
     }
 
+    toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) {
+        return _poller;
+    }
+
 private:
+    EventPoller::Ptr _poller;
     DevChannel::Ptr _channel;
     on_mk_media_close _on_close = nullptr;
     on_mk_media_seek _on_seek = nullptr;
