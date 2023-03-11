@@ -22,6 +22,7 @@
 - 使用多路复用/多线程/异步网络IO模式开发，并发性能优越，支持海量客户端连接。
 - 代码经过长期大量的稳定性、性能测试，已经在线上商用验证已久。
 - 支持linux、macos、ios、android、windows全平台。
+- 支持x86、arm、risc-v、mips、龙芯、申威等指令集平台。
 - 支持画面秒开、极低延时([500毫秒内，最低可达100毫秒](https://github.com/ZLMediaKit/ZLMediaKit/wiki/%E5%BB%B6%E6%97%B6%E6%B5%8B%E8%AF%95))。
 - 提供完善的标准[C API](https://github.com/ZLMediaKit/ZLMediaKit/tree/master/api/include),可以作SDK用，或供其他语言调用。
 - 提供完整的[MediaServer](https://github.com/ZLMediaKit/ZLMediaKit/tree/master/server)服务器，可以免开发直接部署为商用服务器。
@@ -93,9 +94,10 @@
 
 - GB28181与RTP推流
   - 支持UDP/TCP RTP(PS/TS/ES)推流服务器，可以转换成RTSP/RTMP/HLS等协议
-  - 支持RTSP/RTMP/HLS等协议转rtp推流客户端，支持TCP/UDP模式，提供相应restful api，支持主动被动方式。
+  - 支持RTSP/RTMP/HLS等协议转rtp推流客户端，支持TCP/UDP模式，提供相应restful api，支持主动被动方式
   - 支持H264/H265/AAC/G711/OPUS编码
-  - 支持海康ehome推流
+  - 支持es/ps/ts/ehome rtp推流
+  - 支持es/ps rtp转推
   - 支持GB28181主动拉流模式
 
 - MP4点播与录制
@@ -116,6 +118,7 @@
   - 支持GOP缓冲，webrtc播放秒开
   - 支持datachannel
   - 支持webrtc over tcp模式
+  - 优秀的nack、jitter buffer算法, 抗丢包能力卓越
 - [SRT支持](./srt/srt.md)
 - 其他
   - 支持丰富的restful api以及web hook事件 
@@ -125,7 +128,7 @@
   - 支持虚拟主机,可以隔离不同域名
   - 支持按需拉流，无人观看自动关断拉流
   - 支持先播放后推流，提高及时推流画面打开率
-  - 提供c api sdk
+  - 提供完整强大的c api sdk
   - 支持FFmpeg拉流代理任意格式的流
   - 支持http api生成并返回实时截图
   - 支持按需解复用、转协议，当有人观看时才开启转协议，降低cpu占用率
