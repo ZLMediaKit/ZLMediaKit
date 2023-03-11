@@ -54,7 +54,7 @@ option(ENABLE_SCTP "Enable SCTP" ON)
 option(ENABLE_WEBRTC "Enable WebRTC" ON)
 option(ENABLE_X264 "Enable x264" OFF)
 option(ENABLE_WEPOLL "Enable wepoll" ON)
-
+option(DISABLE_REPORT "Disable report to report.zlmediakit.com" off)
 option(USE_SOLUTION_FOLDERS "Enable solution dir supported" ON)
 
 ##############################################################################
@@ -202,6 +202,10 @@ endif()
 # mediakit 以及各个 runtime 依赖
 update_cached_list(MK_LINK_LIBRARIES "")
 update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_VERSION)
+
+if (DISABLE_REPORT)
+  update_cached_list(MK_COMPILE_DEFINITIONS DISABLE_REPORT)
+endif ()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
   include(CheckCXXSourceCompiles)
