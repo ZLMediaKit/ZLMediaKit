@@ -111,7 +111,6 @@ void test_real() {
     }
 
     cout << "输入数据个数:" << input_list.size()
-         << " 回环次数:" << sortor.getCycleCount()
          << " 抖动缓冲区大小:" << sortor.getJitterSize();
 
     //清空缓存
@@ -206,7 +205,6 @@ void test_rand(){
         i += (count + 1);
     }
     cout << "输入数据个数:" << input_list.size()
-         << " 回环次数:" << sortor.getCycleCount()
          << " 抖动缓冲区大小:" << sortor.getJitterSize()
          << " 丢包个数:" << drop_list.size()
          << " 重复包个数:" << repeat_list.size();
