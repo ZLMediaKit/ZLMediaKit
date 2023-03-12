@@ -74,19 +74,19 @@ static std::string httpBody() {
 #endif
 
     auto &arch = args["arch"];
-#if defined(__i386__)
-    arch = "x86";
-#elif defined(__x86_64__) || defined(__amd64__)
+#if defined(__x86_64__) || defined(__amd64__)
     arch = "x86_64";
+#elif defined(__x86__) || defined(__X86__) || defined(__i386__) || defined(__i486__) || defined(__i586__) || defined(__i686__)
+    arch = "x86";
+#elif defined(__arm64__) || defined(__aarch64__)
+    arch = "arm64";
 #elif defined(__arm__)
     arch = "arm";
-#elif defined(__arm64__)
-    arch = "arm64";
 #elif defined(__loognarch__)
     arch = "loognarch";
-#elif defined(__riscv)
+#elif defined(__riscv) || defined(__riscv__)
     arch = "riscv";
-#elif defined(__mipsl__)
+#elif defined(__mipsl__) || defined(__mips__)
     arch = "mipsl";
 #else
     arch = "unknow";
