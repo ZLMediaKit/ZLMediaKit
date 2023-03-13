@@ -680,11 +680,11 @@ string SdpAttrSctpMap::toString() const  {
 void SdpAttrCandidate::parse(const string &str)  {
     char foundation_buf[40] = {0};
     char transport_buf[16] = {0};
-    char address_buf[8*4+7+1] = {0};
+    char address_buf[64] = {0};
     char type_buf[16] = {0};
 
     // https://datatracker.ietf.org/doc/html/rfc5245#section-15.1
-    CHECK_SDP(sscanf(str.data(), "%32[^ ] %" SCNu32 " %15[^ ] %" SCNu32 " %39[^ ] %" SCNu16 " typ %15[^ ]",
+    CHECK_SDP(sscanf(str.data(), "%32[^ ] %" SCNu32 " %15[^ ] %" SCNu32 " %63[^ ] %" SCNu16 " typ %15[^ ]",
             foundation_buf, &component, transport_buf, &priority, address_buf, &port, type_buf) == 7);
     foundation = foundation_buf;
     transport = transport_buf;
