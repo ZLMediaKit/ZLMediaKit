@@ -95,6 +95,15 @@ void RtmpSession::onCmd_connect(AMFDecoder &dec) {
             //tc_url 中可能包含?以及参数，参见issue: #692
             _tc_url = _tc_url.substr(0, pos);
         }
+        auto stream_start = _tc_url.rfind('/');
+        if (stream_start != string::npos && stream_start > 1) {
+            auto protocol_end = _tc_url.find("://") + 2;
+            auto app_start = _tc_url.rfind('/', stream_start - 1);
+            if (app_start != protocol_end) {
+                // contain stream name part
+                _tc_url = _tc_url.substr(0, stream_start);
+            }
+        }
     }
     bool ok = true; //(app == APP_NAME);
     AMFValue version(AMF_OBJECT);
