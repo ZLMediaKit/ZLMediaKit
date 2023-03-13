@@ -52,7 +52,6 @@ void HttpRequester::setOnResult(const HttpRequesterResult &onResult) {
 ////////////////////////////////////////////////////////////////////////
 
 #if !defined(DISABLE_REPORT)
-static constexpr auto s_interval_second = 60 * 5;
 static constexpr auto s_report_url = "http://report.zlmediakit.com:8888/index/api/report";
 extern const char kServerName[];
 
@@ -112,6 +111,7 @@ static std::string httpBody() {
     args["build_date"] = __DATE__;
     args["version"] = kServerName;
     args["exe_name"] = exeName();
+    args["start_time"] = getTimeStr("%Y-%m-%d %H:%M:%S");
 
 #if NDEBUG
     args["release"] = 1;
@@ -161,6 +161,12 @@ static std::string httpBody() {
     args["openssl"] = 0;
 #endif
 
+#if ENABLE_FFMPEG
+    args["ffmpeg"] = 1;
+#else
+    args["ffmpeg"] = 0;
+#endif
+
     args["rand_str"] = makeRandStr(32);
     for (auto &pr : mINI::Instance()) {
         // 只获取转协议相关配置
@@ -178,14 +184,17 @@ static void sendReport() {
 
     requester->setMethod("POST");
     requester->setBody(body);
-    requester->startRequester(s_report_url, nullptr, s_interval_second);
+    // http超时时间设置为30秒
+    requester->startRequester(s_report_url, nullptr, 30);
 }
 
 static toolkit::onceToken s_token([]() {
     NoticeCenter::Instance().addListener(nullptr, EventPollerPool::kOnStarted, [](EventPollerPool &pool, size_t &size) {
-        pool.getPoller()->doDelayTask(s_interval_second * 1000, []() {
+        // 第一次汇报在程序启动后5分钟
+        pool.getPoller()->doDelayTask(5 * 60 * 1000, []() {
             sendReport();
-            return s_interval_second * 1000;
+            // 后续每一个小时汇报一次
+            return 60 * 60 * 1000;
         });
     });
 });
