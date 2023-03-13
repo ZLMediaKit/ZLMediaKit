@@ -161,6 +161,7 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_
         //随机端口，rtp端口采用偶数
         auto pair = std::make_pair(rtp_socket, rtcp_socket);
         makeSockPair(pair, local_ip, re_use_port);
+        local_port = rtp_socket->get_local_port();
     } else if (!rtp_socket->bindUdpSock(local_port, local_ip, re_use_port)) {
         //用户指定端口
         throw std::runtime_error(StrPrinter << "创建rtp端口 " << local_ip << ":" << local_port << " 失败:" << get_uv_errmsg(true));
