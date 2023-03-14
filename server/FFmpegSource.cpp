@@ -78,7 +78,13 @@ void FFmpegSource::play(const string &ffmpeg_cmd_key, const string &src_url,cons
     _src_url = src_url;
     _dst_url = dst_url;
     _ffmpeg_cmd_key = ffmpeg_cmd_key;
-    _media_info.parse(dst_url);
+
+    try {
+        _media_info.parse(dst_url);
+    } catch (std::exception &ex) {
+        cb(SockException(Err_other, ex.what()));
+        return;
+    }
 
     auto ffmpeg_cmd = ffmpeg_cmd_default;
     if (!ffmpeg_cmd_key.empty()) {
