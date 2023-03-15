@@ -217,7 +217,7 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_
         //单端口多线程接收多个流，根据ssrc区分流
         udp_server = std::make_shared<UdpServer>(rtp_socket->getPoller());
         (*udp_server)[RtpSession::kOnlyAudio] = only_audio;
-        udp_server->start<RtpSession>(rtp_socket->get_local_port(), local_ip);
+        udp_server->start<RtpSession>(local_port, local_ip);
         rtp_socket = nullptr;
 #else
         //单端口单线程接收多个流
