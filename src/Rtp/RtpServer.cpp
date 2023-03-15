@@ -161,12 +161,13 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_
         //随机端口，rtp端口采用偶数
         auto pair = std::make_pair(rtp_socket, rtcp_socket);
         makeSockPair(pair, local_ip, re_use_port);
+        local_port = rtp_socket->get_local_port();
     } else if (!rtp_socket->bindUdpSock(local_port, local_ip, re_use_port)) {
         //用户指定端口
         throw std::runtime_error(StrPrinter << "创建rtp端口 " << local_ip << ":" << local_port << " 失败:" << get_uv_errmsg(true));
-    } else if (!rtcp_socket->bindUdpSock(rtp_socket->get_local_port() + 1, local_ip, re_use_port)) {
+    } else if (!rtcp_socket->bindUdpSock(local_port + 1, local_ip, re_use_port)) {
         // rtcp端口
-        throw std::runtime_error(StrPrinter << "创建rtcp端口 " << local_ip << ":" << rtp_socket->get_local_port() + 1 << " 失败:" << get_uv_errmsg(true));
+        throw std::runtime_error(StrPrinter << "创建rtcp端口 " << local_ip << ":" << local_port + 1 << " 失败:" << get_uv_errmsg(true));
     }
 
     //设置udp socket读缓存
@@ -181,7 +182,7 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_
         (*tcp_server)[RtpSession::kSSRC] = ssrc;
         (*tcp_server)[RtpSession::kOnlyAudio] = only_audio;
         if (tcp_mode == PASSIVE) {
-            tcp_server->start<RtpSession>(rtp_socket->get_local_port(), local_ip);
+            tcp_server->start<RtpSession>(local_port, local_ip);
         } else if (stream_id.empty()) {
             // tcp主动模式时只能一个端口一个流，必须指定流id; 创建TcpServer对象也仅用于传参
             throw std::runtime_error(StrPrinter << "tcp主动模式时必需指定流id");
@@ -216,7 +217,7 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_
         //单端口多线程接收多个流，根据ssrc区分流
         udp_server = std::make_shared<UdpServer>(rtp_socket->getPoller());
         (*udp_server)[RtpSession::kOnlyAudio] = only_audio;
-        udp_server->start<RtpSession>(rtp_socket->get_local_port(), local_ip);
+        udp_server->start<RtpSession>(local_port, local_ip);
         rtp_socket = nullptr;
 #else
         //单端口单线程接收多个流
