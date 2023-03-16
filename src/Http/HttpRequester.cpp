@@ -117,13 +117,25 @@ static std::string httpBody() {
 #if (defined(__amd64__) && !defined(__amd64))
 #define __amd64
 #endif
+    
+#if (defined(_M_ARM64) && !defined(__arm64__))
+#define __arm64__
+#endif
+
+#if (defined(_M_X64) && !defined(__x86_64__))
+#define __x86_64__
+#endif
+    
+#if (defined(_M_ARM) && !defined(__arm__))
+#define __arm__
+#endif
 
 #if (defined(__i386__) || defined(__amd64__)) && (!defined(__x86__))
 #if !(defined(_MSC_VER) && defined(__amd64__))
 #define __x86__ // MSVC doesn't support inline assembly in x64
 #endif
 #endif
-
+    
     auto &arch = args["arch"];
 #if defined(__x86_64__) || defined(__amd64__)
     arch = "x86_64";
