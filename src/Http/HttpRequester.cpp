@@ -72,6 +72,58 @@ static std::string httpBody() {
     os = "unknow";
 #endif
 
+#if (defined(_WIN32) && !defined(WIN32))
+#define WIN32 _WIN32
+#elif (defined(WIN32) && !defined(_WIN32))
+#define _WIN32 WIN32
+#endif
+
+#if (defined(_WIN32) && !defined(_MSC_VER) && !defined(_WIN64))
+#ifndef __i386__
+#define __i386__
+#endif
+#elif defined(_MSC_VER)
+#if (defined(_M_IX86) && !defined(__i386__))
+#define __i386__
+#endif
+#endif
+
+#ifndef __i386__
+#if (defined(__386__) || defined(__I386__) || _M_IX86)
+#define __i386__
+#endif
+#endif
+
+#if (defined(__i386__) && !defined(__I386__))
+#define __I386__
+#endif
+
+#if (defined(__x86_64__) && !defined(__x86_64))
+#define __x86_64
+#endif
+
+#if (defined(__x86_64) && !defined(__x86_64__))
+#define __x86_64__
+#endif
+
+#if (defined(_M_AMD64)) && (!defined(__amd64__))
+#define __amd64__
+#endif
+
+#if (defined(__amd64) && !defined(__amd64__))
+#define __amd64__
+#endif
+
+#if (defined(__amd64__) && !defined(__amd64))
+#define __amd64
+#endif
+
+#if (defined(__i386__) || defined(__amd64__)) && (!defined(__x86__))
+#if !(defined(_MSC_VER) && defined(__amd64__))
+#define __x86__ // MSVC doesn't support inline assembly in x64
+#endif
+#endif
+
     auto &arch = args["arch"];
 #if defined(__x86_64__) || defined(__amd64__)
     arch = "x86_64";
