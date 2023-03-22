@@ -537,7 +537,7 @@ void addStreamProxy(const string &vhost, const string &app, const string &stream
         return;
     }
     //添加拉流代理
-    auto player = std::make_shared<PlayerProxy>(vhost, app, stream, option, retry_count ? retry_count : -1);
+    auto player = std::make_shared<PlayerProxy>(vhost, app, stream, option, retry_count >=0 ? retry_count : -1);
     s_proxyMap[key] = player;
 
     //指定RTP over TCP(播放rtsp时有效)
@@ -952,7 +952,7 @@ void installWebApi() {
         }
 
         //添加推流代理
-        PusherProxy::Ptr pusher(new PusherProxy(src, retry_count ? retry_count : -1));
+        PusherProxy::Ptr pusher(new PusherProxy(src, retry_count>=0 ? retry_count : -1));
         s_proxyPusherMap[key] = pusher;
 
         //指定RTP over TCP(播放rtsp时有效)
@@ -988,12 +988,13 @@ void installWebApi() {
         CHECK_SECRET();
         CHECK_ARGS("schema", "vhost", "app", "stream", "dst_url");
         auto dst_url = allArgs["dst_url"];
+	auto retry_count = allArgs["retry_count"].empty()? -1: allArgs["retry_count"].as<int>();
         addStreamPusherProxy(allArgs["schema"],
                              allArgs["vhost"],
                              allArgs["app"],
                              allArgs["stream"],
                              allArgs["dst_url"],
-                             allArgs["retry_count"],
+                             retry_count,
                              allArgs["rtp_type"],
                              allArgs["timeout_sec"],
                              [invoker, val, headerOut, dst_url](const SockException &ex, const string &key) mutable {
@@ -1024,12 +1025,12 @@ void installWebApi() {
         CHECK_ARGS("vhost","app","stream","url");
 
         ProtocolOption option(allArgs);
-
+        auto retry_count = allArgs["retry_count"].empty()? -1: allArgs["retry_count"].as<int>();
         addStreamProxy(allArgs["vhost"],
                        allArgs["app"],
                        allArgs["stream"],
                        allArgs["url"],
-                       allArgs["retry_count"],
+                       retry_count,
                        option,
                        allArgs["rtp_type"],
                        allArgs["timeout_sec"],
