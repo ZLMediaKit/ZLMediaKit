@@ -20,6 +20,15 @@ using namespace toolkit;
 
 namespace mediakit {
 
+int64_t DeltaStamp::relativeStamp(int64_t stamp) {
+    _relative_stamp += deltaStamp(stamp);
+    return _relative_stamp;
+}
+
+int64_t DeltaStamp::relativeStamp(){
+    return _relative_stamp;
+}
+
 int64_t DeltaStamp::deltaStamp(int64_t stamp) {
     if(!_last_stamp){
         //第一次计算时间戳增量,时间戳增量为0
