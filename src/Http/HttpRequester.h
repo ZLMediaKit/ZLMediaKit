@@ -25,10 +25,10 @@ public:
 
     void setOnResult(const HttpRequesterResult &onResult);
     void startRequester(const std::string &url, const HttpRequesterResult &on_result, float timeout_sec = 10);
-    void setRetry(int count, int delay);
-    int getRetry() const { return _retry; }
-    int getRetryDelay() const { return _retry_delay; }
-    int getMaxRetry() const { return _max_retry; }
+    void setRetry(size_t count, size_t delay);
+    size_t getRetry() const { return _retry; }
+    size_t getRetryDelay() const { return _retry_delay; }
+    size_t getMaxRetry() const { return _max_retry; }
     void clear() override;
 
 private:
@@ -37,9 +37,9 @@ private:
     void onResponseCompleted(const toolkit::SockException &ex) override;
 
 private:
-    int _retry = 0;
-    int _max_retry = 0;
-    int _retry_delay = 2000; // ms
+    size_t _retry = 0;
+    size_t _max_retry = 0;
+    size_t _retry_delay = 2000; // ms
     std::string _res_body;
     HttpRequesterResult _on_result;
 };

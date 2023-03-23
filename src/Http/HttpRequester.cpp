@@ -44,7 +44,7 @@ void HttpRequester::onResponseCompleted(const SockException &ex) {
     }
 }
 
-void HttpRequester::setRetry(int count, int delay) {
+void HttpRequester::setRetry(size_t count, size_t delay) {
     InfoL << "setRetry max=" << count << ", delay=" << delay;
     _max_retry = count;
     _retry_delay = delay;
