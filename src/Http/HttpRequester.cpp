@@ -11,7 +11,7 @@
 #include "HttpRequester.h"
 #include "Util/onceToken.h"
 #include "Util/NoticeCenter.h"
-
+#include <memory>
 using namespace std;
 using namespace toolkit;
 
@@ -26,6 +26,17 @@ void HttpRequester::onResponseBody(const char *buf, size_t size) {
 }
 
 void HttpRequester::onResponseCompleted(const SockException &ex) {
+    if (ex && _retry++ < _max_retry) {
+        std::weak_ptr<HttpRequester> weak_self = std::dynamic_pointer_cast<HttpRequester>(shared_from_this());
+        getPoller()->doDelayTask(_retry_delay, [weak_self](){
+            if (auto self = weak_self.lock()) {
+                InfoL << "resend request " << self->getUrl() << " with retry " << self->getRetry();
+                self->sendRequest(self->getUrl());
+            }
+            return 0;
+        });
+        return ;
+    }
     const_cast<Parser &>(response()).setContent(std::move(_res_body));
     if (_on_result) {
         _on_result(ex, response());
@@ -33,8 +44,15 @@ void HttpRequester::onResponseCompleted(const SockException &ex) {
     }
 }
 
+void HttpRequester::setRetry(size_t count, size_t delay) {
+    InfoL << "setRetry max=" << count << ", delay=" << delay;
+    _max_retry = count;
+    _retry_delay = delay;
+}
+
 void HttpRequester::startRequester(const string &url, const HttpRequesterResult &on_result, float timeout_sec) {
     _on_result = on_result;
+    _retry = 0;
     setCompleteTimeout(timeout_sec * 1000);
     sendRequest(url);
 }
