@@ -382,7 +382,7 @@ Value makeMediaSourceJson(MediaSource &media){
                 int gop_size = video_track->getVideoGopSize();
                 int gop_interval_ms = video_track->getVideoGopInterval();
                 float fps = video_track->getVideoFps();
-                if (fps <= 1) {
+                if (fps <= 1 && gop_interval_ms) {
                     fps = gop_size * 1000.0 / gop_interval_ms;
                 }
                 obj["fps"] = round(fps);
