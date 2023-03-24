@@ -287,9 +287,13 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
                 if(session && rtsp_session){
                     rtsp_src_imp = rtsp_session->getPushSrc();
                     session->getPoller()->async_first([this,rtsp_src,option,rtsp_src_imp,onResPushSrc,session](){
-                        session->shutdown(SockException(Err_shutdown, "other pusher kick session"));
+                        session->shutdown(SockException(Err_eof, "other pusher kick session"));
                         _push_src_ownership = rtsp_src_imp->getOwnership();
-                        _push_src = std::move(rtsp_src_imp);
+                        if(_push_src_ownership){
+                            _push_src = std::move(rtsp_src_imp);
+                        }else{
+                            WarnL<<"not reach this";
+                        }
 
                         this->getPoller()->async_first([option,onResPushSrc](){
                             onResPushSrc(option);
