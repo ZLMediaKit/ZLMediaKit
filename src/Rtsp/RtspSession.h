@@ -40,6 +40,8 @@ public:
     void onError(const toolkit::SockException &err) override;
     void onManager() override;
 
+    RtspMediaSourceImp::Ptr getPushSrc();
+
 protected:
     /////RtspSplitter override/////
     //收到完整的rtsp包回调，包括sdp等content数据
