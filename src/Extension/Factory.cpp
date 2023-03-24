@@ -159,7 +159,7 @@ RtpCodec::Ptr Factory::getRtpEncoderBySdp(const Sdp::Ptr &sdp) {
     uint32_t ssrc = s_ssrc++;
     if (!ssrc) {
         // ssrc不能为0
-        ssrc = 1;
+        ssrc = s_ssrc++;
     }
     if (sdp->getTrackType() == TrackVideo) {
         //视频的ssrc是偶数，方便调试
