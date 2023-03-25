@@ -51,6 +51,11 @@ public:
      */
     void setTrackListener(const std::weak_ptr<Listener> &listener);
 
+     /**
+      * 获取Track就绪事件监听器
+     */
+    std::weak_ptr<Listener> getTrackListener();
+
     /**
      * 返回总的消费者个数
      */

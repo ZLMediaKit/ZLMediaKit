@@ -142,6 +142,10 @@ void MultiMediaSourceMuxer::setTrackListener(const std::weak_ptr<Listener> &list
     _track_listener = listener;
 }
 
+std::weak_ptr<MultiMediaSourceMuxer::Listener> MultiMediaSourceMuxer::getTrackListener(){
+    return _track_listener;
+}
+
 int MultiMediaSourceMuxer::totalReaderCount() const {
     auto hls = _hls;
     auto ret = (_rtsp ? _rtsp->readerCount() : 0) +
