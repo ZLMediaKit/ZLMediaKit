@@ -16,25 +16,27 @@ var ZLMRTCClient = (function (exports) {
 	};
 
 	const VERSION$1 = '1.0.1';
-	const BUILD_DATE = 'Mon Jul 04 2022 19:50:55 GMT+0800 (China Standard Time)';
+	const BUILD_DATE = 'Mon Mar 27 2023 19:11:59 GMT+0800 (China Standard Time)';
 
 	// Copyright (C) <2018> Intel Corporation
 	//
 	// SPDX-License-Identifier: Apache-2.0
+
 	// eslint-disable-next-line require-jsdoc
 	function isFirefox() {
 	  return window.navigator.userAgent.match('Firefox') !== null;
-	} // eslint-disable-next-line require-jsdoc
-
+	}
+	// eslint-disable-next-line require-jsdoc
 	function isChrome() {
 	  return window.navigator.userAgent.match('Chrome') !== null;
-	} // eslint-disable-next-line require-jsdoc
-
+	}
+	// eslint-disable-next-line require-jsdoc
 	function isEdge() {
 	  return window.navigator.userAgent.match(/Edge\/(\d+).(\d+)$/) !== null;
-	} // eslint-disable-next-line require-jsdoc
+	}
 
 	// Copyright (C) <2018> Intel Corporation
+
 	/**
 	 * @class AudioSourceInfo
 	 * @classDesc Source info about an audio track. Values: 'mic', 'screen-cast', 'file', 'mixed'.
@@ -42,13 +44,13 @@ var ZLMRTCClient = (function (exports) {
 	 * @readonly
 	 * @enum {string}
 	 */
-
 	const AudioSourceInfo = {
 	  MIC: 'mic',
 	  SCREENCAST: 'screen-cast',
 	  FILE: 'file',
 	  MIXED: 'mixed'
 	};
+
 	/**
 	 * @class VideoSourceInfo
 	 * @classDesc Source info about a video track. Values: 'camera', 'screen-cast', 'file', 'mixed'.
@@ -56,13 +58,13 @@ var ZLMRTCClient = (function (exports) {
 	 * @readonly
 	 * @enum {string}
 	 */
-
 	const VideoSourceInfo = {
 	  CAMERA: 'camera',
 	  SCREENCAST: 'screen-cast',
 	  FILE: 'file',
 	  MIXED: 'mixed'
 	};
+
 	/**
 	 * @class TrackKind
 	 * @classDesc Kind of a track. Values: 'audio' for audio track, 'video' for video track, 'av' for both audio and video tracks.
@@ -70,20 +72,17 @@ var ZLMRTCClient = (function (exports) {
 	 * @readonly
 	 * @enum {string}
 	 */
-
 	const TrackKind = {
 	  /**
 	   * Audio tracks.
 	   * @type string
 	   */
 	  AUDIO: 'audio',
-
 	  /**
 	   * Video tracks.
 	   * @type string
 	   */
 	  VIDEO: 'video',
-
 	  /**
 	   * Both audio and video tracks.
 	   * @type string
@@ -98,7 +97,6 @@ var ZLMRTCClient = (function (exports) {
 	 * @param {number} width
 	 * @param {number} height
 	 */
-
 	class Resolution {
 	  // eslint-disable-next-line require-jsdoc
 	  constructor(width, height) {
@@ -113,10 +111,8 @@ var ZLMRTCClient = (function (exports) {
 	     * @instance
 	     * @memberof Owt.Base.Resolution
 	     */
-
 	    this.height = height;
 	  }
-
 	}
 
 	/*
@@ -5531,7 +5527,6 @@ var ZLMRTCClient = (function (exports) {
 	 * @constructor
 	 * @param {Owt.Base.AudioSourceInfo} source Source info of this audio track.
 	 */
-
 	class AudioTrackConstraints {
 	  // eslint-disable-next-line require-jsdoc
 	  constructor(source) {
@@ -5544,8 +5539,6 @@ var ZLMRTCClient = (function (exports) {
 	     * @desc Values could be "mic", "screen-cast", "file" or "mixed".
 	     * @instance
 	     */
-
-
 	    this.source = source;
 	    /**
 	     * @member {string} deviceId
@@ -5554,11 +5547,10 @@ var ZLMRTCClient = (function (exports) {
 	     * @instance
 	     * @see https://w3c.github.io/mediacapture-main/#def-constraint-deviceId
 	     */
-
 	    this.deviceId = undefined;
 	  }
-
 	}
+
 	/**
 	 * @class VideoTrackConstraints
 	 * @classDesc Constraints for creating a video MediaStreamTrack.
@@ -5566,7 +5558,6 @@ var ZLMRTCClient = (function (exports) {
 	 * @constructor
 	 * @param {Owt.Base.VideoSourceInfo} source Source info of this video track.
 	 */
-
 	class VideoTrackConstraints {
 	  // eslint-disable-next-line require-jsdoc
 	  constructor(source) {
@@ -5579,8 +5570,6 @@ var ZLMRTCClient = (function (exports) {
 	     * @desc Values could be "camera", "screen-cast", "file" or "mixed".
 	     * @instance
 	     */
-
-
 	    this.source = source;
 	    /**
 	     * @member {string} deviceId
@@ -5591,22 +5580,21 @@ var ZLMRTCClient = (function (exports) {
 	     */
 
 	    this.deviceId = undefined;
+
 	    /**
 	     * @member {Owt.Base.Resolution} resolution
 	     * @memberof Owt.Base.VideoTrackConstraints
 	     * @instance
 	     */
-
 	    this.resolution = undefined;
+
 	    /**
 	     * @member {number} frameRate
 	     * @memberof Owt.Base.VideoTrackConstraints
 	     * @instance
 	     */
-
 	    this.frameRate = undefined;
 	  }
-
 	}
 	/**
 	 * @class StreamConstraints
@@ -5616,7 +5604,6 @@ var ZLMRTCClient = (function (exports) {
 	 * @param {?Owt.Base.AudioTrackConstraints} audioConstraints
 	 * @param {?Owt.Base.VideoTrackConstraints} videoConstraints
 	 */
-
 	class StreamConstraints {
 	  // eslint-disable-next-line require-jsdoc
 	  constructor(audioConstraints = false, videoConstraints = false) {
@@ -5631,22 +5618,20 @@ var ZLMRTCClient = (function (exports) {
 	     * @memberof Owt.Base.MediaStreamDeviceConstraints
 	     * @instance
 	     */
-
 	    this.video = videoConstraints;
 	  }
+	}
 
-	} // eslint-disable-next-line require-jsdoc
-
+	// eslint-disable-next-line require-jsdoc
 	function isVideoConstrainsForScreenCast(constraints) {
 	  return typeof constraints.video === 'object' && constraints.video.source === VideoSourceInfo.SCREENCAST;
 	}
+
 	/**
 	 * @class MediaStreamFactory
 	 * @classDesc A factory to create MediaStream. You can also create MediaStream by yourself.
 	 * @memberof Owt.Base
 	 */
-
-
 	class MediaStreamFactory {
 	  /**
 	   * @function createMediaStream
@@ -5665,29 +5650,23 @@ var ZLMRTCClient = (function (exports) {
 	    if (typeof constraints !== 'object' || !constraints.audio && !constraints.video) {
 	      return Promise.reject(new TypeError('Invalid constrains'));
 	    }
-
 	    if (!isVideoConstrainsForScreenCast(constraints) && typeof constraints.audio === 'object' && constraints.audio.source === AudioSourceInfo.SCREENCAST) {
 	      return Promise.reject(new TypeError('Cannot share screen without video.'));
 	    }
-
 	    if (isVideoConstrainsForScreenCast(constraints) && !isChrome() && !isFirefox()) {
 	      return Promise.reject(new TypeError('Screen sharing only supports Chrome and Firefox.'));
 	    }
-
 	    if (isVideoConstrainsForScreenCast(constraints) && typeof constraints.audio === 'object' && constraints.audio.source !== AudioSourceInfo.SCREENCAST) {
 	      return Promise.reject(new TypeError('Cannot capture video from screen cast while capture audio from' + ' other source.'));
-	    } // Check and convert constraints.
+	    }
 
-
+	    // Check and convert constraints.
 	    if (!constraints.audio && !constraints.video) {
 	      return Promise.reject(new TypeError('At least one of audio and video must be requested.'));
 	    }
-
 	    const mediaConstraints = Object.create({});
-
 	    if (typeof constraints.audio === 'object' && constraints.audio.source === AudioSourceInfo.MIC) {
 	      mediaConstraints.audio = Object.create({});
-
 	      if (isEdge()) {
 	        mediaConstraints.audio.deviceId = constraints.audio.deviceId;
 	      } else {
@@ -5702,14 +5681,11 @@ var ZLMRTCClient = (function (exports) {
 	        mediaConstraints.audio = constraints.audio;
 	      }
 	    }
-
 	    if (typeof constraints.video === 'object') {
 	      mediaConstraints.video = Object.create({});
-
 	      if (typeof constraints.video.frameRate === 'number') {
 	        mediaConstraints.video.frameRate = constraints.video.frameRate;
 	      }
-
 	      if (constraints.video.resolution && constraints.video.resolution.width && constraints.video.resolution.height) {
 	        if (constraints.video.source === VideoSourceInfo.SCREENCAST) {
 	          mediaConstraints.video.width = constraints.video.resolution.width;
@@ -5721,27 +5697,23 @@ var ZLMRTCClient = (function (exports) {
 	          mediaConstraints.video.height.exact = constraints.video.resolution.height;
 	        }
 	      }
-
 	      if (typeof constraints.video.deviceId === 'string') {
 	        mediaConstraints.video.deviceId = {
 	          exact: constraints.video.deviceId
 	        };
 	      }
-
 	      if (isFirefox() && constraints.video.source === VideoSourceInfo.SCREENCAST) {
 	        mediaConstraints.video.mediaSource = 'screen';
 	      }
 	    } else {
 	      mediaConstraints.video = constraints.video;
 	    }
-
 	    if (isVideoConstrainsForScreenCast(constraints)) {
 	      return navigator.mediaDevices.getDisplayMedia(mediaConstraints);
 	    } else {
 	      return navigator.mediaDevices.getUserMedia(mediaConstraints);
 	    }
 	  }
-
 	}
 
 	// Copyright (C) <2018> Intel Corporation
@@ -5782,34 +5754,26 @@ var ZLMRTCClient = (function (exports) {
 	    this.listener = {};
 	    this.type = type | '';
 	  }
-
 	  on(event, fn) {
 	    if (!this.listener[event]) {
 	      this.listener[event] = [];
 	    }
-
 	    this.listener[event].push(fn);
 	    return true;
 	  }
-
 	  off(event, fn) {
 	    if (this.listener[event]) {
 	      var index = this.listener[event].indexOf(fn);
-
 	      if (index > -1) {
 	        this.listener[event].splice(index, 1);
 	      }
-
 	      return true;
 	    }
-
 	    return false;
 	  }
-
 	  offAll() {
 	    this.listener = {};
 	  }
-
 	  dispatch(event, data) {
 	    if (this.listener[event]) {
 	      this.listener[event].map(each => {
@@ -5817,10 +5781,8 @@ var ZLMRTCClient = (function (exports) {
 	      });
 	      return true;
 	    }
-
 	    return false;
 	  }
-
 	}
 
 	var bind = function bind(fn, thisArg) {
@@ -7861,11 +7823,9 @@ var ZLMRTCClient = (function (exports) {
 	      usedatachannel: false
 	    };
 	    this.options = Object.assign({}, defaults, options);
-
 	    if (this.options.debug) {
 	      setLogger();
 	    }
-
 	    this.e = {
 	      onicecandidate: this._onIceCandidate.bind(this),
 	      ontrack: this._onTrack.bind(this),
@@ -7878,13 +7838,13 @@ var ZLMRTCClient = (function (exports) {
 	    };
 	    this._remoteStream = null;
 	    this._localStream = null;
+	    this._tracks = [];
 	    this.pc = new RTCPeerConnection(null);
 	    this.pc.onicecandidate = this.e.onicecandidate;
 	    this.pc.onicecandidateerror = this.e.onicecandidateerror;
 	    this.pc.ontrack = this.e.ontrack;
 	    this.pc.onconnectionstatechange = this.e.onconnectionstatechange;
 	    this.datachannel = null;
-
 	    if (this.options.usedatachannel) {
 	      this.datachannel = this.pc.createDataChannel('chat');
 	      this.datachannel.onclose = this.e.ondatachannelclose;
@@ -7892,12 +7852,11 @@ var ZLMRTCClient = (function (exports) {
 	      this.datachannel.onmessage = this.e.ondatachannelmsg;
 	      this.datachannel.onopen = this.e.ondatachannelopen;
 	    }
-
 	    if (!this.options.recvOnly && (this.options.audioEnable || this.options.videoEnable)) this.start();else this.receive();
 	  }
-
 	  receive() {
 
+	    //debug.error(this.TAG,'this not implement');
 	    const AudioTransceiverInit = {
 	      direction: 'recvonly',
 	      sendEncodings: []
@@ -7906,15 +7865,12 @@ var ZLMRTCClient = (function (exports) {
 	      direction: 'recvonly',
 	      sendEncodings: []
 	    };
-
 	    if (this.options.videoEnable) {
 	      this.pc.addTransceiver('video', VideoTransceiverInit);
 	    }
-
 	    if (this.options.audioEnable) {
 	      this.pc.addTransceiver('audio', AudioTransceiverInit);
 	    }
-
 	    this.pc.createOffer().then(desc => {
 	      log(this.TAG, 'offer:', desc.sdp);
 	      this.pc.setLocalDescription(desc).then(() => {
@@ -7928,13 +7884,11 @@ var ZLMRTCClient = (function (exports) {
 	          }
 	        }).then(response => {
 	          let ret = response.data; //JSON.parse(response.data);
-
 	          if (ret.code != 0) {
 	            // mean failed for offer/anwser exchange 
 	            this.dispatch(Events$1.WEBRTC_OFFER_ANWSER_EXCHANGE_FAILED, ret);
 	            return;
 	          }
-
 	          let anwser = {};
 	          anwser.sdp = ret.sdp;
 	          anwser.type = 'answer';
@@ -7950,11 +7904,9 @@ var ZLMRTCClient = (function (exports) {
 	      error(this.TAG, e);
 	    });
 	  }
-
 	  start() {
 	    let videoConstraints = false;
 	    let audioConstraints = false;
-
 	    if (this.options.useCamera) {
 	      if (this.options.videoEnable) videoConstraints = new VideoTrackConstraints(VideoSourceInfo.CAMERA);
 	      if (this.options.audioEnable) audioConstraints = new AudioTrackConstraints(AudioSourceInfo.MIC);
@@ -7969,11 +7921,9 @@ var ZLMRTCClient = (function (exports) {
 	        }
 	      }
 	    }
-
 	    if (this.options.resolution.w != 0 && this.options.resolution.h != 0 && typeof videoConstraints == 'object') {
 	      videoConstraints.resolution = new Resolution(this.options.resolution.w, this.options.resolution.h);
 	    }
-
 	    MediaStreamFactory.createMediaStream(new StreamConstraints(audioConstraints, videoConstraints)).then(stream => {
 	      this._localStream = stream;
 	      this.dispatch(Events$1.WEBRTC_ON_LOCAL_STREAM, stream);
@@ -7985,7 +7935,6 @@ var ZLMRTCClient = (function (exports) {
 	        direction: 'sendrecv',
 	        sendEncodings: []
 	      };
-
 	      if (this.options.simulcast && stream.getVideoTracks().length > 0) {
 	        VideoTransceiverInit.sendEncodings = [{
 	          rid: 'h',
@@ -8003,7 +7952,6 @@ var ZLMRTCClient = (function (exports) {
 	          scaleResolutionDownBy: 4
 	        }];
 	      }
-
 	      if (this.options.audioEnable) {
 	        if (stream.getAudioTracks().length > 0) {
 	          this.pc.addTransceiver(stream.getAudioTracks()[0], AudioTransceiverInit);
@@ -8012,7 +7960,6 @@ var ZLMRTCClient = (function (exports) {
 	          this.pc.addTransceiver('audio', AudioTransceiverInit);
 	        }
 	      }
-
 	      if (this.options.videoEnable) {
 	        if (stream.getVideoTracks().length > 0) {
 	          this.pc.addTransceiver(stream.getVideoTracks()[0], VideoTransceiverInit);
@@ -8021,14 +7968,13 @@ var ZLMRTCClient = (function (exports) {
 	          this.pc.addTransceiver('video', VideoTransceiverInit);
 	        }
 	      }
+
 	      /*
 	      stream.getTracks().forEach((track,idx)=>{
 	          debug.log(this.TAG,track);
 	          this.pc.addTrack(track);
 	      });
 	      */
-
-
 	      this.pc.createOffer().then(desc => {
 	        log(this.TAG, 'offer:', desc.sdp);
 	        this.pc.setLocalDescription(desc).then(() => {
@@ -8042,13 +7988,11 @@ var ZLMRTCClient = (function (exports) {
 	            }
 	          }).then(response => {
 	            let ret = response.data; //JSON.parse(response.data);
-
 	            if (ret.code != 0) {
 	              // mean failed for offer/anwser exchange 
 	              this.dispatch(Events$1.WEBRTC_OFFER_ANWSER_EXCHANGE_FAILED, ret);
 	              return;
 	            }
-
 	            let anwser = {};
 	            anwser.sdp = ret.sdp;
 	            anwser.type = 'answer';
@@ -8064,9 +8008,11 @@ var ZLMRTCClient = (function (exports) {
 	        error(this.TAG, e);
 	      });
 	    }).catch(e => {
-	      this.dispatch(Events$1.CAPTURE_STREAM_FAILED); //debug.error(this.TAG,e);
-	    }); //const offerOptions = {};
+	      this.dispatch(Events$1.CAPTURE_STREAM_FAILED);
+	      //debug.error(this.TAG,e);
+	    });
 
+	    //const offerOptions = {};
 	    /*
 	    if (typeof this.pc.addTransceiver === 'function') {
 	        // |direction| seems not working on Safari.
@@ -8081,48 +8027,48 @@ var ZLMRTCClient = (function (exports) {
 
 	  _onIceCandidate(event) {
 	    if (event.candidate) {
-	      log('Remote ICE candidate: \n ' + event.candidate.candidate); // Send the candidate to the remote peer
+	      log(this.TAG, 'Remote ICE candidate: \n ' + event.candidate.candidate);
+	      // Send the candidate to the remote peer
 	    }
 	  }
-
 	  _onTrack(event) {
+	    this._tracks.push(event.track);
 	    if (this.options.element && event.streams && event.streams.length > 0) {
 	      this.options.element.srcObject = event.streams[0];
 	      this._remoteStream = event.streams[0];
 	      this.dispatch(Events$1.WEBRTC_ON_REMOTE_STREAMS, event);
 	    } else {
-	      error('element pararm is failed');
+	      if (this.pc.getReceivers().length == this._tracks.length) {
+	        log(this.TAG, 'play remote stream ');
+	        this._remoteStream = new MediaStream(this._tracks);
+	        this.options.element.srcObject = this._remoteStream;
+	      } else {
+	        error(this.TAG, 'wait stream track finish');
+	      }
 	    }
 	  }
-
 	  _onIceCandidateError(event) {
 	    this.dispatch(Events$1.WEBRTC_ICE_CANDIDATE_ERROR, event);
 	  }
-
 	  _onconnectionstatechange(event) {
 	    this.dispatch(Events$1.WEBRTC_ON_CONNECTION_STATE_CHANGE, this.pc.connectionState);
 	  }
-
 	  _onDataChannelOpen(event) {
 	    log(this.TAG, 'ondatachannel open:', event);
 	    this.dispatch(Events$1.WEBRTC_ON_DATA_CHANNEL_OPEN, event);
 	  }
-
 	  _onDataChannelMsg(event) {
 	    log(this.TAG, 'ondatachannel msg:', event);
 	    this.dispatch(Events$1.WEBRTC_ON_DATA_CHANNEL_MSG, event);
 	  }
-
 	  _onDataChannelErr(event) {
 	    log(this.TAG, 'ondatachannel err:', event);
 	    this.dispatch(Events$1.WEBRTC_ON_DATA_CHANNEL_ERR, event);
 	  }
-
 	  _onDataChannelClose(event) {
 	    log(this.TAG, 'ondatachannel close:', event);
 	    this.dispatch(Events$1.WEBRTC_ON_DATA_CHANNEL_CLOSE, event);
 	  }
-
 	  sendMsg(data) {
 	    if (this.datachannel != null) {
 	      this.datachannel.send(data);
@@ -8130,47 +8076,42 @@ var ZLMRTCClient = (function (exports) {
 	      error(this.TAG, 'data channel is null');
 	    }
 	  }
-
 	  closeDataChannel() {
 	    if (this.datachannel) {
 	      this.datachannel.close();
 	      this.datachannel = null;
 	    }
 	  }
-
 	  close() {
 	    this.closeDataChannel();
-
 	    if (this.pc) {
 	      this.pc.close();
 	      this.pc = null;
 	    }
-
 	    if (this.options) {
 	      this.options = null;
 	    }
-
 	    if (this._localStream) {
 	      this._localStream.getTracks().forEach((track, idx) => {
 	        track.stop();
 	      });
 	    }
-
 	    if (this._remoteStream) {
 	      this._remoteStream.getTracks().forEach((track, idx) => {
 	        track.stop();
 	      });
 	    }
+	    this._tracks.forEach((track, idx) => {
+	      track.stop();
+	    });
+	    this._tracks = [];
 	  }
-
 	  get remoteStream() {
 	    return this._remoteStream;
 	  }
-
 	  get localStream() {
 	    return this._localStream;
 	  }
-
 	}
 
 	const quickScan = [{
@@ -8224,20 +8165,17 @@ var ZLMRTCClient = (function (exports) {
 	    let resolutions = [];
 	    let ok = 0;
 	    let err = 0;
-
 	    for (let i = 0; i < quickScan.length; ++i) {
 	      let videoConstraints = new VideoTrackConstraints(VideoSourceInfo.CAMERA);
 	      videoConstraints.resolution = new Resolution(quickScan[i].width, quickScan[i].height);
 	      MediaStreamFactory.createMediaStream(new StreamConstraints(false, videoConstraints)).then(stream => {
 	        resolutions.push(quickScan[i]);
 	        ok++;
-
 	        if (ok + err == quickScan.length) {
 	          resolve(resolutions);
 	        }
 	      }).catch(e => {
 	        err++;
-
 	        if (ok + err == quickScan.length) {
 	          resolve(resolutions);
 	        }
