@@ -1,7 +1,7 @@
 ---
 name: 技术咨询
 about: 使用咨询、技术咨询等
-title: "[技术咨询] 该issue标题"
+title: "[技术咨询] 咨询描述"
 labels: 技术咨询
 assignees: ''
 
