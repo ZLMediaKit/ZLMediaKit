@@ -1,7 +1,7 @@
 ---
 name: 编译问题反馈
 about: 反馈 ZLMediaKit 编译相关的问题
-title: "[编译问题]: "
+title: "[编译问题] 编译问题描述(必填)"
 labels: 编译问题
 assignees: ''
 
