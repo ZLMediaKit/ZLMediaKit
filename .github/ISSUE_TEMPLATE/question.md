@@ -16,4 +16,4 @@ assignees: ''
 **注意事项**
 - 技术咨询前请先认真阅读readme, [wiki](https://github.com/xia-chu/ZLMediaKit/wiki),如有必要，您也可以同时搜索已经答复的issue，如果没找到答案才在此提issue
 
-- 技术咨询不属于bug缺陷，要求用户先star(收藏)本项目，否则会直接关闭issue。
+- 技术咨询不属于bug缺陷，要求用户先star(收藏)本项目，否则会直接关闭issue
