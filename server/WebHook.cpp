@@ -161,7 +161,7 @@ void do_http_hook(const string &url, const ArgsType &body, const function<void(c
     GET_CONFIG(float, retry_delay, Hook::kRetryDelay);
 
     const_cast<ArgsType &>(body)["mediaServerId"] = mediaServerId;
-    HttpRequester::Ptr requester(new HttpRequester);
+    auto requester = std::make_shared<HttpRequester>();
     requester->setMethod("POST");
     auto bodyStr = to_string(body);
     requester->setBody(bodyStr);
