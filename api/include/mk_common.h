@@ -33,7 +33,7 @@
 #        endif
 #    endif
 #elif !defined(GENERATE_EXPORT)
-#   define API_EXPORT
+#   define API_EXPORT __attribute__((visibility("default")))
 #endif
 
 #ifdef __cplusplus
