@@ -151,7 +151,17 @@ void HlsPlayer::onParsed(bool is_m3u8_inner, int64_t sequence, const map<int, ts
     if (!is_m3u8_inner) {
         //这是ts播放列表
         if (_last_sequence == sequence) {
+            // 如果是重复的ts列表，那么忽略
+            // 但是需要注意, 如果当前ts列表为空了, 那么表明直播结束了或者m3u8文件有问题,需要重新拉流
+            // 这里的5倍是为了防止m3u8文件有问题导致的无限重试
+            if (_last_sequence > 0 && _ts_list.empty() && HlsParser::isLive() && _wait_index_update_ticker.elapsedTime() > (uint64_t)HlsParser::getTargetDur() * 1000 * 5) {
+                _wait_index_update_ticker.resetTime();
+                HlsParser::setIsM3U8(false);
+                WarnL << "ts列表为空且m3u8文件长时间未更新,重置m3u8文件";
+            }
             return;
+        }else{
+            _wait_index_update_ticker.resetTime();
         }
         _last_sequence = sequence;
         for (auto &pr : ts_map) {

@@ -107,7 +107,9 @@ bool HlsParser::parse(const string &http_url, const string &m3u8) {
 bool HlsParser::isM3u8() const {
     return _is_m3u8;
 }
-
+void HlsParser::setIsM3U8(bool isM3U8) {
+    _is_m3u8 = isM3U8;
+}
 bool HlsParser::isLive() const{
     return _is_live;
 }

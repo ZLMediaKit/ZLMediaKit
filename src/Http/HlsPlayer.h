@@ -101,6 +101,7 @@ private:
     std::string _play_url;
     toolkit::Timer::Ptr _timer;
     toolkit::Timer::Ptr _timer_ts;
+    toolkit::Ticker _wait_index_update_ticker;
     std::list<ts_segment> _ts_list;
     std::list<std::string> _ts_url_sort;
     std::set<std::string, UrlComp> _ts_url_cache;
