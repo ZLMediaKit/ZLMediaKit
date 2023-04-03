@@ -18,11 +18,19 @@
           </video>
         </div>
 
-        <div>
+        <div style="float: left; width:30%;">
+          <span>已存在的流列表，点击自动播放:</span>
+          <ol id="olstreamlist">
+            <li>初始演示</li>
+            <li>每秒自动刷新</li>
+          </ol>
+        </div>
+
+        <div style="float: right; width: 70%">
 
             <p>
                 <label for="streamUrl">url:</label>
-                <input type="text" style="co" id='streamUrl' value="http://192.168.1.101/index/api/webrtc?app=live&stream=xiong&type=play">
+                <input type="text" style="co; width:70%" id='streamUrl' value="http://192.168.1.101/index/api/webrtc?app=live&stream=xiong&type=play">
             </p>
 
             <p>
@@ -251,6 +259,64 @@
           player.closeDataChannel()
         }
       }
+
+
+      function on_click_to_play(app, stream) {
+        console.log(`on_click_to_play: ${app}/${stream}`);
+        var url = `${document.location.protocol}//${window.location.host}/index/api/webrtc?app=${app}&stream=${stream}&type=play`;
+        document.getElementById('streamUrl').value = url;
+        start();
+      }
+      function clearStreamList() {
+        let content = document.getElementById("olstreamlist");
+          while (content.hasChildNodes()) {
+            content.removeChild(content.firstChild);
+          }
+      }
+      function fillStreamList(json) {
+          clearStreamList();
+          if (json.code != 0) {
+            return;
+          }
+          let ss = {};
+          for (let o of json.data) {
+            if (ss[o.app]) {
+              ss[o.app].add(o.stream);
+            } else {
+              let set = new Set();
+              set.add(o.steram);
+              ss[o.app] = set;
+            }
+          }
+
+          for (let o in ss) {
+            let app = o;
+            for (let s of ss[o]) {
+              if (s) {
+                //console.log(app, s);
+                let content = document.getElementById("olstreamlist");
+                let child = `<li app="${app}"  stream="${s}" onmouseover="this.style.color='blue';" onclick="on_click_to_play('${app}', '${s}')">${app}/${s}</li>`;
+                content.insertAdjacentHTML("beforeend", child);
+              }
+            }
+          }
+      }
+      async function getData(url) {
+        const response = await fetch(url, {
+            method: 'GET'
+        });
+        const data = await response.json();
+        //console.log(data);
+        return data;
+      }
+      function get_media_list() {
+        let url = document.location.protocol+"//"+window.location.host+"/index/api/getMediaList?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc";
+        let json = getData(url);
+        json.then((json)=> fillStreamList(json));
+      }
+      setInterval(() => {
+       get_media_list(); 
+      }, 1000);
 
     </script>
     
