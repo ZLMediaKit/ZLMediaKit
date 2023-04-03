@@ -199,6 +199,8 @@ bool H264Track::inputFrame_l(const Frame::Ptr &frame) {
             if (_latest_is_config_frame && !frame->dropAble()) {
                 if (!frame->keyFrame()) {
                     const_cast<Frame::Ptr &>(frame) = std::make_shared<FrameCacheAble>(frame, true);
+                    // 如果不主动插入, 就没办法及时添加config帧, 播放器应该尽快获取pps,sps
+                    insertConfigFrame(frame);
                 }
             }
             // 判断是否是I帧, 并且如果是,那判断前面是否插入过config帧, 如果插入过就不插入了
