@@ -73,11 +73,11 @@ protected:
     virtual void onPacket(const char *data, size_t len) = 0;
 
 private:
-    void onParsed(bool is_m3u8_inner,int64_t sequence,const map<int,ts_segment> &ts_map) override;
-    void onResponseHeader(const std::string &status,const HttpHeader &headers) override;
-    void onResponseBody(const char *buf,size_t size) override;
+    bool onParsed(bool is_m3u8_inner, int64_t sequence, const map<int, ts_segment> &ts_map) override;
+    void onResponseHeader(const std::string &status, const HttpHeader &headers) override;
+    void onResponseBody(const char *buf, size_t size) override;
     void onResponseCompleted(const toolkit::SockException &e) override;
-    bool onRedirectUrl(const std::string &url,bool temporary) override;
+    bool onRedirectUrl(const std::string &url, bool temporary) override;
 
 private:
     void playDelay();
