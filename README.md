@@ -198,7 +198,7 @@ bash build_docker_images.sh
 ## 联系方式
 
  - 邮箱：<1213642868@qq.com>(本项目相关或流媒体相关问题请走issue流程，否则恕不邮件答复)
- - QQ群：qq群号在wiki中，请阅读wiki后再加群
+ - QQ群：两个qq群已满员(共4000人)，后续将不再新建qq群，用户可加入[知识星球](https://t.zsxq.com/0cVcuquPJ)提问以支持本项目。
 
 ## 怎么提问？
 
@@ -295,6 +295,10 @@ bash build_docker_images.sh
 [gongluck](https://github.com/gongluck)
 [a-ucontrol](https://github.com/a-ucontrol)
 [TalusL](https://github.com/TalusL)
+[ahaooahaz](https://github.com/AHAOAHA)
+[TempoTian](https://github.com/TempoTian)
+[Derek Liu](https://github.com/yjkhtddx)
+[ljx0305](https://github.com/ljx0305)
 
 ## 使用案例
 

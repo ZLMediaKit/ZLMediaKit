@@ -537,7 +537,7 @@ void addStreamProxy(const string &vhost, const string &app, const string &stream
         return;
     }
     //添加拉流代理
-    auto player = std::make_shared<PlayerProxy>(vhost, app, stream, option, retry_count >=0 ? retry_count : -1);
+    auto player = std::make_shared<PlayerProxy>(vhost, app, stream, option, retry_count);
     s_proxyMap[key] = player;
 
     //指定RTP over TCP(播放rtsp时有效)
@@ -952,7 +952,7 @@ void installWebApi() {
         }
 
         //添加推流代理
-        PusherProxy::Ptr pusher(new PusherProxy(src, retry_count>=0 ? retry_count : -1));
+        auto pusher = std::make_shared<PusherProxy>(src, retry_count);
         s_proxyPusherMap[key] = pusher;
 
         //指定RTP over TCP(播放rtsp时有效)
@@ -988,7 +988,7 @@ void installWebApi() {
         CHECK_SECRET();
         CHECK_ARGS("schema", "vhost", "app", "stream", "dst_url");
         auto dst_url = allArgs["dst_url"];
-	auto retry_count = allArgs["retry_count"].empty()? -1: allArgs["retry_count"].as<int>();
+        auto retry_count = allArgs["retry_count"].empty() ? -1 : allArgs["retry_count"].as<int>();
         addStreamPusherProxy(allArgs["schema"],
                              allArgs["vhost"],
                              allArgs["app"],
@@ -1327,7 +1327,7 @@ void installWebApi() {
             invoker(200, headerOut, val.toStyledString());
         });
     });
-    
+
     //设置录像流播放速度
     api_regist("/index/api/setRecordSpeed", [](API_ARGS_MAP_ASYNC) {
         CHECK_SECRET();
@@ -1407,7 +1407,7 @@ void installWebApi() {
             invoker(200, headerOut, val.toStyledString());
         });
     });
-	
+
     // 删除录像文件夹
     // http://127.0.0.1/index/api/deleteRecordDirectroy?vhost=__defaultVhost__&app=live&stream=ss&period=2020-01-01
     api_regist("/index/api/deleteRecordDirectory", [](API_ARGS_MAP) {
@@ -1424,7 +1424,7 @@ void installWebApi() {
         val["path"] = record_path;
         val["code"] = result;
     });
-	
+
     //获取录像文件夹列表或mp4文件列表
     //http://127.0.0.1/index/api/getMp4RecordFile?vhost=__defaultVhost__&app=live&stream=ss&period=2020-01
     api_regist("/index/api/getMp4RecordFile", [](API_ARGS_MAP){
