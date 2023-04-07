@@ -117,6 +117,7 @@ int main(int argc,char *argv[]) {
             sem.post();
         });
         sem.wait();
+        sleep(1);
     }
     else
       ErrorL << "parameter error.";
