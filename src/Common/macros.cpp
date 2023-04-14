@@ -26,7 +26,7 @@ void Assert_Throw(int failed, const char *exp, const char *func, const char *fil
             printer << ", " << str;
         }
         printer << "), function " << func << ", file " << file << ", line " << line << ".";
-        throw std::runtime_error(printer);
+        throw mediakit::AssertFailedException(printer);
     }
 }
 }

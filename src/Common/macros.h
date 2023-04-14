@@ -80,6 +80,13 @@ extern void Assert_Throw(int failed, const char *exp, const char *func, const ch
 
 namespace mediakit {
 
+class AssertFailedException : public std::runtime_error {
+public:
+    template<typename ...T>
+    AssertFailedException(T && ...args) : std::runtime_error(std::forward<T>(args)...) {}
+    ~AssertFailedException() override = default;
+};
+
 extern const char kServerName[];
 
 template <typename... ARGS>
