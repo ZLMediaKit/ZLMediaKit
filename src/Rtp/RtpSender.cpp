@@ -29,6 +29,7 @@ RtpSender::RtpSender(EventPoller::Ptr poller) {
 
 RtpSender::~RtpSender() {
     flush();
+    onClose(SockException(Err_timeout, "RtpSender Destroyed"));
 }
 
 void RtpSender::startSend(const MediaSourceEvent::SendRtpArgs &args, const function<void(uint16_t local_port, const SockException &ex)> &cb){
@@ -306,7 +307,7 @@ void RtpSender::onSendRtpUdp(const toolkit::Buffer::Ptr &buf, bool check) {
 }
 
 void RtpSender::onClose(const SockException &ex) {
-    auto cb = _on_close;
+    auto cb = std::move(_on_close);
     if (cb) {
         //在下次循环时触发onClose，原因是防止遍历map时删除元素
         _poller->async([cb, ex]() { cb(ex); }, false);
