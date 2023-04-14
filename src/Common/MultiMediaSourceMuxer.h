@@ -46,7 +46,7 @@ public:
     void setMediaListener(const std::weak_ptr<MediaSourceEvent> &listener);
 
      /**
-      * 随着Track就绪事件监听器
+      * 设置Track就绪事件监听器
       * @param listener 事件监听器
      */
     void setTrackListener(const std::weak_ptr<Listener> &listener);
