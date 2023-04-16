@@ -127,6 +127,10 @@ public:
         _ring->clearCache();
     }
 
+    bool haveVideo() const {
+        return _have_video;
+    }
+
 private:
     /**
      * 批量flush rtp包时触发该函数
