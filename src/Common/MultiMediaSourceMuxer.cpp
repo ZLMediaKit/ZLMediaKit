@@ -86,8 +86,6 @@ MultiMediaSourceMuxer::MultiMediaSourceMuxer(const string &vhost, const string &
     _app = app;
     _stream_id = stream;
     _option = option;
-    _ring = std::make_shared<RingType>();
-
 
     if (option.enable_rtmp) {
         _rtmp = std::make_shared<RtmpMediaSourceMuxer>(vhost, app, stream, option, std::make_shared<TitleMeta>(dur_sec));
@@ -156,7 +154,7 @@ int MultiMediaSourceMuxer::totalReaderCount() const {
                (hls ? hls->readerCount() : 0);
 
 #if defined(ENABLE_RTPPROXY)
-    return ret + (int)_rtp_sender.size();
+    return ret + (_ring ? _ring->readerCount() : 0);
 #else
     return ret;
 #endif
@@ -239,77 +237,53 @@ bool MultiMediaSourceMuxer::isRecording(MediaSource &sender, Recorder::type type
 
 void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const MediaSourceEvent::SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb) {
 #if defined(ENABLE_RTPPROXY)
-    auto rtp_sender = std::make_shared<RtpSender>(getOwnerPoller(sender));
-    weak_ptr<MediaSource> weak_sender = sender.shared_from_this();
     weak_ptr<MultiMediaSourceMuxer> weak_self = shared_from_this();
-    weak_ptr<RtpSender> weak_rtp_sender = rtp_sender->shared_from_this();
-
-    rtp_sender->setOnStartSend([weak_self, weak_rtp_sender]() {
-        auto strong_self = weak_self.lock();
-        if (!strong_self) {
-            return;
-        }
-
-        auto strong_rtp_sender = weak_rtp_sender.lock();
-        if (!strong_rtp_sender) {
-            return;
-        }
-
-        auto& rtp_reader = strong_rtp_sender->getRingReader();
-        rtp_reader = strong_self->getRing()->attach(strong_rtp_sender->getPoller());
-        rtp_reader->setGetInfoCB([weak_rtp_sender]() { return weak_rtp_sender.lock(); });
-        rtp_reader->setReadCB([weak_rtp_sender](const RingDataType &pkt) {
-            auto strong_self = weak_rtp_sender.lock();
-            if (!strong_self) {
-                return;
+    if (!_ring) {
+        weak_ptr<MediaSource> weak_sender = sender.shared_from_this();
+        _ring = std::make_shared<RingType>(1024, [weak_self, weak_sender](int size) {
+            auto strong_self = weak_self.lock();
+            auto strong_sender = weak_sender.lock();
+            if (strong_self && strong_sender) {
+                // 可能归属线程发生变更
+                strong_self->getOwnerPoller(MediaSource::NullMediaSource())->async([=]() {
+                    strong_self->onReaderChanged(*strong_sender, strong_self->totalReaderCount());
+                });
             }
-
-            pkt->for_each([&](const Frame::Ptr &rtp){
-                strong_self->inputFrame(rtp);
-            });
         });
-        rtp_reader->setDetachCB([weak_rtp_sender]() {
-            auto strong_self = weak_rtp_sender.lock();
-            if (!strong_self) {
-                return;
-            }
-            strong_self->onClose(SockException(Err_shutdown,"rtpsender ring buffer detached"));
-        });
-    });
+    }
+    auto ring = _ring;
+    auto ssrc = args.ssrc;
+    auto tracks = getTracks(false);
+    auto rtp_sender = std::make_shared<RtpSender>(getOwnerPoller(sender));
 
-    rtp_sender->startSend(args, [args, weak_self, rtp_sender, cb, weak_sender](uint16_t local_port, const SockException &ex) mutable {
+    rtp_sender->startSend(args, [ssrc, weak_self, rtp_sender, cb, tracks, ring](uint16_t local_port, const SockException &ex) mutable {
         cb(local_port, ex);
         auto strong_self = weak_self.lock();
         if (!strong_self || ex) {
             return;
         }
-        if (!strong_self->getOwnerPoller(MediaSource::NullMediaSource())->isCurrentThread()) {
-            // poller线程发生变更了
-            WarnL << "MultiMediaSourceMuxer poller thread changed";
-        }
-        for (auto &track : strong_self->getTracks(false)) {
+
+        for (auto &track : tracks) {
             rtp_sender->addTrack(track);
         }
         rtp_sender->addTrackCompleted();
-
-        auto ssrc = args.ssrc;
-        rtp_sender->setOnClose([weak_self, ssrc, weak_sender](const toolkit::SockException &ex) {
+        rtp_sender->setOnClose([weak_self, ssrc](const toolkit::SockException &ex) {
             if (auto strong_self = weak_self.lock()) {
-                WarnL << "stream:" << strong_self->shortUrl() << " stop send rtp:" << ssrc << ", reason:" << ex.what();
-                strong_self->_rtp_sender.erase(ssrc);
-                //触发观看人数统计
-                auto strong_sender = weak_sender.lock();
-                if (strong_sender) {
-                    strong_self->onReaderChanged(*strong_sender, strong_self->totalReaderCount());
-                }
-                NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastSendRtpStopped, *strong_self, ssrc, ex);
+                // 可能归属线程发生变更
+                strong_self->getOwnerPoller(MediaSource::NullMediaSource())->async([=]() {
+                    WarnL << "stream:" << strong_self->shortUrl() << " stop send rtp:" << ssrc << ", reason:" << ex.what();
+                    strong_self->_rtp_sender.erase(ssrc);
+                    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastSendRtpStopped, *strong_self, ssrc, ex);
+                });
             }
         });
-        strong_self->_rtp_sender[args.ssrc] = std::move(rtp_sender);
-        auto strong_sender = weak_sender.lock();
-        if (strong_sender) {
-            strong_self->onReaderChanged(*strong_sender, strong_self->totalReaderCount());
-        }
+
+        auto reader = ring->attach(EventPoller::getCurrentPoller());
+        reader->setReadCB([rtp_sender](const Frame::Ptr &frame) {
+            rtp_sender->inputFrame(frame);
+        });
+
+        strong_self->_rtp_sender[ssrc] = std::move(reader);
     });
 #else
     cb(0, SockException(Err_other, "该功能未启用，编译时请打开ENABLE_RTPPROXY宏"));
@@ -396,7 +370,6 @@ void MultiMediaSourceMuxer::onAllTrackReady() {
     }
     if (_rtsp) {
         _rtsp->onAllTrackReady();
-        _have_video = _rtsp->haveVideo();
     }
 #if defined(ENABLE_MP4)
     if (_fmp4) {
@@ -425,12 +398,6 @@ void MultiMediaSourceMuxer::resetTracks() {
 #if defined(ENABLE_MP4)
     if (_fmp4) {
         _fmp4->resetTracks();
-    }
-#endif
-
-#if defined(ENABLE_RTPPROXY)
-    for (auto &pr : _rtp_sender) {
-        pr.second->resetTracks();
     }
 #endif
 
@@ -482,21 +449,10 @@ bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
 #endif
 
 #if defined(ENABLE_RTPPROXY)
-//    for (auto &pr : _rtp_sender) {
-//        ret = pr.second->inputFrame(frame) ? true : ret;
-//    }
-    //frame输入到环形缓冲
-    onFrame(frame);
+    //没有视频时，设置is_key为true，目的是关闭gop缓存
+    if (_ring) { _ring->write(frame, !haveVideo() || frame->keyFrame()); }
 #endif //ENABLE_RTPPROXY
     return ret;
-}
-
-
-void MultiMediaSourceMuxer::onFrame(Frame::Ptr frame) {
-    auto stamp = frame->dts();
-    bool is_video = frame->getTrackType() == TrackVideo;
-    auto keyPos = frame->keyFrame();
-    PacketCache<Frame>::inputPacket(stamp, is_video, std::move(frame), keyPos);
 }
 
 bool MultiMediaSourceMuxer::isEnabled(){
@@ -514,7 +470,7 @@ bool MultiMediaSourceMuxer::isEnabled(){
                     (hls ? hls->isEnabled() : false) || _mp4;
 
 #if defined(ENABLE_RTPPROXY)
-        _is_enable = flag || _rtp_sender.size();
+        _is_enable = flag || _ring->readerCount();
 #else
         _is_enable = flag;
 #endif //ENABLE_RTPPROXY

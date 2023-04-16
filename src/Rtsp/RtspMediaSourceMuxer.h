@@ -42,10 +42,6 @@ public:
         return _media_src->readerCount();
     }
 
-    bool haveVideo() const {
-        return _media_src->haveVideo();
-    }
-
     void setTimeStamp(uint32_t stamp){
         _media_src->setTimeStamp(stamp);
     }

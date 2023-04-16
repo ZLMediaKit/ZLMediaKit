@@ -25,11 +25,10 @@
 
 namespace mediakit {
 
-class MultiMediaSourceMuxer : public MediaSourceEventInterceptor, public MediaSink, private PacketCache<Frame>, public std::enable_shared_from_this<MultiMediaSourceMuxer>{
+class MultiMediaSourceMuxer : public MediaSourceEventInterceptor, public MediaSink, public std::enable_shared_from_this<MultiMediaSourceMuxer>{
 public:
     using Ptr = std::shared_ptr<MultiMediaSourceMuxer>;
-    using RingDataType = std::shared_ptr<toolkit::List<Frame::Ptr> >;
-    using RingType = toolkit::RingBuffer<RingDataType>;
+    using RingType = toolkit::RingBuffer<Frame::Ptr>;
 
     class Listener {
     public:
@@ -127,13 +126,6 @@ public:
      */
     toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;
 
-    /**
-     * 获取媒体源的环形缓冲
-     */
-    const RingType::Ptr &getRing() const {
-        return _ring;
-    }
-
     const std::string& getVhost() const;
     const std::string& getApp() const;
     const std::string& getStreamId() const;
@@ -161,25 +153,6 @@ protected:
     bool onTrackFrame(const Frame::Ptr &frame) override;
 
 private:
-
-    /**
-     * 输入frame到ringbuffer 为保证rtpsender线程安全
-     * @param frame
-     */
-    void onFrame(Frame::Ptr frame);
-
-    /**
-     * 批量flush frame时触发该函数
-     * @param frame_list frame包列表
-     * @param key_pos 是否包含关键帧
-     */
-    void onFlush(std::shared_ptr<toolkit::List<Frame::Ptr> > frame_list, bool key_pos) override {
-        //如果不存在视频，那么就没有存在GOP缓存的意义，所以is_key一直为true确保一直清空GOP缓存
-        _ring->write(std::move(frame_list), _have_video ? key_pos : true);
-    }
-
-private:
-    bool _have_video = false;
     bool _is_enable = false;
     bool _create_in_poller = false;
     std::string _vhost;
@@ -190,7 +163,7 @@ private:
     Stamp _stamp[2];
     std::weak_ptr<Listener> _track_listener;
 #if defined(ENABLE_RTPPROXY)
-    std::unordered_map<std::string, RtpSender::Ptr> _rtp_sender;
+    std::unordered_map<std::string, RingType::RingReader::Ptr> _rtp_sender;
 #endif //ENABLE_RTPPROXY
 
 #if defined(ENABLE_MP4)
@@ -203,7 +176,6 @@ private:
     HlsRecorder::Ptr _hls;
     toolkit::EventPoller::Ptr _poller;
     RingType::Ptr _ring;
-
 
     //对象个数统计
     toolkit::ObjectStatistic<MultiMediaSourceMuxer> _statistic;

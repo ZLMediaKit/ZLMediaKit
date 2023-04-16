@@ -54,7 +54,7 @@ option(ENABLE_SCTP "Enable SCTP" ON)
 option(ENABLE_WEBRTC "Enable WebRTC" ON)
 option(ENABLE_X264 "Enable x264" OFF)
 option(ENABLE_WEPOLL "Enable wepoll" ON)
-option(DISABLE_REPORT "Disable report to report.zlmediakit.com" OFF)
+option(DISABLE_REPORT "Disable report to report.zlmediakit.com" off)
 option(USE_SOLUTION_FOLDERS "Enable solution dir supported" ON)
 
 ##############################################################################

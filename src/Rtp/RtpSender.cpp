@@ -32,7 +32,6 @@ RtpSender::~RtpSender() {
 }
 
 void RtpSender::startSend(const MediaSourceEvent::SendRtpArgs &args, const function<void(uint16_t local_port, const SockException &ex)> &cb){
-    _on_start_send();
     _args = args;
     if (!_interface) {
         //重连时不重新创建对象
@@ -344,15 +343,6 @@ void RtpSender::onErr(const SockException &ex) {
 void RtpSender::setOnClose(std::function<void(const toolkit::SockException &ex)> on_close){
     _on_close = std::move(on_close);
 }
-
-void RtpSender::setOnStartSend(std::function<void()> on_start_send){
-    _on_start_send = std::move(on_start_send);
-}
-
-const EventPoller::Ptr &RtpSender::getPoller() const {
-    return _poller;
-}
-
 
 }//namespace mediakit
 #endif// defined(ENABLE_RTPPROXY)

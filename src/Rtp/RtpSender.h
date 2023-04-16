@@ -25,8 +25,6 @@ class RtpSession;
 class RtpSender final : public MediaSinkInterface, public std::enable_shared_from_this<RtpSender>{
 public:
     using Ptr = std::shared_ptr<RtpSender>;
-    using RingDataType = std::shared_ptr<toolkit::List<Frame::Ptr> >;
-    using RingType = toolkit::RingBuffer<RingDataType>;
 
     RtpSender(toolkit::EventPoller::Ptr poller = nullptr);
     ~RtpSender() override;
@@ -67,17 +65,6 @@ public:
 
     void setOnClose(std::function<void(const toolkit::SockException &ex)> on_close);
 
-    void onClose(const toolkit::SockException &ex);
-
-    const toolkit::EventPoller::Ptr &getPoller() const;
-
-    void setOnStartSend(std::function<void()> on_start_send);
-
-    RingType::RingReader::Ptr& getRingReader(){
-        return _ring_reader;
-    }
-
-
 private:
     //合并写输出
     void onFlushRtpList(std::shared_ptr<toolkit::List<toolkit::Buffer::Ptr> > rtp_list);
@@ -88,7 +75,7 @@ private:
     void createRtcpSocket();
     void onRecvRtcp(RtcpHeader *rtcp);
     void onSendRtpUdp(const toolkit::Buffer::Ptr &buf, bool check);
-
+    void onClose(const toolkit::SockException &ex);
 
 private:
     bool _is_connect = false;
@@ -102,9 +89,6 @@ private:
     toolkit::Ticker _rtcp_recv_ticker;
     std::shared_ptr<RtpSession> _rtp_session;
     std::function<void(const toolkit::SockException &ex)> _on_close;
-    std::function<void()> _on_start_send;
-    //用于发送rtp的reader对象
-    RingType::RingReader::Ptr _ring_reader;
 };
 
 }//namespace mediakit
