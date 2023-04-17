@@ -244,7 +244,7 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const MediaSourceE
             auto strong_self = weak_self.lock();
             auto strong_sender = weak_sender.lock();
             if (strong_self && strong_sender) {
-                // 可能归属线程发生变更
+                // 切换到归属线程
                 strong_self->getOwnerPoller(MediaSource::NullMediaSource())->async([=]() {
                     strong_self->onReaderChanged(*strong_sender, strong_self->totalReaderCount());
                 });
@@ -283,7 +283,10 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const MediaSourceE
             rtp_sender->inputFrame(frame);
         });
 
-        strong_self->_rtp_sender[ssrc] = std::move(reader);
+        // 可能归属线程发生变更
+        strong_self->getOwnerPoller(MediaSource::NullMediaSource())->async([=]() {
+            strong_self->_rtp_sender[ssrc] = std::move(reader);
+        });
     });
 #else
     cb(0, SockException(Err_other, "该功能未启用，编译时请打开ENABLE_RTPPROXY宏"));
@@ -292,10 +295,6 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const MediaSourceE
 
 bool MultiMediaSourceMuxer::stopSendRtp(MediaSource &sender, const string &ssrc) {
 #if defined(ENABLE_RTPPROXY)
-    onceToken token(nullptr, [&]() {
-        //关闭rtp推流，可能触发无人观看事件
-        onReaderChanged(sender, totalReaderCount());
-    });
     if (ssrc.empty()) {
         //关闭全部
         auto size = _rtp_sender.size();
