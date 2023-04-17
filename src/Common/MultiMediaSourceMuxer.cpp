@@ -461,8 +461,17 @@ bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
 #endif
 
 #if defined(ENABLE_RTPPROXY)
-    //没有视频时，设置is_key为true，目的是关闭gop缓存
-    if (_ring) { _ring->write(frame, !haveVideo() || frame->keyFrame()); }
+    if (_ring) {
+        if (frame->getTrackType() == TrackVideo) {
+            // 视频时，遇到第一帧配置帧或关键帧则标记为gop开始处
+            auto video_key_pos = frame->keyFrame() || frame->configFrame();
+            _ring->write(frame, video_key_pos && !_video_key_pos);
+            _video_key_pos = video_key_pos;
+        } else {
+            // 没有视频时，设置is_key为true，目的是关闭gop缓存
+            _ring->write(frame, !haveVideo());
+        }
+    }
 #endif //ENABLE_RTPPROXY
     return ret;
 }

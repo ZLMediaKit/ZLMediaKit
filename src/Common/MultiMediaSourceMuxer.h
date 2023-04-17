@@ -155,6 +155,7 @@ protected:
 private:
     bool _is_enable = false;
     bool _create_in_poller = false;
+    bool _video_key_pos = false;
     std::string _vhost;
     std::string _app;
     std::string _stream_id;
