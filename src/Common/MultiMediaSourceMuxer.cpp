@@ -470,7 +470,7 @@ bool MultiMediaSourceMuxer::isEnabled(){
                     (hls ? hls->isEnabled() : false) || _mp4;
 
 #if defined(ENABLE_RTPPROXY)
-        _is_enable = flag || _ring->readerCount();
+        _is_enable = flag || (_ring ? _ring->readerCount() : 0);
 #else
         _is_enable = flag;
 #endif //ENABLE_RTPPROXY
