@@ -21,6 +21,17 @@ namespace toolkit {
 
 namespace mediakit {
 
+namespace {
+class MediaSourceForMuxer : public MediaSource {
+public:
+    MediaSourceForMuxer(const MultiMediaSourceMuxer::Ptr &muxer)
+        : MediaSource("muxer", muxer->getVhost(), muxer->getApp(), muxer->getStreamId()) {
+        MediaSource::setListener(muxer);
+    }
+    int readerCount() override { return 0; }
+};
+} // namespace
+
 static std::shared_ptr<MediaSinkInterface> makeRecorder(MediaSource &sender, const vector<Track::Ptr> &tracks, Recorder::type type, const ProtocolOption &option){
     auto recorder = Recorder::createRecorder(type, sender.getVhost(), sender.getApp(), sender.getId(), option);
     for (auto &track : tracks) {
@@ -237,24 +248,12 @@ bool MultiMediaSourceMuxer::isRecording(MediaSource &sender, Recorder::type type
 
 void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const MediaSourceEvent::SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb) {
 #if defined(ENABLE_RTPPROXY)
-    weak_ptr<MultiMediaSourceMuxer> weak_self = shared_from_this();
-    if (!_ring) {
-        weak_ptr<MediaSource> weak_sender = sender.shared_from_this();
-        _ring = std::make_shared<RingType>(1024, [weak_self, weak_sender](int size) {
-            auto strong_self = weak_self.lock();
-            auto strong_sender = weak_sender.lock();
-            if (strong_self && strong_sender) {
-                // 切换到归属线程
-                strong_self->getOwnerPoller(MediaSource::NullMediaSource())->async([=]() {
-                    strong_self->onReaderChanged(*strong_sender, strong_self->totalReaderCount());
-                });
-            }
-        });
-    }
+    assert(_ring);
     auto ring = _ring;
     auto ssrc = args.ssrc;
     auto tracks = getTracks(false);
     auto rtp_sender = std::make_shared<RtpSender>(getOwnerPoller(sender));
+    weak_ptr<MultiMediaSourceMuxer> weak_self = shared_from_this();
 
     rtp_sender->startSend(args, [ssrc, weak_self, rtp_sender, cb, tracks, ring](uint16_t local_port, const SockException &ex) mutable {
         cb(local_port, ex);
@@ -379,6 +378,20 @@ void MultiMediaSourceMuxer::onAllTrackReady() {
     if (listener) {
         listener->onAllTrackReady();
     }
+
+#if defined(ENABLE_RTPPROXY)
+    weak_ptr<MultiMediaSourceMuxer> weak_self = shared_from_this();
+    _ring = std::make_shared<RingType>(1024, [weak_self](int size) {
+        auto strong_self = weak_self.lock();
+        if (strong_self) {
+            // 切换到归属线程
+            strong_self->getOwnerPoller(MediaSource::NullMediaSource())->async([=]() {
+                auto src = std::make_shared<MediaSourceForMuxer>(strong_self);
+                strong_self->onReaderChanged(*src, strong_self->totalReaderCount());
+            });
+        }
+    });
+#endif
     InfoL << "stream: " << shortUrl() << " , codec info: " << getTrackInfoStr(this);
 }
 
