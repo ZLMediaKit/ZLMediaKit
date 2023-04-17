@@ -155,20 +155,15 @@ void MultiMediaSourceMuxer::setTrackListener(const std::weak_ptr<Listener> &list
 
 int MultiMediaSourceMuxer::totalReaderCount() const {
     auto hls = _hls;
-    auto ret = (_rtsp ? _rtsp->readerCount() : 0) +
-               (_rtmp ? _rtmp->readerCount() : 0) +
-               (_ts ? _ts->readerCount() : 0) +
-               #if defined(ENABLE_MP4)
-               (_fmp4 ? _fmp4->readerCount() : 0) +
-               #endif
-               (_mp4 ? _option.mp4_as_player : 0) +
-               (hls ? hls->readerCount() : 0);
-
-#if defined(ENABLE_RTPPROXY)
-    return ret + (_ring ? _ring->readerCount() : 0);
-#else
-    return ret;
-#endif
+    return (_rtsp ? _rtsp->readerCount() : 0) +
+           (_rtmp ? _rtmp->readerCount() : 0) +
+           (_ts ? _ts->readerCount() : 0) +
+           #if defined(ENABLE_MP4)
+           (_fmp4 ? _fmp4->readerCount() : 0) +
+           #endif
+           (_mp4 ? _option.mp4_as_player : 0) +
+           (hls ? hls->readerCount() : 0) +
+           (_ring ? _ring->readerCount() : 0);
 }
 
 void MultiMediaSourceMuxer::setTimeStamp(uint32_t stamp) {
@@ -248,7 +243,8 @@ bool MultiMediaSourceMuxer::isRecording(MediaSource &sender, Recorder::type type
 
 void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const MediaSourceEvent::SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb) {
 #if defined(ENABLE_RTPPROXY)
-    assert(_ring);
+    createGopCacheIfNeed();
+
     auto ring = _ring;
     auto ssrc = args.ssrc;
     auto tracks = getTracks(false);
@@ -380,6 +376,18 @@ void MultiMediaSourceMuxer::onAllTrackReady() {
     }
 
 #if defined(ENABLE_RTPPROXY)
+    GET_CONFIG(bool, gop_cache, RtpProxy::kGopCache);
+    if (gop_cache) {
+        createGopCacheIfNeed();
+    }
+#endif
+    InfoL << "stream: " << shortUrl() << " , codec info: " << getTrackInfoStr(this);
+}
+
+void MultiMediaSourceMuxer::createGopCacheIfNeed() {
+    if (_ring) {
+        return;
+    }
     weak_ptr<MultiMediaSourceMuxer> weak_self = shared_from_this();
     _ring = std::make_shared<RingType>(1024, [weak_self](int size) {
         auto strong_self = weak_self.lock();
@@ -391,8 +399,6 @@ void MultiMediaSourceMuxer::onAllTrackReady() {
             });
         }
     });
-#endif
-    InfoL << "stream: " << shortUrl() << " , codec info: " << getTrackInfoStr(this);
 }
 
 void MultiMediaSourceMuxer::resetTracks() {
@@ -460,7 +466,6 @@ bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
     }
 #endif
 
-#if defined(ENABLE_RTPPROXY)
     if (_ring) {
         if (frame->getTrackType() == TrackVideo) {
             // 视频时，遇到第一帧配置帧或关键帧则标记为gop开始处
@@ -472,7 +477,6 @@ bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
             _ring->write(frame, !haveVideo());
         }
     }
-#endif //ENABLE_RTPPROXY
     return ret;
 }
 
@@ -482,19 +486,15 @@ bool MultiMediaSourceMuxer::isEnabled(){
         //无人观看时，每次检查是否真的无人观看
         //有人观看时，则延迟一定时间检查一遍是否无人观看了(节省性能)
         auto hls = _hls;
-        auto flag = (_rtmp ? _rtmp->isEnabled() : false) ||
-                    (_rtsp ? _rtsp->isEnabled() : false) ||
-                    (_ts ? _ts->isEnabled() : false) ||
-                    #if defined(ENABLE_MP4)
-                    (_fmp4 ? _fmp4->isEnabled() : false) ||
-                    #endif
-                    (hls ? hls->isEnabled() : false) || _mp4;
+        _is_enable = (_rtmp ? _rtmp->isEnabled() : false) ||
+                     (_rtsp ? _rtsp->isEnabled() : false) ||
+                     (_ts ? _ts->isEnabled() : false) ||
+                     #if defined(ENABLE_MP4)
+                     (_fmp4 ? _fmp4->isEnabled() : false) ||
+                     #endif
+                     (_ring ? (bool)_ring->readerCount() : false)  ||
+                     (hls ? hls->isEnabled() : false) || _mp4;
 
-#if defined(ENABLE_RTPPROXY)
-        _is_enable = flag || (_ring ? _ring->readerCount() : 0);
-#else
-        _is_enable = flag;
-#endif //ENABLE_RTPPROXY
         if (_is_enable) {
             //无人观看时，不刷新计时器,因为无人观看时每次都会检查一遍，所以刷新计数器无意义且浪费cpu
             _last_check.resetTime();

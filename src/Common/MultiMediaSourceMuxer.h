@@ -153,6 +153,9 @@ protected:
     bool onTrackFrame(const Frame::Ptr &frame) override;
 
 private:
+    void createGopCacheIfNeed();
+
+private:
     bool _is_enable = false;
     bool _create_in_poller = false;
     bool _video_key_pos = false;
