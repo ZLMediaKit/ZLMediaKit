@@ -94,15 +94,16 @@ static onceToken token([]() {
 }//namespace Cluster
 
 static void parse_http_response(const SockException &ex, const Parser &res,
-                                const function<void(const Value &,const string &)> &fun){
+                                const function<void(const Value &,const string &,const bool &)> &fun){
+    bool should_retry = true;
     if (ex) {
         auto errStr = StrPrinter << "[network err]:" << ex.what() << endl;
-        fun(Json::nullValue, errStr);
+        fun(Json::nullValue, errStr,should_retry);
         return;
     }
     if (res.Url() != "200") {
         auto errStr = StrPrinter << "[bad http status code]:" << res.Url() << endl;
-        fun(Json::nullValue, errStr);
+        fun(Json::nullValue, errStr,should_retry);
         return;
     }
     Value result;
@@ -111,20 +112,29 @@ static void parse_http_response(const SockException &ex, const Parser &res,
         ss >> result;
     } catch (std::exception &ex) {
         auto errStr = StrPrinter << "[parse json failed]:" << ex.what() << endl;
-        fun(Json::nullValue, errStr);
+        fun(Json::nullValue, errStr,should_retry);
         return;
     }
-    if (result["code"].asInt() != 0) {
-        auto errStr = StrPrinter << "[json code]:" << "code=" << result["code"] << ",msg=" << result["msg"] << endl;
-        fun(Json::nullValue, errStr);
+    auto code = result["code"];
+
+    if (!code.isInt64()) {
+        auto errStr = StrPrinter << "[json code]:" << "code not int :"<<code<< endl;
+        fun(Json::nullValue, errStr,should_retry);
         return;
     }
+    should_retry = false;
+    if(code.asInt64() != 0){
+        auto errStr = StrPrinter << "[auth failed]: code:" <<code<<" msg:"<<result["msg"]<<endl;
+        fun(Json::nullValue, errStr,should_retry);
+        return;
+    }
+
     try {
-        fun(result, "");
+        fun(result, "",should_retry);
     } catch (std::exception &ex) {
         auto errStr = StrPrinter << "[do hook invoker failed]:" << ex.what() << endl;
         //如果还是抛异常，那么再上抛异常
-        fun(Json::nullValue, errStr);
+        fun(Json::nullValue, errStr,should_retry);
     }
 }
 
@@ -173,12 +183,12 @@ void do_http_hook(const string &url, const ArgsType &body, const function<void(c
     Ticker ticker;
     requester->startRequester(url, [url, func, bodyStr, body, requester, ticker, retry](const SockException &ex, const Parser &res) mutable {
             onceToken token(nullptr, [&]() mutable { requester.reset(); });
-            parse_http_response(ex, res, [&](const Value &obj, const string &err) {
+            parse_http_response(ex, res, [&](const Value &obj, const string &err,const bool &should_retry) {
             if (!err.empty()) {
                 // hook失败
                 WarnL << "hook " << url << " " << ticker.elapsedTime() << "ms,failed" << err << ":" << bodyStr;
 
-                if (retry-- > 0) {
+                if (retry-- > 0 && should_retry) {
                     requester->getPoller()->doDelayTask(MAX(retry_delay, 0.0) * 1000, [url, body, func, retry] {
                         do_http_hook(url, body, func, retry);
                         return 0;
