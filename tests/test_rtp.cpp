@@ -26,8 +26,10 @@ using namespace std;
 using namespace toolkit;
 using namespace mediakit;
 
+static semaphore sem;
+
 #if defined(ENABLE_RTPPROXY)
-static bool loadFile(const char *path){
+static bool loadFile(const char *path, const EventPoller::Ptr &poller){
     FILE *fp = fopen(path, "rb");
     if (!fp) {
         WarnL << "open file failed:" << path;
@@ -40,7 +42,7 @@ static bool loadFile(const char *path){
     struct sockaddr_storage addr;
     memset(&addr, 0, sizeof(addr));
     addr.ss_family = AF_INET;
-    auto sock = Socket::createSocket();
+    auto sock = Socket::createSocket(poller);
     size_t total_size = 0;
     RtpProcess::Ptr process;
     uint32_t ssrc = 0;
@@ -108,8 +110,15 @@ int main(int argc,char *argv[]) {
     //此处选择是否导出调试文件
 //    mINI::Instance()[RtpProxy::kDumpDir] = "/Users/xzl/Desktop/";
 
-    if (argc == 2)
-      loadFile(argv[1]);
+    if (argc == 2){
+        auto poller = EventPollerPool::Instance().getPoller();
+        poller->async_first([poller,argv](){
+            loadFile(argv[1],poller);
+            sem.post();
+        });
+        sem.wait();
+        sleep(1);
+    }
     else
       ErrorL << "parameter error.";
 #else

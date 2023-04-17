@@ -1615,6 +1615,29 @@ void installWebApi() {
             }
         });
     });
+
+    static auto whip_whep_func = [](const char *type, API_ARGS_STRING_ASYNC) {
+        auto offer = allArgs.getArgs();
+        CHECK(!offer.empty(), "http body(webrtc offer sdp) is empty");
+
+        WebRtcPluginManager::Instance().getAnswerSdp(*(static_cast<Session *>(&sender)), type,
+                                                     WebRtcArgsImp(allArgs, sender.getIdentifier()),
+                                                     [invoker, offer, headerOut](const WebRtcInterface &exchanger) mutable {
+                // 设置跨域
+                headerOut["Access-Control-Allow-Origin"] = "*";
+                try {
+                    // 设置返回类型
+                    headerOut["Content-Type"] = "application/sdp";
+                    invoker(201, headerOut, const_cast<WebRtcInterface &>(exchanger).getAnswerSdp(offer));
+                } catch (std::exception &ex) {
+                    headerOut["Content-Type"] = "text/plain";
+                    invoker(406, headerOut, ex.what());
+                }
+            });
+    };
+
+    api_regist("/index/api/whip", [](API_ARGS_STRING_ASYNC) { whip_whep_func("push", API_ARGS_VALUE, invoker); });
+    api_regist("/index/api/whep", [](API_ARGS_STRING_ASYNC) { whip_whep_func("play", API_ARGS_VALUE, invoker); });
 #endif
 
 #if defined(ENABLE_VERSION)
