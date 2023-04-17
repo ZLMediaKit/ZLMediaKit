@@ -32,13 +32,10 @@ protected:
      */
     void input(uint64_t stamp, toolkit::Buffer::Ptr buffer,bool is_key = false);
 
-    bool firstKeyReady(bool in);
-
 protected:
     void onFlush(std::shared_ptr<toolkit::List<toolkit::Buffer::Ptr> > rtp_list, bool) override;
 
 private:
-    bool _first_key = false;
     onFlushed _cb;
 };
 

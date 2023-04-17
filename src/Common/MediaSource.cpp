@@ -153,8 +153,6 @@ std::shared_ptr<void> MediaSource::getOwnership() {
         //已经被所有
         return nullptr;
     }
-    // 关闭所有rtp推流，确保线程安全
-    stopSendRtp("");
     weak_ptr<MediaSource> weak_self = shared_from_this();
     //确保返回的Ownership智能指针不为空，0x01无实际意义
     return std::shared_ptr<void>((void *) 0x01, [weak_self](void *ptr) {

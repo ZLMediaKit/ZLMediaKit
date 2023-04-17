@@ -352,6 +352,8 @@ extern const std::string kH265PT;
 extern const std::string kPSPT;
 // rtp server opus 的pt
 extern const std::string kOpusPT;
+// RtpSender相关功能是否提前开启gop缓存优化级联秒开体验，默认开启
+extern const std::string kGopCache;
 } // namespace RtpProxy
 
 /**

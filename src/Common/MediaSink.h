@@ -131,6 +131,11 @@ public:
      */
     void enableMuteAudio(bool flag);
 
+    /**
+     * 是否有视频track
+     */
+    bool haveVideo() const;
+
 protected:
     /**
      * 某track已经准备好，其ready()状态返回true，
@@ -171,6 +176,7 @@ private:
     bool _only_audio = false;
     bool _add_mute_audio = true;
     bool _all_track_ready = false;
+    bool _have_video = false;
     size_t _max_track_size = 2;
     std::unordered_map<int, std::pair<Track::Ptr, bool/*got frame*/> > _track_map;
     std::unordered_map<int, toolkit::List<Frame::Ptr> > _frame_unread;
