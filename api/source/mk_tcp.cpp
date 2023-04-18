@@ -112,10 +112,10 @@ API_EXPORT uint16_t API_CALL mk_sock_info_local_port(const mk_sock_info ctx){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
-API_EXPORT mk_sock_info API_CALL mk_tcp_session_get_sock_info(const mk_tcp_session ctx){
+API_EXPORT mk_sock_info API_CALL mk_tcp_session_get_sock_info(const mk_tcp_session ctx) {
     assert(ctx);
     SessionForC *session = (SessionForC *)ctx;
-    return (mk_sock_info)session;
+    return reinterpret_cast<mk_sock_info>(static_cast<SockInfo *>(session));
 }
 
 API_EXPORT void API_CALL mk_tcp_session_shutdown(const mk_tcp_session ctx,int err,const char *err_msg){
@@ -320,7 +320,7 @@ TcpClientForC::Ptr *mk_tcp_client_create_l(mk_tcp_client_events *events, mk_tcp_
 API_EXPORT mk_sock_info API_CALL mk_tcp_client_get_sock_info(const mk_tcp_client ctx){
     assert(ctx);
     TcpClientForC::Ptr *client = (TcpClientForC::Ptr *)ctx;
-    return (mk_sock_info)(SockInfo *)client->get();
+    return reinterpret_cast<mk_sock_info>(static_cast<SockInfo *>(client->get()));
 }
 
 API_EXPORT mk_tcp_client API_CALL mk_tcp_client_create(mk_tcp_client_events *events, mk_tcp_type type){
