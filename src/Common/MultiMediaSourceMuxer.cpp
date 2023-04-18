@@ -389,12 +389,11 @@ void MultiMediaSourceMuxer::createGopCacheIfNeed() {
         return;
     }
     weak_ptr<MultiMediaSourceMuxer> weak_self = shared_from_this();
-    _ring = std::make_shared<RingType>(1024, [weak_self](int size) {
-        auto strong_self = weak_self.lock();
-        if (strong_self) {
+    auto src = std::make_shared<MediaSourceForMuxer>(weak_self.lock());
+    _ring = std::make_shared<RingType>(1024, [weak_self, src](int size) {
+        if (auto strong_self = weak_self.lock()) {
             // 切换到归属线程
             strong_self->getOwnerPoller(MediaSource::NullMediaSource())->async([=]() {
-                auto src = std::make_shared<MediaSourceForMuxer>(strong_self);
                 strong_self->onReaderChanged(*src, strong_self->totalReaderCount());
             });
         }
