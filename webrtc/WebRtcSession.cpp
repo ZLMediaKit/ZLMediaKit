@@ -71,7 +71,7 @@ void WebRtcSession::onRecv_l(const char *data, size_t len) {
         if (!transport->getPoller()->isCurrentThread()) {
             auto sock = Socket::createSocket(transport->getPoller(), false);
             //1、克隆socket(fd不变)，切换poller线程到WebRtcTransport所在线程
-            sock->cloneFromPeerSocket(*(getSock()));
+            sock->cloneSocket(*(getSock()));
             auto server = _server;
             std::string str(data, len);
             sock->getPoller()->async([sock, server, str](){
