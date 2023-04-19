@@ -153,7 +153,7 @@ file(GLOB ToolKit_SRC_LIST
   ${ToolKit_ROOT}/src/*/*.c)
 if(IOS)
   list(APPEND ToolKit_SRC_LIST
-    ${ToolKit_ROOT}/Network/Socket_ios.mm)
+    ${ToolKit_ROOT}/src/Network/Socket_ios.mm)
 endif()
 
 ###################################################################
