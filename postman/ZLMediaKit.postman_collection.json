@@ -1489,6 +1489,42 @@
 			"response": []
 		},
 		{
+			"name": "更新RTP服务器过滤SSRC(updateRtpServerSSRC)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/updateRtpServerSSRC?secret={{ZLMediaKit_secret}}&stream_id=test&ssrc=123456",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"updateRtpServerSSRC"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						},
+						{
+							"key": "stream_id",
+							"value": "test",
+							"description": "该端口绑定的流id"
+						},
+						{
+							"key": "ssrc",
+							"value": "123456",
+							"description": "十进制ssrc"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "暂停RTP超时检查(pauseRtpCheck)",
 			"request": {
 				"method": "GET",

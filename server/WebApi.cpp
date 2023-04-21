@@ -1182,6 +1182,18 @@ void installWebApi() {
         val["hit"] = 1;
     });
 
+    api_regist("/index/api/updateRtpServerSSRC",[](API_ARGS_MAP){
+        CHECK_SECRET();
+        CHECK_ARGS("stream_id", "ssrc");
+
+        lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
+        auto it = s_rtpServerMap.find(allArgs["stream_id"]);
+        if (it == s_rtpServerMap.end()) {
+            throw ApiRetException("RtpServer not found by stream_id", API::NotFound);
+        }
+        it->second->updateSSRC(allArgs["ssrc"]);
+    });
+
     api_regist("/index/api/listRtpServer",[](API_ARGS_MAP){
         CHECK_SECRET();
 
