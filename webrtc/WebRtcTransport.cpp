@@ -1131,6 +1131,10 @@ void WebRtcPluginManager::registerPlugin(const string &type, Plugin cb) {
     _map_creator[type] = std::move(cb);
 }
 
+std::string exchangeSdp(const WebRtcInterface &exchanger, const std::string& offer) {
+    return const_cast<WebRtcInterface &>(exchanger).getAnswerSdp(offer);
+}
+
 void WebRtcPluginManager::getAnswerSdp(Session &sender, const string &type, const WebRtcArgs &args, const onCreateRtc &cb) {
     lock_guard<mutex> lck(_mtx_creator);
     auto it = _map_creator.find(type);

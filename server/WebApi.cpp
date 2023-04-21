@@ -1604,7 +1604,7 @@ void installWebApi() {
             headerOut["Access-Control-Allow-Origin"] = "*";
 
             try {
-                val["sdp"] = const_cast<WebRtcInterface &>(exchanger).getAnswerSdp(offer);
+                val["sdp"] = exchangeSdp(exchanger, offer);
                 val["id"] = exchanger.getIdentifier();
                 val["type"] = "answer";
                 invoker(200, headerOut, val.toStyledString());
@@ -1628,7 +1628,7 @@ void installWebApi() {
                 try {
                     // 设置返回类型
                     headerOut["Content-Type"] = "application/sdp";
-                    invoker(201, headerOut, const_cast<WebRtcInterface &>(exchanger).getAnswerSdp(offer));
+                    invoker(201, headerOut, exchangeSdp(exchanger, offer));
                 } catch (std::exception &ex) {
                     headerOut["Content-Type"] = "text/plain";
                     invoker(406, headerOut, ex.what());

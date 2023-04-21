@@ -43,6 +43,8 @@ public:
     virtual const std::string &getIdentifier() const = 0;
 };
 
+std::string exchangeSdp(const WebRtcInterface &exchanger, const std::string& offer);
+
 class WebRtcException : public WebRtcInterface {
 public:
     WebRtcException(const SockException &ex) : _ex(ex) {};
