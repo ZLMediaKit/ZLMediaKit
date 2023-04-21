@@ -16,7 +16,7 @@ TitleMeta::TitleMeta(float dur_sec, size_t fileSize, const std::map<std::string,
 {
     _metadata.set("duration", dur_sec);
     _metadata.set("fileSize", (int)fileSize);
-    _metadata.set("server", kServerName);
+    _metadata.set("title", std::string("Streamed by ") + kServerName);
     for (auto &pr : header) {
         _metadata.set(pr.first, pr.second);
     }

@@ -99,7 +99,7 @@ public:
      */
     virtual void setMetaData(const AMFValue &metadata) {
         _metadata = metadata;
-        _metadata.set("server", kServerName);
+        _metadata.set("title", std::string("Streamed by ") + kServerName);
         _have_video = _metadata["videocodecid"];
         _have_audio = _metadata["audiocodecid"];
         if (_ring) {
