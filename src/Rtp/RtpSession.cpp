@@ -130,7 +130,7 @@ void RtpSession::onRtpPacket(const char *data, size_t len) {
         uint32_t rtp_ssrc = 0;
         RtpSelector::getSSRC(data, len, rtp_ssrc);
         if (rtp_ssrc != _ssrc) {
-            WarnP(this) << "ssrc不匹配,rtp已丢弃:" << rtp_ssrc << " != " << _ssrc;
+            WarnP(this) << "ssrc mismatched, rtp dropped: " << rtp_ssrc << " != " << _ssrc;
             return;
         }
         _process->inputRtp(false, getSock(), data, len, (struct sockaddr *)&_addr);
