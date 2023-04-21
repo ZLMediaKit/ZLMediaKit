@@ -551,7 +551,7 @@ const void *RtcpFB::getFciPtr() const {
 
 size_t RtcpFB::getFciSize() const {
     auto fci_len = (ssize_t)getSize() - getPaddingSize() - sizeof(RtcpFB);
-    CHECK(fci_len >= 0);
+    CHECK(getSize() >= getPaddingSize() + sizeof(RtcpFB));
     return fci_len;
 }
 
