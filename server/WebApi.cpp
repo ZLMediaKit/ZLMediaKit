@@ -966,7 +966,7 @@ void installWebApi() {
         //开始推流，如果推流失败或者推流中止，将会自动重试若干次，默认一直重试
         pusher->setPushCallbackOnce([cb, key, url](const SockException &ex) {
             if (ex) {
-                WarnL << "Push " << url << " failed, key: " << key << ", err: " << ex.what();
+                WarnL << "Push " << url << " failed, key: " << key << ", err: " << ex;
                 lock_guard<recursive_mutex> lck(s_proxyPusherMapMtx);
                 s_proxyPusherMap.erase(key);
             }
@@ -975,7 +975,7 @@ void installWebApi() {
 
         //被主动关闭推流
         pusher->setOnClose([key, url](const SockException &ex) {
-            WarnL << "Push " << url << " failed, key: " << key << ", err: " << ex.what();
+            WarnL << "Push " << url << " failed, key: " << key << ", err: " << ex;
             lock_guard<recursive_mutex> lck(s_proxyPusherMapMtx);
             s_proxyPusherMap.erase(key);
         });

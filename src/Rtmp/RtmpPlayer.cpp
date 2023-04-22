@@ -101,7 +101,7 @@ void RtmpPlayer::onPlayResult_l(const SockException &ex, bool handshake_done) {
         return;
     }
 
-    WarnL << ex.getErrCode() << " " << ex.what();
+    WarnL << ex.getErrCode() << " " << ex;
     if (!handshake_done) {
         //开始播放阶段
         _play_timer.reset();

@@ -1054,7 +1054,7 @@ void WebRtcTransportImp::onBeforeEncryptRtp(const char *buf, int &len, void *ctx
 }
 
 void WebRtcTransportImp::onShutdown(const SockException &ex) {
-    WarnL << ex.what();
+    WarnL << ex;
     unrefSelf();
     for (auto &tuple : _ice_server->GetTuples()) {
         tuple->shutdown(ex);

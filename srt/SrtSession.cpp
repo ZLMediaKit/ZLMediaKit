@@ -117,7 +117,7 @@ void SrtSession::onError(const SockException &err) {
     // udp链接超时，但是srt链接不一定超时，因为可能存在udp链接迁移的情况
     //在udp链接迁移时，新的SrtSession对象将接管SrtSession对象的生命周期
     //本SrtSession对象将在超时后自动销毁
-    WarnP(this) << err.what();
+    WarnP(this) << err;
 
     if (!_transport) {
         return;

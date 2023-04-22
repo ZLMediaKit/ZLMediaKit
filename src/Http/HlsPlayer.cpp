@@ -118,7 +118,7 @@ void HlsPlayer::fetchSegment() {
             return;
         }
         if (err) {
-            WarnL << "Download ts segment " << url << " failed:" << err.what();
+            WarnL << "Download ts segment " << url << " failed:" << err;
             if (err.getErrCode() == Err_timeout) {
                 strong_self->_timeout_multiple = MAX(strong_self->_timeout_multiple + 1, MAX_TIMEOUT_MULTIPLE);
             }else{

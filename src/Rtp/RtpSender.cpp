@@ -336,7 +336,7 @@ void RtpSender::onFlushRtpList(shared_ptr<List<Buffer::Ptr> > rtp_list) {
 
 void RtpSender::onErr(const SockException &ex) {
     _is_connect = false;
-    WarnL << "send rtp connection lost: " << ex.what();
+    WarnL << "send rtp connection lost: " << ex;
     onClose(ex);
 }
 
