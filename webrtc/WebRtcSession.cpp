@@ -103,7 +103,7 @@ void WebRtcSession::onError(const SockException &err) {
     //udp链接超时，但是rtc链接不一定超时，因为可能存在链接迁移的情况
     //在udp链接迁移时，新的WebRtcSession对象将接管WebRtcTransport对象的生命周期
     //本WebRtcSession对象将在超时后自动销毁
-    WarnP(this) << err.what();
+    WarnP(this) << err;
 
     if (!_transport) {
         return;

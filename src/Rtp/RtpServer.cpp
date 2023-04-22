@@ -260,7 +260,7 @@ void RtpServer::connectToServer(const std::string &url, uint16_t port, const fun
             return;
         }
         if (err) {
-            WarnL << "连接到服务器 " << url << ":" << port << " 失败 " << err.what();
+            WarnL << "连接到服务器 " << url << ":" << port << " 失败 " << err;
         } else {
             InfoL << "连接到服务器 " << url << ":" << port << " 成功";
             strong_self->onConnect();

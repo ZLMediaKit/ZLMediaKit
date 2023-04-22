@@ -96,7 +96,7 @@ static onceToken token([]() {
 static void parse_http_response(const SockException &ex, const Parser &res, const function<void(const Value &, const string &, bool)> &fun) {
     bool should_retry = true;
     if (ex) {
-        auto errStr = StrPrinter << "[network err]:" << ex.what() << endl;
+        auto errStr = StrPrinter << "[network err]:" << ex << endl;
         fun(Json::nullValue, errStr, should_retry);
         return;
     }

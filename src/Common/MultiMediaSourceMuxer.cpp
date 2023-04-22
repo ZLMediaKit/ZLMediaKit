@@ -266,7 +266,7 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const MediaSourceE
             if (auto strong_self = weak_self.lock()) {
                 // 可能归属线程发生变更
                 strong_self->getOwnerPoller(MediaSource::NullMediaSource())->async([=]() {
-                    WarnL << "stream:" << strong_self->shortUrl() << " stop send rtp:" << ssrc << ", reason:" << ex.what();
+                    WarnL << "stream:" << strong_self->shortUrl() << " stop send rtp:" << ssrc << ", reason:" << ex;
                     strong_self->_rtp_sender.erase(ssrc);
                     NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastSendRtpStopped, *strong_self, ssrc, ex);
                 });

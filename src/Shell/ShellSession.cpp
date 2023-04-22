@@ -57,7 +57,7 @@ void ShellSession::onRecv(const Buffer::Ptr&buf) {
 }
 
 void ShellSession::onError(const SockException &err){
-    WarnP(this) << err.what();
+    WarnP(this) << err;
 }
 
 void ShellSession::onManager() {
