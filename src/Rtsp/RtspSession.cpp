@@ -52,14 +52,11 @@ static unordered_map<string, weak_ptr<RtspSession> > g_mapGetter;
 static recursive_mutex g_mtxGetter;
 
 RtspSession::RtspSession(const Socket::Ptr &sock) : Session(sock) {
-    DebugP(this);
     GET_CONFIG(uint32_t,keep_alive_sec,Rtsp::kKeepAliveSecond);
     sock->setSendTimeOutSecond(keep_alive_sec);
 }
 
-RtspSession::~RtspSession() {
-    DebugP(this);
-}
+RtspSession::~RtspSession() = default;
 
 void RtspSession::onError(const SockException &err) {
     bool is_player = !_push_src_ownership;
@@ -405,7 +402,6 @@ void RtspSession::handleReq_Describe(const Parser &parser) {
 }
 
 void RtspSession::onAuthSuccess() {
-    TraceP(this);
     weak_ptr<RtspSession> weak_self = dynamic_pointer_cast<RtspSession>(shared_from_this());
     MediaSource::findAsync(_media_info, weak_self.lock(), [weak_self](const MediaSource::Ptr &src){
         auto strong_self = weak_self.lock();

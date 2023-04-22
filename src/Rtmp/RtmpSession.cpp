@@ -18,14 +18,11 @@ using namespace toolkit;
 namespace mediakit {
 
 RtmpSession::RtmpSession(const Socket::Ptr &sock) : Session(sock) {
-    DebugP(this);
     GET_CONFIG(uint32_t,keep_alive_sec,Rtmp::kKeepAliveSecond);
     sock->setSendTimeOutSecond(keep_alive_sec);
 }
 
-RtmpSession::~RtmpSession() {
-    DebugP(this);
-}
+RtmpSession::~RtmpSession() = default;
 
 void RtmpSession::onError(const SockException& err) {
     bool is_player = !_push_src_ownership;

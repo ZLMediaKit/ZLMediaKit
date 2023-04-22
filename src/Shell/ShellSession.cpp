@@ -25,13 +25,10 @@ static onceToken s_token([]() {
 }, nullptr);
 
 ShellSession::ShellSession(const Socket::Ptr &_sock) : Session(_sock) {
-    DebugP(this);
     pleaseInputUser();
 }
 
-ShellSession::~ShellSession() {
-    DebugP(this);
-}
+ShellSession::~ShellSession() = default;
 
 void ShellSession::onRecv(const Buffer::Ptr&buf) {
     //DebugL << hexdump(buf->data(), buf->size());

@@ -36,7 +36,6 @@ void RtpSession::setParams(mINI &ini) {
 }
 
 RtpSession::RtpSession(const Socket::Ptr &sock) : Session(sock) {
-    DebugP(this);
     socklen_t addr_len = sizeof(_addr);
     getpeername(sock->rawFD(), (struct sockaddr *)&_addr, &addr_len);
     _is_udp = sock->sockType() == SockNum::Sock_UDP;
@@ -47,7 +46,6 @@ RtpSession::RtpSession(const Socket::Ptr &sock) : Session(sock) {
 }
 
 RtpSession::~RtpSession() {
-    DebugP(this);
     if(_process){
         RtpSelector::Instance().delProcess(_stream_id,_process.get());
     }
