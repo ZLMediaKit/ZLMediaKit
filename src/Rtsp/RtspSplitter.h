@@ -18,8 +18,8 @@ namespace mediakit{
 
 class RtspSplitter : public HttpRequestSplitter{
 public:
-    RtspSplitter(){}
-    virtual ~RtspSplitter(){}
+    RtspSplitter() = default;
+    virtual ~RtspSplitter() = default;
 
     /**
     * 是否允许接收rtp包

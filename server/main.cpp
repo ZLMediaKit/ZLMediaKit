@@ -260,16 +260,16 @@ int start_main(int argc,char *argv[]) {
         auto shellSrv = std::make_shared<TcpServer>();
 
         //rtsp[s]服务器, 可用于诸如亚马逊echo show这样的设备访问
-        auto rtspSrv = std::make_shared<TcpServer>();;
-        auto rtspSSLSrv = std::make_shared<TcpServer>();;
+        auto rtspSrv = std::make_shared<TcpServer>();
+        auto rtspSSLSrv = std::make_shared<TcpServer>();
 
         //rtmp[s]服务器
-        auto rtmpSrv = std::make_shared<TcpServer>();;
-        auto rtmpsSrv = std::make_shared<TcpServer>();;
+        auto rtmpSrv = std::make_shared<TcpServer>();
+        auto rtmpsSrv = std::make_shared<TcpServer>();
 
         //http[s]服务器
-        auto httpSrv = std::make_shared<TcpServer>();;
-        auto httpsSrv = std::make_shared<TcpServer>();;
+        auto httpSrv = std::make_shared<TcpServer>();
+        auto httpsSrv = std::make_shared<TcpServer>();
 
 #if defined(ENABLE_RTPPROXY)
         //GB28181 rtp推流端口，支持UDP/TCP

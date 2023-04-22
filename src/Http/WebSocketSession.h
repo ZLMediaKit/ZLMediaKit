@@ -82,7 +82,7 @@ template<typename Creator, typename HttpSessionType = mediakit::HttpSession, med
 class WebSocketSessionBase : public HttpSessionType {
 public:
     WebSocketSessionBase(const toolkit::Socket::Ptr &pSock) : HttpSessionType(pSock){}
-    virtual ~WebSocketSessionBase(){}
+    virtual ~WebSocketSessionBase() = default;
 
     //收到eof或其他导致脱离TcpServer事件的回调
     void onError(const toolkit::SockException &err) override{
@@ -248,7 +248,7 @@ template<typename SessionType,typename HttpSessionType = mediakit::HttpSession, 
 class WebSocketSession : public WebSocketSessionBase<SessionCreator<SessionType>,HttpSessionType,DataType>{
 public:
     WebSocketSession(const toolkit::Socket::Ptr &pSock) : WebSocketSessionBase<SessionCreator<SessionType>,HttpSessionType,DataType>(pSock){}
-    virtual ~WebSocketSession(){}
+    virtual ~WebSocketSession() = default;
 };
 
 #endif //ZLMEDIAKIT_WEBSOCKETSESSION_H

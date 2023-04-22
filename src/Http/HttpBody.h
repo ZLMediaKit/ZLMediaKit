@@ -30,9 +30,9 @@ namespace mediakit {
 class HttpBody : public std::enable_shared_from_this<HttpBody>{
 public:
     using Ptr = std::shared_ptr<HttpBody>;
-    HttpBody(){}
+    HttpBody() = default;
 
-    virtual ~HttpBody(){}
+    virtual ~HttpBody() = default;
 
     /**
      * 剩余数据大小，如果返回-1, 那么就不设置content-length
@@ -151,7 +151,7 @@ public:
      * @param boundary boundary字符串
      */
     HttpMultiFormBody(const HttpArgs &args,const std::string &filePath,const std::string &boundary = "0xKhTmLbOuNdArY");
-    virtual ~HttpMultiFormBody(){}
+    virtual ~HttpMultiFormBody() = default;
     int64_t remainSize() override ;
     toolkit::Buffer::Ptr readData(size_t size) override;
 

@@ -37,7 +37,7 @@ public:
 
     template <typename... ArgsType>
     ClientTypeImp(ArgsType &&...args) : ClientType(std::forward<ArgsType>(args)...) {}
-    ~ClientTypeImp() override {};
+    ~ClientTypeImp() override  = default;
 
 protected:
     /**
