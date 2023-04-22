@@ -181,13 +181,13 @@ void RtmpProtocol::sendRequest(int cmd, const string& str) {
 
 class BufferPartial : public Buffer {
 public:
-    BufferPartial(const Buffer::Ptr &buffer, size_t offset, size_t size){
+    BufferPartial(const Buffer::Ptr &buffer, size_t offset, size_t size) {
         _buffer = buffer;
         _data = buffer->data() + offset;
         _size = size;
     }
 
-    ~BufferPartial() override{}
+    ~BufferPartial() override = default;
 
     char *data() const override {
         return _data;
