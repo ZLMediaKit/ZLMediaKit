@@ -6,10 +6,10 @@
 
 namespace SRT {
 SrtTransportImp::SrtTransportImp(const EventPoller::Ptr &poller)
-    : SrtTransport(poller) {}
+    : SrtTransport(poller) {
+}
 
 SrtTransportImp::~SrtTransportImp() {
-    InfoP(this);
     uint64_t duration = _alive_ticker.createdTime() / 1000;
     WarnP(this) << (_is_pusher ? "srt 推流器(" : "srt 播放器(") << _media_info.shortUrl() << ")断开,耗时(s):" << duration;
 

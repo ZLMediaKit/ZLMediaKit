@@ -16,9 +16,7 @@ SrtSession::SrtSession(const Socket::Ptr &sock)
     // TraceL<<"after addr len "<<addr_len<<" family "<<_peer_addr.ss_family;
 }
 
-SrtSession::~SrtSession() {
-    InfoP(this);
-}
+SrtSession::~SrtSession() = default;
 
 EventPoller::Ptr SrtSession::queryPoller(const Buffer::Ptr &buffer) {
     uint8_t *data = (uint8_t *)buffer->data();

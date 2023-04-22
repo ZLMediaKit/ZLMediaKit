@@ -24,14 +24,11 @@ using namespace toolkit;
 namespace mediakit {
 
 HttpSession::HttpSession(const Socket::Ptr &pSock) : Session(pSock) {
-    TraceP(this);
     GET_CONFIG(uint32_t,keep_alive_sec,Http::kKeepAliveSecond);
     pSock->setSendTimeOutSecond(keep_alive_sec);
 }
 
-HttpSession::~HttpSession() {
-    TraceP(this);
-}
+HttpSession::~HttpSession() = default;
 
 void HttpSession::Handle_Req_HEAD(ssize_t &content_len){
     //暂时全部返回200 OK，因为HTTP GET存在按需生成流的操作，所以不能按照HTTP GET的流程返回
