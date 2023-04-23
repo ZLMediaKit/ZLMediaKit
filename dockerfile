@@ -8,6 +8,7 @@ EXPOSE 443/tcp
 EXPOSE 10000/udp
 EXPOSE 10000/tcp
 EXPOSE 8000/udp
+EXPOSE 8000/tcp
 EXPOSE 9000/udp
 
 # ADD sources.list /etc/apt/sources.list
@@ -82,4 +83,4 @@ COPY --from=build /opt/media/ZLMediaKit/release/linux/${MODEL}/MediaServer /opt/
 COPY --from=build /opt/media/ZLMediaKit/release/linux/${MODEL}/config.ini /opt/media/conf/
 COPY --from=build /opt/media/ZLMediaKit/www/ /opt/media/bin/www/
 ENV PATH /opt/media/bin:$PATH
-CMD ["sh","-c","./MediaServer -s default.pem -c ../conf/config.ini"]
+CMD ["sh","-c","./MediaServer -s default.pem -c ../conf/config.ini -l 0"]
