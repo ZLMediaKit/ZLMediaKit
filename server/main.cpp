@@ -212,7 +212,7 @@ int start_main(int argc,char *argv[]) {
 
         //设置日志
         Logger::Instance().add(std::make_shared<ConsoleChannel>("ConsoleChannel", logLevel));
-#if defined(ANDROID)
+#if !defined(ANDROID)
         auto fileChannel = std::make_shared<FileChannel>("FileChannel", exeDir() + "log/", logLevel);
         // 日志最多保存天数
         fileChannel->setMaxDay(cmd_main["max_day"]);
