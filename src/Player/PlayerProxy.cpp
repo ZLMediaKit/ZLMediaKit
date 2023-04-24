@@ -100,7 +100,13 @@ void PlayerProxy::play(const string &strUrlTmp) {
             strongSelf->_on_close(err);
         }
     });
-    MediaPlayer::play(strUrlTmp);
+    try {
+        MediaPlayer::play(strUrlTmp);
+    } catch (std::exception &ex) {
+        ErrorL << ex.what();
+        _on_play_result(SockException(Err_other, ex.what()));
+        return;
+    }
     _pull_url = strUrlTmp;
     setDirectProxy();
 }
