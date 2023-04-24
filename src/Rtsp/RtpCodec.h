@@ -74,7 +74,7 @@ public:
         _interleaved = interleaved;
     }
 
-    virtual ~RtpInfo() {}
+    virtual ~RtpInfo() = default;
 
     //返回rtp负载最大长度
     size_t getMaxSize() const {

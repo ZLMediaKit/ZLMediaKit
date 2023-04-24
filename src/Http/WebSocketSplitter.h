@@ -51,7 +51,7 @@ public:
         //根据内存地址设置掩码随机数
         _mask.assign((uint8_t*)(&ptr), (uint8_t*)(&ptr) + 4);
     }
-    virtual ~WebSocketHeader(){}
+    virtual ~WebSocketHeader() = default;
 
 public:
     bool _fin;
@@ -71,7 +71,7 @@ public:
     WebSocketBuffer(WebSocketHeader::Type headType, bool fin, ARGS &&...args)
             :  toolkit::BufferString(std::forward<ARGS>(args)...), _fin(fin), _head_type(headType){}
 
-    ~WebSocketBuffer() override {}
+    ~WebSocketBuffer() override = default;
 
     WebSocketHeader::Type headType() const { return _head_type; }
 
@@ -84,8 +84,8 @@ private:
 
 class WebSocketSplitter : public WebSocketHeader{
 public:
-    WebSocketSplitter(){}
-    virtual ~WebSocketSplitter(){}
+    WebSocketSplitter() = default;
+    virtual ~WebSocketSplitter() = default;
 
     /**
      * 输入数据以便解包webSocket数据以及处理粘包问题

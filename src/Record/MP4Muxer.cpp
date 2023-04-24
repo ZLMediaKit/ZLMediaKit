@@ -121,6 +121,18 @@ bool MP4MuxerInterface::inputFrame(const Frame::Ptr &frame) {
             });
             break;
         }
+        case CodecJPEG:{
+            int64_t dts_out, pts_out;
+            track_info.stamp.revise(frame->dts(), frame->pts(), dts_out, pts_out);
+            mp4_writer_write(_mov_writter.get(),
+                             track_info.track_id,
+                             frame->data(),
+                             frame->size(),
+                             pts_out,
+                             dts_out,
+                             frame->keyFrame() ? MOV_AV_FLAG_KEYFREAME : 0);
+            break;
+        }
 
         default: {
             int64_t dts_out, pts_out;

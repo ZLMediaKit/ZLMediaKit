@@ -247,7 +247,7 @@ static inline void addHttpListener(){
                     size = body->remainSize();
                 }
 
-                LogContextCapture log(getLogger(), LDebug, __FILE__, "http api debug", __LINE__);
+                LogContextCapture log(getLogger(), toolkit::LTrace, __FILE__, "http api debug", __LINE__);
                 log << "\r\n# request:\r\n" << parser.Method() << " " << parser.FullUrl() << "\r\n";
                 log << "# header:\r\n";
 
@@ -966,7 +966,7 @@ void installWebApi() {
         //开始推流，如果推流失败或者推流中止，将会自动重试若干次，默认一直重试
         pusher->setPushCallbackOnce([cb, key, url](const SockException &ex) {
             if (ex) {
-                WarnL << "Push " << url << " failed, key: " << key << ", err: " << ex.what();
+                WarnL << "Push " << url << " failed, key: " << key << ", err: " << ex;
                 lock_guard<recursive_mutex> lck(s_proxyPusherMapMtx);
                 s_proxyPusherMap.erase(key);
             }
@@ -975,7 +975,7 @@ void installWebApi() {
 
         //被主动关闭推流
         pusher->setOnClose([key, url](const SockException &ex) {
-            WarnL << "Push " << url << " failed, key: " << key << ", err: " << ex.what();
+            WarnL << "Push " << url << " failed, key: " << key << ", err: " << ex;
             lock_guard<recursive_mutex> lck(s_proxyPusherMapMtx);
             s_proxyPusherMap.erase(key);
         });
@@ -1180,6 +1180,18 @@ void installWebApi() {
             return;
         }
         val["hit"] = 1;
+    });
+
+    api_regist("/index/api/updateRtpServerSSRC",[](API_ARGS_MAP){
+        CHECK_SECRET();
+        CHECK_ARGS("stream_id", "ssrc");
+
+        lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
+        auto it = s_rtpServerMap.find(allArgs["stream_id"]);
+        if (it == s_rtpServerMap.end()) {
+            throw ApiRetException("RtpServer not found by stream_id", API::NotFound);
+        }
+        it->second->updateSSRC(allArgs["ssrc"]);
     });
 
     api_regist("/index/api/listRtpServer",[](API_ARGS_MAP){
@@ -1595,7 +1607,7 @@ void installWebApi() {
         auto offer = allArgs.getArgs();
         CHECK(!offer.empty(), "http body(webrtc offer sdp) is empty");
 
-        WebRtcPluginManager::Instance().getAnswerSdp(*(static_cast<Session *>(&sender)), type,
+        WebRtcPluginManager::Instance().getAnswerSdp(static_cast<Session&>(sender), type,
                                                      WebRtcArgsImp(allArgs, sender.getIdentifier()),
                                                      [invoker, val, offer, headerOut](const WebRtcInterface &exchanger) mutable {
             //设置返回类型
@@ -1604,7 +1616,7 @@ void installWebApi() {
             headerOut["Access-Control-Allow-Origin"] = "*";
 
             try {
-                val["sdp"] = const_cast<WebRtcInterface &>(exchanger).getAnswerSdp(offer);
+                val["sdp"] = exchangeSdp(exchanger, offer);
                 val["id"] = exchanger.getIdentifier();
                 val["type"] = "answer";
                 invoker(200, headerOut, val.toStyledString());
@@ -1620,7 +1632,7 @@ void installWebApi() {
         auto offer = allArgs.getArgs();
         CHECK(!offer.empty(), "http body(webrtc offer sdp) is empty");
 
-        WebRtcPluginManager::Instance().getAnswerSdp(*(static_cast<Session *>(&sender)), type,
+        WebRtcPluginManager::Instance().getAnswerSdp(static_cast<Session&>(sender), type,
                                                      WebRtcArgsImp(allArgs, sender.getIdentifier()),
                                                      [invoker, offer, headerOut](const WebRtcInterface &exchanger) mutable {
                 // 设置跨域
@@ -1628,7 +1640,7 @@ void installWebApi() {
                 try {
                     // 设置返回类型
                     headerOut["Content-Type"] = "application/sdp";
-                    invoker(201, headerOut, const_cast<WebRtcInterface &>(exchanger).getAnswerSdp(offer));
+                    invoker(201, headerOut, exchangeSdp(exchanger, offer));
                 } catch (std::exception &ex) {
                     headerOut["Content-Type"] = "text/plain";
                     invoker(406, headerOut, ex.what());

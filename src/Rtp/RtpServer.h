@@ -64,6 +64,11 @@ public:
      */
     void setOnDetach(std::function<void()> cb);
 
+    /**
+     * 更新ssrc
+     */
+    void updateSSRC(uint32_t ssrc);
+
 private:
     // tcp主动模式连接服务器成功回调
     void onConnect();
@@ -72,6 +77,7 @@ protected:
     toolkit::Socket::Ptr _rtp_socket;
     toolkit::UdpServer::Ptr _udp_server;
     toolkit::TcpServer::Ptr _tcp_server;
+    std::shared_ptr<uint32_t> _ssrc;
     std::shared_ptr<RtcpHelper> _rtcp_helper;
     std::function<void()> _on_cleanup;
 

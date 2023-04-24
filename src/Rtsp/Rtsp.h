@@ -237,9 +237,9 @@ class SdpParser {
 public:
     using Ptr = std::shared_ptr<SdpParser>;
 
-    SdpParser() {}
+    SdpParser() = default;
     SdpParser(const std::string &sdp) { load(sdp); }
-    ~SdpParser() {}
+    ~SdpParser() = default;
 
     void load(const std::string &sdp);
     bool available() const;
@@ -268,7 +268,7 @@ public:
         _payload_type = payload_type;
     }
 
-    virtual ~Sdp(){}
+    virtual ~Sdp() = default;
 
     /**
      * 获取sdp字符串

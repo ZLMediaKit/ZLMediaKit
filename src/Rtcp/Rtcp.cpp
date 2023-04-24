@@ -242,11 +242,9 @@ vector<RtcpHeader *> RtcpHeader::loadFromBytes(char *data, size_t len) {
 class BufferRtcp : public Buffer {
 public:
     BufferRtcp(std::shared_ptr<RtcpHeader> rtcp) { _rtcp = std::move(rtcp); }
-
-    ~BufferRtcp() override {}
+    ~BufferRtcp() override  = default;
 
     char *data() const override { return (char *)_rtcp.get(); }
-
     size_t size() const override { return _rtcp->getSize(); }
 
 private:
@@ -551,7 +549,7 @@ const void *RtcpFB::getFciPtr() const {
 
 size_t RtcpFB::getFciSize() const {
     auto fci_len = (ssize_t)getSize() - getPaddingSize() - sizeof(RtcpFB);
-    CHECK(fci_len >= 0);
+    CHECK(getSize() >= getPaddingSize() + sizeof(RtcpFB));
     return fci_len;
 }
 
