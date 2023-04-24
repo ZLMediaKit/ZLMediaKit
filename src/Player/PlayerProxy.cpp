@@ -105,6 +105,7 @@ void PlayerProxy::play(const string &strUrlTmp) {
     } catch (std::exception &ex) {
         ErrorL << ex.what();
         _on_play_result(SockException(Err_other, ex.what()));
+        return;
     }
     _pull_url = strUrlTmp;
     setDirectProxy();
