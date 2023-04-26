@@ -35,13 +35,15 @@ const char *TSSegment::onSearchPacketTail(const char *data, size_t len) {
         }
         return nullptr;
     }
-    //下一个包头
+    //精确匹配下一个包头
     if (((uint8_t *) data)[_size] == TS_SYNC_BYTE) {
         return data + _size;
     }
-    auto pos = memchr(data + _size, TS_SYNC_BYTE, len - _size);
-    if (pos) {
-        return (char *) pos;
+    //搜索下一个包头
+    for (int i = 1; i < len - _size; ++i) {
+        if (((uint8_t *) data)[i] == TS_SYNC_BYTE && ((uint8_t *) data)[i + _size] == TS_SYNC_BYTE) {
+            return data + i;
+        }
     }
     if (remainDataSize() > 4 * _size) {
         //数据这么多都没ts包，全部清空
