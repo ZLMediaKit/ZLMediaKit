@@ -302,7 +302,7 @@ void H265RtpEncoder::packRtpFu(const char *ptr, size_t len, uint64_t pts, bool i
 }
 
 void H265RtpEncoder::packRtp(const char *ptr, size_t len, uint64_t pts, bool is_mark, bool gop_pos){
-    if (len + 3 <= getMaxSize()) {
+    if (len <= getMaxSize()) {
         //signal-nalu 
         RtpCodec::inputRtp(makeRtp(getTrackType(), ptr, len, is_mark, pts), gop_pos);
     } else {
