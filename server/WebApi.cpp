@@ -1628,18 +1628,21 @@ void installWebApi() {
         });
     });
 
+    static constexpr char delete_webrtc_url [] = "/index/api/delete_webrtc";
     static auto whip_whep_func = [](const char *type, API_ARGS_STRING_ASYNC) {
         auto offer = allArgs.getArgs();
         CHECK(!offer.empty(), "http body(webrtc offer sdp) is empty");
 
-        WebRtcPluginManager::Instance().getAnswerSdp(static_cast<Session&>(sender), type,
-                                                     WebRtcArgsImp(allArgs, sender.getIdentifier()),
-                                                     [invoker, offer, headerOut](const WebRtcInterface &exchanger) mutable {
+        auto &session = static_cast<Session&>(sender);
+        auto location = std::string("http") + (session.overSsl() ? "s" : "") + "://" + allArgs["host"] + delete_webrtc_url;
+        WebRtcPluginManager::Instance().getAnswerSdp(session, type, WebRtcArgsImp(allArgs, sender.getIdentifier()),
+                                                     [invoker, offer, headerOut, location](const WebRtcInterface &exchanger) mutable {
                 // 设置跨域
                 headerOut["Access-Control-Allow-Origin"] = "*";
                 try {
                     // 设置返回类型
                     headerOut["Content-Type"] = "application/sdp";
+                    headerOut["Location"] = location + "?id=" + exchanger.getIdentifier() + "&token=" + exchanger.deleteRandStr();
                     invoker(201, headerOut, exchangeSdp(exchanger, offer));
                 } catch (std::exception &ex) {
                     headerOut["Content-Type"] = "text/plain";
@@ -1650,6 +1653,22 @@ void installWebApi() {
 
     api_regist("/index/api/whip", [](API_ARGS_STRING_ASYNC) { whip_whep_func("push", API_ARGS_VALUE, invoker); });
     api_regist("/index/api/whep", [](API_ARGS_STRING_ASYNC) { whip_whep_func("play", API_ARGS_VALUE, invoker); });
+
+    api_regist(delete_webrtc_url, [](API_ARGS_MAP_ASYNC) {
+        CHECK_ARGS("id", "token");
+        CHECK(allArgs.getParser().Method() == "DELETE", "http method is not DELETE: " + allArgs.getParser().Method());
+        auto obj = WebRtcTransportManager::Instance().getItem(allArgs["id"]);
+        if (!obj) {
+            invoker(404, headerOut, "id not found");
+            return;
+        }
+        if (obj->deleteRandStr() != allArgs["token"]) {
+            invoker(401, headerOut, "token incorrect");
+            return;
+        }
+        obj->safeShutdown(SockException(Err_shutdown, "deleted by http api"));
+        invoker(200, headerOut, "");
+    });
 #endif
 
 #if defined(ENABLE_VERSION)

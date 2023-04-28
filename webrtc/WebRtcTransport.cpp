@@ -113,6 +113,13 @@ const string &WebRtcTransport::getIdentifier() const {
     return _identifier;
 }
 
+const std::string& WebRtcTransport::deleteRandStr() const {
+    if (_delete_rand_str.empty()) {
+        _delete_rand_str = makeRandStr(32);
+    }
+    return _delete_rand_str;
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void WebRtcTransport::OnIceServerSendStunPacket(
@@ -1051,6 +1058,15 @@ void WebRtcTransportImp::onBeforeEncryptRtp(const char *buf, int &len, void *ctx
         payload[1] = origin_seq & 0xFF;
         len += 2;
     }
+}
+
+void WebRtcTransportImp::safeShutdown(const SockException &ex) {
+    std::weak_ptr<WebRtcTransportImp> weak_self = static_pointer_cast<WebRtcTransportImp>(shared_from_this());
+    getPoller()->async([ex, weak_self]() {
+        if (auto strong_self = weak_self.lock()) {
+            strong_self->onShutdown(ex);
+        }
+    });
 }
 
 void WebRtcTransportImp::onShutdown(const SockException &ex) {
