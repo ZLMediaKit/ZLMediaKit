@@ -47,7 +47,7 @@ void WebRtcPlayer::onStartWebRTC() {
         playSrc->pause(false);
         _reader = playSrc->getRing()->attach(getPoller(), true);
         weak_ptr<WebRtcPlayer> weak_self = static_pointer_cast<WebRtcPlayer>(shared_from_this());
-        weak_ptr<Session> weak_session = getSession();
+        weak_ptr<Session> weak_session = static_pointer_cast<Session>(getSession());
         _reader->setGetInfoCB([weak_session]() { return weak_session.lock(); });
         _reader->setReadCB([weak_self](const RtspMediaSource::RingDataType &pkt) {
             auto strong_self = weak_self.lock();

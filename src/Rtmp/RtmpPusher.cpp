@@ -97,7 +97,7 @@ void RtmpPusher::publish(const string &url)  {
     startConnect(host_url, port);
 }
 
-void RtmpPusher::onErr(const SockException &ex){
+void RtmpPusher::onError(const SockException &ex){
     //定时器_pPublishTimer为空后表明握手结束了
     onPublishResult_l(ex, !_publish_timer);
 }

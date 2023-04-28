@@ -32,7 +32,7 @@ protected:
         DebugL << pBuf->toString();
     }
     //被动断开连接回调
-    void onErr(const SockException &ex) override {
+    void onError(const SockException &ex) override {
         WarnL << ex;
     }
     //tcp连接成功后每2秒触发一次该事件

@@ -612,7 +612,7 @@ void HttpSession::sendResponse(int code,
     }
 
     //发送http body
-    AsyncSenderData::Ptr data = std::make_shared<AsyncSenderData>(shared_from_this(), body, bClose);
+    AsyncSenderData::Ptr data = std::make_shared<AsyncSenderData>(static_pointer_cast<Session>(shared_from_this()), body, bClose);
     getSock()->setOnFlush([data]() { return AsyncSender::onSocketFlushed(data); });
     AsyncSender::onSocketFlushed(data);
 }

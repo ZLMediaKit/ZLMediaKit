@@ -118,7 +118,7 @@ void RtspPusher::onPublishResult_l(const SockException &ex, bool handshake_done)
     }
 }
 
-void RtspPusher::onErr(const SockException &ex) {
+void RtspPusher::onError(const SockException &ex) {
     //定时器_pPublishTimer为空后表明握手结束了
     onPublishResult_l(ex, !_publish_timer);
 }
