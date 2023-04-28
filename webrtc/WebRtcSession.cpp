@@ -54,7 +54,7 @@ WebRtcSession::WebRtcSession(const Socket::Ptr &sock) : Session(sock) {
 WebRtcSession::~WebRtcSession() = default;
 
 void WebRtcSession::attachServer(const Server &server) {
-    _server = std::dynamic_pointer_cast<toolkit::TcpServer>(const_cast<Server &>(server).shared_from_this());
+    _server = std::static_pointer_cast<toolkit::TcpServer>(const_cast<Server &>(server).shared_from_this());
 }
 
 void WebRtcSession::onRecv_l(const char *data, size_t len) {

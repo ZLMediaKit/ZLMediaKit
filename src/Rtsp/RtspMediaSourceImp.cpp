@@ -55,7 +55,7 @@ void RtspMediaSource::onWrite(RtpPacket::Ptr rtp, bool keyPos) {
         track->_ssrc = rtp->getSSRC();
     }
     if (!_ring) {
-        std::weak_ptr<RtspMediaSource> weakSelf = std::dynamic_pointer_cast<RtspMediaSource>(shared_from_this());
+        std::weak_ptr<RtspMediaSource> weakSelf = std::static_pointer_cast<RtspMediaSource>(shared_from_this());
         auto lam = [weakSelf](int size) {
             auto strongSelf = weakSelf.lock();
             if (!strongSelf) {

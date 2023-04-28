@@ -127,7 +127,7 @@ void RtmpSession::onCmd_createStream(AMFDecoder &dec) {
 
 void RtmpSession::onCmd_publish(AMFDecoder &dec) {
     std::shared_ptr<Ticker> ticker(new Ticker);
-    weak_ptr<RtmpSession> weak_self = dynamic_pointer_cast<RtmpSession>(shared_from_this());
+    weak_ptr<RtmpSession> weak_self = static_pointer_cast<RtmpSession>(shared_from_this());
     std::shared_ptr<onceToken> token(new onceToken(nullptr, [ticker, weak_self]() {
         auto strong_self = weak_self.lock();
         if (strong_self) {
@@ -188,7 +188,7 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
             _push_src->setProtocolOption(option);
         }
 
-        _push_src->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
+        _push_src->setListener(static_pointer_cast<RtmpSession>(shared_from_this()));
         _continue_push_ms = option.continue_push_ms;
         sendStatus({"level", "status",
                     "code", "NetStream.Publish.Start",
@@ -310,7 +310,7 @@ void RtmpSession::sendPlayResponse(const string &err, const RtmpMediaSource::Ptr
 
     src->pause(false);
     _ring_reader = src->getRing()->attach(getPoller());
-    weak_ptr<RtmpSession> weak_self = dynamic_pointer_cast<RtmpSession>(shared_from_this());
+    weak_ptr<RtmpSession> weak_self = static_pointer_cast<RtmpSession>(shared_from_this());
     _ring_reader->setGetInfoCB([weak_self]() { return weak_self.lock(); });
     _ring_reader->setReadCB([weak_self](const RtmpMediaSource::RingDataType &pkt) {
         auto strong_self = weak_self.lock();
@@ -349,7 +349,7 @@ void RtmpSession::doPlayResponse(const string &err,const std::function<void(bool
     }
 
     //鉴权成功，查找媒体源并回复
-    weak_ptr<RtmpSession> weak_self = dynamic_pointer_cast<RtmpSession>(shared_from_this());
+    weak_ptr<RtmpSession> weak_self = static_pointer_cast<RtmpSession>(shared_from_this());
     MediaSource::findAsync(_media_info, weak_self.lock(), [weak_self,cb](const MediaSource::Ptr &src){
         auto rtmp_src = dynamic_pointer_cast<RtmpMediaSource>(src);
         auto strong_self = weak_self.lock();
@@ -362,7 +362,7 @@ void RtmpSession::doPlayResponse(const string &err,const std::function<void(bool
 
 void RtmpSession::doPlay(AMFDecoder &dec){
     std::shared_ptr<Ticker> ticker(new Ticker);
-    weak_ptr<RtmpSession> weak_self = dynamic_pointer_cast<RtmpSession>(shared_from_this());
+    weak_ptr<RtmpSession> weak_self = static_pointer_cast<RtmpSession>(shared_from_this());
     std::shared_ptr<onceToken> token(new onceToken(nullptr, [ticker,weak_self](){
         auto strong_self = weak_self.lock();
         if (strong_self) {

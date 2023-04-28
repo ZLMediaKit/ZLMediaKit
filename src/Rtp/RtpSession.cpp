@@ -122,7 +122,7 @@ void RtpSession::onRtpPacket(const char *data, size_t len) {
             return;
         }
         _process->setOnlyAudio(_only_audio);
-        _process->setDelegate(dynamic_pointer_cast<RtpSession>(shared_from_this()));
+        _process->setDelegate(static_pointer_cast<RtpSession>(shared_from_this()));
     }
     try {
         uint32_t rtp_ssrc = 0;

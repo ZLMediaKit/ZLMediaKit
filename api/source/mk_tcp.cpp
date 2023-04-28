@@ -155,7 +155,7 @@ API_EXPORT void API_CALL mk_tcp_session_send_buffer_safe(const mk_tcp_session ct
 
 API_EXPORT mk_tcp_session_ref API_CALL mk_tcp_session_ref_from(const mk_tcp_session ctx) {
     auto ref = ((SessionForC *) ctx)->shared_from_this();
-    return (mk_tcp_session_ref)new std::shared_ptr<SessionForC>(std::dynamic_pointer_cast<SessionForC>(ref));
+    return (mk_tcp_session_ref)new std::shared_ptr<SessionForC>(std::static_pointer_cast<SessionForC>(ref));
 }
 
 API_EXPORT void mk_tcp_session_ref_release(const mk_tcp_session_ref ref) {

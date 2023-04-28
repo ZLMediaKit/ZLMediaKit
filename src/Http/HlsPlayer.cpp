@@ -80,7 +80,7 @@ void HlsPlayer::fetchSegment() {
         //播放器目前还存活，正在下载中
         return;
     }
-    weak_ptr<HlsPlayer> weak_self = dynamic_pointer_cast<HlsPlayer>(shared_from_this());
+    weak_ptr<HlsPlayer> weak_self = static_pointer_cast<HlsPlayer>(shared_from_this());
     if (!_http_ts_player) {
         _http_ts_player = std::make_shared<HttpTSPlayer>(getPoller());
         _http_ts_player->setOnCreateSocket([weak_self](const EventPoller::Ptr &poller) {
@@ -186,7 +186,7 @@ bool HlsPlayer::onParsed(bool is_m3u8_inner, int64_t sequence, const map<int, ts
             throw invalid_argument("empty sub hls list:" + getUrl());
         }
         _timer.reset();
-        weak_ptr<HlsPlayer> weak_self = dynamic_pointer_cast<HlsPlayer>(shared_from_this());
+        weak_ptr<HlsPlayer> weak_self = static_pointer_cast<HlsPlayer>(shared_from_this());
         auto url = ts_map.rbegin()->second.url;
         getPoller()->async([weak_self, url]() {
             auto strong_self = weak_self.lock();
@@ -259,7 +259,7 @@ bool HlsPlayer::onRedirectUrl(const string &url, bool temporary) {
 }
 
 void HlsPlayer::playDelay() {
-    weak_ptr<HlsPlayer> weak_self = dynamic_pointer_cast<HlsPlayer>(shared_from_this());
+    weak_ptr<HlsPlayer> weak_self = static_pointer_cast<HlsPlayer>(shared_from_this());
     _timer.reset(new Timer(delaySecond(), [weak_self]() {
         auto strong_self = weak_self.lock();
         if (strong_self) {

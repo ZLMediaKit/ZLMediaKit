@@ -143,7 +143,7 @@ public:
     }
 
     EventPoller::Ptr getPoller() {
-        return dynamic_pointer_cast<EventPoller>(getExecutor());
+        return static_pointer_cast<EventPoller>(getExecutor());
     }
 };
 
