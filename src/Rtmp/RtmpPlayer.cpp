@@ -90,7 +90,7 @@ void RtmpPlayer::play(const string &url)  {
     startConnect(host_url, port, play_timeout_sec);
 }
 
-void RtmpPlayer::onErr(const SockException &ex){
+void RtmpPlayer::onError(const SockException &ex){
     //定时器_pPlayTimer为空后表明握手结束了
     onPlayResult_l(ex, !_play_timer);
 }

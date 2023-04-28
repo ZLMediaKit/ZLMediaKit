@@ -131,7 +131,7 @@ void RtspPlayer::onRecv(const Buffer::Ptr& buf) {
     }
 }
 
-void RtspPlayer::onErr(const SockException &ex) {
+void RtspPlayer::onError(const SockException &ex) {
     //定时器_pPlayTimer为空后表明握手结束了
     onPlayResult_l(ex,!_play_check_timer);
 }

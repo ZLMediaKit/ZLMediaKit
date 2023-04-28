@@ -218,7 +218,7 @@ protected:
     /**
      * tcp连接断开
      */
-    void onErr(const toolkit::SockException &ex) override {
+    void onError(const toolkit::SockException &ex) override {
         // tcp断开或者shutdown导致的断开
         onWebSocketException(ex);
     }
@@ -350,7 +350,7 @@ private:
             // 握手成功之后的中途断开
             _onRecv = nullptr;
             if (auto strong_ref = _weak_delegate.lock()) {
-                strong_ref->onErr(ex);
+                strong_ref->onError(ex);
             }
             return;
         }

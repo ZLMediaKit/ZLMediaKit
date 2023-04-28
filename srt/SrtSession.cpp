@@ -100,7 +100,7 @@ void SrtSession::onRecv(const Buffer::Ptr &buffer) {
         }
 
         if (_transport) {
-            _transport->setSession(shared_from_this());
+            _transport->setSession(static_pointer_cast<Session>(shared_from_this()));
         }
         InfoP(this);
     }

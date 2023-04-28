@@ -230,7 +230,7 @@ void WebRtcTransport::sendSockData(const char *buf, size_t len, RTC::TransportTu
 
 Session::Ptr WebRtcTransport::getSession() const {
     auto tuple = _ice_server->GetSelectedTuple(true);
-    return tuple ? tuple->shared_from_this() : nullptr;
+    return tuple ? static_pointer_cast<Session>(tuple->shared_from_this()) : nullptr;
 }
 
 void WebRtcTransport::sendRtcpRemb(uint32_t ssrc, size_t bit_rate) {
@@ -1209,7 +1209,7 @@ void play_plugin(Session &sender, const WebRtcArgs &args, const WebRtcPluginMana
     MediaInfo info(args["url"]);
     bool preferred_tcp = args["preferred_tcp"];
 
-    auto session_ptr = sender.shared_from_this();
+    auto session_ptr = static_pointer_cast<Session>(sender.shared_from_this());
     Broadcast::AuthInvoker invoker = [cb, info, session_ptr, preferred_tcp](const string &err) mutable {
         if (!err.empty()) {
             cb(WebRtcException(SockException(Err_other, err)));

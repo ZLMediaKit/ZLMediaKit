@@ -108,7 +108,7 @@ void WebRtcSession::onError(const SockException &err) {
     if (!_transport) {
         return;
     }
-    auto self = shared_from_this();
+    auto self = static_pointer_cast<WebRtcSession>(shared_from_this());
     auto transport = std::move(_transport);
     getPoller()->async([transport, self]() mutable {
         //延时减引用，防止使用transport对象时，销毁对象

@@ -176,7 +176,7 @@ void HttpClient::onRecv(const Buffer::Ptr &pBuf) {
     HttpRequestSplitter::input(pBuf->data(), pBuf->size());
 }
 
-void HttpClient::onErr(const SockException &ex) {
+void HttpClient::onError(const SockException &ex) {
     onResponseCompleted_l(ex);
 }
 
