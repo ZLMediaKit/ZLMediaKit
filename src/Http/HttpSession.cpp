@@ -52,6 +52,7 @@ ssize_t HttpSession::onRecvHeader(const char *header,size_t len) {
     static unordered_map<string, HttpCMDHandle> s_func_map;
     static onceToken token([]() {
         s_func_map.emplace("GET",&HttpSession::Handle_Req_GET);
+        s_func_map.emplace("DELETE",&HttpSession::Handle_Req_GET);
         s_func_map.emplace("POST",&HttpSession::Handle_Req_POST);
         s_func_map.emplace("HEAD",&HttpSession::Handle_Req_HEAD);
         s_func_map.emplace("OPTIONS",&HttpSession::Handle_Req_OPTIONS);
