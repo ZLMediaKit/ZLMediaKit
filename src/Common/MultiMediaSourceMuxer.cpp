@@ -248,10 +248,11 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const MediaSourceE
     auto ring = _ring;
     auto ssrc = args.ssrc;
     auto tracks = getTracks(false);
-    auto rtp_sender = std::make_shared<RtpSender>(getOwnerPoller(sender));
+    auto poller = getOwnerPoller(sender);
+    auto rtp_sender = std::make_shared<RtpSender>(poller);
     weak_ptr<MultiMediaSourceMuxer> weak_self = shared_from_this();
 
-    rtp_sender->startSend(args, [ssrc, weak_self, rtp_sender, cb, tracks, ring](uint16_t local_port, const SockException &ex) mutable {
+    rtp_sender->startSend(args, [ssrc, weak_self, rtp_sender, cb, tracks, ring, poller](uint16_t local_port, const SockException &ex) mutable {
         cb(local_port, ex);
         auto strong_self = weak_self.lock();
         if (!strong_self || ex) {
@@ -273,7 +274,7 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const MediaSourceE
             }
         });
 
-        auto reader = ring->attach(EventPoller::getCurrentPoller());
+        auto reader = ring->attach(poller);
         reader->setReadCB([rtp_sender](const Frame::Ptr &frame) {
             rtp_sender->inputFrame(frame);
         });
@@ -315,7 +316,7 @@ EventPoller::Ptr MultiMediaSourceMuxer::getOwnerPoller(MediaSource &sender) {
     try {
         auto ret = listener->getOwnerPoller(sender);
         if (ret != _poller) {
-            WarnL << "OwnerPoller changed:" << shortUrl();
+            WarnL << "OwnerPoller changed " << _poller->getThreadName() << " -> " << ret->getThreadName() << " : " << shortUrl();
             _poller = ret;
         }
         return ret;
