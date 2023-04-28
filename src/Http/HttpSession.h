@@ -28,15 +28,16 @@ class HttpSession: public toolkit::Session,
                    public HttpRequestSplitter,
                    public WebSocketSplitter {
 public:
-    typedef StrCaseMap KeyValue;
-    typedef HttpResponseInvokerImp HttpResponseInvoker;
+    using Ptr = std::shared_ptr<HttpSession>;
+    using KeyValue = StrCaseMap;
+    using HttpResponseInvoker = HttpResponseInvokerImp ;
     friend class AsyncSender;
     /**
      * @param errMsg 如果为空，则代表鉴权通过，否则为错误提示
      * @param accessPath 运行或禁止访问的根目录
      * @param cookieLifeSecond 鉴权cookie有效期
      **/
-    typedef std::function<void(const std::string &errMsg,const std::string &accessPath, int cookieLifeSecond)> HttpAccessPathInvoker;
+    using HttpAccessPathInvoker = std::function<void(const std::string &errMsg,const std::string &accessPath, int cookieLifeSecond)>;
 
     HttpSession(const toolkit::Socket::Ptr &pSock);
     ~HttpSession() override;

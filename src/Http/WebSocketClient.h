@@ -316,7 +316,7 @@ private:
         if (!ex) {
             // websocket握手成功
             // 此处截取TcpClient派生类发送的数据并进行websocket协议打包
-            std::weak_ptr<HttpWsClient> weakSelf = std::dynamic_pointer_cast<HttpWsClient>(shared_from_this());
+            std::weak_ptr<HttpWsClient> weakSelf = std::static_pointer_cast<HttpWsClient>(shared_from_this());
             if (auto strong_ref = _weak_delegate.lock()) {
                 strong_ref->setOnBeforeSendCB([weakSelf](const toolkit::Buffer::Ptr &buf) {
                     auto strong_self = weakSelf.lock();
