@@ -84,7 +84,7 @@
 
 - HTTP[S] and WebSocket
   - The server supports `directory index generation`, `file download`, `form submission requests`
-  - The client provides `file downloader (supports breakpoint continuation)`, `interface requestor`, `file uploader`
+  - The client provides `file downloader (supports resume breakpoint)`, `interface requestor`, `file uploader`
   - Complete HTTP API server, which can be used as a web backend development framework
   - Supports cross-domain access
   - Supports http client/server cookie
