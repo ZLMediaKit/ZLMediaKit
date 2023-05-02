@@ -696,7 +696,7 @@ public:
         if (!expected) {
             return -1;
         }
-        return _rtcp_context.geLostInterval() * 100 / expected;
+        return _rtcp_context.getLostInterval() * 100 / expected;
     }
 
 private:
