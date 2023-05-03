@@ -30,6 +30,10 @@ PlayerProxy::PlayerProxy(const string &vhost, const string &app, const string &s
     _app = app;
     _stream_id = stream_id;
     _retry_count = retry_count;
+    
+    _live_secs = 0;
+    _live_status = 1;
+    _repull_count = 0;
     _on_close = [](const SockException &) {};
     (*this)[Client::kWaitTrackReady] = false;
 }
@@ -58,10 +62,14 @@ void PlayerProxy::play(const string &strUrlTmp) {
 
         if (!err) {
             // 取消定时器,避免hls拉流索引文件因为网络波动失败重连成功后出现循环重试的情况
-           strongSelf->_timer.reset();
+            strongSelf->_timer.reset();
+            strongSelf->_live_ticker.resetTime();
+            strongSelf->_live_status = 0;
             // 播放成功
             *piFailedCnt = 0;//连续播放失败次数清0
             strongSelf->onPlaySuccess();
+
+            InfoL << "play " << strUrlTmp << " success";
         } else if (*piFailedCnt < strongSelf->_retry_count || strongSelf->_retry_count < 0) {
             // 播放失败，延时重试播放
             strongSelf->rePlay(strUrlTmp, (*piFailedCnt)++);
@@ -92,8 +100,17 @@ void PlayerProxy::play(const string &strUrlTmp) {
                 strongSelf->_muxer->resetTracks();
             }
         }
+
+        if(*piFailedCnt == 0){
+            // 第一次重拉更新时长
+            strongSelf->_live_secs += strongSelf->_live_ticker.elapsedTime()/1000;
+            strongSelf->_live_ticker.resetTime();
+            TraceL<<" live secs "<<strongSelf->_live_secs;
+        }
+
         //播放异常中断，延时重试播放
         if (*piFailedCnt < strongSelf->_retry_count || strongSelf->_retry_count < 0) {
+            strongSelf->_repull_count++;
             strongSelf->rePlay(strUrlTmp, (*piFailedCnt)++);
         } else {
             //达到了最大重试次数，回调关闭
@@ -239,6 +256,21 @@ void PlayerProxy::onPlaySuccess() {
         //让_muxer对象拦截一部分事件(比如说录像相关事件)
         _media_src->setListener(_muxer);
     }
+}
+
+int PlayerProxy::getStatus() {
+    return _live_status.load();
+}
+uint64_t PlayerProxy::getLiveSecs() {
+    if(_live_status == 0){
+        return _live_secs + _live_ticker.elapsedTime()/1000;
+    }else{
+        return _live_secs;
+    }
+}
+
+uint64_t PlayerProxy::getRePullCount(){
+    return _repull_count;
 }
 
 } /* namespace mediakit */

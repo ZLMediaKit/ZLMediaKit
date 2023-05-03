@@ -1420,6 +1420,48 @@ void installWebApi() {
         });
     });
 
+    api_regist("/index/api/getProxyPusherInfo", [](API_ARGS_MAP_ASYNC) {
+        CHECK_SECRET();
+        CHECK_ARGS("key");
+        decltype(s_proxyPusherMap.end()) it;
+        {
+            lock_guard<recursive_mutex> lck(s_proxyPusherMapMtx);
+            it = s_proxyPusherMap.find(allArgs["key"]);
+        }
+
+        if (it == s_proxyPusherMap.end()) {
+            throw ApiRetException("can not find pusher", API::NotFound);
+        }
+
+        auto pusher = it->second;
+
+        val["data"]["status"] = pusher->getStatus();
+        val["data"]["liveSecs"] = pusher->getLiveSecs();
+        val["data"]["rePublishCount"] = pusher->getRePublishCount();
+        invoker(200, headerOut, val.toStyledString());
+    });
+
+    api_regist("/index/api/getProxyInfo", [](API_ARGS_MAP_ASYNC) {
+        CHECK_SECRET();
+        CHECK_ARGS("key");
+        decltype(s_proxyMap.end()) it;
+        {
+            lock_guard<recursive_mutex> lck(s_proxyMapMtx);
+            it = s_proxyMap.find(allArgs["key"]);
+        }
+
+        if (it == s_proxyMap.end()) {
+            throw ApiRetException("can not find the proxy", API::NotFound);
+        }
+
+        auto proxy = it->second;
+
+        val["data"]["status"] = proxy->getStatus();
+        val["data"]["liveSecs"] = proxy->getLiveSecs();
+        val["data"]["rePullCount"] = proxy->getRePullCount();
+        invoker(200, headerOut, val.toStyledString());
+    });
+
     // 删除录像文件夹
     // http://127.0.0.1/index/api/deleteRecordDirectroy?vhost=__defaultVhost__&app=live&stream=ss&period=2020-01-01
     api_regist("/index/api/deleteRecordDirectory", [](API_ARGS_MAP) {
