@@ -43,6 +43,10 @@ public:
      */
     void publish(const std::string& dstUrl) override;
 
+    int getStatus();
+    uint64_t getLiveSecs();
+    uint64_t getRePublishCount();
+
 private:
     // 重推逻辑函数
     void rePublish(const std::string &dstUrl, int iFailedCnt);
@@ -50,6 +54,11 @@ private:
 private:
     int _retry_count;
     toolkit::Timer::Ptr _timer;
+    toolkit::Ticker _live_ticker;
+    //0 表示正常 1 表示正在尝试推流
+    std::atomic<int> _live_status; 
+    std::atomic<uint64_t> _live_secs;
+    std::atomic<uint64_t> _republish_count;
     std::weak_ptr<MediaSource> _weak_src;
     std::function<void(const toolkit::SockException &ex)> _on_close;
     std::function<void(const toolkit::SockException &ex)> _on_publish;

@@ -52,6 +52,11 @@ public:
      */
     int totalReaderCount() ;
 
+
+    int getStatus();
+    uint64_t getLiveSecs();
+    uint64_t getRePullCount();
+
 private:
     //MediaSourceEvent override
     bool close(MediaSource &sender) override;
@@ -76,6 +81,13 @@ private:
     std::function<void(const toolkit::SockException &ex)> _on_close;
     std::function<void(const toolkit::SockException &ex)> _on_play;
     MultiMediaSourceMuxer::Ptr _muxer;
+
+    toolkit::Ticker _live_ticker;
+    //0 表示正常 1 表示正在尝试拉流
+    std::atomic<int> _live_status; 
+    std::atomic<uint64_t> _live_secs;
+
+    std::atomic<uint64_t> _repull_count;
 };
 
 } /* namespace mediakit */
