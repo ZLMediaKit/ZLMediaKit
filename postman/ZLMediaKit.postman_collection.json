@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "4626d766-16b5-4255-89ba-f7614de2398c",
+		"_postman_id": "39e8a1df-cc8e-4e3f-bf5e-197c86e7bf0f",
 		"name": "ZLMediaKit",
 		"description": "媒体服务器",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
@@ -627,7 +627,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{ZLMediaKit_URL}}/index/api/addStreamPusherProxy?secret={{ZLMediaKit_secret}}&schema=rtmp&vhost={{defaultVhost}}&app=live&stream=test&dst_url=rtmp://127.0.0.1/live/push",
+					"raw": "{{ZLMediaKit_URL}}/index/api/addStreamPusherProxy?secret={{ZLMediaKit_secret}}&schema=rtmp&vhost={{defaultVhost}}&app=live&stream=test&dst_url=rtmp://192.168.1.104/live/push",
 					"host": [
 						"{{ZLMediaKit_URL}}"
 					],
@@ -664,7 +664,7 @@
 						},
 						{
 							"key": "dst_url",
-							"value": "rtmp://127.0.0.1/live/push",
+							"value": "rtmp://192.168.1.104/live/push",
 							"description": "推流地址，需要与schema字段协议一致"
 						},
 						{
@@ -696,7 +696,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{ZLMediaKit_URL}}/index/api/delStreamPusherProxy?secret={{ZLMediaKit_secret}}&key=__defaultVhost__/live/test",
+					"raw": "{{ZLMediaKit_URL}}/index/api/delStreamPusherProxy?secret={{ZLMediaKit_secret}}&key=rtmp/__defaultVhost__/live/test/f40a8ab006cac16ecc0858409e890491",
 					"host": [
 						"{{ZLMediaKit_URL}}"
 					],
@@ -713,7 +713,7 @@
 						},
 						{
 							"key": "key",
-							"value": "__defaultVhost__/live/test",
+							"value": "rtmp/__defaultVhost__/live/test/f40a8ab006cac16ecc0858409e890491",
 							"description": "addStreamPusherProxy接口返回的key"
 						}
 					]
@@ -1363,7 +1363,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{ZLMediaKit_URL}}/index/api/openRtpServer?secret={{ZLMediaKit_secret}}&port=0&enable_tcp=1&stream_id=test",
+					"raw": "{{ZLMediaKit_URL}}/index/api/openRtpServer?secret={{ZLMediaKit_secret}}&port=0&tcp_mode=1&stream_id=test",
 					"host": [
 						"{{ZLMediaKit_URL}}"
 					],
@@ -1422,7 +1422,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{ZLMediaKit_URL}}/index/api/connectRtpServer?secret={{ZLMediaKit_secret}}&dst_url=127.0.0.1&dst_port=10000&stream_id=test",
+					"raw": "{{ZLMediaKit_URL}}/index/api/connectRtpServer?secret={{ZLMediaKit_secret}}&dst_url=0&dst_port=1&stream_id=test",
 					"host": [
 						"{{ZLMediaKit_URL}}"
 					],
@@ -1482,6 +1482,42 @@
 							"key": "stream_id",
 							"value": "test",
 							"description": "该端口绑定的流id"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "更新RTP服务器过滤SSRC(updateRtpServerSSRC)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/updateRtpServerSSRC?secret={{ZLMediaKit_secret}}&stream_id=test&ssrc=123456",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"updateRtpServerSSRC"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						},
+						{
+							"key": "stream_id",
+							"value": "test",
+							"description": "该端口绑定的流id"
+						},
+						{
+							"key": "ssrc",
+							"value": "123456",
+							"description": "十进制ssrc"
 						}
 					]
 				}
@@ -1833,6 +1869,64 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "获取拉流代理信息(getProxyInfo)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/getProxyInfo?secret={{ZLMediaKit_secret}}&key=__defaultVhost__/live/test",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"getProxyInfo"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}"
+						},
+						{
+							"key": "key",
+							"value": "__defaultVhost__/live/test"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "获取推流代理信息(getProxyPusherInfo)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/getProxyPusherInfo?secret={{ZLMediaKit_secret}}&key=rtmp/__defaultVhost__/live/test/f40a8ab006cac16ecc0858409e890491",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"getProxyPusherInfo"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}"
+						},
+						{
+							"key": "key",
+							"value": "rtmp/__defaultVhost__/live/test/f40a8ab006cac16ecc0858409e890491"
 						}
 					]
 				}

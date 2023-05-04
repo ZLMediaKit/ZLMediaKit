@@ -176,7 +176,7 @@ void HttpClient::onRecv(const Buffer::Ptr &pBuf) {
     HttpRequestSplitter::input(pBuf->data(), pBuf->size());
 }
 
-void HttpClient::onErr(const SockException &ex) {
+void HttpClient::onError(const SockException &ex) {
     onResponseCompleted_l(ex);
 }
 
@@ -226,7 +226,7 @@ ssize_t HttpClient::onRecvHeader(const char *data, size_t len) {
 
     if (_total_body_size == 0) {
         //后续没content，本次http请求结束
-        onResponseCompleted_l(SockException(Err_success, "success"));
+        onResponseCompleted_l(SockException(Err_success, "The request is successful but has no body"));
         return 0;
     }
 
@@ -260,7 +260,7 @@ void HttpClient::onRecvContent(const char *data, size_t len) {
     if (_recved_body_size == (size_t)_total_body_size) {
         //content接收完毕
         onResponseBody(data, len);
-        onResponseCompleted_l(SockException(Err_success, "success"));
+        onResponseCompleted_l(SockException(Err_success, "completed"));
         return;
     }
 
@@ -329,7 +329,7 @@ void HttpClient::onResponseCompleted_l(const SockException &ex) {
 
     if (_total_body_size > 0 && _recved_body_size >= (size_t)_total_body_size) {
         //回复header中有content-length信息，那么收到的body大于等于声明值则认为成功
-        onResponseCompleted(SockException(Err_success, "success"));
+        onResponseCompleted(SockException(Err_success, "read body completed"));
         return;
     }
 

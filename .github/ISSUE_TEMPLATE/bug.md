@@ -1,7 +1,7 @@
 ---
 name: bug 反馈
 about: 反馈 ZLMediaKit 代码本身的 bug
-title: "[BUG]: BUG 现象描述"
+title: "[BUG] BUG现象描述(必填)"
 labels: bug
 assignees: ''
 

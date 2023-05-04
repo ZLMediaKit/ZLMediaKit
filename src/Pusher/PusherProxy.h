@@ -16,7 +16,9 @@
 
 namespace mediakit {
 
-class PusherProxy : public MediaPusher, public std::enable_shared_from_this<PusherProxy> {
+class PusherProxy
+    : public MediaPusher
+    , public std::enable_shared_from_this<PusherProxy> {
 public:
     using Ptr = std::shared_ptr<PusherProxy>;
 
@@ -41,7 +43,11 @@ public:
      * 开始拉流播放
      * @param dstUrl 目标推流地址
      */
-    void publish(const std::string& dstUrl) override;
+    void publish(const std::string &dstUrl) override;
+
+    int getStatus();
+    uint64_t getLiveSecs();
+    uint64_t getRePublishCount();
 
 private:
     // 重推逻辑函数
@@ -50,6 +56,11 @@ private:
 private:
     int _retry_count;
     toolkit::Timer::Ptr _timer;
+    toolkit::Ticker _live_ticker;
+    // 0 表示正常 1 表示正在尝试推流
+    std::atomic<int> _live_status;
+    std::atomic<uint64_t> _live_secs;
+    std::atomic<uint64_t> _republish_count;
     std::weak_ptr<MediaSource> _weak_src;
     std::function<void(const toolkit::SockException &ex)> _on_close;
     std::function<void(const toolkit::SockException &ex)> _on_publish;
@@ -57,4 +68,4 @@ private:
 
 } /* namespace mediakit */
 
-#endif //SRC_DEVICE_PUSHERPROXY_H
+#endif // SRC_DEVICE_PUSHERPROXY_H

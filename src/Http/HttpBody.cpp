@@ -189,7 +189,7 @@ public:
         _data = map_addr.get() + offset;
         _size = size;
     }
-    ~BufferMmap() override {};
+    ~BufferMmap() override = default;
     //返回数据长度
     char *data() const override { return _data; }
     size_t size() const override { return _size; }
@@ -289,11 +289,7 @@ Buffer::Ptr HttpMultiFormBody::readData(size_t size) {
 }
 
 string HttpMultiFormBody::multiFormBodySuffix(const string &boundary) {
-    string MPboundary = string("--") + boundary;
-    string endMPboundary = MPboundary + "--";
-    _StrPrinter body;
-    body << "\r\n" << endMPboundary;
-    return std::move(body);
+    return "\r\n--" + boundary + "--";
 }
 
 string HttpMultiFormBody::multiFormContentType(const string &boundary) {
@@ -311,7 +307,7 @@ string HttpMultiFormBody::multiFormBodyPrefix(const HttpArgs &args, const string
     body << MPboundary << "\r\n";
     body << "Content-Disposition: form-data; name=\""
          << "file"
-         << "\";filename=\"" << fileName << "\"\r\n";
+         << "\"; filename=\"" << fileName << "\"\r\n";
     body << "Content-Type: application/octet-stream\r\n\r\n";
     return std::move(body);
 }

@@ -92,7 +92,7 @@ public:
 
 private:
     void createRing(){
-        std::weak_ptr<TSMediaSource> weak_self = std::dynamic_pointer_cast<TSMediaSource>(shared_from_this());
+        std::weak_ptr<TSMediaSource> weak_self = std::static_pointer_cast<TSMediaSource>(shared_from_this());
         _ring = std::make_shared<RingType>(_ring_size, [weak_self](int size) {
             auto strong_self = weak_self.lock();
             if (!strong_self) {

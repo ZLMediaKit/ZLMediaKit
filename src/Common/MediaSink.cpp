@@ -63,6 +63,7 @@ bool MediaSink::addTrack(const Track::Ptr &track_in) {
 
 void MediaSink::resetTracks() {
     _all_track_ready = false;
+    _have_video = false;
     _track_map.clear();
     _track_ready_callback.clear();
     _ticker.resetTime();
@@ -172,7 +173,7 @@ void MediaSink::emitAllTrackReady() {
                 continue;
             }
             pr.second.for_each([&](const Frame::Ptr &frame) {
-                inputFrame(frame);
+                MediaSink::inputFrame(frame);
             });
         }
         _frame_unread.clear();
@@ -186,6 +187,7 @@ void MediaSink::onAllTrackReady_l() {
     }
     onAllTrackReady();
     _all_track_ready = true;
+    _have_video = (bool)getTrack(TrackVideo);
 }
 
 vector<Track::Ptr> MediaSink::getTracks(bool ready) const{
@@ -337,6 +339,10 @@ void MediaSink::setOnlyAudio(){
 
 void MediaSink::enableMuteAudio(bool flag) {
     _add_mute_audio = flag;
+}
+
+bool MediaSink::haveVideo() const {
+    return _have_video;
 }
 
 ///////////////////////////DemuxerSink//////////////////////////////

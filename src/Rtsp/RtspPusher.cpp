@@ -80,7 +80,7 @@ void RtspPusher::publish(const string &url_str) {
     DebugL << url._url << " " << (url._user.size() ? url._user : "null") << " "
            << (url._passwd.size() ? url._passwd : "null") << " " << _rtp_type;
 
-    weak_ptr<RtspPusher> weak_self = dynamic_pointer_cast<RtspPusher>(shared_from_this());
+    weak_ptr<RtspPusher> weak_self = static_pointer_cast<RtspPusher>(shared_from_this());
     float publish_timeout_sec = (*this)[Client::kTimeoutMS].as<int>() / 1000.0f;
     _publish_timer.reset(new Timer(publish_timeout_sec, [weak_self]() {
         auto strong_self = weak_self.lock();
@@ -118,7 +118,7 @@ void RtspPusher::onPublishResult_l(const SockException &ex, bool handshake_done)
     }
 }
 
-void RtspPusher::onErr(const SockException &ex) {
+void RtspPusher::onError(const SockException &ex) {
     //定时器_pPublishTimer为空后表明握手结束了
     onPublishResult_l(ex, !_publish_timer);
 }
@@ -320,7 +320,7 @@ void RtspPusher::handleResSetup(const Parser &parser, unsigned int track_idx) {
         rtcp_sock->bindPeerAddr((struct sockaddr *)&(rtcpto));
 
         auto peer_ip = get_peer_ip();
-        weak_ptr<RtspPusher> weakSelf = dynamic_pointer_cast<RtspPusher>(shared_from_this());
+        weak_ptr<RtspPusher> weakSelf = static_pointer_cast<RtspPusher>(shared_from_this());
         if(rtcp_sock) {
             //设置rtcp over udp接收回调处理函数
             rtcp_sock->setOnRead([peer_ip, track_idx, weakSelf](const Buffer::Ptr &buf, struct sockaddr *addr , int addr_len) {
@@ -451,7 +451,7 @@ void RtspPusher::sendRecord() {
 
         src->pause(false);
         _rtsp_reader = src->getRing()->attach(getPoller());
-        weak_ptr<RtspPusher> weak_self = dynamic_pointer_cast<RtspPusher>(shared_from_this());
+        weak_ptr<RtspPusher> weak_self = static_pointer_cast<RtspPusher>(shared_from_this());
         _rtsp_reader->setReadCB([weak_self](const RtspMediaSource::RingDataType &pkt) {
             auto strong_self = weak_self.lock();
             if (!strong_self) {

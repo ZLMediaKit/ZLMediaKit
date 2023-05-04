@@ -98,17 +98,14 @@ bool HlsParser::parse(const string &http_url, const string &m3u8) {
         continue;
     }
 
-    if (_is_m3u8) {
-        onParsed(_is_m3u8_inner, _sequence, ts_map);
-    }
-    return _is_m3u8;
+    return _is_m3u8 && onParsed(_is_m3u8_inner, _sequence, ts_map);
 }
 
 bool HlsParser::isM3u8() const {
     return _is_m3u8;
 }
 
-bool HlsParser::isLive() const{
+bool HlsParser::isLive() const {
     return _is_live;
 }
 

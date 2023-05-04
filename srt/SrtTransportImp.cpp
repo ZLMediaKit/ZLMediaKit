@@ -6,10 +6,10 @@
 
 namespace SRT {
 SrtTransportImp::SrtTransportImp(const EventPoller::Ptr &poller)
-    : SrtTransport(poller) {}
+    : SrtTransport(poller) {
+}
 
 SrtTransportImp::~SrtTransportImp() {
-    InfoP(this);
     uint64_t duration = _alive_ticker.createdTime() / 1000;
     WarnP(this) << (_is_pusher ? "srt 推流器(" : "srt 播放器(") << _media_info.shortUrl() << ")断开,耗时(s):" << duration;
 
@@ -288,6 +288,14 @@ bool SrtTransportImp::inputFrame(const Frame::Ptr &frame) {
     if (_muxer) {
         //TraceL<<"before type "<<frame->getCodecName()<<" dts "<<frame->dts()<<" pts "<<frame->pts();
         auto frame_tmp = std::make_shared<FrameStamp>(frame, _type_to_stamp[frame->getTrackType()],false);
+        if(_type_to_stamp.size()>1){
+            // 有音视频，检查是否时间戳是否差距过大
+            auto diff = _type_to_stamp[TrackType::TrackVideo].getRelativeStamp() - _type_to_stamp[TrackType::TrackAudio].getRelativeStamp();
+            if(std::abs(diff) > 5000){
+                // 超过5s，应该同步 TODO
+                WarnL << _media_info._full_url<<" video or audio not sync : "<<diff;
+            }
+        }
         //TraceL<<"after type "<<frame_tmp->getCodecName()<<" dts "<<frame_tmp->dts()<<" pts "<<frame_tmp->pts();
         return _muxer->inputFrame(frame_tmp);
     }

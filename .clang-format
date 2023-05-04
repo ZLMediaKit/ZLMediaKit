@@ -50,8 +50,8 @@ BraceWrapping:
 BreakConstructorInitializers: BeforeComma
 # 继承过长需要换行时也在 `,` 前
 BreakInheritanceList: BeforeComma
-# 列宽 120
-ColumnLimit: 120
+# 列宽 160
+ColumnLimit: 160
 # c++11 括号内起始/结束无空格, false 会加上
 Cpp11BracedListStyle: false
 # 命名空间后的注释会修正为: // namespace_name

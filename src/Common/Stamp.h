@@ -28,9 +28,12 @@ public:
      * @return 时间戳增量
      */
     int64_t deltaStamp(int64_t stamp);
+    int64_t relativeStamp(int64_t stamp);
+    int64_t relativeStamp();
 
 private:
     int64_t _last_stamp = 0;
+    int64_t _relative_stamp = 0;
 };
 
 //该类解决时间戳回环、回退问题

@@ -16,9 +16,7 @@ SrtSession::SrtSession(const Socket::Ptr &sock)
     // TraceL<<"after addr len "<<addr_len<<" family "<<_peer_addr.ss_family;
 }
 
-SrtSession::~SrtSession() {
-    InfoP(this);
-}
+SrtSession::~SrtSession() = default;
 
 EventPoller::Ptr SrtSession::queryPoller(const Buffer::Ptr &buffer) {
     uint8_t *data = (uint8_t *)buffer->data();
@@ -102,7 +100,7 @@ void SrtSession::onRecv(const Buffer::Ptr &buffer) {
         }
 
         if (_transport) {
-            _transport->setSession(shared_from_this());
+            _transport->setSession(static_pointer_cast<Session>(shared_from_this()));
         }
         InfoP(this);
     }
@@ -119,7 +117,7 @@ void SrtSession::onError(const SockException &err) {
     // udp链接超时，但是srt链接不一定超时，因为可能存在udp链接迁移的情况
     //在udp链接迁移时，新的SrtSession对象将接管SrtSession对象的生命周期
     //本SrtSession对象将在超时后自动销毁
-    WarnP(this) << err.what();
+    WarnP(this) << err;
 
     if (!_transport) {
         return;

@@ -246,6 +246,10 @@ void RtpSender::onConnect(){
 }
 
 bool RtpSender::addTrack(const Track::Ptr &track){
+    if (_args.only_audio && track->getTrackType() == TrackVideo) {
+        // 如果只发送音频则忽略视频
+        return false;
+    }
     return _interface->addTrack(track);
 }
 
@@ -265,6 +269,10 @@ void RtpSender::flush() {
 
 //此函数在其他线程执行
 bool RtpSender::inputFrame(const Frame::Ptr &frame) {
+    if (_args.only_audio && frame->getTrackType() == TrackVideo) {
+        // 如果只发送音频则忽略视频
+        return false;
+    }
     //连接成功后才做实质操作(节省cpu资源)
     return _is_connect ? _interface->inputFrame(frame) : false;
 }
@@ -328,7 +336,7 @@ void RtpSender::onFlushRtpList(shared_ptr<List<Buffer::Ptr> > rtp_list) {
 
 void RtpSender::onErr(const SockException &ex) {
     _is_connect = false;
-    WarnL << "send rtp connection lost: " << ex.what();
+    WarnL << "send rtp connection lost: " << ex;
     onClose(ex);
 }
 

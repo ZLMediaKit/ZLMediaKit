@@ -51,7 +51,7 @@ void HlsPlayer::teardown_l(const SockException &ex) {
             } else {
                 _try_fetch_index_times += 1;
                 shutdown(ex);
-                WarnL << "重新尝试拉取索引文件[" << _try_fetch_index_times << "]:" << _play_url;
+                WarnL << "Attempt to pull the m3u8 file again[" << _try_fetch_index_times << "]:" << _play_url;
                 fetchIndexFile();
                 return;
             }
@@ -80,7 +80,7 @@ void HlsPlayer::fetchSegment() {
         //播放器目前还存活，正在下载中
         return;
     }
-    weak_ptr<HlsPlayer> weak_self = dynamic_pointer_cast<HlsPlayer>(shared_from_this());
+    weak_ptr<HlsPlayer> weak_self = static_pointer_cast<HlsPlayer>(shared_from_this());
     if (!_http_ts_player) {
         _http_ts_player = std::make_shared<HttpTSPlayer>(getPoller());
         _http_ts_player->setOnCreateSocket([weak_self](const EventPoller::Ptr &poller) {
@@ -118,7 +118,7 @@ void HlsPlayer::fetchSegment() {
             return;
         }
         if (err) {
-            WarnL << "download ts segment " << url << " failed:" << err.what();
+            WarnL << "Download ts segment " << url << " failed:" << err;
             if (err.getErrCode() == Err_timeout) {
                 strong_self->_timeout_multiple = MAX(strong_self->_timeout_multiple + 1, MAX_TIMEOUT_MULTIPLE);
             }else{
@@ -147,35 +147,46 @@ void HlsPlayer::fetchSegment() {
     _http_ts_player->sendRequest(url);
 }
 
-void HlsPlayer::onParsed(bool is_m3u8_inner, int64_t sequence, const map<int, ts_segment> &ts_map) {
+bool HlsPlayer::onParsed(bool is_m3u8_inner, int64_t sequence, const map<int, ts_segment> &ts_map) {
     if (!is_m3u8_inner) {
-        //这是ts播放列表
+        // 这是ts播放列表
         if (_last_sequence == sequence) {
-            return;
+            // 如果是重复的ts列表，那么忽略
+            // 但是需要注意, 如果当前ts列表为空了, 那么表明直播结束了或者m3u8文件有问题,需要重新拉流
+            // 这里的5倍是为了防止m3u8文件有问题导致的无限重试
+            if (_last_sequence > 0 && _ts_list.empty() && HlsParser::isLive()
+                && _wait_index_update_ticker.elapsedTime() > (uint64_t)HlsParser::getTargetDur() * 1000 * 5) {
+                _wait_index_update_ticker.resetTime();
+                WarnL << "Fetch new ts list from m3u8 timeout";
+                return false;
+            }
+            return true;
         }
+
         _last_sequence = sequence;
+        _wait_index_update_ticker.resetTime();
         for (auto &pr : ts_map) {
             auto &ts = pr.second;
             if (_ts_url_cache.emplace(ts.url).second) {
-                //该ts未重复
+                // 该ts未重复
                 _ts_list.emplace_back(ts);
-                //按时间排序
+                // 按时间排序
                 _ts_url_sort.emplace_back(ts.url);
             }
         }
         if (_ts_url_sort.size() > 2 * ts_map.size()) {
-            //去除防重列表中过多的数据
+            // 去除防重列表中过多的数据
             _ts_url_cache.erase(_ts_url_sort.front());
             _ts_url_sort.pop_front();
         }
         fetchSegment();
     } else {
-        //这是m3u8列表,我们播放最高清的子hls
+        // 这是m3u8列表,我们播放最高清的子hls
         if (ts_map.empty()) {
             throw invalid_argument("empty sub hls list:" + getUrl());
         }
         _timer.reset();
-        weak_ptr<HlsPlayer> weak_self = dynamic_pointer_cast<HlsPlayer>(shared_from_this());
+        weak_ptr<HlsPlayer> weak_self = static_pointer_cast<HlsPlayer>(shared_from_this());
         auto url = ts_map.rbegin()->second.url;
         getPoller()->async([weak_self, url]() {
             auto strong_self = weak_self.lock();
@@ -184,6 +195,7 @@ void HlsPlayer::onParsed(bool is_m3u8_inner, int64_t sequence, const map<int, ts
             }
         }, false);
     }
+    return true;
 }
 
 void HlsPlayer::onResponseHeader(const string &status, const HttpClient::HttpHeader &headers) {
@@ -193,7 +205,7 @@ void HlsPlayer::onResponseHeader(const string &status, const HttpClient::HttpHea
     }
     auto content_type = strToLower(const_cast<HttpClient::HttpHeader &>(headers)["Content-Type"]);
     if (content_type.find("application/vnd.apple.mpegurl") != 0 && content_type.find("/x-mpegurl") == _StrPrinter::npos) {
-        WarnL << "may not a hls video: " << content_type << ", url: " << getUrl();
+        WarnL << "May not a hls video: " << content_type << ", url: " << getUrl();
     }
     _m3u8.clear();
 }
@@ -208,7 +220,7 @@ void HlsPlayer::onResponseCompleted(const SockException &ex) {
         return;
     }
     if (!HlsParser::parse(getUrl(), _m3u8)) {
-        teardown_l(SockException(Err_other, "parse m3u8 failed:" + _m3u8));
+        teardown_l(SockException(Err_other, "parse m3u8 failed:" + _play_url));
         return;
     }
     if (!_play_result) {
@@ -247,7 +259,7 @@ bool HlsPlayer::onRedirectUrl(const string &url, bool temporary) {
 }
 
 void HlsPlayer::playDelay() {
-    weak_ptr<HlsPlayer> weak_self = dynamic_pointer_cast<HlsPlayer>(shared_from_this());
+    weak_ptr<HlsPlayer> weak_self = static_pointer_cast<HlsPlayer>(shared_from_this());
     _timer.reset(new Timer(delaySecond(), [weak_self]() {
         auto strong_self = weak_self.lock();
         if (strong_self) {

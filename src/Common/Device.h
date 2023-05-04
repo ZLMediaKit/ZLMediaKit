@@ -118,6 +118,11 @@ public:
      */
     bool inputPCM(char *data, int len, uint64_t cts);
 
+    //// 重载基类方法，确保线程安全 ////
+    bool inputFrame(const Frame::Ptr &frame) override;
+    bool addTrack(const Track::Ptr & track) override;
+    void addTrackCompleted() override;
+
 private:
     MediaOriginType getOriginType(MediaSource &sender) const override;
 

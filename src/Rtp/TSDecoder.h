@@ -25,7 +25,7 @@ class TSSegment : public HttpRequestSplitter {
 public:
     typedef std::function<void(const char *data,size_t len)> onSegment;
     TSSegment(size_t size = TS_PACKET_SIZE) : _size(size){}
-    ~TSSegment(){}
+    ~TSSegment() = default;
     void setOnSegment(onSegment cb);
     static bool isTSPacket(const char *data, size_t len);
 

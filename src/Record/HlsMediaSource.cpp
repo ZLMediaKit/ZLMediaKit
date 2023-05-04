@@ -68,7 +68,7 @@ HlsMediaSource::Ptr HlsCookieData::getMediaSource() const {
 void HlsMediaSource::setIndexFile(std::string index_file)
 {
     if (!_ring) {
-        std::weak_ptr<HlsMediaSource> weakSelf = std::dynamic_pointer_cast<HlsMediaSource>(shared_from_this());
+        std::weak_ptr<HlsMediaSource> weakSelf = std::static_pointer_cast<HlsMediaSource>(shared_from_this());
         auto lam = [weakSelf](int size) {
             auto strongSelf = weakSelf.lock();
             if (!strongSelf) {

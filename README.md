@@ -22,6 +22,7 @@
 - 使用多路复用/多线程/异步网络IO模式开发，并发性能优越，支持海量客户端连接。
 - 代码经过长期大量的稳定性、性能测试，已经在线上商用验证已久。
 - 支持linux、macos、ios、android、windows全平台。
+- 支持x86、arm、risc-v、mips、龙芯、申威等指令集平台。
 - 支持画面秒开、极低延时([500毫秒内，最低可达100毫秒](https://github.com/ZLMediaKit/ZLMediaKit/wiki/%E5%BB%B6%E6%97%B6%E6%B5%8B%E8%AF%95))。
 - 提供完善的标准[C API](https://github.com/ZLMediaKit/ZLMediaKit/tree/master/api/include),可以作SDK用，或供其他语言调用。
 - 提供完整的[MediaServer](https://github.com/ZLMediaKit/ZLMediaKit/tree/master/server)服务器，可以免开发直接部署为商用服务器。
@@ -93,10 +94,12 @@
 
 - GB28181与RTP推流
   - 支持UDP/TCP RTP(PS/TS/ES)推流服务器，可以转换成RTSP/RTMP/HLS等协议
-  - 支持RTSP/RTMP/HLS等协议转rtp推流客户端，支持TCP/UDP模式，提供相应restful api，支持主动被动方式。
+  - 支持RTSP/RTMP/HLS等协议转rtp推流客户端，支持TCP/UDP模式，提供相应restful api，支持主动被动方式
   - 支持H264/H265/AAC/G711/OPUS编码
-  - 支持海康ehome推流
+  - 支持es/ps/ts/ehome rtp推流
+  - 支持es/ps rtp转推
   - 支持GB28181主动拉流模式
+  - 支持双向语音对讲
 
 - MP4点播与录制
   - 支持录制为FLV/HLS/MP4
@@ -116,6 +119,8 @@
   - 支持GOP缓冲，webrtc播放秒开
   - 支持datachannel
   - 支持webrtc over tcp模式
+  - 优秀的nack、jitter buffer算法, 抗丢包能力卓越
+  - 支持whip/whep协议
 - [SRT支持](./srt/srt.md)
 - 其他
   - 支持丰富的restful api以及web hook事件 
@@ -125,7 +130,7 @@
   - 支持虚拟主机,可以隔离不同域名
   - 支持按需拉流，无人观看自动关断拉流
   - 支持先播放后推流，提高及时推流画面打开率
-  - 提供c api sdk
+  - 提供完整强大的c api sdk
   - 支持FFmpeg拉流代理任意格式的流
   - 支持http api生成并返回实时截图
   - 支持按需解复用、转协议，当有人观看时才开启转协议，降低cpu占用率
@@ -195,7 +200,9 @@ bash build_docker_images.sh
 ## 联系方式
 
  - 邮箱：<1213642868@qq.com>(本项目相关或流媒体相关问题请走issue流程，否则恕不邮件答复)
- - QQ群：qq群号在wiki中，请阅读wiki后再加群
+ - QQ群：两个qq群已满员(共4000人)，后续将不再新建qq群，用户可加入[知识星球](https://github.com/ZLMediaKit/ZLMediaKit/issues/2364)提问以支持本项目。
+ - 关注微信公众号：
+ <img src=https://user-images.githubusercontent.com/11495632/232451702-4c50bc72-84d8-4c94-af2b-57290088ba7a.png width=15% />
 
 ## 怎么提问？
 
@@ -205,6 +212,7 @@ bash build_docker_images.sh
  - 2、如果您的问题还没解决，可以提issue.
  - 3、有些问题，如果不具备参考性的，无需在issue提的，可以在qq群提.
  - 4、QQ私聊一般不接受无偿技术咨询和支持([为什么不提倡QQ私聊](https://github.com/ZLMediaKit/ZLMediaKit/wiki/%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B8%8D%E5%BB%BA%E8%AE%AEQQ%E7%A7%81%E8%81%8A%E5%92%A8%E8%AF%A2%E9%97%AE%E9%A2%98%EF%BC%9F)).
+ - 5、如果需要获取更及时贴心的技术支持，可以有偿加入[知识星球](https://github.com/ZLMediaKit/ZLMediaKit/issues/2364).
 
 ## 特别感谢
 
@@ -292,6 +300,13 @@ bash build_docker_images.sh
 [gongluck](https://github.com/gongluck)
 [a-ucontrol](https://github.com/a-ucontrol)
 [TalusL](https://github.com/TalusL)
+[ahaooahaz](https://github.com/AHAOAHA)
+[TempoTian](https://github.com/TempoTian)
+[Derek Liu](https://github.com/yjkhtddx)
+[ljx0305](https://github.com/ljx0305)
+[朱如洪 ](https://github.com/zhu410289616)
+[lijin](https://github.com/1461521844lijin)
+[PioLing](https://github.com/PioLing)
 
 ## 使用案例
 

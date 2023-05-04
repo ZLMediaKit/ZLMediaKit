@@ -79,7 +79,7 @@ void RtmpPusher::publish(const string &url)  {
     uint16_t port = 1935;
     splitUrl(host_url, host_url, port);
 
-    weak_ptr<RtmpPusher> weakSelf = dynamic_pointer_cast<RtmpPusher>(shared_from_this());
+    weak_ptr<RtmpPusher> weakSelf = static_pointer_cast<RtmpPusher>(shared_from_this());
     float publishTimeOutSec = (*this)[Client::kTimeoutMS].as<int>() / 1000.0f;
     _publish_timer.reset(new Timer(publishTimeOutSec, [weakSelf]() {
         auto strongSelf = weakSelf.lock();
@@ -97,7 +97,7 @@ void RtmpPusher::publish(const string &url)  {
     startConnect(host_url, port);
 }
 
-void RtmpPusher::onErr(const SockException &ex){
+void RtmpPusher::onError(const SockException &ex){
     //定时器_pPublishTimer为空后表明握手结束了
     onPublishResult_l(ex, !_publish_timer);
 }
@@ -107,7 +107,7 @@ void RtmpPusher::onConnect(const SockException &err){
         onPublishResult_l(err, false);
         return;
     }
-    weak_ptr<RtmpPusher> weak_self = dynamic_pointer_cast<RtmpPusher>(shared_from_this());
+    weak_ptr<RtmpPusher> weak_self = static_pointer_cast<RtmpPusher>(shared_from_this());
     startClientSession([weak_self]() {
         auto strong_self = weak_self.lock();
         if (!strong_self) {
@@ -193,7 +193,7 @@ void RtmpPusher::send_metaData(){
 
     src->pause(false);
     _rtmp_reader = src->getRing()->attach(getPoller());
-    weak_ptr<RtmpPusher> weak_self = dynamic_pointer_cast<RtmpPusher>(shared_from_this());
+    weak_ptr<RtmpPusher> weak_self = static_pointer_cast<RtmpPusher>(shared_from_this());
     _rtmp_reader->setReadCB([weak_self](const RtmpMediaSource::RingDataType &pkt) {
         auto strong_self = weak_self.lock();
         if (!strong_self) {

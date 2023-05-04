@@ -18,8 +18,8 @@ namespace mediakit{
 
 class RtpSplitter : public HttpRequestSplitter{
 public:
-    RtpSplitter();
-    ~RtpSplitter() override;
+    RtpSplitter() = default;
+    ~RtpSplitter() override = default;
 
 protected:
     /**

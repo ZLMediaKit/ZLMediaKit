@@ -35,7 +35,7 @@ protected:
     //for Tcpclient override
     void onRecv(const toolkit::Buffer::Ptr &buf) override;
     void onConnect(const toolkit::SockException &err) override;
-    void onErr(const toolkit::SockException &ex) override;
+    void onError(const toolkit::SockException &ex) override;
 
     //RtspSplitter override
     void onWholeRtspPacket(Parser &parser) override ;

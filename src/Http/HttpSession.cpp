@@ -24,14 +24,11 @@ using namespace toolkit;
 namespace mediakit {
 
 HttpSession::HttpSession(const Socket::Ptr &pSock) : Session(pSock) {
-    TraceP(this);
     GET_CONFIG(uint32_t,keep_alive_sec,Http::kKeepAliveSecond);
     pSock->setSendTimeOutSecond(keep_alive_sec);
 }
 
-HttpSession::~HttpSession() {
-    TraceP(this);
-}
+HttpSession::~HttpSession() = default;
 
 void HttpSession::Handle_Req_HEAD(ssize_t &content_len){
     //暂时全部返回200 OK，因为HTTP GET存在按需生成流的操作，所以不能按照HTTP GET的流程返回
@@ -55,6 +52,7 @@ ssize_t HttpSession::onRecvHeader(const char *header,size_t len) {
     static unordered_map<string, HttpCMDHandle> s_func_map;
     static onceToken token([]() {
         s_func_map.emplace("GET",&HttpSession::Handle_Req_GET);
+        s_func_map.emplace("DELETE",&HttpSession::Handle_Req_GET);
         s_func_map.emplace("POST",&HttpSession::Handle_Req_POST);
         s_func_map.emplace("HEAD",&HttpSession::Handle_Req_HEAD);
         s_func_map.emplace("OPTIONS",&HttpSession::Handle_Req_OPTIONS);
@@ -104,7 +102,7 @@ void HttpSession::onError(const SockException& err) {
         uint64_t duration = _ticker.createdTime() / 1000;
         WarnP(this) << "FLV/TS/FMP4播放器("
                     << _mediaInfo.shortUrl()
-                    << ")断开:" << err.what()
+                    << ")断开:" << err
                     << ",耗时(s):" << duration;
 
         GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
@@ -114,9 +112,6 @@ void HttpSession::onError(const SockException& err) {
         }
         return;
     }
-
-    //http客户端
-    TraceP(this) << err.what();
 }
 
 void HttpSession::onManager() {
@@ -208,7 +203,7 @@ bool HttpSession::checkLiveStream(const string &schema, const string  &url_suffi
     }
 
     bool close_flag = !strcasecmp(_parser["Connection"].data(), "close");
-    weak_ptr<HttpSession> weak_self = dynamic_pointer_cast<HttpSession>(shared_from_this());
+    weak_ptr<HttpSession> weak_self = static_pointer_cast<HttpSession>(shared_from_this());
 
     //鉴权结果回调
     auto onRes = [cb, weak_self, close_flag](const string &err) {
@@ -272,7 +267,7 @@ bool HttpSession::checkLiveStreamFMP4(const function<void()> &cb){
         //直播牺牲延时提升发送性能
         setSocketFlags();
         onWrite(std::make_shared<BufferString>(fmp4_src->getInitSegment()), true);
-        weak_ptr<HttpSession> weak_self = dynamic_pointer_cast<HttpSession>(shared_from_this());
+        weak_ptr<HttpSession> weak_self = static_pointer_cast<HttpSession>(shared_from_this());
         fmp4_src->pause(false);
         _fmp4_reader = fmp4_src->getRing()->attach(getPoller());
         _fmp4_reader->setGetInfoCB([weak_self]() { return weak_self.lock(); });
@@ -314,7 +309,7 @@ bool HttpSession::checkLiveStreamTS(const function<void()> &cb){
 
         //直播牺牲延时提升发送性能
         setSocketFlags();
-        weak_ptr<HttpSession> weak_self = dynamic_pointer_cast<HttpSession>(shared_from_this());
+        weak_ptr<HttpSession> weak_self = static_pointer_cast<HttpSession>(shared_from_this());
         ts_src->pause(false);
         _ts_reader = ts_src->getRing()->attach(getPoller());
         _ts_reader->setGetInfoCB([weak_self]() { return weak_self.lock(); });
@@ -412,7 +407,7 @@ void HttpSession::Handle_Req_GET_l(ssize_t &content_len, bool sendBody) {
     }
 
     bool bClose = !strcasecmp(_parser["Connection"].data(),"close");
-    weak_ptr<HttpSession> weak_self = dynamic_pointer_cast<HttpSession>(shared_from_this());
+    weak_ptr<HttpSession> weak_self = static_pointer_cast<HttpSession>(shared_from_this());
     HttpFileManager::onAccessPath(*this, _parser, [weak_self, bClose](int code, const string &content_type,
                                                                      const StrCaseMap &responseHeader, const HttpBody::Ptr &body) {
         auto strong_self = weak_self.lock();
@@ -440,12 +435,13 @@ class AsyncSenderData {
 public:
     friend class AsyncSender;
     using Ptr = std::shared_ptr<AsyncSenderData>;
-    AsyncSenderData(const Session::Ptr &session, const HttpBody::Ptr &body, bool close_when_complete) {
-        _session = dynamic_pointer_cast<HttpSession>(session);
+    AsyncSenderData(HttpSession::Ptr session, const HttpBody::Ptr &body, bool close_when_complete) {
+        _session = std::move(session);
         _body = body;
         _close_when_complete = close_when_complete;
     }
     ~AsyncSenderData() = default;
+
 private:
     std::weak_ptr<HttpSession> _session;
     HttpBody::Ptr _body;
@@ -618,7 +614,7 @@ void HttpSession::sendResponse(int code,
     }
 
     //发送http body
-    AsyncSenderData::Ptr data = std::make_shared<AsyncSenderData>(shared_from_this(), body, bClose);
+    AsyncSenderData::Ptr data = std::make_shared<AsyncSenderData>(static_pointer_cast<HttpSession>(shared_from_this()), body, bClose);
     getSock()->setOnFlush([data]() { return AsyncSender::onSocketFlushed(data); });
     AsyncSender::onSocketFlushed(data);
 }
@@ -645,7 +641,7 @@ void HttpSession::urlDecode(Parser &parser){
 bool HttpSession::emitHttpEvent(bool doInvoke){
     bool bClose = !strcasecmp(_parser["Connection"].data(),"close");
     /////////////////////异步回复Invoker///////////////////////////////
-    weak_ptr<HttpSession> weak_self = dynamic_pointer_cast<HttpSession>(shared_from_this());
+    weak_ptr<HttpSession> weak_self = static_pointer_cast<HttpSession>(shared_from_this());
     HttpResponseInvoker invoker = [weak_self,bClose](int code, const KeyValue &headerOut, const HttpBody::Ptr &body){
         auto strong_self = weak_self.lock();
         if(!strong_self) {
