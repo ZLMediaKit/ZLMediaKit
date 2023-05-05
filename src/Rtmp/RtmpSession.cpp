@@ -81,27 +81,23 @@ void RtmpSession::onCmd_connect(AMFDecoder &dec) {
     ///////////set peerBandwidth////////////////
     sendPeerBandwidth(5000000);
 
-    _media_info._app = params["app"].as_string();
-    _tc_url = params["tcUrl"].as_string();
-    if(_tc_url.empty()){
-        //defaultVhost:默认vhost
-        _tc_url = string(RTMP_SCHEMA) + "://" + DEFAULT_VHOST + "/" + _media_info._app;
+    auto tc_url = params["tcUrl"].as_string();
+    if (tc_url.empty()) {
+        // defaultVhost:默认vhost
+        tc_url = string(RTMP_SCHEMA) + "://" + DEFAULT_VHOST + "/" + _media_info._app;
     } else {
-        auto pos = _tc_url.rfind('?');
+        auto pos = tc_url.rfind('?');
         if (pos != string::npos) {
-            //tc_url 中可能包含?以及参数，参见issue: #692
-            _tc_url = _tc_url.substr(0, pos);
-        }
-        auto stream_start = _tc_url.rfind('/');
-        if (stream_start != string::npos && stream_start > 1) {
-            auto protocol_end = _tc_url.find("://") + 2;
-            auto app_start = _tc_url.rfind('/', stream_start - 1);
-            if (app_start != protocol_end) {
-                // contain stream name part
-                _tc_url = _tc_url.substr(0, stream_start);
-            }
+            // tc_url 中可能包含?以及参数，参见issue: #692
+            tc_url = tc_url.substr(0, pos);
         }
     }
+    // 初步解析，只用于获取vhost信息
+    _media_info.parse(tc_url);
+    _media_info._schema = RTMP_SCHEMA;
+    // 赋值rtmp app
+    _media_info._app = params["app"].as_string();
+
     bool ok = true; //(app == APP_NAME);
     AMFValue version(AMF_OBJECT);
     version.set("fmsVer", "FMS/3,0,1,123");
@@ -135,8 +131,10 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
         }
     }));
     dec.load<AMFValue>();/* NULL */
-    _media_info.parse(_tc_url + "/" + getStreamId(dec.load<std::string>()));
-    _media_info._schema = RTMP_SCHEMA;
+    // 赋值为rtmp stream id 信息
+    _media_info._streamid = getStreamId(dec.load<std::string>());
+    // 再解析url，切割url为app/stream_id (不一定符合rtmp url切割规范)
+    _media_info.parse(_media_info._schema + "://" + _media_info._vhost + '/' + _media_info._app + '/' + _media_info._streamid);
 
     auto now_stream_index = _now_stream_index;
     auto on_res = [this, token, now_stream_index](const string &err, const ProtocolOption &option) {
@@ -433,9 +431,11 @@ string RtmpSession::getStreamId(const string &str){
 }
 
 void RtmpSession::onCmd_play(AMFDecoder &dec) {
-    dec.load<AMFValue>();/* NULL */
-    _media_info.parse(_tc_url + "/" + getStreamId(dec.load<std::string>()));
-    _media_info._schema = RTMP_SCHEMA;
+    dec.load<AMFValue>(); /* NULL */
+    // 赋值为rtmp stream id 信息
+    _media_info._streamid = getStreamId(dec.load<std::string>());
+    // 再解析url，切割url为app/stream_id (不一定符合rtmp url切割规范)
+    _media_info.parse(_media_info._schema + "://" + _media_info._vhost + '/' + _media_info._app + '/' + _media_info._streamid);
     doPlay(dec);
 }
 
