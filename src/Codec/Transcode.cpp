@@ -447,11 +447,13 @@ FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num, const std:
         }
         av_dict_set(&dict, "zerolatency", "1", 0);
         av_dict_set(&dict, "strict", "-2", 0);
-
+#ifdef AV_CODEC_CAP_TRUNCATED
         if (codec->capabilities & AV_CODEC_CAP_TRUNCATED) {
             /* we do not send complete frames */
             _context->flags |= AV_CODEC_FLAG_TRUNCATED;
-        } else {
+        } else 
+#endif
+        {
             // 此时业务层应该需要合帧
             _do_merger = true;
         }
