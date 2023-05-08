@@ -78,7 +78,7 @@ public:
     /**
      * 上次结果与本次结果间丢包个数
      */
-    virtual size_t geLostInterval();
+    virtual size_t getLostInterval();
 
 protected:
     // 收到或发送的rtp的字节数
@@ -120,7 +120,7 @@ public:
     size_t getExpectedPackets() const override;
     size_t getExpectedPacketsInterval() override;
     size_t getLost() override;
-    size_t geLostInterval() override;
+    size_t getLostInterval() override;
     void onRtcp(RtcpHeader *rtcp) override;
 
 private:

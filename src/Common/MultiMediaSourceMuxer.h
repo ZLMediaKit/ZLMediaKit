@@ -28,6 +28,7 @@ namespace mediakit {
 class MultiMediaSourceMuxer : public MediaSourceEventInterceptor, public MediaSink, public std::enable_shared_from_this<MultiMediaSourceMuxer>{
 public:
     using Ptr = std::shared_ptr<MultiMediaSourceMuxer>;
+    using RingType = toolkit::RingBuffer<Frame::Ptr>;
 
     class Listener {
     public:
@@ -46,7 +47,7 @@ public:
     void setMediaListener(const std::weak_ptr<MediaSourceEvent> &listener);
 
      /**
-      * 随着Track就绪事件监听器
+      * 设置Track就绪事件监听器
       * @param listener 事件监听器
      */
     void setTrackListener(const std::weak_ptr<Listener> &listener);
@@ -152,8 +153,12 @@ protected:
     bool onTrackFrame(const Frame::Ptr &frame) override;
 
 private:
+    void createGopCacheIfNeed();
+
+private:
     bool _is_enable = false;
     bool _create_in_poller = false;
+    bool _video_key_pos = false;
     std::string _vhost;
     std::string _app;
     std::string _stream_id;
@@ -162,7 +167,7 @@ private:
     Stamp _stamp[2];
     std::weak_ptr<Listener> _track_listener;
 #if defined(ENABLE_RTPPROXY)
-    std::unordered_map<std::string, RtpSender::Ptr> _rtp_sender;
+    std::unordered_map<std::string, RingType::RingReader::Ptr> _rtp_sender;
 #endif //ENABLE_RTPPROXY
 
 #if defined(ENABLE_MP4)
@@ -174,6 +179,7 @@ private:
     MediaSinkInterface::Ptr _mp4;
     HlsRecorder::Ptr _hls;
     toolkit::EventPoller::Ptr _poller;
+    RingType::Ptr _ring;
 
     //对象个数统计
     toolkit::ObjectStatistic<MultiMediaSourceMuxer> _statistic;

@@ -75,7 +75,7 @@ void RtmpPlayer::play(const string &url)  {
         setNetAdapter((*this)[Client::kNetAdapter]);
     }
 
-    weak_ptr<RtmpPlayer> weak_self = dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
+    weak_ptr<RtmpPlayer> weak_self = static_pointer_cast<RtmpPlayer>(shared_from_this());
     float play_timeout_sec = (*this)[Client::kTimeoutMS].as<int>() / 1000.0f;
     _play_timer.reset(new Timer(play_timeout_sec, [weak_self]() {
         auto strong_self = weak_self.lock();
@@ -90,7 +90,7 @@ void RtmpPlayer::play(const string &url)  {
     startConnect(host_url, port, play_timeout_sec);
 }
 
-void RtmpPlayer::onErr(const SockException &ex){
+void RtmpPlayer::onError(const SockException &ex){
     //定时器_pPlayTimer为空后表明握手结束了
     onPlayResult_l(ex, !_play_timer);
 }
@@ -101,7 +101,7 @@ void RtmpPlayer::onPlayResult_l(const SockException &ex, bool handshake_done) {
         return;
     }
 
-    WarnL << ex.getErrCode() << " " << ex.what();
+    WarnL << ex.getErrCode() << " " << ex;
     if (!handshake_done) {
         //开始播放阶段
         _play_timer.reset();
@@ -120,7 +120,7 @@ void RtmpPlayer::onPlayResult_l(const SockException &ex, bool handshake_done) {
         //播放成功，恢复rtmp接收超时定时器
         _rtmp_recv_ticker.resetTime();
         auto timeout_ms = (*this)[Client::kMediaTimeoutMS].as<uint64_t>();
-        weak_ptr<RtmpPlayer> weak_self = dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
+        weak_ptr<RtmpPlayer> weak_self = static_pointer_cast<RtmpPlayer>(shared_from_this());
         auto lam = [weak_self, timeout_ms]() {
             auto strong_self = weak_self.lock();
             if (!strong_self) {
@@ -146,7 +146,7 @@ void RtmpPlayer::onConnect(const SockException &err) {
         onPlayResult_l(err, false);
         return;
     }
-    weak_ptr<RtmpPlayer> weak_self = dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
+    weak_ptr<RtmpPlayer> weak_self = static_pointer_cast<RtmpPlayer>(shared_from_this());
     startClientSession([weak_self]() {
         if (auto strong_self = weak_self.lock()) {
             strong_self->send_connect();
@@ -258,7 +258,7 @@ void RtmpPlayer::send_pause(bool pause) {
 
     _beat_timer.reset();
     if (pause) {
-        weak_ptr<RtmpPlayer> weak_self = dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
+        weak_ptr<RtmpPlayer> weak_self = static_pointer_cast<RtmpPlayer>(shared_from_this());
         _beat_timer.reset(new Timer((*this)[Client::kBeatIntervalMS].as<int>() / 1000.0f, [weak_self]() {
             auto strong_self = weak_self.lock();
             if (!strong_self) {

@@ -367,7 +367,7 @@ static void accessFile(Session &sender, const Parser &parser, const MediaInfo &m
         replace(const_cast<string &>(media_info._streamid), kHlsSuffix, "");
     }
 
-    weak_ptr<Session> weakSession = sender.shared_from_this();
+    weak_ptr<Session> weakSession = static_pointer_cast<Session>(sender.shared_from_this());
     //判断是否有权限访问该文件
     canAccessPath(sender, parser, media_info, false, [cb, file_path, parser, is_hls, media_info, weakSession](const string &err_msg, const HttpServerCookie::Ptr &cookie) {
         auto strongSession = weakSession.lock();

@@ -9,7 +9,7 @@
  */
 
 #include "H265Rtp.h"
-
+#include "Common/config.h"
 namespace mediakit{
 
 //https://datatracker.ietf.org/doc/rfc7798/
@@ -258,58 +258,119 @@ H265RtpEncoder::H265RtpEncoder(uint32_t ui32Ssrc,
                 ui8Interleaved) {
 }
 
+void H265RtpEncoder::packRtpFu(const char *ptr, size_t len, uint64_t pts, bool is_mark, bool gop_pos){
+    auto max_size = getMaxSize() - 3;
+    auto nal_type = H265_TYPE(ptr[0]); //获取NALU的5bit 帧类型
+    unsigned char s_e_flags;
+    bool fu_start = true;
+    bool mark_bit = false;
+    size_t offset = 2;
+    while (!mark_bit) {
+        if (len <= offset + max_size) {
+            // FU end
+            mark_bit = true;
+            max_size = len - offset;
+            s_e_flags = (1 << 6) | nal_type;
+        } else if (fu_start) {
+            // FU start
+            s_e_flags = (1 << 7) | nal_type;
+        } else {
+            // FU mid
+            s_e_flags = nal_type;
+        }
+
+        {
+            // 传入nullptr先不做payload的内存拷贝
+            auto rtp = makeRtp(getTrackType(), nullptr, max_size + 3, mark_bit, pts);
+            // rtp payload 负载部分
+            uint8_t *payload = rtp->getPayload();
+            // FU 第1个字节，表明为FU
+            payload[0] = 49 << 1;
+            // FU 第2个字节貌似固定为1
+            payload[1] = ptr[1]; // 1;
+            // FU 第3个字节
+            payload[2] = s_e_flags;
+            // H265 数据
+            memcpy(payload + 3, ptr + offset, max_size);
+            // 输入到rtp环形缓存
+            RtpCodec::inputRtp(rtp, fu_start && gop_pos);
+        }
+
+        offset += max_size;
+        fu_start = false;
+    }
+}
+
+void H265RtpEncoder::packRtp(const char *ptr, size_t len, uint64_t pts, bool is_mark, bool gop_pos){
+    if (len <= getMaxSize()) {
+        //signal-nalu 
+        RtpCodec::inputRtp(makeRtp(getTrackType(), ptr, len, is_mark, pts), gop_pos);
+    } else {
+        //FU-A模式
+        packRtpFu(ptr, len, pts, is_mark, gop_pos);
+    }
+}
+void H265RtpEncoder::insertConfigFrame(uint64_t pts){
+     if (!_sps || !_pps || !_vps) {
+        WarnL<<" not ok";
+        return;
+    }
+    //gop缓存从vps 开始，vps ,sps、pps后面还有时间戳相同的关键帧，所以mark bit为false
+    packRtp(_vps->data() + _vps->prefixSize(), _vps->size() - _vps->prefixSize(), pts, false, true);
+    packRtp(_sps->data() + _sps->prefixSize(), _sps->size() - _sps->prefixSize(), pts, false, false);
+    packRtp(_pps->data() + _pps->prefixSize(), _pps->size() - _pps->prefixSize(), pts, false, false);
+    
+}
+bool H265RtpEncoder::inputFrame_l(const Frame::Ptr &frame, bool is_mark){
+     if (frame->keyFrame()) {
+        //保证每一个关键帧前都有SPS PPS VPS
+        insertConfigFrame(frame->pts());
+    }
+    packRtp(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize(), frame->pts(), is_mark, false);
+    return true;
+}
 bool H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     auto ptr = (uint8_t *) frame->data() + frame->prefixSize();
-    auto len = frame->size() - frame->prefixSize();
-    auto pts = frame->pts();
     auto nal_type = H265_TYPE(ptr[0]); //获取NALU的5bit 帧类型
-    auto max_size = getMaxSize() - 3;
 
-    //超过MTU,按照FU方式打包
-    if (len > max_size + 2) {
-        //获取帧头数据，1byte
-        unsigned char s_e_flags;
-        bool fu_start = true;
-        bool mark_bit = false;
-        size_t offset = 2;
-        while (!mark_bit) {
-            if (len <= offset + max_size) {
-                //FU end
-                mark_bit = true;
-                max_size = len - offset;
-                s_e_flags = (1 << 6) | nal_type;
-            } else if (fu_start) {
-                //FU start
-                s_e_flags = (1 << 7) | nal_type;
-            } else {
-                //FU mid
-                s_e_flags = nal_type;
-            }
-
-            {
-                //传入nullptr先不做payload的内存拷贝
-                auto rtp = makeRtp(getTrackType(), nullptr, max_size + 3, mark_bit, pts);
-                //rtp payload 负载部分
-                uint8_t *payload = rtp->getPayload();
-                //FU 第1个字节，表明为FU
-                payload[0] = 49 << 1;
-                //FU 第2个字节貌似固定为1
-                payload[1] = ptr[1];// 1;
-                //FU 第3个字节
-                payload[2] = s_e_flags;
-                //H265 数据
-                memcpy(payload + 3, ptr + offset, max_size);
-                //输入到rtp环形缓存
-                RtpCodec::inputRtp(rtp, fu_start && frame->keyFrame());
-            }
-
-            offset += max_size;
-            fu_start = false;
+    switch (nal_type) {
+        case H265Frame::NAL_SPS: {
+            _sps = Frame::getCacheAbleFrame(frame);
+            return true;
         }
-    } else {
-        RtpCodec::inputRtp(makeRtp(getTrackType(), ptr, len, false, pts), frame->keyFrame());
+        case H265Frame::NAL_PPS: {
+            _pps = Frame::getCacheAbleFrame(frame);
+            return true;
+        }
+        case H265Frame::NAL_VPS:{
+            _vps = Frame::getCacheAbleFrame(frame);
+            return true;
+        }
+        default: break;
     }
-    return len > 0;
+
+    GET_CONFIG(int,lowLatency,Rtp::kLowLatency);
+    if (lowLatency) { // 低延迟模式
+        if (_last_frame) {
+            flush();
+        }
+        inputFrame_l(frame, true);
+    } else {
+        if (_last_frame) {
+            //如果时间戳发生了变化，那么markbit才置true
+            inputFrame_l(_last_frame, _last_frame->pts() != frame->pts());
+        }
+        _last_frame = Frame::getCacheAbleFrame(frame);
+    }
+    return true;
+}
+
+void H265RtpEncoder::flush() {
+    if (_last_frame) {
+        // 如果时间戳发生了变化，那么markbit才置true
+        inputFrame_l(_last_frame, true);
+        _last_frame = nullptr;
+    }
 }
 
 }//namespace mediakit

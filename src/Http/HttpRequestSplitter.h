@@ -18,8 +18,8 @@ namespace mediakit {
 
 class HttpRequestSplitter {
 public:
-    HttpRequestSplitter(){};
-    virtual ~HttpRequestSplitter(){};
+    HttpRequestSplitter() = default;
+    virtual ~HttpRequestSplitter() = default;
 
     /**
      * 添加数据

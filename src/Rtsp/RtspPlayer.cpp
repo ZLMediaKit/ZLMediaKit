@@ -92,7 +92,7 @@ void RtspPlayer::play(const string &strUrl){
     _rtp_type = (Rtsp::eRtpType)(int)(*this)[Client::kRtpType];
     DebugL << url._url << " " << (url._user.size() ? url._user : "null") << " " << (url._passwd.size() ? url._passwd : "null") << " " << _rtp_type;
 
-    weak_ptr<RtspPlayer> weakSelf = dynamic_pointer_cast<RtspPlayer>(shared_from_this());
+    weak_ptr<RtspPlayer> weakSelf = static_pointer_cast<RtspPlayer>(shared_from_this());
     float playTimeOutSec = (*this)[Client::kTimeoutMS].as<int>() / 1000.0f;
     _play_check_timer.reset(new Timer(playTimeOutSec, [weakSelf]() {
         auto strongSelf=weakSelf.lock();
@@ -131,7 +131,7 @@ void RtspPlayer::onRecv(const Buffer::Ptr& buf) {
     }
 }
 
-void RtspPlayer::onErr(const SockException &ex) {
+void RtspPlayer::onError(const SockException &ex) {
     //定时器_pPlayTimer为空后表明握手结束了
     onPlayResult_l(ex,!_play_check_timer);
 }
@@ -348,7 +348,7 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int track_idx) {
         }
 
         auto peer_ip = get_peer_ip();
-        weak_ptr<RtspPlayer> weakSelf = dynamic_pointer_cast<RtspPlayer>(shared_from_this());
+        weak_ptr<RtspPlayer> weakSelf = static_pointer_cast<RtspPlayer>(shared_from_this());
         //设置rtp over udp接收回调处理函数
         pRtpSockRef->setOnRead([peer_ip, track_idx, weakSelf](const Buffer::Ptr &buf, struct sockaddr *addr , int addr_len) {
             auto strongSelf = weakSelf.lock();
@@ -705,7 +705,7 @@ void RtspPlayer::onPlayResult_l(const SockException &ex , bool handshake_done) {
         //播放成功，恢复rtp接收超时定时器
         _rtp_recv_ticker.resetTime();
         auto timeoutMS = (*this)[Client::kMediaTimeoutMS].as<uint64_t>();
-        weak_ptr<RtspPlayer> weakSelf = dynamic_pointer_cast<RtspPlayer>(shared_from_this());
+        weak_ptr<RtspPlayer> weakSelf = static_pointer_cast<RtspPlayer>(shared_from_this());
         auto lam = [weakSelf, timeoutMS]() {
             auto strongSelf = weakSelf.lock();
             if (!strongSelf) {

@@ -37,7 +37,7 @@ public:
 
     template <typename... ArgsType>
     ClientTypeImp(ArgsType &&...args) : ClientType(std::forward<ArgsType>(args)...) {}
-    ~ClientTypeImp() override {};
+    ~ClientTypeImp() override  = default;
 
 protected:
     /**
@@ -218,7 +218,7 @@ protected:
     /**
      * tcp连接断开
      */
-    void onErr(const toolkit::SockException &ex) override {
+    void onError(const toolkit::SockException &ex) override {
         // tcp断开或者shutdown导致的断开
         onWebSocketException(ex);
     }
@@ -316,7 +316,7 @@ private:
         if (!ex) {
             // websocket握手成功
             // 此处截取TcpClient派生类发送的数据并进行websocket协议打包
-            std::weak_ptr<HttpWsClient> weakSelf = std::dynamic_pointer_cast<HttpWsClient>(shared_from_this());
+            std::weak_ptr<HttpWsClient> weakSelf = std::static_pointer_cast<HttpWsClient>(shared_from_this());
             if (auto strong_ref = _weak_delegate.lock()) {
                 strong_ref->setOnBeforeSendCB([weakSelf](const toolkit::Buffer::Ptr &buf) {
                     auto strong_self = weakSelf.lock();
@@ -350,7 +350,7 @@ private:
             // 握手成功之后的中途断开
             _onRecv = nullptr;
             if (auto strong_ref = _weak_delegate.lock()) {
-                strong_ref->onErr(ex);
+                strong_ref->onError(ex);
             }
             return;
         }

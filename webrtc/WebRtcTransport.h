@@ -40,8 +40,11 @@ public:
     WebRtcInterface() = default;
     virtual ~WebRtcInterface() = default;
     virtual std::string getAnswerSdp(const std::string &offer) = 0;
-    virtual const std::string &getIdentifier() const = 0;
+    virtual const std::string& getIdentifier() const = 0;
+    virtual const std::string& deleteRandStr() const { static std::string s_null; return s_null; }
 };
+
+std::string exchangeSdp(const WebRtcInterface &exchanger, const std::string& offer);
 
 class WebRtcException : public WebRtcInterface {
 public:
@@ -90,6 +93,7 @@ public:
      * 获取对象唯一id
      */
     const std::string& getIdentifier() const override;
+    const std::string& deleteRandStr() const override;
 
     /**
      * socket收到udp数据
@@ -172,6 +176,7 @@ protected:
     std::shared_ptr<RTC::IceServer> _ice_server;
 
 private:
+    mutable std::string _delete_rand_str;
     std::string _identifier;
     EventPoller::Ptr _poller;
     std::shared_ptr<RTC::DtlsTransport> _dtls_transport;
@@ -246,6 +251,7 @@ public:
 
     void createRtpChannel(const std::string &rid, uint32_t ssrc, MediaTrack &track);
     void removeTuple(RTC::TransportTuple* tuple);
+    void safeShutdown(const SockException &ex);
 
 protected:
     void OnIceServerSelectedTuple(const RTC::IceServer *iceServer, RTC::TransportTuple *tuple) override;

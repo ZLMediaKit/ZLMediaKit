@@ -51,12 +51,10 @@ WebRtcSession::WebRtcSession(const Socket::Ptr &sock) : Session(sock) {
     _over_tcp = sock->sockType() == SockNum::Sock_TCP;
 }
 
-WebRtcSession::~WebRtcSession() {
-    InfoP(this);
-}
+WebRtcSession::~WebRtcSession() = default;
 
 void WebRtcSession::attachServer(const Server &server) {
-    _server = std::dynamic_pointer_cast<toolkit::TcpServer>(const_cast<Server &>(server).shared_from_this());
+    _server = std::static_pointer_cast<toolkit::TcpServer>(const_cast<Server &>(server).shared_from_this());
 }
 
 void WebRtcSession::onRecv_l(const char *data, size_t len) {
@@ -71,7 +69,7 @@ void WebRtcSession::onRecv_l(const char *data, size_t len) {
         if (!transport->getPoller()->isCurrentThread()) {
             auto sock = Socket::createSocket(transport->getPoller(), false);
             //1、克隆socket(fd不变)，切换poller线程到WebRtcTransport所在线程
-            sock->cloneFromPeerSocket(*(getSock()));
+            sock->cloneSocket(*(getSock()));
             auto server = _server;
             std::string str(data, len);
             sock->getPoller()->async([sock, server, str](){
@@ -105,12 +103,12 @@ void WebRtcSession::onError(const SockException &err) {
     //udp链接超时，但是rtc链接不一定超时，因为可能存在链接迁移的情况
     //在udp链接迁移时，新的WebRtcSession对象将接管WebRtcTransport对象的生命周期
     //本WebRtcSession对象将在超时后自动销毁
-    WarnP(this) << err.what();
+    WarnP(this) << err;
 
     if (!_transport) {
         return;
     }
-    auto self = shared_from_this();
+    auto self = static_pointer_cast<WebRtcSession>(shared_from_this());
     auto transport = std::move(_transport);
     getPoller()->async([transport, self]() mutable {
         //延时减引用，防止使用transport对象时，销毁对象

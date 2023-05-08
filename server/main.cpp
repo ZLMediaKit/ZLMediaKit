@@ -108,7 +108,7 @@ onceToken token1([](){
 class CMD_main : public CMD {
 public:
     CMD_main() {
-        _parser.reset(new OptionParser(nullptr));
+        _parser = std::make_shared<OptionParser>(nullptr);
 
 #if !defined(_WIN32)
         (*_parser) << Option('d',/*该选项简称，如果是\x00则说明无简称*/
@@ -123,7 +123,7 @@ public:
         (*_parser) << Option('l',/*该选项简称，如果是\x00则说明无简称*/
                              "level",/*该选项全称,每个选项必须有全称；不得为null或空字符串*/
                              Option::ArgRequired,/*该选项后面必须跟值*/
-                             to_string(LTrace).data(),/*该选项默认值*/
+                             to_string(LDebug).data(),/*该选项默认值*/
                              false,/*该选项是否必须赋值，如果没有默认值且为ArgRequired时用户必须提供该参数否则将抛异常*/
                              "日志等级,LTrace~LError(0~4)",/*该选项说明文字*/
                              nullptr);
@@ -158,6 +158,14 @@ public:
                              to_string(thread::hardware_concurrency()).data(),/*该选项默认值*/
                              false,/*该选项是否必须赋值，如果没有默认值且为ArgRequired时用户必须提供该参数否则将抛异常*/
                              "启动事件触发线程数",/*该选项说明文字*/
+                             nullptr);
+
+        (*_parser) << Option(0,/*该选项简称，如果是\x00则说明无简称*/
+                             "affinity",/*该选项全称,每个选项必须有全称；不得为null或空字符串*/
+                             Option::ArgRequired,/*该选项后面必须跟值*/
+                             to_string(1).data(),/*该选项默认值*/
+                             false,/*该选项是否必须赋值，如果没有默认值且为ArgRequired时用户必须提供该参数否则将抛异常*/
+                             "是否启动cpu亲和性设置",/*该选项说明文字*/
                              nullptr);
 
 #if defined(ENABLE_VERSION)
@@ -200,15 +208,16 @@ int start_main(int argc,char *argv[]) {
         g_ini_file = cmd_main["config"];
         string ssl_file = cmd_main["ssl"];
         int threads = cmd_main["threads"];
+        bool affinity = cmd_main["affinity"];
 
         //设置日志
         Logger::Instance().add(std::make_shared<ConsoleChannel>("ConsoleChannel", logLevel));
-#ifndef ANDROID
+#if !defined(ANDROID)
         auto fileChannel = std::make_shared<FileChannel>("FileChannel", exeDir() + "log/", logLevel);
-        //日志最多保存天数
+        // 日志最多保存天数
         fileChannel->setMaxDay(cmd_main["max_day"]);
         Logger::Instance().add(fileChannel);
-#endif//
+#endif // !defined(ANDROID)
 
 #if !defined(_WIN32)
         pid_t pid = getpid();
@@ -252,24 +261,27 @@ int start_main(int argc,char *argv[]) {
         uint16_t httpsPort = mINI::Instance()[Http::kSSLPort];
         uint16_t rtpPort = mINI::Instance()[RtpProxy::kPort];
 
-        //设置poller线程数,该函数必须在使用ZLToolKit网络相关对象之前调用才能生效
+        //设置poller线程数和cpu亲和性,该函数必须在使用ZLToolKit网络相关对象之前调用才能生效
+        //如果需要调用getSnap和addFFmpegSource接口，可以关闭cpu亲和性
+
         EventPollerPool::setPoolSize(threads);
+        EventPollerPool::enableCpuAffinity(affinity);
 
         //简单的telnet服务器，可用于服务器调试，但是不能使用23端口，否则telnet上了莫名其妙的现象
         //测试方法:telnet 127.0.0.1 9000
         auto shellSrv = std::make_shared<TcpServer>();
 
         //rtsp[s]服务器, 可用于诸如亚马逊echo show这样的设备访问
-        auto rtspSrv = std::make_shared<TcpServer>();;
-        auto rtspSSLSrv = std::make_shared<TcpServer>();;
+        auto rtspSrv = std::make_shared<TcpServer>();
+        auto rtspSSLSrv = std::make_shared<TcpServer>();
 
         //rtmp[s]服务器
-        auto rtmpSrv = std::make_shared<TcpServer>();;
-        auto rtmpsSrv = std::make_shared<TcpServer>();;
+        auto rtmpSrv = std::make_shared<TcpServer>();
+        auto rtmpsSrv = std::make_shared<TcpServer>();
 
         //http[s]服务器
-        auto httpSrv = std::make_shared<TcpServer>();;
-        auto httpsSrv = std::make_shared<TcpServer>();;
+        auto httpSrv = std::make_shared<TcpServer>();
+        auto httpsSrv = std::make_shared<TcpServer>();
 
 #if defined(ENABLE_RTPPROXY)
         //GB28181 rtp推流端口，支持UDP/TCP

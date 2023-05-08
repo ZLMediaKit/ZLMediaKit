@@ -99,6 +99,7 @@
   - 支持es/ps/ts/ehome rtp推流
   - 支持es/ps rtp转推
   - 支持GB28181主动拉流模式
+  - 支持双向语音对讲
 
 - MP4点播与录制
   - 支持录制为FLV/HLS/MP4
@@ -119,6 +120,7 @@
   - 支持datachannel
   - 支持webrtc over tcp模式
   - 优秀的nack、jitter buffer算法, 抗丢包能力卓越
+  - 支持whip/whep协议
 - [SRT支持](./srt/srt.md)
 - 其他
   - 支持丰富的restful api以及web hook事件 
@@ -198,7 +200,9 @@ bash build_docker_images.sh
 ## 联系方式
 
  - 邮箱：<1213642868@qq.com>(本项目相关或流媒体相关问题请走issue流程，否则恕不邮件答复)
- - QQ群：qq群号在wiki中，请阅读wiki后再加群
+ - QQ群：两个qq群已满员(共4000人)，后续将不再新建qq群，用户可加入[知识星球](https://github.com/ZLMediaKit/ZLMediaKit/issues/2364)提问以支持本项目。
+ - 关注微信公众号：
+ <img src=https://user-images.githubusercontent.com/11495632/232451702-4c50bc72-84d8-4c94-af2b-57290088ba7a.png width=15% />
 
 ## 怎么提问？
 
@@ -208,6 +212,7 @@ bash build_docker_images.sh
  - 2、如果您的问题还没解决，可以提issue.
  - 3、有些问题，如果不具备参考性的，无需在issue提的，可以在qq群提.
  - 4、QQ私聊一般不接受无偿技术咨询和支持([为什么不提倡QQ私聊](https://github.com/ZLMediaKit/ZLMediaKit/wiki/%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B8%8D%E5%BB%BA%E8%AE%AEQQ%E7%A7%81%E8%81%8A%E5%92%A8%E8%AF%A2%E9%97%AE%E9%A2%98%EF%BC%9F)).
+ - 5、如果需要获取更及时贴心的技术支持，可以有偿加入[知识星球](https://github.com/ZLMediaKit/ZLMediaKit/issues/2364).
 
 ## 特别感谢
 
@@ -295,6 +300,13 @@ bash build_docker_images.sh
 [gongluck](https://github.com/gongluck)
 [a-ucontrol](https://github.com/a-ucontrol)
 [TalusL](https://github.com/TalusL)
+[ahaooahaz](https://github.com/AHAOAHA)
+[TempoTian](https://github.com/TempoTian)
+[Derek Liu](https://github.com/yjkhtddx)
+[ljx0305](https://github.com/ljx0305)
+[朱如洪 ](https://github.com/zhu410289616)
+[lijin](https://github.com/1461521844lijin)
+[PioLing](https://github.com/PioLing)
 
 ## 使用案例
 

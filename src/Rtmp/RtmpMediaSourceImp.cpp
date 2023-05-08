@@ -41,7 +41,7 @@ void RtmpMediaSource::onWrite(RtmpPacket::Ptr pkt, bool /*= true*/)
     }
 
     if (!_ring) {
-        std::weak_ptr<RtmpMediaSource> weakSelf = std::dynamic_pointer_cast<RtmpMediaSource>(shared_from_this());
+        std::weak_ptr<RtmpMediaSource> weakSelf = std::static_pointer_cast<RtmpMediaSource>(shared_from_this());
         auto lam = [weakSelf](int size) {
             auto strongSelf = weakSelf.lock();
             if (!strongSelf) {

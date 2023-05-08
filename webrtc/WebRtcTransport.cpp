@@ -113,6 +113,13 @@ const string &WebRtcTransport::getIdentifier() const {
     return _identifier;
 }
 
+const std::string& WebRtcTransport::deleteRandStr() const {
+    if (_delete_rand_str.empty()) {
+        _delete_rand_str = makeRandStr(32);
+    }
+    return _delete_rand_str;
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void WebRtcTransport::OnIceServerSendStunPacket(
@@ -230,7 +237,7 @@ void WebRtcTransport::sendSockData(const char *buf, size_t len, RTC::TransportTu
 
 Session::Ptr WebRtcTransport::getSession() const {
     auto tuple = _ice_server->GetSelectedTuple(true);
-    return tuple ? tuple->shared_from_this() : nullptr;
+    return tuple ? static_pointer_cast<Session>(tuple->shared_from_this()) : nullptr;
 }
 
 void WebRtcTransport::sendRtcpRemb(uint32_t ssrc, size_t bit_rate) {
@@ -689,7 +696,7 @@ public:
         if (!expected) {
             return -1;
         }
-        return _rtcp_context.geLostInterval() * 100 / expected;
+        return _rtcp_context.getLostInterval() * 100 / expected;
     }
 
 private:
@@ -860,7 +867,7 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
 void WebRtcTransportImp::createRtpChannel(const string &rid, uint32_t ssrc, MediaTrack &track) {
     // rid --> RtpReceiverImp
     auto &ref = track.rtp_channel[rid];
-    weak_ptr<WebRtcTransportImp> weak_self = dynamic_pointer_cast<WebRtcTransportImp>(shared_from_this());
+    weak_ptr<WebRtcTransportImp> weak_self = static_pointer_cast<WebRtcTransportImp>(shared_from_this());
     ref = std::make_shared<RtpChannel>(
         getPoller(), [&track, this, rid](RtpPacket::Ptr rtp) mutable { onSortedRtp(track, rid, std::move(rtp)); },
         [&track, weak_self, ssrc](const FCI_NACK &nack) mutable {
@@ -1053,8 +1060,17 @@ void WebRtcTransportImp::onBeforeEncryptRtp(const char *buf, int &len, void *ctx
     }
 }
 
+void WebRtcTransportImp::safeShutdown(const SockException &ex) {
+    std::weak_ptr<WebRtcTransportImp> weak_self = static_pointer_cast<WebRtcTransportImp>(shared_from_this());
+    getPoller()->async([ex, weak_self]() {
+        if (auto strong_self = weak_self.lock()) {
+            strong_self->onShutdown(ex);
+        }
+    });
+}
+
 void WebRtcTransportImp::onShutdown(const SockException &ex) {
-    WarnL << ex.what();
+    WarnL << ex;
     unrefSelf();
     for (auto &tuple : _ice_server->GetTuples()) {
         tuple->shutdown(ex);
@@ -1131,6 +1147,10 @@ void WebRtcPluginManager::registerPlugin(const string &type, Plugin cb) {
     _map_creator[type] = std::move(cb);
 }
 
+std::string exchangeSdp(const WebRtcInterface &exchanger, const std::string& offer) {
+    return const_cast<WebRtcInterface &>(exchanger).getAnswerSdp(offer);
+}
+
 void WebRtcPluginManager::getAnswerSdp(Session &sender, const string &type, const WebRtcArgs &args, const onCreateRtc &cb) {
     lock_guard<mutex> lck(_mtx_creator);
     auto it = _map_creator.find(type);
@@ -1205,7 +1225,7 @@ void play_plugin(Session &sender, const WebRtcArgs &args, const WebRtcPluginMana
     MediaInfo info(args["url"]);
     bool preferred_tcp = args["preferred_tcp"];
 
-    auto session_ptr = sender.shared_from_this();
+    auto session_ptr = static_pointer_cast<Session>(sender.shared_from_this());
     Broadcast::AuthInvoker invoker = [cb, info, session_ptr, preferred_tcp](const string &err) mutable {
         if (!err.empty()) {
             cb(WebRtcException(SockException(Err_other, err)));

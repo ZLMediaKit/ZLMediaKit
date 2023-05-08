@@ -102,7 +102,8 @@ public:
                     process->setOnDetach(std::move(strong_self->_on_detach));
                 }
                 if (!process) { // process 未创建，触发rtp server 超时事件
-                    NoticeCenter::Instance().emitEvent(Broadcast::KBroadcastRtpServerTimeout,strong_self->_local_port,strong_self->_stream_id,(int)strong_self->_tcp_mode,strong_self->_re_use_port,strong_self->_ssrc);
+                    NoticeCenter::Instance().emitEvent(Broadcast::KBroadcastRtpServerTimeout, strong_self->_local_port, strong_self->_stream_id,
+                                                       (int)strong_self->_tcp_mode, strong_self->_re_use_port, strong_self->_ssrc);
                 }
             }
             return 0;
@@ -198,11 +199,14 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_
         helper->startRtcp();
         helper->setRtpServerInfo(local_port, tcp_mode, re_use_port, ssrc, only_audio);
         bool bind_peer_addr = false;
-        rtp_socket->setOnRead([rtp_socket, helper, ssrc, bind_peer_addr](const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len) mutable {
+        auto ssrc_ptr = std::make_shared<uint32_t>(ssrc);
+        _ssrc = ssrc_ptr;
+        rtp_socket->setOnRead([rtp_socket, helper, ssrc_ptr, bind_peer_addr](const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len) mutable {
             RtpHeader *header = (RtpHeader *)buf->data();
             auto rtp_ssrc = ntohl(header->ssrc);
+            auto ssrc = *ssrc_ptr;
             if (ssrc && rtp_ssrc != ssrc) {
-                WarnL << "ssrc不匹配,rtp已丢弃:" << rtp_ssrc << " != " << ssrc;
+                WarnL << "ssrc mismatched, rtp dropped: " << rtp_ssrc << " != " << ssrc;
             } else {
                 if (!bind_peer_addr) {
                     //绑定对方ip+端口，防止多个设备或一个设备多次推流从而日志报ssrc不匹配问题
@@ -213,19 +217,11 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_
             }
         });
     } else {
-#if 1
         //单端口多线程接收多个流，根据ssrc区分流
         udp_server = std::make_shared<UdpServer>(rtp_socket->getPoller());
         (*udp_server)[RtpSession::kOnlyAudio] = only_audio;
         udp_server->start<RtpSession>(local_port, local_ip);
         rtp_socket = nullptr;
-#else
-        //单端口单线程接收多个流
-        auto &ref = RtpSelector::Instance();
-        rtp_socket->setOnRead([&ref, rtp_socket](const Buffer::Ptr &buf, struct sockaddr *addr, int) {
-            ref.inputRtp(rtp_socket, buf->data(), buf->size(), addr);
-        });
-#endif
     }
 
     _on_cleanup = [rtp_socket, stream_id]() {
@@ -264,7 +260,7 @@ void RtpServer::connectToServer(const std::string &url, uint16_t port, const fun
             return;
         }
         if (err) {
-            WarnL << "连接到服务器 " << url << ":" << port << " 失败 " << err.what();
+            WarnL << "连接到服务器 " << url << ":" << port << " 失败 " << err;
         } else {
             InfoL << "连接到服务器 " << url << ":" << port << " 成功";
             strong_self->onConnect();
@@ -286,6 +282,16 @@ void RtpServer::onConnect() {
             strong_self->_rtp_socket->setOnRead(nullptr);
         }
     });
+}
+
+void RtpServer::updateSSRC(uint32_t ssrc) {
+    if (_ssrc) {
+        *_ssrc = ssrc;
+    }
+
+    if (_tcp_server) {
+        (*_tcp_server)[RtpSession::kSSRC] = ssrc;
+    }
 }
 
 }//namespace mediakit

@@ -27,7 +27,7 @@ void HttpRequester::onResponseBody(const char *buf, size_t size) {
 
 void HttpRequester::onResponseCompleted(const SockException &ex) {
     if (ex && _retry++ < _max_retry) {
-        std::weak_ptr<HttpRequester> weak_self = std::dynamic_pointer_cast<HttpRequester>(shared_from_this());
+        std::weak_ptr<HttpRequester> weak_self = std::static_pointer_cast<HttpRequester>(shared_from_this());
         getPoller()->doDelayTask(_retry_delay, [weak_self](){
             if (auto self = weak_self.lock()) {
                 InfoL << "resend request " << self->getUrl() << " with retry " << self->getRetry();
@@ -271,7 +271,7 @@ static void sendReport() {
 }
 
 static toolkit::onceToken s_token([]() {
-    NoticeCenter::Instance().addListener(nullptr, EventPollerPool::kOnStarted, [](EventPollerPool &pool, size_t &size) {
+    NoticeCenter::Instance().addListener(nullptr, "kBroadcastEventPollerPoolStarted", [](EventPollerPool &pool, size_t &size) {
         // 第一次汇报在程序启动后5分钟
         pool.getPoller()->doDelayTask(5 * 60 * 1000, []() {
             sendReport();

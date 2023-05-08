@@ -25,13 +25,10 @@ static onceToken s_token([]() {
 }, nullptr);
 
 ShellSession::ShellSession(const Socket::Ptr &_sock) : Session(_sock) {
-    DebugP(this);
     pleaseInputUser();
 }
 
-ShellSession::~ShellSession() {
-    DebugP(this);
-}
+ShellSession::~ShellSession() = default;
 
 void ShellSession::onRecv(const Buffer::Ptr&buf) {
     //DebugL << hexdump(buf->data(), buf->size());
@@ -60,7 +57,7 @@ void ShellSession::onRecv(const Buffer::Ptr&buf) {
 }
 
 void ShellSession::onError(const SockException &err){
-    WarnP(this) << err.what();
+    WarnP(this) << err;
 }
 
 void ShellSession::onManager() {
@@ -123,7 +120,7 @@ inline void ShellSession::pleaseInputPasswd() {
             _loginInterceptor=nullptr;
         };
 
-        weak_ptr<ShellSession> weakSelf = dynamic_pointer_cast<ShellSession>(shared_from_this());
+        weak_ptr<ShellSession> weakSelf = static_pointer_cast<ShellSession>(shared_from_this());
         Broadcast::AuthInvoker invoker = [weakSelf,onAuth](const string &errMessage){
             auto strongSelf =  weakSelf.lock();
             if(!strongSelf){

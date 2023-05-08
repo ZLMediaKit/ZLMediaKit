@@ -82,7 +82,7 @@ template<typename Creator, typename HttpSessionType = mediakit::HttpSession, med
 class WebSocketSessionBase : public HttpSessionType {
 public:
     WebSocketSessionBase(const toolkit::Socket::Ptr &pSock) : HttpSessionType(pSock){}
-    virtual ~WebSocketSessionBase(){}
+    virtual ~WebSocketSessionBase() = default;
 
     //收到eof或其他导致脱离TcpServer事件的回调
     void onError(const toolkit::SockException &err) override{
@@ -139,7 +139,7 @@ protected:
         }
 
         //此处截取数据并进行websocket协议打包
-        std::weak_ptr<WebSocketSessionBase> weakSelf = std::dynamic_pointer_cast<WebSocketSessionBase>(HttpSessionType::shared_from_this());
+        std::weak_ptr<WebSocketSessionBase> weakSelf = std::static_pointer_cast<WebSocketSessionBase>(HttpSessionType::shared_from_this());
         std::dynamic_pointer_cast<SendInterceptor>(_session)->setOnBeforeSendCB([weakSelf](const toolkit::Buffer::Ptr &buf) {
             auto strongSelf = weakSelf.lock();
             if (strongSelf) {
@@ -248,7 +248,7 @@ template<typename SessionType,typename HttpSessionType = mediakit::HttpSession, 
 class WebSocketSession : public WebSocketSessionBase<SessionCreator<SessionType>,HttpSessionType,DataType>{
 public:
     WebSocketSession(const toolkit::Socket::Ptr &pSock) : WebSocketSessionBase<SessionCreator<SessionType>,HttpSessionType,DataType>(pSock){}
-    virtual ~WebSocketSession(){}
+    virtual ~WebSocketSession() = default;
 };
 
 #endif //ZLMEDIAKIT_WEBSOCKETSESSION_H

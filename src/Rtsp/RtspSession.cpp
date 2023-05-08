@@ -52,14 +52,11 @@ static unordered_map<string, weak_ptr<RtspSession> > g_mapGetter;
 static recursive_mutex g_mtxGetter;
 
 RtspSession::RtspSession(const Socket::Ptr &sock) : Session(sock) {
-    DebugP(this);
     GET_CONFIG(uint32_t,keep_alive_sec,Rtsp::kKeepAliveSecond);
     sock->setSendTimeOutSecond(keep_alive_sec);
 }
 
-RtspSession::~RtspSession() {
-    DebugP(this);
-}
+RtspSession::~RtspSession() = default;
 
 void RtspSession::onError(const SockException &err) {
     bool is_player = !_push_src_ownership;
@@ -276,12 +273,12 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
             _push_src->setSdp(parser.Content());
         }
 
-        _push_src->setListener(dynamic_pointer_cast<MediaSourceEvent>(shared_from_this()));
+        _push_src->setListener(static_pointer_cast<RtspSession>(shared_from_this()));
         _continue_push_ms = option.continue_push_ms;
         sendRtspResponse("200 OK");
     };
 
-    weak_ptr<RtspSession> weak_self = dynamic_pointer_cast<RtspSession>(shared_from_this());
+    weak_ptr<RtspSession> weak_self = static_pointer_cast<RtspSession>(shared_from_this());
     Broadcast::PublishAuthInvoker invoker = [weak_self, onRes](const string &err, const ProtocolOption &option) {
         auto strong_self = weak_self.lock();
         if (!strong_self) {
@@ -328,7 +325,7 @@ void RtspSession::handleReq_RECORD(const Parser &parser){
 }
 
 void RtspSession::emitOnPlay(){
-    weak_ptr<RtspSession> weak_self = dynamic_pointer_cast<RtspSession>(shared_from_this());
+    weak_ptr<RtspSession> weak_self = static_pointer_cast<RtspSession>(shared_from_this());
     //url鉴权回调
     auto onRes = [weak_self](const string &err) {
         auto strong_self = weak_self.lock();
@@ -367,7 +364,7 @@ void RtspSession::emitOnPlay(){
 void RtspSession::handleReq_Describe(const Parser &parser) {
     //该请求中的认证信息
     auto authorization = parser["Authorization"];
-    weak_ptr<RtspSession> weak_self = dynamic_pointer_cast<RtspSession>(shared_from_this());
+    weak_ptr<RtspSession> weak_self = static_pointer_cast<RtspSession>(shared_from_this());
     //rtsp专属鉴权是否开启事件回调
     onGetRealm invoker = [weak_self, authorization](const string &realm) {
         auto strong_self = weak_self.lock();
@@ -405,8 +402,7 @@ void RtspSession::handleReq_Describe(const Parser &parser) {
 }
 
 void RtspSession::onAuthSuccess() {
-    TraceP(this);
-    weak_ptr<RtspSession> weak_self = dynamic_pointer_cast<RtspSession>(shared_from_this());
+    weak_ptr<RtspSession> weak_self = static_pointer_cast<RtspSession>(shared_from_this());
     MediaSource::findAsync(_media_info, weak_self.lock(), [weak_self](const MediaSource::Ptr &src){
         auto strong_self = weak_self.lock();
         if(!strong_self){
@@ -475,7 +471,7 @@ void RtspSession::onAuthBasic(const string &realm, const string &auth_base64) {
     }
     auto user = user_pwd_vec[0];
     auto pwd = user_pwd_vec[1];
-    weak_ptr<RtspSession> weak_self = dynamic_pointer_cast<RtspSession>(shared_from_this());
+    weak_ptr<RtspSession> weak_self = static_pointer_cast<RtspSession>(shared_from_this());
     onAuth invoker = [pwd, realm, weak_self](bool encrypted, const string &good_pwd) {
         auto strong_self = weak_self.lock();
         if (!strong_self) {
@@ -568,7 +564,7 @@ void RtspSession::onAuthDigest(const string &realm,const string &auth_md5){
         }
     };
 
-    weak_ptr<RtspSession> weak_self = dynamic_pointer_cast<RtspSession>(shared_from_this());
+    weak_ptr<RtspSession> weak_self = static_pointer_cast<RtspSession>(shared_from_this());
     onAuth invoker = [realInvoker,weak_self](bool encrypted,const string &good_pwd){
         auto strong_self = weak_self.lock();
         if(!strong_self){
@@ -726,7 +722,7 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
                 send_NotAcceptable();
                 throw SockException(Err_shutdown, "can not get a available udp multicast socket");
             }
-            weak_ptr<RtspSession> weak_self = dynamic_pointer_cast<RtspSession>(shared_from_this());
+            weak_ptr<RtspSession> weak_self = static_pointer_cast<RtspSession>(shared_from_this());
             _multicaster->setDetachCB(this, [weak_self]() {
                 auto strong_self = weak_self.lock();
                 if(!strong_self) {
@@ -834,7 +830,7 @@ void RtspSession::handleReq_Play(const Parser &parser) {
     setSocketFlags();
 
     if (!_play_reader && _rtp_type != Rtsp::RTP_MULTICAST) {
-        weak_ptr<RtspSession> weak_self = dynamic_pointer_cast<RtspSession>(shared_from_this());
+        weak_ptr<RtspSession> weak_self = static_pointer_cast<RtspSession>(shared_from_this());
         _play_reader = play_src->getRing()->attach(getPoller(), use_gop);
         _play_reader->setGetInfoCB([weak_self]() { return weak_self.lock(); });
         _play_reader->setDetachCB([weak_self]() {
@@ -884,7 +880,7 @@ void RtspSession::handleReq_Get(const Parser &parser) {
 
     //注册http getter，以便http poster绑定
     lock_guard<recursive_mutex> lock(g_mtxGetter);
-    g_mapGetter[_http_x_sessioncookie] = dynamic_pointer_cast<RtspSession>(shared_from_this());
+    g_mapGetter[_http_x_sessioncookie] = static_pointer_cast<RtspSession>(shared_from_this());
 }
 
 void RtspSession::handleReq_Post(const Parser &parser) {
@@ -977,7 +973,7 @@ void RtspSession::onRcvPeerUdpData(int interleaved, const Buffer::Ptr &buf, cons
 }
 
 void RtspSession::startListenPeerUdpData(int track_idx) {
-    weak_ptr<RtspSession> weak_self = dynamic_pointer_cast<RtspSession>(shared_from_this());
+    weak_ptr<RtspSession> weak_self = static_pointer_cast<RtspSession>(shared_from_this());
     auto peer_ip = get_peer_ip();
     auto onUdpData = [weak_self,peer_ip](const Buffer::Ptr &buf, struct sockaddr *peer_addr, int interleaved){
         auto strong_self = weak_self.lock();
