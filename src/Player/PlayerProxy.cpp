@@ -55,9 +55,8 @@ void PlayerProxy::setOnClose(const function<void(const SockException &ex)> &cb) 
     _on_close = cb ? cb : [](const SockException &) {};
 }
 
-void PlayerProxy::setOnDisconnect(const std::function<void()> cb)
-{
-    _on_disconnect = cb ? cb : []() {};
+void PlayerProxy::setOnDisconnect(std::function<void()> cb) {
+      _on_disconnect = cb ? std::move(cb) : [] () {};
 }
 
 void PlayerProxy::setOnConnect(const std::function<void(const TranslationInfo&)> &cb)
