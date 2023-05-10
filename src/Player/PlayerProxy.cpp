@@ -25,14 +25,18 @@ using namespace std;
 namespace mediakit {
 
 PlayerProxy::PlayerProxy(
-    const string &vhost, const string &app, const string &stream_id, const ProtocolOption &option, int retry_count, const EventPoller::Ptr &poller)
+    const string &vhost, const string &app, const string &stream_id, const ProtocolOption &option, int retry_count,
+    int reconnect_delay_min, int reconnect_delay_max, int reconnect_delay_step, const EventPoller::Ptr &poller)
     : MediaPlayer(poller)
     , _option(option) {
     _vhost = vhost;
     _app = app;
     _stream_id = stream_id;
     _retry_count = retry_count;
-
+    
+    _reconnect_delay_min = reconnect_delay_min ? reconnect_delay_min : 2;
+    _reconnect_delay_max = reconnect_delay_max ? reconnect_delay_max : 60;
+    _reconnect_delay_step = reconnect_delay_step ? reconnect_delay_step : 3;
     _live_secs = 0;
     _live_status = 1;
     _repull_count = 0;
@@ -46,6 +50,48 @@ void PlayerProxy::setPlayCallbackOnce(const function<void(const SockException &e
 
 void PlayerProxy::setOnClose(const function<void(const SockException &ex)> &cb) {
     _on_close = cb ? cb : [](const SockException &) {};
+}
+
+void PlayerProxy::setOnDisconnect(const std::function<void()> &cb)
+{
+    _on_disconnect = cb ? cb : []() {};
+}
+
+void PlayerProxy::setOnConnect(const std::function<void(const TranslationInfo&)> &cb)
+{
+    _on_connect = cb ? cb : [](const TranslationInfo&) {};
+}
+
+void PlayerProxy::setTranslationInfo()
+{
+    _transtalion_info.byte_speed = _media_src->getBytesSpeed();
+    _transtalion_info.start_time_stamp = _media_src->getCreateStamp();
+    _transtalion_info.stream_info.clear();
+    auto tracks = _muxer->getTracks();
+    for (auto &track : tracks) {
+        _transtalion_info.stream_info.emplace_back();
+        _transtalion_info.stream_info[_transtalion_info.stream_info.size() - 1].bitrate = track->getBitRate();
+        _transtalion_info.stream_info[_transtalion_info.stream_info.size() - 1].codec_type = track->getTrackType();
+        _transtalion_info.stream_info[_transtalion_info.stream_info.size() - 1].codec_name = track->getCodecName();
+        switch (_transtalion_info.stream_info[_transtalion_info.stream_info.size() - 1].codec_type) {
+            case TrackAudio : {
+                auto audio_track = dynamic_pointer_cast<AudioTrack>(track);
+                _transtalion_info.stream_info[_transtalion_info.stream_info.size() - 1].audio_sample_rate = audio_track->getAudioSampleRate();
+                _transtalion_info.stream_info[_transtalion_info.stream_info.size() - 1].audio_channel = audio_track->getAudioChannel();
+                _transtalion_info.stream_info[_transtalion_info.stream_info.size() - 1].audio_sample_bit = audio_track->getAudioSampleBit();
+                break;
+            }
+            case TrackVideo : {
+                auto video_track = dynamic_pointer_cast<VideoTrack>(track);
+                _transtalion_info.stream_info[_transtalion_info.stream_info.size() - 1].video_width = video_track->getVideoWidth();
+                _transtalion_info.stream_info[_transtalion_info.stream_info.size() - 1].video_height = video_track->getVideoHeight();
+                _transtalion_info.stream_info[_transtalion_info.stream_info.size() - 1].video_fps = video_track->getVideoFps();
+                break;
+            }
+            default:
+                break;
+        }
+    }
 }
 
 void PlayerProxy::play(const string &strUrlTmp) {
@@ -70,10 +116,13 @@ void PlayerProxy::play(const string &strUrlTmp) {
             // 播放成功
             *piFailedCnt = 0; // 连续播放失败次数清0
             strongSelf->onPlaySuccess();
+            strongSelf->setTranslationInfo();
+            strongSelf->_on_connect(strongSelf->_transtalion_info);  
 
             InfoL << "play " << strUrlTmp << " success";
         } else if (*piFailedCnt < strongSelf->_retry_count || strongSelf->_retry_count < 0) {
             // 播放失败，延时重试播放
+            strongSelf->_on_disconnect();
             strongSelf->rePlay(strUrlTmp, (*piFailedCnt)++);
         } else {
             // 达到了最大重试次数，回调关闭
@@ -157,7 +206,7 @@ PlayerProxy::~PlayerProxy() {
 }
 
 void PlayerProxy::rePlay(const string &strUrl, int iFailedCnt) {
-    auto iDelay = MAX(2 * 1000, MIN(iFailedCnt * 3000, 60 * 1000));
+    auto iDelay = MAX(_reconnect_delay_min * 1000, MIN(iFailedCnt * _reconnect_delay_step * 1000, _reconnect_delay_max * 1000));
     weak_ptr<PlayerProxy> weakSelf = shared_from_this();
     _timer = std::make_shared<Timer>(
         iDelay / 1000.0f,
@@ -214,6 +263,10 @@ std::shared_ptr<SockInfo> PlayerProxy::getOriginSock(MediaSource &sender) const 
 
 float PlayerProxy::getLossRate(MediaSource &sender, TrackType type) {
     return getPacketLossRate(type);
+}
+
+TranslationInfo PlayerProxy::getTranslationInfo() {
+    return _transtalion_info;
 }
 
 void PlayerProxy::onPlaySuccess() {
