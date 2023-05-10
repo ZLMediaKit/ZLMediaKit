@@ -68,7 +68,7 @@ public:
     // 默认一直重试
     PlayerProxy(
         const std::string &vhost, const std::string &app, const std::string &stream_id, const ProtocolOption &option, int retry_count = -1,
-        int reconnect_delay_min = 2, int reconnect_delay_max = 60, int reconnect_delay_step = 3, const toolkit::EventPoller::Ptr &poller = nullptr);
+        const toolkit::EventPoller::Ptr &poller = nullptr, int reconnect_delay_min = 2, int reconnect_delay_max = 60, int reconnect_delay_step = 3);
 
     ~PlayerProxy() override;
 
@@ -85,13 +85,13 @@ public:
     void setOnClose(const std::function<void(const toolkit::SockException &ex)> &cb);
 
     /**
-    * 在连接尝试时设置主动断开回调
+    * Set a callback for failed server connection
     * @param cb 回调对象
     */
-    void setOnDisconnect(const std::function<void()> &cb);
+    void setOnDisconnect(const std::function<void()> cb);
 
     /**
-    * 在连接尝试时设置活动连接成功回调
+    * Set a callback for a successful connection to the server
     * @param cb 回调对象
     */
     void setOnConnect(const std::function<void(const TranslationInfo&)> &cb);
@@ -110,6 +110,8 @@ public:
     int getStatus();
     uint64_t getLiveSecs();
     uint64_t getRePullCount();
+
+    // Using this only makes sense after a successful connection to the server
     TranslationInfo getTranslationInfo();
 
 private:

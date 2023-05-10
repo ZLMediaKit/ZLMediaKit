@@ -26,13 +26,16 @@ namespace mediakit {
 
 PlayerProxy::PlayerProxy(
     const string &vhost, const string &app, const string &stream_id, const ProtocolOption &option, int retry_count,
-    int reconnect_delay_min, int reconnect_delay_max, int reconnect_delay_step, const EventPoller::Ptr &poller)
+    const EventPoller::Ptr &poller, int reconnect_delay_min, int reconnect_delay_max, int reconnect_delay_step)
     : MediaPlayer(poller)
     , _option(option) {
     _vhost = vhost;
     _app = app;
     _stream_id = stream_id;
     _retry_count = retry_count;
+
+    setOnConnect(nullptr);
+    setOnDisconnect(nullptr);
     
     _reconnect_delay_min = reconnect_delay_min ? reconnect_delay_min : 2;
     _reconnect_delay_max = reconnect_delay_max ? reconnect_delay_max : 60;
@@ -52,7 +55,7 @@ void PlayerProxy::setOnClose(const function<void(const SockException &ex)> &cb) 
     _on_close = cb ? cb : [](const SockException &) {};
 }
 
-void PlayerProxy::setOnDisconnect(const std::function<void()> &cb)
+void PlayerProxy::setOnDisconnect(const std::function<void()> cb)
 {
     _on_disconnect = cb ? cb : []() {};
 }
@@ -70,22 +73,23 @@ void PlayerProxy::setTranslationInfo()
     auto tracks = _muxer->getTracks();
     for (auto &track : tracks) {
         _transtalion_info.stream_info.emplace_back();
-        _transtalion_info.stream_info[_transtalion_info.stream_info.size() - 1].bitrate = track->getBitRate();
-        _transtalion_info.stream_info[_transtalion_info.stream_info.size() - 1].codec_type = track->getTrackType();
-        _transtalion_info.stream_info[_transtalion_info.stream_info.size() - 1].codec_name = track->getCodecName();
+        auto &back = _transtalion_info.stream_info.back();
+        back.bitrate = track->getBitRate();
+        back.codec_type = track->getTrackType();
+        back.codec_name = track->getCodecName();
         switch (_transtalion_info.stream_info[_transtalion_info.stream_info.size() - 1].codec_type) {
             case TrackAudio : {
                 auto audio_track = dynamic_pointer_cast<AudioTrack>(track);
-                _transtalion_info.stream_info[_transtalion_info.stream_info.size() - 1].audio_sample_rate = audio_track->getAudioSampleRate();
-                _transtalion_info.stream_info[_transtalion_info.stream_info.size() - 1].audio_channel = audio_track->getAudioChannel();
-                _transtalion_info.stream_info[_transtalion_info.stream_info.size() - 1].audio_sample_bit = audio_track->getAudioSampleBit();
+                back.audio_sample_rate = audio_track->getAudioSampleRate();
+                back.audio_channel = audio_track->getAudioChannel();
+                back.audio_sample_bit = audio_track->getAudioSampleBit();
                 break;
             }
             case TrackVideo : {
                 auto video_track = dynamic_pointer_cast<VideoTrack>(track);
-                _transtalion_info.stream_info[_transtalion_info.stream_info.size() - 1].video_width = video_track->getVideoWidth();
-                _transtalion_info.stream_info[_transtalion_info.stream_info.size() - 1].video_height = video_track->getVideoHeight();
-                _transtalion_info.stream_info[_transtalion_info.stream_info.size() - 1].video_fps = video_track->getVideoFps();
+                back.video_width = video_track->getVideoWidth();
+                back.video_height = video_track->getVideoHeight();
+                back.video_fps = video_track->getVideoFps();
                 break;
             }
             default:
