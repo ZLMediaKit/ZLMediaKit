@@ -13,7 +13,7 @@
 
 #include <iostream>
 #include <string>
-
+#include <cstdint>
 namespace mediakit {
 
 class strCoding {
