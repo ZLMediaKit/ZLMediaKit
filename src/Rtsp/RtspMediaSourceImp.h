@@ -107,6 +107,7 @@ public:
         }
     }
 
+    RtspMediaSource::Ptr Clone(const std::string& stream) override;
 private:
     bool _all_track_ready = false;
     ProtocolOption _option;

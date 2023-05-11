@@ -76,6 +76,10 @@ public:
         return _sdp;
     }
 
+    virtual RtspMediaSource::Ptr Clone(const std::string& stream) {
+        return nullptr;
+    }
+
     /**
      * 获取相应轨道的ssrc
      */

@@ -23,6 +23,8 @@
 #include "WebRtcPlayer.h"
 #include "WebRtcPusher.h"
 
+#include "Rtsp/RtspMediaSourceImp.h"
+
 #define RTP_SSRC_OFFSET 1
 #define RTX_SSRC_OFFSET 2
 #define RTP_CNAME "zlmediakit-rtp"
