@@ -37,9 +37,9 @@ PlayerProxy::PlayerProxy(
     setOnConnect(nullptr);
     setOnDisconnect(nullptr);
     
-    _reconnect_delay_min = reconnect_delay_min ? reconnect_delay_min : 2;
-    _reconnect_delay_max = reconnect_delay_max ? reconnect_delay_max : 60;
-    _reconnect_delay_step = reconnect_delay_step ? reconnect_delay_step : 3;
+    _reconnect_delay_min = reconnect_delay_min > 0 ? reconnect_delay_min : 2;
+    _reconnect_delay_max = reconnect_delay_max > 0 ? reconnect_delay_max : 60;
+    _reconnect_delay_step = reconnect_delay_step > 0 ? reconnect_delay_step : 3;
     _live_secs = 0;
     _live_status = 1;
     _repull_count = 0;
