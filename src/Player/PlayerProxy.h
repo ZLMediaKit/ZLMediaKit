@@ -88,13 +88,13 @@ public:
     * Set a callback for failed server connection
     * @param cb 回调对象
     */
-    void setOnDisconnect(const std::function<void()> cb);
+    void setOnDisconnect(std::function<void()> cb);
 
     /**
     * Set a callback for a successful connection to the server
     * @param cb 回调对象
     */
-    void setOnConnect(const std::function<void(const TranslationInfo&)> cb);
+    void setOnConnect(std::function<void(const TranslationInfo&)> cb);
 
     /**
      * 开始拉流播放

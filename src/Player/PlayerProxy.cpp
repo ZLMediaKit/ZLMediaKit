@@ -59,7 +59,7 @@ void PlayerProxy::setOnDisconnect(std::function<void()> cb) {
     _on_disconnect = cb ? std::move(cb) : [] () {};
 }
 
-void PlayerProxy::setOnConnect(const std::function<void(const TranslationInfo&)> cb) {
+void PlayerProxy::setOnConnect(std::function<void(const TranslationInfo&)> cb) {
     _on_connect = cb ? std::move(cb) : [](const TranslationInfo&) {};
 }
 
