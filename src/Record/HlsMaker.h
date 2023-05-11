@@ -14,6 +14,7 @@
 #include <string>
 #include <deque>
 #include <tuple>
+#include <cstdint>
 
 namespace mediakit {
 

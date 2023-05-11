@@ -16,6 +16,7 @@
 #include <vector>
 #include <map>
 #include <functional>
+#include <cstdint>
 namespace toolkit {
     class BufferLikeString;
 }
