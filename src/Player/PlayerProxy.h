@@ -94,7 +94,7 @@ public:
     * Set a callback for a successful connection to the server
     * @param cb 回调对象
     */
-    void setOnConnect(const std::function<void(const TranslationInfo&)> &cb);
+    void setOnConnect(const std::function<void(const TranslationInfo&)> cb);
 
     /**
      * 开始拉流播放

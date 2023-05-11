@@ -56,12 +56,11 @@ void PlayerProxy::setOnClose(const function<void(const SockException &ex)> &cb) 
 }
 
 void PlayerProxy::setOnDisconnect(std::function<void()> cb) {
-      _on_disconnect = cb ? std::move(cb) : [] () {};
+    _on_disconnect = cb ? std::move(cb) : [] () {};
 }
 
-void PlayerProxy::setOnConnect(const std::function<void(const TranslationInfo&)> &cb)
-{
-    _on_connect = cb ? cb : [](const TranslationInfo&) {};
+void PlayerProxy::setOnConnect(const std::function<void(const TranslationInfo&)> cb) {
+    _on_connect = cb ? std::move(cb) : [](const TranslationInfo&) {};
 }
 
 void PlayerProxy::setTranslationInfo()
@@ -76,7 +75,7 @@ void PlayerProxy::setTranslationInfo()
         back.bitrate = track->getBitRate();
         back.codec_type = track->getTrackType();
         back.codec_name = track->getCodecName();
-        switch (_transtalion_info.stream_info[_transtalion_info.stream_info.size() - 1].codec_type) {
+        switch (back.codec_type) {
             case TrackAudio : {
                 auto audio_track = dynamic_pointer_cast<AudioTrack>(track);
                 back.audio_sample_rate = audio_track->getAudioSampleRate();
