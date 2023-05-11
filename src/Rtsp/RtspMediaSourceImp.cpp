@@ -126,6 +126,12 @@ void RtspMediaSourceImp::setProtocolOption(const ProtocolOption &option)
     }
 }
 
+RtspMediaSource::Ptr RtspMediaSourceImp::Clone(const std::string &stream) {
+    auto src_imp = std::make_shared<RtspMediaSourceImp>(getVhost(), getApp(), stream);
+    src_imp->setSdp(getSdp());
+    src_imp->setProtocolOption(getProtocolOption());
+    return src_imp;
+}
 
 }
 
