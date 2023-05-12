@@ -246,6 +246,8 @@ extern const std::string kDirMenu;
 extern const std::string kForbidCacheSuffix;
 // 可以把http代理前真实客户端ip放在http头中：https://github.com/ZLMediaKit/ZLMediaKit/issues/1388
 extern const std::string kForwardedIpHeader;
+// 是否允许所有跨域请求
+extern const std::string kAllowCrossDomains;
 } // namespace Http
 
 ////////////SHELL配置///////////
