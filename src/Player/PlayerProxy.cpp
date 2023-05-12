@@ -65,8 +65,8 @@ void PlayerProxy::setOnConnect(std::function<void(const TranslationInfo&)> cb) {
 
 void PlayerProxy::setTranslationInfo()
 {
-    _transtalion_info.byte_speed = _media_src->getBytesSpeed();
-    _transtalion_info.start_time_stamp = _media_src->getCreateStamp();
+    _transtalion_info.byte_speed = _media_src ? _media_src->getBytesSpeed() : -1;
+    _transtalion_info.start_time_stamp = _media_src ? _media_src->getCreateStamp() : 0;
     _transtalion_info.stream_info.clear();
     auto tracks = _muxer->getTracks();
     for (auto &track : tracks) {
