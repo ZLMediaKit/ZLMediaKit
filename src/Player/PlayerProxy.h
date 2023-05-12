@@ -76,13 +76,13 @@ public:
      * 设置play结果回调，只触发一次；在play执行之前有效
      * @param cb 回调对象
      */
-    void setPlayCallbackOnce(const std::function<void(const toolkit::SockException &ex)> &cb);
+    void setPlayCallbackOnce(std::function<void(const toolkit::SockException &ex)> cb);
 
     /**
      * 设置主动关闭回调
      * @param cb 回调对象
      */
-    void setOnClose(const std::function<void(const toolkit::SockException &ex)> &cb);
+    void setOnClose(std::function<void(const toolkit::SockException &ex)> cb);
 
     /**
     * Set a callback for failed server connection

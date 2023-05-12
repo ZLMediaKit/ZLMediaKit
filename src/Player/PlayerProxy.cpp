@@ -34,6 +34,7 @@ PlayerProxy::PlayerProxy(
     _stream_id = stream_id;
     _retry_count = retry_count;
 
+    setOnClose(nullptr);
     setOnConnect(nullptr);
     setOnDisconnect(nullptr);
     
@@ -43,16 +44,15 @@ PlayerProxy::PlayerProxy(
     _live_secs = 0;
     _live_status = 1;
     _repull_count = 0;
-    _on_close = [](const SockException &) {};
     (*this)[Client::kWaitTrackReady] = false;
 }
 
-void PlayerProxy::setPlayCallbackOnce(const function<void(const SockException &ex)> &cb) {
-    _on_play = cb;
+void PlayerProxy::setPlayCallbackOnce(function<void(const SockException &ex)> cb) {
+    _on_play = std::move(cb);
 }
 
-void PlayerProxy::setOnClose(const function<void(const SockException &ex)> &cb) {
-    _on_close = cb ? cb : [](const SockException &) {};
+void PlayerProxy::setOnClose(function<void(const SockException &ex)> cb) {
+    _on_close = cb ? std::move(cb) : [](const SockException &) {};
 }
 
 void PlayerProxy::setOnDisconnect(std::function<void()> cb) {
@@ -174,7 +174,7 @@ void PlayerProxy::play(const string &strUrlTmp) {
         MediaPlayer::play(strUrlTmp);
     } catch (std::exception &ex) {
         ErrorL << ex.what();
-        _on_play_result(SockException(Err_other, ex.what()));
+        onPlayResult(SockException(Err_other, ex.what()));
         return;
     }
     _pull_url = strUrlTmp;
@@ -324,9 +324,8 @@ int PlayerProxy::getStatus() {
 uint64_t PlayerProxy::getLiveSecs() {
     if (_live_status == 0) {
         return _live_secs + _live_ticker.elapsedTime() / 1000;
-    } else {
-        return _live_secs;
     }
+    return _live_secs;
 }
 
 uint64_t PlayerProxy::getRePullCount() {
