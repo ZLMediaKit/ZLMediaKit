@@ -1,5 +1,7 @@
 ![logo](https://raw.githubusercontent.com/ZLMediaKit/ZLMediaKit/master/www/logo.png)
 
+简体中文 | [English](./README_en.md)
+
 # 一个基于C++11的高性能运营级流媒体服务框架
 
 [![](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/ZLMediaKit/ZLMediaKit/blob/master/LICENSE)

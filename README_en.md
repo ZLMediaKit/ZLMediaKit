@@ -1,5 +1,7 @@
 ![logo](https://raw.githubusercontent.com/zlmediakit/ZLMediaKit/master/www/logo.png)
 
+[简体中文](./README.md) | English
+
 # An high-performance, enterprise-level streaming media service framework based on C++11.
 
 
