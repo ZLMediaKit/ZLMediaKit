@@ -327,7 +327,6 @@ EventPoller::Ptr MultiMediaSourceMuxer::getOwnerPoller(MediaSource &sender) {
 }
 
 bool MultiMediaSourceMuxer::onTrackReady(const Track::Ptr &track) {
-
     bool ret = false;
     if (_rtmp) {
         ret = _rtmp->addTrack(track) ? true : ret;
@@ -471,7 +470,9 @@ bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
             // 视频时，遇到第一帧配置帧或关键帧则标记为gop开始处
             auto video_key_pos = frame->keyFrame() || frame->configFrame();
             _ring->write(frame, video_key_pos && !_video_key_pos);
-            _video_key_pos = video_key_pos;
+            if (!frame->dropAble()) {
+                _video_key_pos = video_key_pos;
+            }
         } else {
             // 没有视频时，设置is_key为true，目的是关闭gop缓存
             _ring->write(frame, !haveVideo());
