@@ -316,9 +316,9 @@ void H265RtpEncoder::insertConfigFrame(uint64_t pts){
         return;
     }
     //gop缓存从vps 开始，vps ,sps、pps后面还有时间戳相同的关键帧，所以mark bit为false
-    packRtp(_vps->data() + _vps->prefixSize(), _vps->size() - _vps->prefixSize(), pts, false, true);
+    packRtp(_vps->data() + _vps->prefixSize(), _vps->size() - _vps->prefixSize(), pts, false, false);
     packRtp(_sps->data() + _sps->prefixSize(), _sps->size() - _sps->prefixSize(), pts, false, false);
-    packRtp(_pps->data() + _pps->prefixSize(), _pps->size() - _pps->prefixSize(), pts, false, false);
+    packRtp(_pps->data() + _pps->prefixSize(), _pps->size() - _pps->prefixSize(), pts, false, true);
     
 }
 bool H265RtpEncoder::inputFrame_l(const Frame::Ptr &frame, bool is_mark){
