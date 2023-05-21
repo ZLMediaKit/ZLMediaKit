@@ -493,7 +493,11 @@ public:
     uint32_t magic;
     uint32_t size;
     MemThreadInfo *alloc_info;
-    char ptr;
+    char ptr
+#ifdef __arm__
+    __attribute__((aligned(16)))
+#endif
+    ;
 };
 
 #define MEM_OFFSET offsetof(MemCookie, ptr)
