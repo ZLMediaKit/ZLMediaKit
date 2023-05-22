@@ -203,8 +203,8 @@ void H264RtpEncoder::insertConfigFrame(uint64_t pts){
         return;
     }
     //gop缓存从sps开始，sps、pps后面还有时间戳相同的关键帧，所以mark bit为false
-    packRtp(_sps->data() + _sps->prefixSize(), _sps->size() - _sps->prefixSize(), pts, false, true);
-    packRtp(_pps->data() + _pps->prefixSize(), _pps->size() - _pps->prefixSize(), pts, false, false);
+    packRtpFu(_sps->data() + _sps->prefixSize(), _sps->size() - _sps->prefixSize(), pts, false, true);
+    packRtpFu(_pps->data() + _pps->prefixSize(), _pps->size() - _pps->prefixSize(), pts, false, false);
 }
 
 void H264RtpEncoder::packRtp(const char *ptr, size_t len, uint64_t pts, bool is_mark, bool gop_pos){
