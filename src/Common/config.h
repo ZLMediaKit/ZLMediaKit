@@ -199,7 +199,7 @@ extern const std::string kContinuePushMS;
 extern const std::string kEnableHls;
 //是否开启MP4录制
 extern const std::string kEnableMP4;
-//是否开启转换为rtsp/webrtc
+//是否开启转换为rtsp
 extern const std::string kEnableRtsp;
 //是否开启转换为rtmp/flv
 extern const std::string kEnableRtmp;
@@ -207,7 +207,9 @@ extern const std::string kEnableRtmp;
 extern const std::string kEnableTS;
 //是否开启转换为http-fmp4/ws-fmp4
 extern const std::string kEnableFMP4;
+//是否开启转换为webrtc
 extern const std::string kEnableRtc;
+//是否开启音频转码
 extern const std::string kAudioTranscode;
 
 //是否将mp4录制当做观看者
