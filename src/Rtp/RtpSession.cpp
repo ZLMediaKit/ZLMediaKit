@@ -15,6 +15,7 @@
 #include "Rtsp/Rtsp.h"
 #include "Rtsp/RtpReceiver.h"
 #include "Common/config.h"
+#include "Util/File.h"
 
 using namespace std;
 using namespace toolkit;
@@ -33,6 +34,15 @@ void RtpSession::setParams(mINI &ini) {
     _stream_id = ini[kStreamID];
     _ssrc = ini[kSSRC];
     _only_audio = ini[kOnlyAudio];
+    GET_CONFIG(string, dump_dir, RtpProxy::kDumpDir);
+    {
+        FILE *fp = !dump_dir.empty() ? File::create_file(File::absolutePath(_stream_id + ".raw", dump_dir).data(), "wb") : nullptr;
+        if (fp) {
+            _save_file_rtp.reset(fp, [](FILE *fp) {
+                fclose(fp);
+            });
+        }
+    }
 }
 
 RtpSession::RtpSession(const Socket::Ptr &sock) : Session(sock) {
@@ -52,6 +62,9 @@ RtpSession::~RtpSession() {
 }
 
 void RtpSession::onRecv(const Buffer::Ptr &data) {
+    if(_save_file_rtp) {
+        fwrite((uint8_t *)data->data(), data->size(), 1, _save_file_rtp.get());
+    }
     if (_is_udp) {
         onRtpPacket(data->data(), data->size());
         return;

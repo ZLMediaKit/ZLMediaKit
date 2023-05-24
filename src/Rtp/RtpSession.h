@@ -53,6 +53,7 @@ private:
     std::string _stream_id;
     struct sockaddr_storage _addr;
     RtpProcess::Ptr _process;
+    std::shared_ptr<FILE> _save_file_rtp;
 };
 
 }//namespace mediakit
