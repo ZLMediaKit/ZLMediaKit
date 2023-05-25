@@ -29,9 +29,9 @@ PlayerProxy::PlayerProxy(
     const EventPoller::Ptr &poller, int reconnect_delay_min, int reconnect_delay_max, int reconnect_delay_step)
     : MediaPlayer(poller)
     , _option(option) {
-    _vhost = vhost;
-    _app = app;
-    _stream_id = stream_id;
+    _tuple.vhost = vhost;
+    _tuple.app = app;
+    _tuple.stream = stream_id;
     _retry_count = retry_count;
 
     setOnClose(nullptr);
@@ -187,11 +187,11 @@ void PlayerProxy::setDirectProxy() {
         // rtsp拉流
         GET_CONFIG(bool, directProxy, Rtsp::kDirectProxy);
         if (directProxy) {
-            mediaSource = std::make_shared<RtspMediaSource>(_vhost, _app, _stream_id);
+            mediaSource = std::make_shared<RtspMediaSource>(_tuple);
         }
     } else if (dynamic_pointer_cast<RtmpPlayer>(_delegate)) {
         // rtmp拉流,rtmp强制直接代理
-        mediaSource = std::make_shared<RtmpMediaSource>(_vhost, _app, _stream_id);
+        mediaSource = std::make_shared<RtmpMediaSource>(_tuple);
     }
     if (mediaSource) {
         setMediaSource(mediaSource);
@@ -277,18 +277,18 @@ void PlayerProxy::onPlaySuccess() {
         // rtsp拉流代理
         if (reset_when_replay || !_muxer) {
             _option.enable_rtsp = false;
-            _muxer = std::make_shared<MultiMediaSourceMuxer>(_vhost, _app, _stream_id, getDuration(), _option);
+            _muxer = std::make_shared<MultiMediaSourceMuxer>(_tuple, getDuration(), _option);
         }
     } else if (dynamic_pointer_cast<RtmpMediaSource>(_media_src)) {
         // rtmp拉流代理
         if (reset_when_replay || !_muxer) {
             _option.enable_rtmp = false;
-            _muxer = std::make_shared<MultiMediaSourceMuxer>(_vhost, _app, _stream_id, getDuration(), _option);
+            _muxer = std::make_shared<MultiMediaSourceMuxer>(_tuple, getDuration(), _option);
         }
     } else {
         // 其他拉流代理
         if (reset_when_replay || !_muxer) {
-            _muxer = std::make_shared<MultiMediaSourceMuxer>(_vhost, _app, _stream_id, getDuration(), _option);
+            _muxer = std::make_shared<MultiMediaSourceMuxer>(_tuple, getDuration(), _option);
         }
     }
     _muxer->setMediaListener(shared_from_this());

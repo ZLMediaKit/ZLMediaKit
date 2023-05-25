@@ -163,10 +163,10 @@ std::shared_ptr<FILE> HlsMakerImp::makeFile(const string &file, bool setbuf) {
 }
 
 void HlsMakerImp::setMediaSource(const string &vhost, const string &app, const string &stream_id) {
-    _media_src = std::make_shared<HlsMediaSource>(vhost, app, stream_id);
     _info.app = app;
     _info.stream = stream_id;
     _info.vhost = vhost;
+    _media_src = std::make_shared<HlsMediaSource>(_info);
 }
 
 HlsMediaSource::Ptr HlsMakerImp::getMediaSource() const {

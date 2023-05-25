@@ -35,7 +35,7 @@ public:
      * @param id 流id
      * @param ringSize 环形缓存大小
      */
-    RtmpMediaSourceImp(const std::string &vhost, const std::string &app, const std::string &id, int ringSize = RTMP_GOP_SIZE);
+    RtmpMediaSourceImp(const MediaTuple& tuple, int ringSize = RTMP_GOP_SIZE);
 
     ~RtmpMediaSourceImp() override = default;
 

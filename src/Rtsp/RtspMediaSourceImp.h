@@ -28,7 +28,7 @@ public:
      * @param id 流id
      * @param ringSize 环形缓存大小
      */
-    RtspMediaSourceImp(const std::string &vhost, const std::string &app, const std::string &id, int ringSize = RTP_GOP_SIZE);
+    RtspMediaSourceImp(const MediaTuple& tuple, int ringSize = RTP_GOP_SIZE);
 
     ~RtspMediaSourceImp() override = default;
 
@@ -107,7 +107,7 @@ public:
         }
     }
 
-    RtspMediaSource::Ptr Clone(const std::string& stream) override;
+    RtspMediaSource::Ptr clone(const std::string& stream) override;
 private:
     bool _all_track_ready = false;
     ProtocolOption _option;

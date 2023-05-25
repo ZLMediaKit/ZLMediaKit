@@ -84,7 +84,7 @@ void RtmpSession::onCmd_connect(AMFDecoder &dec) {
     auto tc_url = params["tcUrl"].as_string();
     if (tc_url.empty()) {
         // defaultVhost:默认vhost
-        tc_url = string(RTMP_SCHEMA) + "://" + DEFAULT_VHOST + "/" + _media_info._app;
+        tc_url = string(RTMP_SCHEMA) + "://" + DEFAULT_VHOST + "/" + _media_info.app;
     } else {
         auto pos = tc_url.rfind('?');
         if (pos != string::npos) {
@@ -94,9 +94,9 @@ void RtmpSession::onCmd_connect(AMFDecoder &dec) {
     }
     // 初步解析，只用于获取vhost信息
     _media_info.parse(tc_url);
-    _media_info._schema = RTMP_SCHEMA;
+    _media_info.schema = RTMP_SCHEMA;
     // 赋值rtmp app
-    _media_info._app = params["app"].as_string();
+    _media_info.app = params["app"].as_string();
 
     bool ok = true; //(app == APP_NAME);
     AMFValue version(AMF_OBJECT);
@@ -109,7 +109,7 @@ void RtmpSession::onCmd_connect(AMFDecoder &dec) {
     status.set("objectEncoding", params["objectEncoding"]);
     sendReply(ok ? "_result" : "_error", version, status);
     if (!ok) {
-        throw std::runtime_error("Unsupported application: " + _media_info._app);
+        throw std::runtime_error("Unsupported application: " + _media_info.app);
     }
 
     AMFEncoder invoke;
@@ -132,9 +132,9 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
     }));
     dec.load<AMFValue>();/* NULL */
     // 赋值为rtmp stream id 信息
-    _media_info._streamid = getStreamId(dec.load<std::string>());
+    _media_info.stream = getStreamId(dec.load<std::string>());
     // 再解析url，切割url为app/stream_id (不一定符合rtmp url切割规范)
-    _media_info.parse(_media_info._schema + "://" + _media_info._vhost + '/' + _media_info._app + '/' + _media_info._streamid);
+    _media_info.parse(_media_info.getUrl());
 
     auto now_stream_index = _now_stream_index;
     auto on_res = [this, token, now_stream_index](const string &err, const ProtocolOption &option) {
@@ -149,7 +149,7 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
         }
 
         assert(!_push_src);
-        auto src = MediaSource::find(RTMP_SCHEMA, _media_info._vhost, _media_info._app, _media_info._streamid);
+        auto src = MediaSource::find(RTMP_SCHEMA, _media_info.vhost, _media_info.app, _media_info.stream);
         auto push_failed = (bool)src;
 
         while (src) {
@@ -180,7 +180,7 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
         }
 
         if (!_push_src) {
-            _push_src = std::make_shared<RtmpMediaSourceImp>(_media_info._vhost, _media_info._app, _media_info._streamid);
+            _push_src = std::make_shared<RtmpMediaSourceImp>(_media_info);
             //获取所有权
             _push_src_ownership = _push_src->getOwnership();
             _push_src->setProtocolOption(option);
@@ -196,7 +196,7 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
         setSocketFlags();
     };
 
-    if(_media_info._app.empty() || _media_info._streamid.empty()){
+    if(_media_info.app.empty() || _media_info.stream.empty()){
         //不允许莫名其妙的推流url
         on_res("rtmp推流url非法", ProtocolOption());
         return;
@@ -256,7 +256,7 @@ void RtmpSession::sendPlayResponse(const string &err, const RtmpMediaSource::Ptr
     sendStatus({ "level", (ok ? "status" : "error"),
                  "code", (ok ? "NetStream.Play.Reset" : (auth_success ? "NetStream.Play.StreamNotFound" : "NetStream.Play.BadAuth")),
                  "description", (ok ? "Resetting and playing." : (auth_success ? "No such stream." : err.data())),
-                 "details", _media_info._streamid,
+                 "details", _media_info.stream,
                  "clientid", "0" });
 
     if (!ok) {
@@ -270,7 +270,7 @@ void RtmpSession::sendPlayResponse(const string &err, const RtmpMediaSource::Ptr
     sendStatus({ "level", "status",
                  "code", "NetStream.Play.Start",
                  "description", "Started playing." ,
-                 "details", _media_info._streamid,
+                 "details", _media_info.stream,
                  "clientid", "0"});
 
     // |RtmpSampleAccess(true, true)
@@ -289,7 +289,7 @@ void RtmpSession::sendPlayResponse(const string &err, const RtmpMediaSource::Ptr
     sendStatus({ "level", "status",
                  "code", "NetStream.Play.PublishNotify",
                  "description", "Now published." ,
-                 "details", _media_info._streamid,
+                 "details", _media_info.stream,
                  "clientid", "0"});
 
     auto &metadata = src->getMetaData();
@@ -433,9 +433,9 @@ string RtmpSession::getStreamId(const string &str){
 void RtmpSession::onCmd_play(AMFDecoder &dec) {
     dec.load<AMFValue>(); /* NULL */
     // 赋值为rtmp stream id 信息
-    _media_info._streamid = getStreamId(dec.load<std::string>());
+    _media_info.stream = getStreamId(dec.load<std::string>());
     // 再解析url，切割url为app/stream_id (不一定符合rtmp url切割规范)
-    _media_info.parse(_media_info._schema + "://" + _media_info._vhost + '/' + _media_info._app + '/' + _media_info._streamid);
+    _media_info.parse(_media_info.getUrl());
     doPlay(dec);
 }
 
@@ -589,7 +589,7 @@ MediaOriginType RtmpSession::getOriginType(MediaSource &sender) const{
 }
 
 string RtmpSession::getOriginUrl(MediaSource &sender) const {
-    return _media_info._full_url;
+    return _media_info.full_url;
 }
 
 std::shared_ptr<SockInfo> RtmpSession::getOriginSock(MediaSource &sender) const {

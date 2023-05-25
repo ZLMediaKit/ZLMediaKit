@@ -35,7 +35,7 @@ void SrtTransportImp::onHandShakeFinished(std::string &streamid, struct sockaddr
         return;
     }
 
-    auto params = Parser::parseArgs(_media_info._param_strs);
+    auto params = Parser::parseArgs(_media_info.param_strs);
     if (params["m"] == "publish") {
         _is_pusher = true;
         _decoder = DecoderImp::createDecoder(DecoderImp::decoder_ts, this);
@@ -52,7 +52,7 @@ bool SrtTransportImp::parseStreamid(std::string &streamid) {
     if (!toolkit::start_with(streamid, "#!::")) {
         return false;
     }
-    _media_info._schema = SRT_SCHEMA;
+    _media_info.schema = SRT_SCHEMA;
 
     std::string real_streamid = streamid.substr(4);
     std::string vhost, app, stream_name;
@@ -70,10 +70,10 @@ bool SrtTransportImp::parseStreamid(std::string &streamid) {
             app = tmps[0];
             stream_name = tmps[1];
         } else {
-            if (_media_info._param_strs.empty()) {
-                _media_info._param_strs = it.first + "=" + it.second;
+            if (_media_info.param_strs.empty()) {
+                _media_info.param_strs = it.first + "=" + it.second;
             } else {
-                _media_info._param_strs += "&" + it.first + "=" + it.second;
+                _media_info.param_strs += "&" + it.first + "=" + it.second;
             }
         }
     }
@@ -82,15 +82,15 @@ bool SrtTransportImp::parseStreamid(std::string &streamid) {
     }
 
     if (vhost != "") {
-        _media_info._vhost = vhost;
+        _media_info.vhost = vhost;
     } else {
-        _media_info._vhost = DEFAULT_VHOST;
+        _media_info.vhost = DEFAULT_VHOST;
     }
 
-    _media_info._app = app;
-    _media_info._streamid = stream_name;
+    _media_info.app = app;
+    _media_info.stream = stream_name;
 
-    TraceL << " mediainfo=" << _media_info.shortUrl() << " params=" << _media_info._param_strs;
+    TraceL << " mediainfo=" << _media_info.shortUrl() << " params=" << _media_info.param_strs;
 
     return true;
 }
@@ -136,7 +136,7 @@ mediakit::MediaOriginType SrtTransportImp::getOriginType(mediakit::MediaSource &
 
 // 获取媒体源url或者文件路径
 std::string SrtTransportImp::getOriginUrl(mediakit::MediaSource &sender) const {
-    return _media_info._full_url;
+    return _media_info.full_url;
 }
 
 // 获取媒体源客户端相关信息
@@ -157,9 +157,7 @@ void SrtTransportImp::emitOnPublish() {
                 return;
             }
             if (err.empty()) {
-                strong_self->_muxer = std::make_shared<MultiMediaSourceMuxer>(strong_self->_media_info._vhost,
-                                                                              strong_self->_media_info._app,
-                                                                              strong_self->_media_info._streamid,0.0f,
+                strong_self->_muxer = std::make_shared<MultiMediaSourceMuxer>(strong_self->_media_info,0.0f,
                                                                               option);
                 strong_self->_muxer->setMediaListener(strong_self);
                 strong_self->doCachedFunc();
@@ -207,7 +205,7 @@ void SrtTransportImp::emitOnPlay() {
 void SrtTransportImp::doPlay() {
     // 异步查找直播流
     MediaInfo info = _media_info;
-    info._schema = TS_SCHEMA;
+    info.schema = TS_SCHEMA;
     std::weak_ptr<SrtTransportImp> weak_self = static_pointer_cast<SrtTransportImp>(shared_from_this());
     MediaSource::findAsync(info, getSession(), [weak_self](const MediaSource::Ptr &src) {
         auto strong_self = weak_self.lock();
@@ -281,7 +279,7 @@ uint16_t SrtTransportImp::get_local_port() {
 }
 
 std::string SrtTransportImp::getIdentifier() const {
-    return _media_info._streamid;
+    return _media_info.stream;
 }
 
 bool SrtTransportImp::inputFrame(const Frame::Ptr &frame) {
@@ -293,7 +291,7 @@ bool SrtTransportImp::inputFrame(const Frame::Ptr &frame) {
             auto diff = _type_to_stamp[TrackType::TrackVideo].getRelativeStamp() - _type_to_stamp[TrackType::TrackAudio].getRelativeStamp();
             if(std::abs(diff) > 5000){
                 // 超过5s，应该同步 TODO
-                WarnL << _media_info._full_url<<" video or audio not sync : "<<diff;
+                WarnL << _media_info.full_url <<" video or audio not sync : "<<diff;
             }
         }
         //TraceL<<"after type "<<frame_tmp->getCodecName()<<" dts "<<frame_tmp->dts()<<" pts "<<frame_tmp->pts();

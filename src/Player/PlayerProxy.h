@@ -134,9 +134,7 @@ private:
     int _reconnect_delay_min;
     int _reconnect_delay_max;
     int _reconnect_delay_step;
-    std::string _vhost;
-    std::string _app;
-    std::string _stream_id;
+    MediaTuple _tuple;
     std::string _pull_url;
     toolkit::Timer::Ptr _timer;
     std::function<void()> _on_disconnect;

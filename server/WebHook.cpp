@@ -215,11 +215,11 @@ void do_http_hook(const string &url, const ArgsType &body, const function<void(c
 
 static ArgsType make_json(const MediaInfo &args) {
     ArgsType body;
-    body["schema"] = args._schema;
-    body[VHOST_KEY] = args._vhost;
-    body["app"] = args._app;
-    body["stream"] = args._streamid;
-    body["params"] = args._param_strs;
+    body["schema"] = args.schema;
+    body[VHOST_KEY] = args.vhost;
+    body["app"] = args.app;
+    body["stream"] = args.stream;
+    body["params"] = args.param_strs;
     return body;
 }
 
@@ -263,12 +263,12 @@ static const string kEdgeServerParam = "edge=1";
 
 static string getPullUrl(const string &origin_fmt, const MediaInfo &info) {
     char url[1024] = { 0 };
-    if ((ssize_t)origin_fmt.size() > snprintf(url, sizeof(url), origin_fmt.data(), info._app.data(), info._streamid.data())) {
+    if ((ssize_t)origin_fmt.size() > snprintf(url, sizeof(url), origin_fmt.data(), info.app.data(), info.stream.data())) {
         WarnL << "get origin url failed, origin_fmt:" << origin_fmt;
         return "";
     }
     // 告知源站这是来自边沿站的拉流请求，如果未找到流请立即返回拉流失败
-    return string(url) + '?' + kEdgeServerParam + '&' + VHOST_KEY + '=' + info._vhost + '&' + info._param_strs;
+    return string(url) + '?' + kEdgeServerParam + '&' + VHOST_KEY + '=' + info.vhost + '&' + info.param_strs;
 }
 
 static void pullStreamFromOrigin(const vector<string> &urls, size_t index, size_t failed_cnt, const MediaInfo &args, const function<void()> &closePlayer) {
@@ -280,10 +280,10 @@ static void pullStreamFromOrigin(const vector<string> &urls, size_t index, size_
     InfoL << "pull stream from origin, failed_cnt: " << failed_cnt << ", timeout_sec: " << timeout_sec << ", url: " << url;
 
     ProtocolOption option;
-    option.enable_hls = option.enable_hls || (args._schema == HLS_SCHEMA);
+    option.enable_hls = option.enable_hls || (args.schema == HLS_SCHEMA);
     option.enable_mp4 = false;
 
-    addStreamProxy(args._vhost, args._app, args._streamid, url, retry_count, option, Rtsp::RTP_TCP, timeout_sec, [=](const SockException &ex, const string &key) mutable {
+    addStreamProxy(args.vhost, args.app, args.stream, url, retry_count, option, Rtsp::RTP_TCP, timeout_sec, [=](const SockException &ex, const string &key) mutable {
         if (!ex) {
             return;
         }
@@ -321,7 +321,7 @@ void installWebHook() {
 
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastMediaPublish, [](BroadcastMediaPublishArgs) {
         GET_CONFIG(string, hook_publish, Hook::kOnPublish);
-        if (!hook_enable || args._param_strs == hook_adminparams || hook_publish.empty() || sender.get_peer_ip() == "127.0.0.1") {
+        if (!hook_enable || args.param_strs == hook_adminparams || hook_publish.empty() || sender.get_peer_ip() == "127.0.0.1") {
             invoker("", ProtocolOption());
             return;
         }
@@ -346,7 +346,7 @@ void installWebHook() {
 
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastMediaPlayed, [](BroadcastMediaPlayedArgs) {
         GET_CONFIG(string, hook_play, Hook::kOnPlay);
-        if (!hook_enable || args._param_strs == hook_adminparams || hook_play.empty() || sender.get_peer_ip() == "127.0.0.1") {
+        if (!hook_enable || args.param_strs == hook_adminparams || hook_play.empty() || sender.get_peer_ip() == "127.0.0.1") {
             invoker("");
             return;
         }
@@ -360,7 +360,7 @@ void installWebHook() {
 
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastFlowReport, [](BroadcastFlowReportArgs) {
         GET_CONFIG(string, hook_flowreport, Hook::kOnFlowReport);
-        if (!hook_enable || args._param_strs == hook_adminparams || hook_flowreport.empty() || sender.get_peer_ip() == "127.0.0.1") {
+        if (!hook_enable || args.param_strs == hook_adminparams || hook_flowreport.empty() || sender.get_peer_ip() == "127.0.0.1") {
             return;
         }
         auto body = make_json(args);
@@ -379,7 +379,7 @@ void installWebHook() {
     // 监听kBroadcastOnGetRtspRealm事件决定rtsp链接是否需要鉴权(传统的rtsp鉴权方案)才能访问
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastOnGetRtspRealm, [](BroadcastOnGetRtspRealmArgs) {
         GET_CONFIG(string, hook_rtsp_realm, Hook::kOnRtspRealm);
-        if (!hook_enable || args._param_strs == hook_adminparams || hook_rtsp_realm.empty() || sender.get_peer_ip() == "127.0.0.1") {
+        if (!hook_enable || args.param_strs == hook_adminparams || hook_rtsp_realm.empty() || sender.get_peer_ip() == "127.0.0.1") {
             // 无需认证
             invoker("");
             return;
@@ -467,7 +467,7 @@ void installWebHook() {
             return;
         }
 
-        if (start_with(args._param_strs, kEdgeServerParam)) {
+        if (start_with(args.param_strs, kEdgeServerParam)) {
             // 源站收到来自边沿站的溯源请求，流不存在时立即返回拉流失败
             closePlayer();
             return;

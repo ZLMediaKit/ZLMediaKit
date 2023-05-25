@@ -39,10 +39,8 @@ public:
     using RingDataType = std::shared_ptr<toolkit::List<FMP4Packet::Ptr> >;
     using RingType = toolkit::RingBuffer<RingDataType>;
 
-    FMP4MediaSource(const std::string &vhost,
-                    const std::string &app,
-                    const std::string &stream_id,
-                    int ring_size = FMP4_GOP_SIZE) : MediaSource(FMP4_SCHEMA, vhost, app, stream_id), _ring_size(ring_size) {}
+    FMP4MediaSource(const MediaTuple& tuple,
+                    int ring_size = FMP4_GOP_SIZE) : MediaSource(FMP4_SCHEMA, tuple), _ring_size(ring_size) {}
 
     ~FMP4MediaSource() override { flush(); }
 
