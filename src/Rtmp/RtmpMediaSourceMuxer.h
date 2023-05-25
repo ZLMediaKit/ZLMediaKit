@@ -21,13 +21,11 @@ class RtmpMediaSourceMuxer final : public RtmpMuxer, public MediaSourceEventInte
 public:
     using Ptr = std::shared_ptr<RtmpMediaSourceMuxer>;
 
-    RtmpMediaSourceMuxer(const std::string &vhost,
-                         const std::string &strApp,
-                         const std::string &strId,
+    RtmpMediaSourceMuxer(const MediaTuple& tuple,
                          const ProtocolOption &option,
                          const TitleMeta::Ptr &title = nullptr) : RtmpMuxer(title) {
         _option = option;
-        _media_src = std::make_shared<RtmpMediaSource>(vhost, strApp, strId);
+        _media_src = std::make_shared<RtmpMediaSource>(tuple);
         getRtmpRing()->setDelegate(_media_src);
     }
 

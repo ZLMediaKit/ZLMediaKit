@@ -102,9 +102,9 @@ void FFmpegSource::play(const string &ffmpeg_cmd_key, const string &src_url,cons
     _process.run(cmd, log_file);
     InfoL << cmd;
 
-    if (is_local_ip(_media_info._host)) {
+    if (is_local_ip(_media_info.host)) {
         //推流给自己的，通过判断流是否注册上来判断是否正常
-        if(_media_info._schema != RTSP_SCHEMA && _media_info._schema != RTMP_SCHEMA){
+        if (_media_info.schema != RTSP_SCHEMA && _media_info.schema != RTMP_SCHEMA) {
             cb(SockException(Err_other,"本服务只支持rtmp/rtsp推流"));
             return;
         }
@@ -154,10 +154,10 @@ void FFmpegSource::play(const string &ffmpeg_cmd_key, const string &src_url,cons
 }
 
 void FFmpegSource::findAsync(int maxWaitMS, const function<void(const MediaSource::Ptr &src)> &cb) {
-    auto src = MediaSource::find(_media_info._schema,
-                                 _media_info._vhost,
-                                 _media_info._app,
-                                 _media_info._streamid);
+    auto src = MediaSource::find(_media_info.schema,
+                                 _media_info.vhost,
+                                 _media_info.app,
+                                 _media_info.stream);
     if(src || !maxWaitMS){
         cb(src);
         return;
@@ -183,10 +183,10 @@ void FFmpegSource::findAsync(int maxWaitMS, const function<void(const MediaSourc
         }
 
         if (!bRegist ||
-            sender.getSchema() != strongSelf->_media_info._schema ||
-            sender.getVhost() != strongSelf->_media_info._vhost ||
-            sender.getApp() != strongSelf->_media_info._app ||
-            sender.getId() != strongSelf->_media_info._streamid) {
+            sender.getSchema() != strongSelf->_media_info.schema ||
+            sender.getVhost() != strongSelf->_media_info.vhost ||
+            sender.getApp() != strongSelf->_media_info.app ||
+            sender.getId() != strongSelf->_media_info.stream) {
             //不是自己感兴趣的事件，忽略之
             return;
         }
@@ -223,7 +223,7 @@ void FFmpegSource::startTimer(int timeout_ms) {
             return false;
         }
         bool needRestart = ffmpeg_restart_sec > 0 && strongSelf->_replay_ticker.elapsedTime() > ffmpeg_restart_sec * 1000;
-        if (is_local_ip(strongSelf->_media_info._host)) {
+        if (is_local_ip(strongSelf->_media_info.host)) {
             //推流给自己的，我们通过检查是否已经注册来判断FFmpeg是否工作正常
             strongSelf->findAsync(0, [&](const MediaSource::Ptr &src) {
                 //同步查找流
