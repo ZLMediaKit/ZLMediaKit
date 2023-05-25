@@ -1467,7 +1467,8 @@ void installWebApi() {
     api_regist("/index/api/deleteRecordDirectory", [](API_ARGS_MAP) {
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream");
-        auto record_path = Recorder::getRecordPath(Recorder::type_mp4, allArgs["vhost"], allArgs["app"], allArgs["stream"], allArgs["customized_path"]);
+        auto tuple = MediaTuple{allArgs["vhost"], allArgs["app"], allArgs["stream"]};
+        auto record_path = Recorder::getRecordPath(Recorder::type_mp4, tuple, allArgs["customized_path"]);
         auto period = allArgs["period"];
         record_path = record_path + period + "/";
         int result = File::delete_file(record_path.data());
@@ -1484,7 +1485,8 @@ void installWebApi() {
     api_regist("/index/api/getMp4RecordFile", [](API_ARGS_MAP){
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream");
-        auto record_path = Recorder::getRecordPath(Recorder::type_mp4, allArgs["vhost"], allArgs["app"], allArgs["stream"], allArgs["customized_path"]);
+        auto tuple = MediaTuple{allArgs["vhost"], allArgs["app"], allArgs["stream"]};
+        auto record_path = Recorder::getRecordPath(Recorder::type_mp4, tuple, allArgs["customized_path"]);
         auto period = allArgs["period"];
 
         //判断是获取mp4文件列表还是获取文件夹列表

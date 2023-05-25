@@ -71,7 +71,7 @@ MediaOriginType WebRtcPusher::getOriginType(MediaSource &sender) const {
 }
 
 string WebRtcPusher::getOriginUrl(MediaSource &sender) const {
-    return _media_info._full_url;
+    return _media_info.full_url;
 }
 
 std::shared_ptr<SockInfo> WebRtcPusher::getOriginSock(MediaSource &sender) const {
@@ -99,7 +99,7 @@ void WebRtcPusher::onRecvRtp(MediaTrack &track, const string &rid, RtpPacket::Pt
         auto &src = _push_src_sim[rid];
         if (!src) {
             auto stream_id = rid.empty() ? _push_src->getId() : _push_src->getId() + "_" + rid;
-            auto src_imp = _push_src->Clone(stream_id);
+            auto src_imp = _push_src->clone(stream_id);
             _push_src_sim_ownership[rid] = src_imp->getOwnership();
             src_imp->setListener(static_pointer_cast<WebRtcPusher>(shared_from_this()));
             src = src_imp;

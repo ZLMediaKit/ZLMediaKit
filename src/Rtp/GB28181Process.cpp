@@ -134,7 +134,7 @@ bool GB28181Process::inputRtp(bool, const char *data, size_t data_len) {
                     // 设置dump目录
                     GET_CONFIG(string, dump_dir, RtpProxy::kDumpDir);
                     if (!dump_dir.empty()) {
-                        auto save_path = File::absolutePath(_media_info._streamid + ".mpeg", dump_dir);
+                        auto save_path = File::absolutePath(_media_info.stream + ".mpeg", dump_dir);
                         _save_file_ps.reset(File::create_file(save_path.data(), "wb"), [](FILE *fp) {
                             if (fp) {
                                 fclose(fp);
@@ -171,11 +171,11 @@ void GB28181Process::onRtpDecode(const Frame::Ptr &frame) {
         // 创建解码器
         if (checkTS((uint8_t *)frame->data(), frame->size())) {
             // 猜测是ts负载
-            InfoL << _media_info._streamid << " judged to be TS";
+            InfoL << _media_info.stream << " judged to be TS";
             _decoder = DecoderImp::createDecoder(DecoderImp::decoder_ts, _interface);
         } else {
             // 猜测是ps负载
-            InfoL << _media_info._streamid << " judged to be PS";
+            InfoL << _media_info.stream << " judged to be PS";
             _decoder = DecoderImp::createDecoder(DecoderImp::decoder_ps, _interface);
         }
     }

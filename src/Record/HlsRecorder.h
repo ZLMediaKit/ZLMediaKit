@@ -35,8 +35,8 @@ public:
 
     ~HlsRecorder() { MpegMuxer::flush(); };
 
-    void setMediaSource(const std::string &vhost, const std::string &app, const std::string &stream_id) {
-        _hls->setMediaSource(vhost, app, stream_id);
+    void setMediaSource(const MediaTuple& tuple) {
+        _hls->setMediaSource(tuple.vhost, tuple.app, tuple.stream);
     }
 
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener) {

@@ -42,11 +42,7 @@ public:
      * @param stream_id 流id
      * @param ring_size 可以设置固定的环形缓冲大小，0则自适应
      */
-    RtspMediaSource(const std::string &vhost,
-                    const std::string &app,
-                    const std::string &stream_id,
-                    int ring_size = RTP_GOP_SIZE) :
-            MediaSource(RTSP_SCHEMA, vhost, app, stream_id), _ring_size(ring_size) {}
+    RtspMediaSource(const MediaTuple& tuple, int ring_size = RTP_GOP_SIZE): MediaSource(RTSP_SCHEMA, tuple), _ring_size(ring_size) {}
 
     ~RtspMediaSource() override { flush(); }
 
@@ -76,7 +72,7 @@ public:
         return _sdp;
     }
 
-    virtual RtspMediaSource::Ptr Clone(const std::string& stream) {
+    virtual RtspMediaSource::Ptr clone(const std::string& stream) {
         return nullptr;
     }
 

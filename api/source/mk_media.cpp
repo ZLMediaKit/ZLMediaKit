@@ -22,7 +22,8 @@ public:
     MediaHelper(const char *vhost, const char *app, const char *stream, float duration, const ProtocolOption &option) {
         _poller = EventPollerPool::Instance().getPoller();
         // 在poller线程中创建DevChannel(MultiMediaSourceMuxer)对象，确保严格的线程安全限制
-        _poller->sync([&]() { _channel = std::make_shared<DevChannel>(vhost, app, stream, duration, option); });
+        auto tuple = MediaTuple{vhost, app, stream};
+        _poller->sync([&]() { _channel = std::make_shared<DevChannel>(tuple, duration, option); });
     }
 
     ~MediaHelper() = default;

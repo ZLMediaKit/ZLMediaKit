@@ -133,7 +133,7 @@ void RtspSession::onWholeRtspPacket(Parser &parser) {
     if (_content_base.empty() && method != "GET") {
         _content_base = parser.Url();
         _media_info.parse(parser.FullUrl());
-        _media_info._schema = RTSP_SCHEMA;
+        _media_info.schema = RTSP_SCHEMA;
     }
 
     using rtsp_request_handler = void (RtspSession::*)(const Parser &parser);
@@ -208,7 +208,7 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
         _media_info.parse(full_url);
     }
 
-    if (_media_info._app.empty() || _media_info._streamid.empty()) {
+    if (_media_info.app.empty() || _media_info.stream.empty()) {
         //推流rtsp url必须最少两级(rtsp://host/app/stream_id)，不允许莫名其妙的推流url
         static constexpr auto err = "rtsp推流url非法,最少确保两级rtsp url";
         sendRtspResponse("403 Forbidden", {"Content-Type", "text/plain"}, err);
@@ -223,7 +223,7 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
         }
 
         assert(!_push_src);
-        auto src = MediaSource::find(RTSP_SCHEMA, _media_info._vhost, _media_info._app, _media_info._streamid);
+        auto src = MediaSource::find(RTSP_SCHEMA, _media_info.vhost, _media_info.app, _media_info.stream);
         auto push_failed = (bool)src;
 
         while (src) {
@@ -266,7 +266,7 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
         }
 
         if (!_push_src) {
-            _push_src = std::make_shared<RtspMediaSourceImp>(_media_info._vhost, _media_info._app, _media_info._streamid);
+            _push_src = std::make_shared<RtspMediaSourceImp>(_media_info);
             //获取所有权
             _push_src_ownership = _push_src->getOwnership();
             _push_src->setProtocolOption(option);
@@ -717,7 +717,7 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
         break;
     case Rtsp::RTP_MULTICAST: {
         if(!_multicaster){
-            _multicaster = RtpMultiCaster::get(*this, get_local_ip(), _media_info._vhost, _media_info._app, _media_info._streamid, _multicast_ip, _multicast_video_port, _multicast_audio_port);
+            _multicaster = RtpMultiCaster::get(*this, get_local_ip(), _media_info.vhost, _media_info.app, _media_info.stream, _multicast_ip, _multicast_video_port, _multicast_audio_port);
             if (!_multicaster) {
                 send_NotAcceptable();
                 throw SockException(Err_shutdown, "can not get a available udp multicast socket");
@@ -1145,7 +1145,7 @@ MediaOriginType RtspSession::getOriginType(MediaSource &sender) const{
 }
 
 string RtspSession::getOriginUrl(MediaSource &sender) const {
-    return _media_info._full_url;
+    return _media_info.full_url;
 }
 
 std::shared_ptr<SockInfo> RtspSession::getOriginSock(MediaSource &sender) const {

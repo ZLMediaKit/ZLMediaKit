@@ -202,7 +202,7 @@ bool HttpSession::checkLiveStream(const string &schema, const string  &url_suffi
     //解析带上协议+参数完整的url
     _mediaInfo.parse(schema + "://" + _parser["Host"] + url);
 
-    if (_mediaInfo._app.empty() || _mediaInfo._streamid.empty()) {
+    if (_mediaInfo.app.empty() || _mediaInfo.stream.empty()) {
         //url不合法
         return false;
     }

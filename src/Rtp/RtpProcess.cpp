@@ -26,14 +26,14 @@ static constexpr size_t kMaxCachedFrame = 200;
 namespace mediakit {
 
 RtpProcess::RtpProcess(const string &stream_id) {
-    _media_info._schema = kRtpAppName;
-    _media_info._vhost = DEFAULT_VHOST;
-    _media_info._app = kRtpAppName;
-    _media_info._streamid = stream_id;
+    _media_info.schema = kRtpAppName;
+    _media_info.vhost = DEFAULT_VHOST;
+    _media_info.app = kRtpAppName;
+    _media_info.stream = stream_id;
 
     GET_CONFIG(string, dump_dir, RtpProxy::kDumpDir);
     {
-        FILE *fp = !dump_dir.empty() ? File::create_file(File::absolutePath(_media_info._streamid + ".rtp", dump_dir).data(), "wb") : nullptr;
+        FILE *fp = !dump_dir.empty() ? File::create_file(File::absolutePath(_media_info.stream + ".rtp", dump_dir).data(), "wb") : nullptr;
         if (fp) {
             _save_file_rtp.reset(fp, [](FILE *fp) {
                 fclose(fp);
@@ -42,7 +42,7 @@ RtpProcess::RtpProcess(const string &stream_id) {
     }
 
     {
-        FILE *fp = !dump_dir.empty() ? File::create_file(File::absolutePath(_media_info._streamid + ".video", dump_dir).data(), "wb") : nullptr;
+        FILE *fp = !dump_dir.empty() ? File::create_file(File::absolutePath(_media_info.stream + ".video", dump_dir).data(), "wb") : nullptr;
         if (fp) {
             _save_file_video.reset(fp, [](FILE *fp) {
                 fclose(fp);
@@ -234,7 +234,7 @@ uint16_t RtpProcess::get_local_port() {
 }
 
 string RtpProcess::getIdentifier() const {
-    return _media_info._streamid;
+    return _media_info.stream;
 }
 
 void RtpProcess::emitOnPublish() {
@@ -251,9 +251,7 @@ void RtpProcess::emitOnPublish() {
                 return;
             }
             if (err.empty()) {
-                strong_self->_muxer = std::make_shared<MultiMediaSourceMuxer>(strong_self->_media_info._vhost,
-                                                                              strong_self->_media_info._app,
-                                                                              strong_self->_media_info._streamid,0.0f,
+                strong_self->_muxer = std::make_shared<MultiMediaSourceMuxer>(strong_self->_media_info, 0.0f,
                                                                               option);
                 if (strong_self->_only_audio) {
                     strong_self->_muxer->setOnlyAudio();
@@ -291,7 +289,7 @@ toolkit::EventPoller::Ptr RtpProcess::getOwnerPoller(MediaSource &sender) {
     if (_sock) {
         return _sock->getPoller();
     }
-    throw std::runtime_error("RtpProcess::getOwnerPoller failed:" + _media_info._streamid);
+    throw std::runtime_error("RtpProcess::getOwnerPoller failed:" + _media_info.stream);
 }
 
 float RtpProcess::getLossRate(MediaSource &sender, TrackType type) {

@@ -278,7 +278,7 @@ static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo
         HttpCookieManager::Instance().delCookie(cookie);
     }
 
-    bool is_hls = media_info._schema == HLS_SCHEMA;
+    bool is_hls = media_info.schema == HLS_SCHEMA;
 
     SockInfoImp::Ptr info = std::make_shared<SockInfoImp>();
     info->_identifier = sender.getIdentifier();
@@ -363,8 +363,8 @@ static void accessFile(Session &sender, const Parser &parser, const MediaInfo &m
     }
     if (is_hls) {
         // hls，那么移除掉后缀获取真实的stream_id并且修改协议为HLS
-        const_cast<string &>(media_info._schema) = HLS_SCHEMA;
-        replace(const_cast<string &>(media_info._streamid), kHlsSuffix, "");
+        const_cast<string &>(media_info.schema) = HLS_SCHEMA;
+        replace(const_cast<string &>(media_info.stream), kHlsSuffix, "");
     }
 
     weak_ptr<Session> weakSession = static_pointer_cast<Session>(sender.shared_from_this());
@@ -465,11 +465,11 @@ static string getFilePath(const Parser &parser,const MediaInfo &media_info, Sess
     });
 
     string url, path;
-    auto it = virtualPathMap.find(media_info._app);
+    auto it = virtualPathMap.find(media_info.app);
     if (it != virtualPathMap.end()) {
         //访问的是virtualPath
         path = it->second;
-        url = parser.Url().substr(1 + media_info._app.size());
+        url = parser.Url().substr(1 + media_info.app.size());
     } else {
         //访问的是rootPath
         path = rootPath;
@@ -481,7 +481,7 @@ static string getFilePath(const Parser &parser,const MediaInfo &media_info, Sess
             ch = '/';
         }
     }
-    auto ret = File::absolutePath(enableVhost ? media_info._vhost + url : url, path);
+    auto ret = File::absolutePath(enableVhost ? media_info.vhost + url : url, path);
     NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpBeforeAccess, parser, ret, static_cast<SockInfo &>(sender));
     return ret;
 }
