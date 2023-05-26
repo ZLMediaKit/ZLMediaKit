@@ -59,11 +59,15 @@ const char *RtpSplitter::onSearchPacketTail(const char *data, size_t len) {
         return onSearchPacketTail_l(data + kEHOME_OFFSET + 2, len - kEHOME_OFFSET - 2);
     }
 
-    if (data[0] == '$') {
-        //可能是4个字节的rtp头
-        _offset = 4;
-        return onSearchPacketTail_l(data + 2, len - 2);
+    if ( _is_rtsp_interleaved ) {
+        if (data[0] == '$') {
+            //可能是4个字节的rtp头
+            _offset = 4;
+            return onSearchPacketTail_l(data + 2, len - 2);
+        }
+        _is_rtsp_interleaved = false;
     }
+    
     //两个字节的rtp头
     _offset = 2;
     return onSearchPacketTail_l(data, len);
