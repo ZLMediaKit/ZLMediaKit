@@ -36,6 +36,7 @@ protected:
 
 private:
     bool _is_ehome = false;
+    bool _is_rtsp_interleaved = true;
     size_t _offset = 0;
 };
 
