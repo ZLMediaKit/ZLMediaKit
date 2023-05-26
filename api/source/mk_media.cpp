@@ -263,7 +263,7 @@ API_EXPORT void API_CALL mk_media_input_yuv(mk_media ctx, const char *yuv[3], in
 }
 
 API_EXPORT int API_CALL mk_media_input_aac(mk_media ctx, const void *data, int len, uint64_t dts, void *adts) {
-    assert(ctx && data && len > 0 && adts);
+    assert(ctx && data && len > 0);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
     return (*obj)->getChannel()->inputAAC((const char *) data, len, dts, (char *) adts);
 }

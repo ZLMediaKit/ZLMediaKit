@@ -39,8 +39,13 @@ void HttpSession::Handle_Req_HEAD(ssize_t &content_len){
 
 void HttpSession::Handle_Req_OPTIONS(ssize_t &content_len) {
     KeyValue header;
-    header.emplace("Allow", "GET, POST, OPTIONS");
-    header.emplace("Access-Control-Allow-Origin", "*");
+    header.emplace("Allow", "GET, POST, HEAD, OPTIONS");
+    GET_CONFIG(bool, allow_cross_domains, Http::kAllowCrossDomains);
+    if (allow_cross_domains) {
+        header.emplace("Access-Control-Allow-Origin", "*");
+        header.emplace("Access-Control-Allow-Headers", "*");
+        header.emplace("Access-Control-Allow-Methods", "GET, POST, HEAD, OPTIONS");
+    }
     header.emplace("Access-Control-Allow-Credentials", "true");
     header.emplace("Access-Control-Request-Methods", "GET, POST, OPTIONS");
     header.emplace("Access-Control-Request-Headers", "Accept,Accept-Language,Content-Language,Content-Type");

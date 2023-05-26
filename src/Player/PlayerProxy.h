@@ -18,6 +18,45 @@
 
 namespace mediakit {
 
+struct StreamInfo
+{
+    TrackType codec_type;
+    std::string codec_name;
+    int bitrate;
+    int audio_sample_rate;
+    int audio_sample_bit;
+    int audio_channel;
+    int video_width;
+    int video_height;
+    float video_fps;
+
+    StreamInfo()
+    {
+        codec_type = TrackInvalid;
+        codec_name = "none";
+        bitrate = -1;
+        audio_sample_rate = -1;
+        audio_channel = -1;
+        audio_sample_bit = -1;
+        video_height = -1;
+        video_width = -1;
+        video_fps = -1.0;
+    }
+};
+
+struct TranslationInfo
+{
+    std::vector<StreamInfo> stream_info;
+    int byte_speed;
+    uint64_t start_time_stamp;
+
+    TranslationInfo()
+    {
+        byte_speed = -1;
+        start_time_stamp = 0;
+    }
+};
+
 class PlayerProxy
     : public MediaPlayer
     , public MediaSourceEvent
@@ -29,7 +68,7 @@ public:
     // 默认一直重试
     PlayerProxy(
         const std::string &vhost, const std::string &app, const std::string &stream_id, const ProtocolOption &option, int retry_count = -1,
-        const toolkit::EventPoller::Ptr &poller = nullptr);
+        const toolkit::EventPoller::Ptr &poller = nullptr, int reconnect_delay_min = 2, int reconnect_delay_max = 60, int reconnect_delay_step = 3);
 
     ~PlayerProxy() override;
 
@@ -37,13 +76,25 @@ public:
      * 设置play结果回调，只触发一次；在play执行之前有效
      * @param cb 回调对象
      */
-    void setPlayCallbackOnce(const std::function<void(const toolkit::SockException &ex)> &cb);
+    void setPlayCallbackOnce(std::function<void(const toolkit::SockException &ex)> cb);
 
     /**
      * 设置主动关闭回调
      * @param cb 回调对象
      */
-    void setOnClose(const std::function<void(const toolkit::SockException &ex)> &cb);
+    void setOnClose(std::function<void(const toolkit::SockException &ex)> cb);
+
+    /**
+    * Set a callback for failed server connection
+    * @param cb 回调对象
+    */
+    void setOnDisconnect(std::function<void()> cb);
+
+    /**
+    * Set a callback for a successful connection to the server
+    * @param cb 回调对象
+    */
+    void setOnConnect(std::function<void(const TranslationInfo&)> cb);
 
     /**
      * 开始拉流播放
@@ -60,6 +111,9 @@ public:
     uint64_t getLiveSecs();
     uint64_t getRePullCount();
 
+    // Using this only makes sense after a successful connection to the server
+    TranslationInfo getTranslationInfo();
+
 private:
     // MediaSourceEvent override
     bool close(MediaSource &sender) override;
@@ -72,17 +126,24 @@ private:
     void rePlay(const std::string &strUrl, int iFailedCnt);
     void onPlaySuccess();
     void setDirectProxy();
+    void setTranslationInfo();
 
 private:
     ProtocolOption _option;
     int _retry_count;
+    int _reconnect_delay_min;
+    int _reconnect_delay_max;
+    int _reconnect_delay_step;
     std::string _vhost;
     std::string _app;
     std::string _stream_id;
     std::string _pull_url;
     toolkit::Timer::Ptr _timer;
+    std::function<void()> _on_disconnect;
+    std::function<void(const TranslationInfo &info)> _on_connect;
     std::function<void(const toolkit::SockException &ex)> _on_close;
     std::function<void(const toolkit::SockException &ex)> _on_play;
+    TranslationInfo _transtalion_info;
     MultiMediaSourceMuxer::Ptr _muxer;
 
     toolkit::Ticker _live_ticker;
