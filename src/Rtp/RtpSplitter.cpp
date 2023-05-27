@@ -46,17 +46,20 @@ const char *RtpSplitter::onSearchPacketTail(const char *data, size_t len) {
         return nullptr;
     }
 
-    if (isEhome(data, len)) {
-        //是ehome协议
-        if (len < kEHOME_OFFSET + 4) {
-            //数据不够
-            return nullptr;
+    if ( _is_ehome ) {
+        if (isEhome(data, len)) {
+            //是ehome协议
+            if (len < kEHOME_OFFSET + 4) {
+                //数据不够
+                return nullptr;
+            }
+            //忽略ehome私有头后是rtsp样式的rtp，多4个字节，
+            _offset = kEHOME_OFFSET + 4;
+            _is_ehome = true;
+            //忽略ehome私有头
+            return onSearchPacketTail_l(data + kEHOME_OFFSET + 2, len - kEHOME_OFFSET - 2);
         }
-        //忽略ehome私有头后是rtsp样式的rtp，多4个字节，
-        _offset = kEHOME_OFFSET + 4;
-        _is_ehome = true;
-        //忽略ehome私有头
-        return onSearchPacketTail_l(data + kEHOME_OFFSET + 2, len - kEHOME_OFFSET - 2);
+        _is_ehome = false;
     }
 
     if ( _is_rtsp_interleaved ) {
