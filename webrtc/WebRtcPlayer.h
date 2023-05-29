@@ -21,6 +21,7 @@ public:
     using Ptr = std::shared_ptr<WebRtcPlayer>;
     ~WebRtcPlayer() override = default;
     static Ptr create(const EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src, const MediaInfo &info, bool preferred_tcp = false);
+    MediaInfo getMediaInfo() { return _media_info; }
 
 protected:
     ///////WebRtcTransportImp override///////

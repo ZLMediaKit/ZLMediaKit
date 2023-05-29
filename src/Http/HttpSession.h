@@ -124,6 +124,9 @@ private:
     //设置socket标志
     void setSocketFlags();
 
+protected:
+    MediaInfo _mediaInfo;
+
 private:
     bool _is_live_stream = false;
     bool _live_over_websocket = false;
@@ -132,7 +135,6 @@ private:
     std::string _origin;
     Parser _parser;
     toolkit::Ticker _ticker;
-    MediaInfo _mediaInfo;
     TSMediaSource::RingType::RingReader::Ptr _ts_reader;
     FMP4MediaSource::RingType::RingReader::Ptr _fmp4_reader;
     //处理content数据的callback
