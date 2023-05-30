@@ -432,8 +432,8 @@ void RtspPlayer::sendPause(int type , uint32_t seekMS){
             sendRtspRequest("PAUSE", _content_base);
             break;
         case type_play:
-            sendRtspRequest("PLAY", _content_base);
-            break;
+            //sendRtspRequest("PLAY", _content_base);
+            //break;
         case type_seek:
             sendRtspRequest("PLAY", _content_base, {"Range",StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << seekMS / 1000.0 << "-"});
             break;
@@ -624,7 +624,12 @@ void RtspPlayer::sendRtspRequest(const string &cmd, const string &url,const StrC
     }
 
     _StrPrinter printer;
-    printer << cmd << " " << url << " RTSP/1.0\r\n";
+    if(cmd == "PLAY"){
+        printer << cmd << " " << _play_url << " RTSP/1.0\r\n";
+    }else{
+        printer << cmd << " " << url << " RTSP/1.0\r\n";
+    }
+    
     for (auto &pr : header){
         printer << pr.first << ": " << pr.second << "\r\n";
     }
