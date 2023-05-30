@@ -148,9 +148,15 @@ bool HttpSession::checkWebSocket(){
         _live_over_websocket = true;
         sendResponse(101, false, nullptr, headerOut, nullptr, true);
     };
+    
+    auto res_cb_flv = [this, header = std::move(headerOut)]() mutable {
+        _live_over_websocket = true;
+        header.emplace("Cache-Control", "no-store");
+        sendResponse(101, false, nullptr, header, nullptr, true);
+    };
 
     //判断是否为websocket-flv
-    if (checkLiveStreamFlv(res_cb)) {
+    if (checkLiveStreamFlv(res_cb_flv)) {
         //这里是websocket-flv直播请求
         return true;
     }
