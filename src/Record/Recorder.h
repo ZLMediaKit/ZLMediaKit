@@ -18,7 +18,16 @@ namespace mediakit {
 class MediaSinkInterface;
 class ProtocolOption;
 
-class RecordInfo {
+struct MediaTuple {
+    std::string vhost;
+    std::string app;
+    std::string stream;
+    std::string shortUrl() const {
+        return vhost + '/' + app + '/' + stream;
+    }
+};
+
+class RecordInfo: public MediaTuple {
 public:
     time_t start_time;  // GMT 标准时间，单位秒
     float time_len;     // 录像长度，单位秒
@@ -27,9 +36,6 @@ public:
     std::string file_name;   // 文件名称
     std::string folder;      // 文件夹路径
     std::string url;         // 播放路径
-    std::string app;         // 应用名称
-    std::string stream;      // 流 ID
-    std::string vhost;       // 虚拟主机
 };
 
 class Recorder{
@@ -50,7 +56,7 @@ public:
      * @param customized_path 录像文件保存自定义根目录，为空则采用配置文件设置
      * @return  录制文件绝对路径
      */
-    static std::string getRecordPath(type type, const std::string &vhost, const std::string &app, const std::string &stream_id,const std::string &customized_path = "");
+    static std::string getRecordPath(type type, const MediaTuple& tuple, const std::string &customized_path = "");
 
     /**
      * 创建录制器对象
@@ -62,7 +68,7 @@ public:
      * @param max_second mp4录制最大切片时间，单位秒，置0则采用配置文件配置
      * @return 对象指针，可能为nullptr
      */
-    static std::shared_ptr<MediaSinkInterface> createRecorder(type type, const std::string &vhost, const std::string &app, const std::string &stream_id, const ProtocolOption &option);
+    static std::shared_ptr<MediaSinkInterface> createRecorder(type type, const MediaTuple& tuple, const ProtocolOption &option);
 
 private:
     Recorder() = delete;

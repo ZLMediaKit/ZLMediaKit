@@ -74,8 +74,7 @@ void RtspMediaSource::onWrite(RtpPacket::Ptr rtp, bool keyPos) {
     PacketCache<RtpPacket>::inputPacket(stamp, is_video, std::move(rtp), keyPos);
 }
 
-RtspMediaSourceImp::RtspMediaSourceImp(const std::string &vhost, const std::string &app, const std::string &id, int ringSize) 
-    : RtspMediaSource(vhost, app, id, ringSize)
+RtspMediaSourceImp::RtspMediaSourceImp(const MediaTuple& tuple, int ringSize): RtspMediaSource(tuple, ringSize)
 {
     _demuxer = std::make_shared<RtspDemuxer>();
     _demuxer->setTrackListener(this);
@@ -114,7 +113,7 @@ void RtspMediaSourceImp::setProtocolOption(const ProtocolOption &option)
     //导致rtc无法播放，所以在rtsp推流rtc播放时，建议关闭直接代理模式
     _option = option;
     _option.enable_rtsp = !direct_proxy;
-    _muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(), getApp(), getId(), _demuxer->getDuration(), _option);
+    _muxer = std::make_shared<MultiMediaSourceMuxer>(_tuple, _demuxer->getDuration(), _option);
     _muxer->setMediaListener(getListener());
     _muxer->setTrackListener(std::static_pointer_cast<RtspMediaSourceImp>(shared_from_this()));
     //让_muxer对象拦截一部分事件(比如说录像相关事件)
@@ -126,6 +125,14 @@ void RtspMediaSourceImp::setProtocolOption(const ProtocolOption &option)
     }
 }
 
+RtspMediaSource::Ptr RtspMediaSourceImp::clone(const std::string &stream) {
+    auto tuple = _tuple;
+    tuple.stream = stream;
+    auto src_imp = std::make_shared<RtspMediaSourceImp>(tuple);
+    src_imp->setSdp(getSdp());
+    src_imp->setProtocolOption(getProtocolOption());
+    return src_imp;
+}
 
 }
 

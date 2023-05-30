@@ -23,6 +23,8 @@
 #include "WebRtcPlayer.h"
 #include "WebRtcPusher.h"
 
+#include "Rtsp/RtspMediaSourceImp.h"
+
 #define RTP_SSRC_OFFSET 1
 #define RTX_SSRC_OFFSET 2
 #define RTP_CNAME "zlmediakit-rtp"
@@ -1177,7 +1179,7 @@ void push_plugin(Session &sender, const WebRtcArgs &args, const WebRtcPluginMana
 
         RtspMediaSourceImp::Ptr push_src;
         std::shared_ptr<void> push_src_ownership;
-        auto src = MediaSource::find(RTSP_SCHEMA, info._vhost, info._app, info._streamid);
+        auto src = MediaSource::find(RTSP_SCHEMA, info.vhost, info.app, info.stream);
         auto push_failed = (bool)src;
 
         while (src) {
@@ -1204,7 +1206,7 @@ void push_plugin(Session &sender, const WebRtcArgs &args, const WebRtcPluginMana
         }
 
         if (!push_src) {
-            push_src = std::make_shared<RtspMediaSourceImp>(info._vhost, info._app, info._streamid);
+            push_src = std::make_shared<RtspMediaSourceImp>(info);
             push_src_ownership = push_src->getOwnership();
             push_src->setProtocolOption(option);
         }
@@ -1233,7 +1235,7 @@ void play_plugin(Session &sender, const WebRtcArgs &args, const WebRtcPluginMana
         }
 
         // webrtc播放的是rtsp的源
-        info._schema = RTSP_SCHEMA;
+        info.schema = RTSP_SCHEMA;
         MediaSource::findAsync(info, session_ptr, [=](const MediaSource::Ptr &src_in) mutable {
             auto src = dynamic_pointer_cast<RtspMediaSource>(src_in);
             if (!src) {
@@ -1241,7 +1243,7 @@ void play_plugin(Session &sender, const WebRtcArgs &args, const WebRtcPluginMana
                 return;
             }
             // 还原成rtc，目的是为了hook时识别哪种播放协议
-            info._schema = RTC_SCHEMA;
+            info.schema = RTC_SCHEMA;
             auto rtc = WebRtcPlayer::create(EventPollerPool::Instance().getPoller(), src, info, preferred_tcp);
             cb(*rtc);
         });

@@ -63,7 +63,7 @@ void RtmpMediaSource::onWrite(RtmpPacket::Ptr pkt, bool /*= true*/)
 }
 
 
-RtmpMediaSourceImp::RtmpMediaSourceImp(const std::string &vhost, const std::string &app, const std::string &id, int ringSize) : RtmpMediaSource(vhost, app, id, ringSize)
+RtmpMediaSourceImp::RtmpMediaSourceImp(const MediaTuple& tuple, int ringSize) : RtmpMediaSource(tuple, ringSize)
 {
     _demuxer = std::make_shared<RtmpDemuxer>();
     _demuxer->setTrackListener(this);
@@ -99,7 +99,7 @@ void RtmpMediaSourceImp::setProtocolOption(const ProtocolOption &option)
     _option = option;
     //不重复生成rtmp协议
     _option.enable_rtmp = false;
-    _muxer = std::make_shared<MultiMediaSourceMuxer>(getVhost(), getApp(), getId(), _demuxer->getDuration(), _option);
+    _muxer = std::make_shared<MultiMediaSourceMuxer>(_tuple, _demuxer->getDuration(), _option);
     _muxer->setMediaListener(getListener());
     _muxer->setTrackListener(std::static_pointer_cast<RtmpMediaSourceImp>(shared_from_this()));
     //让_muxer对象拦截一部分事件(比如说录像相关事件)
