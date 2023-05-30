@@ -136,6 +136,7 @@ bool HttpSession::checkWebSocket(){
     auto Sec_WebSocket_Accept = encodeBase64(SHA1::encode_bin(Sec_WebSocket_Key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"));
 
     KeyValue headerOut;
+    headerOut["Cache-Control"] = "no-store";
     headerOut["Upgrade"] = "websocket";
     headerOut["Connection"] = "Upgrade";
     headerOut["Sec-WebSocket-Accept"] = Sec_WebSocket_Accept;
@@ -349,7 +350,9 @@ bool HttpSession::checkLiveStreamFlv(const function<void()> &cb){
         assert(rtmp_src);
         if (!cb) {
             //找到源，发送http头，负载后续发送
-            sendResponse(200, false, HttpFileManager::getContentType(".flv").data(), KeyValue(), nullptr, true);
+            KeyValue headerOut;
+            headerOut["Cache-Control"] = "no-store";
+            sendResponse(200, false, HttpFileManager::getContentType(".flv").data(), headerOut, nullptr, true);
         } else {
             //自定义发送http头
             cb();
