@@ -180,7 +180,7 @@ bool MP4Reader::pause(MediaSource &sender, bool pause) {
 }
 
 bool MP4Reader::speed(MediaSource &sender, float speed) {
-    if (speed < 0.1 && speed > 20) {
+    if (speed < 0.1 || speed > 20) {
         WarnL << "播放速度取值范围非法:" << speed;
         return false;
     }
