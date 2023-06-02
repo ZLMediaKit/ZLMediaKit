@@ -148,10 +148,10 @@ bool HttpSession::checkWebSocket(){
         sendResponse(101, false, nullptr, headerOut, nullptr, true);
     };
     
-    auto res_cb_flv = [this, header = std::move(headerOut)]() mutable {
+    auto res_cb_flv = [this, headerOut]() mutable {
         _live_over_websocket = true;
-        header.emplace("Cache-Control", "no-store");
-        sendResponse(101, false, nullptr, header, nullptr, true);
+        headerOut.emplace("Cache-Control", "no-store");
+        sendResponse(101, false, nullptr, headerOut, nullptr, true);
     };
 
     //判断是否为websocket-flv
