@@ -53,7 +53,7 @@ string getOriginTypeString(MediaOriginType type){
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ProtocolOption::ProtocolOption() {
-    GET_CONFIG(bool, s_modify_stamp, Protocol::kModifyStamp);
+    GET_CONFIG(int, s_modify_stamp, Protocol::kModifyStamp);
     GET_CONFIG(bool, s_enabel_audio, Protocol::kEnableAudio);
     GET_CONFIG(bool, s_add_mute_audio, Protocol::kAddMuteAudio);
     GET_CONFIG(uint32_t, s_continue_push_ms, Protocol::kContinuePushMS);

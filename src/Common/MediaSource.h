@@ -136,8 +136,14 @@ class ProtocolOption {
 public:
     ProtocolOption();
 
-    //时间戳修复这一路流标志位
-    bool modify_stamp;
+    enum {
+        kModifyStampOff = 0, // 采用源视频流绝对时间戳，不做任何改变
+        kModifyStampSystem = 1, // 采用zlmediakit接收数据时的系统时间戳(有平滑处理)
+        kModifyStampRelative = 2 // 采用源视频流时间戳相对时间戳(增长量)，有做时间戳跳跃和回退矫正
+    };
+    // 时间戳类型
+    int modify_stamp;
+
     //转协议是否开启音频
     bool enable_audio;
     //添加静音音频，在关闭音频时，此开关无效

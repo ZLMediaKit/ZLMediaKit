@@ -9,6 +9,7 @@
  */
 
 #include "Common/config.h"
+#include "MediaSource.h"
 #include "Util/NoticeCenter.h"
 #include "Util/logger.h"
 #include "Util/onceToken.h"
@@ -120,7 +121,7 @@ const string kTSDemand = PROTOCOL_FIELD "ts_demand";
 const string kFMP4Demand = PROTOCOL_FIELD "fmp4_demand";
 
 static onceToken token([]() {
-    mINI::Instance()[kModifyStamp] = 0;
+    mINI::Instance()[kModifyStamp] = (int)ProtocolOption::kModifyStampRelative;
     mINI::Instance()[kEnableAudio] = 1;
     mINI::Instance()[kAddMuteAudio] = 1;
     mINI::Instance()[kContinuePushMS] = 15000;
