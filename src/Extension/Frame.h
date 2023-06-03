@@ -492,7 +492,7 @@ private:
 class FrameStamp : public Frame {
 public:
     using Ptr = std::shared_ptr<FrameStamp>;
-    FrameStamp(Frame::Ptr frame, Stamp &stamp, bool modify_stamp);
+    FrameStamp(Frame::Ptr frame, Stamp &stamp, int modify_stamp);
     ~FrameStamp() override {}
 
     uint64_t dts() const override { return (uint64_t)_dts; }
