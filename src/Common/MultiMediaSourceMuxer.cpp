@@ -94,6 +94,11 @@ MultiMediaSourceMuxer::MultiMediaSourceMuxer(const MediaTuple& tuple, float dur_
     _poller = EventPollerPool::Instance().getPoller();
     _create_in_poller = _poller->isCurrentThread();
     _option = option;
+    if (dur_sec > 0.01) {
+        // 点播
+        _stamp[TrackVideo].setPlayBack();
+        _stamp[TrackAudio].setPlayBack();
+    }
 
     if (option.enable_rtmp) {
         _rtmp = std::make_shared<RtmpMediaSourceMuxer>(_tuple, option, std::make_shared<TitleMeta>(dur_sec));
@@ -378,6 +383,11 @@ void MultiMediaSourceMuxer::onAllTrackReady() {
         createGopCacheIfNeed();
     }
 #endif
+    auto tracks = getTracks(false);
+    if (tracks.size() >= 2) {
+        // 音频时间戳同步于视频，因为音频时间戳被修改后不影响播放
+        _stamp[TrackAudio].syncTo(_stamp[TrackVideo]);
+    }
     InfoL << "stream: " << shortUrl() << " , codec info: " << getTrackInfoStr(this);
 }
 
@@ -429,9 +439,9 @@ void MultiMediaSourceMuxer::resetTracks() {
 
 bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
     auto frame = frame_in;
-   if (_option.modify_stamp) {
-        //开启了时间戳覆盖
-        frame = std::make_shared<FrameStamp>(frame, _stamp[frame->getTrackType()],true);
+    if (_option.modify_stamp != ProtocolOption::kModifyStampOff) {
+        // 时间戳不采用原始的绝对时间戳
+        frame = std::make_shared<FrameStamp>(frame, _stamp[frame->getTrackType()], _option.modify_stamp);
     }
 
     bool ret = false;
