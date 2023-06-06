@@ -82,6 +82,11 @@ ssize_t HttpSession::onRecvHeader(const char *header,size_t len) {
     ssize_t content_len = 0;
     (this->*(it->second))(content_len);
 
+    if(content_len == 0){
+        //检查Content-length
+        content_len =  _parser["Content-Length"].empty() ? 0 : atoll(_parser["Content-Length"].data());
+    }
+
     //清空解析器节省内存
     _parser.Clear();
     //返回content长度
@@ -406,16 +411,19 @@ void HttpSession::Handle_Req_GET_l(ssize_t &content_len, bool sendBody) {
 
     if (checkLiveStreamFlv()) {
         //拦截http-flv播放器
+        content_len = -1;
         return;
     }
 
     if (checkLiveStreamTS()) {
         //拦截http-ts播放器
+        content_len = -1;
         return;
     }
 
     if (checkLiveStreamFMP4()) {
         //拦截http-fmp4播放器
+        content_len = -1;
         return;
     }
 
