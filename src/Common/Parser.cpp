@@ -19,11 +19,12 @@ using namespace toolkit;
 
 namespace mediakit {
 
-string FindField(const char *buf, const char *start, const char *end, size_t buf_size) {
+string findSubString(const char *buf, const char *start, const char *end, size_t buf_size) {
     if (buf_size <= 0) {
         buf_size = strlen(buf);
     }
-    const char *msg_start = buf, *msg_end = buf + buf_size;
+    auto msg_start = buf;
+    auto msg_end = buf + buf_size;
     size_t len = 0;
     if (start != NULL) {
         len = strlen(start);
@@ -253,12 +254,12 @@ std::string Parser::mergeUrl(const string &base_url, const string &path) {
 }
 
 void RtspUrl::parse(const string &strUrl) {
-    auto schema = FindField(strUrl.data(), nullptr, "://");
+    auto schema = findSubString(strUrl.data(), nullptr, "://");
     bool is_ssl = strcasecmp(schema.data(), "rtsps") == 0;
     // 查找"://"与"/"之间的字符串，用于提取用户名密码
-    auto middle_url = FindField(strUrl.data(), "://", "/");
+    auto middle_url = findSubString(strUrl.data(), "://", "/");
     if (middle_url.empty()) {
-        middle_url = FindField(strUrl.data(), "://", nullptr);
+        middle_url = findSubString(strUrl.data(), "://", nullptr);
     }
     auto pos = middle_url.rfind('@');
     if (pos == string::npos) {
@@ -273,15 +274,15 @@ void RtspUrl::parse(const string &strUrl) {
     if (user_pwd.find(":") == string::npos) {
         return setup(is_ssl, url, user_pwd, "");
     }
-    auto user = FindField(user_pwd.data(), nullptr, ":");
-    auto pwd = FindField(user_pwd.data(), ":", nullptr);
+    auto user = findSubString(user_pwd.data(), nullptr, ":");
+    auto pwd = findSubString(user_pwd.data(), ":", nullptr);
     return setup(is_ssl, url, user, pwd);
 }
 
 void RtspUrl::setup(bool is_ssl, const string &url, const string &user, const string &passwd) {
-    auto ip = FindField(url.data(), "://", "/");
+    auto ip = findSubString(url.data(), "://", "/");
     if (ip.empty()) {
-        ip = split(FindField(url.data(), "://", NULL), "?")[0];
+        ip = split(findSubString(url.data(), "://", NULL), "?")[0];
     }
     uint16_t port = is_ssl ? 322 : 554;
     splitUrl(ip, ip, port);

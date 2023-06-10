@@ -65,9 +65,9 @@ void RtmpPusher::onPublishResult_l(const SockException &ex, bool handshake_done)
 
 void RtmpPusher::publish(const string &url)  {
     teardown();
-    string host_url = FindField(url.data(), "://", "/");
-    _app = FindField(url.data(), (host_url + "/").data(), "/");
-    _stream_id = FindField(url.data(), (host_url + "/" + _app + "/").data(), NULL);
+    string host_url = findSubString(url.data(), "://", "/");
+    _app = findSubString(url.data(), (host_url + "/").data(), "/");
+    _stream_id = findSubString(url.data(), (host_url + "/" + _app + "/").data(), NULL);
     _tc_url = string("rtmp://") + host_url + "/" + _app;
 
     if (!_app.size() || !_stream_id.size()) {

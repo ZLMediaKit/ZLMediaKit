@@ -600,8 +600,8 @@ void HttpResponseInvokerImp::responseFile(const StrCaseMap &requestHeader,
     if (!strRange.empty()) {
         //分节下载
         code = 206;
-        auto iRangeStart = atoll(FindField(strRange.data(), "bytes=", "-").data());
-        auto iRangeEnd = atoll(FindField(strRange.data(), "-", nullptr).data());
+        auto iRangeStart = atoll(findSubString(strRange.data(), "bytes=", "-").data());
+        auto iRangeEnd = atoll(findSubString(strRange.data(), "-", nullptr).data());
         auto fileSize = fileBody->remainSize();
         if (iRangeEnd == 0) {
             iRangeEnd = fileSize - 1;

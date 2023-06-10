@@ -21,7 +21,7 @@ namespace mediakit {
 void HttpClient::sendRequest(const string &url) {
     clearResponse();
     _url = url;
-    auto protocol = FindField(url.data(), NULL, "://");
+    auto protocol = findSubString(url.data(), NULL, "://");
     uint16_t port;
     bool is_https;
     if (strcasecmp(protocol.data(), "http") == 0) {
@@ -35,11 +35,11 @@ void HttpClient::sendRequest(const string &url) {
         throw std::invalid_argument(strErr);
     }
 
-    auto host = FindField(url.data(), "://", "/");
+    auto host = findSubString(url.data(), "://", "/");
     if (host.empty()) {
-        host = FindField(url.data(), "://", NULL);
+        host = findSubString(url.data(), "://", NULL);
     }
-    _path = FindField(url.data(), host.data(), NULL);
+    _path = findSubString(url.data(), host.data(), NULL);
     if (_path.empty()) {
         _path = "/";
     }
@@ -361,8 +361,8 @@ void HttpClient::checkCookie(HttpClient::HttpHeader &headers) {
         int index = 0;
         auto arg_vec = split(it_set_cookie->second, ";");
         for (string &key_val : arg_vec) {
-            auto key = FindField(key_val.data(), NULL, "=");
-            auto val = FindField(key_val.data(), "=", NULL);
+            auto key = findSubString(key_val.data(), NULL, "=");
+            auto val = findSubString(key_val.data(), "=", NULL);
 
             if (index++ == 0) {
                 cookie->setKeyVal(key, val);

@@ -158,9 +158,9 @@ HttpServerCookie::Ptr HttpCookieManager::getCookie(const string &cookie_name, co
     if (it == http_header.end()) {
         return nullptr;
     }
-    auto cookie = FindField(it->second.data(), (cookie_name + "=").data(), ";");
+    auto cookie = findSubString(it->second.data(), (cookie_name + "=").data(), ";");
     if (cookie.empty()) {
-        cookie = FindField(it->second.data(), (cookie_name + "=").data(), nullptr);
+        cookie = findSubString(it->second.data(), (cookie_name + "=").data(), nullptr);
     }
     if (cookie.empty()) {
         return nullptr;

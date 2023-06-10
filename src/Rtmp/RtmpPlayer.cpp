@@ -52,14 +52,14 @@ void RtmpPlayer::teardown() {
 
 void RtmpPlayer::play(const string &url)  {
     teardown();
-    string host_url = FindField(url.data(), "://", "/");
+    string host_url = findSubString(url.data(), "://", "/");
     {
         auto pos = url.find_last_of('/');
         if (pos != string::npos) {
             _stream_id = url.substr(pos + 1);
         }
     }
-    _app = FindField(url.data(), (host_url + "/").data(), ("/" + _stream_id).data());
+    _app = findSubString(url.data(), (host_url + "/").data(), ("/" + _stream_id).data());
     _tc_url = string("rtmp://") + host_url + "/" + _app;
 
     if (!_app.size() || !_stream_id.size()) {
