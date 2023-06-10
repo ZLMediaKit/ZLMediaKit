@@ -10,6 +10,7 @@
 
 #include <cinttypes>
 #include "Parser.h"
+#include "strCoding.h"
 #include "macros.h"
 #include "Network/sockutil.h"
 
@@ -268,9 +269,10 @@ void RtspUrl::setup(bool is_ssl, const string &url, const string &user, const st
     uint16_t port = is_ssl ? 322 : 554;
     splitUrl(ip, ip, port);
 
+    
     _url = std::move(url);
-    _user = std::move(user);
-    _passwd = std::move(passwd);
+    _user = strCoding::UrlDecode(std::move(user));
+    _passwd = strCoding::UrlDecode(std::move(passwd));
     _host = std::move(ip);
     _port = port;
     _is_ssl = is_ssl;
