@@ -124,7 +124,7 @@ int main(int argc, char *argv[]) {
     auto delay_ms = cmd_main["delay"].as<int>();
     auto pusher_count = cmd_main["count"].as<int>();
     auto merge_ms = cmd_main["merge"].as<int>();
-    auto schema = FindField(out_url.data(), nullptr, "://");
+    auto schema = findSubString(out_url.data(), nullptr, "://");
     if (schema != RTSP_SCHEMA && schema != RTMP_SCHEMA) {
         cout << "推流协议只支持rtsp或rtmp！" << endl;
         return -1;

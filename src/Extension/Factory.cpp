@@ -45,9 +45,9 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
         case CodecOpus : return std::make_shared<OpusTrack>();
 
         case CodecAAC : {
-            string aac_cfg_str = FindField(track->_fmtp.data(), "config=", ";");
+            string aac_cfg_str = findSubString(track->_fmtp.data(), "config=", ";");
             if (aac_cfg_str.empty()) {
-                aac_cfg_str = FindField(track->_fmtp.data(), "config=", nullptr);
+                aac_cfg_str = findSubString(track->_fmtp.data(), "config=", nullptr);
             }
             if (aac_cfg_str.empty()) {
                 //如果sdp中获取不到aac config信息，那么在rtp也无法获取，那么忽略该Track
@@ -67,8 +67,8 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
             //a=fmtp:96 packetization-mode=1;profile-level-id=42C01F;sprop-parameter-sets=Z0LAH9oBQBboQAAAAwBAAAAPI8YMqA==,aM48gA==
             auto map = Parser::parseArgs(track->_fmtp, ";", "=");
             auto sps_pps = map["sprop-parameter-sets"];
-            string base64_SPS = FindField(sps_pps.data(), NULL, ",");
-            string base64_PPS = FindField(sps_pps.data(), ",", NULL);
+            string base64_SPS = findSubString(sps_pps.data(), NULL, ",");
+            string base64_PPS = findSubString(sps_pps.data(), ",", NULL);
             auto sps = decodeBase64(base64_SPS);
             auto pps = decodeBase64(base64_PPS);
             if (sps.empty() || pps.empty()) {

@@ -28,7 +28,7 @@ PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &poller, const s
         ptr->teardown();
     };
     string url = url_in;
-    string prefix = FindField(url.data(), NULL, "://");
+    string prefix = findSubString(url.data(), NULL, "://");
     auto pos = url.find('?');
     if (pos != string::npos) {
         //去除？后面的字符串

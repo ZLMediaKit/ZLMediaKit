@@ -180,11 +180,11 @@ void SdpParser::load(const string &sdp) {
                     break;
                 }
                 case 'a': {
-                    string attr = FindField(opt_val.data(), nullptr, ":");
+                    string attr = findSubString(opt_val.data(), nullptr, ":");
                     if (attr.empty()) {
                         track->_attr.emplace(opt_val, "");
                     } else {
-                        track->_attr.emplace(attr, FindField(opt_val.data(), ":", nullptr));
+                        track->_attr.emplace(attr, findSubString(opt_val.data(), ":", nullptr));
                     }
                     break;
                 }
@@ -245,7 +245,7 @@ void SdpParser::load(const string &sdp) {
                 it = track._attr.erase(it);
                 continue;
             }
-            track._fmtp = FindField(fmtp.data(), " ", nullptr);
+            track._fmtp = findSubString(fmtp.data(), " ", nullptr);
             ++it;
         }
 

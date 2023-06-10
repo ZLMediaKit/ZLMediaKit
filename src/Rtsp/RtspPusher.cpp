@@ -291,13 +291,13 @@ void RtspPusher::handleResSetup(const Parser &parser, unsigned int track_idx) {
     if (track_idx == 0) {
         _session_id = parser["Session"];
         _session_id.append(";");
-        _session_id = FindField(_session_id.data(), nullptr, ";");
+        _session_id = findSubString(_session_id.data(), nullptr, ";");
     }
 
     auto transport = parser["Transport"];
     if (transport.find("TCP") != string::npos || transport.find("interleaved") != string::npos) {
         _rtp_type = Rtsp::RTP_TCP;
-        string interleaved = FindField(FindField((transport + ";").data(), "interleaved=", ";").data(), NULL, "-");
+        string interleaved = findSubString(findSubString((transport + ";").data(), "interleaved=", ";").data(), NULL, "-");
         _track_vec[track_idx]->_interleaved = atoi(interleaved.data());
     } else if (transport.find("multicast") != string::npos) {
         throw std::runtime_error("SETUP rtsp pusher can not support multicast!");
@@ -305,9 +305,9 @@ void RtspPusher::handleResSetup(const Parser &parser, unsigned int track_idx) {
         _rtp_type = Rtsp::RTP_UDP;
         createUdpSockIfNecessary(track_idx);
         const char *strPos = "server_port=";
-        auto port_str = FindField((transport + ";").data(), strPos, ";");
-        uint16_t rtp_port = atoi(FindField(port_str.data(), NULL, "-").data());
-        uint16_t rtcp_port = atoi(FindField(port_str.data(), "-", NULL).data());
+        auto port_str = findSubString((transport + ";").data(), strPos, ";");
+        uint16_t rtp_port = atoi(findSubString(port_str.data(), NULL, "-").data());
+        uint16_t rtcp_port = atoi(findSubString(port_str.data(), "-", NULL).data());
         auto &rtp_sock = _rtp_sock[track_idx];
         auto &rtcp_sock = _rtcp_sock[track_idx];
 
