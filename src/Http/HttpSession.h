@@ -136,7 +136,7 @@ private:
     TSMediaSource::RingType::RingReader::Ptr _ts_reader;
     FMP4MediaSource::RingType::RingReader::Ptr _fmp4_reader;
     //处理content数据的callback
-    std::function<bool (const char *data,size_t len) > _contentCallBack;
+    std::function<bool (const char *data,size_t len) > _on_recv_body;
 };
 
 using HttpsSession = toolkit::SessionWithSSL<HttpSession>;

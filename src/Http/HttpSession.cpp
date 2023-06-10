@@ -95,7 +95,8 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
         //// 没有body的情况，直接触发回调 ////
         (this->*(it->second))();
         _parser.clear();
-        return 0;
+        // 如果设置了_on_recv_body, 那么说明后续要处理body
+        return _on_recv_body ? -1 : 0;
     }
 
     GET_CONFIG(size_t, maxReqSize, Http::kMaxReqSize);
@@ -108,7 +109,7 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
 
         size_t received = 0;
         auto parser = std::move(_parser);
-        _contentCallBack = [this, parser, received, content_len](const char *data, size_t len) mutable {
+        _on_recv_body = [this, parser, received, content_len](const char *data, size_t len) mutable {
             received += len;
             onRecvUnlimitedContent(parser, data, len, content_len, received);
             if (received != content_len) {
@@ -129,7 +130,7 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
     // 预留一定的内存buffer，防止频繁的内存拷贝
     body->reserve(content_len);
 
-    _contentCallBack = [this, body, content_len, it](const char *data, size_t len) mutable {
+    _on_recv_body = [this, body, content_len, it](const char *data, size_t len) mutable {
         body->append(data, len);
         if (body->size() < content_len) {
             // 未收满数据
@@ -151,8 +152,8 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
 }
 
 void HttpSession::onRecvContent(const char *data, size_t len) {
-    if (_contentCallBack && !_contentCallBack(data, len)) {
-        _contentCallBack = nullptr;
+    if (_on_recv_body && !_on_recv_body(data, len)) {
+        _on_recv_body = nullptr;
     }
 }
 
@@ -438,8 +439,7 @@ void HttpSession::onHttpRequest_GET() {
     // 先看看是否为WebSocket请求
     if (checkWebSocket()) {
         // 后续都是websocket body数据
-        setContentLen(-1);
-        _contentCallBack = [this](const char *data, size_t len) {
+        _on_recv_body = [this](const char *data, size_t len) {
             WebSocketSplitter::decode((uint8_t *)data, len);
             // _contentCallBack是可持续的，后面还要处理后续数据
             return true;
