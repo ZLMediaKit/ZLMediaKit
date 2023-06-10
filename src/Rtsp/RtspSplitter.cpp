@@ -61,7 +61,7 @@ ssize_t RtspSplitter::onRecvHeader(const char *data, size_t len) {
         onRtpPacket(data,len);
         return 0;
     }
-    _parser.Parse(data);
+    _parser.parse(data, len);
     auto ret = getContentLength(_parser);
     if(ret == 0){
         onWholeRtspPacket(_parser);
