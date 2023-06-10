@@ -18,7 +18,7 @@
 namespace mediakit {
 
 // 从字符串中提取子字符串
-std::string FindField(const char *buf, const char *start, const char *end, size_t bufSize = 0);
+std::string FindField(const char *buf, const char *start, const char *end, size_t buf_size = 0);
 // 把url解析为主机地址和端口号,兼容ipv4/ipv6/dns
 void splitUrl(const std::string &url, std::string &host, uint16_t &port);
 
@@ -40,18 +40,18 @@ public:
         return it->second;
     }
 
-    template <typename V>
-    void emplace(const std::string &k, V &&v) {
+    template <typename K, typename V>
+    void emplace(K &&k, V &&v) {
         auto it = find(k);
         if (it != end()) {
             return;
         }
-        Super::emplace(k, std::forward<V>(v));
+        Super::emplace(std::forward<K>(k), std::forward<V>(v));
     }
 
-    template <typename V>
-    void emplace_force(const std::string k, V &&v) {
-        Super::emplace(k, std::forward<V>(v));
+    template <typename K, typename V>
+    void emplace_force(K &&k, V &&v) {
+        Super::emplace(std::forward<K>(k), std::forward<V>(v));
     }
 };
 
@@ -61,23 +61,23 @@ public:
     Parser() = default;
     ~Parser() = default;
 
-    // 解析信令
-    void Parse(const char *buf);
+    // 解析http/rtsp/sip请求，需要确保buf以\0结尾
+    void parse(const char *buf, size_t size);
 
-    // 获取命令字
+    // 获取命令字，如GET/POST
     const std::string &method() const;
 
     // 请求时，获取中间url，不包含?后面的参数
     const std::string &url() const;
-    // 回复时，获取状态码
+    // 回复时，获取状态码，如200/404
     const std::string &status() const;
 
     // 获取中间url，包含?后面的参数
     std::string fullUrl() const;
 
-    // 请求时，获取协议名
+    // 请求时，获取协议名，如HTTP/1.1
     const std::string &protocol() const;
-    // 回复时，获取状态字符串
+    // 回复时，获取状态字符串，如 OK/Not Found
     const std::string &statusStr() const;
 
     // 根据header key名，获取请求header value值
@@ -110,14 +110,13 @@ public:
     static std::string mergeUrl(const std::string &base_url, const std::string &path);
 
 private:
-    std::string _strMethod;
-    std::string _strUrl;
-    std::string _strTail;
-    std::string _strContent;
-    std::string _strNull;
+    std::string _method;
+    std::string _url;
+    std::string _protocol;
+    std::string _content;
     std::string _params;
-    mutable StrCaseMap _mapHeaders;
-    mutable StrCaseMap _mapUrlArgs;
+    mutable StrCaseMap _headers;
+    mutable StrCaseMap _url_args;
 };
 
 // 解析rtsp url的工具类

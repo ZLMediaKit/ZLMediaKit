@@ -12,17 +12,18 @@
 #include "Parser.h"
 #include "macros.h"
 #include "Network/sockutil.h"
+#include "Common/macros.h"
 
 using namespace std;
 using namespace toolkit;
 
-namespace mediakit{
+namespace mediakit {
 
-string FindField(const char* buf, const char* start, const char *end ,size_t bufSize) {
-    if(bufSize <=0 ){
-        bufSize = strlen(buf);
+string FindField(const char *buf, const char *start, const char *end, size_t buf_size) {
+    if (buf_size <= 0) {
+        buf_size = strlen(buf);
     }
-    const char *msg_start = buf, *msg_end = buf + bufSize;
+    const char *msg_start = buf, *msg_end = buf + buf_size;
     size_t len = 0;
     if (start != NULL) {
         len = strlen(start);
@@ -41,48 +42,52 @@ string FindField(const char* buf, const char* start, const char *end ,size_t buf
     return string(msg_start, msg_end);
 }
 
-void Parser::Parse(const char *buf) {
-    //解析
-    const char *start = buf;
+void Parser::parse(const char *buf, size_t size) {
     clear();
+    auto ptr = buf;
     while (true) {
-        auto line = FindField(start, NULL, "\r\n");
-        if (line.size() == 0) {
-            break;
-        }
-        if (start == buf) {
-            _strMethod = FindField(line.data(), NULL, " ");
-            auto strFullUrl = FindField(line.data(), " ", " ");
-            auto args_pos = strFullUrl.find('?');
-            if (args_pos != string::npos) {
-                _strUrl = strFullUrl.substr(0, args_pos);
-                _params = strFullUrl.substr(args_pos + 1);
-                _mapUrlArgs = parseArgs(_params);
-            } else {
-                _strUrl = strFullUrl;
+        auto next_line = strstr(ptr, "\r\n");
+        CHECK(next_line);
+        if (ptr == buf) {
+            auto blank = strchr(ptr, ' ');
+            CHECK(blank > ptr && blank < next_line);
+            _method = std::string(ptr, blank);
+            auto next_blank = strchr(blank + 1, ' ');
+            CHECK(next_blank && next_blank < next_line);
+            _url.assign(blank + 1, next_blank);
+            auto pos = _url.find('?');
+            if (pos != string::npos) {
+                _params = _url.substr(pos + 1);
+                _url_args = parseArgs(_params);
+                _url = _url.substr(0, pos);
             }
-            _strTail = FindField(line.data(), (strFullUrl + " ").data(), NULL);
+            _protocol = std::string(next_blank + 1, next_line);
         } else {
-            auto field = FindField(line.data(), NULL, ": ");
-            auto value = FindField(line.data(), ": ", NULL);
-            if (field.size() != 0) {
-                _mapHeaders.emplace_force(field, value);
+            auto pos = strchr(ptr, ':');
+            CHECK(pos > ptr && pos < next_line);
+            std::string key { ptr, pos };
+            std::string value;
+            if (pos[1] == ' ') {
+                value.assign(pos + 2, next_line);
+            } else {
+                value.assign(pos + 1, next_line);
             }
+            _headers.emplace_force(trim(std::move(key)), trim(std::move(value)));
         }
-        start = start + line.size() + 2;
-        if (strncmp(start, "\r\n", 2) == 0) { //协议解析完毕
-            _strContent = FindField(start, "\r\n", NULL);
+        ptr = next_line + 2;
+        if (strncmp(ptr, "\r\n", 2) == 0) { // 协议解析完毕
+            _content.assign(ptr + 2, buf + size);
             break;
         }
     }
 }
 
 const string &Parser::method() const {
-    return _strMethod;
+    return _method;
 }
 
 const string &Parser::url() const {
-    return _strUrl;
+    return _url;
 }
 
 const std::string &Parser::status() const {
@@ -91,39 +96,41 @@ const std::string &Parser::status() const {
 
 string Parser::fullUrl() const {
     if (_params.empty()) {
-        return _strUrl;
+        return _url;
     }
-    return _strUrl + "?" + _params;
+    return _url + "?" + _params;
 }
 
 const string &Parser::protocol() const {
-    return _strTail;
+    return _protocol;
 }
 
 const std::string &Parser::statusStr() const {
     return protocol();
 }
 
+static std::string kNull;
+
 const string &Parser::operator[](const char *name) const {
-    auto it = _mapHeaders.find(name);
-    if (it == _mapHeaders.end()) {
-        return _strNull;
+    auto it = _headers.find(name);
+    if (it == _headers.end()) {
+        return kNull;
     }
     return it->second;
 }
 
 const string &Parser::content() const {
-    return _strContent;
+    return _content;
 }
 
 void Parser::clear() {
-    _strMethod.clear();
-    _strUrl.clear();
+    _method.clear();
+    _url.clear();
     _params.clear();
-    _strTail.clear();
-    _strContent.clear();
-    _mapHeaders.clear();
-    _mapUrlArgs.clear();
+    _protocol.clear();
+    _content.clear();
+    _headers.clear();
+    _url_args.clear();
 }
 
 const string &Parser::params() const {
@@ -131,44 +138,46 @@ const string &Parser::params() const {
 }
 
 void Parser::setUrl(string url) {
-    this->_strUrl = std::move(url);
+    _url = std::move(url);
 }
 
 void Parser::setContent(string content) {
-    this->_strContent = std::move(content);
+    _content = std::move(content);
 }
 
 StrCaseMap &Parser::getHeader() const {
-    return _mapHeaders;
+    return _headers;
 }
 
 StrCaseMap &Parser::getUrlArgs() const {
-    return _mapUrlArgs;
+    return _url_args;
 }
 
 StrCaseMap Parser::parseArgs(const string &str, const char *pair_delim, const char *key_delim) {
     StrCaseMap ret;
     auto arg_vec = split(str, pair_delim);
-    for (string &key_val : arg_vec) {
+    for (auto &key_val : arg_vec) {
         if (key_val.empty()) {
-            //忽略
+            // 忽略
             continue;
         }
-        auto key = trim(FindField(key_val.data(), NULL, key_delim));
-        if (!key.empty()) {
-            auto val = trim(FindField(key_val.data(), key_delim, NULL));
-            ret.emplace_force(key, val);
+        auto pos = key_val.find(key_delim);
+        if (pos != string::npos) {
+            auto key = trim(std::string(key_val, 0, pos));
+            auto val = trim(key_val.substr(pos + strlen(key_delim)));
+            ret.emplace_force(std::move(key), std::move(val));
         } else {
             trim(key_val);
             if (!key_val.empty()) {
-                ret.emplace_force(key_val, "");
+                ret.emplace_force(std::move(key_val), "");
             }
         }
     }
     return ret;
 }
+
 std::string Parser::mergeUrl(const string &base_url, const string &path) {
-    //以base_url为基础, 合并path路径生成新的url, path支持相对路径和绝对路径
+    // 以base_url为基础, 合并path路径生成新的url, path支持相对路径和绝对路径
     if (base_url.empty()) {
         return path;
     }
@@ -242,21 +251,22 @@ std::string Parser::mergeUrl(const string &base_url, const string &path) {
     }
     return final_url.str();
 }
+
 void RtspUrl::parse(const string &strUrl) {
     auto schema = FindField(strUrl.data(), nullptr, "://");
     bool is_ssl = strcasecmp(schema.data(), "rtsps") == 0;
-    //查找"://"与"/"之间的字符串，用于提取用户名密码
+    // 查找"://"与"/"之间的字符串，用于提取用户名密码
     auto middle_url = FindField(strUrl.data(), "://", "/");
     if (middle_url.empty()) {
         middle_url = FindField(strUrl.data(), "://", nullptr);
     }
     auto pos = middle_url.rfind('@');
     if (pos == string::npos) {
-        //并没有用户名密码
+        // 并没有用户名密码
         return setup(is_ssl, strUrl, "", "");
     }
 
-    //包含用户名密码
+    // 包含用户名密码
     auto user_pwd = middle_url.substr(0, pos);
     auto suffix = strUrl.substr(schema.size() + 3 + pos + 1);
     auto url = StrPrinter << "rtsp://" << suffix << endl;
@@ -297,7 +307,7 @@ void splitUrl(const std::string &url, std::string &host, uint16_t &port) {
     CHECK(!url.empty(), "empty url");
     auto pos = url.rfind(':');
     if (pos == string::npos || url.back() == ']') {
-        //没有冒号，未指定端口;或者是纯粹的ipv6地址
+        // 没有冒号，未指定端口;或者是纯粹的ipv6地址
         host = url;
         checkHost(host);
         return;
@@ -320,4 +330,4 @@ static onceToken token([](){
 });
 #endif
 
-}//namespace mediakit
+} // namespace mediakit
