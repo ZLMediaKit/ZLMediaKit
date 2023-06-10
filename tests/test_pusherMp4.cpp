@@ -114,7 +114,7 @@ int domain(const string &filePath, const string &pushUrl) {
 
     auto poller = EventPollerPool::Instance().getPoller();
     //vhost/app/stream可以随便自己填，现在不限制app应用名了
-    createPusher(poller, FindField(pushUrl.data(), nullptr, "://").substr(0, 4), DEFAULT_VHOST, "live", "stream", filePath, pushUrl);
+    createPusher(poller, findSubString(pushUrl.data(), nullptr, "://").substr(0, 4), DEFAULT_VHOST, "live", "stream", filePath, pushUrl);
     //设置退出信号处理函数
     static semaphore sem;
     signal(SIGINT, [](int) { sem.post(); });// 设置退出信号

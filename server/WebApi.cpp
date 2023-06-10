@@ -1563,7 +1563,7 @@ void installWebApi() {
             }
 
             //找到截图
-            auto tm = FindField(path.data() + scan_path.size(), nullptr, ".jpeg");
+            auto tm = findSubString(path.data() + scan_path.size(), nullptr, ".jpeg");
             if (atoll(tm.data()) + expire_sec < time(NULL)) {
                 //截图已经过期，改名，以便再次请求时，可以返回老截图
                 rename(path.data(), new_snap.data());

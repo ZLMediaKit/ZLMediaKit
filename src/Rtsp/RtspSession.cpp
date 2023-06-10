@@ -595,8 +595,8 @@ void RtspSession::onAuthUser(const string &realm,const string &authorization){
         return;
     }
     //请求中包含认证信息
-    auto authType = FindField(authorization.data(),NULL," ");
-    auto authStr = FindField(authorization.data()," ",NULL);
+    auto authType = findSubString(authorization.data(), NULL, " ");
+    auto authStr = findSubString(authorization.data(), " ", NULL);
     if(authType.empty() || authStr.empty()){
         //认证信息格式不合法，回复401 Unauthorized
         onAuthFailed(realm,"can not find auth type or auth string");
@@ -690,9 +690,9 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
         _rtcp_socks[trackIdx] = pr.second;
 
         //设置客户端内网端口信息
-        string strClientPort = FindField(parser["Transport"].data(), "client_port=", NULL);
-        uint16_t ui16RtpPort = atoi(FindField(strClientPort.data(), NULL, "-").data());
-        uint16_t ui16RtcpPort = atoi(FindField(strClientPort.data(), "-", NULL).data());
+        string strClientPort = findSubString(parser["Transport"].data(), "client_port=", NULL);
+        uint16_t ui16RtpPort = atoi(findSubString(strClientPort.data(), NULL, "-").data());
+        uint16_t ui16RtcpPort = atoi(findSubString(strClientPort.data(), "-", NULL).data());
 
         auto peerAddr = SockUtil::make_sockaddr(get_peer_ip().data(), ui16RtpPort);
         //设置rtp发送目标地址
@@ -785,7 +785,7 @@ void RtspSession::handleReq_Play(const Parser &parser) {
     if (!strRange.empty()) {
         //这是seek操作
         res_header.emplace("Range", strRange);
-        auto strStart = FindField(strRange.data(), "npt=", "-");
+        auto strStart = findSubString(strRange.data(), "npt=", "-");
         if (strStart == "now") {
             strStart = "0";
         }
