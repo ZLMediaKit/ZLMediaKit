@@ -100,14 +100,14 @@ static void parse_http_response(const SockException &ex, const Parser &res, cons
         fun(Json::nullValue, errStr, should_retry);
         return;
     }
-    if (res.Url() != "200") {
-        auto errStr = StrPrinter << "[bad http status code]:" << res.Url() << endl;
+    if (res.status() != "200") {
+        auto errStr = StrPrinter << "[bad http status code]:" << res.status() << endl;
         fun(Json::nullValue, errStr, should_retry);
         return;
     }
     Value result;
     try {
-        stringstream ss(res.Content());
+        stringstream ss(res.content());
         ss >> result;
     } catch (std::exception &ex) {
         auto errStr = StrPrinter << "[parse json failed]:" << ex.what() << endl;
@@ -614,7 +614,7 @@ void installWebHook() {
     // 追踪用户的目的是为了缓存上次鉴权结果，减少鉴权次数，提高性能
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastHttpAccess, [](BroadcastHttpAccessArgs) {
         GET_CONFIG(string, hook_http_access, Hook::kOnHttpAccess);
-        if (sender.get_peer_ip() == "127.0.0.1" || parser.Params() == hook_adminparams) {
+        if (sender.get_peer_ip() == "127.0.0.1" || parser.params() == hook_adminparams) {
             // 如果是本机或超级管理员访问，那么不做访问鉴权；权限有效期1个小时
             invoker("", "", 60 * 60);
             return;
@@ -632,7 +632,7 @@ void installWebHook() {
         body["id"] = sender.getIdentifier();
         body["path"] = path;
         body["is_dir"] = is_dir;
-        body["params"] = parser.Params();
+        body["params"] = parser.params();
         for (auto &pr : parser.getHeader()) {
             body[string("header.") + pr.first] = pr.second;
         }

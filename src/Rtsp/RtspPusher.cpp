@@ -26,7 +26,7 @@ RtspPusher::RtspPusher(const EventPoller::Ptr &poller, const RtspMediaSource::Pt
 
 RtspPusher::~RtspPusher() {
     teardown();
-    DebugL << endl;
+    DebugL;
 }
 
 void RtspPusher::sendTeardown(){
@@ -147,7 +147,7 @@ void RtspPusher::onWholeRtspPacket(Parser &parser) {
     if (func) {
         func(parser);
     }
-    parser.Clear();
+    parser.clear();
 }
 
 void RtspPusher::onRtpPacket(const char *data, size_t len) {
@@ -188,11 +188,11 @@ void RtspPusher::sendAnnounce() {
 void RtspPusher::handleResAnnounce(const Parser &parser) {
     string authInfo = parser["WWW-Authenticate"];
     //发送DESCRIBE命令后的回复
-    if ((parser.Url() == "401") && handleAuthenticationFailure(authInfo)) {
+    if ((parser.status() == "401") && handleAuthenticationFailure(authInfo)) {
         sendAnnounce();
         return;
     }
-    if (parser.Url() == "302") {
+    if (parser.status() == "302") {
         auto newUrl = parser["Location"];
         if (newUrl.empty()) {
             throw std::runtime_error("未找到Location字段(跳转url)");
@@ -200,8 +200,8 @@ void RtspPusher::handleResAnnounce(const Parser &parser) {
         publish(newUrl);
         return;
     }
-    if (parser.Url() != "200") {
-        throw std::runtime_error(StrPrinter << "ANNOUNCE:" << parser.Url() << " " << parser.Tail());
+    if (parser.status() != "200") {
+        throw std::runtime_error(StrPrinter << "ANNOUNCE:" << parser.status() << " " << parser.statusStr());
     }
     _content_base = parser["Content-Base"];
 
@@ -285,8 +285,8 @@ void RtspPusher::sendSetup(unsigned int track_idx) {
 }
 
 void RtspPusher::handleResSetup(const Parser &parser, unsigned int track_idx) {
-    if (parser.Url() != "200") {
-        throw std::runtime_error(StrPrinter << "SETUP:" << parser.Url() << " " << parser.Tail() << endl);
+    if (parser.status() != "200") {
+        throw std::runtime_error(StrPrinter << "SETUP:" << parser.status() << " " << parser.statusStr() << endl);
     }
     if (track_idx == 0) {
         _session_id = parser["Session"];

@@ -27,7 +27,7 @@ RtmpPusher::RtmpPusher(const EventPoller::Ptr &poller, const RtmpMediaSource::Pt
 
 RtmpPusher::~RtmpPusher() {
     teardown();
-    DebugL << endl;
+    DebugL;
 }
 
 void RtmpPusher::teardown() {

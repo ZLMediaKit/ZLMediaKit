@@ -86,17 +86,17 @@ API_EXPORT const char* API_CALL mk_mp4_info_get_stream(const mk_mp4_info ctx){
 API_EXPORT const char* API_CALL mk_parser_get_method(const mk_parser ctx){
     assert(ctx);
     Parser *parser = (Parser *)ctx;
-    return parser->Method().c_str();
+    return parser->method().c_str();
 }
 API_EXPORT const char* API_CALL mk_parser_get_url(const mk_parser ctx){
     assert(ctx);
     Parser *parser = (Parser *)ctx;
-    return parser->Url().c_str();
+    return parser->url().c_str();
 }
 API_EXPORT const char* API_CALL mk_parser_get_url_params(const mk_parser ctx){
     assert(ctx);
     Parser *parser = (Parser *)ctx;
-    return parser->Params().c_str();
+    return parser->params().c_str();
 }
 API_EXPORT const char* API_CALL mk_parser_get_url_param(const mk_parser ctx,const char *key){
     assert(ctx && key);
@@ -106,7 +106,7 @@ API_EXPORT const char* API_CALL mk_parser_get_url_param(const mk_parser ctx,cons
 API_EXPORT const char* API_CALL mk_parser_get_tail(const mk_parser ctx){
     assert(ctx);
     Parser *parser = (Parser *)ctx;
-    return parser->Tail().c_str();
+    return parser->protocol().c_str();
 }
 API_EXPORT const char* API_CALL mk_parser_get_header(const mk_parser ctx,const char *key){
     assert(ctx && key);
@@ -117,9 +117,9 @@ API_EXPORT const char* API_CALL mk_parser_get_content(const mk_parser ctx, size_
     assert(ctx);
     Parser *parser = (Parser *)ctx;
     if(length){
-        *length = parser->Content().size();
+        *length = parser->content().size();
     }
-    return parser->Content().c_str();
+    return parser->content().c_str();
 }
 
 ///////////////////////////////////////////MediaInfo/////////////////////////////////////////////

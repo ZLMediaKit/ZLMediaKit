@@ -28,7 +28,7 @@ public:
     RtspPlayerImp(const toolkit::EventPoller::Ptr &poller) : Super(poller) {}
 
     ~RtspPlayerImp() override {
-        DebugL << std::endl;
+        DebugL;
     }
 
     float getProgress() const override {

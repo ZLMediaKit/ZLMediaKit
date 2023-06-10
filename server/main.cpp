@@ -363,8 +363,8 @@ int start_main(int argc,char *argv[]) {
 #endif//defined(ENABLE_SRT)
 
         } catch (std::exception &ex) {
-            WarnL << "端口占用或无权限:" << ex.what() << endl;
-            ErrorL << "程序启动失败，请修改配置文件中端口号后重试!" << endl;
+            WarnL << "端口占用或无权限:" << ex.what();
+            ErrorL << "程序启动失败，请修改配置文件中端口号后重试!";
             sleep(1);
 #if !defined(_WIN32)
             if (pid != getpid() && kill_parent_if_failed) {
