@@ -198,6 +198,22 @@ API_EXPORT int API_CALL mk_media_source_get_total_reader_count(const mk_media_so
     return src->totalReaderCount();
 }
 
+API_EXPORT int API_CALL mk_media_source_get_track_count(const mk_media_source ctx) {
+    assert(ctx);
+    MediaSource *src = (MediaSource *)ctx;
+    return src->getTracks(false).size();
+}
+
+API_EXPORT mk_track API_CALL mk_media_source_get_track(const mk_media_source ctx, int index) {
+    assert(ctx);
+    MediaSource *src = (MediaSource *)ctx;
+    auto tracks = src->getTracks(false);
+    if (index < 0 && index >= tracks.size()) {
+        return nullptr;
+    }
+    return reinterpret_cast<mk_track>(& (tracks[index]));
+}
+
 API_EXPORT int API_CALL mk_media_source_close(const mk_media_source ctx,int force){
     assert(ctx);
     MediaSource *src = (MediaSource *)ctx;
