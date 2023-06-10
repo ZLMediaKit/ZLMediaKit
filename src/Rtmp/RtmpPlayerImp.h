@@ -27,7 +27,7 @@ public:
     RtmpPlayerImp(const toolkit::EventPoller::Ptr &poller) : Super(poller) {};
 
     ~RtmpPlayerImp() override {
-        DebugL << std::endl;
+        DebugL;
     }
 
     float getProgress() const override {

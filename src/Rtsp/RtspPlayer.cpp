@@ -33,7 +33,7 @@ RtspPlayer::RtspPlayer(const EventPoller::Ptr &poller)
     : TcpClient(poller) {}
 
 RtspPlayer::~RtspPlayer(void) {
-    DebugL << endl;
+    DebugL;
 }
 
 void RtspPlayer::sendTeardown() {
@@ -170,11 +170,11 @@ bool RtspPlayer::handleAuthenticationFailure(const string &paramsStr) {
 bool RtspPlayer::handleResponse(const string &cmd, const Parser &parser) {
     string authInfo = parser["WWW-Authenticate"];
     // 发送DESCRIBE命令后的回复
-    if ((parser.Url() == "401") && handleAuthenticationFailure(authInfo)) {
+    if ((parser.status() == "401") && handleAuthenticationFailure(authInfo)) {
         sendOptions();
         return false;
     }
-    if (parser.Url() == "302" || parser.Url() == "301") {
+    if (parser.status() == "302" || parser.status() == "301") {
         auto newUrl = parser["Location"];
         if (newUrl.empty()) {
             throw std::runtime_error("未找到Location字段(跳转url)");
@@ -182,8 +182,8 @@ bool RtspPlayer::handleResponse(const string &cmd, const Parser &parser) {
         play(newUrl);
         return false;
     }
-    if (parser.Url() != "200") {
-        throw std::runtime_error(StrPrinter << cmd << ":" << parser.Url() << " " << parser.Tail() << endl);
+    if (parser.status() != "200") {
+        throw std::runtime_error(StrPrinter << cmd << ":" << parser.status() << " " << parser.statusStr() << endl);
     }
     return true;
 }
@@ -201,7 +201,7 @@ void RtspPlayer::handleResDESCRIBE(const Parser &parser) {
     }
 
     // 解析sdp
-    SdpParser sdpParser(parser.Content());
+    SdpParser sdpParser(parser.content());
 
     string sdp;
     auto play_track = (TrackType)((int)(*this)[Client::kPlayTrack] - 1);
@@ -267,8 +267,8 @@ void RtspPlayer::sendSetup(unsigned int track_idx) {
 }
 
 void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int track_idx) {
-    if (parser.Url() != "200") {
-        throw std::runtime_error(StrPrinter << "SETUP:" << parser.Url() << " " << parser.Tail() << endl);
+    if (parser.status() != "200") {
+        throw std::runtime_error(StrPrinter << "SETUP:" << parser.status() << " " << parser.statusStr() << endl);
     }
     if (track_idx == 0) {
         _session_id = parser["Session"];
@@ -446,14 +446,14 @@ void RtspPlayer::speed(float speed) {
 }
 
 void RtspPlayer::handleResPAUSE(const Parser &parser, int type) {
-    if (parser.Url() != "200") {
+    if (parser.status() != "200") {
         switch (type) {
-            case type_pause: WarnL << "Pause failed:" << parser.Url() << " " << parser.Tail() << endl; break;
+            case type_pause: WarnL << "Pause failed:" << parser.status() << " " << parser.statusStr(); break;
             case type_play:
-                WarnL << "Play failed:" << parser.Url() << " " << parser.Tail() << endl;
-                onPlayResult_l(SockException(Err_shutdown, StrPrinter << "rtsp play failed:" << parser.Url() << " " << parser.Tail()), !_play_check_timer);
+                WarnL << "Play failed:" << parser.status() << " " << parser.statusStr();
+                onPlayResult_l(SockException(Err_shutdown, StrPrinter << "rtsp play failed:" << parser.status() << " " << parser.statusStr()), !_play_check_timer);
                 break;
-            case type_seek: WarnL << "Seek failed:" << parser.Url() << " " << parser.Tail() << endl; break;
+            case type_seek: WarnL << "Seek failed:" << parser.status() << " " << parser.statusStr(); break;
         }
         return;
     }
@@ -487,7 +487,7 @@ void RtspPlayer::onWholeRtspPacket(Parser &parser) {
         if (func) {
             func(parser);
         }
-        parser.Clear();
+        parser.clear();
     } catch (std::exception &err) {
         // 定时器_pPlayTimer为空后表明握手结束了
         onPlayResult_l(SockException(Err_other, err.what()), !_play_check_timer);
