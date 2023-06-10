@@ -41,16 +41,16 @@ MP4Recorder::~MP4Recorder() {
 void MP4Recorder::createFile() {
     closeFile();
     auto date = getTimeStr("%Y-%m-%d");
-    auto time = getTimeStr("%H-%M-%S");
-    auto full_path_tmp = _folder_path + date + "/." + time + ".mp4";
-    auto full_path = _folder_path + date + "/" + time + ".mp4";
+    auto file_name = getTimeStr("%H-%M-%S") + "-" + std::to_string(_file_index++) + ".mp4";
+    auto full_path = _folder_path + date + "/" + file_name;
+    auto full_path_tmp = _folder_path + date + "/." + file_name;
 
     /////record 业务逻辑//////
     _info.start_time = ::time(NULL);
-    _info.file_name = time + ".mp4";
+    _info.file_name = file_name;
     _info.file_path = full_path;
     GET_CONFIG(string, appName, Record::kAppName);
-    _info.url = appName + "/" + _info.app + "/" + _info.stream + "/" + date + "/" + time + ".mp4";
+    _info.url = appName + "/" + _info.app + "/" + _info.stream + "/" + date + "/" + file_name;
 
     try {
         _muxer = std::make_shared<MP4Muxer>();
