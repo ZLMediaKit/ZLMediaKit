@@ -240,8 +240,8 @@ public:
 static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo &media_info, bool is_dir,
                           const function<void(const string &err_msg, const HttpServerCookie::Ptr &cookie)> &callback) {
     //获取用户唯一id
-    auto uid = parser.Params();
-    auto path = parser.Url();
+    auto uid = parser.params();
+    auto path = parser.url();
 
     //先根据http头中的cookie字段获取cookie
     HttpServerCookie::Ptr cookie = HttpCookieManager::Instance().getCookie(kCookieName, parser.getHeader());
@@ -268,7 +268,7 @@ static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo
                 return;
             }
             //上次鉴权失败，但是如果url参数发生变更，那么也重新鉴权下
-            if (parser.Params().empty() || parser.Params() == cookie->getUid()) {
+            if (parser.params().empty() || parser.params() == cookie->getUid()) {
                 //url参数未变，或者本来就没有url参数，那么判断本次请求为重复请求，无访问权限
                 callback(attach._err_msg, update_cookie ? cookie : nullptr);
                 return;
@@ -469,11 +469,11 @@ static string getFilePath(const Parser &parser,const MediaInfo &media_info, Sess
     if (it != virtualPathMap.end()) {
         //访问的是virtualPath
         path = it->second;
-        url = parser.Url().substr(1 + media_info.app.size());
+        url = parser.url().substr(1 + media_info.app.size());
     } else {
         //访问的是rootPath
         path = rootPath;
-        url = parser.Url();
+        url = parser.url();
     }
     for (auto &ch : url) {
         if (ch == '\\') {
@@ -493,7 +493,7 @@ static string getFilePath(const Parser &parser,const MediaInfo &media_info, Sess
  * @param cb 回调对象
  */
 void HttpFileManager::onAccessPath(Session &sender, Parser &parser, const HttpFileManager::invoker &cb) {
-    auto fullUrl = string(HTTP_SCHEMA) + "://" + parser["Host"] + parser.FullUrl();
+    auto fullUrl = string(HTTP_SCHEMA) + "://" + parser["Host"] + parser.fullUrl();
     MediaInfo media_info(fullUrl);
     auto file_path = getFilePath(parser, media_info, sender);
     if (file_path.size() == 0) {
@@ -506,13 +506,13 @@ void HttpFileManager::onAccessPath(Session &sender, Parser &parser, const HttpFi
         if (!indexFile.empty()) {
             //发现该文件夹下有index文件
             file_path = pathCat(file_path, indexFile);
-            parser.setUrl(pathCat(parser.Url(), indexFile));
+            parser.setUrl(pathCat(parser.url(), indexFile));
             accessFile(sender, parser, media_info, file_path, cb);
             return;
         }
         string strMenu;
         //生成文件夹菜单索引
-        if (!makeFolderMenu(parser.Url(), file_path, strMenu)) {
+        if (!makeFolderMenu(parser.url(), file_path, strMenu)) {
             //文件夹不存在
             sendNotFound(cb);
             return;

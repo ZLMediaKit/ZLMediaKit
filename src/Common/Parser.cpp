@@ -44,7 +44,7 @@ string FindField(const char* buf, const char* start, const char *end ,size_t buf
 void Parser::Parse(const char *buf) {
     //解析
     const char *start = buf;
-    Clear();
+    clear();
     while (true) {
         auto line = FindField(start, NULL, "\r\n");
         if (line.size() == 0) {
@@ -77,23 +77,31 @@ void Parser::Parse(const char *buf) {
     }
 }
 
-const string &Parser::Method() const {
+const string &Parser::method() const {
     return _strMethod;
 }
 
-const string &Parser::Url() const {
+const string &Parser::url() const {
     return _strUrl;
 }
 
-string Parser::FullUrl() const {
+const std::string &Parser::status() const {
+    return url();
+}
+
+string Parser::fullUrl() const {
     if (_params.empty()) {
         return _strUrl;
     }
     return _strUrl + "?" + _params;
 }
 
-const string &Parser::Tail() const {
+const string &Parser::protocol() const {
     return _strTail;
+}
+
+const std::string &Parser::statusStr() const {
+    return protocol();
 }
 
 const string &Parser::operator[](const char *name) const {
@@ -104,11 +112,11 @@ const string &Parser::operator[](const char *name) const {
     return it->second;
 }
 
-const string &Parser::Content() const {
+const string &Parser::content() const {
     return _strContent;
 }
 
-void Parser::Clear() {
+void Parser::clear() {
     _strMethod.clear();
     _strUrl.clear();
     _params.clear();
@@ -118,7 +126,7 @@ void Parser::Clear() {
     _mapUrlArgs.clear();
 }
 
-const string &Parser::Params() const {
+const string &Parser::params() const {
     return _params;
 }
 
@@ -159,7 +167,7 @@ StrCaseMap Parser::parseArgs(const string &str, const char *pair_delim, const ch
     }
     return ret;
 }
-std::string Parser::merge_url(const string &base_url, const string &path) {
+std::string Parser::mergeUrl(const string &base_url, const string &path) {
     //以base_url为基础, 合并path路径生成新的url, path支持相对路径和绝对路径
     if (base_url.empty()) {
         return path;

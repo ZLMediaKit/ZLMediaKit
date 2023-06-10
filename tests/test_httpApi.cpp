@@ -43,7 +43,7 @@ void initEventListener(){
     static onceToken s_token([](){
         NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastHttpRequest,[](BroadcastHttpRequestArgs){
             //const Parser &parser,HttpSession::HttpResponseInvoker &invoker,bool &consumed
-            if(strstr(parser.Url().data(),"/api/") != parser.Url().data()){
+            if(strstr(parser.url().data(),"/api/") != parser.url().data()){
                 return;
             }
             //url以"/api/起始，说明是http api"
@@ -51,11 +51,11 @@ void initEventListener(){
 
             _StrPrinter printer;
             ////////////////method////////////////////
-            printer << "\r\nmethod:\r\n\t" << parser.Method();
+            printer << "\r\nmethod:\r\n\t" << parser.method();
             ////////////////url/////////////////
-            printer << "\r\nurl:\r\n\t" << parser.Url();
+            printer << "\r\nurl:\r\n\t" << parser.url();
             ////////////////protocol/////////////////
-            printer << "\r\nprotocol:\r\n\t" << parser.Tail();
+            printer << "\r\nprotocol:\r\n\t" << parser.protocol();
             ///////////////args//////////////////
             printer << "\r\nargs:\r\n";
             for(auto &pr : parser.getUrlArgs()){
@@ -67,7 +67,7 @@ void initEventListener(){
                 printer <<  "\t" << pr.first << " : " << pr.second << "\r\n";
             }
             ////////////////content/////////////////
-            printer << "\r\ncontent:\r\n" << parser.Content();
+            printer << "\r\ncontent:\r\n" << parser.content();
             auto contentOut = printer << endl;
 
             ////////////////我们测算异步回复，当然你也可以同步回复/////////////////
@@ -113,7 +113,7 @@ int main(int argc,char *argv[]){
     TcpServer::Ptr httpsSrv(new TcpServer());
     httpsSrv->start<HttpsSession>(mINI::Instance()[Http::kSSLPort]);//默认443
 
-    InfoL << "你可以在浏览器输入:http://127.0.0.1/api/my_api?key0=val0&key1=参数1" << endl;
+    InfoL << "你可以在浏览器输入:http://127.0.0.1/api/my_api?key0=val0&key1=参数1";
 
     sem.wait();
     return 0;

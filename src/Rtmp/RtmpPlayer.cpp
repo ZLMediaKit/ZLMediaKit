@@ -27,7 +27,7 @@ namespace mediakit {
 RtmpPlayer::RtmpPlayer(const EventPoller::Ptr &poller) : TcpClient(poller) {}
 
 RtmpPlayer::~RtmpPlayer() {
-    DebugL << endl;
+    DebugL;
 }
 
 void RtmpPlayer::teardown() {

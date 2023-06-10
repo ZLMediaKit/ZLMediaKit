@@ -64,10 +64,10 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
     });
 
     _parser.Parse(header);
-    CHECK(_parser.Url()[0] == '/');
+    CHECK(_parser.url()[0] == '/');
 
     urlDecode(_parser);
-    string cmd = _parser.Method();
+    string cmd = _parser.method();
     auto it = s_func_map.find(cmd);
     if (it == s_func_map.end()) {
         WarnP(this) << "不支持该命令:" << cmd;
@@ -80,7 +80,7 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
     (this->*(it->second))(content_len);
 
     // 清空解析器节省内存
-    _parser.Clear();
+    _parser.clear();
     // 返回content长度
     return content_len;
 }
@@ -173,7 +173,7 @@ bool HttpSession::checkWebSocket() {
 }
 
 bool HttpSession::checkLiveStream(const string &schema, const string &url_suffix, const function<void(const MediaSource::Ptr &src)> &cb) {
-    std::string url = _parser.Url();
+    std::string url = _parser.url();
     auto it = _parser.getUrlArgs().find("schema");
     if (it != _parser.getUrlArgs().end()) {
         if (strcasecmp(it->second.c_str(), schema.c_str())) {
@@ -191,9 +191,9 @@ bool HttpSession::checkLiveStream(const string &schema, const string &url_suffix
     }
 
     // 带参数的url
-    if (!_parser.Params().empty()) {
+    if (!_parser.params().empty()) {
         url += "?";
-        url += _parser.Params();
+        url += _parser.params();
     }
 
     // 解析带上协议+参数完整的url
@@ -616,7 +616,7 @@ string HttpSession::urlDecode(const string &str) {
 }
 
 void HttpSession::urlDecode(Parser &parser) {
-    parser.setUrl(urlDecode(parser.Url()));
+    parser.setUrl(urlDecode(parser.url()));
     for (auto &pr : _parser.getUrlArgs()) {
         const_cast<string &>(pr.second) = urlDecode(pr.second);
     }
@@ -682,7 +682,7 @@ void HttpSession::Handle_Req_POST(ssize_t &content_len) {
             // 触发http事件，emitHttpEvent内部会选择是否关闭连接
             emitHttpEvent(true);
             // 清空数据,节省内存
-            _parser.Clear();
+            _parser.clear();
             // content已经接收完毕
             return false;
         };

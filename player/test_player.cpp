@@ -56,8 +56,7 @@ int main(int argc, char *argv[]) {
 
     if (argc < 3) {
         ErrorL << "\r\n测试方法：./test_player rtxp_url rtp_type\r\n"
-               << "例如：./test_player rtsp://admin:123456@127.0.0.1/live/0 0\r\n"
-               << endl;
+               << "例如：./test_player rtsp://admin:123456@127.0.0.1/live/0 0\r\n";
         return 0;
     }
 

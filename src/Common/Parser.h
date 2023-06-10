@@ -17,15 +17,13 @@
 
 namespace mediakit {
 
-//从字符串中提取子字符串
+// 从字符串中提取子字符串
 std::string FindField(const char *buf, const char *start, const char *end, size_t bufSize = 0);
-//把url解析为主机地址和端口号,兼容ipv4/ipv6/dns
-void splitUrl(const std::string &url, std::string &host, uint16_t& port);
+// 把url解析为主机地址和端口号,兼容ipv4/ipv6/dns
+void splitUrl(const std::string &url, std::string &host, uint16_t &port);
 
 struct StrCaseCompare {
-    bool operator()(const std::string &__x, const std::string &__y) const {
-        return strcasecmp(__x.data(), __y.data()) < 0;
-    }
+    bool operator()(const std::string &__x, const std::string &__y) const { return strcasecmp(__x.data(), __y.data()) < 0; }
 };
 
 class StrCaseMap : public std::multimap<std::string, std::string, StrCaseCompare> {
@@ -42,7 +40,7 @@ public:
         return it->second;
     }
 
-    template<typename V>
+    template <typename V>
     void emplace(const std::string &k, V &&v) {
         auto it = find(k);
         if (it != end()) {
@@ -51,61 +49,65 @@ public:
         Super::emplace(k, std::forward<V>(v));
     }
 
-    template<typename V>
+    template <typename V>
     void emplace_force(const std::string k, V &&v) {
         Super::emplace(k, std::forward<V>(v));
     }
 };
 
-//rtsp/http/sip解析类
+// rtsp/http/sip解析类
 class Parser {
 public:
     Parser() = default;
     ~Parser() = default;
 
-    //解析信令
+    // 解析信令
     void Parse(const char *buf);
 
-    //获取命令字
-    const std::string &Method() const;
+    // 获取命令字
+    const std::string &method() const;
 
-    //获取中间url，不包含?后面的参数
-    const std::string &Url() const;
+    // 请求时，获取中间url，不包含?后面的参数
+    const std::string &url() const;
+    // 回复时，获取状态码
+    const std::string &status() const;
 
-    //获取中间url，包含?后面的参数
-    std::string FullUrl() const;
+    // 获取中间url，包含?后面的参数
+    std::string fullUrl() const;
 
-    //获取命令协议名
-    const std::string &Tail() const;
+    // 请求时，获取协议名
+    const std::string &protocol() const;
+    // 回复时，获取状态字符串
+    const std::string &statusStr() const;
 
-    //根据header key名，获取请求header value值
+    // 根据header key名，获取请求header value值
     const std::string &operator[](const char *name) const;
 
-    //获取http body或sdp
-    const std::string &Content() const;
+    // 获取http body或sdp
+    const std::string &content() const;
 
-    //清空，为了重用
-    void Clear();
+    // 清空，为了重用
+    void clear();
 
-    //获取?后面的参数
-    const std::string &Params() const;
+    // 获取?后面的参数
+    const std::string &params() const;
 
-    //重新设置url
+    // 重新设置url
     void setUrl(std::string url);
 
-    //重新设置content
+    // 重新设置content
     void setContent(std::string content);
 
-    //获取header列表
+    // 获取header列表
     StrCaseMap &getHeader() const;
 
-    //获取url参数列表
+    // 获取url参数列表
     StrCaseMap &getUrlArgs() const;
 
-    //解析?后面的参数
+    // 解析?后面的参数
     static StrCaseMap parseArgs(const std::string &str, const char *pair_delim = "&", const char *key_delim = "=");
 
-    static std::string merge_url(const std::string &base_url, const std::string &path);
+    static std::string mergeUrl(const std::string &base_url, const std::string &path);
 
 private:
     std::string _strMethod;
@@ -118,8 +120,8 @@ private:
     mutable StrCaseMap _mapUrlArgs;
 };
 
-//解析rtsp url的工具类
-class RtspUrl{
+// 解析rtsp url的工具类
+class RtspUrl {
 public:
     bool _is_ssl;
     uint16_t _port;
@@ -134,9 +136,9 @@ public:
     void parse(const std::string &url);
 
 private:
-    void setup(bool,const std::string &, const std::string &, const std::string &);
+    void setup(bool, const std::string &, const std::string &, const std::string &);
 };
 
-}//namespace mediakit
+} // namespace mediakit
 
-#endif //ZLMEDIAKIT_PARSER_H
+#endif // ZLMEDIAKIT_PARSER_H
