@@ -18,7 +18,7 @@ using namespace toolkit;
 
 namespace mediakit{
 
-const char *getHttpStatusMessage(int status) {
+const char *HttpConst::getHttpStatusMessage(int status) {
     switch (status) {
         case 100: return "Continue";
         case 101: return "Switching Protocol";
@@ -196,7 +196,7 @@ static const char *s_mime_src[][2] = {
         {"avi", "video/x-msvideo"},
 };
 
-const string &getHttpContentType(const char *name) {
+const string& HttpConst::getHttpContentType(const char *name) {
     const char *dot;
     dot = strrchr(name, '.');
     static StrCaseMap mapType;

@@ -75,9 +75,6 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
         return 0;
     }
 
-    // 跨域
-    _origin = _parser["Origin"];
-
     //默认后面数据不是content而是header
     ssize_t content_len = 0;
     (this->*(it->second))(content_len);
@@ -507,15 +504,6 @@ private:
     }
 };
 
-static const string kDate = "Date";
-static const string kServer = "Server";
-static const string kConnection = "Connection";
-static const string kKeepAlive = "Keep-Alive";
-static const string kContentType = "Content-Type";
-static const string kContentLength = "Content-Length";
-static const string kAccessControlAllowOrigin = "Access-Control-Allow-Origin";
-static const string kAccessControlAllowCredentials = "Access-Control-Allow-Credentials";
-
 void HttpSession::sendResponse(int code,
                                bool bClose,
                                const char *pcContentType,
@@ -541,25 +529,19 @@ void HttpSession::sendResponse(int code,
     }
 
     HttpSession::KeyValue &headerOut = const_cast<HttpSession::KeyValue &>(header);
-    headerOut.emplace(kDate, dateStr());
-    headerOut.emplace(kServer, kServerName);
-    headerOut.emplace(kConnection, bClose ? "close" : "keep-alive");
+    headerOut.emplace("Date", dateStr());
+    headerOut.emplace("Server", kServerName);
+    headerOut.emplace("Connection", bClose ? "close" : "keep-alive");
     if (!bClose) {
         string keepAliveString = "timeout=";
         keepAliveString += to_string(keepAliveSec);
         keepAliveString += ", max=100";
-        headerOut.emplace(kKeepAlive, std::move(keepAliveString));
-    }
-
-    if (!_origin.empty()) {
-        // 设置跨域
-        headerOut.emplace(kAccessControlAllowOrigin, _origin);
-        headerOut.emplace(kAccessControlAllowCredentials, "true");
+        headerOut.emplace("Keep-Alive", std::move(keepAliveString));
     }
 
     if (!no_content_length && size >= 0 && (size_t)size < SIZE_MAX) {
         // 文件长度为固定值,且不是http-flv强制设置Content-Length
-        headerOut[kContentLength] = to_string(size);
+        headerOut["Content-Length"] = to_string(size);
     }
 
     if (size && !pcContentType) {
@@ -572,7 +554,7 @@ void HttpSession::sendResponse(int code,
         string strContentType = pcContentType;
         strContentType += "; charset=";
         strContentType += charSet;
-        headerOut.emplace(kContentType, std::move(strContentType));
+        headerOut.emplace("Content-Type", std::move(strContentType));
     }
 
     // 发送http头
@@ -581,7 +563,7 @@ void HttpSession::sendResponse(int code,
     str += "HTTP/1.1 ";
     str += to_string(code);
     str += ' ';
-    str += getHttpStatusMessage(code);
+    str += HttpConst::getHttpStatusMessage(code);
     str += "\r\n";
     for (auto &pr : header) {
         str += pr.first;
