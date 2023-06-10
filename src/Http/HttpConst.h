@@ -15,19 +15,25 @@
 
 namespace mediakit{
 
-/**
- * 根据http错误代码获取字符说明
- * @param status 譬如404
- * @return 错误代码字符说明，譬如Not Found
- */
-const char *getHttpStatusMessage(int status);
+class HttpConst {
+public:
+    HttpConst() = delete;
+    ~HttpConst() = delete;
 
-/**
- * 根据文件后缀返回http mime
- * @param name 文件后缀，譬如html
- * @return mime值，譬如text/html
- */
-const std::string &getHttpContentType(const char *name);
+    /**
+     * 根据http错误代码获取字符说明
+     * @param status 譬如404
+     * @return 错误代码字符说明，譬如Not Found
+     */
+    static const char *getHttpStatusMessage(int status);
+
+    /**
+     * 根据文件后缀返回http mime
+     * @param name 文件后缀，譬如html
+     * @return mime值，譬如text/html
+     */
+    static const std::string &getHttpContentType(const char *name);
+};
 
 }//mediakit
 
