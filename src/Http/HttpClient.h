@@ -22,7 +22,7 @@
 #include "HttpRequestSplitter.h"
 #include "HttpCookie.h"
 #include "HttpChunkedSplitter.h"
-#include "strCoding.h"
+#include "Common/strCoding.h"
 #include "HttpBody.h"
 
 namespace mediakit {

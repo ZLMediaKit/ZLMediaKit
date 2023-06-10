@@ -20,7 +20,7 @@
 #include "Record/HlsMediaSource.h"
 #include "Common/Parser.h"
 #include "Common/config.h"
-#include "strCoding.h"
+#include "Common/strCoding.h"
 
 using namespace std;
 using namespace toolkit;
