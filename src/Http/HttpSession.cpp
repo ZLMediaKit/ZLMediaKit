@@ -12,7 +12,7 @@
 #include <sys/stat.h>
 #include <algorithm>
 #include "Common/config.h"
-#include "strCoding.h"
+#include "Common/strCoding.h"
 #include "HttpSession.h"
 #include "HttpConst.h"
 #include "Util/base64.h"
