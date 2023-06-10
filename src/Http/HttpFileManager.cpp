@@ -46,7 +46,7 @@ struct HttpCookieAttachment {
 };
 
 const string &HttpFileManager::getContentType(const char *name) {
-    return getHttpContentType(name);
+    return HttpConst::getHttpContentType(name);
 }
 
 static string searchIndexFile(const string &dir){

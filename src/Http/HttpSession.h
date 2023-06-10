@@ -132,7 +132,6 @@ private:
     bool _live_over_websocket = false;
     //消耗的总流量
     uint64_t _total_bytes_usage = 0;
-    std::string _origin;
     Parser _parser;
     toolkit::Ticker _ticker;
     TSMediaSource::RingType::RingReader::Ptr _ts_reader;
