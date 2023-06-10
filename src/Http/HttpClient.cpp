@@ -181,7 +181,7 @@ void HttpClient::onError(const SockException &ex) {
 }
 
 ssize_t HttpClient::onRecvHeader(const char *data, size_t len) {
-    _parser.Parse(data);
+    _parser.parse(data, len);
     if (_parser.status() == "302" || _parser.status() == "301" || _parser.status() == "303") {
         auto new_url = Parser::mergeUrl(_url, _parser["Location"]);
         if (new_url.empty()) {

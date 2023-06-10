@@ -63,14 +63,14 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
         s_func_map.emplace("OPTIONS", &HttpSession::Handle_Req_OPTIONS);
     });
 
-    _parser.Parse(header);
+    _parser.parse(header, len);
     CHECK(_parser.url()[0] == '/');
 
     urlDecode(_parser);
     string cmd = _parser.method();
     auto it = s_func_map.find(cmd);
     if (it == s_func_map.end()) {
-        WarnP(this) << "不支持该命令:" << cmd;
+        WarnP(this) << "Http method not supported: " << cmd;
         sendResponse(405, true);
         return 0;
     }
