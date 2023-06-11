@@ -112,7 +112,7 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
         _on_recv_body = [this, parser, received, content_len](const char *data, size_t len) mutable {
             received += len;
             onRecvUnlimitedContent(parser, data, len, content_len, received);
-            if (received != content_len) {
+            if (received < content_len) {
                 // 还没收满
                 return true;
             }
