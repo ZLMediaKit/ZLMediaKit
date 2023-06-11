@@ -21,7 +21,7 @@ using namespace std;
 
 namespace mediakit {
 
-MP4Demuxer::MP4Demuxer() {}
+MP4Demuxer::MP4Demuxer() = default;
 
 MP4Demuxer::~MP4Demuxer() {
     closeMP4();
