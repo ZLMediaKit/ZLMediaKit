@@ -46,7 +46,11 @@ HlsCookieData::~HlsCookieData() {
         GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
         uint64_t bytes = _bytes.load();
         if (bytes >= iFlowThreshold * 1024) {
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _info, bytes, duration, true, static_cast<SockInfo &>(*_sock_info));
+            try {
+                NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _info, bytes, duration, true, static_cast<SockInfo &>(*_sock_info));
+            } catch (std::exception &ex) {
+                WarnL << "Exception occurred: " << ex.what();
+            }
         }
     }
 }
