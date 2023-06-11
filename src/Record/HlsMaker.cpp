@@ -22,9 +22,7 @@ HlsMaker::HlsMaker(float seg_duration, uint32_t seg_number, bool seg_keep) {
     _seg_keep = seg_keep;
 }
 
-HlsMaker::~HlsMaker() {
-}
-
+HlsMaker::~HlsMaker() = default;
 
 void HlsMaker::makeIndexFile(bool eof) {
     char file_content[1024];

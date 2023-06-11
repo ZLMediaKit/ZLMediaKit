@@ -124,7 +124,11 @@ MediaSource::MediaSource(const string &schema, const MediaTuple& tuple): _tuple(
 }
 
 MediaSource::~MediaSource() {
-    unregist();
+    try {
+        unregist();
+    } catch (std::exception &ex) {
+        WarnL << "Exception occurred: " << ex.what();
+    }
 }
 
 const string& MediaSource::getSchema() const {
