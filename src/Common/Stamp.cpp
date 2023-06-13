@@ -48,8 +48,9 @@ int64_t DeltaStamp::deltaStamp(int64_t stamp) {
 
     // 时间戳增量为负，说明时间戳回环了或回退了
     _last_stamp = stamp;
-    // 时间戳回退了，强制相对时间戳加1
-    return 1;
+
+    // 如果时间戳回退不多，那么返回负值，否则返回加1
+    return -ret < MAX_CTS ? ret : 1;
 }
 
 void Stamp::setPlayBack(bool playback) {
