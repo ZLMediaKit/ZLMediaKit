@@ -70,18 +70,6 @@ static string getTrackInfoStr(const TrackSource *track_src){
     return std::move(codec_info);
 }
 
-const std::string &MultiMediaSourceMuxer::getVhost() const {
-    return _tuple.vhost;
-}
-
-const std::string &MultiMediaSourceMuxer::getApp() const {
-    return _tuple.app;
-}
-
-const std::string &MultiMediaSourceMuxer::getStreamId() const {
-    return _tuple.stream;
-}
-
 std::string MultiMediaSourceMuxer::shortUrl() const {
     auto ret = getOriginUrl(MediaSource::NullMediaSource());
     if (!ret.empty()) {

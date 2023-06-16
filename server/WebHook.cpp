@@ -213,12 +213,12 @@ void do_http_hook(const string &url, const ArgsType &body, const function<void(c
     do_http_hook(url, body, func, hook_retry);
 }
 
+void dumpMediaTuple(const MediaTuple &tuple, Json::Value& item);
+
 static ArgsType make_json(const MediaInfo &args) {
     ArgsType body;
     body["schema"] = args.schema;
-    body[VHOST_KEY] = args.vhost;
-    body["app"] = args.app;
-    body["stream"] = args.stream;
+    dumpMediaTuple(args, body);
     body["params"] = args.param_strs;
     return body;
 }
@@ -437,9 +437,7 @@ void installWebHook() {
             body["regist"] = bRegist;
         } else {
             body["schema"] = sender.getSchema();
-            body[VHOST_KEY] = sender.getVhost();
-            body["app"] = sender.getApp();
-            body["stream"] = sender.getId();
+            dumpMediaTuple(sender.getMediaTuple(), body);
             body["regist"] = bRegist;
         }
         // 执行hook
@@ -503,9 +501,7 @@ void installWebHook() {
         body["file_name"] = info.file_name;
         body["folder"] = info.folder;
         body["url"] = info.url;
-        body["app"] = info.app;
-        body["stream"] = info.stream;
-        body[VHOST_KEY] = info.vhost;
+        dumpMediaTuple(info, body);
         return body;
     };
 
@@ -561,9 +557,7 @@ void installWebHook() {
 
         ArgsType body;
         body["schema"] = sender.getSchema();
-        body[VHOST_KEY] = sender.getVhost();
-        body["app"] = sender.getApp();
-        body["stream"] = sender.getId();
+        dumpMediaTuple(sender.getMediaTuple(), body);
         weak_ptr<MediaSource> weakSrc = sender.shared_from_this();
         // 执行hook
         do_http_hook(hook_stream_none_reader, body, [weakSrc](const Value &obj, const string &err) {
@@ -584,9 +578,7 @@ void installWebHook() {
         }
 
         ArgsType body;
-        body[VHOST_KEY] = sender.getVhost();
-        body["app"] = sender.getApp();
-        body["stream"] = sender.getStreamId();
+        dumpMediaTuple(sender.getMediaTuple(), body);
         body["ssrc"] = ssrc;
         body["originType"] = (int)sender.getOriginType(MediaSource::NullMediaSource());
         body["originTypeStr"] = getOriginTypeString(sender.getOriginType(MediaSource::NullMediaSource()));
