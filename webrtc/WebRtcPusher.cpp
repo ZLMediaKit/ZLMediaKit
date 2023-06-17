@@ -98,8 +98,8 @@ void WebRtcPusher::onRecvRtp(MediaTrack &track, const string &rid, RtpPacket::Pt
         //视频
         auto &src = _push_src_sim[rid];
         if (!src) {
-            auto stream_id = rid.empty() ? _push_src->getId() : _push_src->getId() + "_" + rid;
-            auto src_imp = _push_src->clone(stream_id);
+            const auto& stream = _push_src->getMediaTuple().stream;
+            auto src_imp = _push_src->clone(rid.empty() ? stream : stream + '_' + rid);
             _push_src_sim_ownership[rid] = src_imp->getOwnership();
             src_imp->setListener(static_pointer_cast<WebRtcPusher>(shared_from_this()));
             src = src_imp;
