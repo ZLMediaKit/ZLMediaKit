@@ -594,6 +594,13 @@ void HttpSession::sendResponse(int code,
     headerOut.emplace("Date", dateStr());
     headerOut.emplace("Server", kServerName);
     headerOut.emplace("Connection", bClose ? "close" : "keep-alive");
+
+    GET_CONFIG(bool, allow_cross_domains, Http::kAllowCrossDomains);
+    if (allow_cross_domains) {
+        headerOut.emplace("Access-Control-Allow-Origin", "*");
+        headerOut.emplace("Access-Control-Allow-Credentials", "true");
+    }
+
     if (!bClose) {
         string keepAliveString = "timeout=";
         keepAliveString += to_string(keepAliveSec);
