@@ -113,6 +113,8 @@ public:
 
 class FLVHeader {
 public:
+    static constexpr uint8_t kFlvVersion = 1;
+    static constexpr uint8_t kFlvHeaderLength = 9;
     //FLV
     char flv[3];
     //File version (for example, 0x01 for FLV version 1)
@@ -138,6 +140,8 @@ public:
 #endif
     //The length of this header in bytes,固定为9
     uint32_t length;
+    //固定为0
+    uint32_t previous_tag_size0;
 } PACKED;
 
 class RtmpTagHeader {

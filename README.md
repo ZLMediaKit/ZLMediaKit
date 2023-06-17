@@ -63,7 +63,8 @@
   - RTMP[S] 发布服务器，支持录制发布流
   - RTMP[S] 播放器，支持RTMP代理，支持生成静音音频
   - RTMP[S] 推流客户端
-  - 支持http[s]-flv直播
+  - 支持http[s]-flv直播服务器
+  - 支持http[s]-flv直播播放器
   - 支持websocket-flv直播
   - 支持H264/H265/AAC/G711/OPUS编码，其他编码能转发但不能转协议
   - 支持[RTMP-H265](https://github.com/ksvc/FFmpeg/wiki)

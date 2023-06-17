@@ -97,17 +97,15 @@ void FlvMuxer::onWriteFlvHeader(const RtmpMediaSource::Ptr &src) {
     header->flv[0] = 'F';
     header->flv[1] = 'L';
     header->flv[2] = 'V';
-    header->version = 1;
-    header->length = htonl(9);
+    header->version = FLVHeader::kFlvVersion;
+    header->length = htonl(FLVHeader::kFlvHeaderLength);
     header->have_video = src->haveVideo();
     header->have_audio = src->haveAudio();
+    //memset时已经赋值为0
+    //header->previous_tag_size0 = 0;
 
     //flv header
     onWrite(buffer, false);
-
-    //PreviousTagSize0 Always 0
-    auto size = htonl(0);
-    onWrite(obtainBuffer((char *) &size, 4), false);
 
     auto &metadata = src->getMetaData();
     if (metadata) {
