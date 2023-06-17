@@ -274,6 +274,8 @@ public:
     std::string param_strs;
 };
 
+bool equalMediaTuple(const MediaTuple& a, const MediaTuple& b);
+
 /**
  * 媒体源，任何rtsp/rtmp的直播流都源自该对象
  */
@@ -288,21 +290,15 @@ public:
     ////////////////获取MediaSource相关信息////////////////
 
     // 获取协议类型
-    const std::string& getSchema() const;
-    // 虚拟主机
-    const std::string& getVhost() const;
-    // 应用名
-    const std::string& getApp() const;
-    // 流id
-    const std::string& getId() const;
+    const std::string& getSchema() const {
+        return _schema;
+    }
 
     const MediaTuple& getMediaTuple() const {
         return _tuple;
     }
 
-    std::string shortUrl() const { return _tuple.shortUrl(); }
-
-    std::string getUrl() const { return _schema + "://" + shortUrl(); }
+    std::string getUrl() const { return _schema + "://" + _tuple.shortUrl(); }
 
     //获取对象所有权
     std::shared_ptr<void> getOwnership();

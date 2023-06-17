@@ -184,9 +184,7 @@ void FFmpegSource::findAsync(int maxWaitMS, const function<void(const MediaSourc
 
         if (!bRegist ||
             sender.getSchema() != strongSelf->_media_info.schema ||
-            sender.getVhost() != strongSelf->_media_info.vhost ||
-            sender.getApp() != strongSelf->_media_info.app ||
-            sender.getId() != strongSelf->_media_info.stream) {
+            !equalMediaTuple(sender.getMediaTuple(), strongSelf->_media_info)) {
             //不是自己感兴趣的事件，忽略之
             return;
         }

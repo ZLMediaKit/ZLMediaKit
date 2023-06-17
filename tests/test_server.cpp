@@ -155,9 +155,10 @@ void initEventListener() {
 
         //监听rtsp、rtmp源注册或注销事件；此处用于测试rtmp保存为flv录像，保存在http根目录下
         NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastMediaChanged, [](BroadcastMediaChangedArgs) {
-            if (sender.getSchema() == RTMP_SCHEMA && sender.getApp() == "live") {
+            auto tuple = sender.getMediaTuple();
+            if (sender.getSchema() == RTMP_SCHEMA && tuple.app == "live") {
                 lock_guard<mutex> lck(s_mtxFlvRecorder);
-                auto key = sender.shortUrl();
+                auto key = tuple.shortUrl();
                 if (bRegist) {
                     DebugL << "开始录制RTMP：" << sender.getUrl();
                     GET_CONFIG(string, http_root, Http::kRootPath);

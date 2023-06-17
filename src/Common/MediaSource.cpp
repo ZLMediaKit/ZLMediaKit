@@ -131,23 +131,6 @@ MediaSource::~MediaSource() {
     }
 }
 
-const string& MediaSource::getSchema() const {
-    return _schema;
-}
-
-const string& MediaSource::getVhost() const {
-    return _tuple.vhost;
-}
-
-const string& MediaSource::getApp() const {
-    //获取该源的id
-    return _tuple.app;
-}
-
-const string& MediaSource::getId() const {
-    return _tuple.stream;
-}
-
 std::shared_ptr<void> MediaSource::getOwnership() {
     if (_owned.test_and_set()) {
         //已经被所有
@@ -460,9 +443,7 @@ static void findAsync_l(const MediaInfo &info, const std::shared_ptr<Session> &s
     auto on_register = [weak_session, info, cb_once, cancel_all, poller](BroadcastMediaChangedArgs) {
         if (!bRegist ||
             sender.getSchema() != info.schema ||
-            sender.getVhost() != info.vhost ||
-            sender.getApp() != info.app ||
-            sender.getId() != info.stream) {
+            !equalMediaTuple(sender.getMediaTuple(), info)) {
             //不是自己感兴趣的事件，忽略之
             return;
         }
@@ -579,6 +560,9 @@ bool MediaSource::unregist() {
     return ret;
 }
 
+bool equalMediaTuple(const MediaTuple& a, const MediaTuple& b) {
+    return a.vhost == b.vhost && a.app == b.app && a.stream == b.stream;
+}
 /////////////////////////////////////MediaInfo//////////////////////////////////////
 
 void MediaInfo::parse(const std::string &url_in){
@@ -663,7 +647,7 @@ void MediaSourceEvent::onReaderChanged(MediaSource &sender, int size){
     GET_CONFIG(string, record_app, Record::kAppName);
     GET_CONFIG(int, stream_none_reader_delay, General::kStreamNoneReaderDelayMS);
     //如果mp4点播, 无人观看时我们强制关闭点播
-    bool is_mp4_vod = sender.getApp() == record_app;
+    bool is_mp4_vod = sender.getMediaTuple().app == record_app;
     weak_ptr<MediaSource> weak_sender = sender.shared_from_this();
 
     _async_close_timer = std::make_shared<Timer>(stream_none_reader_delay / 1000.0f, [weak_sender, is_mp4_vod]() {

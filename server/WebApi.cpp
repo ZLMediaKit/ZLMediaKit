@@ -321,12 +321,16 @@ static void fillSockInfo(Value& val, SockInfo* info) {
     val["identifier"] = info->getIdentifier();
 }
 
+void dumpMediaTuple(const MediaTuple &tuple, Json::Value& item) {
+    item[VHOST_KEY] = tuple.vhost;
+    item["app"] = tuple.app;
+    item["stream"] = tuple.stream;
+}
+
 Value makeMediaSourceJson(MediaSource &media){
     Value item;
     item["schema"] = media.getSchema();
-    item[VHOST_KEY] = media.getVhost();
-    item["app"] = media.getApp();
-    item["stream"] = media.getId();
+    dumpMediaTuple(media.getMediaTuple(), item);
     item["createStamp"] = (Json::UInt64) media.getCreateStamp();
     item["aliveSecond"] = (Json::UInt64) media.getAliveSecond();
     item["bytesSpeed"] = media.getBytesSpeed();
