@@ -461,7 +461,9 @@ if(ENABLE_PLAYER AND ENABLE_FFMPEG)
 endif()
 
 #MediaServer主程序
-add_subdirectory(server)
+if(ENABLE_SERVER)
+  add_subdirectory(server)
+endif()
 
 # Android 会 add_subdirectory 并依赖该变量
 if(ENABLE_SERVER_LIB)

@@ -43,15 +43,3 @@ foreach(TEST_SRC ${TEST_SRC_LIST})
   target_link_libraries(${exe_name} mk_api)
   target_compile_options(${exe_name} PRIVATE ${COMPILE_OPTIONS_DEFAULT})
 endforeach()
-
-
-
-
-
-
-
-
-
-
-
-
