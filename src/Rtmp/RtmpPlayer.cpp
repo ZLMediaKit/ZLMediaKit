@@ -313,8 +313,8 @@ void RtmpPlayer::onCmd_onStatus(AMFDecoder &dec) {
 void RtmpPlayer::onCmd_onMetaData(AMFDecoder &dec) {
     //TraceL;
     auto val = dec.load<AMFValue>();
-    if (!onCheckMeta(val)) {
-        throw std::runtime_error("onCheckMeta failed");
+    if (!onMetadata(val)) {
+        throw std::runtime_error("onMetadata failed");
     }
     _metadata_got = true;
 }
@@ -328,18 +328,18 @@ void RtmpPlayer::onMediaData_l(RtmpPacket::Ptr chunk_data) {
     _rtmp_recv_ticker.resetTime();
     if (!_play_timer) {
         //已经触发了onPlayResult事件，直接触发onMediaData事件
-        onMediaData(chunk_data);
+        onRtmpPacket(chunk_data);
         return;
     }
 
     if (chunk_data->isCfgFrame()) {
         //输入配置帧以便初始化完成各个track
-        onMediaData(chunk_data);
+        onRtmpPacket(chunk_data);
     } else {
         //先触发onPlayResult事件，这个时候解码器才能初始化完毕
         onPlayResult_l(SockException(Err_success, "play rtmp success"), false);
         //触发onPlayResult事件后，再把帧数据输入到解码器
-        onMediaData(chunk_data);
+        onRtmpPacket(chunk_data);
     }
 }
 
@@ -379,8 +379,8 @@ void RtmpPlayer::onRtmpChunk(RtmpPacket::Ptr packet) {
                 _now_stamp[idx] = chunk_data.time_stamp;
             }
             if (!_metadata_got) {
-                if (!onCheckMeta(TitleMeta().getMetadata())) {
-                    throw std::runtime_error("onCheckMeta failed");
+                if (!onMetadata(TitleMeta().getMetadata())) {
+                    throw std::runtime_error("onMetadata failed");
                 }
                 _metadata_got = true;
             }
@@ -420,49 +420,4 @@ void RtmpPlayer::seekToMilliSecond(uint32_t seekMS){
     });
 }
 
-////////////////////////////////////////////
-float RtmpPlayerImp::getDuration() const
-{
-    return _demuxer ? _demuxer->getDuration() : 0;
-}
-
-std::vector<mediakit::Track::Ptr> RtmpPlayerImp::getTracks(bool ready /*= true*/) const
-{
-    return _demuxer ? _demuxer->getTracks(ready) : Super::getTracks(ready);
-}
-
-bool RtmpPlayerImp::onCheckMeta(const AMFValue &val)
-{
-    //无metadata或metadata中无track信息时，需要从数据包中获取track
-    _wait_track_ready = (*this)[Client::kWaitTrackReady].as<bool>() || RtmpDemuxer::trackCount(val) == 0;
-    onCheckMeta_l(val);
-    return true;
-}
-
-void RtmpPlayerImp::onMediaData(RtmpPacket::Ptr chunkData)
-{
-    if (!_demuxer) {
-        //有些rtmp流没metadata
-        onCheckMeta_l(TitleMeta().getMetadata());
-    }
-    _demuxer->inputRtmp(chunkData);
-    if (_rtmp_src) {
-        _rtmp_src->onWrite(std::move(chunkData));
-    }
-}
-
-void RtmpPlayerImp::onCheckMeta_l(const AMFValue &val)
-{
-    _rtmp_src = std::dynamic_pointer_cast<RtmpMediaSource>(_media_src);
-    if (_rtmp_src) {
-        _rtmp_src->setMetaData(val);
-    }
-    if (_demuxer) {
-        return;
-    }
-    _demuxer = std::make_shared<RtmpDemuxer>();
-    //TraceL<<" _wait_track_ready "<<_wait_track_ready;
-    _demuxer->setTrackListener(this, _wait_track_ready);
-    _demuxer->loadMetaData(val);
-}
 } /* namespace mediakit */
