@@ -98,7 +98,7 @@ API_EXPORT int API_CALL mk_media_source_get_reader_count(const mk_media_source c
 API_EXPORT int API_CALL mk_media_source_get_total_reader_count(const mk_media_source ctx);
 // get track count from MediaSource
 API_EXPORT int API_CALL mk_media_source_get_track_count(const mk_media_source ctx);
-// get track by index from MediaSource
+// copy track reference by index from MediaSource, please use mk_track_unref to release it
 API_EXPORT mk_track API_CALL mk_media_source_get_track(const mk_media_source ctx, int index);
 /**
  * 直播源在ZLMediaKit中被称作为MediaSource，

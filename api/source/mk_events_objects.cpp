@@ -211,7 +211,7 @@ API_EXPORT mk_track API_CALL mk_media_source_get_track(const mk_media_source ctx
     if (index < 0 && index >= tracks.size()) {
         return nullptr;
     }
-    return reinterpret_cast<mk_track>(& (tracks[index]));
+    return (mk_track) new Track::Ptr(std::move(tracks[index]));
 }
 
 API_EXPORT int API_CALL mk_media_source_close(const mk_media_source ctx,int force){
