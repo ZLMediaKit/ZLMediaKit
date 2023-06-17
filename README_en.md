@@ -62,7 +62,8 @@
   - RTMP[S] publishing server, supports recording and publishing streams
   - RTMP[S] player, supports RTMP proxy, supports generating silent audio
   - RTMP[S] push client
-  - Supports http[s]-flv live streaming
+  - Supports http[s]-flv live streaming server
+  - Supports http[s]-flv live streaming player
   - Supports websocket-flv live streaming
   - Supports H264/H265/AAC/G711/OPUS encoding. Other encodings can be forwarded but cannot be converted to protocol
   - Supports [RTMP-H265](https://github.com/ksvc/FFmpeg/wiki)
