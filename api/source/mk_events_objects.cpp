@@ -174,17 +174,17 @@ API_EXPORT const char* API_CALL mk_media_source_get_schema(const mk_media_source
 API_EXPORT const char* API_CALL mk_media_source_get_vhost(const mk_media_source ctx){
     assert(ctx);
     MediaSource *src = (MediaSource *)ctx;
-    return src->getVhost().c_str();
+    return src->getMediaTuple().vhost.c_str();
 }
 API_EXPORT const char* API_CALL mk_media_source_get_app(const mk_media_source ctx){
     assert(ctx);
     MediaSource *src = (MediaSource *)ctx;
-    return src->getApp().c_str();
+    return src->getMediaTuple().app.c_str();
 }
 API_EXPORT const char* API_CALL mk_media_source_get_stream(const mk_media_source ctx){
     assert(ctx);
     MediaSource *src = (MediaSource *)ctx;
-    return src->getId().c_str();
+    return src->getMediaTuple().stream.c_str();
 }
 API_EXPORT int API_CALL mk_media_source_get_reader_count(const mk_media_source ctx){
     assert(ctx);
@@ -211,7 +211,7 @@ API_EXPORT mk_track API_CALL mk_media_source_get_track(const mk_media_source ctx
     if (index < 0 && index >= tracks.size()) {
         return nullptr;
     }
-    return reinterpret_cast<mk_track>(& (tracks[index]));
+    return (mk_track) new Track::Ptr(std::move(tracks[index]));
 }
 
 API_EXPORT int API_CALL mk_media_source_close(const mk_media_source ctx,int force){

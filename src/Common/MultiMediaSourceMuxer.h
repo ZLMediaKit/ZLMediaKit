@@ -126,9 +126,6 @@ public:
      */
     toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;
 
-    const std::string& getVhost() const;
-    const std::string& getApp() const;
-    const std::string& getStreamId() const;
     const MediaTuple& getMediaTuple() const {
         return _tuple;
     }
