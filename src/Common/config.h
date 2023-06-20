@@ -273,6 +273,11 @@ extern const std::string kDirectProxy;
 
 // rtsp 转发是否使用低延迟模式，当开启时，不会缓存rtp包，来提高并发，可以降低一帧的延迟
 extern const std::string kLowLatency;
+
+//强制协商rtp传输方式 (0:TCP,1:UDP,3:不限制)
+//当客户端发起RTSP SETUP的时候如果传输类型和此配置不一致则返回461 Unsupport Transport
+//迫使客户端重新SETUP并切换到对应协议。目前支持FFMPEG和VLC
+extern const std::string kRtpTransportType;
 } // namespace Rtsp
 
 ////////////RTMP服务器配置///////////
