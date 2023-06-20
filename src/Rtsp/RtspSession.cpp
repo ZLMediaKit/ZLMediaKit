@@ -638,13 +638,14 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
     static auto getRtpTypeStr = [](const int type){
         if(Rtsp::RTP_TCP == type){
             return "TCP";
-        }else if(Rtsp::RTP_UDP == type ){
-            return "UDP";
-        }else if(Rtsp::RTP_MULTICAST == type ){
-            return "MULTICAST";
-        }else{
-            return "Invalid";
         }
+        if(Rtsp::RTP_UDP == type ){
+            return "UDP";
+        }
+        if(Rtsp::RTP_MULTICAST == type ){
+            return "MULTICAST";
+        }
+        return "Invalid";
     };
 
     if(_rtp_type == Rtsp::RTP_Invalid){
@@ -659,9 +660,7 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
         }
         //检查RTP传输类型限制
         GET_CONFIG(int,transport,Rtsp::kRtpTransportType);
-        if((transport==Rtsp::RTP_TCP||
-            transport==Rtsp::RTP_UDP)&&
-            transport!=rtpType){
+        if(transport!=Rtsp::RTP_Invalid&&transport!=rtpType){
             WarnL<<"rtsp client setup transport "<<getRtpTypeStr(rtpType)<<" but config force transport "<<getRtpTypeStr(transport);
             //配置限定RTSP传输方式，但是客户端握手方式不一致，返回461
             sendRtspResponse("461 Unsupported transport");

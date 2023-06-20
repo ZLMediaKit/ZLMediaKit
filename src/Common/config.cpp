@@ -218,7 +218,7 @@ static onceToken token([]() {
     mINI::Instance()[kKeepAliveSecond] = 15;
     mINI::Instance()[kDirectProxy] = 1;
     mINI::Instance()[kLowLatency] = 0;
-    mINI::Instance()[kRtpTransportType] = 3;
+    mINI::Instance()[kRtpTransportType] = -1;
 });
 } // namespace Rtsp
 
