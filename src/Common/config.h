@@ -49,7 +49,8 @@ extern const std::string kBroadcastHttpRequest;
 
 // 在http文件服务器中,收到http访问文件或目录的广播,通过该事件控制访问http目录的权限
 extern const std::string kBroadcastHttpAccess;
-#define BroadcastHttpAccessArgs const Parser &parser, const std::string &path, const bool &is_dir, const HttpSession::HttpAccessPathInvoker &invoker, SockInfo &sender
+#define BroadcastHttpAccessArgs                                                                                                                                \
+    const Parser &parser, const std::string &path, const bool &is_dir, const HttpSession::HttpAccessPathInvoker &invoker, SockInfo &sender
 
 // 在http文件服务器中,收到http访问文件或目录前的广播,通过该事件可以控制http url到文件路径的映射
 // 在该事件中通过自行覆盖path参数，可以做到譬如根据虚拟主机或者app选择不同http根目录的目的
@@ -63,7 +64,9 @@ extern const std::string kBroadcastOnGetRtspRealm;
 // 请求认证用户密码事件，user_name为用户名，must_no_encrypt如果为true，则必须提供明文密码(因为此时是base64认证方式),否则会导致认证失败
 // 获取到密码后请调用invoker并输入对应类型的密码和密码类型，invoker执行时会匹配密码
 extern const std::string kBroadcastOnRtspAuth;
-#define BroadcastOnRtspAuthArgs const MediaInfo &args, const std::string &realm, const std::string &user_name, const bool &must_no_encrypt, const RtspSession::onAuth &invoker, SockInfo &sender
+#define BroadcastOnRtspAuthArgs                                                                                                                                \
+    const MediaInfo &args, const std::string &realm, const std::string &user_name, const bool &must_no_encrypt, const RtspSession::onAuth &invoker,            \
+        SockInfo &sender
 
 // 推流鉴权结果回调对象
 // 如果err为空则代表鉴权成功
@@ -107,44 +110,44 @@ extern const std::string kBroadcastReloadConfig;
 
 // rtp server 超时
 extern const std::string KBroadcastRtpServerTimeout;
-#define BroadcastRtpServerTimeout uint16_t &local_port, const string &stream_id,int &tcp_mode, bool &re_use_port, uint32_t &ssrc
+#define BroadcastRtpServerTimeout uint16_t &local_port, const string &stream_id, int &tcp_mode, bool &re_use_port, uint32_t &ssrc
 
 #define ReloadConfigTag ((void *)(0xFF))
-#define RELOAD_KEY(arg, key)                                                                                           \
-    do {                                                                                                               \
-        decltype(arg) arg##_tmp = ::toolkit::mINI::Instance()[key];                                                    \
-        if (arg == arg##_tmp) {                                                                                        \
-            return;                                                                                                    \
-        }                                                                                                              \
-        arg = arg##_tmp;                                                                                               \
-        InfoL << "reload config:" << key << "=" << arg;                                                                \
+#define RELOAD_KEY(arg, key)                                                                                                                                   \
+    do {                                                                                                                                                       \
+        decltype(arg) arg##_tmp = ::toolkit::mINI::Instance()[key];                                                                                            \
+        if (arg == arg##_tmp) {                                                                                                                                \
+            return;                                                                                                                                            \
+        }                                                                                                                                                      \
+        arg = arg##_tmp;                                                                                                                                       \
+        InfoL << "reload config:" << key << "=" << arg;                                                                                                        \
     } while (0)
 
 // 监听某个配置发送变更
-#define LISTEN_RELOAD_KEY(arg, key, ...)                                                                               \
-    do {                                                                                                               \
-        static ::toolkit::onceToken s_token_listen([]() {                                                              \
-            ::toolkit::NoticeCenter::Instance().addListener(                                                           \
-                ReloadConfigTag, Broadcast::kBroadcastReloadConfig, [](BroadcastReloadConfigArgs) { __VA_ARGS__; });   \
-        });                                                                                                            \
+#define LISTEN_RELOAD_KEY(arg, key, ...)                                                                                                                       \
+    do {                                                                                                                                                       \
+        static ::toolkit::onceToken s_token_listen([]() {                                                                                                      \
+            ::toolkit::NoticeCenter::Instance().addListener(                                                                                                   \
+                ReloadConfigTag, Broadcast::kBroadcastReloadConfig, [](BroadcastReloadConfigArgs) { __VA_ARGS__; });                                           \
+        });                                                                                                                                                    \
     } while (0)
 
-#define GET_CONFIG(type, arg, key)                                                                                     \
-    static type arg = ::toolkit::mINI::Instance()[key];                                                                \
+#define GET_CONFIG(type, arg, key)                                                                                                                             \
+    static type arg = ::toolkit::mINI::Instance()[key];                                                                                                        \
     LISTEN_RELOAD_KEY(arg, key, { RELOAD_KEY(arg, key); });
 
-#define GET_CONFIG_FUNC(type, arg, key, ...)                                                                           \
-    static type arg;                                                                                                   \
-    do {                                                                                                               \
-        static ::toolkit::onceToken s_token_set([]() {                                                                 \
-            static auto lam = __VA_ARGS__;                                                                             \
-            static auto arg##_str = ::toolkit::mINI::Instance()[key];                                                  \
-            arg = lam(arg##_str);                                                                                      \
-            LISTEN_RELOAD_KEY(arg, key, {                                                                              \
-                RELOAD_KEY(arg##_str, key);                                                                            \
-                arg = lam(arg##_str);                                                                                  \
-            });                                                                                                        \
-        });                                                                                                            \
+#define GET_CONFIG_FUNC(type, arg, key, ...)                                                                                                                   \
+    static type arg;                                                                                                                                           \
+    do {                                                                                                                                                       \
+        static ::toolkit::onceToken s_token_set([]() {                                                                                                         \
+            static auto lam = __VA_ARGS__;                                                                                                                     \
+            static auto arg##_str = ::toolkit::mINI::Instance()[key];                                                                                          \
+            arg = lam(arg##_str);                                                                                                                              \
+            LISTEN_RELOAD_KEY(arg, key, {                                                                                                                      \
+                RELOAD_KEY(arg##_str, key);                                                                                                                    \
+                arg = lam(arg##_str);                                                                                                                          \
+            });                                                                                                                                                \
+        });                                                                                                                                                    \
     } while (0)
 
 } // namespace Broadcast
@@ -208,12 +211,12 @@ extern const std::string kEnableFMP4;
 
 //是否将mp4录制当做观看者
 extern const std::string kMP4AsPlayer;
-//mp4切片大小，单位秒
+// mp4切片大小，单位秒
 extern const std::string kMP4MaxSecond;
-//mp4录制保存路径
+// mp4录制保存路径
 extern const std::string kMP4SavePath;
 
-//hls录制保存路径
+// hls录制保存路径
 extern const std::string kHlsSavePath;
 
 // 按需转协议的开关
@@ -222,7 +225,7 @@ extern const std::string kRtspDemand;
 extern const std::string kRtmpDemand;
 extern const std::string kTSDemand;
 extern const std::string kFMP4Demand;
-} // !Protocol
+} // namespace Protocol
 
 ////////////HTTP配置///////////
 namespace Http {

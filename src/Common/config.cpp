@@ -145,7 +145,7 @@ static onceToken token([]() {
     mINI::Instance()[kTSDemand] = 0;
     mINI::Instance()[kFMP4Demand] = 0;
 });
-} // !Protocol
+} // namespace Protocol
 
 ////////////HTTP配置///////////
 namespace Http {
@@ -208,8 +208,8 @@ const string kAuthBasic = RTSP_FIELD "authBasic";
 const string kHandshakeSecond = RTSP_FIELD "handshakeSecond";
 const string kKeepAliveSecond = RTSP_FIELD "keepAliveSecond";
 const string kDirectProxy = RTSP_FIELD "directProxy";
-const string kLowLatency = RTSP_FIELD"lowLatency";
-const string kRtpTransportType = RTSP_FIELD"rtpTransportType";
+const string kLowLatency = RTSP_FIELD "lowLatency";
+const string kRtpTransportType = RTSP_FIELD "rtpTransportType";
 
 static onceToken token([]() {
     // 默认Md5方式认证
@@ -252,7 +252,6 @@ static onceToken token([]() {
     mINI::Instance()[kAudioMtuSize] = 600;
     mINI::Instance()[kRtpMaxSize] = 10;
     mINI::Instance()[kLowLatency] = 0;
-
 });
 } // namespace Rtp
 
