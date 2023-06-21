@@ -636,16 +636,20 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
     }
 
     static auto getRtpTypeStr = [](const int type) {
-        if (Rtsp::RTP_TCP == type) {
+        switch (type)
+        {
+        case Rtsp::RTP_TCP:
             return "TCP";
-        }
-        if (Rtsp::RTP_UDP == type) {
+            break;
+        case Rtsp::RTP_UDP:
             return "UDP";
-        }
-        if (Rtsp::RTP_MULTICAST == type) {
+            break;
+        case Rtsp::RTP_MULTICAST:
             return "MULTICAST";
+            break;
+        default:
+            return "Invalid";
         }
-        return "Invalid";
     };
 
     if (_rtp_type == Rtsp::RTP_Invalid) {
