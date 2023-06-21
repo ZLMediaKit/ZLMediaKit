@@ -209,6 +209,7 @@ const string kHandshakeSecond = RTSP_FIELD "handshakeSecond";
 const string kKeepAliveSecond = RTSP_FIELD "keepAliveSecond";
 const string kDirectProxy = RTSP_FIELD "directProxy";
 const string kLowLatency = RTSP_FIELD"lowLatency";
+const string kRtpTransportType = RTSP_FIELD"rtpTransportType";
 
 static onceToken token([]() {
     // 默认Md5方式认证
@@ -217,6 +218,7 @@ static onceToken token([]() {
     mINI::Instance()[kKeepAliveSecond] = 15;
     mINI::Instance()[kDirectProxy] = 1;
     mINI::Instance()[kLowLatency] = 0;
+    mINI::Instance()[kRtpTransportType] = -1;
 });
 } // namespace Rtsp
 

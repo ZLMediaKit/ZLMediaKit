@@ -634,18 +634,43 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
         //已经初始化过该Track
         throw SockException(Err_shutdown, "can not setup one track twice");
     }
-    trackRef->_inited = true; //现在初始化
 
-    if(_rtp_type == Rtsp::RTP_Invalid){
-        auto &strTransport = parser["Transport"];
-        if(strTransport.find("TCP") != string::npos){
-            _rtp_type = Rtsp::RTP_TCP;
-        }else if(strTransport.find("multicast") != string::npos){
-            _rtp_type = Rtsp::RTP_MULTICAST;
-        }else{
-            _rtp_type = Rtsp::RTP_UDP;
+    static auto getRtpTypeStr = [](const int type) {
+        switch (type)
+        {
+        case Rtsp::RTP_TCP:
+            return "TCP";
+        case Rtsp::RTP_UDP:
+            return "UDP";
+        case Rtsp::RTP_MULTICAST:
+            return "MULTICAST";
+        default:
+            return "Invalid";
         }
+    };
+
+    if (_rtp_type == Rtsp::RTP_Invalid) {
+        auto &strTransport = parser["Transport"];
+        auto rtpType = Rtsp::RTP_Invalid;
+        if (strTransport.find("TCP") != string::npos) {
+            rtpType = Rtsp::RTP_TCP;
+        } else if (strTransport.find("multicast") != string::npos) {
+            rtpType = Rtsp::RTP_MULTICAST;
+        } else {
+            rtpType = Rtsp::RTP_UDP;
+        }
+        //检查RTP传输类型限制
+        GET_CONFIG(int, transport, Rtsp::kRtpTransportType);
+        if (transport != Rtsp::RTP_Invalid && transport != rtpType) {
+            WarnL << "rtsp client setup transport " << getRtpTypeStr(rtpType) << " but config force transport " << getRtpTypeStr(transport);
+            //配置限定RTSP传输方式，但是客户端握手方式不一致，返回461
+            sendRtspResponse("461 Unsupported transport");
+            return;
+        }
+        _rtp_type = rtpType;
     }
+
+    trackRef->_inited = true; //现在初始化
 
     //允许接收rtp、rtcp包
     RtspSplitter::enableRecvRtp(_rtp_type == Rtsp::RTP_TCP);
