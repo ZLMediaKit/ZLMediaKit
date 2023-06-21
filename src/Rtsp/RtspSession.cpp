@@ -640,13 +640,10 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
         {
         case Rtsp::RTP_TCP:
             return "TCP";
-            break;
         case Rtsp::RTP_UDP:
             return "UDP";
-            break;
         case Rtsp::RTP_MULTICAST:
             return "MULTICAST";
-            break;
         default:
             return "Invalid";
         }
