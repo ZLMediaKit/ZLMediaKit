@@ -125,12 +125,12 @@ public:
     uint64_t getNtpStamp(uint32_t rtp_stamp, uint32_t sample_rate);
 
 private:
-    void update(uint32_t rtp_stamp, uint64_t ntp_stamp_ms);
-    uint64_t getNtpStamp_l(uint32_t rtp_stamp, uint32_t sample_rate);
+    void update(uint32_t rtp_stamp, uint64_t ntp_stamp_us);
+    uint64_t getNtpStampUS(uint32_t rtp_stamp, uint32_t sample_rate);
 
 private:
     uint32_t _last_rtp_stamp = 0;
-    uint64_t _last_ntp_stamp_ms = 0;
+    uint64_t _last_ntp_stamp_us = 0;
 };
 
 }//namespace mediakit
