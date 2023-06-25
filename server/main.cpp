@@ -179,6 +179,29 @@ public:
                                  throw ExitException();
                              });
 #endif
+        (*_parser) << Option(0,/*该选项简称，如果是\x00则说明无简称*/
+                             "log-slice",/*该选项全称,每个选项必须有全称；不得为null或空字符串*/
+                             Option::ArgRequired,/*该选项后面必须跟值*/
+                             "100",/*该选项默认值*/
+                             true,/*该选项是否必须赋值，如果没有默认值且为ArgRequired时用户必须提供该参数否则将抛异常*/
+                             "最大保存日志切片个数",/*该选项说明文字*/
+                             nullptr);
+
+        (*_parser) << Option(0,/*该选项简称，如果是\x00则说明无简称*/
+                             "log-size",/*该选项全称,每个选项必须有全称；不得为null或空字符串*/
+                             Option::ArgRequired,/*该选项后面必须跟值*/
+                             "256",/*该选项默认值*/
+                             true,/*该选项是否必须赋值，如果没有默认值且为ArgRequired时用户必须提供该参数否则将抛异常*/
+                             "单个日志切片最大容量,单位MB",/*该选项说明文字*/
+                             nullptr);
+
+        (*_parser) << Option(0,/*该选项简称，如果是\x00则说明无简称*/
+                             "log-dir",/*该选项全称,每个选项必须有全称；不得为null或空字符串*/
+                             Option::ArgRequired,/*该选项后面必须跟值*/
+                             (exeDir() + "log/").data(),/*该选项默认值*/
+                             true,/*该选项是否必须赋值，如果没有默认值且为ArgRequired时用户必须提供该参数否则将抛异常*/
+                             "日志保存文件夹路径",/*该选项说明文字*/
+                             nullptr);
     }
 
     ~CMD_main() override{}
@@ -213,9 +236,11 @@ int start_main(int argc,char *argv[]) {
         //设置日志
         Logger::Instance().add(std::make_shared<ConsoleChannel>("ConsoleChannel", logLevel));
 #if !defined(ANDROID)
-        auto fileChannel = std::make_shared<FileChannel>("FileChannel", exeDir() + "log/", logLevel);
+        auto fileChannel = std::make_shared<FileChannel>("FileChannel", cmd_main["log-dir"], logLevel);
         // 日志最多保存天数
         fileChannel->setMaxDay(cmd_main["max_day"]);
+        fileChannel->setFileMaxCount(cmd_main["log-slice"]);
+        fileChannel->setFileMaxSize(1024 * 1024 * cmd_main["log-size"].as<uint32_t>());
         Logger::Instance().add(fileChannel);
 #endif // !defined(ANDROID)
 
