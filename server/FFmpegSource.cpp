@@ -39,7 +39,7 @@ onceToken token([]() {
     //ffmpeg日志保存路径
     mINI::Instance()[kLog] = "./ffmpeg/ffmpeg.log";
     mINI::Instance()[kCmd] = "%s -re -i %s -c:a aac -strict -2 -ar 44100 -ab 48k -c:v libx264 -f flv %s";
-    mINI::Instance()[kSnap] = "%s -i %s -y -f mjpeg -t 0.001 %s";
+    mINI::Instance()[kSnap] = "%s -i %s -y -f mjpeg -frames:v 1 %s";
     mINI::Instance()[kRestartSec] = 0;
 });
 }
