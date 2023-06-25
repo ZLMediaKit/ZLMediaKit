@@ -28,7 +28,7 @@ public:
     using Ptr = std::shared_ptr<H264RtpDecoder>;
 
     H264RtpDecoder();
-    ~H264RtpDecoder() {}
+    ~H264RtpDecoder() override = default;
 
     /**
      * 输入264 rtp包
@@ -77,9 +77,10 @@ public:
                    uint32_t sample_rate = 90000,
                    uint8_t pt = 96,
                    uint8_t interleaved = TrackVideo * 2);
-    ~H264RtpEncoder() {}
 
-    /**
+    ~H264RtpEncoder() override = default;
+
+        /**
      * 输入264帧
      * @param frame 帧数据，必须
      */
@@ -96,6 +97,8 @@ private:
     void packRtp(const char *data, size_t len, uint64_t pts, bool is_mark, bool gop_pos);
     void packRtpFu(const char *data, size_t len, uint64_t pts, bool is_mark, bool gop_pos);
     void packRtpStapA(const char *data, size_t len, uint64_t pts, bool is_mark, bool gop_pos);
+    void packRtpSingleNalu(const char *data, size_t len, uint64_t pts, bool is_mark, bool gop_pos);
+    void packRtpSmallFrame(const char *data, size_t len, uint64_t pts, bool is_mark, bool gop_pos);
 
 private:
     Frame::Ptr _sps;

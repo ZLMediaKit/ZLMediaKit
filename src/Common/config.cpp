@@ -244,15 +244,15 @@ const string kVideoMtuSize = RTP_FIELD "videoMtuSize";
 const string kAudioMtuSize = RTP_FIELD "audioMtuSize";
 // rtp包最大长度限制，单位是KB
 const string kRtpMaxSize = RTP_FIELD "rtpMaxSize";
-
 const string kLowLatency = RTP_FIELD "lowLatency";
+const string kH264StapA = RTP_FIELD "h264_stap_a";
 
 static onceToken token([]() {
     mINI::Instance()[kVideoMtuSize] = 1400;
     mINI::Instance()[kAudioMtuSize] = 600;
     mINI::Instance()[kRtpMaxSize] = 10;
     mINI::Instance()[kLowLatency] = 0;
-
+    mINI::Instance()[kH264StapA] = 1;
 });
 } // namespace Rtp
 
