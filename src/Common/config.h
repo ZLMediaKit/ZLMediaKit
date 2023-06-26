@@ -298,6 +298,8 @@ extern const std::string kAudioMtuSize;
 extern const std::string kRtpMaxSize;
 // rtp 打包时，低延迟开关，默认关闭（为0），h264存在一帧多个slice（NAL）的情况，在这种情况下，如果开启可能会导致画面花屏
 extern const std::string kLowLatency;
+//H264 rtp打包模式是否采用stap-a模式(为了在老版本浏览器上兼容webrtc)还是采用Single NAL unit packet per H.264 模式
+extern const std::string kH264StapA;
 } // namespace Rtp
 
 ////////////组播配置///////////
