@@ -209,8 +209,8 @@ void H264RtpEncoder::insertConfigFrame(uint64_t pts){
 
 void H264RtpEncoder::packRtp(const char *ptr, size_t len, uint64_t pts, bool is_mark, bool gop_pos){
     if (len + 3 <= getMaxSize()) {
-        //STAP-A模式打包小于MTU
-        packRtpStapA(ptr, len, pts, is_mark, gop_pos);
+        // 采用STAP-A/Single NAL unit packet per H.264 模式
+        packRtpSmallFrame(ptr, len, pts, is_mark, gop_pos);
     } else {
         //STAP-A模式打包会大于MTU,所以采用FU-A模式
         packRtpFu(ptr, len, pts, is_mark, gop_pos);
@@ -220,8 +220,8 @@ void H264RtpEncoder::packRtp(const char *ptr, size_t len, uint64_t pts, bool is_
 void H264RtpEncoder::packRtpFu(const char *ptr, size_t len, uint64_t pts, bool is_mark, bool gop_pos){
     auto packet_size = getMaxSize() - 2;
     if (len <= packet_size + 1) {
-        //小于FU-A打包最小字节长度要求，采用STAP-A模式
-        packRtpStapA(ptr, len, pts, is_mark, gop_pos);
+        // 小于FU-A打包最小字节长度要求，采用STAP-A/Single NAL unit packet per H.264 模式
+        packRtpSmallFrame(ptr, len, pts, is_mark, gop_pos);
         return;
     }
 
@@ -257,8 +257,17 @@ void H264RtpEncoder::packRtpFu(const char *ptr, size_t len, uint64_t pts, bool i
     }
 }
 
+void H264RtpEncoder::packRtpSmallFrame(const char *data, size_t len, uint64_t pts, bool is_mark, bool gop_pos) {
+    GET_CONFIG(bool, h264_stap_a, Rtp::kH264StapA);
+    if (h264_stap_a) {
+        packRtpStapA(data, len, pts, is_mark, gop_pos);
+    } else {
+        packRtpSingleNalu(data, len, pts, is_mark, gop_pos);
+    }
+}
+
 void H264RtpEncoder::packRtpStapA(const char *ptr, size_t len, uint64_t pts, bool is_mark, bool gop_pos){
-    //如果帧长度不超过mtu,为了兼容性 webrtc，采用STAP-A模式打包
+    // 如果帧长度不超过mtu,为了兼容性 webrtc，采用STAP-A模式打包
     auto rtp = makeRtp(getTrackType(), nullptr, len + 3, is_mark, pts);
     uint8_t *payload = rtp->getPayload();
     //STAP-A
@@ -268,6 +277,11 @@ void H264RtpEncoder::packRtpStapA(const char *ptr, size_t len, uint64_t pts, boo
     memcpy(payload + 3, (uint8_t *) ptr, len);
 
     RtpCodec::inputRtp(rtp, gop_pos);
+}
+
+void H264RtpEncoder::packRtpSingleNalu(const char *data, size_t len, uint64_t pts, bool is_mark, bool gop_pos) {
+    // Single NAL unit packet per H.264 模式
+    RtpCodec::inputRtp(makeRtp(getTrackType(), data, len, is_mark, pts), gop_pos);
 }
 
 bool H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
