@@ -40,6 +40,10 @@ MpegMuxer::~MpegMuxer() {
     }
 
 bool MpegMuxer::addTrack(const Track::Ptr &track) {
+    if(track->getCodecId() == CodecJPEG){
+        WarnL << "不支持该编码格式,已忽略:" << track->getCodecName();
+        return false;
+    }
     if (track->getTrackType() == TrackVideo) {
         _have_video = true;
     }
@@ -83,6 +87,11 @@ bool MpegMuxer::inputFrame(const Frame::Ptr &frame) {
         default: {
             if (!_have_video) {
                 //没有视频时，才以音频时间戳为TS的时间戳
+                _timestamp = frame->dts();
+            }
+
+            if(frame->getTrackType() == TrackType::TrackVideo){
+                _key_pos = frame->keyFrame();
                 _timestamp = frame->dts();
             }
             _max_cache_size = 512 + 1.2 * frame->size();
