@@ -38,7 +38,13 @@ if(ENABLE_SERVER_LIB)
   return()
 endif()
 
-add_executable(MediaServer ${MediaServer_SRC_LIST})
+# IOS 不编译可执行程序，只做依赖库
+if(IOS)
+  add_library(MediaServer STATIC ${MediaServer_SRC_LIST})
+else()
+  add_executable(MediaServer ${MediaServer_SRC_LIST})
+endif()
+
 target_compile_definitions(MediaServer
   PRIVATE ${COMPILE_DEFINITIONS})
 target_compile_options(MediaServer
