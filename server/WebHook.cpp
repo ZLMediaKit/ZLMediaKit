@@ -44,6 +44,7 @@ const string kOnShellLogin = HOOK_FIELD "on_shell_login";
 const string kOnStreamNoneReader = HOOK_FIELD "on_stream_none_reader";
 const string kOnHttpAccess = HOOK_FIELD "on_http_access";
 const string kOnServerStarted = HOOK_FIELD "on_server_started";
+const string kOnServerExited = HOOK_FIELD "on_server_exited";
 const string kOnServerKeepalive = HOOK_FIELD "on_server_keepalive";
 const string kOnSendRtpStopped = HOOK_FIELD "on_send_rtp_stopped";
 const string kOnRtpServerTimeout = HOOK_FIELD "on_rtp_server_timeout";
@@ -69,6 +70,7 @@ static onceToken token([]() {
     mINI::Instance()[kOnStreamNoneReader] = "";
     mINI::Instance()[kOnHttpAccess] = "";
     mINI::Instance()[kOnServerStarted] = "";
+    mINI::Instance()[kOnServerExited] = "";
     mINI::Instance()[kOnServerKeepalive] = "";
     mINI::Instance()[kOnSendRtpStopped] = "";
     mINI::Instance()[kOnRtpServerTimeout] = "";
@@ -236,6 +238,18 @@ static void reportServerStarted() {
     }
     // 执行hook
     do_http_hook(hook_server_started, body, nullptr);
+}
+
+static void reportServerExited() {
+    GET_CONFIG(bool, hook_enable, Hook::kEnable);
+    GET_CONFIG(string, hook_server_exited, Hook::kOnServerExited);
+    if (!hook_enable || hook_server_exited.empty()) {
+        return;
+    }
+
+    const ArgsType body;
+    // 执行hook
+    do_http_hook(hook_server_exited, body, nullptr);
 }
 
 // 服务器定时保活定时器
@@ -667,4 +681,8 @@ void installWebHook() {
 void unInstallWebHook() {
     g_keepalive_timer.reset();
     NoticeCenter::Instance().delListener(&web_hook_tag);
+}
+
+void onProcessExited() {
+    reportServerExited();
 }
