@@ -24,7 +24,11 @@
 ##############################################################################
 
 # jsoncpp
-aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/jsoncpp/src/lib_json JSONCPP_SRC_LIST)
+file(GLOB JSONCPP_SRC_LIST
+  ${CMAKE_CURRENT_SOURCE_DIR}/jsoncpp/include/json/*.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/jsoncpp/src/lib_json/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/jsoncpp/src/lib_json/*.h)
+  
 add_library(jsoncpp STATIC ${JSONCPP_SRC_LIST})
 target_compile_options(jsoncpp
   PRIVATE ${COMPILE_OPTIONS_DEFAULT})

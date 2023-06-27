@@ -449,11 +449,6 @@ if(ENABLE_API)
   add_subdirectory(api)
 endif()
 
-# IOS 不编译可执行程序
-if(IOS)
-  return()
-endif()
-
 ##############################################################################
 
 if(ENABLE_PLAYER AND ENABLE_FFMPEG)
@@ -468,6 +463,11 @@ endif()
 # Android 会 add_subdirectory 并依赖该变量
 if(ENABLE_SERVER_LIB)
   set(MK_LINK_LIBRARIES ${MK_LINK_LIBRARIES} PARENT_SCOPE)
+endif()
+
+# IOS 不编译可执行程序
+if(IOS)
+  return()
 endif()
 
 #cpp测试demo程序
