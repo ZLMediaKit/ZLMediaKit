@@ -240,7 +240,7 @@ int start_main(int argc,char *argv[]) {
         // 日志最多保存天数
         fileChannel->setMaxDay(cmd_main["max_day"]);
         fileChannel->setFileMaxCount(cmd_main["log-slice"]);
-        fileChannel->setFileMaxSize(1024 * 1024 * cmd_main["log-size"].as<uint32_t>());
+        fileChannel->setFileMaxSize(cmd_main["log-size"]);
         Logger::Instance().add(fileChannel);
 #endif // !defined(ANDROID)
 
