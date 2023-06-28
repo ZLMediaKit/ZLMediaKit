@@ -50,6 +50,7 @@ private:
 private:
     bool _drop_flag = false;
     uint16_t _last_seq = 0;
+    uint64_t _last_stamp = 0;
     size_t _max_frame_size;
     CodecId _codec;
     FrameImp::Ptr _frame;
