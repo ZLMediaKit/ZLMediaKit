@@ -31,6 +31,7 @@ extern const std::string kTimeoutSec;
 
 void installWebHook();
 void unInstallWebHook();
+void onProcessExited();
 /**
  * 触发http hook请求
  * @param url 请求地址
