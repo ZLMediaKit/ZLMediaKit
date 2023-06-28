@@ -409,9 +409,9 @@ int start_main(int argc,char *argv[]) {
         static semaphore sem;
         signal(SIGINT, [](int) {
             InfoL << "SIGINT:exit";
-            signal(SIGINT, SIG_IGN);// 设置退出信号
+            signal(SIGINT, SIG_IGN); // 设置退出信号
             sem.post();
-        });// 设置退出信号
+        }); // 设置退出信号
 
 #if !defined(_WIN32)
         signal(SIGHUP, [](int) { mediakit::loadIniConfig(g_ini_file.data()); });
@@ -420,6 +420,8 @@ int start_main(int argc,char *argv[]) {
     }
     unInstallWebApi();
     unInstallWebHook();
+    onProcessExited();
+
     //休眠1秒再退出，防止资源释放顺序错误
     InfoL << "程序退出中,请等待...";
     sleep(1);
