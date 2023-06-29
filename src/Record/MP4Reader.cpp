@@ -20,17 +20,18 @@ using namespace toolkit;
 
 namespace mediakit {
 
-MP4Reader::MP4Reader(const string &vhost, const string &app, const string &stream_id, const string &file_path) {
+MP4Reader::MP4Reader(const std::string &vhost, const std::string &app, const std::string &stream_id, const string &file_path) {
     //读写文件建议放在后台线程
+    auto tuple =  MediaTuple{vhost, app, stream_id};
     _poller = WorkThreadPool::Instance().getPoller();
     _file_path = file_path;
     if (_file_path.empty()) {
         GET_CONFIG(string, recordPath, Protocol::kMP4SavePath);
         GET_CONFIG(bool, enableVhost, General::kEnableVhost);
         if (enableVhost) {
-            _file_path = vhost + "/" + app + "/" + stream_id;
+            _file_path = tuple.shortUrl();
         } else {
-            _file_path = app + "/" + stream_id;
+            _file_path = tuple.app + "/" + tuple.stream;
         }
         _file_path = File::absolutePath(_file_path, recordPath);
     }
@@ -38,14 +39,14 @@ MP4Reader::MP4Reader(const string &vhost, const string &app, const string &strea
     _demuxer = std::make_shared<MP4Demuxer>();
     _demuxer->openMP4(_file_path);
 
-    if (stream_id.empty()) {
+    if (tuple.stream.empty()) {
         return;
     }
     ProtocolOption option;
     //读取mp4文件并流化时，不重复生成mp4/hls文件
     option.enable_mp4 = false;
     option.enable_hls = false;
-    _muxer = std::make_shared<MultiMediaSourceMuxer>(vhost, app, stream_id, _demuxer->getDurationMS() / 1000.0f, option);
+    _muxer = std::make_shared<MultiMediaSourceMuxer>(tuple, _demuxer->getDurationMS() / 1000.0f, option);
     auto tracks = _demuxer->getTracks(false);
     if (tracks.empty()) {
         throw std::runtime_error(StrPrinter << "该mp4文件没有有效的track:" << _file_path);
@@ -179,7 +180,7 @@ bool MP4Reader::pause(MediaSource &sender, bool pause) {
 }
 
 bool MP4Reader::speed(MediaSource &sender, float speed) {
-    if (speed < 0.1 && speed > 20) {
+    if (speed < 0.1 || speed > 20) {
         WarnL << "播放速度取值范围非法:" << speed;
         return false;
     }

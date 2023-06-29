@@ -28,15 +28,16 @@ class HttpSession: public toolkit::Session,
                    public HttpRequestSplitter,
                    public WebSocketSplitter {
 public:
-    typedef StrCaseMap KeyValue;
-    typedef HttpResponseInvokerImp HttpResponseInvoker;
+    using Ptr = std::shared_ptr<HttpSession>;
+    using KeyValue = StrCaseMap;
+    using HttpResponseInvoker = HttpResponseInvokerImp ;
     friend class AsyncSender;
     /**
      * @param errMsg 如果为空，则代表鉴权通过，否则为错误提示
      * @param accessPath 运行或禁止访问的根目录
      * @param cookieLifeSecond 鉴权cookie有效期
      **/
-    typedef std::function<void(const std::string &errMsg,const std::string &accessPath, int cookieLifeSecond)> HttpAccessPathInvoker;
+    using HttpAccessPathInvoker = std::function<void(const std::string &errMsg,const std::string &accessPath, int cookieLifeSecond)>;
 
     HttpSession(const toolkit::Socket::Ptr &pSock);
     ~HttpSession() override;
@@ -100,11 +101,10 @@ protected:
     std::string get_peer_ip() override;
 
 private:
-    void Handle_Req_GET(ssize_t &content_len);
-    void Handle_Req_GET_l(ssize_t &content_len, bool sendBody);
-    void Handle_Req_POST(ssize_t &content_len);
-    void Handle_Req_HEAD(ssize_t &content_len);
-    void Handle_Req_OPTIONS(ssize_t &content_len);
+    void onHttpRequest_GET();
+    void onHttpRequest_POST();
+    void onHttpRequest_HEAD();
+    void onHttpRequest_OPTIONS();
 
     bool checkLiveStream(const std::string &schema, const std::string  &url_suffix, const std::function<void(const MediaSource::Ptr &src)> &cb);
 
@@ -123,19 +123,20 @@ private:
     //设置socket标志
     void setSocketFlags();
 
+protected:
+    MediaInfo _mediaInfo;
+
 private:
     bool _is_live_stream = false;
     bool _live_over_websocket = false;
     //消耗的总流量
     uint64_t _total_bytes_usage = 0;
-    std::string _origin;
     Parser _parser;
     toolkit::Ticker _ticker;
-    MediaInfo _mediaInfo;
     TSMediaSource::RingType::RingReader::Ptr _ts_reader;
     FMP4MediaSource::RingType::RingReader::Ptr _fmp4_reader;
     //处理content数据的callback
-    std::function<bool (const char *data,size_t len) > _contentCallBack;
+    std::function<bool (const char *data,size_t len) > _on_recv_body;
 };
 
 using HttpsSession = toolkit::SessionWithSSL<HttpSession>;

@@ -37,7 +37,7 @@ public:
         virtual void onAllTrackReady() = 0;
     };
 
-    MultiMediaSourceMuxer(const std::string &vhost, const std::string &app, const std::string &stream, float dur_sec = 0.0,const ProtocolOption &option = ProtocolOption());
+    MultiMediaSourceMuxer(const MediaTuple& tuple, float dur_sec = 0.0,const ProtocolOption &option = ProtocolOption());
     ~MultiMediaSourceMuxer() override = default;
 
     /**
@@ -131,9 +131,9 @@ public:
      */
     toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;
 
-    const std::string& getVhost() const;
-    const std::string& getApp() const;
-    const std::string& getStreamId() const;
+    const MediaTuple& getMediaTuple() const {
+        return _tuple;
+    }
     std::string shortUrl() const;
 
 protected:
@@ -164,9 +164,7 @@ private:
     bool _is_enable = false;
     bool _create_in_poller = false;
     bool _video_key_pos = false;
-    std::string _vhost;
-    std::string _app;
-    std::string _stream_id;
+    MediaTuple _tuple;
     ProtocolOption _option;
     toolkit::Ticker _last_check;
     Stamp _stamp[2];

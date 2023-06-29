@@ -136,8 +136,14 @@ class ProtocolOption {
 public:
     ProtocolOption();
 
-    //时间戳修复这一路流标志位
-    bool modify_stamp;
+    enum {
+        kModifyStampOff = 0, // 采用源视频流绝对时间戳，不做任何改变
+        kModifyStampSystem = 1, // 采用zlmediakit接收数据时的系统时间戳(有平滑处理)
+        kModifyStampRelative = 2 // 采用源视频流时间戳相对时间戳(增长量)，有做时间戳跳跃和回退矫正
+    };
+    // 时间戳类型
+    int modify_stamp;
+
     //转协议是否开启音频
     bool enable_audio;
     //添加静音音频，在关闭音频时，此开关无效
@@ -252,25 +258,23 @@ private:
 /**
  * 解析url获取媒体相关信息
  */
-class MediaInfo {
+class MediaInfo: public MediaTuple {
 public:
     ~MediaInfo() = default;
     MediaInfo() = default;
     MediaInfo(const std::string &url) { parse(url); }
     void parse(const std::string &url);
-    std::string shortUrl() const { return _vhost + "/" + _app + "/" + _streamid; }
-    std::string getUrl() const { return _schema + "://" + shortUrl(); }
+    std::string getUrl() const { return schema + "://" + shortUrl(); }
 
 public:
-    uint16_t _port = 0;
-    std::string _full_url;
-    std::string _schema;
-    std::string _host;
-    std::string _vhost;
-    std::string _app;
-    std::string _streamid;
-    std::string _param_strs;
+    uint16_t port = 0;
+    std::string full_url;
+    std::string schema;
+    std::string host;
+    std::string param_strs;
 };
+
+bool equalMediaTuple(const MediaTuple& a, const MediaTuple& b);
 
 /**
  * 媒体源，任何rtsp/rtmp的直播流都源自该对象
@@ -280,23 +284,21 @@ public:
     static MediaSource& NullMediaSource();
     using Ptr = std::shared_ptr<MediaSource>;
 
-    MediaSource(const std::string &schema, const std::string &vhost, const std::string &app, const std::string &stream_id);
+    MediaSource(const std::string &schema, const MediaTuple& tuple);
     virtual ~MediaSource();
 
     ////////////////获取MediaSource相关信息////////////////
 
     // 获取协议类型
-    const std::string& getSchema() const;
-    // 虚拟主机
-    const std::string& getVhost() const;
-    // 应用名
-    const std::string& getApp() const;
-    // 流id
-    const std::string& getId() const;
+    const std::string& getSchema() const {
+        return _schema;
+    }
 
-    std::string shortUrl() const { return _vhost + "/" + _app + "/" + _stream_id; }
+    const MediaTuple& getMediaTuple() const {
+        return _tuple;
+    }
 
-    std::string getUrl() const { return _schema + "://" + shortUrl(); }
+    std::string getUrl() const { return _schema + "://" + _tuple.shortUrl(); }
 
     //获取对象所有权
     std::shared_ptr<void> getOwnership();
@@ -369,7 +371,7 @@ public:
     // 同步查找流
     static Ptr find(const std::string &schema, const std::string &vhost, const std::string &app, const std::string &id, bool from_mp4 = false);
     static Ptr find(const MediaInfo &info, bool from_mp4 = false) {
-        return find(info._schema, info._vhost, info._app, info._streamid, from_mp4);
+        return find(info.schema, info.vhost, info.app, info.stream, from_mp4);
     }
 
     // 忽略schema，同步查找流，可能返回rtmp/rtsp/hls类型
@@ -394,15 +396,13 @@ private:
 
 protected:
     toolkit::BytesSpeed _speed[TrackMax];
+    MediaTuple _tuple;
 
 private:
     std::atomic_flag _owned { false };
     time_t _create_stamp;
     toolkit::Ticker _ticker;
     std::string _schema;
-    std::string _vhost;
-    std::string _app;
-    std::string _stream_id;
     std::weak_ptr<MediaSourceEvent> _listener;
     // 对象个数统计
     toolkit::ObjectStatistic<MediaSource> _statistic;

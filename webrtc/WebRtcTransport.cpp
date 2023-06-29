@@ -23,6 +23,8 @@
 #include "WebRtcPlayer.h"
 #include "WebRtcPusher.h"
 
+#include "Rtsp/RtspMediaSourceImp.h"
+
 #define RTP_SSRC_OFFSET 1
 #define RTX_SSRC_OFFSET 2
 #define RTP_CNAME "zlmediakit-rtp"
@@ -111,6 +113,13 @@ const EventPoller::Ptr &WebRtcTransport::getPoller() const {
 
 const string &WebRtcTransport::getIdentifier() const {
     return _identifier;
+}
+
+const std::string& WebRtcTransport::deleteRandStr() const {
+    if (_delete_rand_str.empty()) {
+        _delete_rand_str = makeRandStr(32);
+    }
+    return _delete_rand_str;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -230,7 +239,7 @@ void WebRtcTransport::sendSockData(const char *buf, size_t len, RTC::TransportTu
 
 Session::Ptr WebRtcTransport::getSession() const {
     auto tuple = _ice_server->GetSelectedTuple(true);
-    return tuple ? tuple->shared_from_this() : nullptr;
+    return tuple ? static_pointer_cast<Session>(tuple->shared_from_this()) : nullptr;
 }
 
 void WebRtcTransport::sendRtcpRemb(uint32_t ssrc, size_t bit_rate) {
@@ -314,7 +323,7 @@ void WebRtcTransport::inputSockData(char *buf, int len, RTC::TransportTuple *tup
     if (RTC::StunPacket::IsStun((const uint8_t *)buf, len)) {
         std::unique_ptr<RTC::StunPacket> packet(RTC::StunPacket::Parse((const uint8_t *)buf, len));
         if (!packet) {
-            WarnL << "parse stun error" << std::endl;
+            WarnL << "parse stun error";
             return;
         }
         _ice_server->ProcessStunPacket(packet.get(), tuple);
@@ -689,7 +698,7 @@ public:
         if (!expected) {
             return -1;
         }
-        return _rtcp_context.geLostInterval() * 100 / expected;
+        return _rtcp_context.getLostInterval() * 100 / expected;
     }
 
 private:
@@ -860,7 +869,7 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
 void WebRtcTransportImp::createRtpChannel(const string &rid, uint32_t ssrc, MediaTrack &track) {
     // rid --> RtpReceiverImp
     auto &ref = track.rtp_channel[rid];
-    weak_ptr<WebRtcTransportImp> weak_self = dynamic_pointer_cast<WebRtcTransportImp>(shared_from_this());
+    weak_ptr<WebRtcTransportImp> weak_self = static_pointer_cast<WebRtcTransportImp>(shared_from_this());
     ref = std::make_shared<RtpChannel>(
         getPoller(), [&track, this, rid](RtpPacket::Ptr rtp) mutable { onSortedRtp(track, rid, std::move(rtp)); },
         [&track, weak_self, ssrc](const FCI_NACK &nack) mutable {
@@ -1053,6 +1062,15 @@ void WebRtcTransportImp::onBeforeEncryptRtp(const char *buf, int &len, void *ctx
     }
 }
 
+void WebRtcTransportImp::safeShutdown(const SockException &ex) {
+    std::weak_ptr<WebRtcTransportImp> weak_self = static_pointer_cast<WebRtcTransportImp>(shared_from_this());
+    getPoller()->async([ex, weak_self]() {
+        if (auto strong_self = weak_self.lock()) {
+            strong_self->onShutdown(ex);
+        }
+    });
+}
+
 void WebRtcTransportImp::onShutdown(const SockException &ex) {
     WarnL << ex;
     unrefSelf();
@@ -1161,7 +1179,7 @@ void push_plugin(Session &sender, const WebRtcArgs &args, const WebRtcPluginMana
 
         RtspMediaSourceImp::Ptr push_src;
         std::shared_ptr<void> push_src_ownership;
-        auto src = MediaSource::find(RTSP_SCHEMA, info._vhost, info._app, info._streamid);
+        auto src = MediaSource::find(RTSP_SCHEMA, info.vhost, info.app, info.stream);
         auto push_failed = (bool)src;
 
         while (src) {
@@ -1188,7 +1206,7 @@ void push_plugin(Session &sender, const WebRtcArgs &args, const WebRtcPluginMana
         }
 
         if (!push_src) {
-            push_src = std::make_shared<RtspMediaSourceImp>(info._vhost, info._app, info._streamid);
+            push_src = std::make_shared<RtspMediaSourceImp>(info);
             push_src_ownership = push_src->getOwnership();
             push_src->setProtocolOption(option);
         }
@@ -1209,7 +1227,7 @@ void play_plugin(Session &sender, const WebRtcArgs &args, const WebRtcPluginMana
     MediaInfo info(args["url"]);
     bool preferred_tcp = args["preferred_tcp"];
 
-    auto session_ptr = sender.shared_from_this();
+    auto session_ptr = static_pointer_cast<Session>(sender.shared_from_this());
     Broadcast::AuthInvoker invoker = [cb, info, session_ptr, preferred_tcp](const string &err) mutable {
         if (!err.empty()) {
             cb(WebRtcException(SockException(Err_other, err)));
@@ -1217,7 +1235,7 @@ void play_plugin(Session &sender, const WebRtcArgs &args, const WebRtcPluginMana
         }
 
         // webrtc播放的是rtsp的源
-        info._schema = RTSP_SCHEMA;
+        info.schema = RTSP_SCHEMA;
         MediaSource::findAsync(info, session_ptr, [=](const MediaSource::Ptr &src_in) mutable {
             auto src = dynamic_pointer_cast<RtspMediaSource>(src_in);
             if (!src) {
@@ -1225,7 +1243,7 @@ void play_plugin(Session &sender, const WebRtcArgs &args, const WebRtcPluginMana
                 return;
             }
             // 还原成rtc，目的是为了hook时识别哪种播放协议
-            info._schema = RTC_SCHEMA;
+            info.schema = RTC_SCHEMA;
             auto rtc = WebRtcPlayer::create(EventPollerPool::Instance().getPoller(), src, info, preferred_tcp);
             cb(*rtc);
         });

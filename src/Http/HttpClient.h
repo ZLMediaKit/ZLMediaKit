@@ -22,7 +22,7 @@
 #include "HttpRequestSplitter.h"
 #include "HttpCookie.h"
 #include "HttpChunkedSplitter.h"
-#include "strCoding.h"
+#include "Common/strCoding.h"
 #include "HttpBody.h"
 
 namespace mediakit {
@@ -177,7 +177,7 @@ protected:
     //// TcpClient override ////
     void onConnect(const toolkit::SockException &ex) override;
     void onRecv(const toolkit::Buffer::Ptr &pBuf) override;
-    void onErr(const toolkit::SockException &ex) override;
+    void onError(const toolkit::SockException &ex) override;
     void onFlush() override;
     void onManager() override;
 

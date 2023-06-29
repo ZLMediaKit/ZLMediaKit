@@ -1,5 +1,7 @@
 ![logo](https://raw.githubusercontent.com/ZLMediaKit/ZLMediaKit/master/www/logo.png)
 
+简体中文 | [English](./README_en.md)
+
 # 一个基于C++11的高性能运营级流媒体服务框架
 
 [![](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/ZLMediaKit/ZLMediaKit/blob/master/LICENSE)
@@ -61,7 +63,8 @@
   - RTMP[S] 发布服务器，支持录制发布流
   - RTMP[S] 播放器，支持RTMP代理，支持生成静音音频
   - RTMP[S] 推流客户端
-  - 支持http[s]-flv直播
+  - 支持http[s]-flv直播服务器
+  - 支持http[s]-flv直播播放器
   - 支持websocket-flv直播
   - 支持H264/H265/AAC/G711/OPUS编码，其他编码能转发但不能转协议
   - 支持[RTMP-H265](https://github.com/ksvc/FFmpeg/wiki)
@@ -99,6 +102,7 @@
   - 支持es/ps/ts/ehome rtp推流
   - 支持es/ps rtp转推
   - 支持GB28181主动拉流模式
+  - 支持双向语音对讲
 
 - MP4点播与录制
   - 支持录制为FLV/HLS/MP4
@@ -119,6 +123,7 @@
   - 支持datachannel
   - 支持webrtc over tcp模式
   - 优秀的nack、jitter buffer算法, 抗丢包能力卓越
+  - 支持whip/whep协议
 - [SRT支持](./srt/srt.md)
 - 其他
   - 支持丰富的restful api以及web hook事件 
@@ -302,6 +307,9 @@ bash build_docker_images.sh
 [TempoTian](https://github.com/TempoTian)
 [Derek Liu](https://github.com/yjkhtddx)
 [ljx0305](https://github.com/ljx0305)
+[朱如洪 ](https://github.com/zhu410289616)
+[lijin](https://github.com/1461521844lijin)
+[PioLing](https://github.com/PioLing)
 
 ## 使用案例
 

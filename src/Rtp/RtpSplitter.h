@@ -35,7 +35,8 @@ protected:
     const char *onSearchPacketTail_l(const char *data, size_t len);
 
 private:
-    bool _is_ehome = false;
+    bool _is_ehome = true;
+    bool _is_rtsp_interleaved = true;
     size_t _offset = 0;
 };
 

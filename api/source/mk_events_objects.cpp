@@ -86,17 +86,17 @@ API_EXPORT const char* API_CALL mk_mp4_info_get_stream(const mk_mp4_info ctx){
 API_EXPORT const char* API_CALL mk_parser_get_method(const mk_parser ctx){
     assert(ctx);
     Parser *parser = (Parser *)ctx;
-    return parser->Method().c_str();
+    return parser->method().c_str();
 }
 API_EXPORT const char* API_CALL mk_parser_get_url(const mk_parser ctx){
     assert(ctx);
     Parser *parser = (Parser *)ctx;
-    return parser->Url().c_str();
+    return parser->url().c_str();
 }
 API_EXPORT const char* API_CALL mk_parser_get_url_params(const mk_parser ctx){
     assert(ctx);
     Parser *parser = (Parser *)ctx;
-    return parser->Params().c_str();
+    return parser->params().c_str();
 }
 API_EXPORT const char* API_CALL mk_parser_get_url_param(const mk_parser ctx,const char *key){
     assert(ctx && key);
@@ -106,7 +106,7 @@ API_EXPORT const char* API_CALL mk_parser_get_url_param(const mk_parser ctx,cons
 API_EXPORT const char* API_CALL mk_parser_get_tail(const mk_parser ctx){
     assert(ctx);
     Parser *parser = (Parser *)ctx;
-    return parser->Tail().c_str();
+    return parser->protocol().c_str();
 }
 API_EXPORT const char* API_CALL mk_parser_get_header(const mk_parser ctx,const char *key){
     assert(ctx && key);
@@ -117,52 +117,52 @@ API_EXPORT const char* API_CALL mk_parser_get_content(const mk_parser ctx, size_
     assert(ctx);
     Parser *parser = (Parser *)ctx;
     if(length){
-        *length = parser->Content().size();
+        *length = parser->content().size();
     }
-    return parser->Content().c_str();
+    return parser->content().c_str();
 }
 
 ///////////////////////////////////////////MediaInfo/////////////////////////////////////////////
 API_EXPORT const char* API_CALL mk_media_info_get_params(const mk_media_info ctx){
     assert(ctx);
     MediaInfo *info = (MediaInfo *)ctx;
-    return info->_param_strs.c_str();
+    return info->param_strs.c_str();
 }
 
 API_EXPORT const char* API_CALL mk_media_info_get_schema(const mk_media_info ctx){
     assert(ctx);
     MediaInfo *info = (MediaInfo *)ctx;
-    return info->_schema.c_str();
+    return info->schema.c_str();
 }
 
 API_EXPORT const char* API_CALL mk_media_info_get_vhost(const mk_media_info ctx){
     assert(ctx);
     MediaInfo *info = (MediaInfo *)ctx;
-    return info->_vhost.c_str();
+    return info->vhost.c_str();
 }
 
 API_EXPORT const char* API_CALL mk_media_info_get_host(const mk_media_info ctx){
     assert(ctx);
     MediaInfo *info = (MediaInfo *)ctx;
-    return info->_host.c_str();
+    return info->host.c_str();
 }
 
 API_EXPORT uint16_t API_CALL mk_media_info_get_port(const mk_media_info ctx){
     assert(ctx);
     MediaInfo *info = (MediaInfo *)ctx;
-    return info->_port;
+    return info->port;
 }
 
 API_EXPORT const char* API_CALL mk_media_info_get_app(const mk_media_info ctx){
     assert(ctx);
     MediaInfo *info = (MediaInfo *)ctx;
-    return info->_app.c_str();
+    return info->app.c_str();
 }
 
 API_EXPORT const char* API_CALL mk_media_info_get_stream(const mk_media_info ctx){
     assert(ctx);
     MediaInfo *info = (MediaInfo *)ctx;
-    return info->_streamid.c_str();
+    return info->stream.c_str();
 }
 
 ///////////////////////////////////////////MediaSource/////////////////////////////////////////////
@@ -174,17 +174,17 @@ API_EXPORT const char* API_CALL mk_media_source_get_schema(const mk_media_source
 API_EXPORT const char* API_CALL mk_media_source_get_vhost(const mk_media_source ctx){
     assert(ctx);
     MediaSource *src = (MediaSource *)ctx;
-    return src->getVhost().c_str();
+    return src->getMediaTuple().vhost.c_str();
 }
 API_EXPORT const char* API_CALL mk_media_source_get_app(const mk_media_source ctx){
     assert(ctx);
     MediaSource *src = (MediaSource *)ctx;
-    return src->getApp().c_str();
+    return src->getMediaTuple().app.c_str();
 }
 API_EXPORT const char* API_CALL mk_media_source_get_stream(const mk_media_source ctx){
     assert(ctx);
     MediaSource *src = (MediaSource *)ctx;
-    return src->getId().c_str();
+    return src->getMediaTuple().stream.c_str();
 }
 API_EXPORT int API_CALL mk_media_source_get_reader_count(const mk_media_source ctx){
     assert(ctx);
@@ -196,6 +196,22 @@ API_EXPORT int API_CALL mk_media_source_get_total_reader_count(const mk_media_so
     assert(ctx);
     MediaSource *src = (MediaSource *)ctx;
     return src->totalReaderCount();
+}
+
+API_EXPORT int API_CALL mk_media_source_get_track_count(const mk_media_source ctx) {
+    assert(ctx);
+    MediaSource *src = (MediaSource *)ctx;
+    return src->getTracks(false).size();
+}
+
+API_EXPORT mk_track API_CALL mk_media_source_get_track(const mk_media_source ctx, int index) {
+    assert(ctx);
+    MediaSource *src = (MediaSource *)ctx;
+    auto tracks = src->getTracks(false);
+    if (index < 0 && index >= tracks.size()) {
+        return nullptr;
+    }
+    return (mk_track) new Track::Ptr(std::move(tracks[index]));
 }
 
 API_EXPORT int API_CALL mk_media_source_close(const mk_media_source ctx,int force){
@@ -246,6 +262,16 @@ API_EXPORT void API_CALL mk_media_source_find(const char *schema,
     assert(schema && vhost && app && stream && cb);
     auto src = MediaSource::find(schema, vhost, app, stream, from_mp4);
     cb(user_data, (mk_media_source)src.get());
+}
+
+API_EXPORT const mk_media_source API_CALL mk_media_source_find2(const char *schema,
+                                                                const char *vhost,
+                                                                const char *app,
+                                                                const char *stream,
+                                                                int from_mp4) {
+    assert(schema && vhost && app && stream);
+    auto src = MediaSource::find(schema, vhost, app, stream, from_mp4);
+    return (mk_media_source)src.get();
 }
 
 API_EXPORT void API_CALL mk_media_source_for_each(void *user_data, on_mk_media_source_find_cb cb, const char *schema,

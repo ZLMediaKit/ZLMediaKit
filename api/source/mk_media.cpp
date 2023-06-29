@@ -22,7 +22,8 @@ public:
     MediaHelper(const char *vhost, const char *app, const char *stream, float duration, const ProtocolOption &option) {
         _poller = EventPollerPool::Instance().getPoller();
         // 在poller线程中创建DevChannel(MultiMediaSourceMuxer)对象，确保严格的线程安全限制
-        _poller->sync([&]() { _channel = std::make_shared<DevChannel>(vhost, app, stream, duration, option); });
+        auto tuple = MediaTuple{vhost, app, stream};
+        _poller->sync([&]() { _channel = std::make_shared<DevChannel>(tuple, duration, option); });
     }
 
     ~MediaHelper() = default;
@@ -263,7 +264,7 @@ API_EXPORT void API_CALL mk_media_input_yuv(mk_media ctx, const char *yuv[3], in
 }
 
 API_EXPORT int API_CALL mk_media_input_aac(mk_media ctx, const void *data, int len, uint64_t dts, void *adts) {
-    assert(ctx && data && len > 0 && adts);
+    assert(ctx && data && len > 0);
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *) ctx;
     return (*obj)->getChannel()->inputAAC((const char *) data, len, dts, (char *) adts);
 }

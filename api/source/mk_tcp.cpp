@@ -139,7 +139,7 @@ API_EXPORT void API_CALL mk_tcp_session_send(const mk_tcp_session ctx, const cha
 API_EXPORT void API_CALL mk_tcp_session_send_buffer_safe(const mk_tcp_session ctx, mk_buffer buffer) {
     assert(ctx && buffer);
     try {
-        std::weak_ptr<Session> weak_session = ((SessionForC *) ctx)->shared_from_this();
+        std::weak_ptr<SocketHelper> weak_session = ((SessionForC *) ctx)->shared_from_this();
         auto ref = mk_buffer_ref(buffer);
         ((SessionForC *) ctx)->async([weak_session, ref]() {
             auto session_session = weak_session.lock();
@@ -149,13 +149,13 @@ API_EXPORT void API_CALL mk_tcp_session_send_buffer_safe(const mk_tcp_session ct
             mk_buffer_unref(ref);
         });
     } catch (std::exception &ex) {
-        WarnL << "can not got the strong pionter of this mk_tcp_session:" << ex.what();
+        WarnL << "can not got the strong pointer of this mk_tcp_session:" << ex.what();
     }
 }
 
 API_EXPORT mk_tcp_session_ref API_CALL mk_tcp_session_ref_from(const mk_tcp_session ctx) {
     auto ref = ((SessionForC *) ctx)->shared_from_this();
-    return (mk_tcp_session_ref)new std::shared_ptr<SessionForC>(std::dynamic_pointer_cast<SessionForC>(ref));
+    return (mk_tcp_session_ref)new std::shared_ptr<SessionForC>(std::static_pointer_cast<SessionForC>(ref));
 }
 
 API_EXPORT void mk_tcp_session_ref_release(const mk_tcp_session_ref ref) {
@@ -271,7 +271,7 @@ void TcpClientForC::onRecv(const Buffer::Ptr &pBuf) {
     }
 }
 
-void TcpClientForC::onErr(const SockException &ex) {
+void TcpClientForC::onError(const SockException &ex) {
     if(_events.on_mk_tcp_client_disconnect){
         _events.on_mk_tcp_client_disconnect(_client,ex.getErrCode(),ex.what());
     }

@@ -54,7 +54,7 @@ WebRtcSession::WebRtcSession(const Socket::Ptr &sock) : Session(sock) {
 WebRtcSession::~WebRtcSession() = default;
 
 void WebRtcSession::attachServer(const Server &server) {
-    _server = std::dynamic_pointer_cast<toolkit::TcpServer>(const_cast<Server &>(server).shared_from_this());
+    _server = std::static_pointer_cast<toolkit::TcpServer>(const_cast<Server &>(server).shared_from_this());
 }
 
 void WebRtcSession::onRecv_l(const char *data, size_t len) {
@@ -108,7 +108,7 @@ void WebRtcSession::onError(const SockException &err) {
     if (!_transport) {
         return;
     }
-    auto self = shared_from_this();
+    auto self = static_pointer_cast<WebRtcSession>(shared_from_this());
     auto transport = std::move(_transport);
     getPoller()->async([transport, self]() mutable {
         //延时减引用，防止使用transport对象时，销毁对象

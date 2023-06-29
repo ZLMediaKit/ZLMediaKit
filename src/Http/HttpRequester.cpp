@@ -27,7 +27,7 @@ void HttpRequester::onResponseBody(const char *buf, size_t size) {
 
 void HttpRequester::onResponseCompleted(const SockException &ex) {
     if (ex && _retry++ < _max_retry) {
-        std::weak_ptr<HttpRequester> weak_self = std::dynamic_pointer_cast<HttpRequester>(shared_from_this());
+        std::weak_ptr<HttpRequester> weak_self = std::static_pointer_cast<HttpRequester>(shared_from_this());
         getPoller()->doDelayTask(_retry_delay, [weak_self](){
             if (auto self = weak_self.lock()) {
                 InfoL << "resend request " << self->getUrl() << " with retry " << self->getRetry();

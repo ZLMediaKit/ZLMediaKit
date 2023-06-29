@@ -23,12 +23,9 @@ class FMP4MediaSourceMuxer final : public MP4MuxerMemory, public MediaSourceEven
 public:
     using Ptr = std::shared_ptr<FMP4MediaSourceMuxer>;
 
-    FMP4MediaSourceMuxer(const std::string &vhost,
-                         const std::string &app,
-                         const std::string &stream_id,
-                         const ProtocolOption &option) {
+    FMP4MediaSourceMuxer(const MediaTuple& tuple, const ProtocolOption &option) {
         _option = option;
-        _media_src = std::make_shared<FMP4MediaSource>(vhost, app, stream_id);
+        _media_src = std::make_shared<FMP4MediaSource>(tuple);
     }
 
     ~FMP4MediaSourceMuxer() override { MP4MuxerMemory::flush(); };

@@ -46,7 +46,11 @@ HlsCookieData::~HlsCookieData() {
         GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
         uint64_t bytes = _bytes.load();
         if (bytes >= iFlowThreshold * 1024) {
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _info, bytes, duration, true, static_cast<SockInfo &>(*_sock_info));
+            try {
+                NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _info, bytes, duration, true, static_cast<SockInfo &>(*_sock_info));
+            } catch (std::exception &ex) {
+                WarnL << "Exception occurred: " << ex.what();
+            }
         }
     }
 }
@@ -68,7 +72,7 @@ HlsMediaSource::Ptr HlsCookieData::getMediaSource() const {
 void HlsMediaSource::setIndexFile(std::string index_file)
 {
     if (!_ring) {
-        std::weak_ptr<HlsMediaSource> weakSelf = std::dynamic_pointer_cast<HlsMediaSource>(shared_from_this());
+        std::weak_ptr<HlsMediaSource> weakSelf = std::static_pointer_cast<HlsMediaSource>(shared_from_this());
         auto lam = [weakSelf](int size) {
             auto strongSelf = weakSelf.lock();
             if (!strongSelf) {

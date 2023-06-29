@@ -246,6 +246,8 @@ extern const std::string kDirMenu;
 extern const std::string kForbidCacheSuffix;
 // 可以把http代理前真实客户端ip放在http头中：https://github.com/ZLMediaKit/ZLMediaKit/issues/1388
 extern const std::string kForwardedIpHeader;
+// 是否允许所有跨域请求
+extern const std::string kAllowCrossDomains;
 } // namespace Http
 
 ////////////SHELL配置///////////
@@ -271,6 +273,11 @@ extern const std::string kDirectProxy;
 
 // rtsp 转发是否使用低延迟模式，当开启时，不会缓存rtp包，来提高并发，可以降低一帧的延迟
 extern const std::string kLowLatency;
+
+//强制协商rtp传输方式 (0:TCP,1:UDP,2:MULTICAST,-1:不限制)
+//当客户端发起RTSP SETUP的时候如果传输类型和此配置不一致则返回461 Unsupport Transport
+//迫使客户端重新SETUP并切换到对应协议。目前支持FFMPEG和VLC
+extern const std::string kRtpTransportType;
 } // namespace Rtsp
 
 ////////////RTMP服务器配置///////////
@@ -291,6 +298,8 @@ extern const std::string kAudioMtuSize;
 extern const std::string kRtpMaxSize;
 // rtp 打包时，低延迟开关，默认关闭（为0），h264存在一帧多个slice（NAL）的情况，在这种情况下，如果开启可能会导致画面花屏
 extern const std::string kLowLatency;
+//H264 rtp打包模式是否采用stap-a模式(为了在老版本浏览器上兼容webrtc)还是采用Single NAL unit packet per H.264 模式
+extern const std::string kH264StapA;
 } // namespace Rtp
 
 ////////////组播配置///////////

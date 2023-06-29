@@ -37,8 +37,8 @@ public:
     void teardown() override;
 
 protected:
-    virtual bool onCheckMeta(const AMFValue &val) = 0;
-    virtual void onMediaData(RtmpPacket::Ptr chunk_data) = 0;
+    virtual bool onMetadata(const AMFValue &val) = 0;
+    virtual void onRtmpPacket(RtmpPacket::Ptr chunk_data) = 0;
     uint32_t getProgressMilliSecond() const;
     void seekToMilliSecond(uint32_t ms);
 
@@ -50,7 +50,7 @@ protected:
     //form Tcpclient
     void onRecv(const toolkit::Buffer::Ptr &buf) override;
     void onConnect(const toolkit::SockException &err) override;
-    void onErr(const toolkit::SockException &ex) override;
+    void onError(const toolkit::SockException &ex) override;
     //from RtmpProtocol
     void onRtmpChunk(RtmpPacket::Ptr chunk_data) override;
     void onStreamDry(uint32_t stream_index) override;
