@@ -80,6 +80,9 @@ if(ENABLE_MP4)
     MediaServer::flv MediaServer::mov)
   update_cached_list(MK_COMPILE_DEFINITIONS
     ENABLE_MP4)
+  if(ENABLE_HLS_MP4)
+    update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_HLS_MP4)
+  endif()
 endif()
 
 # 添加 mpeg 用于支持 ts 生成

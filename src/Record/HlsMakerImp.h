@@ -52,6 +52,7 @@ public:
 protected:
     std::string onOpenSegment(uint64_t index) override ;
     void onDelSegment(uint64_t index) override;
+    void onWriteInitSegment(const char *data, size_t len) override;
     void onWriteSegment(const char *data, size_t len) override;
     void onWriteHls(const std::string &data) override;
     void onFlushLastSegment(uint64_t duration_ms) override;
