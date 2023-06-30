@@ -109,7 +109,6 @@ MultiMediaSourceMuxer::MultiMediaSourceMuxer(const MediaTuple& tuple, float dur_
 
 #if defined(ENABLE_HLS_MP4)
         _hls_fmp4 = dynamic_pointer_cast<HlsFMP4Recorder>(Recorder::createRecorder(Recorder::type_hls_fmp4, _tuple, option));
-        _hls_fmp4->setMediaSource(_fmp4->getMediaSource());
 #endif
     }
 #endif
@@ -368,6 +367,14 @@ bool MultiMediaSourceMuxer::onTrackReady(const Track::Ptr &track) {
     if (hls) {
         ret = hls->addTrack(track) ? true : ret;
     }
+
+#if defined(ENABLE_HLS_MP4)
+    auto hls_fmp4 = _hls_fmp4;
+    if (hls_fmp4) {
+        ret = hls_fmp4->addTrack(track) ? true : ret;
+    }
+#endif
+
     auto mp4 = _mp4;
     if (mp4) {
         ret = mp4->addTrack(track) ? true : ret;
@@ -390,7 +397,7 @@ void MultiMediaSourceMuxer::onAllTrackReady() {
         _fmp4->onAllTrackReady();
 
 #if defined(ENABLE_HLS_MP4)
-        _hls_fmp4->addTrackCompleted();
+        _hls_fmp4->onAllTrackReady();
 #endif
     }
 #endif
@@ -490,6 +497,14 @@ bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
     if (hls) {
         ret = hls->inputFrame(frame) ? true : ret;
     }
+
+#if defined(ENABLE_HLS_MP4)
+    auto hls_fmp4 = _hls_fmp4;
+    if (hls_fmp4) {
+        ret = hls_fmp4->inputFrame(frame) ? true : ret;
+    }
+#endif
+
     auto mp4 = _mp4;
     if (mp4) {
         ret = mp4->inputFrame(frame) ? true : ret;

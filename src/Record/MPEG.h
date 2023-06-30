@@ -25,7 +25,7 @@ namespace mediakit {
 //该类用于产生MPEG-TS/MPEG-PS
 class MpegMuxer : public MediaSinkInterface {
 public:
-    MpegMuxer(bool is_ps);
+    MpegMuxer(bool is_ps = false);
     ~MpegMuxer() override;
 
     /**

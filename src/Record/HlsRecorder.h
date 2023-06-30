@@ -13,15 +13,15 @@
 
 #include "HlsMakerImp.h"
 #include "MPEG.h"
+#include "MP4Muxer.h"
 #include "Common/config.h"
 
 namespace mediakit {
 
-class HlsRecorder final : public MediaSourceEventInterceptor, public MpegMuxer, public std::enable_shared_from_this<HlsRecorder> {
+template <typename Muxer>
+class HlsRecorderBase : public MediaSourceEventInterceptor, public Muxer, public std::enable_shared_from_this<HlsRecorderBase<Muxer> > {
 public:
-    using Ptr = std::shared_ptr<HlsRecorder>;
-
-    HlsRecorder(const std::string &m3u8_file, const std::string &params, const ProtocolOption &option) : MpegMuxer(false) {
+    HlsRecorderBase(const std::string &m3u8_file, const std::string &params, const ProtocolOption &option) {
         GET_CONFIG(uint32_t, hlsNum, Hls::kSegmentNum);
         GET_CONFIG(bool, hlsKeep, Hls::kSegmentKeep);
         GET_CONFIG(uint32_t, hlsBufSize, Hls::kFileBufSize);
@@ -33,7 +33,7 @@ public:
         _hls->clearCache();
     }
 
-    ~HlsRecorder() { MpegMuxer::flush(); };
+    ~HlsRecorderBase() override = default;
 
     void setMediaSource(const MediaTuple& tuple) {
         _hls->setMediaSource(tuple.vhost, tuple.app, tuple.stream);
@@ -41,7 +41,7 @@ public:
 
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener) {
         setDelegate(listener);
-        _hls->getMediaSource()->setListener(shared_from_this());
+        _hls->getMediaSource()->setListener(this->shared_from_this());
     }
 
     int readerCount() { return _hls->getMediaSource()->readerCount(); }
@@ -64,7 +64,7 @@ public:
             _hls->getMediaSource()->setIndexFile("");
         }
         if (_enabled || !_option.hls_demand) {
-            return MpegMuxer::inputFrame(frame);
+            return Muxer::inputFrame(frame);
         }
         return false;
     }
@@ -74,6 +74,24 @@ public:
         return _option.hls_demand ? (_clear_cache ? true : _enabled) : true;
     }
 
+protected:
+    bool _enabled = true;
+    bool _clear_cache = false;
+    ProtocolOption _option;
+    std::shared_ptr<HlsMakerImp> _hls;
+};
+
+#if defined(ENABLE_HLS)
+class HlsRecorder final : public HlsRecorderBase<MpegMuxer> {
+public:
+    using Ptr = std::shared_ptr<HlsRecorder>;
+    template <typename ...ARGS>
+    HlsRecorder(ARGS && ...args) : HlsRecorderBase<MpegMuxer>(std::forward<ARGS>(args)...) {
+        _hls->setSchema(HLS_SCHEMA);
+    }
+
+    ~HlsRecorder() override { this->flush(); }
+
 private:
     void onWrite(std::shared_ptr<toolkit::Buffer> buffer, uint64_t timestamp, bool key_pos) override {
         if (!buffer) {
@@ -82,12 +100,34 @@ private:
             _hls->inputData(buffer->data(), buffer->size(), timestamp, key_pos);
         }
     }
+};
+#endif
+
+#if defined(ENABLE_MP4)
+class HlsFMP4Recorder final : public HlsRecorderBase<MP4MuxerMemory> {
+public:
+    using Ptr = std::shared_ptr<HlsFMP4Recorder>;
+    template <typename ...ARGS>
+    HlsFMP4Recorder(ARGS && ...args) : HlsRecorderBase<MP4MuxerMemory>(std::forward<ARGS>(args)...) {
+        _hls->setSchema(HLS_FMP4_SCHEMA);
+    }
+
+    ~HlsFMP4Recorder() override { this->flush(); }
+
+    void onAllTrackReady() {
+        onSegmentData(getInitSegment(), 0, 0);
+    }
 
 private:
-    bool _enabled = true;
-    bool _clear_cache = false;
-    ProtocolOption _option;
-    std::shared_ptr<HlsMakerImp> _hls;
+    void onSegmentData(std::string buffer, uint64_t timestamp, bool key_pos) override {
+        if (buffer.empty()) {
+            _hls->inputData(nullptr, 0, timestamp, key_pos);
+        } else {
+            _hls->inputData((char *)buffer.data(), buffer.size(), timestamp, key_pos);
+        }
+    }
 };
+#endif
+
 }//namespace mediakit
 #endif //HLSRECORDER_H

@@ -46,7 +46,7 @@ public:
         // 录制MP4
         type_mp4 = 1,
         // 录制hls.fmp4
-        type_hls_fmp4 
+        type_hls_fmp4 = 2
     } type;
 
     /**

@@ -279,7 +279,7 @@ static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo
         HttpCookieManager::Instance().delCookie(cookie);
     }
 
-    bool is_hls = media_info.schema == HLS_SCHEMA;
+    bool is_hls = media_info.schema == HLS_SCHEMA || media_info.schema == HLS_FMP4_SCHEMA;
 
     SockInfoImp::Ptr info = std::make_shared<SockInfoImp>();
     info->_identifier = sender.getIdentifier();
