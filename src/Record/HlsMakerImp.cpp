@@ -82,7 +82,7 @@ string HlsMakerImp::onOpenSegment(uint64_t index) {
         auto strDate = getTimeStr("%Y-%m-%d");
         auto strHour = getTimeStr("%H");
         auto strTime = getTimeStr("%M-%S");
-        segment_name = StrPrinter << strDate + "/" + strHour + "/" + strTime << "_" << index << ".ts";
+        segment_name = StrPrinter << strDate + "/" + strHour + "/" + strTime << "_" << index << (_schema == HLS_SCHEMA ? ".ts" : ".mp4");
         segment_path = _path_prefix + "/" + segment_name;
         if (isLive()) {
             _segment_file_paths.emplace(index, segment_path);
@@ -112,6 +112,18 @@ void HlsMakerImp::onDelSegment(uint64_t index) {
     }
     File::delete_file(it->second.data());
     _segment_file_paths.erase(it);
+}
+
+void HlsMakerImp::onWriteInitSegment(const char *data, size_t len) {
+    string init_seg_path = _path_prefix + "/init.mp4";
+    _file = makeFile(init_seg_path, true);
+
+    if (_file) {
+        fwrite(data, len, 1, _file.get());
+        _file = nullptr;
+    } else {
+        WarnL << "create file failed," << init_seg_path << " " << get_uv_errmsg();
+    }
 }
 
 void HlsMakerImp::onWriteSegment(const char *data, size_t len) {
@@ -166,7 +178,7 @@ void HlsMakerImp::setMediaSource(const string &vhost, const string &app, const s
     _info.app = app;
     _info.stream = stream_id;
     _info.vhost = vhost;
-    _media_src = std::make_shared<HlsMediaSource>(_info);
+    _media_src = std::make_shared<HlsMediaSource>(_schema, _info);
 }
 
 HlsMediaSource::Ptr HlsMakerImp::getMediaSource() const {

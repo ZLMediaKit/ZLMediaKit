@@ -28,6 +28,8 @@ public:
     HlsMaker(float seg_duration = 5, uint32_t seg_number = 3, bool seg_keep = false);
     virtual ~HlsMaker();
 
+    void setSchema(const std::string &schema) { _schema = schema; }
+
     /**
      * 写入ts数据
      * @param data 数据
@@ -65,6 +67,13 @@ protected:
      * @param index
      */
     virtual void onDelSegment(uint64_t index) = 0;
+
+    /**
+     * 写init.mp4切片文件回调
+     * @param data
+     * @param len
+     */
+    virtual void onWriteInitSegment(const char *data, size_t len) = 0;
 
     /**
      * 写ts切片文件回调
@@ -108,7 +117,11 @@ private:
      */
     void addNewSegment(uint64_t timestamp);
 
+protected:
+    std::string _schema;
+
 private:
+    bool _init_seg = false;
     float _seg_duration = 0;
     uint32_t _seg_number = 0;
     bool _seg_keep = false;

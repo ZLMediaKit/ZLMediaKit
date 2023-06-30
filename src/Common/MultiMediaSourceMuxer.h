@@ -17,6 +17,7 @@
 #include "Record/Recorder.h"
 #include "Rtp/RtpSender.h"
 #include "Record/HlsRecorder.h"
+#include "Record/HlsFMP4Recorder.h"
 #include "Record/HlsMediaSource.h"
 #include "Rtsp/RtspMediaSourceMuxer.h"
 #include "Rtmp/RtmpMediaSourceMuxer.h"
@@ -176,6 +177,7 @@ private:
     TSMediaSourceMuxer::Ptr _ts;
     MediaSinkInterface::Ptr _mp4;
     HlsRecorder::Ptr _hls;
+    HlsFMP4Recorder::Ptr _hls_fmp4;
     toolkit::EventPoller::Ptr _poller;
     RingType::Ptr _ring;
 

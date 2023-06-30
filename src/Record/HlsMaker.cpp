@@ -16,6 +16,8 @@ using namespace std;
 namespace mediakit {
 
 HlsMaker::HlsMaker(float seg_duration, uint32_t seg_number, bool seg_keep) {
+	_schema = HLS_SCHEMA;
+
     //最小允许设置为0，0个切片代表点播
     _seg_number = seg_number;
     _seg_duration = seg_duration;
@@ -38,25 +40,50 @@ void HlsMaker::makeIndexFile(bool eof) {
     auto sequence = _seg_number ? (_file_index > _seg_number ? _file_index - _seg_number : 0LL) : 0LL;
 
     string m3u8;
-     if (_seg_number == 0) {
+    if (_seg_number == 0) {
         // 录像点播支持时移
-        snprintf(file_content, sizeof(file_content),
-                 "#EXTM3U\n"
-                 "#EXT-X-PLAYLIST-TYPE:EVENT\n"
-                 "#EXT-X-VERSION:4\n"
-                 "#EXT-X-TARGETDURATION:%u\n"
-                 "#EXT-X-MEDIA-SEQUENCE:%llu\n",
-                 (maxSegmentDuration + 999) / 1000,
-                 sequence);
+        if (_schema == HLS_SCHEMA) {
+            snprintf(
+                file_content, sizeof(file_content),
+                "#EXTM3U\n"
+                "#EXT-X-PLAYLIST-TYPE:EVENT\n"
+                "#EXT-X-VERSION:4\n"
+                "#EXT-X-TARGETDURATION:%u\n"
+                "#EXT-X-MEDIA-SEQUENCE:%llu\n",
+                (maxSegmentDuration + 999) / 1000, sequence);
+        } else {
+            snprintf(
+                file_content, sizeof(file_content),
+                "#EXTM3U\n"
+                "#EXT-X-PLAYLIST-TYPE:EVENT\n"
+                "#EXT-X-VERSION:7\n"
+                "#EXT-X-TARGETDURATION:%u\n"
+                "#EXT-X-MEDIA-SEQUENCE:%llu\n"
+                "#EXT-X-MAP:URI=\"init.mp4\"\n",
+                (maxSegmentDuration + 999) / 1000, sequence);
+        }
     } else {
-        snprintf(file_content, sizeof(file_content),
-                 "#EXTM3U\n"
-                 "#EXT-X-VERSION:3\n"
-                 "#EXT-X-ALLOW-CACHE:NO\n"
-                 "#EXT-X-TARGETDURATION:%u\n"
-                 "#EXT-X-MEDIA-SEQUENCE:%llu\n",
-                 (maxSegmentDuration + 999) / 1000,
-                 sequence);
+        if (_schema == HLS_SCHEMA) {
+            snprintf(
+                file_content, sizeof(file_content),
+                "#EXTM3U\n"
+                "#EXT-X-VERSION:3\n"
+                "#EXT-X-ALLOW-CACHE:NO\n"
+                "#EXT-X-TARGETDURATION:%u\n"
+                "#EXT-X-MEDIA-SEQUENCE:%llu\n",
+                (maxSegmentDuration + 999) / 1000, sequence);
+        } else {
+            snprintf(
+                file_content, sizeof(file_content),
+                "#EXTM3U\n"
+                "#EXT-X-VERSION:7\n"
+                "#EXT-X-INDEPENDENT-SEGMENTS\n"
+                "#EXT-X-ALLOW-CACHE:NO\n"
+                "#EXT-X-TARGETDURATION:%u\n"
+                "#EXT-X-MEDIA-SEQUENCE:%llu\n"
+                "#EXT-X-MAP:URI=\"init.mp4\"\n",
+                (maxSegmentDuration + 999) / 1000, sequence);
+        }
     }
     
     m3u8.assign(file_content);
@@ -76,10 +103,18 @@ void HlsMaker::makeIndexFile(bool eof) {
 
 void HlsMaker::inputData(void *data, size_t len, uint64_t timestamp, bool is_idr_fast_packet) {
     if (data && len) {
+        if (!_init_seg && _schema == HLS_FMP4_SCHEMA) {
+            onWriteInitSegment((char *)data, len);
+            _init_seg = true;
+            return;
+        }
+
         if (timestamp < _last_timestamp) {
-            //时间戳回退了，切片时长重新计时
-            WarnL << "stamp reduce: " << _last_timestamp << " -> " << timestamp;
-            _last_seg_timestamp = _last_timestamp = timestamp;
+            if (_schema == HLS_SCHEMA) {   
+                //时间戳回退了，切片时长重新计时
+                WarnL << "stamp reduce: " << _last_timestamp << " -> " << timestamp;
+                _last_seg_timestamp = _last_timestamp = timestamp;
+            }
         }
         if (is_idr_fast_packet) {
             //尝试切片ts

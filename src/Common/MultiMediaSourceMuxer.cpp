@@ -106,6 +106,11 @@ MultiMediaSourceMuxer::MultiMediaSourceMuxer(const MediaTuple& tuple, float dur_
 #if defined(ENABLE_MP4)
     if (option.enable_fmp4) {
         _fmp4 = std::make_shared<FMP4MediaSourceMuxer>(_tuple, option);
+
+#if defined(ENABLE_HLS_MP4)
+        _hls_fmp4 = dynamic_pointer_cast<HlsFMP4Recorder>(Recorder::createRecorder(Recorder::type_hls_fmp4, _tuple, option));
+        _hls_fmp4->setMediaSource(_fmp4->getMediaSource());
+#endif
     }
 #endif
 
@@ -131,6 +136,13 @@ void MultiMediaSourceMuxer::setMediaListener(const std::weak_ptr<MediaSourceEven
 #if defined(ENABLE_MP4)
     if (_fmp4) {
         _fmp4->setListener(self);
+
+#if defined(ENABLE_HLS_MP4)
+        auto hls_fmp4 = _hls_fmp4;
+        if (hls_fmp4) {
+            hls_fmp4->setListener(self);
+        }
+#endif
     }
 #endif
     auto hls = _hls;
@@ -215,6 +227,22 @@ bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type
             }
             return true;
         }
+        case Recorder::type_hls_fmp4: {
+            if (start && !_hls_fmp4) {
+                //开始录制
+                _option.hls_save_path = custom_path;
+                auto hls = dynamic_pointer_cast<HlsFMP4Recorder>(makeRecorder(sender, getTracks(), type, _option));
+                if (hls) {
+                    //设置HlsMediaSource的事件监听器
+                    hls->setListener(shared_from_this());
+                }
+                _hls_fmp4 = hls;
+            } else if (!start && _hls_fmp4) {
+                //停止录制
+                _hls_fmp4 = nullptr;
+            }
+            return true;
+        }
         default : return false;
     }
 }
@@ -226,6 +254,8 @@ bool MultiMediaSourceMuxer::isRecording(MediaSource &sender, Recorder::type type
             return !!_hls;
         case Recorder::type_mp4 :
             return !!_mp4;
+        case Recorder::type_hls_fmp4: 
+            return !!_hls_fmp4;
         default:
             return false;
     }
@@ -358,6 +388,10 @@ void MultiMediaSourceMuxer::onAllTrackReady() {
 #if defined(ENABLE_MP4)
     if (_fmp4) {
         _fmp4->onAllTrackReady();
+
+#if defined(ENABLE_HLS_MP4)
+        _hls_fmp4->addTrackCompleted();
+#endif
     }
 #endif
     auto listener = _track_listener.lock();
@@ -410,6 +444,13 @@ void MultiMediaSourceMuxer::resetTracks() {
 #if defined(ENABLE_MP4)
     if (_fmp4) {
         _fmp4->resetTracks();
+
+#if defined(ENABLE_HLS_MP4)
+        auto hls_fmp4 = _hls_fmp4;
+        if (hls_fmp4) {
+            hls_fmp4->resetTracks();
+        }
+#endif
     }
 #endif
 
