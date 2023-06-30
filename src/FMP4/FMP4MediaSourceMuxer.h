@@ -67,7 +67,7 @@ public:
         _media_src->setInitSegment(getInitSegment());
     }
 
-    FMP4MediaSource::Ptr GetMediaSource() { return _media_src; }
+    FMP4MediaSource::Ptr getMediaSource() { return _media_src; }
 
 protected:
     void onSegmentData(std::string string, uint64_t stamp, bool key_frame) override {

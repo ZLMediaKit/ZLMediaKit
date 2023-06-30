@@ -364,7 +364,6 @@ static void accessFile(Session &sender, const Parser &parser, const MediaInfo &m
     }
     if (is_hls) {
         // hls，那么移除掉后缀获取真实的stream_id并且修改协议为HLS
-        const_cast<string &>(media_info.schema) = HLS_SCHEMA;
         if (end_with(file_path, kHlsSuffix)) {
             const_cast<string &>(media_info.schema) = HLS_SCHEMA;
             replace(const_cast<string &>(media_info.stream), kHlsSuffix, "");
