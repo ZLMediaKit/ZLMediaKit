@@ -21,14 +21,13 @@ namespace mediakit {
 class HlsMaker {
 public:
     /**
+     * @param is_fmp4 使用fmp4还是mpegts
      * @param seg_duration 切片文件长度
      * @param seg_number 切片个数
      * @param seg_keep 是否保留切片文件
      */
-    HlsMaker(float seg_duration = 5, uint32_t seg_number = 3, bool seg_keep = false);
-    virtual ~HlsMaker();
-
-    void setSchema(std::string schema) { _schema = std::move(schema); }
+    HlsMaker(bool is_fmp4 = false, float seg_duration = 5, uint32_t seg_number = 3, bool seg_keep = false);
+    virtual ~HlsMaker() = default;
 
     /**
      * 写入ts数据
@@ -49,12 +48,17 @@ public:
     /**
      * 是否为直播
      */
-    bool isLive();
+    bool isLive() const;
 
     /**
      * 是否保留切片文件
      */
-    bool isKeep();
+    bool isKeep() const;
+
+    /**
+     * 是否采用fmp4切片还是mpegts
+     */
+    bool isFmp4() const;
 
     /**
      * 清空记录
@@ -124,10 +128,8 @@ private:
      */
     void addNewSegment(uint64_t timestamp);
 
-protected:
-    std::string _schema;
-
 private:
+    bool _is_fmp4 = false;
     float _seg_duration = 0;
     uint32_t _seg_number = 0;
     bool _seg_keep = false;

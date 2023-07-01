@@ -19,15 +19,10 @@
 
 namespace mediakit {
 
-class HlsMakerImp : public HlsMaker{
+class HlsMakerImp : public HlsMaker {
 public:
-    HlsMakerImp(const std::string &m3u8_file,
-                const std::string &params,
-                uint32_t bufSize  = 64 * 1024,
-                float seg_duration = 5,
-                uint32_t seg_number = 3,
-                bool seg_keep = false);
-
+    HlsMakerImp(bool is_fmp4, const std::string &m3u8_file, const std::string &params, uint32_t bufSize = 64 * 1024,
+                float seg_duration = 5, uint32_t seg_number = 3, bool seg_keep = false);
     ~HlsMakerImp() override;
 
     /**

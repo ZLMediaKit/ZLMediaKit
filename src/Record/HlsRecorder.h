@@ -21,15 +21,15 @@ namespace mediakit {
 template <typename Muxer>
 class HlsRecorderBase : public MediaSourceEventInterceptor, public Muxer, public std::enable_shared_from_this<HlsRecorderBase<Muxer> > {
 public:
-    HlsRecorderBase(const std::string &m3u8_file, const std::string &params, const ProtocolOption &option) {
+    HlsRecorderBase(bool is_fmp4, const std::string &m3u8_file, const std::string &params, const ProtocolOption &option) {
         GET_CONFIG(uint32_t, hlsNum, Hls::kSegmentNum);
         GET_CONFIG(bool, hlsKeep, Hls::kSegmentKeep);
         GET_CONFIG(uint32_t, hlsBufSize, Hls::kFileBufSize);
         GET_CONFIG(float, hlsDuration, Hls::kSegmentDuration);
 
         _option = option;
-        _hls = std::make_shared<HlsMakerImp>(m3u8_file, params, hlsBufSize, hlsDuration, hlsNum, hlsKeep);
-        //清空上次的残余文件
+        _hls = std::make_shared<HlsMakerImp>(is_fmp4, m3u8_file, params, hlsBufSize, hlsDuration, hlsNum, hlsKeep);
+        // 清空上次的残余文件
         _hls->clearCache();
     }
 
@@ -86,10 +86,7 @@ class HlsRecorder final : public HlsRecorderBase<MpegMuxer> {
 public:
     using Ptr = std::shared_ptr<HlsRecorder>;
     template <typename ...ARGS>
-    HlsRecorder(ARGS && ...args) : HlsRecorderBase<MpegMuxer>(std::forward<ARGS>(args)...) {
-        _hls->setSchema(HLS_SCHEMA);
-    }
-
+    HlsRecorder(ARGS && ...args) : HlsRecorderBase<MpegMuxer>(false, std::forward<ARGS>(args)...) {}
     ~HlsRecorder() override { this->flush(); }
 
 private:
@@ -109,10 +106,7 @@ class HlsFMP4Recorder final : public HlsRecorderBase<MP4MuxerMemory> {
 public:
     using Ptr = std::shared_ptr<HlsFMP4Recorder>;
     template <typename ...ARGS>
-    HlsFMP4Recorder(ARGS && ...args) : HlsRecorderBase<MP4MuxerMemory>(std::forward<ARGS>(args)...) {
-        _hls->setSchema(HLS_FMP4_SCHEMA);
-    }
-
+    HlsFMP4Recorder(ARGS && ...args) : HlsRecorderBase<MP4MuxerMemory>(true, std::forward<ARGS>(args)...) {}
     ~HlsFMP4Recorder() override { this->flush(); }
 
     void onAllTrackReady() {

@@ -147,6 +147,7 @@ protected:
 
 private:
     bool _key_frame = false;
+    uint64_t _last_dst = 0;
     std::string _init_segment;
     MP4FileMemory::Ptr _memory_file;
 };
