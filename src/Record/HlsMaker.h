@@ -28,7 +28,7 @@ public:
     HlsMaker(float seg_duration = 5, uint32_t seg_number = 3, bool seg_keep = false);
     virtual ~HlsMaker();
 
-    void setSchema(const std::string &schema) { _schema = schema; }
+    void setSchema(std::string schema) { _schema = std::move(schema); }
 
     /**
      * 写入ts数据
@@ -37,7 +37,14 @@ public:
      * @param timestamp 毫秒时间戳
      * @param is_idr_fast_packet 是否为关键帧第一个包
      */
-    void inputData(void *data, size_t len, uint64_t timestamp, bool is_idr_fast_packet);
+    void inputData(const char *data, size_t len, uint64_t timestamp, bool is_idr_fast_packet);
+
+    /**
+     * 输入fmp4 init segment
+     * @param data 数据
+     * @param len 数据长度
+     */
+    void inputInitSegment(const char *data, size_t len);
 
     /**
      * 是否为直播
@@ -121,7 +128,6 @@ protected:
     std::string _schema;
 
 private:
-    bool _init_seg = false;
     float _seg_duration = 0;
     uint32_t _seg_number = 0;
     bool _seg_keep = false;

@@ -17,7 +17,6 @@ namespace mediakit {
 
 HlsMaker::HlsMaker(float seg_duration, uint32_t seg_number, bool seg_keep) {
 	_schema = HLS_SCHEMA;
-
     //最小允许设置为0，0个切片代表点播
     _seg_number = seg_number;
     _seg_duration = seg_duration;
@@ -100,33 +99,30 @@ void HlsMaker::makeIndexFile(bool eof) {
     onWriteHls(m3u8);
 }
 
+void HlsMaker::inputInitSegment(const char *data, size_t len) {
+    if (_schema == HLS_FMP4_SCHEMA) {
+        onWriteInitSegment(data, len);
+    }
+}
 
-void HlsMaker::inputData(void *data, size_t len, uint64_t timestamp, bool is_idr_fast_packet) {
+void HlsMaker::inputData(const char *data, size_t len, uint64_t timestamp, bool is_idr_fast_packet) {
     if (data && len) {
-        if (!_init_seg && _schema == HLS_FMP4_SCHEMA) {
-            onWriteInitSegment((char *)data, len);
-            _init_seg = true;
-            return;
-        }
-
         if (timestamp < _last_timestamp) {
-            if (_schema == HLS_SCHEMA) {   
-                //时间戳回退了，切片时长重新计时
-                WarnL << "stamp reduce: " << _last_timestamp << " -> " << timestamp;
-                _last_seg_timestamp = _last_timestamp = timestamp;
-            }
+            // 时间戳回退了，切片时长重新计时
+            WarnL << "stamp reduce: " << _last_timestamp << " -> " << timestamp;
+            _last_seg_timestamp = _last_timestamp = timestamp;
         }
         if (is_idr_fast_packet) {
-            //尝试切片ts
+            // 尝试切片ts
             addNewSegment(timestamp);
         }
         if (!_last_file_name.empty()) {
-            //存在切片才写入ts数据
-            onWriteSegment((char *) data, len);
+            // 存在切片才写入ts数据
+            onWriteSegment(data, len);
             _last_timestamp = timestamp;
         }
     } else {
-        //resetTracks时触发此逻辑
+        // resetTracks时触发此逻辑
         flushLastSegment(false);
     }
 }

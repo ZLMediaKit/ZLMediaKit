@@ -95,6 +95,7 @@ public:
 private:
     void onWrite(std::shared_ptr<toolkit::Buffer> buffer, uint64_t timestamp, bool key_pos) override {
         if (!buffer) {
+            // reset tracks
             _hls->inputData(nullptr, 0, timestamp, key_pos);
         } else {
             _hls->inputData(buffer->data(), buffer->size(), timestamp, key_pos);
@@ -115,12 +116,14 @@ public:
     ~HlsFMP4Recorder() override { this->flush(); }
 
     void onAllTrackReady() {
-        onSegmentData(getInitSegment(), 0, 0);
+        auto data = getInitSegment();
+        _hls->inputInitSegment(data.data(), data.size());
     }
 
 private:
     void onSegmentData(std::string buffer, uint64_t timestamp, bool key_pos) override {
         if (buffer.empty()) {
+            // reset tracks
             _hls->inputData(nullptr, 0, timestamp, key_pos);
         } else {
             _hls->inputData((char *)buffer.data(), buffer.size(), timestamp, key_pos);
