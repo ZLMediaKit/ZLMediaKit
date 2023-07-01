@@ -63,7 +63,8 @@ public:
         return _option.fmp4_demand ? (_clear_cache ? true : _enabled) : true;
     }
 
-    void onAllTrackReady() {
+    void addTrackCompleted() override {
+        MP4MuxerMemory::addTrackCompleted();
         _media_src->setInitSegment(getInitSegment());
     }
 

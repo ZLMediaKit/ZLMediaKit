@@ -387,19 +387,34 @@ void MultiMediaSourceMuxer::onAllTrackReady() {
     setMediaListener(getDelegate());
 
     if (_rtmp) {
-        _rtmp->onAllTrackReady();
+        _rtmp->addTrackCompleted();
     }
     if (_rtsp) {
-        _rtsp->onAllTrackReady();
+        _rtsp->addTrackCompleted();
+    }
+    if (_ts) {
+        _ts->addTrackCompleted();
+    }
+    if (_mp4) {
+        _mp4->addTrackCompleted();
     }
 #if defined(ENABLE_MP4)
     if (_fmp4) {
-        _fmp4->onAllTrackReady();
+        _fmp4->addTrackCompleted();
+    }
+
+#if defined(ENABLE_HLS)
+    if (_hls) {
+        _hls->addTrackCompleted();
+    }
+#endif
 
 #if defined(ENABLE_HLS_MP4)
-        _hls_fmp4->onAllTrackReady();
-#endif
+    if (_hls_fmp4) {
+        _hls_fmp4->addTrackCompleted();
     }
+#endif
+
 #endif
     auto listener = _track_listener.lock();
     if (listener) {

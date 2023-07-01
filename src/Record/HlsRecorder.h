@@ -109,7 +109,8 @@ public:
     HlsFMP4Recorder(ARGS && ...args) : HlsRecorderBase<MP4MuxerMemory>(true, std::forward<ARGS>(args)...) {}
     ~HlsFMP4Recorder() override { this->flush(); }
 
-    void onAllTrackReady() {
+    void addTrackCompleted() override {
+        HlsRecorderBase<MP4MuxerMemory>::addTrackCompleted();
         auto data = getInitSegment();
         _hls->inputInitSegment(data.data(), data.size());
     }
