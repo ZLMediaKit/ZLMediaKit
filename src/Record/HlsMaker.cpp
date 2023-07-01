@@ -8,6 +8,7 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
+#include <iomanip>
 #include "HlsMaker.h"
 #include "Common/config.h"
 
