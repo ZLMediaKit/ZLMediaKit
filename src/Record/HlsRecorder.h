@@ -101,7 +101,7 @@ private:
 };
 #endif
 
-#if defined(ENABLE_MP4)
+#if defined(ENABLE_HLS_MP4)
 class HlsFMP4Recorder final : public HlsRecorderBase<MP4MuxerMemory> {
 public:
     using Ptr = std::shared_ptr<HlsFMP4Recorder>;

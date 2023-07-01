@@ -106,10 +106,12 @@ MultiMediaSourceMuxer::MultiMediaSourceMuxer(const MediaTuple& tuple, float dur_
 #if defined(ENABLE_MP4)
     if (option.enable_fmp4) {
         _fmp4 = std::make_shared<FMP4MediaSourceMuxer>(_tuple, option);
+    }
+#endif
 
 #if defined(ENABLE_HLS_MP4)
+    if (option.enable_hls) {
         _hls_fmp4 = dynamic_pointer_cast<HlsFMP4Recorder>(Recorder::createRecorder(Recorder::type_hls_fmp4, _tuple, option));
-#endif
     }
 #endif
 
@@ -135,18 +137,15 @@ void MultiMediaSourceMuxer::setMediaListener(const std::weak_ptr<MediaSourceEven
 #if defined(ENABLE_MP4)
     if (_fmp4) {
         _fmp4->setListener(self);
-
-#if defined(ENABLE_HLS_MP4)
-        auto hls_fmp4 = _hls_fmp4;
-        if (hls_fmp4) {
-            hls_fmp4->setListener(self);
-        }
-#endif
     }
 #endif
-    auto hls = _hls;
-    if (hls) {
-        hls->setListener(self);
+#if defined(ENABLE_HLS_MP4)
+    if (_hls_fmp4) {
+        _hls_fmp4->setListener(self);
+    }
+#endif
+    if (_hls) {
+        _hls->setListener(self);
     }
 }
 
@@ -155,7 +154,6 @@ void MultiMediaSourceMuxer::setTrackListener(const std::weak_ptr<Listener> &list
 }
 
 int MultiMediaSourceMuxer::totalReaderCount() const {
-    auto hls = _hls;
     return (_rtsp ? _rtsp->readerCount() : 0) +
            (_rtmp ? _rtmp->readerCount() : 0) +
            (_ts ? _ts->readerCount() : 0) +
@@ -163,7 +161,10 @@ int MultiMediaSourceMuxer::totalReaderCount() const {
            (_fmp4 ? _fmp4->readerCount() : 0) +
            #endif
            (_mp4 ? _option.mp4_as_player : 0) +
-           (hls ? hls->readerCount() : 0) +
+           (_hls ? _hls->readerCount() : 0) +
+           #if defined(ENABLE_HLS_MP4)
+           (_hls_fmp4 ? _hls_fmp4->readerCount() : 0) +
+           #endif
            (_ring ? _ring->readerCount() : 0);
 }
 
@@ -191,6 +192,7 @@ int MultiMediaSourceMuxer::totalReaderCount(MediaSource &sender) {
 
 //此函数可能跨线程调用
 bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path, size_t max_second) {
+    CHECK(getOwnerPoller(MediaSource::NullMediaSource())->isCurrentThread(), "Can only call setupRecord in it's owner poller");
     onceToken token(nullptr, [&]() {
         if (_option.mp4_as_player && type == Recorder::type_mp4) {
             //开启关闭mp4录制，触发观看人数变化相关事件
@@ -362,22 +364,18 @@ bool MultiMediaSourceMuxer::onTrackReady(const Track::Ptr &track) {
     }
 #endif
 
-    //拷贝智能指针，目的是为了防止跨线程调用设置录像相关api导致的线程竞争问题
-    auto hls = _hls;
-    if (hls) {
-        ret = hls->addTrack(track) ? true : ret;
+    if (_hls) {
+        ret = _hls->addTrack(track) ? true : ret;
     }
 
 #if defined(ENABLE_HLS_MP4)
-    auto hls_fmp4 = _hls_fmp4;
-    if (hls_fmp4) {
-        ret = hls_fmp4->addTrack(track) ? true : ret;
+    if (_hls_fmp4) {
+        ret = _hls_fmp4->addTrack(track) ? true : ret;
     }
 #endif
 
-    auto mp4 = _mp4;
-    if (mp4) {
-        ret = mp4->addTrack(track) ? true : ret;
+    if (_mp4) {
+        ret = _mp4->addTrack(track) ? true : ret;
     }
     return ret;
 }
@@ -415,7 +413,6 @@ void MultiMediaSourceMuxer::onAllTrackReady() {
     }
 #endif
 
-#endif
     auto listener = _track_listener.lock();
     if (listener) {
         listener->onAllTrackReady();
@@ -466,25 +463,21 @@ void MultiMediaSourceMuxer::resetTracks() {
 #if defined(ENABLE_MP4)
     if (_fmp4) {
         _fmp4->resetTracks();
+    }
+#endif
 
 #if defined(ENABLE_HLS_MP4)
-        auto hls_fmp4 = _hls_fmp4;
-        if (hls_fmp4) {
-            hls_fmp4->resetTracks();
-        }
-#endif
+    if (_hls_fmp4) {
+        _hls_fmp4->resetTracks();
     }
 #endif
 
-    //拷贝智能指针，目的是为了防止跨线程调用设置录像相关api导致的线程竞争问题
-    auto hls = _hls;
-    if (hls) {
-        hls->resetTracks();
+    if (_hls) {
+        _hls->resetTracks();
     }
 
-    auto mp4 = _mp4;
-    if (mp4) {
-        mp4->resetTracks();
+    if (_mp4) {
+        _mp4->resetTracks();
     }
 }
 
@@ -506,23 +499,18 @@ bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
         ret = _ts->inputFrame(frame) ? true : ret;
     }
 
-    //拷贝智能指针，目的是为了防止跨线程调用设置录像相关api导致的线程竞争问题
-    //此处使用智能指针拷贝来确保线程安全，比互斥锁性能更优
-    auto hls = _hls;
-    if (hls) {
-        ret = hls->inputFrame(frame) ? true : ret;
+    if (_hls) {
+        ret = _hls->inputFrame(frame) ? true : ret;
     }
 
 #if defined(ENABLE_HLS_MP4)
-    auto hls_fmp4 = _hls_fmp4;
-    if (hls_fmp4) {
-        ret = hls_fmp4->inputFrame(frame) ? true : ret;
+    if (_hls_fmp4) {
+        ret = _hls_fmp4->inputFrame(frame) ? true : ret;
     }
 #endif
 
-    auto mp4 = _mp4;
-    if (mp4) {
-        ret = mp4->inputFrame(frame) ? true : ret;
+    if (_mp4) {
+        ret = _mp4->inputFrame(frame) ? true : ret;
     }
 
 #if defined(ENABLE_MP4)
@@ -552,7 +540,6 @@ bool MultiMediaSourceMuxer::isEnabled(){
     if (!_is_enable || _last_check.elapsedTime() > stream_none_reader_delay_ms) {
         //无人观看时，每次检查是否真的无人观看
         //有人观看时，则延迟一定时间检查一遍是否无人观看了(节省性能)
-        auto hls = _hls;
         _is_enable = (_rtmp ? _rtmp->isEnabled() : false) ||
                      (_rtsp ? _rtsp->isEnabled() : false) ||
                      (_ts ? _ts->isEnabled() : false) ||
@@ -560,7 +547,11 @@ bool MultiMediaSourceMuxer::isEnabled(){
                      (_fmp4 ? _fmp4->isEnabled() : false) ||
                      #endif
                      (_ring ? (bool)_ring->readerCount() : false)  ||
-                     (hls ? hls->isEnabled() : false) || _mp4;
+                     (_hls ? _hls->isEnabled() : false) ||
+                     #if defined(ENABLE_HLS_MP4)
+                     (_hls_fmp4 ? _hls_fmp4->isEnabled() : false) ||
+                     #endif
+                     _mp4;
 
         if (_is_enable) {
             //无人观看时，不刷新计时器,因为无人观看时每次都会检查一遍，所以刷新计数器无意义且浪费cpu

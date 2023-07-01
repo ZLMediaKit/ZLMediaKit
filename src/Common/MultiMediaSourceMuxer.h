@@ -176,7 +176,10 @@ private:
     TSMediaSourceMuxer::Ptr _ts;
     MediaSinkInterface::Ptr _mp4;
     HlsRecorder::Ptr _hls;
+
+#if defined(ENABLE_HLS_MP4)
     HlsFMP4Recorder::Ptr _hls_fmp4;
+#endif
     toolkit::EventPoller::Ptr _poller;
     RingType::Ptr _ring;
 
