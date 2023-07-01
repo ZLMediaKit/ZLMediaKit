@@ -400,6 +400,7 @@ void MultiMediaSourceMuxer::onAllTrackReady() {
     if (_fmp4) {
         _fmp4->addTrackCompleted();
     }
+#endif
 
 #if defined(ENABLE_HLS)
     if (_hls) {
