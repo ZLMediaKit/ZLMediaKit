@@ -104,12 +104,9 @@ MultiMediaSourceMuxer::MultiMediaSourceMuxer(const MediaTuple& tuple, float dur_
     if (option.enable_ts) {
         _ts = std::make_shared<TSMediaSourceMuxer>(_tuple, option);
     }
-#if defined(ENABLE_MP4)
     if (option.enable_fmp4) {
         _fmp4 = std::make_shared<FMP4MediaSourceMuxer>(_tuple, option);
     }
-#endif
-
     if (option.enable_hls_fmp4) {
         _hls_fmp4 = dynamic_pointer_cast<HlsFMP4Recorder>(Recorder::createRecorder(Recorder::type_hls_fmp4, _tuple, option));
     }
