@@ -247,7 +247,7 @@ static inline void addHttpListener(){
                     size = body->remainSize();
                 }
 
-                LogContextCapture log(getLogger(), toolkit::LTrace, __FILE__, "http api debug", __LINE__);
+                LogContextCapture log(getLogger(), toolkit::LDebug, __FILE__, "http api debug", __LINE__);
                 log << "\r\n# request:\r\n" << parser.method() << " " << parser.fullUrl() << "\r\n";
                 log << "# header:\r\n";
 
