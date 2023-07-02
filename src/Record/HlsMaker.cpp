@@ -49,11 +49,11 @@ void HlsMaker::makeIndexFile(bool eof) {
         index_str += "#EXT-X-MAP:URI=\"init.mp4\"\n";
     }
 
+    stringstream ss;
     for (auto &tp : _seg_dur_list) {
-        stringstream ss;
         ss << "#EXTINF:" << std::setprecision(3) << std::get<0>(tp) / 1000.0 << ",\n" << std::get<1>(tp) << "\n";
-        index_str += ss.str();
     }
+    index_str += ss.str();
 
     if (eof) {
         index_str += "#EXT-X-ENDLIST\n";
