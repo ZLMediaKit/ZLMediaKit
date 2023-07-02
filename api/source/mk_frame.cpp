@@ -178,3 +178,29 @@ API_EXPORT uint32_t API_CALL mk_frame_get_flags(mk_frame frame) {
     }
     return ret;
 }
+
+API_EXPORT mk_frame_merger API_CALL mk_frame_merger_create(int type) {
+    return reinterpret_cast<mk_frame_merger>(new FrameMerger(type));
+}
+
+API_EXPORT void API_CALL mk_frame_merger_release(mk_frame_merger ctx) {
+    assert(ctx);
+    delete reinterpret_cast<FrameMerger *>(ctx);
+}
+
+API_EXPORT void API_CALL mk_frame_merger_clear(mk_frame_merger ctx) {
+    assert(ctx);
+    reinterpret_cast<FrameMerger *>(ctx)->clear();
+}
+
+API_EXPORT void API_CALL mk_frame_merger_flush(mk_frame_merger ctx) {
+    assert(ctx);
+    reinterpret_cast<FrameMerger *>(ctx)->flush();
+}
+
+API_EXPORT void API_CALL mk_frame_merger_input(mk_frame_merger ctx, mk_frame frame, on_mk_frame_merger cb, void *user_data) {
+    assert(ctx && frame && cb);
+    reinterpret_cast<FrameMerger *>(ctx)->inputFrame(*((Frame::Ptr *) frame), [cb, user_data](uint64_t dts, uint64_t pts, const toolkit::Buffer::Ptr &buffer, bool have_key_frame) {
+        cb(user_data, dts, pts, (mk_buffer)(&buffer), have_key_frame);
+    });
+}
