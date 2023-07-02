@@ -232,6 +232,30 @@ bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type
             }
             return true;
         }
+        case Recorder::type_fmp4: {
+            if (start && !_fmp4) {
+                auto fmp4 = dynamic_pointer_cast<FMP4MediaSourceMuxer>(makeRecorder(sender, getTracks(), type, _option));
+                if (fmp4) {
+                    fmp4->setListener(shared_from_this());
+                }
+                _fmp4 = fmp4;
+            } else if (!start && _fmp4) {
+                _fmp4 = nullptr;
+            }
+            return true;
+        }
+        case Recorder::type_ts: {
+            if (start && !_ts) {
+                auto ts = dynamic_pointer_cast<TSMediaSourceMuxer>(makeRecorder(sender, getTracks(), type, _option));
+                if (ts) {
+                    ts->setListener(shared_from_this());
+                }
+                _ts = ts;
+            } else if (!start && _ts) {
+                _ts = nullptr;
+            }
+            return true;
+        }
         default : return false;
     }
 }
@@ -242,6 +266,8 @@ bool MultiMediaSourceMuxer::isRecording(MediaSource &sender, Recorder::type type
         case Recorder::type_hls: return !!_hls;
         case Recorder::type_mp4: return !!_mp4;
         case Recorder::type_hls_fmp4: return !!_hls_fmp4;
+        case Recorder::type_fmp4: return !!_fmp4;
+        case Recorder::type_ts: return !!_ts;
         default: return false;
     }
 }
