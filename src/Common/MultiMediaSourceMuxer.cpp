@@ -110,7 +110,7 @@ MultiMediaSourceMuxer::MultiMediaSourceMuxer(const MediaTuple& tuple, float dur_
 #endif
 
 #if defined(ENABLE_HLS_MP4)
-    if (option.enable_hls) {
+    if (option.enable_hls_fmp4) {
         _hls_fmp4 = dynamic_pointer_cast<HlsFMP4Recorder>(Recorder::createRecorder(Recorder::type_hls_fmp4, _tuple, option));
     }
 #endif

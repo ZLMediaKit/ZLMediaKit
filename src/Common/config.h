@@ -193,8 +193,10 @@ extern const std::string kAddMuteAudio;
 //断连续推延时，单位毫秒，默认采用配置文件
 extern const std::string kContinuePushMS;
 
-//是否开启转换为hls
+//是否开启转换为hls(mpegts)
 extern const std::string kEnableHls;
+//是否开启转换为hls(fmp4)
+extern const std::string kEnableHlsFmp4;
 //是否开启MP4录制
 extern const std::string kEnableMP4;
 //是否开启转换为rtsp/webrtc
