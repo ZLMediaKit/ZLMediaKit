@@ -98,17 +98,17 @@ MultiMediaSourceMuxer::MultiMediaSourceMuxer(const MediaTuple& tuple, float dur_
     if (option.enable_hls) {
         _hls = dynamic_pointer_cast<HlsRecorder>(Recorder::createRecorder(Recorder::type_hls, _tuple, option));
     }
+    if (option.enable_hls_fmp4) {
+        _hls_fmp4 = dynamic_pointer_cast<HlsFMP4Recorder>(Recorder::createRecorder(Recorder::type_hls_fmp4, _tuple, option));
+    }
     if (option.enable_mp4) {
         _mp4 = Recorder::createRecorder(Recorder::type_mp4, _tuple, option);
     }
     if (option.enable_ts) {
-        _ts = std::make_shared<TSMediaSourceMuxer>(_tuple, option);
+        _ts = dynamic_pointer_cast<TSMediaSourceMuxer>(Recorder::createRecorder(Recorder::type_ts, _tuple, option));
     }
     if (option.enable_fmp4) {
-        _fmp4 = std::make_shared<FMP4MediaSourceMuxer>(_tuple, option);
-    }
-    if (option.enable_hls_fmp4) {
-        _hls_fmp4 = dynamic_pointer_cast<HlsFMP4Recorder>(Recorder::createRecorder(Recorder::type_hls_fmp4, _tuple, option));
+        _fmp4 = dynamic_pointer_cast<FMP4MediaSourceMuxer>(Recorder::createRecorder(Recorder::type_fmp4, _tuple, option));
     }
 
     //音频相关设置
@@ -238,15 +238,11 @@ bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type
 
 //此函数可能跨线程调用
 bool MultiMediaSourceMuxer::isRecording(MediaSource &sender, Recorder::type type) {
-    switch (type){
-        case Recorder::type_hls :
-            return !!_hls;
-        case Recorder::type_mp4 :
-            return !!_mp4;
-        case Recorder::type_hls_fmp4: 
-            return !!_hls_fmp4;
-        default:
-            return false;
+    switch (type) {
+        case Recorder::type_hls: return !!_hls;
+        case Recorder::type_mp4: return !!_mp4;
+        case Recorder::type_hls_fmp4: return !!_hls_fmp4;
+        default: return false;
     }
 }
 
