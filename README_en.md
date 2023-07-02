@@ -45,7 +45,7 @@
 
 ## Feature List
 ### Overview of Features
-<img width="800" alt="Overview of Features" src="https://user-images.githubusercontent.com/11495632/190864440-91c45f8f-480f-43db-8110-5bb44e6300ff.png">
+<img width="800" alt="Overview of Features" src="https://github.com/ZLMediaKit/ZLMediaKit/assets/11495632/481ea769-5b27-495e-bf7d-31191e6af9d2">
 
 - RTSP[S]
   - RTSP[S] server, supports RTMP/MP4/HLS to RTSP[S] conversion, supports devices such as Amazon Echo Show
@@ -70,7 +70,7 @@
   - Supports [RTMP-OPUS](https://github.com/ZLMediaKit/ZLMediaKit/wiki/RTMP%E5%AF%B9H265%E5%92%8COPUS%E7%9A%84%E6%94%AF%E6%8C%81)
 
 - HLS
-  - Supports HLS file generation and comes with an HTTP file server
+  - Supports HLS file(mpegts/fmp4) generation and comes with an HTTP file server
   - Through cookie tracking technology, it can simulate HLS playback as a long connection, which can achieve HLS on-demand pulling, playback statistics, and other businesses
   - Supports HLS player and can pull HLS to rtsp/rtmp/mp4
   - Supports H264/H265/AAC/G711/OPUS encoding
