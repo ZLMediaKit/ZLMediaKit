@@ -110,11 +110,9 @@ MultiMediaSourceMuxer::MultiMediaSourceMuxer(const MediaTuple& tuple, float dur_
     }
 #endif
 
-#if defined(ENABLE_HLS_MP4)
     if (option.enable_hls_fmp4) {
         _hls_fmp4 = dynamic_pointer_cast<HlsFMP4Recorder>(Recorder::createRecorder(Recorder::type_hls_fmp4, _tuple, option));
     }
-#endif
 
     //音频相关设置
     enableAudio(option.enable_audio);
@@ -135,16 +133,12 @@ void MultiMediaSourceMuxer::setMediaListener(const std::weak_ptr<MediaSourceEven
     if (_ts) {
         _ts->setListener(self);
     }
-#if defined(ENABLE_MP4)
     if (_fmp4) {
         _fmp4->setListener(self);
     }
-#endif
-#if defined(ENABLE_HLS_MP4)
     if (_hls_fmp4) {
         _hls_fmp4->setListener(self);
     }
-#endif
     if (_hls) {
         _hls->setListener(self);
     }
@@ -158,14 +152,10 @@ int MultiMediaSourceMuxer::totalReaderCount() const {
     return (_rtsp ? _rtsp->readerCount() : 0) +
            (_rtmp ? _rtmp->readerCount() : 0) +
            (_ts ? _ts->readerCount() : 0) +
-           #if defined(ENABLE_MP4)
            (_fmp4 ? _fmp4->readerCount() : 0) +
-           #endif
            (_mp4 ? _option.mp4_as_player : 0) +
            (_hls ? _hls->readerCount() : 0) +
-           #if defined(ENABLE_HLS_MP4)
            (_hls_fmp4 ? _hls_fmp4->readerCount() : 0) +
-           #endif
            (_ring ? _ring->readerCount() : 0);
 }
 
@@ -359,22 +349,15 @@ bool MultiMediaSourceMuxer::onTrackReady(const Track::Ptr &track) {
     if (_ts) {
         ret = _ts->addTrack(track) ? true : ret;
     }
-#if defined(ENABLE_MP4)
     if (_fmp4) {
         ret = _fmp4->addTrack(track) ? true : ret;
     }
-#endif
-
     if (_hls) {
         ret = _hls->addTrack(track) ? true : ret;
     }
-
-#if defined(ENABLE_HLS_MP4)
     if (_hls_fmp4) {
         ret = _hls_fmp4->addTrack(track) ? true : ret;
     }
-#endif
-
     if (_mp4) {
         ret = _mp4->addTrack(track) ? true : ret;
     }
@@ -397,23 +380,15 @@ void MultiMediaSourceMuxer::onAllTrackReady() {
     if (_mp4) {
         _mp4->addTrackCompleted();
     }
-#if defined(ENABLE_MP4)
     if (_fmp4) {
         _fmp4->addTrackCompleted();
     }
-#endif
-
-#if defined(ENABLE_HLS)
     if (_hls) {
         _hls->addTrackCompleted();
     }
-#endif
-
-#if defined(ENABLE_HLS_MP4)
     if (_hls_fmp4) {
         _hls_fmp4->addTrackCompleted();
     }
-#endif
 
     auto listener = _track_listener.lock();
     if (listener) {
@@ -462,22 +437,15 @@ void MultiMediaSourceMuxer::resetTracks() {
     if (_ts) {
         _ts->resetTracks();
     }
-#if defined(ENABLE_MP4)
     if (_fmp4) {
         _fmp4->resetTracks();
     }
-#endif
-
-#if defined(ENABLE_HLS_MP4)
     if (_hls_fmp4) {
         _hls_fmp4->resetTracks();
     }
-#endif
-
     if (_hls) {
         _hls->resetTracks();
     }
-
     if (_mp4) {
         _mp4->resetTracks();
     }
@@ -505,22 +473,16 @@ bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
         ret = _hls->inputFrame(frame) ? true : ret;
     }
 
-#if defined(ENABLE_HLS_MP4)
     if (_hls_fmp4) {
         ret = _hls_fmp4->inputFrame(frame) ? true : ret;
     }
-#endif
 
     if (_mp4) {
         ret = _mp4->inputFrame(frame) ? true : ret;
     }
-
-#if defined(ENABLE_MP4)
     if (_fmp4) {
         ret = _fmp4->inputFrame(frame) ? true : ret;
     }
-#endif
-
     if (_ring) {
         if (frame->getTrackType() == TrackVideo) {
             // 视频时，遇到第一帧配置帧或关键帧则标记为gop开始处
@@ -545,14 +507,10 @@ bool MultiMediaSourceMuxer::isEnabled(){
         _is_enable = (_rtmp ? _rtmp->isEnabled() : false) ||
                      (_rtsp ? _rtsp->isEnabled() : false) ||
                      (_ts ? _ts->isEnabled() : false) ||
-                     #if defined(ENABLE_MP4)
                      (_fmp4 ? _fmp4->isEnabled() : false) ||
-                     #endif
                      (_ring ? (bool)_ring->readerCount() : false)  ||
                      (_hls ? _hls->isEnabled() : false) ||
-                     #if defined(ENABLE_HLS_MP4)
                      (_hls_fmp4 ? _hls_fmp4->isEnabled() : false) ||
-                     #endif
                      _mp4;
 
         if (_is_enable) {

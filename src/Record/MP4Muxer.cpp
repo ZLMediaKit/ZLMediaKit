@@ -8,7 +8,7 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifdef ENABLE_MP4
+#if defined(ENABLE_MP4) || defined(ENABLE_HLS_FMP4)
 
 #include "MP4Muxer.h"
 #include "Extension/AAC.h"
@@ -397,4 +397,4 @@ bool MP4MuxerMemory::inputFrame(const Frame::Ptr &frame) {
 }
 
 }//namespace mediakit
-#endif//#ifdef ENABLE_MP4
+#endif //defined(ENABLE_MP4) || defined(ENABLE_HLS_FMP4)

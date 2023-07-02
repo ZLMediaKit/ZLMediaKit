@@ -14,7 +14,6 @@
 #include "Common/MediaSource.h"
 #include "MP4Recorder.h"
 #include "HlsRecorder.h"
-#include "Util/File.h"
 
 using namespace std;
 using namespace toolkit;
@@ -97,7 +96,7 @@ std::shared_ptr<MediaSinkInterface> Recorder::createRecorder(type type, const Me
         }
 
         case Recorder::type_hls_fmp4: {
-#if defined(ENABLE_MP4) && defined(ENABLE_HLS_MP4)
+#if defined(ENABLE_HLS_FMP4)
             auto path = Recorder::getRecordPath(type, tuple, option.hls_save_path);
             GET_CONFIG(bool, enable_vhost, General::kEnableVhost);
             auto ret = std::make_shared<HlsFMP4Recorder>(path, enable_vhost ? string(VHOST_KEY) + "=" + tuple.vhost : "", option);

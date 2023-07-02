@@ -81,7 +81,6 @@ protected:
     std::shared_ptr<HlsMakerImp> _hls;
 };
 
-#if defined(ENABLE_HLS)
 class HlsRecorder final : public HlsRecorderBase<MpegMuxer> {
 public:
     using Ptr = std::shared_ptr<HlsRecorder>;
@@ -99,9 +98,7 @@ private:
         }
     }
 };
-#endif
 
-#if defined(ENABLE_HLS_MP4)
 class HlsFMP4Recorder final : public HlsRecorderBase<MP4MuxerMemory> {
 public:
     using Ptr = std::shared_ptr<HlsFMP4Recorder>;
@@ -125,7 +122,6 @@ private:
         }
     }
 };
-#endif
 
 }//namespace mediakit
 #endif //HLSRECORDER_H
