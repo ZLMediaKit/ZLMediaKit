@@ -11,7 +11,7 @@
 #ifndef ZLMEDIAKIT_MP4_H
 #define ZLMEDIAKIT_MP4_H
 
-#ifdef ENABLE_MP4
+#if defined(ENABLE_MP4) || defined(ENABLE_HLS_FMP4)
 
 #include <memory>
 #include <string>
@@ -136,5 +136,5 @@ private:
 };
 
 }//namespace mediakit
-#endif //NABLE_MP4RECORD
+#endif //defined(ENABLE_MP4) || defined(ENABLE_HLS_FMP4)
 #endif //ZLMEDIAKIT_MP4_H

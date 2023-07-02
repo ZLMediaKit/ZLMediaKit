@@ -44,7 +44,8 @@ public:
         return _media_src->readerCount();
     }
 
-    void onAllTrackReady(){
+    void addTrackCompleted() override {
+        RtmpMuxer::addTrackCompleted();
         makeConfigPacket();
         _media_src->setMetaData(getMetadata());
     }

@@ -11,8 +11,6 @@
 #ifndef ZLMEDIAKIT_FMP4MEDIASOURCEMUXER_H
 #define ZLMEDIAKIT_FMP4MEDIASOURCEMUXER_H
 
-#if defined(ENABLE_MP4)
-
 #include "FMP4MediaSource.h"
 #include "Record/MP4Muxer.h"
 
@@ -63,7 +61,8 @@ public:
         return _option.fmp4_demand ? (_clear_cache ? true : _enabled) : true;
     }
 
-    void onAllTrackReady() {
+    void addTrackCompleted() override {
+        MP4MuxerMemory::addTrackCompleted();
         _media_src->setInitSegment(getInitSegment());
     }
 
@@ -86,5 +85,4 @@ private:
 
 }//namespace mediakit
 
-#endif// defined(ENABLE_MP4)
 #endif //ZLMEDIAKIT_FMP4MEDIASOURCEMUXER_H

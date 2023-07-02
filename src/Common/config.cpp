@@ -102,6 +102,7 @@ const string kAddMuteAudio = PROTOCOL_FIELD "add_mute_audio";
 const string kContinuePushMS = PROTOCOL_FIELD "continue_push_ms";
 
 const string kEnableHls = PROTOCOL_FIELD "enable_hls";
+const string kEnableHlsFmp4 = PROTOCOL_FIELD "enable_hls_fmp4";
 const string kEnableMP4 = PROTOCOL_FIELD "enable_mp4";
 const string kEnableRtsp = PROTOCOL_FIELD "enable_rtsp";
 const string kEnableRtmp = PROTOCOL_FIELD "enable_rtmp";
@@ -127,6 +128,7 @@ static onceToken token([]() {
     mINI::Instance()[kContinuePushMS] = 15000;
 
     mINI::Instance()[kEnableHls] = 1;
+    mINI::Instance()[kEnableHlsFmp4] = 0;
     mINI::Instance()[kEnableMP4] = 0;
     mINI::Instance()[kEnableRtsp] = 1;
     mINI::Instance()[kEnableRtmp] = 1;

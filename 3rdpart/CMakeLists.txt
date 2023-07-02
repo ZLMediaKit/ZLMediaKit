@@ -47,44 +47,44 @@ set(MediaServer_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/media-server")
 # TODO: 补一个函数处理各种库
 
 # 添加 mov、flv 库用于 MP4 录制
-if(ENABLE_MP4)
-  message(STATUS "ENABLE_MP4 defined")
-
+if (ENABLE_MP4 OR ENABLE_HLS_FMP4)
   # MOV
   set(MediaServer_MOV_ROOT ${MediaServer_ROOT}/libmov)
   aux_source_directory(${MediaServer_MOV_ROOT}/include MOV_SRC_LIST)
-  aux_source_directory(${MediaServer_MOV_ROOT}/source  MOV_SRC_LIST)
+  aux_source_directory(${MediaServer_MOV_ROOT}/source MOV_SRC_LIST)
   add_library(mov STATIC ${MOV_SRC_LIST})
   add_library(MediaServer::mov ALIAS mov)
-  target_compile_definitions(mov
-    PUBLIC -DENABLE_MP4)
-  target_compile_options(mov
-    PRIVATE ${COMPILE_OPTIONS_DEFAULT})
+  target_compile_options(mov PRIVATE ${COMPILE_OPTIONS_DEFAULT})
   target_include_directories(mov
-    PRIVATE
-      "$<BUILD_INTERFACE:${MediaServer_MOV_ROOT}/include>"
-    PUBLIC
-      "$<BUILD_INTERFACE:${MediaServer_MOV_ROOT}/include>")
+          PRIVATE
+          "$<BUILD_INTERFACE:${MediaServer_MOV_ROOT}/include>"
+          PUBLIC
+          "$<BUILD_INTERFACE:${MediaServer_MOV_ROOT}/include>")
 
   # FLV
   set(MediaServer_FLV_ROOT ${MediaServer_ROOT}/libflv)
   aux_source_directory(${MediaServer_FLV_ROOT}/include FLV_SRC_LIST)
-  aux_source_directory(${MediaServer_FLV_ROOT}/source  FLV_SRC_LIST)
+  aux_source_directory(${MediaServer_FLV_ROOT}/source FLV_SRC_LIST)
   add_library(flv STATIC ${FLV_SRC_LIST})
   add_library(MediaServer::flv ALIAS flv)
-  target_compile_options(flv
-    PRIVATE ${COMPILE_OPTIONS_DEFAULT})
+  target_compile_options(flv PRIVATE ${COMPILE_OPTIONS_DEFAULT})
   target_include_directories(flv
-    PRIVATE
-      "$<BUILD_INTERFACE:${MediaServer_FLV_ROOT}/include>"
-    PUBLIC
-      "$<BUILD_INTERFACE:${MediaServer_FLV_ROOT}/include>")
+          PRIVATE
+          "$<BUILD_INTERFACE:${MediaServer_FLV_ROOT}/include>"
+          PUBLIC
+          "$<BUILD_INTERFACE:${MediaServer_FLV_ROOT}/include>")
 
-  update_cached_list(MK_LINK_LIBRARIES
-    MediaServer::flv MediaServer::mov)
-  update_cached_list(MK_COMPILE_DEFINITIONS
-    ENABLE_MP4)
-endif()
+  update_cached_list(MK_LINK_LIBRARIES MediaServer::flv MediaServer::mov)
+
+  if (ENABLE_MP4)
+    message(STATUS "ENABLE_MP4 defined")
+    update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_MP4)
+  endif ()
+  if (ENABLE_HLS_FMP4)
+    message(STATUS "ENABLE_HLS_FMP4 defined")
+    update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_HLS_FMP4)
+  endif ()
+endif ()
 
 # 添加 mpeg 用于支持 ts 生成
 if(ENABLE_RTPPROXY OR ENABLE_HLS)
@@ -108,9 +108,11 @@ if(ENABLE_RTPPROXY OR ENABLE_HLS)
 
   update_cached_list(MK_LINK_LIBRARIES MediaServer::mpeg)
   if(ENABLE_RTPPROXY)
+    message(STATUS "ENABLE_RTPPROXY defined")
     update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_RTPPROXY)
   endif()
   if(ENABLE_HLS)
+    message(STATUS "ENABLE_HLS defined")
     update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_HLS)
   endif()
 endif()

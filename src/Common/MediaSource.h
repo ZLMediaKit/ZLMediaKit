@@ -151,8 +151,10 @@ public:
     //断连续推延时，单位毫秒，默认采用配置文件
     uint32_t continue_push_ms;
 
-    //是否开启转换为hls
+    //是否开启转换为hls(mpegts)
     bool enable_hls;
+    //是否开启转换为hls(fmp4)
+    bool enable_hls_fmp4;
     //是否开启MP4录制
     bool enable_mp4;
     //是否开启转换为rtsp/webrtc
@@ -194,6 +196,7 @@ public:
         GET_OPT_VALUE(continue_push_ms);
 
         GET_OPT_VALUE(enable_hls);
+        GET_OPT_VALUE(enable_hls_fmp4);
         GET_OPT_VALUE(enable_mp4);
         GET_OPT_VALUE(enable_rtsp);
         GET_OPT_VALUE(enable_rtmp);

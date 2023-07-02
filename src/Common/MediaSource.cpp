@@ -59,6 +59,7 @@ ProtocolOption::ProtocolOption() {
     GET_CONFIG(uint32_t, s_continue_push_ms, Protocol::kContinuePushMS);
 
     GET_CONFIG(bool, s_enable_hls, Protocol::kEnableHls);
+    GET_CONFIG(bool, s_enable_hls_fmp4, Protocol::kEnableHlsFmp4);
     GET_CONFIG(bool, s_enable_mp4, Protocol::kEnableMP4);
     GET_CONFIG(bool, s_enable_rtsp, Protocol::kEnableRtsp);
     GET_CONFIG(bool, s_enable_rtmp, Protocol::kEnableRtmp);
@@ -83,6 +84,7 @@ ProtocolOption::ProtocolOption() {
     continue_push_ms = s_continue_push_ms;
 
     enable_hls = s_enable_hls;
+    enable_hls_fmp4 = s_enable_hls_fmp4;
     enable_mp4 = s_enable_mp4;
     enable_rtsp = s_enable_rtsp;
     enable_rtmp = s_enable_rtmp;
