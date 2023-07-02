@@ -67,6 +67,7 @@
 #define HLS_SCHEMA "hls"
 #define TS_SCHEMA "ts"
 #define FMP4_SCHEMA "fmp4"
+#define HLS_FMP4_SCHEMA "hls.fmp4"
 #define SRT_SCHEMA "srt"
 #define DEFAULT_VHOST "__defaultVhost__"
 

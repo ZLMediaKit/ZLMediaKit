@@ -11,13 +11,13 @@
 #ifndef ZLMEDIAKIT_MP4MUXER_H
 #define ZLMEDIAKIT_MP4MUXER_H
 
-#ifdef ENABLE_MP4
+#if defined(ENABLE_MP4) || defined(ENABLE_HLS_FMP4)
 
 #include "Common/MediaSink.h"
 #include "Common/Stamp.h"
 #include "MP4.h"
 
-namespace mediakit{
+namespace mediakit {
 
 class MP4MuxerInterface : public MediaSinkInterface {
 public:
@@ -147,11 +147,39 @@ protected:
 
 private:
     bool _key_frame = false;
+    uint64_t _last_dst = 0;
     std::string _init_segment;
     MP4FileMemory::Ptr _memory_file;
 };
 
+} // namespace mediakit
 
-}//namespace mediakit
-#endif//#ifdef ENABLE_MP4
+#else
+
+#include "Common/MediaSink.h"
+
+namespace mediakit {
+
+class MP4MuxerMemory : public MediaSinkInterface {
+public:
+    MP4MuxerMemory() = default;
+    ~MP4MuxerMemory() override = default;
+
+    bool addTrack(const Track::Ptr & track) override { return false; }
+    bool inputFrame(const Frame::Ptr &frame) override { return false; }
+    const std::string &getInitSegment() { static std::string kNull; return kNull; };
+
+protected:
+    /**
+     * 输出fmp4切片回调函数
+     * @param std::string 切片内容
+     * @param stamp 切片末尾时间戳
+     * @param key_frame 是否有关键帧
+     */
+    virtual void onSegmentData(std::string string, uint64_t stamp, bool key_frame) = 0;
+};
+
+} // namespace mediakit
+
+#endif //defined(ENABLE_MP4) || defined(ENABLE_HLS_FMP4)
 #endif //ZLMEDIAKIT_MP4MUXER_H

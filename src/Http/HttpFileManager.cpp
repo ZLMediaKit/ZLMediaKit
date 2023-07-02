@@ -33,6 +33,7 @@ namespace mediakit {
 static int kHlsCookieSecond = 60;
 static const string kCookieName = "ZL_COOKIE";
 static const string kHlsSuffix = "/hls.m3u8";
+static const string kHlsFMP4Suffix = "/hls.fmp4.m3u8";
 
 struct HttpCookieAttachment {
     //是否已经查找到过MediaSource
@@ -278,7 +279,7 @@ static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo
         HttpCookieManager::Instance().delCookie(cookie);
     }
 
-    bool is_hls = media_info.schema == HLS_SCHEMA;
+    bool is_hls = media_info.schema == HLS_SCHEMA || media_info.schema == HLS_FMP4_SCHEMA;
 
     SockInfoImp::Ptr info = std::make_shared<SockInfoImp>();
     info->_identifier = sender.getIdentifier();
@@ -355,7 +356,7 @@ static string pathCat(const string &a, const string &b){
  * @param cb 回调对象
  */
 static void accessFile(Session &sender, const Parser &parser, const MediaInfo &media_info, const string &file_path, const HttpFileManager::invoker &cb) {
-    bool is_hls = end_with(file_path, kHlsSuffix);
+    bool is_hls = end_with(file_path, kHlsSuffix) || end_with(file_path, kHlsFMP4Suffix);
     if (!is_hls && !File::fileExist(file_path.data())) {
         //文件不存在且不是hls,那么直接返回404
         sendNotFound(cb);
@@ -363,8 +364,13 @@ static void accessFile(Session &sender, const Parser &parser, const MediaInfo &m
     }
     if (is_hls) {
         // hls，那么移除掉后缀获取真实的stream_id并且修改协议为HLS
-        const_cast<string &>(media_info.schema) = HLS_SCHEMA;
-        replace(const_cast<string &>(media_info.stream), kHlsSuffix, "");
+        if (end_with(file_path, kHlsSuffix)) {
+            const_cast<string &>(media_info.schema) = HLS_SCHEMA;
+            replace(const_cast<string &>(media_info.stream), kHlsSuffix, "");
+        } else {
+            const_cast<string &>(media_info.schema) = HLS_FMP4_SCHEMA;
+            replace(const_cast<string &>(media_info.stream), kHlsFMP4Suffix, "");
+        }
     }
 
     weak_ptr<Session> weakSession = static_pointer_cast<Session>(sender.shared_from_this());

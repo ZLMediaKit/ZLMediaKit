@@ -8,6 +8,7 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
+#include <iomanip>
 #include "HlsMaker.h"
 #include "Common/config.h"
 
@@ -15,83 +16,76 @@ using namespace std;
 
 namespace mediakit {
 
-HlsMaker::HlsMaker(float seg_duration, uint32_t seg_number, bool seg_keep) {
+HlsMaker::HlsMaker(bool is_fmp4, float seg_duration, uint32_t seg_number, bool seg_keep) {
+	_is_fmp4 = is_fmp4;
     //最小允许设置为0，0个切片代表点播
     _seg_number = seg_number;
     _seg_duration = seg_duration;
     _seg_keep = seg_keep;
 }
 
-HlsMaker::~HlsMaker() = default;
-
 void HlsMaker::makeIndexFile(bool eof) {
-    char file_content[1024];
     int maxSegmentDuration = 0;
-
     for (auto &tp : _seg_dur_list) {
         int dur = std::get<0>(tp);
         if (dur > maxSegmentDuration) {
             maxSegmentDuration = dur;
         }
     }
+    auto index_seq = _seg_number ? (_file_index > _seg_number ? _file_index - _seg_number : 0LL) : 0LL;
 
-    auto sequence = _seg_number ? (_file_index > _seg_number ? _file_index - _seg_number : 0LL) : 0LL;
-
-    string m3u8;
-     if (_seg_number == 0) {
-        // 录像点播支持时移
-        snprintf(file_content, sizeof(file_content),
-                 "#EXTM3U\n"
-                 "#EXT-X-PLAYLIST-TYPE:EVENT\n"
-                 "#EXT-X-VERSION:4\n"
-                 "#EXT-X-TARGETDURATION:%u\n"
-                 "#EXT-X-MEDIA-SEQUENCE:%llu\n",
-                 (maxSegmentDuration + 999) / 1000,
-                 sequence);
+    string index_str;
+    index_str.reserve(2048);
+    index_str += "#EXTM3U\n";
+    index_str += (_is_fmp4 ? "#EXT-X-VERSION:7\n" : "#EXT-X-VERSION:4\n");
+    if (_seg_number == 0) {
+        index_str += "#EXT-X-PLAYLIST-TYPE:EVENT\n";
     } else {
-        snprintf(file_content, sizeof(file_content),
-                 "#EXTM3U\n"
-                 "#EXT-X-VERSION:3\n"
-                 "#EXT-X-ALLOW-CACHE:NO\n"
-                 "#EXT-X-TARGETDURATION:%u\n"
-                 "#EXT-X-MEDIA-SEQUENCE:%llu\n",
-                 (maxSegmentDuration + 999) / 1000,
-                 sequence);
+        index_str += "#EXT-X-ALLOW-CACHE:NO\n";
     }
-    
-    m3u8.assign(file_content);
+    index_str += "#EXT-X-TARGETDURATION:" + std::to_string((maxSegmentDuration + 999) / 1000) + "\n";
+    index_str += "#EXT-X-MEDIA-SEQUENCE:" + std::to_string(index_seq) + "\n";
+    if (_is_fmp4) {
+        index_str += "#EXT-X-MAP:URI=\"init.mp4\"\n";
+    }
 
+    stringstream ss;
     for (auto &tp : _seg_dur_list) {
-        snprintf(file_content, sizeof(file_content), "#EXTINF:%.3f,\n%s\n", std::get<0>(tp) / 1000.0, std::get<1>(tp).data());
-        m3u8.append(file_content);
+        ss << "#EXTINF:" << std::setprecision(3) << std::get<0>(tp) / 1000.0 << ",\n" << std::get<1>(tp) << "\n";
     }
+    index_str += ss.str();
 
     if (eof) {
-        snprintf(file_content, sizeof(file_content), "#EXT-X-ENDLIST\n");
-        m3u8.append(file_content);
+        index_str += "#EXT-X-ENDLIST\n";
     }
-    onWriteHls(m3u8);
+    onWriteHls(index_str);
 }
 
+void HlsMaker::inputInitSegment(const char *data, size_t len) {
+    if (!_is_fmp4) {
+        throw std::invalid_argument("Only fmp4-hls can input init segment");
+    }
+    onWriteInitSegment(data, len);
+}
 
-void HlsMaker::inputData(void *data, size_t len, uint64_t timestamp, bool is_idr_fast_packet) {
+void HlsMaker::inputData(const char *data, size_t len, uint64_t timestamp, bool is_idr_fast_packet) {
     if (data && len) {
         if (timestamp < _last_timestamp) {
-            //时间戳回退了，切片时长重新计时
-            WarnL << "stamp reduce: " << _last_timestamp << " -> " << timestamp;
+            // 时间戳回退了，切片时长重新计时
+            WarnL << "Timestamp reduce: " << _last_timestamp << " -> " << timestamp;
             _last_seg_timestamp = _last_timestamp = timestamp;
         }
         if (is_idr_fast_packet) {
-            //尝试切片ts
+            // 尝试切片ts
             addNewSegment(timestamp);
         }
         if (!_last_file_name.empty()) {
-            //存在切片才写入ts数据
-            onWriteSegment((char *) data, len);
+            // 存在切片才写入ts数据
+            onWriteSegment(data, len);
             _last_timestamp = timestamp;
         }
     } else {
-        //resetTracks时触发此逻辑
+        // resetTracks时触发此逻辑
         flushLastSegment(false);
     }
 }
@@ -148,12 +142,16 @@ void HlsMaker::flushLastSegment(bool eof){
     makeIndexFile(eof);
 }
 
-bool HlsMaker::isLive() {
+bool HlsMaker::isLive() const {
     return _seg_number != 0;
 }
 
-bool HlsMaker::isKeep() {
+bool HlsMaker::isKeep() const {
     return _seg_keep;
+}
+
+bool HlsMaker::isFmp4() const {
+    return _is_fmp4;
 }
 
 void HlsMaker::clear() {

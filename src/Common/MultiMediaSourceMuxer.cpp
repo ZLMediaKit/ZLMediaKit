@@ -37,6 +37,7 @@ static std::shared_ptr<MediaSinkInterface> makeRecorder(MediaSource &sender, con
     for (auto &track : tracks) {
         recorder->addTrack(track);
     }
+    recorder->addTrackCompleted();
     return recorder;
 }
 
@@ -97,17 +98,18 @@ MultiMediaSourceMuxer::MultiMediaSourceMuxer(const MediaTuple& tuple, float dur_
     if (option.enable_hls) {
         _hls = dynamic_pointer_cast<HlsRecorder>(Recorder::createRecorder(Recorder::type_hls, _tuple, option));
     }
+    if (option.enable_hls_fmp4) {
+        _hls_fmp4 = dynamic_pointer_cast<HlsFMP4Recorder>(Recorder::createRecorder(Recorder::type_hls_fmp4, _tuple, option));
+    }
     if (option.enable_mp4) {
         _mp4 = Recorder::createRecorder(Recorder::type_mp4, _tuple, option);
     }
     if (option.enable_ts) {
-        _ts = std::make_shared<TSMediaSourceMuxer>(_tuple, option);
+        _ts = dynamic_pointer_cast<TSMediaSourceMuxer>(Recorder::createRecorder(Recorder::type_ts, _tuple, option));
     }
-#if defined(ENABLE_MP4)
     if (option.enable_fmp4) {
-        _fmp4 = std::make_shared<FMP4MediaSourceMuxer>(_tuple, option);
+        _fmp4 = dynamic_pointer_cast<FMP4MediaSourceMuxer>(Recorder::createRecorder(Recorder::type_fmp4, _tuple, option));
     }
-#endif
 
     //音频相关设置
     enableAudio(option.enable_audio);
@@ -128,14 +130,14 @@ void MultiMediaSourceMuxer::setMediaListener(const std::weak_ptr<MediaSourceEven
     if (_ts) {
         _ts->setListener(self);
     }
-#if defined(ENABLE_MP4)
     if (_fmp4) {
         _fmp4->setListener(self);
     }
-#endif
-    auto hls = _hls;
-    if (hls) {
-        hls->setListener(self);
+    if (_hls_fmp4) {
+        _hls_fmp4->setListener(self);
+    }
+    if (_hls) {
+        _hls->setListener(self);
     }
 }
 
@@ -144,15 +146,13 @@ void MultiMediaSourceMuxer::setTrackListener(const std::weak_ptr<Listener> &list
 }
 
 int MultiMediaSourceMuxer::totalReaderCount() const {
-    auto hls = _hls;
     return (_rtsp ? _rtsp->readerCount() : 0) +
            (_rtmp ? _rtmp->readerCount() : 0) +
            (_ts ? _ts->readerCount() : 0) +
-           #if defined(ENABLE_MP4)
            (_fmp4 ? _fmp4->readerCount() : 0) +
-           #endif
            (_mp4 ? _option.mp4_as_player : 0) +
-           (hls ? hls->readerCount() : 0) +
+           (_hls ? _hls->readerCount() : 0) +
+           (_hls_fmp4 ? _hls_fmp4->readerCount() : 0) +
            (_ring ? _ring->readerCount() : 0);
 }
 
@@ -180,6 +180,7 @@ int MultiMediaSourceMuxer::totalReaderCount(MediaSource &sender) {
 
 //此函数可能跨线程调用
 bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path, size_t max_second) {
+    CHECK(getOwnerPoller(MediaSource::NullMediaSource())->isCurrentThread(), "Can only call setupRecord in it's owner poller");
     onceToken token(nullptr, [&]() {
         if (_option.mp4_as_player && type == Recorder::type_mp4) {
             //开启关闭mp4录制，触发观看人数变化相关事件
@@ -215,19 +216,59 @@ bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type
             }
             return true;
         }
+        case Recorder::type_hls_fmp4: {
+            if (start && !_hls_fmp4) {
+                //开始录制
+                _option.hls_save_path = custom_path;
+                auto hls = dynamic_pointer_cast<HlsFMP4Recorder>(makeRecorder(sender, getTracks(), type, _option));
+                if (hls) {
+                    //设置HlsMediaSource的事件监听器
+                    hls->setListener(shared_from_this());
+                }
+                _hls_fmp4 = hls;
+            } else if (!start && _hls_fmp4) {
+                //停止录制
+                _hls_fmp4 = nullptr;
+            }
+            return true;
+        }
+        case Recorder::type_fmp4: {
+            if (start && !_fmp4) {
+                auto fmp4 = dynamic_pointer_cast<FMP4MediaSourceMuxer>(makeRecorder(sender, getTracks(), type, _option));
+                if (fmp4) {
+                    fmp4->setListener(shared_from_this());
+                }
+                _fmp4 = fmp4;
+            } else if (!start && _fmp4) {
+                _fmp4 = nullptr;
+            }
+            return true;
+        }
+        case Recorder::type_ts: {
+            if (start && !_ts) {
+                auto ts = dynamic_pointer_cast<TSMediaSourceMuxer>(makeRecorder(sender, getTracks(), type, _option));
+                if (ts) {
+                    ts->setListener(shared_from_this());
+                }
+                _ts = ts;
+            } else if (!start && _ts) {
+                _ts = nullptr;
+            }
+            return true;
+        }
         default : return false;
     }
 }
 
 //此函数可能跨线程调用
 bool MultiMediaSourceMuxer::isRecording(MediaSource &sender, Recorder::type type) {
-    switch (type){
-        case Recorder::type_hls :
-            return !!_hls;
-        case Recorder::type_mp4 :
-            return !!_mp4;
-        default:
-            return false;
+    switch (type) {
+        case Recorder::type_hls: return !!_hls;
+        case Recorder::type_mp4: return !!_mp4;
+        case Recorder::type_hls_fmp4: return !!_hls_fmp4;
+        case Recorder::type_fmp4: return !!_fmp4;
+        case Recorder::type_ts: return !!_ts;
+        default: return false;
     }
 }
 
@@ -327,20 +368,17 @@ bool MultiMediaSourceMuxer::onTrackReady(const Track::Ptr &track) {
     if (_ts) {
         ret = _ts->addTrack(track) ? true : ret;
     }
-#if defined(ENABLE_MP4)
     if (_fmp4) {
         ret = _fmp4->addTrack(track) ? true : ret;
     }
-#endif
-
-    //拷贝智能指针，目的是为了防止跨线程调用设置录像相关api导致的线程竞争问题
-    auto hls = _hls;
-    if (hls) {
-        ret = hls->addTrack(track) ? true : ret;
+    if (_hls) {
+        ret = _hls->addTrack(track) ? true : ret;
     }
-    auto mp4 = _mp4;
-    if (mp4) {
-        ret = mp4->addTrack(track) ? true : ret;
+    if (_hls_fmp4) {
+        ret = _hls_fmp4->addTrack(track) ? true : ret;
+    }
+    if (_mp4) {
+        ret = _mp4->addTrack(track) ? true : ret;
     }
     return ret;
 }
@@ -350,16 +388,27 @@ void MultiMediaSourceMuxer::onAllTrackReady() {
     setMediaListener(getDelegate());
 
     if (_rtmp) {
-        _rtmp->onAllTrackReady();
+        _rtmp->addTrackCompleted();
     }
     if (_rtsp) {
-        _rtsp->onAllTrackReady();
+        _rtsp->addTrackCompleted();
     }
-#if defined(ENABLE_MP4)
+    if (_ts) {
+        _ts->addTrackCompleted();
+    }
+    if (_mp4) {
+        _mp4->addTrackCompleted();
+    }
     if (_fmp4) {
-        _fmp4->onAllTrackReady();
+        _fmp4->addTrackCompleted();
     }
-#endif
+    if (_hls) {
+        _hls->addTrackCompleted();
+    }
+    if (_hls_fmp4) {
+        _hls_fmp4->addTrackCompleted();
+    }
+
     auto listener = _track_listener.lock();
     if (listener) {
         listener->onAllTrackReady();
@@ -407,21 +456,17 @@ void MultiMediaSourceMuxer::resetTracks() {
     if (_ts) {
         _ts->resetTracks();
     }
-#if defined(ENABLE_MP4)
     if (_fmp4) {
         _fmp4->resetTracks();
     }
-#endif
-
-    //拷贝智能指针，目的是为了防止跨线程调用设置录像相关api导致的线程竞争问题
-    auto hls = _hls;
-    if (hls) {
-        hls->resetTracks();
+    if (_hls_fmp4) {
+        _hls_fmp4->resetTracks();
     }
-
-    auto mp4 = _mp4;
-    if (mp4) {
-        mp4->resetTracks();
+    if (_hls) {
+        _hls->resetTracks();
+    }
+    if (_mp4) {
+        _mp4->resetTracks();
     }
 }
 
@@ -443,23 +488,20 @@ bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
         ret = _ts->inputFrame(frame) ? true : ret;
     }
 
-    //拷贝智能指针，目的是为了防止跨线程调用设置录像相关api导致的线程竞争问题
-    //此处使用智能指针拷贝来确保线程安全，比互斥锁性能更优
-    auto hls = _hls;
-    if (hls) {
-        ret = hls->inputFrame(frame) ? true : ret;
-    }
-    auto mp4 = _mp4;
-    if (mp4) {
-        ret = mp4->inputFrame(frame) ? true : ret;
+    if (_hls) {
+        ret = _hls->inputFrame(frame) ? true : ret;
     }
 
-#if defined(ENABLE_MP4)
+    if (_hls_fmp4) {
+        ret = _hls_fmp4->inputFrame(frame) ? true : ret;
+    }
+
+    if (_mp4) {
+        ret = _mp4->inputFrame(frame) ? true : ret;
+    }
     if (_fmp4) {
         ret = _fmp4->inputFrame(frame) ? true : ret;
     }
-#endif
-
     if (_ring) {
         if (frame->getTrackType() == TrackVideo) {
             // 视频时，遇到第一帧配置帧或关键帧则标记为gop开始处
@@ -481,15 +523,14 @@ bool MultiMediaSourceMuxer::isEnabled(){
     if (!_is_enable || _last_check.elapsedTime() > stream_none_reader_delay_ms) {
         //无人观看时，每次检查是否真的无人观看
         //有人观看时，则延迟一定时间检查一遍是否无人观看了(节省性能)
-        auto hls = _hls;
         _is_enable = (_rtmp ? _rtmp->isEnabled() : false) ||
                      (_rtsp ? _rtsp->isEnabled() : false) ||
                      (_ts ? _ts->isEnabled() : false) ||
-                     #if defined(ENABLE_MP4)
                      (_fmp4 ? _fmp4->isEnabled() : false) ||
-                     #endif
                      (_ring ? (bool)_ring->readerCount() : false)  ||
-                     (hls ? hls->isEnabled() : false) || _mp4;
+                     (_hls ? _hls->isEnabled() : false) ||
+                     (_hls_fmp4 ? _hls_fmp4->isEnabled() : false) ||
+                     _mp4;
 
         if (_is_enable) {
             //无人观看时，不刷新计时器,因为无人观看时每次都会检查一遍，所以刷新计数器无意义且浪费cpu

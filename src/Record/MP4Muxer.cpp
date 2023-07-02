@@ -8,7 +8,7 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifdef ENABLE_MP4
+#if defined(ENABLE_MP4) || defined(ENABLE_HLS_FMP4)
 
 #include "MP4Muxer.h"
 #include "Extension/AAC.h"
@@ -377,24 +377,24 @@ bool MP4MuxerMemory::inputFrame(const Frame::Ptr &frame) {
         return false;
     }
 
-    bool key_frame = frame->keyFrame();
-
-    //flush切片
+    // flush切片
     saveSegment();
 
     auto data = _memory_file->getAndClearMemory();
     if (!data.empty()) {
-        //输出切片数据
-        onSegmentData(std::move(data), frame->dts(), _key_frame);
+        // 输出切片数据
+        onSegmentData(std::move(data), _last_dst, _key_frame);
         _key_frame = false;
     }
 
-    if (key_frame) {
+    if (frame->keyFrame()) {
         _key_frame = true;
     }
-
+    if (frame->getTrackType() == TrackVideo || !haveVideo()) {
+        _last_dst = frame->dts();
+    }
     return MP4MuxerInterface::inputFrame(frame);
 }
 
 }//namespace mediakit
-#endif//#ifdef ENABLE_MP4
+#endif //defined(ENABLE_MP4) || defined(ENABLE_HLS_FMP4)

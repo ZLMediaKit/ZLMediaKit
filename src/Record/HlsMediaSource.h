@@ -25,7 +25,7 @@ public:
     using RingType = toolkit::RingBuffer<std::string>;
     using Ptr = std::shared_ptr<HlsMediaSource>;
 
-    HlsMediaSource(const MediaTuple& tuple): MediaSource(HLS_SCHEMA, tuple) {}
+    HlsMediaSource(const std::string &schema, const MediaTuple &tuple) : MediaSource(schema, tuple) {}
     ~HlsMediaSource() override = default;
 
     /**
