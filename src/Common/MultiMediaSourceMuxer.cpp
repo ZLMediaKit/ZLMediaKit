@@ -37,6 +37,7 @@ static std::shared_ptr<MediaSinkInterface> makeRecorder(MediaSource &sender, con
     for (auto &track : tracks) {
         recorder->addTrack(track);
     }
+    recorder->addTrackCompleted();
     return recorder;
 }
 
