@@ -35,6 +35,7 @@ namespace mediakit {
     XX(video_orientation,           "urn:3gpp:video-orientation") \
     XX(toffset,                     "urn:ietf:params:rtp-hdrext:toffset") \
     XX(encrypt,                     "urn:ietf:params:rtp-hdrext:encrypt")
+    XX(av1,                         "https://aomediacodec.github.io/av1-rtp-spec/#dependency-descriptor-rtp-header-extension")
 
 enum class RtpExtType : uint8_t {
     padding = 0,
