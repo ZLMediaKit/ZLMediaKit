@@ -53,7 +53,7 @@ void Parser::parse(const char *buf, size_t size) {
         if (ptr == buf) {
             auto blank = strchr(ptr, ' ');
             CHECK(blank > ptr && blank < next_line);
-            _method = std::string(ptr, blank);
+           _method = std::string(ptr, blank - ptr);
             auto next_blank = strchr(blank + 1, ' ');
             CHECK(next_blank && next_blank < next_line);
             _url.assign(blank + 1, next_blank);
@@ -67,7 +67,7 @@ void Parser::parse(const char *buf, size_t size) {
         } else {
             auto pos = strchr(ptr, ':');
             CHECK(pos > ptr && pos < next_line);
-            std::string key { ptr, pos };
+            std::string key { ptr, static_cast<std::size_t>(pos - ptr) };
             std::string value;
             if (pos[1] == ' ') {
                 value.assign(pos + 2, next_line);
