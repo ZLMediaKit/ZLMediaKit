@@ -67,7 +67,7 @@ void Parser::parse(const char *buf, size_t size) {
         } else {
             auto pos = strchr(ptr, ':');
             CHECK(pos > ptr && pos < next_line);
-            std::string key { ptr,  pos - ptr };
+            std::string key { ptr, static_cast<std::size_t>(pos - ptr) };
             std::string value;
             if (pos[1] == ' ') {
                 value.assign(pos + 2, next_line);
