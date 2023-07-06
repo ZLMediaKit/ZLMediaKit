@@ -71,6 +71,11 @@ void HlsPlayer::teardown() {
 
 void HlsPlayer::fetchSegment() {
     if (_ts_list.empty()) {
+        // 如果是点播文件，播放列表为空代表文件播放结束，关闭播放器: #2628
+        if(!HlsParser::isLive()){
+            teardown();
+            return;
+        }
         //播放列表为空，那么立即重新下载m3u8文件
         _timer.reset();
         fetchIndexFile();
@@ -125,14 +130,14 @@ void HlsPlayer::fetchSegment() {
                 strong_self->_timeout_multiple = MAX(strong_self->_timeout_multiple -1 , MIN_TIMEOUT_MULTIPLE);
             }
         }
-        //提前半秒下载好
+        // 提前0.5秒下载好，支持点播文件: #2628
         auto delay = duration - ticker.elapsedTime() / 1000.0f - 0.5;
         if (delay <= 0) {
             //延时最小10ms
-            delay = 10;
+            delay = 0.01;
         }
         //延时下载下一个切片
-        strong_self->_timer_ts.reset(new Timer(delay / 1000.0f, [weak_self]() {
+        strong_self->_timer_ts.reset(new Timer(delay, [weak_self]() {
             auto strong_self = weak_self.lock();
             if (strong_self) {
                 strong_self->fetchSegment();
