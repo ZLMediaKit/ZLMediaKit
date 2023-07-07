@@ -343,6 +343,7 @@ std::string RtspUrl::assignQeuryToUrl(const std::string &src_url, const std::str
 
     all_args = dst_args;
 
+    bool ignore = false;
     for (auto &it : src_args) {
         if (all_args.find(it.first) != all_args.end()) {
 
@@ -350,11 +351,16 @@ std::string RtspUrl::assignQeuryToUrl(const std::string &src_url, const std::str
             for (auto pit = it_list.first; pit != it_list.second; ++pit) {
                 if (it.second == pit->second) {
                     // 忽略一样的query参数
-                    continue;
+                    ignore = true;
                 }
+            }
+
+            if (ignore) {
+                continue;
             }
         }
         all_args.emplace(it.first, it.second);
+        ignore = false;
     }
     auto first = true;
     for (auto &it : all_args) {
