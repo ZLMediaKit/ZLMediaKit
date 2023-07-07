@@ -320,55 +320,6 @@ void splitUrl(const std::string &url, std::string &host, uint16_t &port) {
     host = url.substr(0, pos);
     checkHost(host);
 }
-
-std::string RtspUrl::assignQeuryToUrl(const std::string &src_url, const std::string &dst_url) {
-    std::string base_url = dst_url;
-    StrCaseMap src_args, dst_args, all_args;
-
-    auto pos = src_url.find('?');
-    if (pos != string::npos) {
-        src_args = Parser::parseArgs(src_url.substr(pos + 1));
-    }
-
-    pos = dst_url.find('?');
-    if (pos != string::npos) {
-        base_url = dst_url.substr(0, pos);
-        dst_args = Parser::parseArgs(dst_url.substr(pos + 1));
-    }
-
-    // 都没有query 参数,直接返回
-    if (src_args.size() == 0 && dst_args.size() == 0) {
-        return base_url;
-    }
-
-    all_args = dst_args;
-
-    bool ignore = false;
-    for (auto &it : src_args) {
-        if (all_args.find(it.first) != all_args.end()) {
-
-            auto it_list = all_args.equal_range(it.first);
-            for (auto pit = it_list.first; pit != it_list.second; ++pit) {
-                if (it.second == pit->second) {
-                    // 忽略一样的query参数
-                    ignore = true;
-                }
-            }
-
-            if (ignore) {
-                continue;
-            }
-        }
-        all_args.emplace(it.first, it.second);
-        ignore = false;
-    }
-    auto first = true;
-    for (auto &it : all_args) {
-        base_url += (first ? "?" : "&") + it.first + "=" + it.second;
-        first = false;
-    }
-    return base_url;
-}
 #if 0
 //测试代码
 static onceToken token([](){

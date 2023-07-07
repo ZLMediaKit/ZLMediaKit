@@ -134,8 +134,6 @@ public:
     ~RtspUrl() = default;
     void parse(const std::string &url);
 
-    static std::string assignQeuryToUrl(const std::string &src_url, const std::string &dst_url);
-
 private:
     void setup(bool, const std::string &, const std::string &, const std::string &);
 };

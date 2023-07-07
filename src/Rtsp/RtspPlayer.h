@@ -104,7 +104,7 @@ private:
     void sendDescribe();
     void sendTeardown();
     void sendKeepAlive();
-    void sendRtspRequest(const std::string &cmd, const std::string &url ,const StrCaseMap &header);
+    void sendRtspRequest(const std::string &cmd, const std::string &url ,const StrCaseMap &header = StrCaseMap());
     void sendRtspRequest(const std::string &cmd, const std::string &url ,const std::initializer_list<std::string> &header);
     void createUdpSockIfNecessary(int track_idx);
 
@@ -129,6 +129,7 @@ private:
     std::string _session_id;
     uint32_t _cseq_send = 1;
     std::string _content_base;
+    std::string _control_url;
     Rtsp::eRtpType _rtp_type = Rtsp::RTP_TCP;
 
     //当前rtp时间戳
