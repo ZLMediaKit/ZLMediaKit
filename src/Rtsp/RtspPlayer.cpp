@@ -39,7 +39,7 @@ RtspPlayer::~RtspPlayer(void) {
 void RtspPlayer::sendTeardown() {
     if (alive()) {
         if (!_content_base.empty()) {
-            sendRtspRequest("TEARDOWN", _content_base);
+            sendRtspRequest("TEARDOWN", _content_base, {});
         }
         shutdown(SockException(Err_shutdown, "teardown"));
     }
@@ -199,6 +199,7 @@ void RtspPlayer::handleResDESCRIBE(const Parser &parser) {
     if (_content_base.back() == '/') {
         _content_base.pop_back();
     }
+    TraceL << _content_base;
 
     // 解析sdp
     SdpParser sdpParser(parser.content());
@@ -405,17 +406,17 @@ void RtspPlayer::sendOptions() {
         // 发送Describe请求，获取sdp
         sendDescribe();
     };
-    sendRtspRequest("OPTIONS", _play_url);
+    sendRtspRequest("OPTIONS", _play_url, {});
 }
 
 void RtspPlayer::sendKeepAlive() {
     _on_response = [](const Parser &parser) {};
     if (_supported_cmd.find("GET_PARAMETER") != _supported_cmd.end()) {
         // 支持GET_PARAMETER，用此命令保活
-        sendRtspRequest("GET_PARAMETER", _content_base);
+        sendRtspRequest("GET_PARAMETER", _content_base, {});
     } else {
         // 不支持GET_PARAMETER，用OPTIONS命令保活
-        sendRtspRequest("OPTIONS", _play_url);
+        sendRtspRequest("OPTIONS", _play_url, {});
     }
 }
 
@@ -423,7 +424,7 @@ void RtspPlayer::sendPause(int type, uint32_t seekMS) {
     _on_response = std::bind(&RtspPlayer::handleResPAUSE, this, placeholders::_1, type);
     // 开启或暂停rtsp
     switch (type) {
-        case type_pause: sendRtspRequest("PAUSE", _content_base); break;
+        case type_pause: sendRtspRequest("PAUSE", _content_base, {}); break;
         case type_play:
             // sendRtspRequest("PLAY", _content_base);
             // break;
@@ -451,7 +452,7 @@ void RtspPlayer::handleResPAUSE(const Parser &parser, int type) {
             case type_pause: WarnL << "Pause failed:" << parser.status() << " " << parser.statusStr(); break;
             case type_play:
                 WarnL << "Play failed:" << parser.status() << " " << parser.statusStr();
-                onPlayResult_l(SockException(Err_shutdown, StrPrinter << "rtsp play failed:" << parser.status() << " " << parser.statusStr()), !_play_check_timer);
+                onPlayResult_l(SockException(Err_other, StrPrinter << "rtsp play failed:" << parser.status() << " " << parser.statusStr()), !_play_check_timer);
                 break;
             case type_seek: WarnL << "Seek failed:" << parser.status() << " " << parser.statusStr(); break;
         }
@@ -571,7 +572,16 @@ void RtspPlayer::sendRtspRequest(const string &cmd, const string &url, const std
             key = val;
         }
     }
-    sendRtspRequest(cmd, url, header_map);
+
+    string dst_url;
+
+    if (_play_url == url) {
+        dst_url = url;
+    } else {
+        dst_url = RtspUrl::assignQeuryToUrl(_play_url, url);
+    }
+    // TraceL << dst_url;
+    sendRtspRequest(cmd, dst_url, header_map);
 }
 
 void RtspPlayer::sendRtspRequest(const string &cmd, const string &url, const StrCaseMap &header_const) {
@@ -615,11 +625,7 @@ void RtspPlayer::sendRtspRequest(const string &cmd, const string &url, const Str
     }
 
     _StrPrinter printer;
-    if (cmd == "PLAY") {
-        printer << cmd << " " << _play_url << " RTSP/1.0\r\n";
-    } else {
-        printer << cmd << " " << url << " RTSP/1.0\r\n";
-    }
+    printer << cmd << " " << url << " RTSP/1.0\r\n";
 
     for (auto &pr : header) {
         printer << pr.first << ": " << pr.second << "\r\n";
@@ -743,7 +749,7 @@ int RtspPlayer::getTrackIndexByTrackType(TrackType track_type) const {
     if (_sdp_track.size() == 1) {
         return 0;
     }
-    throw SockException(Err_shutdown, StrPrinter << "no such track with type:" << getTrackString(track_type));
+    throw SockException(Err_other, StrPrinter << "no such track with type:" << getTrackString(track_type));
 }
 
 ///////////////////////////////////////////////////

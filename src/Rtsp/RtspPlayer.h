@@ -104,7 +104,7 @@ private:
     void sendDescribe();
     void sendTeardown();
     void sendKeepAlive();
-    void sendRtspRequest(const std::string &cmd, const std::string &url ,const StrCaseMap &header = StrCaseMap());
+    void sendRtspRequest(const std::string &cmd, const std::string &url ,const StrCaseMap &header);
     void sendRtspRequest(const std::string &cmd, const std::string &url ,const std::initializer_list<std::string> &header);
     void createUdpSockIfNecessary(int track_idx);
 
