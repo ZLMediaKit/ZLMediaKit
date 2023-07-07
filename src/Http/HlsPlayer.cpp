@@ -126,22 +126,20 @@ void HlsPlayer::fetchSegment() {
             WarnL << "Download ts segment " << url << " failed:" << err;
             if (err.getErrCode() == Err_timeout) {
                 strong_self->_timeout_multiple = MAX(strong_self->_timeout_multiple + 1, MAX_TIMEOUT_MULTIPLE);
-            }else{
-                strong_self->_timeout_multiple = MAX(strong_self->_timeout_multiple -1 , MIN_TIMEOUT_MULTIPLE);
+            } else {
+                strong_self->_timeout_multiple = MAX(strong_self->_timeout_multiple - 1, MIN_TIMEOUT_MULTIPLE);
             }
         }
-        // 提前下载好，支持点播文件控制下载速度: #2628
-        auto delay = duration - ticker.elapsedTime() / 1000.0f;
-        if(delay > 2.0){
+        // 提前0.5秒下载好，支持点播文件控制下载速度: #2628
+        auto delay = duration - 0.5 - ticker.elapsedTime() / 1000.0f;
+        if (delay > 2.0) {
             // 提前1秒下载
             delay -= 1.0;
-        } else if(delay <= 0) {
-            //延时最小10ms
+        } else if (delay <= 0) {
+            // 延时最小10ms
             delay = 0.01;
-        } else {
-            delay -= 0.5;
         }
-        //延时下载下一个切片
+        // 延时下载下一个切片
         strong_self->_timer_ts.reset(new Timer(delay, [weak_self]() {
             auto strong_self = weak_self.lock();
             if (strong_self) {
