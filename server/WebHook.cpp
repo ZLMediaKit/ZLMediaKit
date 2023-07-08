@@ -585,7 +585,7 @@ void installWebHook() {
         });
     });
 
-    NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastSendRtpStopped, [](BroadcastSendRtpStopped) {
+    NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastSendRtpStopped, [](BroadcastSendRtpStoppedArgs) {
         GET_CONFIG(string, hook_send_rtp_stopped, Hook::kOnSendRtpStopped);
         if (!hook_enable || hook_send_rtp_stopped.empty()) {
             return;
@@ -656,7 +656,7 @@ void installWebHook() {
         });
     });
 
-    NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::KBroadcastRtpServerTimeout, [](BroadcastRtpServerTimeout) {
+    NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::KBroadcastRtpServerTimeout, [](BroadcastRtpServerTimeoutArgs) {
         GET_CONFIG(string, rtp_server_timeout, Hook::kOnRtpServerTimeout);
         if (!hook_enable || rtp_server_timeout.empty()) {
             return;
