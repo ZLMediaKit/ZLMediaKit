@@ -190,6 +190,10 @@ extern const std::string kModifyStamp;
 extern const std::string kEnableAudio;
 //添加静音音频，在关闭音频时，此开关无效
 extern const std::string kAddMuteAudio;
+// 无人观看时，是否直接关闭(而不是通过on_none_reader hook返回close)
+// 此配置置1时，此流如果无人观看，将不触发on_none_reader hook回调，
+// 而是将直接关闭流
+extern const std::string kAutoClose;
 //断连续推延时，单位毫秒，默认采用配置文件
 extern const std::string kContinuePushMS;
 
