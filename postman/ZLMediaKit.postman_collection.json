@@ -516,7 +516,13 @@
 						{
 							"key": "enable_hls",
 							"value": null,
-							"description": "是否转hls",
+							"description": "是否转hls-ts",
+							"disabled": true
+						},
+						{
+							"key": "enable_hls_fmp4",
+							"value": null,
+							"description": "是否转hls-fmp4",
 							"disabled": true
 						},
 						{
@@ -583,6 +589,12 @@
 							"key": "modify_stamp",
 							"value": null,
 							"description": "是否修改原始时间戳，默认值2；取值范围：0.采用源视频流绝对时间戳，不做任何改变;1.采用zlmediakit接收数据时的系统时间戳(有平滑处理);2.采用源视频流时间戳相对时间戳(增长量)，有做时间戳跳跃和回退矫正",
+							"disabled": true
+						},
+						{
+							"key": "auto_close",
+							"value": null,
+							"description": "无人观看时，是否直接关闭(而不是通过on_none_reader hook返回close)",
 							"disabled": true
 						}
 					]
