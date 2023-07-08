@@ -56,6 +56,7 @@ ProtocolOption::ProtocolOption() {
     GET_CONFIG(int, s_modify_stamp, Protocol::kModifyStamp);
     GET_CONFIG(bool, s_enabel_audio, Protocol::kEnableAudio);
     GET_CONFIG(bool, s_add_mute_audio, Protocol::kAddMuteAudio);
+    GET_CONFIG(bool, s_auto_close, Protocol::kAutoClose);
     GET_CONFIG(uint32_t, s_continue_push_ms, Protocol::kContinuePushMS);
 
     GET_CONFIG(bool, s_enable_hls, Protocol::kEnableHls);
@@ -81,6 +82,7 @@ ProtocolOption::ProtocolOption() {
     modify_stamp = s_modify_stamp;
     enable_audio = s_enabel_audio;
     add_mute_audio = s_add_mute_audio;
+    auto_close = s_auto_close;
     continue_push_ms = s_continue_push_ms;
 
     enable_hls = s_enable_hls;
@@ -658,8 +660,15 @@ void MediaSourceEvent::onReaderChanged(MediaSource &sender, int size){
         }
 
         if (!is_mp4_vod) {
-            //直播时触发无人观看事件，让开发者自行选择是否关闭
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastStreamNoneReader, *strong_sender);
+            auto muxer = strong_sender->getMuxer();
+            if (muxer && muxer->getOption().auto_close) {
+                // 此流被标记为无人观看自动关闭流
+                WarnL << "Auto cloe stream when none reader: " << strong_sender->getUrl();
+                strong_sender->close(false);
+            } else {
+                // 直播时触发无人观看事件，让开发者自行选择是否关闭
+                NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastStreamNoneReader, *strong_sender);
+            }
         } else {
             //这个是mp4点播，我们自动关闭
             WarnL << "MP4点播无人观看,自动关闭:" << strong_sender->getUrl();

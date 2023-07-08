@@ -151,6 +151,11 @@ public:
     bool enable_audio;
     //添加静音音频，在关闭音频时，此开关无效
     bool add_mute_audio;
+    // 无人观看时，是否直接关闭(而不是通过on_none_reader hook返回close)
+    // 此配置置1时，此流如果无人观看，将不触发on_none_reader hook回调，
+    // 而是将直接关闭流
+    bool auto_close;
+
     //断连续推延时，单位毫秒，默认采用配置文件
     uint32_t continue_push_ms;
 
@@ -196,6 +201,7 @@ public:
         GET_OPT_VALUE(modify_stamp);
         GET_OPT_VALUE(enable_audio);
         GET_OPT_VALUE(add_mute_audio);
+        GET_OPT_VALUE(auto_close);
         GET_OPT_VALUE(continue_push_ms);
 
         GET_OPT_VALUE(enable_hls);
