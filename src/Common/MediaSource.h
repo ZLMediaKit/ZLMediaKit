@@ -217,7 +217,7 @@ public:
         GET_OPT_VALUE(mp4_save_path);
 
         GET_OPT_VALUE(hls_save_path);
-        GET_OPT_VALUE(stream_id);
+        GET_OPT_VALUE(stream_replace);
     }
 
 private:
