@@ -80,6 +80,10 @@ std::string MultiMediaSourceMuxer::shortUrl() const {
 }
 
 MultiMediaSourceMuxer::MultiMediaSourceMuxer(const MediaTuple& tuple, float dur_sec, const ProtocolOption &option): _tuple(tuple) {
+    if (!option.stream_replace.empty()) {
+        // 支持在on_publish hook中替换stream_id
+        _tuple.stream = option.stream_replace;
+    }
     _poller = EventPollerPool::Instance().getPoller();
     _create_in_poller = _poller->isCurrentThread();
     _option = option;
