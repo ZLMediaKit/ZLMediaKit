@@ -126,9 +126,13 @@ public:
      */
     toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;
 
-    const MediaTuple& getMediaTuple() const {
-        return _tuple;
-    }
+    /**
+     * 获取本对象
+     */
+    std::shared_ptr<MultiMediaSourceMuxer> getMuxer(MediaSource &sender) override;
+
+    const ProtocolOption &getOption() const;
+    const MediaTuple &getMediaTuple() const;
     std::string shortUrl() const;
 
 protected:

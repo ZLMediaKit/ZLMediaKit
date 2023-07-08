@@ -79,8 +79,6 @@ private:
     mediakit::MediaOriginType getOriginType(mediakit::MediaSource &sender) const override;
     //获取媒体源url或者文件路径
     std::string getOriginUrl(mediakit::MediaSource &sender) const override;
-    // 获取媒体源客户端相关信息
-    std::shared_ptr<toolkit::SockInfo> getOriginSock(mediakit::MediaSource &sender) const override;
 
 private:
     bool _enable_hls = false;
