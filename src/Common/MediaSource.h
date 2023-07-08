@@ -41,6 +41,7 @@ enum class MediaOriginType : uint8_t {
 std::string getOriginTypeString(MediaOriginType type);
 
 class MediaSource;
+class MultiMediaSourceMuxer;
 class MediaSourceEvent {
 public:
     friend class MediaSource;
@@ -88,6 +89,8 @@ public:
     virtual bool isRecording(MediaSource &sender, Recorder::type type) { return false; }
     // 获取所有track相关信息
     virtual std::vector<Track::Ptr> getMediaTracks(MediaSource &sender, bool trackReady = true) const { return std::vector<Track::Ptr>(); };
+    // 获取MultiMediaSourceMuxer对象
+    virtual std::shared_ptr<MultiMediaSourceMuxer> getMuxer(MediaSource &sender) { return nullptr; }
 
     class SendRtpArgs {
     public:
@@ -253,6 +256,7 @@ public:
     bool stopSendRtp(MediaSource &sender, const std::string &ssrc) override;
     float getLossRate(MediaSource &sender, TrackType type) override;
     toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;
+    std::shared_ptr<MultiMediaSourceMuxer> getMuxer(MediaSource &sender) override;
 
 private:
     std::weak_ptr<MediaSourceEvent> _listener;
@@ -326,7 +330,7 @@ public:
     // 设置监听者
     virtual void setListener(const std::weak_ptr<MediaSourceEvent> &listener);
     // 获取监听者
-    std::weak_ptr<MediaSourceEvent> getListener(bool next = false) const;
+    std::weak_ptr<MediaSourceEvent> getListener() const;
 
     // 本协议获取观看者个数，可能返回本协议的观看人数，也可能返回总人数
     virtual int readerCount() = 0;
@@ -368,6 +372,8 @@ public:
     float getLossRate(mediakit::TrackType type);
     // 获取所在线程
     toolkit::EventPoller::Ptr getOwnerPoller();
+    // 获取MultiMediaSourceMuxer对象
+    std::shared_ptr<MultiMediaSourceMuxer> getMuxer();
 
     ////////////////static方法，查找或生成MediaSource////////////////
 

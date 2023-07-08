@@ -71,6 +71,14 @@ static string getTrackInfoStr(const TrackSource *track_src){
     return std::move(codec_info);
 }
 
+const ProtocolOption &MultiMediaSourceMuxer::getOption() const {
+    return _option;
+}
+
+const MediaTuple &MultiMediaSourceMuxer::getMediaTuple() const {
+    return _tuple;
+}
+
 std::string MultiMediaSourceMuxer::shortUrl() const {
     auto ret = getOriginUrl(MediaSource::NullMediaSource());
     if (!ret.empty()) {
@@ -355,6 +363,10 @@ EventPoller::Ptr MultiMediaSourceMuxer::getOwnerPoller(MediaSource &sender) {
         // listener未重载getOwnerPoller
         return _poller;
     }
+}
+
+std::shared_ptr<MultiMediaSourceMuxer> MultiMediaSourceMuxer::getMuxer(MediaSource &sender) {
+    return shared_from_this();
 }
 
 bool MultiMediaSourceMuxer::onTrackReady(const Track::Ptr &track) {
