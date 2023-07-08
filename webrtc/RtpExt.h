@@ -34,6 +34,7 @@ namespace mediakit {
     XX(playout_delay,               "http://www.webrtc.org/experiments/rtp-hdrext/playout-delay") \
     XX(video_orientation,           "urn:3gpp:video-orientation") \
     XX(toffset,                     "urn:ietf:params:rtp-hdrext:toffset") \
+    XX(av1,                         "https://aomediacodec.github.io/av1-rtp-spec/#dependency-descriptor-rtp-header-extension") \
     XX(encrypt,                     "urn:ietf:params:rtp-hdrext:encrypt")
 
 enum class RtpExtType : uint8_t {
@@ -41,7 +42,7 @@ enum class RtpExtType : uint8_t {
 #define XX(type, uri) type,
     RTP_EXT_MAP(XX)
 #undef XX
-    reserved = encrypt,
+    reserved = 15,
 };
 
 class RtcMedia;
