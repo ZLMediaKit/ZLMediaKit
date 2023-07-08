@@ -59,7 +59,7 @@ bool WebRtcPusher::close(MediaSource &sender) {
 }
 
 int WebRtcPusher::totalReaderCount(MediaSource &sender) {
-    auto total_count = _push_src->totalReaderCount();
+    auto total_count = _push_src ? _push_src->totalReaderCount() : 0;
     if (_simulcast) {
         std::lock_guard<std::mutex> lock(_mtx);
         for (auto &src : _push_src_sim) {
