@@ -94,6 +94,7 @@ uint8_t RtpExtOneByte::getId() const {
 }
 
 void RtpExtOneByte::setId(uint8_t in) {
+    CHECK(in < (int)RtpExtType::reserved);
     id = in & 0x0F;
 }
 
@@ -143,8 +144,6 @@ void appendExt(map<uint8_t, RtpExt> &ret, uint8_t *ptr, const uint8_t *end) {
             ++ptr;
             continue;
         }
-        //15类型的rtp ext为保留
-        CHECK(ext->getId() < (uint8_t) RtpExtType::reserved);
         CHECK(reinterpret_cast<uint8_t *>(ext) + Type::kMinSize <= end);
         CHECK(ext->getData() + ext->getSize() <= end);
         ret.emplace(ext->getId(), RtpExt(ext, isOneByteExt<Type>(), reinterpret_cast<char *>(ext->getData()), ext->getSize()));
@@ -522,8 +521,13 @@ uint8_t RtpExt::getFramemarkingTID() const {
 }
 
 void RtpExt::setExtId(uint8_t ext_id) {
-    assert(ext_id > (int) RtpExtType::padding && ext_id <= (int) RtpExtType::reserved && _ext);
+    assert(ext_id > (int) RtpExtType::padding && _ext);
     if (_one_byte_ext) {
+        if (ext_id >= (int)RtpExtType::reserved) {
+            WarnL << "One byte rtp ext can not store id " << (int)ext_id << "(" << getExtName((RtpExtType)ext_id) << ") big than 14";
+            clearExt();
+            return;
+        }
         auto ptr = reinterpret_cast<RtpExtOneByte *>(_ext);
         ptr->setId(ext_id);
     } else {
