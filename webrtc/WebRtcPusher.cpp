@@ -59,11 +59,14 @@ bool WebRtcPusher::close(MediaSource &sender) {
 }
 
 int WebRtcPusher::totalReaderCount(MediaSource &sender) {
-    auto total_count = 0;
-    for (auto &src : _push_src_sim) {
-        total_count += src.second->totalReaderCount();
+    auto total_count = _push_src ? _push_src->totalReaderCount() : 0;
+    if (_simulcast) {
+        std::lock_guard<std::mutex> lock(_mtx);
+        for (auto &src : _push_src_sim) {
+            total_count += src.second->totalReaderCount();
+        }
     }
-    return total_count + _push_src->totalReaderCount();
+    return total_count;
 }
 
 MediaOriginType WebRtcPusher::getOriginType(MediaSource &sender) const {
@@ -96,6 +99,7 @@ void WebRtcPusher::onRecvRtp(MediaTrack &track, const string &rid, RtpPacket::Pt
         }
     } else {
         //视频
+        std::lock_guard<std::mutex> lock(_mtx);
         auto &src = _push_src_sim[rid];
         if (!src) {
             const auto& stream = _push_src->getMediaTuple().stream;
