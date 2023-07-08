@@ -172,20 +172,8 @@ void MediaSource::setListener(const std::weak_ptr<MediaSourceEvent> &listener){
     _listener = listener;
 }
 
-std::weak_ptr<MediaSourceEvent> MediaSource::getListener(bool next) const{
-    if (!next) {
-        return _listener;
-    }
-
-    auto listener = dynamic_pointer_cast<MediaSourceEventInterceptor>(_listener.lock());
-    if (!listener) {
-        //不是MediaSourceEventInterceptor对象或者对象已经销毁
-        return _listener;
-    }
-    //获取被拦截的对象
-    auto next_obj = listener->getDelegate();
-    //有则返回之
-    return next_obj ? next_obj : _listener;
+std::weak_ptr<MediaSourceEvent> MediaSource::getListener() const {
+    return _listener;
 }
 
 int MediaSource::totalReaderCount(){
@@ -275,6 +263,11 @@ toolkit::EventPoller::Ptr MediaSource::getOwnerPoller() {
         return listener->getOwnerPoller(*this);
     }
     throw std::runtime_error(toolkit::demangle(typeid(*this).name()) + "::getOwnerPoller failed: " + getUrl());
+}
+
+std::shared_ptr<MultiMediaSourceMuxer> MediaSource::getMuxer() {
+    auto listener = _listener.lock();
+    return listener ? listener->getMuxer(*this) : nullptr;
 }
 
 void MediaSource::onReaderChanged(int size) {
@@ -778,6 +771,11 @@ toolkit::EventPoller::Ptr MediaSourceEventInterceptor::getOwnerPoller(MediaSourc
         return listener->getOwnerPoller(sender);
     }
     throw std::runtime_error(toolkit::demangle(typeid(*this).name()) + "::getOwnerPoller failed");
+}
+
+std::shared_ptr<MultiMediaSourceMuxer> MediaSourceEventInterceptor::getMuxer(MediaSource &sender) {
+    auto listener = _listener.lock();
+    return listener ? listener->getMuxer(sender) : nullptr;
 }
 
 bool MediaSourceEventInterceptor::setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path, size_t max_second) {
