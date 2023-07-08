@@ -296,7 +296,7 @@ string FFmpegSource::getOriginUrl(MediaSource &sender) const {
 void FFmpegSource::onGetMediaSource(const MediaSource::Ptr &src) {
     auto muxer = src->getMuxer();
     auto listener = muxer ? muxer->getDelegate() : nullptr;
-    if (listener.get() != this) {
+    if (listener && listener.get() != this) {
         //防止多次进入onGetMediaSource函数导致无限递归调用的bug
         setDelegate(listener);
         muxer->setDelegate(shared_from_this());
