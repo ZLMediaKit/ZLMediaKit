@@ -187,6 +187,9 @@ public:
     //hls录制保存路径
     std::string hls_save_path;
 
+    // 支持通过on_publish返回值替换stream_id
+    std::string stream_replace;
+
     template <typename MAP>
     ProtocolOption(const MAP &allArgs) : ProtocolOption() {
 #define GET_OPT_VALUE(key) getArgsValue(allArgs, #key, key)
@@ -214,6 +217,7 @@ public:
         GET_OPT_VALUE(mp4_save_path);
 
         GET_OPT_VALUE(hls_save_path);
+        GET_OPT_VALUE(stream_replace);
     }
 
 private:
