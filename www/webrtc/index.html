@@ -95,21 +95,28 @@
 
       var ishttps = 'https:' == document.location.protocol ? true : false
       var isLocal = "file:" == document.location.protocol ? true : false
-      var url = document.location.protocol+"//"+window.location.host+"/index/api/webrtc?app=live&stream=test&type=play"
       
+      const searchParams = new URL(document.location.href).searchParams;
+      let type = searchParams.get('type');
+      if (!['echo','push','play'].includes(type)) {
+        type = 'play';
+      }
+      recvOnly = type === 'play';
+      const apiPath = `/index/api/webrtc?app=${searchParams.get('app') ?? 'live'}&stream=${searchParams.get('stream') ?? 'test'}&type=${type}`;
 
       if(!ishttps && !isLocal){
         alert('本demo需要在https的网站访问 ,如果你要推流的话(this demo must access in site of https if you want push stream)')
       }
+      
+      const apiHost = isLocal ? "http://127.0.0.1" : `${document.location.protocol}//${window.location.host}`;
+      var url = apiHost + apiPath;
 
-      if(isLocal){
-        url = "http://127.0.0.1"+"/index/api/webrtc?app=live&stream=test&type=play"
-      }
       document.getElementById('streamUrl').value = url
-      document.getElementsByName("method").forEach((el,idx)=>{
-        el.onclick=function(e){
+      document.getElementsByName("method").forEach((el,idx) => {
+        el.checked = el.value === type;
+        el.onclick = function(e) {
           let url = new URL(document.getElementById('streamUrl').value);
-          url.searchParams.set("type",el.value)
+          url.searchParams.set("type",el.value);
           document.getElementById('streamUrl').value = url.toString()
           
           if(el.value == "play"){
@@ -275,7 +282,7 @@
       }
       function fillStreamList(json) {
           clearStreamList();
-          if (json.code != 0) {
+          if (json.code != 0 || !json.data) {
             return;
           }
           let ss = {};
