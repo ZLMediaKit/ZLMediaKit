@@ -320,7 +320,6 @@ void splitUrl(const std::string &url, std::string &host, uint16_t &port) {
     host = url.substr(0, pos);
     checkHost(host);
 }
-
 #if 0
 //测试代码
 static onceToken token([](){
