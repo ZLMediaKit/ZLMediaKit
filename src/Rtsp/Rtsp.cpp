@@ -8,12 +8,12 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
-#include <cstdlib>
-#include <cinttypes>
 #include "Rtsp.h"
 #include "Common/Parser.h"
 #include "Common/config.h"
 #include "Network/Socket.h"
+#include <cinttypes>
+#include <cstdlib>
 
 using namespace std;
 using namespace toolkit;
@@ -22,7 +22,8 @@ namespace mediakit {
 
 int RtpPayload::getClockRate(int pt) {
     switch (pt) {
-#define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id) case value :  return clock_rate;
+#define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id)                                                                                          \
+    case value: return clock_rate;
         RTP_PT_MAP(SWITCH_CASE)
 #undef SWITCH_CASE
         default: return 90000;
@@ -31,7 +32,8 @@ int RtpPayload::getClockRate(int pt) {
 
 TrackType RtpPayload::getTrackType(int pt) {
     switch (pt) {
-#define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id) case value :  return type;
+#define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id)                                                                                          \
+    case value: return type;
         RTP_PT_MAP(SWITCH_CASE)
 #undef SWITCH_CASE
         default: return TrackInvalid;
@@ -40,7 +42,8 @@ TrackType RtpPayload::getTrackType(int pt) {
 
 int RtpPayload::getAudioChannel(int pt) {
     switch (pt) {
-#define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id) case value :  return channel;
+#define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id)                                                                                          \
+    case value: return channel;
         RTP_PT_MAP(SWITCH_CASE)
 #undef SWITCH_CASE
         default: return 1;
@@ -49,7 +52,8 @@ int RtpPayload::getAudioChannel(int pt) {
 
 const char *RtpPayload::getName(int pt) {
     switch (pt) {
-#define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id) case value :  return #name;
+#define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id)                                                                                          \
+    case value: return #name;
         RTP_PT_MAP(SWITCH_CASE)
 #undef SWITCH_CASE
         default: return "unknown payload type";
@@ -58,7 +62,8 @@ const char *RtpPayload::getName(int pt) {
 
 CodecId RtpPayload::getCodecId(int pt) {
     switch (pt) {
-#define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id) case value :  return codec_id;
+#define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id)                                                                                          \
+    case value: return codec_id;
         RTP_PT_MAP(SWITCH_CASE)
 #undef SWITCH_CASE
         default: return CodecInvalid;
@@ -85,7 +90,8 @@ static void getAttrSdp(const multimap<string, string> &attr, _StrPrinter &printe
 
 string SdpTrack::getName() const {
     switch (_pt) {
-#define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id) case value :  return #name;
+#define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id)                                                                                          \
+    case value: return #name;
         RTP_PT_MAP(SWITCH_CASE)
 #undef SWITCH_CASE
         default: return _codec;
@@ -94,7 +100,7 @@ string SdpTrack::getName() const {
 
 string SdpTrack::getControlUrl(const string &base_url) const {
     if (_control.find("://") != string::npos) {
-        //以rtsp://开头
+        // 以rtsp://开头
         return _control;
     }
     return base_url + "/" + _control;
@@ -143,6 +149,7 @@ static TrackType toTrackType(const string &str) {
 }
 
 void SdpParser::load(const string &sdp) {
+    std::multimap<char, std::string> global_infos;
     {
         _track_vec.clear();
         SdpTrack::Ptr track = std::make_shared<SdpTrack>();
@@ -159,17 +166,23 @@ void SdpParser::load(const string &sdp) {
             string opt_val = line.substr(2);
             switch (opt) {
                 case 't':
-                    track->_t = opt_val;
+                    if (_track_vec.empty())
+                        global_infos.emplace(opt, opt_val);
+                    else
+                        track->_t = opt_val;
                     break;
                 case 'b':
-                    track->_b = opt_val;
+                    if (_track_vec.empty())
+                        global_infos.emplace(opt, opt_val);
+                    else
+                        track->_b = opt_val;
                     break;
                 case 'm': {
                     track = std::make_shared<SdpTrack>();
                     int pt, port, port_count;
-                    char rtp[16] = {0}, type[16];
-                    if (4 == sscanf(opt_val.data(), " %15[^ ] %d %15[^ ] %d", type, &port, rtp, &pt) ||
-                        5 == sscanf(opt_val.data(), " %15[^ ] %d/%d %15[^ ] %d", type, &port, &port_count, rtp, &pt)) {
+                    char rtp[16] = { 0 }, type[16];
+                    if (4 == sscanf(opt_val.data(), " %15[^ ] %d %15[^ ] %d", type, &port, rtp, &pt)
+                        || 5 == sscanf(opt_val.data(), " %15[^ ] %d/%d %15[^ ] %d", type, &port, &port_count, rtp, &pt)) {
                         track->_pt = pt;
                         track->_samplerate = RtpPayload::getClockRate(pt);
                         track->_channel = RtpPayload::getAudioChannel(pt);
@@ -182,29 +195,55 @@ void SdpParser::load(const string &sdp) {
                 case 'a': {
                     string attr = findSubString(opt_val.data(), nullptr, ":");
                     if (attr.empty()) {
-                        track->_attr.emplace(opt_val, "");
+                        if (_track_vec.empty())
+                            global_infos.emplace(opt, opt_val);
+                        else
+                            track->_attr.emplace(opt_val, "");
                     } else {
-                        track->_attr.emplace(attr, findSubString(opt_val.data(), ":", nullptr));
+                        if (_track_vec.empty())
+                            global_infos.emplace(opt, opt_val);
+                        else
+                            track->_attr.emplace(attr, findSubString(opt_val.data(), ":", nullptr));
                     }
                     break;
                 }
-                default: track->_other[opt] = opt_val; break;
+                default: {
+                    if (_track_vec.empty()) {
+                        global_infos.emplace(opt, opt_val);
+                    } else {
+                        track->_other[opt] = opt_val;
+                    }
+                    break;
+                }
             }
         }
     }
 
+    for (auto &info : global_infos) {
+        std::string attr;
+        switch (info.first) {
+            case 'a':
+                attr = findSubString(info.second.data(), nullptr, ":");
+                if (attr == "control") {
+                    _control_url = findSubString(info.second.data(), ":", nullptr);
+                }
+                break;
+
+            default: break;
+        }
+    }
     for (auto &track_ptr : _track_vec) {
         auto &track = *track_ptr;
         auto it = track._attr.find("range");
         if (it != track._attr.end()) {
-            char name[16] = {0}, start[16] = {0}, end[16] = {0};
+            char name[16] = { 0 }, start[16] = { 0 }, end[16] = { 0 };
             int ret = sscanf(it->second.data(), "%15[^=]=%15[^-]-%15s", name, start, end);
             if (3 == ret || 2 == ret) {
                 if (strcmp(start, "now") == 0) {
                     strcpy(start, "0");
                 }
-                track._start = (float) atof(start);
-                track._end = (float) atof(end);
+                track._start = (float)atof(start);
+                track._end = (float)atof(end);
                 track._duration = track._end - track._start;
             }
         }
@@ -212,11 +251,11 @@ void SdpParser::load(const string &sdp) {
         for (it = track._attr.find("rtpmap"); it != track._attr.end() && it->first == "rtpmap";) {
             auto &rtpmap = it->second;
             int pt, samplerate, channel;
-            char codec[16] = {0};
+            char codec[16] = { 0 };
 
             sscanf(rtpmap.data(), "%d", &pt);
             if (track._pt != pt && track._pt != 0xff) {
-                //pt不匹配
+                // pt不匹配
                 it = track._attr.erase(it);
                 continue;
             }
@@ -230,18 +269,18 @@ void SdpParser::load(const string &sdp) {
                 track._samplerate = samplerate;
             }
             if (!track._samplerate && track._type == TrackVideo) {
-                //未设置视频采样率时，赋值为90000
+                // 未设置视频采样率时，赋值为90000
                 track._samplerate = 90000;
             }
             ++it;
         }
 
-        for (it = track._attr.find("fmtp"); it != track._attr.end() && it->first == "fmtp"; ) {
+        for (it = track._attr.find("fmtp"); it != track._attr.end() && it->first == "fmtp";) {
             auto &fmtp = it->second;
             int pt;
             sscanf(fmtp.data(), "%d", &pt);
             if (track._pt != pt && track._pt != 0xff) {
-                //pt不匹配
+                // pt不匹配
                 it = track._attr.erase(it);
                 continue;
             }
@@ -315,8 +354,16 @@ string SdpParser::toString() const {
     return title + video + audio;
 }
 
-template<int type>
-class PortManager : public std::enable_shared_from_this<PortManager<type> > {
+std::string SdpParser::getControlUrl(const std::string &url) const {
+    if (_control_url.find("://") != string::npos) {
+        // 以rtsp://开头
+        return _control_url;
+    }
+    return url;
+}
+
+template <int type>
+class PortManager : public std::enable_shared_from_this<PortManager<type>> {
 public:
     PortManager() {
         static auto func = [](const string &str, int index) {
@@ -326,11 +373,11 @@ public:
         };
         GET_CONFIG_FUNC(uint16_t, s_min_port, RtpProxy::kPortRange, [](const string &str) { return func(str, 0); });
         GET_CONFIG_FUNC(uint16_t, s_max_port, RtpProxy::kPortRange, [](const string &str) { return func(str, 1); });
-        assert(s_max_port >= s_min_port + 36 -1);
+        assert(s_max_port >= s_min_port + 36 - 1);
         setRange((s_min_port + 1) / 2, s_max_port / 2);
     }
 
-    static PortManager& Instance() {
+    static PortManager &Instance() {
         static auto instance = std::make_shared<PortManager>();
         return *instance;
     }
@@ -344,12 +391,12 @@ public:
         }
         if (is_udp) {
             if (!sock0->bindUdpSock(2 * *sock_pair, local_ip.data(), re_use_port)) {
-                //分配端口失败
+                // 分配端口失败
                 throw runtime_error("open udp socket[0] failed");
             }
 
             if (!sock1->bindUdpSock(2 * *sock_pair + 1, local_ip.data(), re_use_port)) {
-                //分配端口失败
+                // 分配端口失败
                 throw runtime_error("open udp socket[1] failed");
             }
 
@@ -359,12 +406,12 @@ public:
             sock1->setOnAccept(on_cycle);
         } else {
             if (!sock0->listen(2 * *sock_pair, local_ip.data())) {
-                //分配端口失败
+                // 分配端口失败
                 throw runtime_error("listen tcp socket[0] failed");
             }
 
             if (!sock1->listen(2 * *sock_pair + 1, local_ip.data())) {
-                //分配端口失败
+                // 分配端口失败
                 throw runtime_error("listen tcp socket[1] failed");
             }
 
@@ -400,7 +447,7 @@ private:
                 return;
             }
             InfoL << "return port to pool:" << 2 * pos << "-" << 2 * pos + 1;
-            //回收端口号
+            // 回收端口号
             lock_guard<recursive_mutex> lck(strong_self->_pool_mtx);
             strong_self->_port_pair_pool.emplace_back(pos);
         });
@@ -416,7 +463,7 @@ void makeSockPair(std::pair<Socket::Ptr, Socket::Ptr> &pair, const string &local
     int try_count = 0;
     while (true) {
         try {
-            //udp和tcp端口池使用相同算法和范围分配，但是互不相干
+            // udp和tcp端口池使用相同算法和范围分配，但是互不相干
             if (is_udp) {
                 PortManager<0>::Instance().makeSockPair(pair, local_ip, re_use_port, is_udp);
             } else {
@@ -433,9 +480,9 @@ void makeSockPair(std::pair<Socket::Ptr, Socket::Ptr> &pair, const string &local
 }
 
 string printSSRC(uint32_t ui32Ssrc) {
-    char tmp[9] = {0};
+    char tmp[9] = { 0 };
     ui32Ssrc = htonl(ui32Ssrc);
-    uint8_t *pSsrc = (uint8_t *) &ui32Ssrc;
+    uint8_t *pSsrc = (uint8_t *)&ui32Ssrc;
     for (int i = 0; i < 4; i++) {
         sprintf(tmp + 2 * i, "%02X", pSsrc[i]);
     }
@@ -470,12 +517,10 @@ Buffer::Ptr makeRtpOverTcpPrefix(uint16_t size, uint8_t interleaved) {
     return rtp_tcp;
 }
 
-#define AV_RB16(x)                           \
-    ((((const uint8_t*)(x))[0] << 8) |          \
-      ((const uint8_t*)(x))[1])
+#define AV_RB16(x) ((((const uint8_t *)(x))[0] << 8) | ((const uint8_t *)(x))[1])
 
 size_t RtpHeader::getCsrcSize() const {
-    //每个csrc占用4字节
+    // 每个csrc占用4字节
     return csrc << 2;
 }
 
@@ -487,18 +532,18 @@ uint8_t *RtpHeader::getCsrcData() {
 }
 
 size_t RtpHeader::getExtSize() const {
-    //rtp有ext
+    // rtp有ext
     if (!ext) {
         return 0;
     }
     auto ext_ptr = &payload + getCsrcSize();
-    //uint16_t reserved = AV_RB16(ext_ptr);
-    //每个ext占用4字节
+    // uint16_t reserved = AV_RB16(ext_ptr);
+    // 每个ext占用4字节
     return AV_RB16(ext_ptr + 2) << 2;
 }
 
 uint16_t RtpHeader::getExtReserved() const {
-    //rtp有ext
+    // rtp有ext
     if (!ext) {
         return 0;
     }
@@ -511,12 +556,12 @@ uint8_t *RtpHeader::getExtData() {
         return nullptr;
     }
     auto ext_ptr = &payload + getCsrcSize();
-    //多出的4个字节分别为reserved、ext_len
+    // 多出的4个字节分别为reserved、ext_len
     return ext_ptr + 4;
 }
 
 size_t RtpHeader::getPayloadOffset() const {
-    //有ext时，还需要忽略reserved、ext_len 4个字节
+    // 有ext时，还需要忽略reserved、ext_len 4个字节
     return getCsrcSize() + (ext ? (4 + getExtSize()) : 0);
 }
 
@@ -528,7 +573,7 @@ size_t RtpHeader::getPaddingSize(size_t rtp_size) const {
     if (!padding) {
         return 0;
     }
-    auto end = (uint8_t *) this + rtp_size - 1;
+    auto end = (uint8_t *)this + rtp_size - 1;
     return *end;
 }
 
@@ -539,12 +584,12 @@ ssize_t RtpHeader::getPayloadSize(size_t rtp_size) const {
 
 string RtpHeader::dumpString(size_t rtp_size) const {
     _StrPrinter printer;
-    printer << "version:" << (int) version << "\r\n";
+    printer << "version:" << (int)version << "\r\n";
     printer << "padding:" << getPaddingSize(rtp_size) << "\r\n";
     printer << "ext:" << getExtSize() << "\r\n";
     printer << "csrc:" << getCsrcSize() << "\r\n";
-    printer << "mark:" << (int) mark << "\r\n";
-    printer << "pt:" << (int) pt << "\r\n";
+    printer << "mark:" << (int)mark << "\r\n";
+    printer << "pt:" << (int)pt << "\r\n";
     printer << "seq:" << ntohs(seq) << "\r\n";
     printer << "stamp:" << ntohl(stamp) << "\r\n";
     printer << "ssrc:" << ntohl(ssrc) << "\r\n";
@@ -557,16 +602,16 @@ string RtpHeader::dumpString(size_t rtp_size) const {
 ///////////////////////////////////////////////////////////////////////
 
 RtpHeader *RtpPacket::getHeader() {
-    //需除去rtcp over tcp 4个字节长度
-    return (RtpHeader *) (data() + RtpPacket::kRtpTcpHeaderSize);
+    // 需除去rtcp over tcp 4个字节长度
+    return (RtpHeader *)(data() + RtpPacket::kRtpTcpHeaderSize);
 }
 
 const RtpHeader *RtpPacket::getHeader() const {
-    return (RtpHeader *) (data() + RtpPacket::kRtpTcpHeaderSize);
+    return (RtpHeader *)(data() + RtpPacket::kRtpTcpHeaderSize);
 }
 
 string RtpPacket::dumpString() const {
-    return ((RtpPacket *) this)->getHeader()->dumpString(size() - RtpPacket::kRtpTcpHeaderSize);
+    return ((RtpPacket *)this)->getHeader()->dumpString(size() - RtpPacket::kRtpTcpHeaderSize);
 }
 
 uint16_t RtpPacket::getSeq() const {
@@ -590,7 +635,7 @@ uint8_t *RtpPacket::getPayload() {
 }
 
 size_t RtpPacket::getPayloadSize() const {
-    //需除去rtcp over tcp 4个字节长度
+    // 需除去rtcp over tcp 4个字节长度
     return getHeader()->getPayloadSize(size() - kRtpTcpHeaderSize);
 }
 
@@ -608,23 +653,22 @@ RtpPacket::Ptr RtpPacket::create() {
 #endif
 }
 
-
 /**
-* 构造title类型sdp
-* @param dur_sec rtsp点播时长，0代表直播，单位秒
-* @param header 自定义sdp描述
-* @param version sdp版本
-*/
+ * 构造title类型sdp
+ * @param dur_sec rtsp点播时长，0代表直播，单位秒
+ * @param header 自定义sdp描述
+ * @param version sdp版本
+ */
 
-TitleSdp::TitleSdp(float dur_sec, const std::map<std::string, std::string>& header, int version) : Sdp(0, 0) {
+TitleSdp::TitleSdp(float dur_sec, const std::map<std::string, std::string> &header, int version)
+    : Sdp(0, 0) {
     _printer << "v=" << version << "\r\n";
 
     if (!header.empty()) {
         for (auto &pr : header) {
             _printer << pr.first << "=" << pr.second << "\r\n";
         }
-    }
-    else {
+    } else {
         _printer << "o=- 0 0 IN IP4 0.0.0.0\r\n";
         _printer << "s=Streamed by " << kServerName << "\r\n";
         _printer << "c=IN IP4 0.0.0.0\r\n";
@@ -632,18 +676,17 @@ TitleSdp::TitleSdp(float dur_sec, const std::map<std::string, std::string>& head
     }
 
     if (dur_sec <= 0) {
-        //直播
+        // 直播
         _printer << "a=range:npt=now-\r\n";
-    }
-    else {
-        //点播
+    } else {
+        // 点播
         _dur_sec = dur_sec;
         _printer << "a=range:npt=0-" << dur_sec << "\r\n";
     }
     _printer << "a=control:*\r\n";
 }
 
-}//namespace mediakit
+} // namespace mediakit
 
 namespace toolkit {
 StatisticImp(mediakit::RtpPacket);
