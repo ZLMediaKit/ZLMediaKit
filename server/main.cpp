@@ -102,6 +102,17 @@ onceToken token1([](){
 },nullptr);
 } //namespace RtpProxy
 
+// RTC配置项目
+namespace Rtc {
+#define RTC_FIELD "rtc."
+const string kPort = RTC_FIELD "port";
+const string kTcpPort = RTC_FIELD "tcpPort";
+onceToken token1([]() {
+    mINI::Instance()[kPort] = 8000;
+    mINI::Instance()[kTcpPort] = 8000;
+},nullptr);
+} // namespace RTC
+
 }  // namespace mediakit
 
 

@@ -260,6 +260,24 @@ static onceToken token([]() {
 });
 } // namespace Rtp
 
+////////////RTC服务器配置///////////
+namespace Rtc {
+#define RTC_FIELD "rtc."
+// rtp和rtcp接受超时时间
+const string kTimeOutSec = RTC_FIELD "timeoutSec";
+// 服务器外网ip
+const string kExternIP = RTC_FIELD "externIP";
+// 设置remb比特率，非0时关闭twcc并开启remb。该设置在rtc推流时有效，可以控制推流画质
+const string kRembBitRate = RTC_FIELD "rembBitRate";
+
+static onceToken token([]() {
+    mINI::Instance()[kTimeOutSec] = 15;
+    mINI::Instance()[kExternIP] = "";
+    mINI::Instance()[kRembBitRate] = 0;
+});
+
+} // namespace RTC
+
 ////////////组播配置///////////
 namespace MultiCast {
 #define MULTI_FIELD "multicast."
