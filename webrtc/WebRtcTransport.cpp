@@ -32,6 +32,23 @@
 #define RTP_MSLABEL "zlmediakit-mslabel"
 #define RTP_MSID RTP_MSLABEL " " RTP_LABEL
 
+namespace mediakit {
+//c api RTC配置项目
+namespace Rtc {
+#ifndef RTC_FIELD
+#define RTC_FIELD "rtc."
+// webrtc单端口udp服务器
+const std::string kPort = RTC_FIELD "port";
+const std::string kTcpPort = RTC_FIELD "tcpPort";
+
+static onceToken token([]() {
+    mINI::Instance()[kPort] = 8000;
+    mINI::Instance()[kTcpPort] = 8000;
+});
+#endif
+}
+}
+
 using namespace std;
 
 namespace mediakit {

@@ -28,13 +28,6 @@
 
 namespace mediakit {
 
-//RTC配置项目
-namespace Rtc {
-extern const std::string kPort;
-extern const std::string kTcpPort;
-extern const std::string kTimeOutSec;
-}//namespace RTC
-
 class WebRtcInterface {
 public:
     WebRtcInterface() = default;
