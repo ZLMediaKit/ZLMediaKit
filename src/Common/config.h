@@ -308,15 +308,6 @@ extern const std::string kLowLatency;
 extern const std::string kH264StapA;
 } // namespace Rtp
 
-////////////RTC服务器配置///////////
-namespace Rtc {
-//rtc播放推流、播放超时时间
-extern const std::string kTimeOutSec;
-// 服务器外网ip
-extern const std::string kExternIP;
-// 设置remb比特率，非0时关闭twcc并开启remb。该设置在rtc推流时有效，可以控制推流画质
-extern const std::string kRembBitRate;
-} // namespace Rtc
 
 ////////////组播配置///////////
 namespace MultiCast {

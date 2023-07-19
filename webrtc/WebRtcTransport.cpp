@@ -32,26 +32,33 @@
 #define RTP_MSLABEL "zlmediakit-mslabel"
 #define RTP_MSID RTP_MSLABEL " " RTP_LABEL
 
-namespace mediakit {
-//c api RTC配置项目
-namespace Rtc {
-#ifndef RTC_FIELD
-#define RTC_FIELD "rtc."
-// webrtc单端口udp服务器
-const std::string kPort = RTC_FIELD "port";
-const std::string kTcpPort = RTC_FIELD "tcpPort";
-
-static onceToken token([]() {
-    mINI::Instance()[kPort] = 8000;
-    mINI::Instance()[kTcpPort] = 8000;
-});
-#endif
-}
-}
-
 using namespace std;
 
 namespace mediakit {
+
+// RTC配置项目
+namespace Rtc {
+#define RTC_FIELD "rtc."
+// rtp和rtcp接受超时时间
+const string kTimeOutSec = RTC_FIELD "timeoutSec";
+// 服务器外网ip
+const string kExternIP = RTC_FIELD "externIP";
+// 设置remb比特率，非0时关闭twcc并开启remb。该设置在rtc推流时有效，可以控制推流画质
+const string kRembBitRate = RTC_FIELD "rembBitRate";
+// webrtc单端口udp服务器
+const string kPort = RTC_FIELD "port";
+
+const string kTcpPort = RTC_FIELD "tcpPort";
+
+static onceToken token([]() {
+    mINI::Instance()[kTimeOutSec] = 15;
+    mINI::Instance()[kExternIP] = "";
+    mINI::Instance()[kRembBitRate] = 0;
+    mINI::Instance()[kPort] = 8000;
+    mINI::Instance()[kTcpPort] = 8000;
+});
+
+} // namespace RTC
 
 static atomic<uint64_t> s_key { 0 };
 
