@@ -34,7 +34,7 @@ if(ENABLE_SERVER_LIB)
     PRIVATE ${COMPILE_OPTIONS_DEFAULT})
   target_link_libraries(MediaServer
     PRIVATE ${MK_LINK_LIBRARIES})
-  update_cached(MK_LINK_LIBRARIES MediaServer)
+  update_cached_list(MK_LINK_LIBRARIES MediaServer)
   return()
 endif()
 
