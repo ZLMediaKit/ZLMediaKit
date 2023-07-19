@@ -464,7 +464,7 @@ endif()
 add_subdirectory(server)
 
 # Android 会 add_subdirectory 并依赖该变量
-if(ENABLE_SERVER_LIB)
+if(ENABLE_SERVER_LIB AND NOT CMAKE_PARENT_LIST_FILE STREQUAL CMAKE_CURRENT_LIST_FILE)
   set(MK_LINK_LIBRARIES ${MK_LINK_LIBRARIES} PARENT_SCOPE)
 endif()
 
