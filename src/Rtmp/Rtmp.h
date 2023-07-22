@@ -169,10 +169,15 @@ public:
     }
 
     void clear();
+
     // video config frame和key frame都返回true
+    // 用于gop缓存定位
     bool isVideoKeyFrame() const;
-    // aac config或h264/h265 config
-    bool isCfgFrame() const;
+
+    // aac config或h264/h265 config返回true，支持增强型rtmp
+    // 用于缓存解码配置信息
+    bool isConfigFrame() const;
+
     int getRtmpCodecId() const;
     int getAudioSampleRate() const;
     int getAudioSampleBit() const;

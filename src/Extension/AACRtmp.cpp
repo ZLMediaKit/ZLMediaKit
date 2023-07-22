@@ -16,7 +16,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-static string getAacCfg(const RtmpPacket &thiz) {
+static string getConfig(const RtmpPacket &thiz) {
     string ret;
     if ((RtmpAudioCodec)thiz.getRtmpCodecId() != RtmpAudioCodec::aac) {
         return ret;
@@ -30,8 +30,8 @@ static string getAacCfg(const RtmpPacket &thiz) {
 }
 
 void AACRtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt) {
-    if (pkt->isCfgFrame()) {
-        _aac_cfg = getAacCfg(*pkt);
+    if (pkt->isConfigFrame()) {
+        _aac_cfg = getConfig(*pkt);
         if (!_aac_cfg.empty()) {
             onGetAAC(nullptr, 0, 0);
         }
@@ -79,7 +79,7 @@ AACRtmpEncoder::AACRtmpEncoder(const Track::Ptr &track) {
 void AACRtmpEncoder::makeConfigPacket() {
     if (_track && _track->ready()) {
         //从track中和获取aac配置信息
-        _aac_cfg = _track->getAacCfg();
+        _aac_cfg = _track->getConfig();
     }
 
     if (!_aac_cfg.empty()) {

@@ -339,7 +339,7 @@ void RtmpPlayer::onMediaData_l(RtmpPacket::Ptr chunk_data) {
         return;
     }
 
-    if (chunk_data->isCfgFrame()) {
+    if (chunk_data->isConfigFrame()) {
         //输入配置帧以便初始化完成各个track
         onRtmpPacket(chunk_data);
     } else {

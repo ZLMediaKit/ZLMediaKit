@@ -247,7 +247,7 @@ Frame::Ptr MP4Demuxer::makeFrame(uint32_t track_id, const Buffer::Ptr &buf, int6
             AACTrack::Ptr track = dynamic_pointer_cast<AACTrack>(it->second);
             assert(track);
             //加上adts头
-            dumpAacConfig(track->getAacCfg(), buf->size() - DATA_OFFSET, (uint8_t *) buf->data() + (DATA_OFFSET - ADTS_HEADER_LEN), ADTS_HEADER_LEN);
+            dumpAacConfig(track->getConfig(), buf->size() - DATA_OFFSET, (uint8_t *) buf->data() + (DATA_OFFSET - ADTS_HEADER_LEN), ADTS_HEADER_LEN);
             ret = std::make_shared<FrameWrapper<FrameFromPtr> >(buf, (uint64_t)dts, (uint64_t)pts, ADTS_HEADER_LEN, DATA_OFFSET - ADTS_HEADER_LEN, codec);
             break;
         }
