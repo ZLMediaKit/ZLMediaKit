@@ -33,9 +33,6 @@ static bool getH264Config(const RtmpPacket &thiz, string &sps, string &pps) {
     if ((RtmpVideoCodec)thiz.getRtmpCodecId() != RtmpVideoCodec::h264) {
         return false;
     }
-    if (!thiz.isCfgFrame()) {
-        return false;
-    }
     if (thiz.buffer.size() < 13) {
         return false;
     }

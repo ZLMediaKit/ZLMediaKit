@@ -169,7 +169,9 @@ public:
     }
 
     void clear();
+    // video config frame和key frame都返回true
     bool isVideoKeyFrame() const;
+    // aac config或h264/h265 config
     bool isCfgFrame() const;
     int getRtmpCodecId() const;
     int getAudioSampleRate() const;
