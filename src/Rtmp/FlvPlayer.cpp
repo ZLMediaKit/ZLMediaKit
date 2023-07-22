@@ -62,7 +62,7 @@ bool FlvPlayer::onRecvMetadata(const AMFValue &metadata) {
 }
 
 void FlvPlayer::onRecvRtmpPacket(RtmpPacket::Ptr packet) {
-    if (!_play_result && !packet->isCfgFrame()) {
+    if (!_play_result && !packet->isConfigFrame()) {
         _play_result = true;
         onPlayResult(SockException(Err_success, "play http-flv success"));
     }

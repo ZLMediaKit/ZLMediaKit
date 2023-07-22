@@ -56,7 +56,7 @@ static bool getH264Config(const RtmpPacket &thiz, string &sps, string &pps) {
 }
 
 void H264RtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt) {
-    if (pkt->isCfgFrame()) {
+    if (pkt->isConfigFrame()) {
         //缓存sps pps，后续插入到I帧之前
         if (!getH264Config(*pkt, _sps, _pps)) {
             WarnL << "get h264 sps/pps failed, rtmp packet is: " << hexdump(pkt->data(), pkt->size());

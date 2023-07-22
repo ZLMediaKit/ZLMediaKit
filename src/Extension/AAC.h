@@ -44,7 +44,7 @@ public:
     /**
      * 获取aac 配置信息
      */
-    const std::string &getAacCfg() const;
+    const std::string &getConfig() const;
 
     bool ready() override;
     CodecId getCodecId() const override;

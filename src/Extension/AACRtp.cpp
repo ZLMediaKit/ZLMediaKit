@@ -64,7 +64,7 @@ AACRtpDecoder::AACRtpDecoder(const Track::Ptr &track) {
     if (!aacTrack || !aacTrack->ready()) {
         WarnL << "该aac track无效!";
     } else {
-        _aac_cfg = aacTrack->getAacCfg();
+        _aac_cfg = aacTrack->getConfig();
     }
     obtainFrame();
 }

@@ -167,7 +167,7 @@ bool RtmpPacket::isVideoKeyFrame() const {
     return frame_type == RtmpFrameType::key_frame;
 }
 
-bool RtmpPacket::isCfgFrame() const {
+bool RtmpPacket::isConfigFrame() const {
     switch (type_id) {
         case MSG_AUDIO: {
             return (RtmpAudioCodec)getRtmpCodecId() == RtmpAudioCodec::aac && (RtmpAACPacketType)buffer[1] == RtmpAACPacketType::aac_config_header;

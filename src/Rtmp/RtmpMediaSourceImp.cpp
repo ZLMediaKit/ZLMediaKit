@@ -54,7 +54,7 @@ void RtmpMediaSource::onWrite(RtmpPacket::Ptr pkt, bool /*= true*/) {
         default: break;
     }
 
-    if (pkt->isCfgFrame()) {
+    if (pkt->isConfigFrame()) {
         std::lock_guard<std::recursive_mutex> lock(_mtx);
         _config_frame_map[pkt->type_id] = pkt;
         if (!_ring) {

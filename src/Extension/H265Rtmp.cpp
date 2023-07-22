@@ -124,7 +124,7 @@ void H265RtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt) {
     }
 
     // 国内扩展(12) H265 rtmp
-    if (pkt->isCfgFrame()) {
+    if (pkt->isConfigFrame()) {
 #ifdef ENABLE_MP4
         string config;
         if (getH265ConfigFrame(*pkt, config)) {
