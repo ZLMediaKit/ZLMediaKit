@@ -211,7 +211,7 @@ static CodecId getVideoCodecIdByAmf(const AMFValue &val){
     return CodecInvalid;
 }
 
-Track::Ptr getTrackByCodecId(CodecId codecId, int sample_rate = 0, int channels = 0, int sample_bit = 0) {
+Track::Ptr Factory::getTrackByCodecId(CodecId codecId, int sample_rate, int channels, int sample_bit) {
     switch (codecId){
         case CodecH264 : return std::make_shared<H264Track>();
         case CodecH265 : return std::make_shared<H265Track>();

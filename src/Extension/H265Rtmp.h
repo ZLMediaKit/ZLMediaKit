@@ -15,7 +15,7 @@
 #include "Extension/Track.h"
 #include "Extension/H265.h"
 
-namespace mediakit{
+namespace mediakit {
 /**
  * h265 Rtmp解码类
  * 将 h265 over rtmp 解复用出 h265-Frame
@@ -25,7 +25,7 @@ public:
     using Ptr = std::shared_ptr<H265RtmpDecoder>;
 
     H265RtmpDecoder();
-    ~H265RtmpDecoder() {}
+    ~H265RtmpDecoder() = default;
 
     /**
      * 输入265 Rtmp包
@@ -33,22 +33,23 @@ public:
      */
     void inputRtmp(const RtmpPacket::Ptr &rtmp) override;
 
-    CodecId getCodecId() const override{
-        return CodecH265;
-    }
+    CodecId getCodecId() const override { return CodecH265; }
 
 protected:
-    void onGetH265(const char *pcData, size_t iLen, uint32_t dts,uint32_t pts);
     H265Frame::Ptr obtainFrame();
 
+    void onGetH265(const char *data, size_t size, uint32_t dts, uint32_t pts);
+    void splitFrame(const uint8_t *data, size_t size, uint32_t dts, uint32_t pts);
+
 protected:
+    RtmpPacketInfo _info;
     H265Frame::Ptr _h265frame;
 };
 
 /**
  * 265 Rtmp打包类
  */
-class H265RtmpEncoder : public H265RtmpDecoder{
+class H265RtmpEncoder : public H265RtmpDecoder {
 public:
     using Ptr = std::shared_ptr<H265RtmpEncoder>;
 
@@ -87,9 +88,9 @@ private:
     std::string _pps;
     H265Track::Ptr _track;
     RtmpPacket::Ptr _rtmp_packet;
-    FrameMerger _merger{FrameMerger::mp4_nal_size};
+    FrameMerger _merger { FrameMerger::mp4_nal_size };
 };
 
-}//namespace mediakit
+} // namespace mediakit
 
-#endif //ZLMEDIAKIT_H265RTMPCODEC_H
+#endif // ZLMEDIAKIT_H265RTMPCODEC_H
