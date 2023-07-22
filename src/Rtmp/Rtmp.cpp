@@ -157,7 +157,7 @@ bool RtmpPacket::isVideoKeyFrame() const {
         return false;
     }
     RtmpFrameType frame_type;
-    if (buffer[0] >> 7 == 1) {
+    if (buffer[0] >> 7) {
         // IsExHeader == 1
         frame_type = (RtmpFrameType)((buffer[0] >> 4) & 0x07);
     } else {
@@ -176,7 +176,7 @@ bool RtmpPacket::isConfigFrame() const {
             if (!isVideoKeyFrame()) {
                 return false;
             }
-            if (buffer[0] >> 7 == 1) {
+            if (buffer[0] >> 7) {
                 // IsExHeader == 1
                 return (RtmpPacketType)(buffer[0] & 0x0f) == RtmpPacketType::PacketTypeSequenceStart;
             }
@@ -263,7 +263,7 @@ CodecId parseVideoRtmpPacket(const uint8_t *data, size_t size, RtmpPacketInfo *i
     info->codec = CodecInvalid;
 
     CHECK(size > 0);
-    if (data[0] >> 7 == 1) {
+    if (data[0] >> 7) {
         // IsExHeader == 1
         CHECK(size >= 5, "Invalid rtmp buffer size: ", size);
         info->is_enhanced = true;
