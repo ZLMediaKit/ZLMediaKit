@@ -68,6 +68,7 @@
   - Supports H264/H265/AAC/G711/OPUS encoding. Other encodings can be forwarded but cannot be converted to protocol
   - Supports [RTMP-H265](https://github.com/ksvc/FFmpeg/wiki)
   - Supports [RTMP-OPUS](https://github.com/ZLMediaKit/ZLMediaKit/wiki/RTMP%E5%AF%B9H265%E5%92%8COPUS%E7%9A%84%E6%94%AF%E6%8C%81)
+  - Supports [enhanced-rtmp(H265)](https://github.com/veovera/enhanced-rtmp)
 
 - HLS
   - Supports HLS file(mpegts/fmp4) generation and comes with an HTTP file server
