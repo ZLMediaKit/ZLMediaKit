@@ -367,7 +367,7 @@ struct RtmpPacketInfo {
         } video;
     };
 };
-// https://github.com/veovera/enhanced-rtmp/blob/main/enhanced-rtmp-v1.pdf
+// https://github.com/veovera/enhanced-rtmp
 CodecId parseVideoRtmpPacket(const uint8_t *data, size_t size, RtmpPacketInfo *info = nullptr);
 
 }//namespace mediakit

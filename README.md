@@ -69,6 +69,7 @@
   - 支持H264/H265/AAC/G711/OPUS编码，其他编码能转发但不能转协议
   - 支持[RTMP-H265](https://github.com/ksvc/FFmpeg/wiki)
   - 支持[RTMP-OPUS](https://github.com/ZLMediaKit/ZLMediaKit/wiki/RTMP%E5%AF%B9H265%E5%92%8COPUS%E7%9A%84%E6%94%AF%E6%8C%81)
+  - 支持[enhanced-rtmp(H265)](https://github.com/veovera/enhanced-rtmp)
 
 - HLS
   - 支持HLS文件(mpegts/fmp4)生成，自带HTTP文件服务器
