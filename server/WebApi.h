@@ -44,6 +44,8 @@ typedef enum {
     OtherFailed = -1,//业务代码执行失败，
     Success = 0//执行成功
 } ApiErr;
+
+extern const std::string kSecret;
 }//namespace API
 
 class ApiRetException: public std::runtime_error {
