@@ -50,7 +50,7 @@ static bool decode_HEVCDecoderConfigurationRecord(uint8_t *extra, size_t bytes, 
  * 返回不带0x00 00 00 01头的sps
  */
 static bool getH265ConfigFrame(const RtmpPacket &thiz, string &frame) {
-    if (thiz.getMediaType() != FLV_CODEC_H265) {
+    if ((RtmpVideoCodec)thiz.getRtmpCodecId() != RtmpVideoCodec::h265) {
         return false;
     }
     if (!thiz.isCfgFrame()) {
@@ -243,34 +243,31 @@ bool H265RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     }
 
     return _merger.inputFrame(frame, [this](uint64_t dts, uint64_t pts, const Buffer::Ptr &, bool have_key_frame) {
-        // flags
-        _rtmp_packet->buffer[0] = FLV_CODEC_H265 | ((have_key_frame ? FLV_KEY_FRAME : FLV_INTER_FRAME) << 4);
-        // not config
-        _rtmp_packet->buffer[1] = true;
-        int32_t cts = pts - dts;
-        // cts
-        set_be24(&_rtmp_packet->buffer[2], cts);
-
-        _rtmp_packet->time_stamp = dts;
-        _rtmp_packet->body_size = _rtmp_packet->buffer.size();
-        _rtmp_packet->chunk_id = CHUNK_VIDEO;
-        _rtmp_packet->stream_index = STREAM_MEDIA;
-        _rtmp_packet->type_id = MSG_VIDEO;
-        // 输出rtmp packet
-        RtmpCodec::inputRtmp(_rtmp_packet);
-        _rtmp_packet = nullptr;
-    }, &_rtmp_packet->buffer);
+            // flags
+            _rtmp_packet->buffer[0] = (uint8_t)RtmpVideoCodec::h265 | ((uint8_t)(have_key_frame ? RtmpFrameType::key_frame : RtmpFrameType::inter_frame) << 4);
+            _rtmp_packet->buffer[1] = (uint8_t)RtmpH264PacketType::h264_nalu;
+            int32_t cts = pts - dts;
+            // cts
+            set_be24(&_rtmp_packet->buffer[2], cts);
+            _rtmp_packet->time_stamp = dts;
+            _rtmp_packet->body_size = _rtmp_packet->buffer.size();
+            _rtmp_packet->chunk_id = CHUNK_VIDEO;
+            _rtmp_packet->stream_index = STREAM_MEDIA;
+            _rtmp_packet->type_id = MSG_VIDEO;
+            // 输出rtmp packet
+            RtmpCodec::inputRtmp(_rtmp_packet);
+            _rtmp_packet = nullptr;
+        }, &_rtmp_packet->buffer);
 }
 
 void H265RtmpEncoder::makeVideoConfigPkt() {
 #ifdef ENABLE_MP4
-    int8_t flags = FLV_CODEC_H265;
-    flags |= (FLV_KEY_FRAME << 4);
-    bool is_config = true;
+    auto flags = (uint8_t)RtmpVideoCodec::h265;
+    flags |= ((uint8_t)RtmpFrameType::key_frame << 4);
     auto pkt = RtmpPacket::create();
     // header
     pkt->buffer.push_back(flags);
-    pkt->buffer.push_back(!is_config);
+    pkt->buffer.push_back((uint8_t)RtmpH264PacketType::h264_config_header);
     // cts
     pkt->buffer.append("\x0\x0\x0", 3);
 

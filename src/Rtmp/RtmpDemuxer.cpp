@@ -132,7 +132,7 @@ void RtmpDemuxer::inputRtmp(const RtmpPacket::Ptr &pkt) {
         case MSG_AUDIO: {
             if (!_try_get_audio_track) {
                 _try_get_audio_track = true;
-                auto codec = AMFValue(pkt->getMediaType());
+                auto codec = AMFValue(pkt->getRtmpCodecId());
                 makeAudioTrack(codec, pkt->getAudioSampleRate(), pkt->getAudioChannel(), pkt->getAudioSampleBit(), 0);
             }
             if (_audio_rtmp_decoder) {

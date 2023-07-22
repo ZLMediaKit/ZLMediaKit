@@ -63,18 +63,6 @@
 #define CHUNK_AUDIO						6 /*音频chunkID*/
 #define CHUNK_VIDEO						7 /*视频chunkID*/
 
-#define FLV_KEY_FRAME				1
-#define FLV_INTER_FRAME				2
-
-#define FLV_CODEC_AAC 10
-#define FLV_CODEC_H264 7
-//金山扩展: https://github.com/ksvc/FFmpeg/wiki
-#define FLV_CODEC_H265 12
-#define FLV_CODEC_G711A 7
-#define FLV_CODEC_G711U 8
-//参考学而思网校: https://github.com/notedit/rtmp/commit/6e314ac5b29611431f8fb5468596b05815743c10
-#define FLV_CODEC_OPUS 13
-
 namespace mediakit {
 
 #if defined(_WIN32)
@@ -181,12 +169,9 @@ public:
     }
 
     void clear();
-
     bool isVideoKeyFrame() const;
     bool isCfgFrame() const;
-
-    int getMediaType() const;
-
+    int getRtmpCodecId() const;
     int getAudioSampleRate() const;
     int getAudioSampleBit() const;
     int getAudioChannel() const;
@@ -269,6 +254,10 @@ private:
 //根据音频track获取flags
 uint8_t getAudioRtmpFlags(const Track::Ptr &track);
 
+////////////////// rtmp video //////////////////////////
+//https://rtmp.veriskope.com/pdf/video_file_format_spec_v10_1.pdf
+
+// UB [4]; Type of video frame.
 enum class RtmpFrameType : uint8_t {
     reserved = 0,
     key_frame = 1, // key frame (for AVC, a seekable frame)
@@ -278,6 +267,7 @@ enum class RtmpFrameType : uint8_t {
     video_info_frame = 5, // video info/command frame
 };
 
+// UB [4]; Codec Identifier.
 enum class RtmpVideoCodec : uint8_t {
     h263 = 2, // Sorenson H.263
     screen_video = 3, // Screen video
@@ -288,12 +278,15 @@ enum class RtmpVideoCodec : uint8_t {
     h265 = 12, // 国内扩展
 };
 
+// UI8;
 enum class RtmpH264PacketType : uint8_t {
-    h264_config_header = 0, // AVC sequence header(sps/pps)
-    h264_nalu = 1, // AVC NALU
-    h264_end_seq = 2, // AVC end of sequence (lower level NALU sequence ender is not REQUIRED or supported)
+    h264_config_header = 0, // AVC or HEVC sequence header(sps/pps)
+    h264_nalu = 1, // AVC or HEVC NALU
+    h264_end_seq = 2, // AVC or HEVC end of sequence (lower level NALU sequence ender is not REQUIRED or supported)
 };
 
+// https://github.com/veovera/enhanced-rtmp/blob/main/enhanced-rtmp.pdf
+// UB[4]
 enum class RtmpPacketType : uint8_t {
     PacketTypeSequenceStart = 0,
     PacketTypeCodedFrames = 1,
@@ -321,15 +314,49 @@ enum class RtmpPacketType : uint8_t {
     PacketTypeMPEG2TSSequenceStart = 5,
 };
 
+////////////////// rtmp audio //////////////////////////
+//https://rtmp.veriskope.com/pdf/video_file_format_spec_v10_1.pdf
+
+// UB [4]; Format of SoundData
+enum class RtmpAudioCodec : uint8_t {
+    /**
+    0 = Linear PCM, platform endian
+    1 = ADPCM
+    2 = MP3
+    3 = Linear PCM, little endian
+    4 = Nellymoser 16 kHz mono
+    5 = Nellymoser 8 kHz mono
+    6 = Nellymoser
+    7 = G.711 A-law logarithmic PCM
+    8 = G.711 mu-law logarithmic PCM
+    9 = reserved
+    10 = AAC
+    11 = Speex
+    14 = MP3 8 kHz
+    15 = Device-specific sound
+     */
+    g711a = 7,
+    g711u = 8,
+    aac = 10,
+    opus = 13 // 国内扩展
+};
+
+// UI8;
+enum class RtmpAACPacketType : uint8_t {
+    aac_config_header = 0, // AAC sequence header
+    aac_raw = 1, // AAC raw
+};
+
+////////////////////////////////////////////
+
 struct RtmpPacketInfo {
     CodecId codec = CodecInvalid;
     bool is_enhanced;
     union {
         struct {
             RtmpFrameType frame_type;
-            RtmpVideoCodec rtmp_codec;
-            RtmpPacketType pkt_type;
-            RtmpH264PacketType h264_pkt_type;
+            RtmpPacketType pkt_type;   // enhanced = true
+            RtmpH264PacketType h264_pkt_type; // enhanced = false
         } video;
     };
 };
