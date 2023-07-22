@@ -156,22 +156,36 @@ bool RtmpPacket::isVideoKeyFrame() const {
     if (type_id != MSG_VIDEO) {
         return false;
     }
-    RtmpPacketInfo info;
-    if (CodecInvalid == parseVideoRtmpPacket((uint8_t *)data(), size(), &info)) {
-        return false;
+    RtmpFrameType frame_type;
+    if (buffer[0] >> 7 == 1) {
+        // IsExHeader == 1
+        frame_type = (RtmpFrameType)((buffer[0] >> 4) & 0x07);
+    } else {
+        // IsExHeader == 0
+        frame_type = (RtmpFrameType)(buffer[0] >> 4);
     }
-    if (info.is_enhanced) {
-        return info.video.frame_type == RtmpFrameType::key_frame && info.video.pkt_type == RtmpPacketType::PacketTypeCodedFramesX;
-    }
-    return info.video.frame_type == RtmpFrameType::key_frame && info.video.h264_pkt_type == RtmpH264PacketType::h264_nalu;
+    return frame_type == RtmpFrameType::key_frame;
 }
 
 bool RtmpPacket::isCfgFrame() const {
     switch (type_id) {
-        case MSG_VIDEO: return (RtmpH264PacketType)buffer[1] == RtmpH264PacketType::h264_config_header;
         case MSG_AUDIO: {
-            switch ((RtmpAudioCodec)getRtmpCodecId()) {
-                case RtmpAudioCodec::aac: return (RtmpAACPacketType)buffer[1] == RtmpAACPacketType::aac_config_header;
+            return (RtmpAudioCodec)getRtmpCodecId() == RtmpAudioCodec::aac && (RtmpAACPacketType)buffer[1] == RtmpAACPacketType::aac_config_header;
+        }
+        case MSG_VIDEO: {
+            if (!isVideoKeyFrame()) {
+                return false;
+            }
+            if (buffer[0] >> 7 == 1) {
+                // IsExHeader == 1
+                return (RtmpPacketType)(buffer[0] & 0x0f) == RtmpPacketType::PacketTypeSequenceStart;
+            }
+            // IsExHeader == 0
+            switch ((RtmpVideoCodec)getRtmpCodecId()) {
+                case RtmpVideoCodec::h265:
+                case RtmpVideoCodec::h264: {
+                    return (RtmpH264PacketType)buffer[1] == RtmpH264PacketType::h264_config_header;
+                }
                 default: return false;
             }
         }

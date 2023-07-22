@@ -53,9 +53,6 @@ static bool getH265ConfigFrame(const RtmpPacket &thiz, string &frame) {
     if ((RtmpVideoCodec)thiz.getRtmpCodecId() != RtmpVideoCodec::h265) {
         return false;
     }
-    if (!thiz.isCfgFrame()) {
-        return false;
-    }
     if (thiz.buffer.size() < 6) {
         WarnL << "bad H265 cfg!";
         return false;

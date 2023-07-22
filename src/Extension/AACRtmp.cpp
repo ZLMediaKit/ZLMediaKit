@@ -21,9 +21,6 @@ static string getAacCfg(const RtmpPacket &thiz) {
     if ((RtmpAudioCodec)thiz.getRtmpCodecId() != RtmpAudioCodec::aac) {
         return ret;
     }
-    if (!thiz.isCfgFrame()) {
-        return ret;
-    }
     if (thiz.buffer.size() < 4) {
         WarnL << "get aac config failed, rtmp packet is: " << hexdump(thiz.data(), thiz.size());
         return ret;
