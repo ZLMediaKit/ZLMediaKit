@@ -164,12 +164,8 @@ bool H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         //not config
         _rtmp_packet->buffer[1] = true;
         int32_t cts = pts - dts;
-        if (cts < 0) {
-            cts = 0;
-        }
         //cts
         set_be24(&_rtmp_packet->buffer[2], cts);
-
         _rtmp_packet->time_stamp = dts;
         _rtmp_packet->body_size = _rtmp_packet->buffer.size();
         _rtmp_packet->chunk_id = CHUNK_VIDEO;

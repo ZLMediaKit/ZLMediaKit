@@ -258,6 +258,55 @@ void RtmpHandshake::random_generate(char *bytes, int size)
     }
 }
 
+CodecId parseVideoRtmpPacket(const uint8_t *data, size_t size, RtmpPacketInfo *info) {
+    RtmpPacketInfo save;
+    info = info ? info : &save;
+    info->codec = CodecInvalid;
+
+    CHECK(size > 0);
+    if (data[0] >> 7 == 1) {
+        // IsExHeader == 1
+        CHECK(size >= 5, "Invalid rtmp buffer size: ", size);
+        info->is_enhanced = true;
+        info->video.frame_type = (RtmpFrameType)((data[0] >> 4) & 0x07);
+        info->video.pkt_type = (RtmpPacketType)(data[0] & 0x0f);
+        if (memcmp(data + 1, "av01", 4) == 0) {
+            // AV1
+            info->codec = CodecAV1;
+        } else if (memcmp(data + 1, "vp09", 4) == 0) {
+            // VP9
+            info->codec = CodecVP9;
+        } else if (memcmp(data + 1, "hvc1", 4) == 0) {
+            // HEVC(H265)
+            info->codec = CodecH265;
+        } else {
+            WarnL << "Rtmp video codec not supported: " << std::string((char *)data + 1, 4);
+        }
+    } else {
+        // IsExHeader == 0
+        info->is_enhanced = false;
+        info->video.frame_type = (RtmpFrameType)(data[0] >> 4);
+        info->video.rtmp_codec = (RtmpVideoCodec)(data[0] & 0x0f);
+
+        switch (info->video.rtmp_codec) {
+            case RtmpVideoCodec::h264: {
+                CHECK(size >= 1, "Invalid rtmp buffer size: ", size);
+                info->codec = CodecH264;
+                info->video.h264_pkt_type = (RtmpH264PacketType)data[1];
+                break;
+            }
+            case RtmpVideoCodec::h265: {
+                CHECK(size >= 1, "Invalid rtmp buffer size: ", size);
+                info->codec = CodecH265;
+                info->video.h264_pkt_type = (RtmpH264PacketType)data[1];
+                break;
+            }
+            default: WarnL << "Rtmp video codec not supported: " << (int)info->video.rtmp_codec; break;
+        }
+    }
+    return info->codec;
+}
+
 }//namespace mediakit
 
 namespace toolkit {
