@@ -1826,7 +1826,7 @@ void RtcConfigure::onSelectPlan(RtcCodecPlan &plan, CodecId codec) const {
         // h264时，设置packetization-mod为一致
         auto mode = _rtsp_video_plan->fmtp[kMode];
         GET_CONFIG(bool, h264_stap_a, Rtp::kH264StapA);
-        plan.fmtp[kMode] = mode.empty() ? std::to_string((int)h264_stap_a) : mode;
+        plan.fmtp[kMode] = mode.empty() ? std::to_string(h264_stap_a) : mode;
     }
 }
 
