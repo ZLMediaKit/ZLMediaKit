@@ -12,9 +12,10 @@
 #include "SPSParser.h"
 #include "Util/logger.h"
 #include "Util/base64.h"
+#include "Common/config.h"
 
-using namespace toolkit;
 using namespace std;
+using namespace toolkit;
 
 namespace mediakit {
 
@@ -248,7 +249,14 @@ public:
             _printer << "b=AS:" << bitrate << "\r\n";
         }
         _printer << "a=rtpmap:" << payload_type << " " << getCodecName() << "/" << 90000 << "\r\n";
-        _printer << "a=fmtp:" << payload_type << " packetization-mode=1; profile-level-id=";
+
+        /**
+         Single NAI Unit Mode = 0. // Single NAI mode (Only nals from 1-23 are allowed)
+         Non Interleaved Mode = 1，// Non-interleaved Mode: 1-23，24 (STAP-A)，28 (FU-A) are allowed
+         Interleaved Mode = 2,  // 25 (STAP-B)，26 (MTAP16)，27 (MTAP24)，28 (EU-A)，and 29 (EU-B) are allowed.
+         **/
+        GET_CONFIG(bool, h264_stap_a, Rtp::kH264StapA);
+        _printer << "a=fmtp:" << payload_type << " packetization-mode=" << h264_stap_a << "; profile-level-id=";
 
         uint32_t profile_level_id = 0;
         if (strSPS.length() >= 4) { // sanity check
