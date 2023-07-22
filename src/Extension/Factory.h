@@ -21,6 +21,16 @@ namespace mediakit{
 
 class Factory {
 public:
+
+    /**
+     * 根据codec_id 获取track
+     * @param codecId 编码id
+     * @param sample_rate 采样率，视频固定为90000
+     * @param channels 音频通道数
+     * @param sample_bit 音频采样位数
+     */
+    static Track::Ptr getTrackByCodecId(CodecId codecId, int sample_rate = 0, int channels = 0, int sample_bit = 0);
+
     ////////////////////////////////rtsp相关//////////////////////////////////
     /**
      * 根据sdp生成Track对象

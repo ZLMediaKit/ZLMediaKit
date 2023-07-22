@@ -135,6 +135,13 @@ void RtmpPusher::send_connect() {
     obj.set("type", "nonprivate");
     obj.set("tcUrl", _tc_url);
     obj.set("swfUrl", _tc_url);
+
+    AMFValue fourCcList(AMF_STRICT_ARRAY);
+    fourCcList.add("av01");
+    fourCcList.add("vp09");
+    fourCcList.add("hvc1");
+    obj.set("fourCcList", fourCcList);
+
     sendInvoke("connect", obj);
     addOnResultCB([this](AMFDecoder &dec) {
         //TraceL << "connect result";
