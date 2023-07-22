@@ -23,15 +23,17 @@ public:
     static Ptr create(const EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src,
                       const std::shared_ptr<void> &ownership, const MediaInfo &info, const ProtocolOption &option, bool preferred_tcp = false);
 
+
 protected:
     ///////WebRtcTransportImp override///////
     void onStartWebRTC() override;
     void onDestory() override;
     void onRtcConfigure(RtcConfigure &configure) const override;
     void onRecvRtp(MediaTrack &track, const std::string &rid, RtpPacket::Ptr rtp) override;
+    void onShutdown(const SockException &ex) override;
     void onRtcpBye() override;
     ////  dtls相关的回调 ////
-   void OnDtlsTransportClosed(const RTC::DtlsTransport *dtlsTransport) override;
+    void OnDtlsTransportClosed(const RTC::DtlsTransport *dtlsTransport) override;
 
 protected:
     ///////MediaSourceEvent override///////
