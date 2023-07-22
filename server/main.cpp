@@ -353,7 +353,7 @@ int start_main(int argc,char *argv[]) {
         try {
             auto secret = mINI::Instance()[API::kSecret];
             if (secret == "035c73f7-bb6b-4889-a715-d9eb2d1925cc" || secret.empty()) {
-                // 使用默认secret被进制启动
+                // 使用默认secret被禁止启动
                 throw std::invalid_argument("please modify the configuration named " + API::kSecret + " in " + g_ini_file);
             }
             //rtsp服务器，端口默认554
