@@ -1816,11 +1816,17 @@ bool RtcConfigure::onCheckCodecProfile(const RtcCodecPlan &plan, CodecId codec) 
     return true;
 }
 
+/**
+ Single NAI Unit Mode = 0. // Single NAI mode (Only nals from 1-23 are allowed)
+ Non Interleaved Mode = 1，// Non-interleaved Mode: 1-23，24 (STAP-A)，28 (FU-A) are allowed
+ Interleaved Mode = 2,  // 25 (STAP-B)，26 (MTAP16)，27 (MTAP24)，28 (EU-A)，and 29 (EU-B) are allowed.
+ **/
 void RtcConfigure::onSelectPlan(RtcCodecPlan &plan, CodecId codec) const {
     if (_rtsp_video_plan && codec == CodecH264 && getCodecId(_rtsp_video_plan->codec) == CodecH264) {
-        //h264时，设置packetization-mod为一致
+        // h264时，设置packetization-mod为一致
         auto mode = _rtsp_video_plan->fmtp[kMode];
-        plan.fmtp[kMode] = mode.empty() ? "0" : mode;
+        GET_CONFIG(bool, h264_stap_a, Rtp::kH264StapA);
+        plan.fmtp[kMode] = mode.empty() ? std::to_string(h264_stap_a) : mode;
     }
 }
 
