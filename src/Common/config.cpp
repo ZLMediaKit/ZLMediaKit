@@ -260,7 +260,6 @@ static onceToken token([]() {
 });
 } // namespace Rtp
 
-
 ////////////组播配置///////////
 namespace MultiCast {
 #define MULTI_FIELD "multicast."

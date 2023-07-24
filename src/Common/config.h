@@ -308,7 +308,6 @@ extern const std::string kLowLatency;
 extern const std::string kH264StapA;
 } // namespace Rtp
 
-
 ////////////组播配置///////////
 namespace MultiCast {
 // 组播分配起始地址
