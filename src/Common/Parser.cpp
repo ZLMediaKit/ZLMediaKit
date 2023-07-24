@@ -48,8 +48,13 @@ void Parser::parse(const char *buf, size_t size) {
     clear();
     auto ptr = buf;
     while (true) {
-        auto next_line = strstr(ptr, "\r\n");
-        CHECK(next_line);
+        auto next_line = strchr(ptr, '\n');
+        auto offset = 1;
+        CHECK(next_line && next_line > ptr);
+        if (*(next_line - 1) == '\r') {
+            next_line -= 1;
+            offset = 2;
+        }
         if (ptr == buf) {
             auto blank = strchr(ptr, ' ');
             CHECK(blank > ptr && blank < next_line);
@@ -76,7 +81,7 @@ void Parser::parse(const char *buf, size_t size) {
             }
             _headers.emplace_force(trim(std::move(key)), trim(std::move(value)));
         }
-        ptr = next_line + 2;
+        ptr = next_line + offset;
         if (strncmp(ptr, "\r\n", 2) == 0) { // 协议解析完毕
             _content.assign(ptr + 2, buf + size);
             break;

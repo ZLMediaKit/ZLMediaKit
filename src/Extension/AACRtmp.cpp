@@ -16,12 +16,9 @@ using namespace toolkit;
 
 namespace mediakit {
 
-static string getAacCfg(const RtmpPacket &thiz) {
+static string getConfig(const RtmpPacket &thiz) {
     string ret;
-    if (thiz.getMediaType() != FLV_CODEC_AAC) {
-        return ret;
-    }
-    if (!thiz.isCfgFrame()) {
+    if ((RtmpAudioCodec)thiz.getRtmpCodecId() != RtmpAudioCodec::aac) {
         return ret;
     }
     if (thiz.buffer.size() < 4) {
@@ -33,8 +30,8 @@ static string getAacCfg(const RtmpPacket &thiz) {
 }
 
 void AACRtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt) {
-    if (pkt->isCfgFrame()) {
-        _aac_cfg = getAacCfg(*pkt);
+    if (pkt->isConfigFrame()) {
+        _aac_cfg = getConfig(*pkt);
         if (!_aac_cfg.empty()) {
             onGetAAC(nullptr, 0, 0);
         }
@@ -82,7 +79,7 @@ AACRtmpEncoder::AACRtmpEncoder(const Track::Ptr &track) {
 void AACRtmpEncoder::makeConfigPacket() {
     if (_track && _track->ready()) {
         //从track中和获取aac配置信息
-        _aac_cfg = _track->getAacCfg();
+        _aac_cfg = _track->getConfig();
     }
 
     if (!_aac_cfg.empty()) {
@@ -93,51 +90,45 @@ void AACRtmpEncoder::makeConfigPacket() {
 bool AACRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     if (_aac_cfg.empty()) {
         if (frame->prefixSize()) {
-            //包含adts头,从adts头获取aac配置信息
-            _aac_cfg = makeAacConfig((uint8_t *) (frame->data()), frame->prefixSize());
+            // 包含adts头,从adts头获取aac配置信息
+            _aac_cfg = makeAacConfig((uint8_t *)(frame->data()), frame->prefixSize());
         }
         makeConfigPacket();
     }
 
-    if(_aac_cfg.empty()){
+    if (_aac_cfg.empty()) {
         return false;
     }
 
-    auto rtmpPkt = RtmpPacket::create();
-    //header
-    uint8_t is_config = false;
-    rtmpPkt->buffer.push_back(_audio_flv_flags);
-    rtmpPkt->buffer.push_back(!is_config);
-
-    //aac data
-    rtmpPkt->buffer.append(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
-
-    rtmpPkt->body_size = rtmpPkt->buffer.size();
-    rtmpPkt->chunk_id = CHUNK_AUDIO;
-    rtmpPkt->stream_index = STREAM_MEDIA;
-    rtmpPkt->time_stamp = frame->dts();
-    rtmpPkt->type_id = MSG_AUDIO;
-    RtmpCodec::inputRtmp(rtmpPkt);
+    auto pkt = RtmpPacket::create();
+    // header
+    pkt->buffer.push_back(_audio_flv_flags);
+    pkt->buffer.push_back((uint8_t)RtmpAACPacketType::aac_raw);
+    // aac data
+    pkt->buffer.append(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
+    pkt->body_size = pkt->buffer.size();
+    pkt->chunk_id = CHUNK_AUDIO;
+    pkt->stream_index = STREAM_MEDIA;
+    pkt->time_stamp = frame->dts();
+    pkt->type_id = MSG_AUDIO;
+    RtmpCodec::inputRtmp(pkt);
     return true;
 }
 
 void AACRtmpEncoder::makeAudioConfigPkt() {
     _audio_flv_flags = getAudioRtmpFlags(std::make_shared<AACTrack>(_aac_cfg));
-    auto rtmpPkt = RtmpPacket::create();
-
-    //header
-    uint8_t is_config = true;
-    rtmpPkt->buffer.push_back(_audio_flv_flags);
-    rtmpPkt->buffer.push_back(!is_config);
-    //aac config
-    rtmpPkt->buffer.append(_aac_cfg);
-
-    rtmpPkt->body_size = rtmpPkt->buffer.size();
-    rtmpPkt->chunk_id = CHUNK_AUDIO;
-    rtmpPkt->stream_index = STREAM_MEDIA;
-    rtmpPkt->time_stamp = 0;
-    rtmpPkt->type_id = MSG_AUDIO;
-    RtmpCodec::inputRtmp(rtmpPkt);
+    auto pkt = RtmpPacket::create();
+    // header
+    pkt->buffer.push_back(_audio_flv_flags);
+    pkt->buffer.push_back((uint8_t)RtmpAACPacketType::aac_config_header);
+    // aac config
+    pkt->buffer.append(_aac_cfg);
+    pkt->body_size = pkt->buffer.size();
+    pkt->chunk_id = CHUNK_AUDIO;
+    pkt->stream_index = STREAM_MEDIA;
+    pkt->time_stamp = 0;
+    pkt->type_id = MSG_AUDIO;
+    RtmpCodec::inputRtmp(pkt);
 }
 
 }//namespace mediakit

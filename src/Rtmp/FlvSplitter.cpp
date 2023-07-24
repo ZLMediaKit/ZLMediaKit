@@ -91,21 +91,26 @@ void FlvSplitter::onRecvContent(const char *data, size_t len) {
         case MSG_DATA3: {
             BufferLikeString buffer(string(data, len));
             AMFDecoder dec(buffer, _type == MSG_DATA3 ? 3 : 0);
-            std::string type = dec.load<std::string>();
+            auto first = dec.load<AMFValue>();
             bool flag = true;
-            if (type == "@setDataFrame") {
-                std::string type = dec.load<std::string>();
-                if (type == "onMetaData") {
+            if (first.type() == AMFType::AMF_STRING) {
+                auto type = first.as_string();
+                if (type == "@setDataFrame") {
+                    type = dec.load<std::string>();
+                    if (type == "onMetaData") {
+                        flag = onRecvMetadata(dec.load<AMFValue>());
+                    } else {
+                        WarnL << "unknown type:" << type;
+                    }
+                } else if (type == "onMetaData") {
                     flag = onRecvMetadata(dec.load<AMFValue>());
                 } else {
-                    WarnL << "unknown type:" << type;
+                    WarnL << "unknown notify:" << type;
                 }
-            } else if (type == "onMetaData") {
-                flag = onRecvMetadata(dec.load<AMFValue>());
             } else {
-                WarnL << "unknown notify:" << type;
+                WarnL << "Parse flv script data failed, invalid amf value: " << first.to_string();
             }
-            if(!flag){
+            if (!flag) {
                 throw std::invalid_argument("check rtmp metadata failed");
             }
             return;

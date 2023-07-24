@@ -149,7 +149,7 @@ void WebRtcPusher::onRtcConfigure(RtcConfigure &configure) const {
     configure.audio.direction = configure.video.direction = RtpDirection::recvonly;
 }
 
-float WebRtcPusher::getLossRate(MediaSource &sender,TrackType type){
+float WebRtcPusher::getLossRate(MediaSource &sender,TrackType type) {
     return WebRtcTransportImp::getLossRate(type);
 }
 
@@ -159,8 +159,13 @@ void WebRtcPusher::OnDtlsTransportClosed(const RTC::DtlsTransport *dtlsTransport
     WebRtcTransportImp::OnDtlsTransportClosed(dtlsTransport);
 }
 
-void WebRtcPusher::onRtcpBye(){
+void WebRtcPusher::onRtcpBye() {
      WebRtcTransportImp::onRtcpBye();
+}
+
+void WebRtcPusher::onShutdown(const SockException &ex) {
+     _push_src = nullptr;
+     WebRtcTransportImp::onShutdown(ex);
 }
 
 }// namespace mediakit

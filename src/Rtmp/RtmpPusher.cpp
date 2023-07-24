@@ -135,6 +135,13 @@ void RtmpPusher::send_connect() {
     obj.set("type", "nonprivate");
     obj.set("tcUrl", _tc_url);
     obj.set("swfUrl", _tc_url);
+
+    AMFValue fourCcList(AMF_STRICT_ARRAY);
+    fourCcList.add("av01");
+    fourCcList.add("vp09");
+    fourCcList.add("hvc1");
+    obj.set("fourCcList", fourCcList);
+
     sendInvoke("connect", obj);
     addOnResultCB([this](AMFDecoder &dec) {
         //TraceL << "connect result";
@@ -183,10 +190,14 @@ void RtmpPusher::send_metaData(){
         throw std::runtime_error("the media source was released");
     }
 
-    AMFEncoder enc;
-    enc << "@setDataFrame" << "onMetaData" << src->getMetaData();
-    sendRequest(MSG_DATA, enc.data());
+    // metadata
+    src->getMetaData([&](const AMFValue &metadata) {
+        AMFEncoder enc;
+        enc << "@setDataFrame" << "onMetaData" << metadata;
+        sendRequest(MSG_DATA, enc.data());
+    });
 
+    // config frame
     src->getConfigFrame([&](const RtmpPacket::Ptr &pkt) {
         sendRtmp(pkt->type_id, _stream_index, pkt, pkt->time_stamp, pkt->chunk_id);
     });
@@ -207,7 +218,16 @@ void RtmpPusher::send_metaData(){
             if (++i == size) {
                 strong_self->setSendFlushFlag(true);
             }
-            strong_self->sendRtmp(rtmp->type_id, strong_self->_stream_index, rtmp, rtmp->time_stamp, rtmp->chunk_id);
+            if (rtmp->type_id == MSG_DATA) {
+                // update metadata
+                AMFEncoder enc;
+                enc << "@setDataFrame";
+                auto pkt = enc.data();
+                pkt.append(rtmp->data(), rtmp->size());
+                strong_self->sendRequest(MSG_DATA, pkt);
+            } else {
+                strong_self->sendRtmp(rtmp->type_id, strong_self->_stream_index, rtmp, rtmp->time_stamp, rtmp->chunk_id);
+            }
         });
     });
     _rtmp_reader->setDetachCB([weak_self]() {
