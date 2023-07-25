@@ -166,13 +166,13 @@ void SdpParser::load(const string &sdp) {
             string opt_val = line.substr(2);
             switch (opt) {
                 case 't':
-                    if (_track_vec.empty())
+                    if (_track_vec.size() == 1)
                         global_infos.emplace(opt, opt_val);
                     else
                         track->_t = opt_val;
                     break;
                 case 'b':
-                    if (_track_vec.empty())
+                    if (_track_vec.size() == 1)
                         global_infos.emplace(opt, opt_val);
                     else
                         track->_b = opt_val;
@@ -195,12 +195,12 @@ void SdpParser::load(const string &sdp) {
                 case 'a': {
                     string attr = findSubString(opt_val.data(), nullptr, ":");
                     if (attr.empty()) {
-                        if (_track_vec.empty())
+                        if (_track_vec.size() == 1)
                             global_infos.emplace(opt, opt_val);
                         else
                             track->_attr.emplace(opt_val, "");
                     } else {
-                        if (_track_vec.empty())
+                        if (_track_vec.size() == 1)
                             global_infos.emplace(opt, opt_val);
                         else
                             track->_attr.emplace(attr, findSubString(opt_val.data(), ":", nullptr));
@@ -208,7 +208,7 @@ void SdpParser::load(const string &sdp) {
                     break;
                 }
                 default: {
-                    if (_track_vec.empty()) {
+                    if (_track_vec.size() == 1) {
                         global_infos.emplace(opt, opt_val);
                     } else {
                         track->_other[opt] = opt_val;
