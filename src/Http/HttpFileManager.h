@@ -62,6 +62,13 @@ public:
      * @return mime值
      */
     static const std::string &getContentType(const char *name);
+
+    /**
+     * 该ip是否再白名单中
+     * @param ip 支持ipv4和ipv6
+     */
+    static bool isIPAllowed(const std::string &ip);
+
 private:
     HttpFileManager() = delete;
     ~HttpFileManager() = delete;

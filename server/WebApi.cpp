@@ -238,6 +238,11 @@ static inline void addHttpListener(){
         //该api已被消费
         consumed = true;
 
+        if (!HttpFileManager::isIPAllowed(sender.get_peer_ip())) {
+            invoker(403, HttpSession::KeyValue(), "Your ip is not allowed to access the service.");
+            return;
+        }
+
         if(api_debug){
             auto newInvoker = [invoker, parser](int code, const HttpSession::KeyValue &headerOut, const HttpBody::Ptr &body) {
                 //body默认为空
