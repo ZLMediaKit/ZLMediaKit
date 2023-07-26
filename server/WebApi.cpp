@@ -657,6 +657,10 @@ void installWebApi() {
                 continue;
 #endif
             }
+            if (pr.first == FFmpeg::kBin) {
+                WarnL << "Configuration named " << FFmpeg::kBin << " is not allowed to be set by setServerConfig api.";
+                continue;
+            }
             if (ini[pr.first] == pr.second) {
                 continue;
             }

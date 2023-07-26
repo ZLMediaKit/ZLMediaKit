@@ -20,6 +20,7 @@
 
 namespace FFmpeg {
     extern const std::string kSnap;
+    extern const std::string kBin;
 }
 
 class FFmpegSnap {
