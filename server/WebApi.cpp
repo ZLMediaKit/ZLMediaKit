@@ -238,11 +238,6 @@ static inline void addHttpListener(){
         //该api已被消费
         consumed = true;
 
-        if (!HttpFileManager::isIPAllowed(sender.get_peer_ip())) {
-            invoker(403, HttpSession::KeyValue(), "Your ip is not allowed to access the service.");
-            return;
-        }
-
         if(api_debug){
             auto newInvoker = [invoker, parser](int code, const HttpSession::KeyValue &headerOut, const HttpBody::Ptr &body) {
                 //body默认为空
@@ -593,7 +588,8 @@ void installWebApi() {
 
     //获取线程负载
     //测试url http://127.0.0.1/index/api/getThreadsLoad
-    api_regist("/index/api/getThreadsLoad",[](API_ARGS_MAP_ASYNC){
+    api_regist("/index/api/getThreadsLoad", [](API_ARGS_MAP_ASYNC) {
+        CHECK_SECRET();
         EventPollerPool::Instance().getExecutorDelay([invoker, headerOut](const vector<int> &vecDelay) {
             Value val;
             auto vec = EventPollerPool::Instance().getExecutorLoad();
@@ -611,7 +607,8 @@ void installWebApi() {
 
     //获取后台工作线程负载
     //测试url http://127.0.0.1/index/api/getWorkThreadsLoad
-    api_regist("/index/api/getWorkThreadsLoad", [](API_ARGS_MAP_ASYNC){
+    api_regist("/index/api/getWorkThreadsLoad", [](API_ARGS_MAP_ASYNC) {
+        CHECK_SECRET();
         WorkThreadPool::Instance().getExecutorDelay([invoker, headerOut](const vector<int> &vecDelay) {
             Value val;
             auto vec = WorkThreadPool::Instance().getExecutorLoad();
