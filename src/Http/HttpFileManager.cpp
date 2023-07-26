@@ -93,8 +93,8 @@ bool HttpFileManager::isIPAllowed(const std::string &ip) {
     if (allow_ip_range.empty()) {
         return true;
     }
+    auto ip_int = get_ip_uint64(ip);
     for (auto &range : allow_ip_range) {
-        auto ip_int = get_ip_uint64(ip);
         if (ip_int >= range.first && ip_int <= range.second) {
             return true;
         }
