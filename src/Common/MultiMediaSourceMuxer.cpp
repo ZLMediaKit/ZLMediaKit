@@ -623,7 +623,7 @@ bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
         }
         else if (frame->getTrackType() == TrackAudio) {
             if (rtmp) {
-                if (_audio_dec && rtmp->readerCount())
+                if (_audio_dec && (rtmp->readerCount() || !rtmp->isRegisted()))
                     _audio_dec->inputFrame(frame, true, false, false);
                 rtmp = nullptr;
             }
