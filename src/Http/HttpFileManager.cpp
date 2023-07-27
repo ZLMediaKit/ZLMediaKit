@@ -77,12 +77,21 @@ bool HttpFileManager::isIPAllowed(const std::string &ip) {
         IPRangs ret;
         auto vec = split(str, ",");
         for (auto &item : vec) {
+            if (trim(item).empty()) {
+                continue;
+            }
             auto range = split(item, "-");
             if (range.size() == 2) {
-                ret.emplace_back(get_ip_uint64(trim(range[0])), get_ip_uint64(trim(range[1])));
+                auto ip_min = get_ip_uint64(trim(range[0]));
+                auto ip_max = get_ip_uint64(trim(range[1]));
+                if (ip_min && ip_max) {
+                    ret.emplace_back(ip_min, ip_max);
+                }
             } else if (range.size() == 1) {
                 auto ip = get_ip_uint64(trim(range[0]));
-                ret.emplace_back(ip, ip);
+                if (ip) {
+                    ret.emplace_back(ip, ip);
+                }
             } else {
                 WarnL << "Invalid ip range: " << item;
             }
