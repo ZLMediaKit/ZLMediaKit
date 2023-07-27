@@ -300,7 +300,6 @@
             let app = o;
             for (let s of ss[o]) {
               if (s) {
-                //console.log(app, s);
                 let content = document.getElementById("olstreamlist");
                 let child = `<li app="${app}"  stream="${s}" onmouseover="this.style.color='blue';" onclick="on_click_to_play('${app}', '${s}')">${app}/${s}</li>`;
                 content.insertAdjacentHTML("beforeend", child);
