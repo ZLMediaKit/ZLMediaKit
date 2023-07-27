@@ -382,11 +382,6 @@ static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo
         return;
     }
 
-    if (!HttpFileManager::isIPAllowed(sender.get_peer_ip())) {
-        callback("Your ip is not allowed to access the service.", nullptr);
-        return;
-    }
-
     // 事件未被拦截，则认为是http下载请求
     bool flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpAccess, parser, path, is_dir, accessPathInvoker, static_cast<SockInfo &>(sender));
     if (!flag) {
