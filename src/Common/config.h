@@ -254,6 +254,8 @@ extern const std::string kForbidCacheSuffix;
 extern const std::string kForwardedIpHeader;
 // 是否允许所有跨域请求
 extern const std::string kAllowCrossDomains;
+// 允许访问http api和http文件索引的ip地址范围白名单，置空情况下不做限制
+extern const std::string kAllowIPRange;
 } // namespace Http
 
 ////////////SHELL配置///////////

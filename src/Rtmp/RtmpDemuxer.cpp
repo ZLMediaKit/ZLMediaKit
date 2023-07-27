@@ -19,12 +19,12 @@ size_t RtmpDemuxer::trackCount(const AMFValue &metadata) {
     size_t ret = 0;
     metadata.object_for_each([&](const string &key, const AMFValue &val) {
         if (key == "videocodecid") {
-            //找到视频
+            // 找到视频
             ++ret;
             return;
         }
         if (key == "audiocodecid") {
-            //找到音频
+            // 找到音频
             ++ret;
             return;
         }
@@ -32,7 +32,7 @@ size_t RtmpDemuxer::trackCount(const AMFValue &metadata) {
     return ret;
 }
 
-bool RtmpDemuxer::loadMetaData(const AMFValue &val){
+bool RtmpDemuxer::loadMetaData(const AMFValue &val) {
     bool ret = false;
     try {
         int audiosamplerate = 0;
@@ -60,12 +60,12 @@ bool RtmpDemuxer::loadMetaData(const AMFValue &val){
                 return;
             }
             if (key == "videocodecid") {
-                //找到视频
+                // 找到视频
                 videocodecid = &val;
                 return;
             }
             if (key == "audiocodecid") {
-                //找到音频
+                // 找到音频
                 audiocodecid = &val;
                 return;
             }
@@ -75,16 +75,22 @@ bool RtmpDemuxer::loadMetaData(const AMFValue &val){
             }
             if (key == "videodatarate") {
                 videodatarate = val.as_integer();
+                _videodatarate = videodatarate * 1024;
                 return;
             }
         });
         if (videocodecid) {
-            //有视频
+            // 有视频
             ret = true;
-            makeVideoTrack(*videocodecid, videodatarate * 1024);
+            if (videocodecid->type() == AMF_NUMBER && videocodecid->as_integer() == (int)RtmpVideoCodec::h264) {
+                // https://github.com/veovera/enhanced-rtmp/issues/8
+                _complete_delay = true;
+            } else {
+                makeVideoTrack(*videocodecid, videodatarate * 1024);
+            }
         }
         if (audiocodecid) {
-            //有音频
+            // 有音频
             ret = true;
             makeAudioTrack(*audiocodecid, audiosamplerate, audiochannels, audiosamplesize, audiodatarate * 1024);
         }
@@ -92,8 +98,8 @@ bool RtmpDemuxer::loadMetaData(const AMFValue &val){
         WarnL << ex.what();
     }
 
-    if (ret) {
-        //metadata中存在track相关的描述，那么我们根据metadata判断有多少个track
+    if (ret && !_complete_delay) {
+        // metadata中存在track相关的描述，那么我们根据metadata判断有多少个track
         addTrackCompleted();
     }
     return ret;
@@ -108,8 +114,14 @@ void RtmpDemuxer::inputRtmp(const RtmpPacket::Ptr &pkt) {
         case MSG_VIDEO: {
             if (!_try_get_video_track) {
                 _try_get_video_track = true;
-                auto codec = AMFValue(pkt->getMediaType());
-                makeVideoTrack(codec, 0);
+                RtmpPacketInfo info;
+                auto codec_id = parseVideoRtmpPacket((uint8_t *)pkt->data(), pkt->size(), &info);
+                if (codec_id != CodecInvalid) {
+                    makeVideoTrack(Factory::getTrackByCodecId(codec_id), _videodatarate);
+                    if (_complete_delay) {
+                        addTrackCompleted();
+                    }
+                }
             }
             if (_video_rtmp_decoder) {
                 _video_rtmp_decoder->inputRtmp(pkt);
@@ -120,7 +132,7 @@ void RtmpDemuxer::inputRtmp(const RtmpPacket::Ptr &pkt) {
         case MSG_AUDIO: {
             if (!_try_get_audio_track) {
                 _try_get_audio_track = true;
-                auto codec = AMFValue(pkt->getMediaType());
+                auto codec = AMFValue(pkt->getRtmpCodecId());
                 makeAudioTrack(codec, pkt->getAudioSampleRate(), pkt->getAudioChannel(), pkt->getAudioSampleBit(), 0);
             }
             if (_audio_rtmp_decoder) {
@@ -128,51 +140,55 @@ void RtmpDemuxer::inputRtmp(const RtmpPacket::Ptr &pkt) {
             }
             break;
         }
-        default : break;
+        default: break;
     }
 }
 
 void RtmpDemuxer::makeVideoTrack(const AMFValue &videoCodec, int bit_rate) {
+    makeVideoTrack(Factory::getVideoTrackByAmf(videoCodec), bit_rate);
+}
+
+void RtmpDemuxer::makeVideoTrack(const Track::Ptr &track, int bit_rate) {
     if (_video_rtmp_decoder) {
         return;
     }
-    //生成Track对象
-    _video_track = dynamic_pointer_cast<VideoTrack>(Factory::getVideoTrackByAmf(videoCodec));
+    // 生成Track对象
+    _video_track = dynamic_pointer_cast<VideoTrack>(track);
     if (!_video_track) {
         return;
     }
-    //生成rtmpCodec对象以便解码rtmp
+    // 生成rtmpCodec对象以便解码rtmp
     _video_rtmp_decoder = Factory::getRtmpCodecByTrack(_video_track, false);
     if (!_video_rtmp_decoder) {
-        //找不到相应的rtmp解码器，该track无效
+        // 找不到相应的rtmp解码器，该track无效
         _video_track.reset();
         return;
     }
     _video_track->setBitRate(bit_rate);
-    //设置rtmp解码器代理，生成的frame写入该Track
+    // 设置rtmp解码器代理，生成的frame写入该Track
     _video_rtmp_decoder->addDelegate(_video_track);
     addTrack(_video_track);
     _try_get_video_track = true;
 }
 
-void RtmpDemuxer::makeAudioTrack(const AMFValue &audioCodec,int sample_rate, int channels, int sample_bit, int bit_rate) {
+void RtmpDemuxer::makeAudioTrack(const AMFValue &audioCodec, int sample_rate, int channels, int sample_bit, int bit_rate) {
     if (_audio_rtmp_decoder) {
         return;
     }
-    //生成Track对象
+    // 生成Track对象
     _audio_track = dynamic_pointer_cast<AudioTrack>(Factory::getAudioTrackByAmf(audioCodec, sample_rate, channels, sample_bit));
     if (!_audio_track) {
         return;
     }
-    //生成rtmpCodec对象以便解码rtmp
+    // 生成rtmpCodec对象以便解码rtmp
     _audio_rtmp_decoder = Factory::getRtmpCodecByTrack(_audio_track, false);
     if (!_audio_rtmp_decoder) {
-        //找不到相应的rtmp解码器，该track无效
+        // 找不到相应的rtmp解码器，该track无效
         _audio_track.reset();
         return;
     }
     _audio_track->setBitRate(bit_rate);
-    //设置rtmp解码器代理，生成的frame写入该Track
+    // 设置rtmp解码器代理，生成的frame写入该Track
     _audio_rtmp_decoder->addDelegate(_audio_track);
     addTrack(_audio_track);
     _try_get_audio_track = true;

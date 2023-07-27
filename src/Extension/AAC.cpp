@@ -246,7 +246,7 @@ AACTrack::AACTrack(const string &aac_cfg) {
     onReady();
 }
 
-const string &AACTrack::getAacCfg() const {
+const string &AACTrack::getConfig() const {
     return _cfg;
 }
 
@@ -342,7 +342,7 @@ Sdp::Ptr AACTrack::getSdp() {
         WarnL << getCodecName() << " Track未准备好";
         return nullptr;
     }
-    return std::make_shared<AACSdp>(getAacCfg(), getAudioSampleRate(), getAudioChannel(), getBitRate() / 1024);
+    return std::make_shared<AACSdp>(getConfig(), getAudioSampleRate(), getAudioChannel(), getBitRate() / 1024);
 }
 
 }//namespace mediakit

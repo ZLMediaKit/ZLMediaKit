@@ -201,17 +201,17 @@ static CodecId getVideoCodecIdByAmf(const AMFValue &val){
     }
 
     if (val.type() != AMF_NULL) {
-        auto type_id = val.as_integer();
+        auto type_id = (RtmpVideoCodec)val.as_integer();
         switch (type_id) {
-            case FLV_CODEC_H264 : return CodecH264;
-            case FLV_CODEC_H265 : return CodecH265;
-            default : WarnL << "暂不支持该视频Amf:" << type_id; return CodecInvalid;
+            case RtmpVideoCodec::h264: return CodecH264;
+            case RtmpVideoCodec::h265: return CodecH265;
+            default: WarnL << "暂不支持该视频Amf:" << (int)type_id; return CodecInvalid;
         }
     }
     return CodecInvalid;
 }
 
-Track::Ptr getTrackByCodecId(CodecId codecId, int sample_rate = 0, int channels = 0, int sample_bit = 0) {
+Track::Ptr Factory::getTrackByCodecId(CodecId codecId, int sample_rate, int channels, int sample_bit) {
     switch (codecId){
         case CodecH264 : return std::make_shared<H264Track>();
         case CodecH265 : return std::make_shared<H265Track>();
@@ -243,13 +243,13 @@ static CodecId getAudioCodecIdByAmf(const AMFValue &val) {
     }
 
     if (val.type() != AMF_NULL) {
-        auto type_id = val.as_integer();
+        auto type_id = (RtmpAudioCodec)val.as_integer();
         switch (type_id) {
-            case FLV_CODEC_AAC : return CodecAAC;
-            case FLV_CODEC_G711A : return CodecG711A;
-            case FLV_CODEC_G711U : return CodecG711U;
-            case FLV_CODEC_OPUS : return CodecOpus;
-            default : WarnL << "暂不支持该音频Amf:" << type_id; return CodecInvalid;
+            case RtmpAudioCodec::aac : return CodecAAC;
+            case RtmpAudioCodec::g711a : return CodecG711A;
+            case RtmpAudioCodec::g711u : return CodecG711U;
+            case RtmpAudioCodec::opus : return CodecOpus;
+            default : WarnL << "暂不支持该音频Amf:" << (int)type_id; return CodecInvalid;
         }
     }
 
@@ -291,13 +291,13 @@ RtmpCodec::Ptr Factory::getRtmpCodecByTrack(const Track::Ptr &track, bool is_enc
 }
 
 AMFValue Factory::getAmfByCodecId(CodecId codecId) {
-    switch (codecId){
-        case CodecAAC: return AMFValue(FLV_CODEC_AAC);
-        case CodecH264: return AMFValue(FLV_CODEC_H264);
-        case CodecH265: return AMFValue(FLV_CODEC_H265);
-        case CodecG711A: return AMFValue(FLV_CODEC_G711A);
-        case CodecG711U: return AMFValue(FLV_CODEC_G711U);
-        case CodecOpus: return AMFValue(FLV_CODEC_OPUS);
+    switch (codecId) {
+        case CodecAAC: return AMFValue((int)RtmpAudioCodec::aac);
+        case CodecH264: return AMFValue((int)RtmpVideoCodec::h264);
+        case CodecH265: return AMFValue((int)RtmpVideoCodec::h265);
+        case CodecG711A: return AMFValue((int)RtmpAudioCodec::g711a);
+        case CodecG711U: return AMFValue((int)RtmpAudioCodec::g711u);
+        case CodecOpus: return AMFValue((int)RtmpAudioCodec::opus);
         default: return AMFValue(AMF_NULL);
     }
 }
