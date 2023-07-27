@@ -229,11 +229,9 @@ bool checkArgs(Args &args, const First &first, const KeyTypes &...keys) {
         if (!HttpFileManager::isIPAllowed(ip)) { \
             throw AuthException("Your ip is not allowed to access the service."); \
         } \
-        if (ip != "127.0.0.1") { \
-            CHECK_ARGS("secret"); \
-            if (api_secret != allArgs["secret"]) { \
-                throw AuthException("secret错误"); \
-            } \
+        CHECK_ARGS("secret"); \
+        if (api_secret != allArgs["secret"]) { \
+            throw AuthException("secret错误"); \
         } \
     } while(false);
 
