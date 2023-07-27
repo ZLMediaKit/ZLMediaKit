@@ -625,7 +625,11 @@ void installWebHook() {
         if (!hook_enable || hook_http_access.empty()) {
             // 未开启http文件访问鉴权，那么允许访问，但是每次访问都要鉴权；
             // 因为后续随时都可能开启鉴权(重载配置文件后可能重新开启鉴权)
-            invoker("", "", 0);
+            if (!HttpFileManager::isIPAllowed(sender.get_peer_ip())) {
+                invoker("Your ip is not allowed to access the service.", "", 0);
+            } else {
+                invoker("", "", 0);
+            }
             return;
         }
 
