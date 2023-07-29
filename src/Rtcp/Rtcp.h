@@ -19,9 +19,7 @@
 
 namespace mediakit {
 
-#if defined(_WIN32)
 #pragma pack(push, 1)
-#endif // defined(_WIN32)
 
 // http://www.networksorcery.com/enp/protocol/rtcp.htm
 #define RTCP_PT_MAP(XX)                                                                                                \
@@ -235,7 +233,7 @@ private:
      */
     void net2Host(size_t size);
 
-} PACKED;
+};
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -272,7 +270,7 @@ private:
      * 网络字节序转换为主机字节序
      */
     void net2Host();
-} PACKED;
+};
 
 /*
  * 6.4.1 SR: Sender Report RTCP Packet
@@ -371,7 +369,7 @@ private:
      * @param size 字节长度，防止内存越界
      */
     void net2Host(size_t size);
-} PACKED;
+};
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -441,7 +439,7 @@ private:
      */
     std::string dumpString() const;
 
-} PACKED;
+};
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -512,7 +510,7 @@ private:
      * 网络字节序转换为主机字节序
      */
     void net2Host();
-} PACKED;
+};
 
 // Source description
 class RtcpSdes : public RtcpHeader {
@@ -548,7 +546,7 @@ private:
      * @param size 字节长度，防止内存越界
      */
     void net2Host(size_t size);
-} PACKED;
+};
 
 // https://tools.ietf.org/html/rfc4585#section-6.1
 // 6.1.   Common Packet Format for Feedback Messages
@@ -624,7 +622,7 @@ private:
 
 private:
     static std::shared_ptr<RtcpFB> create_l(RtcpType type, int fmt, const void *fci, size_t fci_len);
-} PACKED;
+};
 
 // BYE
 /*
@@ -684,7 +682,7 @@ private:
      * @param size 字节长度，防止内存越界
      */
     void net2Host(size_t size);
-} PACKED;
+};
 
 /*
 0                   1                   2                   3
@@ -738,7 +736,7 @@ private:
      */
     void net2Host(size_t size);
 
-} PACKED;
+};
 
 /*
 
@@ -777,7 +775,7 @@ private:
      * @param size 字节长度，防止内存越界
      */
     void net2Host();
-} PACKED;
+};
 
 class RtcpXRDLRR : public RtcpHeader {
 public:
@@ -814,11 +812,9 @@ private:
      */
     void net2Host(size_t size);
 
-} PACKED;
+};
 
-#if defined(_WIN32)
 #pragma pack(pop)
-#endif // defined(_WIN32)
 
 } // namespace mediakit
 #endif // ZLMEDIAKIT_RTCP_H

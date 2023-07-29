@@ -55,7 +55,7 @@ public:
 
 private:
     uint32_t data;
-} PACKED;
+};
 
 #if 0
 //PSFB fmt = 3
@@ -97,7 +97,7 @@ public:
     uint8_t padding;
 
     static size_t constexpr kSize = 8;
-} PACKED;
+};
 #endif
 
 // PSFB fmt = 4
@@ -125,7 +125,7 @@ private:
     uint32_t ssrc;
     uint8_t seq_number;
     uint8_t reserved[3];
-} PACKED;
+};
 
 #if 0
 //PSFB fmt = 5
@@ -147,7 +147,7 @@ public:
 
 private:
     uint8_t data[kSize];
-} PACKED;
+};
 
 //PSFB fmt = 6
 //https://tools.ietf.org/html/rfc5104#section-4.3.2.1
@@ -160,7 +160,7 @@ private:
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 class FCI_TSTN : public FCI_TSTR{
 
-} PACKED;
+};
 
 //PSFB fmt = 7
 //https://tools.ietf.org/html/rfc5104#section-4.3.4.1
@@ -183,7 +183,7 @@ public:
 
 private:
     uint8_t data[kSize];
-} PACKED;
+};
 
 #endif
 
@@ -233,7 +233,7 @@ private:
     // SSRC feedback (32 bits)  Consists of one or more SSRC entries which
     //               this feedback message applies to.
     uint32_t ssrc_feedback[1];
-} PACKED;
+};
 
 /////////////////////////////////////////// RTPFB ////////////////////////////////////////////////////
 
@@ -265,7 +265,7 @@ private:
     uint16_t pid;
     // bitmask of following lost packets (BLP): 16 bits
     uint16_t blp;
-} PACKED;
+};
 
 #if 0
 //RTPFB fmt = 3
@@ -300,7 +300,7 @@ private:
     //              to the description in section 4.2.1.2. The value is an
     //              unsigned integer [0..511].
     uint32_t max_tbr;
-} PACKED;
+};
 
 //RTPFB fmt = 4
 // https://tools.ietf.org/html/rfc5104#section-4.2.2.1
@@ -314,7 +314,7 @@ private:
 class FCI_TMMBN : public FCI_TMMBR{
 public:
 
-} PACKED;
+};
 #endif
 
 enum class SymbolStatus : uint8_t {
@@ -374,7 +374,7 @@ private:
     uint8_t ref_time[3];
     // feedback packet count,反馈包号,本包是第几个transport-cc包，每次加1                          |
     uint8_t fb_pkt_count;
-} PACKED;
+};
 
 } // namespace mediakit
 #endif // ZLMEDIAKIT_RTCPFCI_H

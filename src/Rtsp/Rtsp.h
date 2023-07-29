@@ -65,9 +65,7 @@ typedef enum {
 
 }; // namespace Rtsp
 
-#if defined(_WIN32)
 #pragma pack(push, 1)
-#endif // defined(_WIN32)
 
 class RtpHeader {
 public:
@@ -132,11 +130,9 @@ private:
     size_t getPayloadOffset() const;
     // 返回padding长度
     size_t getPaddingSize(size_t rtp_size) const;
-} PACKED;
+};
 
-#if defined(_WIN32)
 #pragma pack(pop)
-#endif // defined(_WIN32)
 
 // 此rtp为rtp over tcp形式，需要忽略前4个字节
 class RtpPacket : public toolkit::BufferRaw {

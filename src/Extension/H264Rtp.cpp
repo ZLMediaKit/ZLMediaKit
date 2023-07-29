@@ -13,9 +13,7 @@
 
 namespace mediakit{
 
-#if defined(_WIN32)
 #pragma pack(push, 1)
-#endif // defined(_WIN32)
 
 class FuFlags {
 public:
@@ -30,11 +28,9 @@ public:
     unsigned end_bit: 1;
     unsigned start_bit: 1;
 #endif
-} PACKED;
+};
 
-#if defined(_WIN32)
 #pragma pack(pop)
-#endif // defined(_WIN32)
 
 H264RtpDecoder::H264RtpDecoder() {
     _frame = obtainFrame();
