@@ -51,9 +51,7 @@ private:
 private:
     bool _try_get_video_track = false;
     bool _try_get_audio_track = false;
-    bool _complete_delay = false;
     float _duration = 0;
-    int _videodatarate = 0;
     AudioTrack::Ptr _audio_track;
     VideoTrack::Ptr _video_track;
     RtmpCodec::Ptr _audio_rtmp_decoder;
