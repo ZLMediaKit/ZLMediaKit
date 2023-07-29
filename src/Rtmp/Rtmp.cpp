@@ -301,10 +301,10 @@ CodecId parseVideoRtmpPacket(const uint8_t *data, size_t size, RtmpPacketInfo *i
         info->video.frame_type = (RtmpFrameType)(enhanced_header->frame_type);
         info->video.pkt_type = (RtmpPacketType)(enhanced_header->pkt_type);
 
-        switch (enhanced_header->fourcc) {
-            case fourcc_be_av1: info->codec = CodecAV1; break;
-            case fourcc_be_vp9: info->codec = CodecVP9; break;
-            case fourcc_be_hevc: info->codec = CodecH265; break;
+        switch (ntohl(enhanced_header->fourcc)) {
+            case fourcc_av1: info->codec = CodecAV1; break;
+            case fourcc_vp9: info->codec = CodecVP9; break;
+            case fourcc_hevc: info->codec = CodecH265; break;
             default: WarnL << "Rtmp video codec not supported: " << std::string((char *)data + 1, 4);
         }
     } else {
