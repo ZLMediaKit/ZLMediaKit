@@ -11,9 +11,7 @@
 #include "RtpExt.h"
 #include "Sdp.h"
 
-#if defined(_WIN32)
 #pragma pack(push, 1)
-#endif // defined(_WIN32)
 
 using namespace std;
 using namespace toolkit;
@@ -51,7 +49,7 @@ private:
     uint8_t id: 4;
 #endif
     uint8_t data[1];
-} PACKED;
+};
 
 //0                   1                   2                   3
 //       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -77,11 +75,9 @@ private:
     uint8_t id;
     uint8_t len;
     uint8_t data[1];
-} PACKED;
+};
 
-#if defined(_WIN32)
 #pragma pack(pop)
-#endif // defined(_WIN32)
 
 //////////////////////////////////////////////////////////////////
 
