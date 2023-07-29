@@ -204,9 +204,12 @@ bash build_docker_images.sh
 ## 联系方式
 
  - 邮箱：<1213642868@qq.com>(本项目相关或流媒体相关问题请走issue流程，否则恕不邮件答复)
- - QQ群：两个qq群已满员(共4000人)，后续将不再新建qq群，用户可加入[知识星球](https://github.com/ZLMediaKit/ZLMediaKit/issues/2364)提问以支持本项目。
- - 关注微信公众号：
+ - 请关注微信公众号获取最新消息推送：
  <img src=https://user-images.githubusercontent.com/11495632/232451702-4c50bc72-84d8-4c94-af2b-57290088ba7a.png width=15% />
+ 
+ - 也可以自愿有偿加入知识星球咨询和获取资料：
+ <img src= https://user-images.githubusercontent.com/11495632/231946329-aa8517b0-3cf5-49cf-8c75-a93ed58cb9d2.png width=30% />
+  
 
 ## 怎么提问？
 
@@ -214,9 +217,7 @@ bash build_docker_images.sh
 
  - 1、仔细看下readme、wiki，如果有必要可以查看下issue.
  - 2、如果您的问题还没解决，可以提issue.
- - 3、有些问题，如果不具备参考性的，无需在issue提的，可以在qq群提.
- - 4、QQ私聊一般不接受无偿技术咨询和支持([为什么不提倡QQ私聊](https://github.com/ZLMediaKit/ZLMediaKit/wiki/%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B8%8D%E5%BB%BA%E8%AE%AEQQ%E7%A7%81%E8%81%8A%E5%92%A8%E8%AF%A2%E9%97%AE%E9%A2%98%EF%BC%9F)).
- - 5、如果需要获取更及时贴心的技术支持，可以有偿加入[知识星球](https://github.com/ZLMediaKit/ZLMediaKit/issues/2364).
+ - 3、如果需要获取更及时贴心的技术支持，可以有偿加入[知识星球](https://github.com/ZLMediaKit/ZLMediaKit/issues/2364).
 
 ## 特别感谢
 

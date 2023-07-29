@@ -18,13 +18,6 @@
 #include "Network/Buffer.h"
 #include "Extension/Track.h"
 
-#if !defined(_WIN32)
-#define PACKED	__attribute__((packed))
-#else
-#define PACKED
-#endif //!defined(_WIN32)
-
-
 #define DEFAULT_CHUNK_LEN	128
 #define HANDSHAKE_PLAINTEXT	0x03
 #define RANDOM_LEN		(1536 - 8)
@@ -65,9 +58,7 @@
 
 namespace mediakit {
 
-#if defined(_WIN32)
 #pragma pack(push, 1)
-#endif // defined(_WIN32)
 
 class RtmpHandshake {
 public:
@@ -81,7 +72,7 @@ public:
 
     void create_complex_c0c1();
 
-}PACKED;
+};
 
 class RtmpHeader {
 public:
@@ -97,7 +88,7 @@ public:
     uint8_t body_size[3];
     uint8_t type_id;
     uint8_t stream_index[4]; /* Note, this is little-endian while others are BE */
-}PACKED;
+};
 
 class FLVHeader {
 public:
@@ -130,7 +121,7 @@ public:
     uint32_t length;
     //固定为0
     uint32_t previous_tag_size0;
-} PACKED;
+};
 
 class RtmpTagHeader {
 public:
@@ -139,11 +130,9 @@ public:
     uint8_t timestamp[3] = {0};
     uint8_t timestamp_ex = 0;
     uint8_t streamid[3] = {0}; /* Always 0. */
-} PACKED;
+};
 
-#if defined(_WIN32)
 #pragma pack(pop)
-#endif // defined(_WIN32)
 
 class RtmpPacket : public toolkit::Buffer{
 public:
@@ -373,7 +362,6 @@ struct RtmpPacketInfo {
     };
 };
 // https://github.com/veovera/enhanced-rtmp
-
 CodecId parseVideoRtmpPacket(const uint8_t *data, size_t size, RtmpPacketInfo *info = nullptr);
 
 }//namespace mediakit
