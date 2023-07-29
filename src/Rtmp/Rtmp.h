@@ -264,7 +264,7 @@ enum class RtmpFrameType : uint8_t {
 };
 
 // UB [4]; Codec Identifier.
-enum class RtmpVideoCodec : uint8_t {
+enum class RtmpVideoCodec : uint32_t {
     h263 = 2, // Sorenson H.263
     screen_video = 3, // Screen video
     vp6 = 4, // On2 VP6
@@ -272,6 +272,11 @@ enum class RtmpVideoCodec : uint8_t {
     screen_video2 = 6, // Screen video version 2
     h264 = 7, // avc
     h265 = 12, // 国内扩展
+
+    // 增强型rtmp FourCC
+    fourcc_vp9 = 'vp09',
+    fourcc_av1 = 'av01',
+    fourcc_hevc = 'hvc1'
 };
 
 // UI8;
@@ -357,12 +362,6 @@ struct RtmpPacketInfo {
     };
 };
 // https://github.com/veovera/enhanced-rtmp
-
-// 增强型rtmp FourCC
-static constexpr uint32_t fourcc_vp9 = 'vp09';
-static constexpr uint32_t fourcc_av1 = 'av01';
-static constexpr uint32_t fourcc_hevc = 'hvc1';
-
 CodecId parseVideoRtmpPacket(const uint8_t *data, size_t size, RtmpPacketInfo *info = nullptr);
 
 }//namespace mediakit
