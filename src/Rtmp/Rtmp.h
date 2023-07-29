@@ -368,6 +368,12 @@ struct RtmpPacketInfo {
     };
 };
 // https://github.com/veovera/enhanced-rtmp
+
+// 增强型rtmp大端模式FourCC
+static constexpr uint32_t fourcc_be_vp9 = htonl('vp09');
+static constexpr uint32_t fourcc_be_av1 = htonl('av01');
+static constexpr uint32_t fourcc_be_hevc = htonl('hvc1');
+
 CodecId parseVideoRtmpPacket(const uint8_t *data, size_t size, RtmpPacketInfo *info = nullptr);
 
 }//namespace mediakit
