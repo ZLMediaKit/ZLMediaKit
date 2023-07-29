@@ -67,7 +67,7 @@ private:
     //推流所有权
     std::shared_ptr<void> _push_src_ownership;
     //推流的rtsp源,支持simulcast
-    std::mutex _mtx;
+    std::recursive_mutex _mtx;
     std::unordered_map<std::string/*rid*/, RtspMediaSource::Ptr> _push_src_sim;
     std::unordered_map<std::string/*rid*/, std::shared_ptr<void> > _push_src_sim_ownership;
 };
