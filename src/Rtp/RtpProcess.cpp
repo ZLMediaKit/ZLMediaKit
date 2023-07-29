@@ -211,7 +211,7 @@ void RtpProcess::setOnDetach(function<void()> cb) {
 
 string RtpProcess::get_peer_ip() {
     try {
-        return _addr ? SockUtil::inet_ntoa((sockaddr *)_addr.get()) : "";
+        return _addr ? SockUtil::inet_ntoa((sockaddr *)_addr.get()) : "::";
     } catch (std::exception &ex) {
         return "::";
     }
@@ -226,17 +226,11 @@ uint16_t RtpProcess::get_peer_port() {
 }
 
 string RtpProcess::get_local_ip() {
-    if (_sock) {
-        return _sock->get_local_ip();
-    }
-    return "::";
+    return _sock ? _sock->get_local_ip() : "::";
 }
 
 uint16_t RtpProcess::get_local_port() {
-    if (_sock) {
-        return _sock->get_local_port();
-    }
-    return 0;
+    return _sock ? _sock->get_local_port() : 0;
 }
 
 string RtpProcess::getIdentifier() const {
