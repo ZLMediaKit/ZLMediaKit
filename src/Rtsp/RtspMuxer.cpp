@@ -14,9 +14,12 @@
 using namespace std;
 using namespace toolkit;
 
+#define ENABLE_NTP_STAMP 0
+
 namespace mediakit {
 
 void RtspMuxer::onRtp(RtpPacket::Ptr in, bool is_key) {
+#if ENABLE_NTP_STAMP
     if (_live) {
         if (_rtp_stamp[in->type] != in->getHeader()->stamp) {
             //rtp时间戳变化才计算ntp，节省cpu资源
@@ -34,6 +37,7 @@ void RtspMuxer::onRtp(RtpPacket::Ptr in, bool is_key) {
         //点播情况下设置ntp时间戳为rtp时间戳加基准ntp时间戳
         in->ntp_stamp = _ntp_stamp_start + (in->getStamp() * uint64_t(1000) / in->sample_rate);
     }
+#endif
     _rtpRing->write(std::move(in), is_key);
 }
 
@@ -49,7 +53,10 @@ RtspMuxer::RtspMuxer(const TitleSdp::Ptr &title) {
     _rtpInterceptor->setDelegate(std::make_shared<RingDelegateHelper>([this](RtpPacket::Ptr in, bool is_key) {
         onRtp(std::move(in), is_key);
     }));
+
+#if ENABLE_NTP_STAMP
     _ntp_stamp_start = getCurrentMillisecond(true);
+#endif
 }
 
 bool RtspMuxer::addTrack(const Track::Ptr &track) {
@@ -75,10 +82,12 @@ bool RtspMuxer::addTrack(const Track::Ptr &track) {
 }
 
 void RtspMuxer::trySyncTrack() {
+#if ENABLE_NTP_STAMP
     if (_encoder[TrackAudio] && _encoder[TrackVideo]) {
         //音频时间戳同步于视频，因为音频时间戳被修改后不影响播放
         _stamp[TrackAudio].syncTo(_stamp[TrackVideo]);
     }
+#endif
 }
 
 bool RtspMuxer::inputFrame(const Frame::Ptr &frame) {
