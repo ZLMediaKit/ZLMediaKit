@@ -1,6 +1,17 @@
 name: Docker
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - "master"
+      - "feature/*"
+      - "release/*"
+
+  pull_request:
+    branches:
+      - "master"
+      - "feature/*"
+      - "release/*"
 
 env:
   # Use docker.io for Docker Hub if empty
