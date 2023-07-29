@@ -536,13 +536,26 @@ void RtmpSession::onRtmpChunk(RtmpPacket::Ptr packet) {
     case MSG_AUDIO:
     case MSG_VIDEO: {
         if (!_push_src) {
-            WarnL << "Not a rtmp push!";
+            if (_ring_reader) {
+                throw std::runtime_error("Rtmp player send media packets");
+            }
+            if (packet->isConfigFrame()) {
+                auto id = packet->type_id;
+                _push_config_packets.emplace(id, std::move(packet));
+            }
+            WarnL << "Rtmp pusher send media packet before handshake completed!";
             return;
         }
 
         if (!_set_meta_data) {
             _set_meta_data = true;
             _push_src->setMetaData(_push_metadata ? _push_metadata : TitleMeta().getMetadata());
+        }
+        if (!_push_config_packets.empty()) {
+            for (auto &pr : _push_config_packets) {
+                _push_src->onWrite(std::move(pr.second));
+            }
+            _push_config_packets.clear();
         }
         _push_src->onWrite(std::move(packet));
         break;
