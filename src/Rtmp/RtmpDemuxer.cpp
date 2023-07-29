@@ -75,19 +75,13 @@ bool RtmpDemuxer::loadMetaData(const AMFValue &val) {
             }
             if (key == "videodatarate") {
                 videodatarate = val.as_integer();
-                _videodatarate = videodatarate * 1024;
                 return;
             }
         });
         if (videocodecid) {
             // 有视频
             ret = true;
-            if (videocodecid->type() == AMF_NUMBER && videocodecid->as_integer() == (int)RtmpVideoCodec::h264) {
-                // https://github.com/veovera/enhanced-rtmp/issues/8
-                _complete_delay = true;
-            } else {
-                makeVideoTrack(*videocodecid, videodatarate * 1024);
-            }
+            makeVideoTrack(*videocodecid, videodatarate * 1024);
         }
         if (audiocodecid) {
             // 有音频
@@ -98,7 +92,7 @@ bool RtmpDemuxer::loadMetaData(const AMFValue &val) {
         WarnL << ex.what();
     }
 
-    if (ret && !_complete_delay) {
+    if (ret) {
         // metadata中存在track相关的描述，那么我们根据metadata判断有多少个track
         addTrackCompleted();
     }
@@ -114,14 +108,8 @@ void RtmpDemuxer::inputRtmp(const RtmpPacket::Ptr &pkt) {
         case MSG_VIDEO: {
             if (!_try_get_video_track) {
                 _try_get_video_track = true;
-                RtmpPacketInfo info;
-                auto codec_id = parseVideoRtmpPacket((uint8_t *)pkt->data(), pkt->size(), &info);
-                if (codec_id != CodecInvalid) {
-                    makeVideoTrack(Factory::getTrackByCodecId(codec_id), _videodatarate);
-                    if (_complete_delay) {
-                        addTrackCompleted();
-                    }
-                }
+                auto codec_id = parseVideoRtmpPacket((uint8_t *)pkt->data(), pkt->size());
+                makeVideoTrack(Factory::getTrackByCodecId(codec_id), 0);
             }
             if (_video_rtmp_decoder) {
                 _video_rtmp_decoder->inputRtmp(pkt);

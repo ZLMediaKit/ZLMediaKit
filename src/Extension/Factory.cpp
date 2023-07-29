@@ -204,7 +204,10 @@ static CodecId getVideoCodecIdByAmf(const AMFValue &val){
         auto type_id = (RtmpVideoCodec)val.as_integer();
         switch (type_id) {
             case RtmpVideoCodec::h264: return CodecH264;
+            case RtmpVideoCodec::fourcc_hevc:
             case RtmpVideoCodec::h265: return CodecH265;
+            case RtmpVideoCodec::fourcc_av1: return CodecAV1;
+            case RtmpVideoCodec::fourcc_vp9: return CodecVP9;
             default: WarnL << "暂不支持该视频Amf:" << (int)type_id; return CodecInvalid;
         }
     }
