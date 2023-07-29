@@ -327,6 +327,7 @@ void RtmpSession::sendPlayResponse(const string &err, const RtmpMediaSource::Ptr
         if (!strong_self) {
             return;
         }
+        strong_self->sendUserControl(CONTROL_STREAM_EOF/*or CONTROL_STREAM_DRY ?*/, STREAM_MEDIA);
         strong_self->shutdown(SockException(Err_shutdown,"rtmp ring buffer detached"));
     });
     src->pause(false);
