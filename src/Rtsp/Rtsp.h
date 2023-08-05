@@ -243,7 +243,6 @@ public:
 
 private:
     std::vector<SdpTrack::Ptr> _track_vec;
-    std::string _control_url;
 };
 
 /**
