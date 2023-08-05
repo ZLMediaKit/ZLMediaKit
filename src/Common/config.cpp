@@ -231,12 +231,10 @@ static onceToken token([]() {
 ////////////RTMP服务器配置///////////
 namespace Rtmp {
 #define RTMP_FIELD "rtmp."
-const string kModifyStamp = RTMP_FIELD "modifyStamp";
 const string kHandshakeSecond = RTMP_FIELD "handshakeSecond";
 const string kKeepAliveSecond = RTMP_FIELD "keepAliveSecond";
 
 static onceToken token([]() {
-    mINI::Instance()[kModifyStamp] = false;
     mINI::Instance()[kHandshakeSecond] = 15;
     mINI::Instance()[kKeepAliveSecond] = 15;
 });

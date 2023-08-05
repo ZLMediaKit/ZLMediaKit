@@ -263,6 +263,8 @@ enum class RtmpFrameType : uint8_t {
     video_info_frame = 5, // video info/command frame
 };
 
+#define MKBETAG(a, b, c, d) ((d) | ((c) << 8) | ((b) << 16) | ((unsigned)(a) << 24))
+
 // UB [4]; Codec Identifier.
 enum class RtmpVideoCodec : uint32_t {
     h263 = 2, // Sorenson H.263
@@ -274,9 +276,9 @@ enum class RtmpVideoCodec : uint32_t {
     h265 = 12, // 国内扩展
 
     // 增强型rtmp FourCC
-    fourcc_vp9 = 'vp09',
-    fourcc_av1 = 'av01',
-    fourcc_hevc = 'hvc1'
+    fourcc_vp9 = MKBETAG('v', 'p', '0', '9'),
+    fourcc_av1 = MKBETAG('a', 'v', '0', '1'),
+    fourcc_hevc = MKBETAG('h', 'v', 'c', '1')
 };
 
 // UI8;
