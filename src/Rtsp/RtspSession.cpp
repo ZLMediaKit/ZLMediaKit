@@ -721,11 +721,11 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
 
         auto peerAddr = SockUtil::make_sockaddr(get_peer_ip().data(), ui16RtpPort);
         //设置rtp发送目标地址
-        pr.first->bindPeerAddr((struct sockaddr *) (&peerAddr));
+        pr.first->bindPeerAddr((struct sockaddr *) (&peerAddr), 0, true);
 
         //设置rtcp发送目标地址
         peerAddr = SockUtil::make_sockaddr(get_peer_ip().data(), ui16RtcpPort);
-        pr.second->bindPeerAddr((struct sockaddr *) (&peerAddr));
+        pr.second->bindPeerAddr((struct sockaddr *) (&peerAddr), 0, true);
 
         //尝试获取客户端nat映射地址
         startListenPeerUdpData(trackIdx);
