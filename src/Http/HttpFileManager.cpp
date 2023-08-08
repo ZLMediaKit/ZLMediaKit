@@ -119,7 +119,7 @@ static string searchIndexFile(const string &dir){
     }
     set<string> setFile;
     while ((pDirent = readdir(pDir)) != NULL) {
-        static set<const char *, StrCaseCompare> indexSet = {"index.html", "index.htm", "index"};
+        static set<const char *, StrCaseCompare> indexSet = {"index.html", "index.htm"};
         if (indexSet.find(pDirent->d_name) != indexSet.end()) {
             string ret = pDirent->d_name;
             closedir(pDir);
@@ -571,11 +571,14 @@ void HttpFileManager::onAccessPath(Session &sender, Parser &parser, const HttpFi
     if (File::is_dir(file_path.data())) {
         auto indexFile = searchIndexFile(file_path);
         if (!indexFile.empty()) {
-            //发现该文件夹下有index文件
+            // 发现该文件夹下有index文件
             file_path = pathCat(file_path, indexFile);
-            parser.setUrl(pathCat(parser.url(), indexFile));
-            accessFile(sender, parser, media_info, file_path, cb);
-            return;
+            if (!File::is_dir(file_path.data())) {
+                // 不是文件夹
+                parser.setUrl(pathCat(parser.url(), indexFile));
+                accessFile(sender, parser, media_info, file_path, cb);
+                return;
+            }
         }
         string strMenu;
         //生成文件夹菜单索引
