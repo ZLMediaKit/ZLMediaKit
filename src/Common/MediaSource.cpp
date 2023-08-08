@@ -15,8 +15,10 @@
 #include "MediaSource.h"
 #include "Common/config.h"
 #include "Common/Parser.h"
+#include "Common/MultiMediaSourceMuxer.h"
 #include "Record/MP4Reader.h"
 #include "PacketCache.h"
+
 using namespace std;
 using namespace toolkit;
 
