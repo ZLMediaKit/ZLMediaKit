@@ -515,7 +515,7 @@ void WebRtcTransportImp::onStartWebRTC() {
             _pt_to_track.emplace(track->plan_rtx->pt, std::unique_ptr<WrappedMediaTrack>(new WrappedRtxTrack(track)));
         }
         // 记录rtp ext类型与id的关系，方便接收或发送rtp时修改rtp ext id
-        track->rtp_ext_ctx = std::make_shared<RtpExtContext>(*m_offer);
+        track->rtp_ext_ctx = std::make_shared<RtpExtContext>(m_answer);
         weak_ptr<MediaTrack> weak_track = track;
         track->rtp_ext_ctx->setOnGetRtp([this, weak_track](uint8_t pt, uint32_t ssrc, const string &rid) {
             // ssrc --> MediaTrack
