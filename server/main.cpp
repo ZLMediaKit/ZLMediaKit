@@ -351,10 +351,13 @@ int start_main(int argc,char *argv[]) {
 #endif //defined(ENABLE_SRT)
 
         try {
-            auto secret = mINI::Instance()[API::kSecret];
+            auto &secret = mINI::Instance()[API::kSecret];
             if (secret == "035c73f7-bb6b-4889-a715-d9eb2d1925cc" || secret.empty()) {
                 // 使用默认secret被禁止启动
-                throw std::invalid_argument("please modify the configuration named " + API::kSecret + " in " + g_ini_file);
+                secret = makeRandStr(32, true);
+                mINI::Instance().dumpFile(g_ini_file);
+                WarnL << "The " << API::kSecret << " is invalid, modified it to: " << secret
+                      << ", saved config file: " << g_ini_file;
             }
             //rtsp服务器，端口默认554
             if (rtspPort) { rtspSrv->start<RtspSession>(rtspPort); }
