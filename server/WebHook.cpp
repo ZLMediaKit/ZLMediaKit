@@ -164,12 +164,16 @@ string getVhost(const HttpArgs &value) {
     return val != value.end() ? val->second : "";
 }
 
+static atomic<uint64_t> s_hook_index { 0 };
+
 void do_http_hook(const string &url, const ArgsType &body, const function<void(const Value &, const string &)> &func, uint32_t retry) {
     GET_CONFIG(string, mediaServerId, General::kMediaServerId);
     GET_CONFIG(float, hook_timeoutSec, Hook::kTimeoutSec);
     GET_CONFIG(float, retry_delay, Hook::kRetryDelay);
 
     const_cast<ArgsType &>(body)["mediaServerId"] = mediaServerId;
+    const_cast<ArgsType &>(body)["hook_index"] = s_hook_index++;
+
     auto requester = std::make_shared<HttpRequester>();
     requester->setMethod("POST");
     auto bodyStr = to_string(body);
