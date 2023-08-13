@@ -37,6 +37,7 @@ const string kOnFlowReport = HOOK_FIELD "on_flow_report";
 const string kOnRtspRealm = HOOK_FIELD "on_rtsp_realm";
 const string kOnRtspAuth = HOOK_FIELD "on_rtsp_auth";
 const string kOnStreamChanged = HOOK_FIELD "on_stream_changed";
+const string kStreamChangedSchemas = HOOK_FIELD "stream_changed_schemas";
 const string kOnStreamNotFound = HOOK_FIELD "on_stream_not_found";
 const string kOnRecordMp4 = HOOK_FIELD "on_record_mp4";
 const string kOnRecordTs = HOOK_FIELD "on_record_ts";
@@ -76,6 +77,7 @@ static onceToken token([]() {
     mINI::Instance()[kAliveInterval] = 30.0;
     mINI::Instance()[kRetry] = 1;
     mINI::Instance()[kRetryDelay] = 3.0;
+    mINI::Instance()[kStreamChangedSchemas] = "rtsp/rtmp/fmp4/ts/hls/hls.fmp4";
 });
 } // namespace Hook
 
@@ -438,10 +440,26 @@ void installWebHook() {
 
     // 监听rtsp、rtmp源注册或注销事件
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastMediaChanged, [](BroadcastMediaChangedArgs) {
-        GET_CONFIG(string, hook_stream_chaned, Hook::kOnStreamChanged);
-        if (!hook_enable || hook_stream_chaned.empty()) {
+        GET_CONFIG(string, hook_stream_changed, Hook::kOnStreamChanged);
+        if (!hook_enable || hook_stream_changed.empty()) {
             return;
         }
+        GET_CONFIG_FUNC(std::set<std::string>, stream_changed_set, Hook::kStreamChangedSchemas, [](const std::string &str) {
+            std::set<std::string> ret;
+            auto vec = split(str, "/");
+            for (auto &schema : vec) {
+                trim(schema);
+                if (!schema.empty()) {
+                    ret.emplace(schema);
+                }
+            }
+            return ret;
+        });
+        if (!stream_changed_set.empty() && stream_changed_set.find(sender.getSchema()) == stream_changed_set.end()) {
+            // 该协议注册注销事件被忽略
+            return;
+        }
+
         ArgsType body;
         if (bRegist) {
             body = makeMediaSourceJson(sender);
@@ -452,7 +470,7 @@ void installWebHook() {
             body["regist"] = bRegist;
         }
         // 执行hook
-        do_http_hook(hook_stream_chaned, body, nullptr);
+        do_http_hook(hook_stream_changed, body, nullptr);
     });
 
     GET_CONFIG_FUNC(vector<string>, origin_urls, Cluster::kOriginUrl, [](const string &str) {
