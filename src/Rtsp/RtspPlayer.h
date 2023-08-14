@@ -116,11 +116,13 @@ private:
 
     std::string _play_url;
     std::vector<SdpTrack::Ptr> _sdp_track;
-    std::function<void(const Parser&)> _on_response;
     //RTP端口,trackid idx 为数组下标
     toolkit::Socket::Ptr _rtp_sock[2];
     //RTCP端口,trackid idx 为数组下标
     toolkit::Socket::Ptr _rtcp_sock[2];
+
+    using OnResponseFunc = std::function<void(const Parser&)>;
+    OnResponseFunc _on_response;
 
     //rtsp鉴权相关
     std::string _md5_nonce;
@@ -146,6 +148,8 @@ private:
     toolkit::Ticker _rtcp_send_ticker[2];
     //统计rtp并发送rtcp
     std::vector<RtcpContext::Ptr> _rtcp_context;
+
+    std::map<uint32_t, OnResponseFunc> _cseq_func_map;
 };
 
 } /* namespace mediakit */

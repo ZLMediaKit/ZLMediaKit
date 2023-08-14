@@ -484,10 +484,14 @@ void RtspPlayer::handleResPAUSE(const Parser &parser, int type) {
 
 void RtspPlayer::onWholeRtspPacket(Parser &parser) {
     try {
-        decltype(_on_response) func;
-        _on_response.swap(func);
-        if (func) {
-            func(parser);
+        auto headerMap = parser.getHeader();
+        auto cseqIter = headerMap.find("CSeq");
+        if (cseqIter != headerMap.end()) {
+            auto funcIter = _cseq_func_map.find(std::stoi(cseqIter->second));
+            if (funcIter != _cseq_func_map.end()) {
+                funcIter->second(parser);
+                _cseq_func_map.erase(funcIter);
+            }
         }
         parser.clear();
     } catch (std::exception &err) {
@@ -578,6 +582,8 @@ void RtspPlayer::sendRtspRequest(const string &cmd, const string &url, const std
 }
 
 void RtspPlayer::sendRtspRequest(const string &cmd, const string &url, const StrCaseMap &header_const) {
+    _cseq_func_map.emplace(_cseq_send, _on_response);
+
     auto header = header_const;
     header.emplace("CSeq", StrPrinter << _cseq_send++);
     header.emplace("User-Agent", kServerName);
