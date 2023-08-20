@@ -8,12 +8,13 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
+#include <cstdlib>
+#include <cinttypes>
+#include <random>
 #include "Rtsp.h"
 #include "Common/Parser.h"
 #include "Common/config.h"
 #include "Network/Socket.h"
-#include <cinttypes>
-#include <cstdlib>
 
 using namespace std;
 using namespace toolkit;
@@ -392,9 +393,13 @@ public:
 
 private:
     void setRange(uint16_t start_pos, uint16_t end_pos) {
+        std::mt19937 rng(std::random_device {}());
         lock_guard<recursive_mutex> lck(_pool_mtx);
+        auto it = _port_pair_pool.begin();
         while (start_pos < end_pos) {
-            _port_pair_pool.emplace_back(start_pos++);
+            // 随机端口排序，防止重启后导致分配的端口重复
+            _port_pair_pool.insert(it, start_pos++);
+            it = _port_pair_pool.begin() + (rng() % (1 + _port_pair_pool.size()));
         }
     }
 
