@@ -483,6 +483,11 @@ void RtspPlayer::handleResPAUSE(const Parser &parser, int type) {
 }
 
 void RtspPlayer::onWholeRtspPacket(Parser &parser) {
+    if (!start_with(parser.method(), "RTSP")) {
+        // 不是rtsp回复，忽略
+        WarnL << "Not rtsp response: " << parser.method();
+        return;
+    }
     try {
         decltype(_on_response) func;
         _on_response.swap(func);
