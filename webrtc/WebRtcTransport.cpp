@@ -54,8 +54,8 @@ static onceToken token([]() {
     mINI::Instance()[kTimeOutSec] = 15;
     mINI::Instance()[kExternIP] = "";
     mINI::Instance()[kRembBitRate] = 0;
-    mINI::Instance()[kPort] = 0;
-    mINI::Instance()[kTcpPort] = 0;
+    mINI::Instance()[kPort] = 8000;
+    mINI::Instance()[kTcpPort] = 8000;
 });
 
 } // namespace RTC
