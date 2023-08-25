@@ -1613,15 +1613,13 @@ RETRY:
     if (offer_media.type == TrackApplication) {
         RtcMedia answer_media = offer_media;
         answer_media.role = mathDtlsRole(offer_media.role);
-#ifdef ENABLE_SCTP
-        answer_media.direction = matchDirection(offer_media.direction, configure.direction);
-        answer_media.candidate = configure.candidate;
         answer_media.ice_ufrag = configure.ice_ufrag;
         answer_media.ice_pwd = configure.ice_pwd;
         answer_media.fingerprint = configure.fingerprint;
         answer_media.ice_lite = configure.ice_lite;
-#else
-        answer_media.direction = RtpDirection::inactive;
+#ifndef ENABLE_SCTP
+        answer_media.port = 0;
+        WarnL << "answer sdp忽略application, 请安装usrsctp后再测试datachannel功能";
 #endif
         ret->media.emplace_back(answer_media);
         return;
