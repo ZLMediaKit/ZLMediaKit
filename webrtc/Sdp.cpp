@@ -1555,7 +1555,10 @@ shared_ptr<RtcSession> RtcConfigure::createAnswer(const RtcSession &offer) const
     //设置音视频端口复用
     if (!offer.group.mids.empty()) {
         for (auto &m : ret->media) {
-            ret->group.mids.emplace_back(m.mid);
+            //The remote end has rejected (port 0) the m-section, so it should not be putting its mid in the group attribute.
+            if(m.port) {
+                ret->group.mids.emplace_back(m.mid);
+            }
         }
     }
     return ret;
