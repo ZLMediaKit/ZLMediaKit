@@ -537,7 +537,7 @@ void addStreamProxy(const string &vhost, const string &app, const string &stream
     lock_guard<recursive_mutex> lck(s_proxyMapMtx);
     if (s_proxyMap.find(key) != s_proxyMap.end()) {
         //已经在拉流了
-        cb(SockException(Err_success), key);
+        cb(SockException(Err_other, "This stream already exists"), key);
         return;
     }
     //添加拉流代理
