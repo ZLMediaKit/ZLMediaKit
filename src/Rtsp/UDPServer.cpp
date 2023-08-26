@@ -82,10 +82,12 @@ void UDPServer::onRecv(int interleaved, const Buffer::Ptr &buf, struct sockaddr*
         return;
     }
     auto &ref = it0->second;
-    for (auto it1 = ref.begin(); it1 != ref.end(); ++it1) {
+    for (auto it1 = ref.begin(); it1 != ref.end();) {
         auto &func = it1->second;
         if (!func(interleaved, buf, peer_addr)) {
             it1 = ref.erase(it1);
+        } else {
+            ++it1;
         }
     }
     if (ref.size() == 0) {
