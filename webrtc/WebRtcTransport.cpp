@@ -564,8 +564,10 @@ void WebRtcTransportImp::onCheckAnswer(RtcSession &sdp) {
 
         GET_CONFIG(uint16_t, udp_port, Rtc::kPort);
         GET_CONFIG(uint16_t, tcp_port, Rtc::kTcpPort);
-        m.rtcp_addr.port = udp_port ? udp_port : tcp_port;
-        m.port = m.rtcp_addr.port;
+        m.port = m.port ? (udp_port ? udp_port : tcp_port) : 0;
+        if (m.type != TrackApplication) {
+            m.rtcp_addr.port = m.port;
+        }
         sdp.origin.address = m.addr.address;
     }
 
