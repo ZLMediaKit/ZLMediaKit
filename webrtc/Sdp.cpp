@@ -1556,7 +1556,7 @@ shared_ptr<RtcSession> RtcConfigure::createAnswer(const RtcSession &offer) const
     if (!offer.group.mids.empty()) {
         for (auto &m : ret->media) {
             //The remote end has rejected (port 0) the m-section, so it should not be putting its mid in the group attribute.
-            if(m.port) {
+            if (m.port) {
                 ret->group.mids.emplace_back(m.mid);
             }
         }
@@ -1620,9 +1620,11 @@ RETRY:
         answer_media.ice_pwd = configure.ice_pwd;
         answer_media.fingerprint = configure.fingerprint;
         answer_media.ice_lite = configure.ice_lite;
-#ifndef ENABLE_SCTP
+#ifdef ENABLE_SCTP
+        answer_media.candidate = configure.candidate;
+#else
         answer_media.port = 0;
-        WarnL << "answer sdp忽略application, 请安装usrsctp后再测试datachannel功能";
+        WarnL << "answer sdp忽略application mline, 请安装usrsctp后再测试datachannel功能";
 #endif
         ret->media.emplace_back(answer_media);
         return;
