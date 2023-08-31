@@ -544,6 +544,9 @@ float RtspPlayer::getPacketLossRate(TrackType type) const {
     size_t lost = 0, expected = 0;
     try {
         auto track_idx = getTrackIndexByTrackType(type);
+        if (_rtcp_context.empty()) {
+            return 0;
+        }
         auto ctx = _rtcp_context[track_idx];
         lost = ctx->getLost();
         expected = ctx->getExpectedPackets();
