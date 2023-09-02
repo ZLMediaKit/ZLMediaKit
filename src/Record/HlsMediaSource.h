@@ -58,6 +58,11 @@ public:
 
     void onSegmentSize(size_t bytes) { _speed[TrackVideo] += bytes; }
 
+    void getPlayerList(const std::function<void(const std::list<toolkit::Any> &info_list)> &cb,
+                       const std::function<toolkit::Any(toolkit::Any &&info)> &on_change) override {
+        _ring->getInfoList(cb, on_change);
+    }
+
 private:
     RingType::Ptr _ring;
     std::string _index_file;

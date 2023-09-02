@@ -857,7 +857,11 @@ void RtspSession::handleReq_Play(const Parser &parser) {
     if (!_play_reader && _rtp_type != Rtsp::RTP_MULTICAST) {
         weak_ptr<RtspSession> weak_self = static_pointer_cast<RtspSession>(shared_from_this());
         _play_reader = play_src->getRing()->attach(getPoller(), use_gop);
-        _play_reader->setGetInfoCB([weak_self]() { return weak_self.lock(); });
+        _play_reader->setGetInfoCB([weak_self]() {
+            Any ret;
+            ret.set(static_pointer_cast<SockInfo>(weak_self.lock()));
+            return ret;
+        });
         _play_reader->setDetachCB([weak_self]() {
             auto strong_self = weak_self.lock();
             if (!strong_self) {
