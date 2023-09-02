@@ -306,7 +306,11 @@ void RtmpSession::sendPlayResponse(const string &err, const RtmpMediaSource::Ptr
     src->pause(false);
     _ring_reader = src->getRing()->attach(getPoller());
     weak_ptr<RtmpSession> weak_self = static_pointer_cast<RtmpSession>(shared_from_this());
-    _ring_reader->setGetInfoCB([weak_self]() { return weak_self.lock(); });
+    _ring_reader->setGetInfoCB([weak_self]() {
+        Any ret;
+        ret.set(static_pointer_cast<SockInfo>(weak_self.lock()));
+        return ret;
+    });
     _ring_reader->setReadCB([weak_self](const RtmpMediaSource::RingDataType &pkt) {
         auto strong_self = weak_self.lock();
         if (!strong_self) {

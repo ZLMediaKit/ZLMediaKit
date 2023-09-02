@@ -795,22 +795,24 @@ void installWebApi() {
             throw ApiRetException("can not find the stream", API::NotFound);
         }
         src->getPlayerList(
-            [=](const std::list<std::shared_ptr<void>> &info_list) mutable {
+            [=](const std::list<toolkit::Any> &info_list) mutable {
                 val["code"] = API::Success;
                 auto &data = val["data"];
                 data = Value(arrayValue);
                 for (auto &info : info_list) {
-                    auto obj = static_pointer_cast<Value>(info);
-                    data.append(std::move(*obj));
+                    auto &obj = info.get<Value>();
+                    data.append(std::move(obj));
                 }
                 invoker(200, headerOut, val.toStyledString());
             },
-            [](std::shared_ptr<void> &&info) -> std::shared_ptr<void> {
+            [](toolkit::Any &&info) -> toolkit::Any {
                 auto obj = std::make_shared<Value>();
-                auto session = static_pointer_cast<Session>(info);
-                fillSockInfo(*obj, session.get());
-                (*obj)["typeid"] = toolkit::demangle(typeid(*session).name());
-                return obj;
+                auto &sock = info.get<SockInfo>();
+                fillSockInfo(*obj, &sock);
+                (*obj)["typeid"] = toolkit::demangle(typeid(sock).name());
+                toolkit::Any ret;
+                ret.set(obj);
+                return ret;
             });
     });
 

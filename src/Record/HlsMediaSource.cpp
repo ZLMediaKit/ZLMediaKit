@@ -33,6 +33,12 @@ void HlsCookieData::addReaderCount() {
                 // HlsMediaSource已经销毁
                 *added = false;
             });
+            auto info = _sock_info;
+            _ring_reader->setGetInfoCB([info]() {
+                Any ret;
+                ret.set(info);
+                return ret;
+            });
         }
     }
 }
