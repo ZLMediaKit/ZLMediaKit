@@ -229,6 +229,19 @@ void WebRtcTransport::OnSctpAssociationMessageReceived(
     _sctp->SendSctpMessage(params, ppid, msg, len);
 }
 #endif
+
+void WebRtcTransport::sendDatachannel(uint16_t streamId, uint32_t ppid, const char *msg, size_t len) {
+#ifdef ENABLE_SCTP
+    if (_sctp) {
+        RTC::SctpStreamParameters params;
+        params.streamId = streamId;
+        _sctp->SendSctpMessage(params, ppid, (uint8_t *)msg, len);
+    }
+#else
+    WarnL << "WebRTC datachannel disabled!";
+#endif
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void WebRtcTransport::sendSockData(const char *buf, size_t len, RTC::TransportTuple *tuple) {

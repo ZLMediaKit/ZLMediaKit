@@ -353,6 +353,8 @@ public:
         cb(std::list<toolkit::Any>());
     }
 
+    virtual bool broadcastMessage(const toolkit::Any &data) { return false; }
+
     // 获取媒体源类型
     MediaOriginType getOriginType() const;
     // 获取媒体源url或者文件路径
