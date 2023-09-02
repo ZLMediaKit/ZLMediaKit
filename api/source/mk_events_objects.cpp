@@ -221,7 +221,7 @@ API_EXPORT int API_CALL mk_media_source_broadcast_msg(const mk_media_source ctx,
     Any any;
     Buffer::Ptr buffer = std::make_shared<BufferLikeString>(std::string(msg, len));
     any.set(std::move(buffer));
-    src->broadcastMessage(any);
+    return src->broadcastMessage(any);
 }
 
 API_EXPORT int API_CALL mk_media_source_close(const mk_media_source ctx,int force){
