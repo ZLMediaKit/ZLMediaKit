@@ -913,6 +913,56 @@
 			"response": []
 		},
 		{
+			"name": "广播webrtc datachannel消息(broadcastMessage)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/broadcastMessage?secret={{ZLMediaKit_secret}}&schema=rtsp&vhost={{defaultVhost}}&app=live&stream=test&msg=Hello zlmediakit123",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"broadcastMessage"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)"
+						},
+						{
+							"key": "schema",
+							"value": "rtsp",
+							"description": "协议，例如 rtsp或rtmp，目前仅支持rtsp协议"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "live",
+							"description": "应用名，例如 live"
+						},
+						{
+							"key": "stream",
+							"value": "test",
+							"description": "流id，例如 test"
+						},
+						{
+							"key": "msg",
+							"value": "Hello ZLMediakit"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "获取流信息(getMediaInfo)",
 			"request": {
 				"method": "GET",
