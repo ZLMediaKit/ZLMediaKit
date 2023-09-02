@@ -67,7 +67,7 @@ RtpProcess::~RtpProcess() {
     GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
     if (_total_bytes >= iFlowThreshold * 1024) {
         try {
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, _total_bytes, duration, false, static_cast<SockInfo &>(*this));
+            NOTICE_EMIT(BroadcastFlowReportArgs, Broadcast::kBroadcastFlowReport, _media_info, _total_bytes, duration, false, *this);
         } catch (std::exception &ex) {
             WarnL << "Exception occurred: " << ex.what();
         }
@@ -266,9 +266,9 @@ void RtpProcess::emitOnPublish() {
     };
 
     //触发推流鉴权事件
-    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish, MediaOriginType::rtp_push, _media_info, invoker, static_cast<SockInfo &>(*this));
+    auto flag = NOTICE_EMIT(BroadcastMediaPublishArgs, Broadcast::kBroadcastMediaPublish, MediaOriginType::rtp_push, _media_info, invoker, *this);
     if (!flag) {
-        //该事件无人监听,默认不鉴权
+        // 该事件无人监听,默认不鉴权
         invoker("", ProtocolOption());
     }
 }

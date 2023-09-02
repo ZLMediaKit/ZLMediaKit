@@ -1218,7 +1218,7 @@ void push_plugin(Session &sender, const WebRtcArgs &args, const WebRtcPluginMana
     };
 
     // rtsp推流需要鉴权
-    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish, MediaOriginType::rtc_push, info, invoker, static_cast<SockInfo &>(sender));
+    auto flag = NOTICE_EMIT(BroadcastMediaPublishArgs, Broadcast::kBroadcastMediaPublish, MediaOriginType::rtc_push, info, invoker, sender);
     if (!flag) {
         // 该事件无人监听,默认不鉴权
         invoker("", ProtocolOption());
@@ -1252,7 +1252,7 @@ void play_plugin(Session &sender, const WebRtcArgs &args, const WebRtcPluginMana
     };
 
     // 广播通用播放url鉴权事件
-    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed, info, invoker, static_cast<SockInfo &>(sender));
+    auto flag = NOTICE_EMIT(BroadcastMediaPlayedArgs, Broadcast::kBroadcastMediaPlayed, info, invoker, sender);
     if (!flag) {
         // 该事件无人监听,默认不鉴权
         invoker("");

@@ -149,7 +149,7 @@ void HlsMakerImp::onFlushLastSegment(uint64_t duration_ms) {
     if (broadcastRecordTs) {
         _info.time_len = duration_ms / 1000.0f;
         _info.file_size = File::fileSize(_info.file_path.data());
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRecordTs, _info);
+        NOTICE_EMIT(BroadcastRecordTsArgs, Broadcast::kBroadcastRecordTs, _info);
     }
 }
 

@@ -250,7 +250,7 @@ static bool emitHlsPlayed(const Parser &parser, const MediaInfo &media_info, con
         //cookie有效期为kHlsCookieSecond
         invoker(err, "", kHlsCookieSecond);
     };
-    bool flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed, media_info, auth_invoker, static_cast<SockInfo &>(sender));
+    bool flag = NOTICE_EMIT(BroadcastMediaPlayedArgs, Broadcast::kBroadcastMediaPlayed, media_info, auth_invoker, sender);
     if (!flag) {
         //未开启鉴权，那么允许播放
         auth_invoker("");
@@ -383,7 +383,7 @@ static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo
     }
 
     // 事件未被拦截，则认为是http下载请求
-    bool flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpAccess, parser, path, is_dir, accessPathInvoker, static_cast<SockInfo &>(sender));
+    bool flag = NOTICE_EMIT(BroadcastHttpAccessArgs, Broadcast::kBroadcastHttpAccess, parser, path, is_dir, accessPathInvoker, sender);
     if (!flag) {
         // 此事件无人监听，我们默认都有权限访问
         callback("", nullptr);
@@ -556,7 +556,7 @@ static string getFilePath(const Parser &parser,const MediaInfo &media_info, Sess
     }
     // 替换url，防止返回的目录索引网页被注入非法内容
     const_cast<Parser&>(parser).setUrl("/" + ret.substr(http_root.size()));
-    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpBeforeAccess, parser, ret, static_cast<SockInfo &>(sender));
+    NOTICE_EMIT(BroadcastHttpBeforeAccessArgs, Broadcast::kBroadcastHttpBeforeAccess, parser, ret, sender);
     return ret;
 }
 

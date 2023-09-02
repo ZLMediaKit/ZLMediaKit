@@ -271,7 +271,7 @@ static void sendReport() {
 }
 
 static toolkit::onceToken s_token([]() {
-    NoticeCenter::Instance().addListener(nullptr, "kBroadcastEventPollerPoolStarted", [](EventPollerPool &pool, size_t &size) {
+    NoticeCenter::Instance().addListener(nullptr, "kBroadcastEventPollerPoolStarted", [](EventPollerPoolOnStartedArgs) {
         // 第一次汇报在程序启动后5分钟
         pool.getPoller()->doDelayTask(5 * 60 * 1000, []() {
             sendReport();

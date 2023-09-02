@@ -31,7 +31,7 @@ bool loadIniConfig(const char *ini_path) {
     }
     try {
         mINI::Instance().parseFile(ini);
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastReloadConfig);
+        NOTICE_EMIT(BroadcastReloadConfigArgs, Broadcast::kBroadcastReloadConfig);
         return true;
     } catch (std::exception &) {
         InfoL << "dump ini file to:" << ini;

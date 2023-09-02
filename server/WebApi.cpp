@@ -666,7 +666,7 @@ void installWebApi() {
             ++changed;
         }
         if (changed > 0) {
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastReloadConfig);
+            NOTICE_EMIT(BroadcastReloadConfigArgs, Broadcast::kBroadcastReloadConfig);
             ini.dumpFile(g_ini_file);
         }
         val["changed"] = changed;
