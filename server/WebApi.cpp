@@ -816,6 +816,19 @@ void installWebApi() {
             });
     });
 
+    api_regist("/index/api/broadcastMessage", [](API_ARGS_MAP) {
+        CHECK_SECRET();
+        CHECK_ARGS("schema", "vhost", "app", "stream", "msg");
+        auto src = MediaSource::find(allArgs["schema"], allArgs["vhost"], allArgs["app"], allArgs["stream"]);
+        if (!src) {
+            throw ApiRetException("can not find the stream", API::NotFound);
+        }
+        Any any;
+        Buffer::Ptr buffer = std::make_shared<BufferLikeString>(allArgs["msg"]);
+        any.set(std::move(buffer));
+        src->broadcastMessage(any);
+    });
+
     //测试url http://127.0.0.1/index/api/getMediaInfo?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs
     api_regist("/index/api/getMediaInfo",[](API_ARGS_MAP_ASYNC){
         CHECK_SECRET();

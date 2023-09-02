@@ -71,6 +71,21 @@ void WebRtcPlayer::onStartWebRTC() {
             }
             strong_self->onShutdown(SockException(Err_shutdown, "rtsp ring buffer detached"));
         });
+
+        _reader->setMessageCB([weak_self] (const toolkit::Any &data) {
+            auto strong_self = weak_self.lock();
+            if (!strong_self) {
+                return;
+            }
+            if (data.is<Buffer>()) {
+                auto &buffer = data.get<Buffer>();
+                // PPID 51: 文本string
+                // PPID 53: 二进制
+                strong_self->sendDatachannel(0, 51, buffer.data(), buffer.size());
+            } else {
+                WarnL << "Send unknown message type to webrtc player: " << data.type_name();
+            }
+        });
     }
 }
 void WebRtcPlayer::onDestory() {
