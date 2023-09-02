@@ -467,7 +467,7 @@ bool isRtp(const char *buf, size_t size) {
         return false;
     }
     RtpHeader *header = (RtpHeader *)buf;
-    return ((header->pt < 64) || (header->pt >= 96));
+    return ((header->pt < 64) || (header->pt >= 96)) && header->version == RtpPacket::kRtpVersion;
 }
 
 bool isRtcp(const char *buf, size_t size) {
