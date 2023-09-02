@@ -17,7 +17,7 @@ SrtTransportImp::~SrtTransportImp() {
     GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
     if (_total_bytes >= iFlowThreshold * 1024) {
         try {
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, _total_bytes, duration, !_is_pusher, static_cast<SockInfo &>(*this));
+            NOTICE_EMIT(BroadcastFlowReportArgs, Broadcast::kBroadcastFlowReport, _media_info, _total_bytes, duration, !_is_pusher, *this);
         } catch (std::exception &ex) {
             WarnL << "Exception occurred: " << ex.what();
         }
@@ -172,9 +172,7 @@ void SrtTransportImp::emitOnPublish() {
     };
 
     // 触发推流鉴权事件
-    auto flag = NoticeCenter::Instance().emitEvent(
-        Broadcast::kBroadcastMediaPublish, MediaOriginType::srt_push, _media_info, invoker,
-        static_cast<SockInfo &>(*this));
+    auto flag = NOTICE_EMIT(BroadcastMediaPublishArgs, Broadcast::kBroadcastMediaPublish, MediaOriginType::srt_push, _media_info, invoker, *this);
     if (!flag) {
         // 该事件无人监听,默认不鉴权
         invoker("", ProtocolOption());
@@ -197,8 +195,7 @@ void SrtTransportImp::emitOnPlay() {
         });
     };
 
-    auto flag = NoticeCenter::Instance().emitEvent(
-        Broadcast::kBroadcastMediaPlayed, _media_info, invoker, static_cast<SockInfo &>(*this));
+    auto flag = NOTICE_EMIT(BroadcastMediaPlayedArgs, Broadcast::kBroadcastMediaPlayed, _media_info, invoker, *this);
     if (!flag) {
         doPlay();
     }
