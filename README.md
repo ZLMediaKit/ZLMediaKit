@@ -327,6 +327,12 @@ bash build_docker_images.sh
 [tbago](https://github.com/tbago)
 [Luosh](https://github.com/Luosh)
 [linxiaoyan87](https://github.com/linxiaoyan)
+[waken](https://github.com/mc373906408)
+[Deepslient](https://github.com/Deepslient)
+
+同时感谢JetBrains对开源项目的支持，本项目使用CLion开发与调试：
+
+[![JetBrains](https://resources.jetbrains.com/storage/products/company/brand/logos/CLion.svg)](https://jb.gg/OpenSourceSupport)
 
 ## 使用案例
 

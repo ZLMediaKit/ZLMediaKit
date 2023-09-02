@@ -491,6 +491,12 @@ Thanks to all those who have supported this project in various ways, including b
 [tbago](https://github.com/tbago)
 [Luosh](https://github.com/Luosh)
 [linxiaoyan87](https://github.com/linxiaoyan)
+[waken](https://github.com/mc373906408)
+[Deepslient](https://github.com/Deepslient)
+
+Also thank to JetBrains for their support for open source project, we developed and debugged zlmediakit with CLion:
+
+[![JetBrains](https://resources.jetbrains.com/storage/products/company/brand/logos/CLion.svg)](https://jb.gg/OpenSourceSupport)
 
 ## Use Cases
 
