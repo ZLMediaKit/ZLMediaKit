@@ -83,6 +83,6 @@ COPY --from=build /opt/media/ZLMediaKit/release/linux/${MODEL}/MediaServer /opt/
 COPY --from=build /opt/media/ZLMediaKit/release/linux/${MODEL}/config.ini /opt/media/conf/
 COPY --from=build /opt/media/ZLMediaKit/www/ /opt/media/bin/www/
 ENV PATH /opt/media/bin:$PATH
-ENV LogLevel 0do
+ENV LogLevel 0
 #CMD ["sh","-c","./MediaServer -s default.pem -c ../conf/config.ini -l 0"]
 ENTRYPOINT ["sh","-c","./MediaServer -s default.pem -c ../conf/config.ini -l $LogLevel"]
