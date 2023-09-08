@@ -421,7 +421,7 @@ int start_main(int argc,char *argv[]) {
         }); // 设置退出信号
 
         signal(SIGTERM,[](int) {
-            WarnL << "SIGINT:exit";
+            WarnL << "SIGTERM:exit";
             signal(SIGTERM, SIG_IGN);
             sem.post();
         });
