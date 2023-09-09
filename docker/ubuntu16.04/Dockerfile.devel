@@ -41,4 +41,4 @@ RUN cmake -DCMAKE_BUILD_TYPE=Release .. && \
     make
 
 ENV PATH /opt/media/ZLMediaKit/release/linux/Release/:$PATH
-CMD MediaServer
+CMD ["MediaServer"]

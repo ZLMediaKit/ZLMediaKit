@@ -128,4 +128,4 @@ WORKDIR /opt/zlm
 VOLUME [ "/opt/zlm/conf/","/opt/zlm/log/","opt/zlm/ffmpeg/"]
 COPY --from=build /opt/build /
 ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH TZ=Asia/Shanghai
-CMD ./MediaServer -c ./conf/config.ini
+CMD ["./MediaServer", "-c" , "./conf/config.ini"]

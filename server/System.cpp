@@ -126,6 +126,12 @@ void System::startDaemon(bool &kill_parent_if_failed) {
             exit(0);
         });
 
+        signal(SIGTERM,[](int) {
+            WarnL << "收到主动退出信号,关闭父进程与子进程";
+            kill(pid, SIGINT);
+            exit(0);
+        });
+
         do {
             int status = 0;
             if (waitpid(pid, &status, 0) >= 0) {
