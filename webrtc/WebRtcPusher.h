@@ -23,15 +23,17 @@ public:
     static Ptr create(const EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src,
                       const std::shared_ptr<void> &ownership, const MediaInfo &info, const ProtocolOption &option, bool preferred_tcp = false);
 
+
 protected:
     ///////WebRtcTransportImp override///////
     void onStartWebRTC() override;
     void onDestory() override;
     void onRtcConfigure(RtcConfigure &configure) const override;
     void onRecvRtp(MediaTrack &track, const std::string &rid, RtpPacket::Ptr rtp) override;
+    void onShutdown(const SockException &ex) override;
     void onRtcpBye() override;
     ////  dtls相关的回调 ////
-   void OnDtlsTransportClosed(const RTC::DtlsTransport *dtlsTransport) override;
+    void OnDtlsTransportClosed(const RTC::DtlsTransport *dtlsTransport) override;
 
 protected:
     ///////MediaSourceEvent override///////
@@ -65,6 +67,7 @@ private:
     //推流所有权
     std::shared_ptr<void> _push_src_ownership;
     //推流的rtsp源,支持simulcast
+    std::recursive_mutex _mtx;
     std::unordered_map<std::string/*rid*/, RtspMediaSource::Ptr> _push_src_sim;
     std::unordered_map<std::string/*rid*/, std::shared_ptr<void> > _push_src_sim_ownership;
 };

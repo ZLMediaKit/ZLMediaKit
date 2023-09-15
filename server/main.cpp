@@ -351,6 +351,14 @@ int start_main(int argc,char *argv[]) {
 #endif //defined(ENABLE_SRT)
 
         try {
+            auto &secret = mINI::Instance()[API::kSecret];
+            if (secret == "035c73f7-bb6b-4889-a715-d9eb2d1925cc" || secret.empty()) {
+                // 使用默认secret被禁止启动
+                secret = makeRandStr(32, true);
+                mINI::Instance().dumpFile(g_ini_file);
+                WarnL << "The " << API::kSecret << " is invalid, modified it to: " << secret
+                      << ", saved config file: " << g_ini_file;
+            }
             //rtsp服务器，端口默认554
             if (rtspPort) { rtspSrv->start<RtspSession>(rtspPort); }
             //rtsps服务器，端口默认322
@@ -388,8 +396,7 @@ int start_main(int argc,char *argv[]) {
 #endif//defined(ENABLE_SRT)
 
         } catch (std::exception &ex) {
-            WarnL << "端口占用或无权限:" << ex.what();
-            ErrorL << "程序启动失败，请修改配置文件中端口号后重试!";
+            ErrorL << "Start server failed: " << ex.what();
             sleep(1);
 #if !defined(_WIN32)
             if (pid != getpid() && kill_parent_if_failed) {
@@ -412,6 +419,12 @@ int start_main(int argc,char *argv[]) {
             signal(SIGINT, SIG_IGN); // 设置退出信号
             sem.post();
         }); // 设置退出信号
+
+        signal(SIGTERM,[](int) {
+            WarnL << "SIGTERM:exit";
+            signal(SIGTERM, SIG_IGN);
+            sem.post();
+        });
 
 #if !defined(_WIN32)
         signal(SIGHUP, [](int) { mediakit::loadIniConfig(g_ini_file.data()); });

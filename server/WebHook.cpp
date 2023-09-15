@@ -37,6 +37,7 @@ const string kOnFlowReport = HOOK_FIELD "on_flow_report";
 const string kOnRtspRealm = HOOK_FIELD "on_rtsp_realm";
 const string kOnRtspAuth = HOOK_FIELD "on_rtsp_auth";
 const string kOnStreamChanged = HOOK_FIELD "on_stream_changed";
+const string kStreamChangedSchemas = HOOK_FIELD "stream_changed_schemas";
 const string kOnStreamNotFound = HOOK_FIELD "on_stream_not_found";
 const string kOnRecordMp4 = HOOK_FIELD "on_record_mp4";
 const string kOnRecordTs = HOOK_FIELD "on_record_ts";
@@ -48,7 +49,6 @@ const string kOnServerExited = HOOK_FIELD "on_server_exited";
 const string kOnServerKeepalive = HOOK_FIELD "on_server_keepalive";
 const string kOnSendRtpStopped = HOOK_FIELD "on_send_rtp_stopped";
 const string kOnRtpServerTimeout = HOOK_FIELD "on_rtp_server_timeout";
-const string kAdminParams = HOOK_FIELD "admin_params";
 const string kAliveInterval = HOOK_FIELD "alive_interval";
 const string kRetry = HOOK_FIELD "retry";
 const string kRetryDelay = HOOK_FIELD "retry_delay";
@@ -74,10 +74,10 @@ static onceToken token([]() {
     mINI::Instance()[kOnServerKeepalive] = "";
     mINI::Instance()[kOnSendRtpStopped] = "";
     mINI::Instance()[kOnRtpServerTimeout] = "";
-    mINI::Instance()[kAdminParams] = "secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc";
     mINI::Instance()[kAliveInterval] = 30.0;
     mINI::Instance()[kRetry] = 1;
     mINI::Instance()[kRetryDelay] = 3.0;
+    mINI::Instance()[kStreamChangedSchemas] = "rtsp/rtmp/fmp4/ts/hls/hls.fmp4";
 });
 } // namespace Hook
 
@@ -166,12 +166,16 @@ string getVhost(const HttpArgs &value) {
     return val != value.end() ? val->second : "";
 }
 
+static atomic<uint64_t> s_hook_index { 0 };
+
 void do_http_hook(const string &url, const ArgsType &body, const function<void(const Value &, const string &)> &func, uint32_t retry) {
     GET_CONFIG(string, mediaServerId, General::kMediaServerId);
     GET_CONFIG(float, hook_timeoutSec, Hook::kTimeoutSec);
     GET_CONFIG(float, retry_delay, Hook::kRetryDelay);
 
     const_cast<ArgsType &>(body)["mediaServerId"] = mediaServerId;
+    const_cast<ArgsType &>(body)["hook_index"] = s_hook_index++;
+
     auto requester = std::make_shared<HttpRequester>();
     requester->setMethod("POST");
     auto bodyStr = to_string(body);
@@ -331,11 +335,10 @@ static mINI jsonToMini(const Value &obj) {
 
 void installWebHook() {
     GET_CONFIG(bool, hook_enable, Hook::kEnable);
-    GET_CONFIG(string, hook_adminparams, Hook::kAdminParams);
 
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastMediaPublish, [](BroadcastMediaPublishArgs) {
         GET_CONFIG(string, hook_publish, Hook::kOnPublish);
-        if (!hook_enable || args.param_strs == hook_adminparams || hook_publish.empty() || sender.get_peer_ip() == "127.0.0.1") {
+        if (!hook_enable || hook_publish.empty()) {
             invoker("", ProtocolOption());
             return;
         }
@@ -360,7 +363,7 @@ void installWebHook() {
 
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastMediaPlayed, [](BroadcastMediaPlayedArgs) {
         GET_CONFIG(string, hook_play, Hook::kOnPlay);
-        if (!hook_enable || args.param_strs == hook_adminparams || hook_play.empty() || sender.get_peer_ip() == "127.0.0.1") {
+        if (!hook_enable || hook_play.empty()) {
             invoker("");
             return;
         }
@@ -374,7 +377,7 @@ void installWebHook() {
 
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastFlowReport, [](BroadcastFlowReportArgs) {
         GET_CONFIG(string, hook_flowreport, Hook::kOnFlowReport);
-        if (!hook_enable || args.param_strs == hook_adminparams || hook_flowreport.empty() || sender.get_peer_ip() == "127.0.0.1") {
+        if (!hook_enable || hook_flowreport.empty()) {
             return;
         }
         auto body = make_json(args);
@@ -393,7 +396,7 @@ void installWebHook() {
     // 监听kBroadcastOnGetRtspRealm事件决定rtsp链接是否需要鉴权(传统的rtsp鉴权方案)才能访问
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastOnGetRtspRealm, [](BroadcastOnGetRtspRealmArgs) {
         GET_CONFIG(string, hook_rtsp_realm, Hook::kOnRtspRealm);
-        if (!hook_enable || args.param_strs == hook_adminparams || hook_rtsp_realm.empty() || sender.get_peer_ip() == "127.0.0.1") {
+        if (!hook_enable || hook_rtsp_realm.empty()) {
             // 无需认证
             invoker("");
             return;
@@ -441,10 +444,26 @@ void installWebHook() {
 
     // 监听rtsp、rtmp源注册或注销事件
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastMediaChanged, [](BroadcastMediaChangedArgs) {
-        GET_CONFIG(string, hook_stream_chaned, Hook::kOnStreamChanged);
-        if (!hook_enable || hook_stream_chaned.empty()) {
+        GET_CONFIG(string, hook_stream_changed, Hook::kOnStreamChanged);
+        if (!hook_enable || hook_stream_changed.empty()) {
             return;
         }
+        GET_CONFIG_FUNC(std::set<std::string>, stream_changed_set, Hook::kStreamChangedSchemas, [](const std::string &str) {
+            std::set<std::string> ret;
+            auto vec = split(str, "/");
+            for (auto &schema : vec) {
+                trim(schema);
+                if (!schema.empty()) {
+                    ret.emplace(schema);
+                }
+            }
+            return ret;
+        });
+        if (!stream_changed_set.empty() && stream_changed_set.find(sender.getSchema()) == stream_changed_set.end()) {
+            // 该协议注册注销事件被忽略
+            return;
+        }
+
         ArgsType body;
         if (bRegist) {
             body = makeMediaSourceJson(sender);
@@ -455,7 +474,7 @@ void installWebHook() {
             body["regist"] = bRegist;
         }
         // 执行hook
-        do_http_hook(hook_stream_chaned, body, nullptr);
+        do_http_hook(hook_stream_changed, body, nullptr);
     });
 
     GET_CONFIG_FUNC(vector<string>, origin_urls, Cluster::kOriginUrl, [](const string &str) {
@@ -542,7 +561,7 @@ void installWebHook() {
 
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastShellLogin, [](BroadcastShellLoginArgs) {
         GET_CONFIG(string, hook_shell_login, Hook::kOnShellLogin);
-        if (!hook_enable || hook_shell_login.empty() || sender.get_peer_ip() == "127.0.0.1") {
+        if (!hook_enable || hook_shell_login.empty()) {
             invoker("");
             return;
         }
@@ -585,7 +604,7 @@ void installWebHook() {
         });
     });
 
-    NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastSendRtpStopped, [](BroadcastSendRtpStopped) {
+    NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastSendRtpStopped, [](BroadcastSendRtpStoppedArgs) {
         GET_CONFIG(string, hook_send_rtp_stopped, Hook::kOnSendRtpStopped);
         if (!hook_enable || hook_send_rtp_stopped.empty()) {
             return;
@@ -620,15 +639,14 @@ void installWebHook() {
     // 追踪用户的目的是为了缓存上次鉴权结果，减少鉴权次数，提高性能
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastHttpAccess, [](BroadcastHttpAccessArgs) {
         GET_CONFIG(string, hook_http_access, Hook::kOnHttpAccess);
-        if (sender.get_peer_ip() == "127.0.0.1" || parser.params() == hook_adminparams) {
-            // 如果是本机或超级管理员访问，那么不做访问鉴权；权限有效期1个小时
-            invoker("", "", 60 * 60);
-            return;
-        }
         if (!hook_enable || hook_http_access.empty()) {
             // 未开启http文件访问鉴权，那么允许访问，但是每次访问都要鉴权；
             // 因为后续随时都可能开启鉴权(重载配置文件后可能重新开启鉴权)
-            invoker("", "", 0);
+            if (!HttpFileManager::isIPAllowed(sender.get_peer_ip())) {
+                invoker("Your ip is not allowed to access the service.", "", 0);
+            } else {
+                invoker("", "", 0);
+            }
             return;
         }
 
@@ -656,7 +674,7 @@ void installWebHook() {
         });
     });
 
-    NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::KBroadcastRtpServerTimeout, [](BroadcastRtpServerTimeout) {
+    NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::KBroadcastRtpServerTimeout, [](BroadcastRtpServerTimeoutArgs) {
         GET_CONFIG(string, rtp_server_timeout, Hook::kOnRtpServerTimeout);
         if (!hook_enable || rtp_server_timeout.empty()) {
             return;

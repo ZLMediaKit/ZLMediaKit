@@ -25,7 +25,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						}
 					]
 				}
@@ -51,7 +51,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						}
 					]
 				}
@@ -77,7 +77,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						}
 					]
 				}
@@ -103,7 +103,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						}
 					]
 				}
@@ -129,7 +129,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						}
 					]
 				}
@@ -155,7 +155,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "api.apiDebug",
@@ -186,7 +186,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						}
 					]
 				}
@@ -212,7 +212,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "schema",
@@ -262,7 +262,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "schema",
@@ -314,7 +314,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "schema",
@@ -366,7 +366,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "local_port",
@@ -404,7 +404,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "id",
@@ -435,7 +435,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "local_port",
@@ -473,7 +473,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "vhost",
@@ -516,7 +516,13 @@
 						{
 							"key": "enable_hls",
 							"value": null,
-							"description": "是否转hls",
+							"description": "是否转hls-ts",
+							"disabled": true
+						},
+						{
+							"key": "enable_hls_fmp4",
+							"value": null,
+							"description": "是否转hls-fmp4",
 							"disabled": true
 						},
 						{
@@ -584,6 +590,12 @@
 							"value": null,
 							"description": "是否修改原始时间戳，默认值2；取值范围：0.采用源视频流绝对时间戳，不做任何改变;1.采用zlmediakit接收数据时的系统时间戳(有平滑处理);2.采用源视频流时间戳相对时间戳(增长量)，有做时间戳跳跃和回退矫正",
 							"disabled": true
+						},
+						{
+							"key": "auto_close",
+							"value": null,
+							"description": "无人观看时，是否直接关闭(而不是通过on_none_reader hook返回close)",
+							"disabled": true
 						}
 					]
 				}
@@ -609,7 +621,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "key",
@@ -640,7 +652,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "schema",
@@ -709,7 +721,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "key",
@@ -740,7 +752,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "src_url",
@@ -797,7 +809,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "key",
@@ -827,7 +839,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "schema",
@@ -873,7 +885,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "schema",
@@ -901,6 +913,56 @@
 			"response": []
 		},
 		{
+			"name": "广播webrtc datachannel消息(broadcastMessage)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/broadcastMessage?secret={{ZLMediaKit_secret}}&schema=rtsp&vhost={{defaultVhost}}&app=live&stream=test&msg=Hello zlmediakit123",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"broadcastMessage"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)"
+						},
+						{
+							"key": "schema",
+							"value": "rtsp",
+							"description": "协议，例如 rtsp或rtmp，目前仅支持rtsp协议"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "live",
+							"description": "应用名，例如 live"
+						},
+						{
+							"key": "stream",
+							"value": "test",
+							"description": "流id，例如 test"
+						},
+						{
+							"key": "msg",
+							"value": "Hello ZLMediakit"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "获取流信息(getMediaInfo)",
 			"request": {
 				"method": "GET",
@@ -919,7 +981,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "schema",
@@ -965,7 +1027,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "vhost",
@@ -1016,7 +1078,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "vhost",
@@ -1062,7 +1124,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "type",
@@ -1120,7 +1182,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "vhost",
@@ -1166,7 +1228,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "vhost",
@@ -1212,7 +1274,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "type",
@@ -1258,7 +1320,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "type",
@@ -1304,7 +1366,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "url",
@@ -1345,7 +1407,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "stream_id",
@@ -1376,7 +1438,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "port",
@@ -1435,7 +1497,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "dst_url",
@@ -1476,7 +1538,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "stream_id",
@@ -1507,7 +1569,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "stream_id",
@@ -1543,7 +1605,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "stream_id",
@@ -1574,7 +1636,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "stream_id",
@@ -1605,7 +1667,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						}
 					]
 				}
@@ -1631,7 +1693,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "vhost",
@@ -1734,7 +1796,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "vhost",
@@ -1822,7 +1884,7 @@
 						{
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
-							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+							"description": "api操作密钥(配置文件配置)"
 						},
 						{
 							"key": "vhost",

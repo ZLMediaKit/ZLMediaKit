@@ -67,7 +67,7 @@ RtpProcess::~RtpProcess() {
     GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
     if (_total_bytes >= iFlowThreshold * 1024) {
         try {
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, _total_bytes, duration, false, static_cast<SockInfo &>(*this));
+            NOTICE_EMIT(BroadcastFlowReportArgs, Broadcast::kBroadcastFlowReport, _media_info, _total_bytes, duration, false, *this);
         } catch (std::exception &ex) {
             WarnL << "Exception occurred: " << ex.what();
         }
@@ -210,31 +210,27 @@ void RtpProcess::setOnDetach(function<void()> cb) {
 }
 
 string RtpProcess::get_peer_ip() {
-    if (!_addr) {
+    try {
+        return _addr ? SockUtil::inet_ntoa((sockaddr *)_addr.get()) : "::";
+    } catch (std::exception &ex) {
         return "::";
     }
-    return SockUtil::inet_ntoa((sockaddr *)_addr.get());
 }
 
 uint16_t RtpProcess::get_peer_port() {
-    if (!_addr) {
+    try {
+        return _addr ? SockUtil::inet_port((sockaddr *)_addr.get()) : 0;
+    } catch (std::exception &ex) {
         return 0;
     }
-    return SockUtil::inet_port((sockaddr *)_addr.get());
 }
 
 string RtpProcess::get_local_ip() {
-    if (_sock) {
-        return _sock->get_local_ip();
-    }
-    return "::";
+    return _sock ? _sock->get_local_ip() : "::";
 }
 
 uint16_t RtpProcess::get_local_port() {
-    if (_sock) {
-        return _sock->get_local_port();
-    }
-    return 0;
+    return _sock ? _sock->get_local_port() : 0;
 }
 
 string RtpProcess::getIdentifier() const {
@@ -270,9 +266,9 @@ void RtpProcess::emitOnPublish() {
     };
 
     //触发推流鉴权事件
-    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish, MediaOriginType::rtp_push, _media_info, invoker, static_cast<SockInfo &>(*this));
+    auto flag = NOTICE_EMIT(BroadcastMediaPublishArgs, Broadcast::kBroadcastMediaPublish, MediaOriginType::rtp_push, _media_info, invoker, *this);
     if (!flag) {
-        //该事件无人监听,默认不鉴权
+        // 该事件无人监听,默认不鉴权
         invoker("", ProtocolOption());
     }
 }

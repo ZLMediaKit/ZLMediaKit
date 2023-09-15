@@ -41,6 +41,7 @@ option(ENABLE_HLS "Enable HLS" ON)
 option(ENABLE_JEMALLOC_STATIC "Enable static linking to the jemalloc library" OFF)
 option(ENABLE_MEM_DEBUG "Enable Memory Debug" OFF)
 option(ENABLE_MP4 "Enable MP4" ON)
+option(ENABLE_HLS_FMP4 "Enable HLS-FMP4" ON)
 option(ENABLE_MSVC_MT "Enable MSVC Mt/Mtd lib" ON)
 option(ENABLE_MYSQL "Enable MySQL" OFF)
 option(ENABLE_OPENSSL "Enable OpenSSL" ON)
@@ -200,8 +201,8 @@ if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
 endif()
 
 # mediakit 以及各个 runtime 依赖
-update_cached_list(MK_LINK_LIBRARIES "")
-update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_VERSION)
+update_cached(MK_LINK_LIBRARIES "")
+update_cached(MK_COMPILE_DEFINITIONS ENABLE_VERSION)
 
 if (DISABLE_REPORT)
   update_cached_list(MK_COMPILE_DEFINITIONS DISABLE_REPORT)
@@ -461,7 +462,7 @@ if(ENABLE_SERVER)
 endif()
 
 # Android 会 add_subdirectory 并依赖该变量
-if(ENABLE_SERVER_LIB)
+if(ENABLE_SERVER_LIB AND NOT CMAKE_PARENT_LIST_FILE STREQUAL CMAKE_CURRENT_LIST_FILE)
   set(MK_LINK_LIBRARIES ${MK_LINK_LIBRARIES} PARENT_SCOPE)
 endif()
 

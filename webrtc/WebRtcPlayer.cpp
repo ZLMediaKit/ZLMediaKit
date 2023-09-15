@@ -48,7 +48,11 @@ void WebRtcPlayer::onStartWebRTC() {
         _reader = playSrc->getRing()->attach(getPoller(), true);
         weak_ptr<WebRtcPlayer> weak_self = static_pointer_cast<WebRtcPlayer>(shared_from_this());
         weak_ptr<Session> weak_session = static_pointer_cast<Session>(getSession());
-        _reader->setGetInfoCB([weak_session]() { return weak_session.lock(); });
+        _reader->setGetInfoCB([weak_session]() {
+            Any ret;
+            ret.set(static_pointer_cast<SockInfo>(weak_session.lock()));
+            return ret;
+        });
         _reader->setReadCB([weak_self](const RtspMediaSource::RingDataType &pkt) {
             auto strong_self = weak_self.lock();
             if (!strong_self) {
@@ -67,6 +71,21 @@ void WebRtcPlayer::onStartWebRTC() {
             }
             strong_self->onShutdown(SockException(Err_shutdown, "rtsp ring buffer detached"));
         });
+
+        _reader->setMessageCB([weak_self] (const toolkit::Any &data) {
+            auto strong_self = weak_self.lock();
+            if (!strong_self) {
+                return;
+            }
+            if (data.is<Buffer>()) {
+                auto &buffer = data.get<Buffer>();
+                // PPID 51: 文本string
+                // PPID 53: 二进制
+                strong_self->sendDatachannel(0, 51, buffer.data(), buffer.size());
+            } else {
+                WarnL << "Send unknown message type to webrtc player: " << data.type_name();
+            }
+        });
     }
 }
 void WebRtcPlayer::onDestory() {
@@ -77,7 +96,7 @@ void WebRtcPlayer::onDestory() {
     if (_reader && getSession()) {
         WarnL << "RTC播放器(" << _media_info.shortUrl() << ")结束播放,耗时(s):" << duration;
         if (bytes_usage >= iFlowThreshold * 1024) {
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, bytes_usage, duration, true, static_cast<SockInfo &>(*getSession()));
+            NOTICE_EMIT(BroadcastFlowReportArgs, Broadcast::kBroadcastFlowReport, _media_info, bytes_usage, duration, true, *getSession());
         }
     }
     WebRtcTransportImp::onDestory();

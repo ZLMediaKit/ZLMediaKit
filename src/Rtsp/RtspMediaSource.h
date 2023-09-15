@@ -53,9 +53,16 @@ public:
         return _ring;
     }
 
-    void getPlayerList(const std::function<void(const std::list<std::shared_ptr<void>> &info_list)> &cb,
-                       const std::function<std::shared_ptr<void>(std::shared_ptr<void> &&info)> &on_change) override {
+    void getPlayerList(const std::function<void(const std::list<toolkit::Any> &info_list)> &cb,
+                       const std::function<toolkit::Any(toolkit::Any &&info)> &on_change) override {
+        assert(_ring);
         _ring->getInfoList(cb, on_change);
+    }
+
+    bool broadcastMessage(const toolkit::Any &data) override {
+        assert(_ring);
+        _ring->sendMessage(data);
+        return true;
     }
 
     /**

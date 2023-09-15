@@ -247,7 +247,7 @@ static inline void addHttpListener(){
                     size = body->remainSize();
                 }
 
-                LogContextCapture log(getLogger(), toolkit::LTrace, __FILE__, "http api debug", __LINE__);
+                LogContextCapture log(getLogger(), toolkit::LDebug, __FILE__, "http api debug", __LINE__);
                 log << "\r\n# request:\r\n" << parser.method() << " " << parser.fullUrl() << "\r\n";
                 log << "# header:\r\n";
 
@@ -537,7 +537,7 @@ void addStreamProxy(const string &vhost, const string &app, const string &stream
     lock_guard<recursive_mutex> lck(s_proxyMapMtx);
     if (s_proxyMap.find(key) != s_proxyMap.end()) {
         //已经在拉流了
-        cb(SockException(Err_success), key);
+        cb(SockException(Err_other, "This stream already exists"), key);
         return;
     }
     //添加拉流代理
@@ -588,7 +588,8 @@ void installWebApi() {
 
     //获取线程负载
     //测试url http://127.0.0.1/index/api/getThreadsLoad
-    api_regist("/index/api/getThreadsLoad",[](API_ARGS_MAP_ASYNC){
+    api_regist("/index/api/getThreadsLoad", [](API_ARGS_MAP_ASYNC) {
+        CHECK_SECRET();
         EventPollerPool::Instance().getExecutorDelay([invoker, headerOut](const vector<int> &vecDelay) {
             Value val;
             auto vec = EventPollerPool::Instance().getExecutorLoad();
@@ -606,7 +607,8 @@ void installWebApi() {
 
     //获取后台工作线程负载
     //测试url http://127.0.0.1/index/api/getWorkThreadsLoad
-    api_regist("/index/api/getWorkThreadsLoad", [](API_ARGS_MAP_ASYNC){
+    api_regist("/index/api/getWorkThreadsLoad", [](API_ARGS_MAP_ASYNC) {
+        CHECK_SECRET();
         WorkThreadPool::Instance().getExecutorDelay([invoker, headerOut](const vector<int> &vecDelay) {
             Value val;
             auto vec = WorkThreadPool::Instance().getExecutorLoad();
@@ -652,6 +654,10 @@ void installWebApi() {
                 continue;
 #endif
             }
+            if (pr.first == FFmpeg::kBin) {
+                WarnL << "Configuration named " << FFmpeg::kBin << " is not allowed to be set by setServerConfig api.";
+                continue;
+            }
             if (ini[pr.first] == pr.second) {
                 continue;
             }
@@ -660,7 +666,7 @@ void installWebApi() {
             ++changed;
         }
         if (changed > 0) {
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastReloadConfig);
+            NOTICE_EMIT(BroadcastReloadConfigArgs, Broadcast::kBroadcastReloadConfig);
             ini.dumpFile(g_ini_file);
         }
         val["changed"] = changed;
@@ -789,23 +795,38 @@ void installWebApi() {
             throw ApiRetException("can not find the stream", API::NotFound);
         }
         src->getPlayerList(
-            [=](const std::list<std::shared_ptr<void>> &info_list) mutable {
+            [=](const std::list<toolkit::Any> &info_list) mutable {
                 val["code"] = API::Success;
                 auto &data = val["data"];
                 data = Value(arrayValue);
                 for (auto &info : info_list) {
-                    auto obj = static_pointer_cast<Value>(info);
-                    data.append(std::move(*obj));
+                    auto &obj = info.get<Value>();
+                    data.append(std::move(obj));
                 }
                 invoker(200, headerOut, val.toStyledString());
             },
-            [](std::shared_ptr<void> &&info) -> std::shared_ptr<void> {
+            [](toolkit::Any &&info) -> toolkit::Any {
                 auto obj = std::make_shared<Value>();
-                auto session = static_pointer_cast<Session>(info);
-                fillSockInfo(*obj, session.get());
-                (*obj)["typeid"] = toolkit::demangle(typeid(*session).name());
-                return obj;
+                auto &sock = info.get<SockInfo>();
+                fillSockInfo(*obj, &sock);
+                (*obj)["typeid"] = toolkit::demangle(typeid(sock).name());
+                toolkit::Any ret;
+                ret.set(obj);
+                return ret;
             });
+    });
+
+    api_regist("/index/api/broadcastMessage", [](API_ARGS_MAP) {
+        CHECK_SECRET();
+        CHECK_ARGS("schema", "vhost", "app", "stream", "msg");
+        auto src = MediaSource::find(allArgs["schema"], allArgs["vhost"], allArgs["app"], allArgs["stream"]);
+        if (!src) {
+            throw ApiRetException("can not find the stream", API::NotFound);
+        }
+        Any any;
+        Buffer::Ptr buffer = std::make_shared<BufferLikeString>(allArgs["msg"]);
+        any.set(std::move(buffer));
+        src->broadcastMessage(any);
     });
 
     //测试url http://127.0.0.1/index/api/getMediaInfo?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs

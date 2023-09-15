@@ -44,6 +44,8 @@ typedef enum {
     OtherFailed = -1,//业务代码执行失败，
     Success = 0//执行成功
 } ApiErr;
+
+extern const std::string kSecret;
 }//namespace API
 
 class ApiRetException: public std::runtime_error {
@@ -219,14 +221,19 @@ bool checkArgs(Args &args, const First &first, const KeyTypes &...keys) {
         throw InvalidArgsException("缺少必要参数:" #__VA_ARGS__); \
     }
 
-//检查http参数中是否附带secret密钥的宏，127.0.0.1的ip不检查密钥
+// 检查http参数中是否附带secret密钥的宏，127.0.0.1的ip不检查密钥
+// 同时检测是否在ip白名单内
 #define CHECK_SECRET() \
-    if(sender.get_peer_ip() != "127.0.0.1"){ \
+    do { \
+        auto ip = sender.get_peer_ip(); \
+        if (!HttpFileManager::isIPAllowed(ip)) { \
+            throw AuthException("Your ip is not allowed to access the service."); \
+        } \
         CHECK_ARGS("secret"); \
-        if(api_secret != allArgs["secret"]){ \
+        if (api_secret != allArgs["secret"]) { \
             throw AuthException("secret错误"); \
         } \
-    }
+    } while(false);
 
 void installWebApi();
 void unInstallWebApi();

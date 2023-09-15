@@ -45,7 +45,7 @@
 
 ## Feature List
 ### Overview of Features
-<img width="800" alt="Overview of Features" src="https://user-images.githubusercontent.com/11495632/190864440-91c45f8f-480f-43db-8110-5bb44e6300ff.png">
+<img width="800" alt="Overview of Features" src="https://github.com/ZLMediaKit/ZLMediaKit/assets/11495632/481ea769-5b27-495e-bf7d-31191e6af9d2">
 
 - RTSP[S]
   - RTSP[S] server, supports RTMP/MP4/HLS to RTSP[S] conversion, supports devices such as Amazon Echo Show
@@ -68,9 +68,10 @@
   - Supports H264/H265/AAC/G711/OPUS encoding. Other encodings can be forwarded but cannot be converted to protocol
   - Supports [RTMP-H265](https://github.com/ksvc/FFmpeg/wiki)
   - Supports [RTMP-OPUS](https://github.com/ZLMediaKit/ZLMediaKit/wiki/RTMP%E5%AF%B9H265%E5%92%8COPUS%E7%9A%84%E6%94%AF%E6%8C%81)
+  - Supports [enhanced-rtmp(H265)](https://github.com/veovera/enhanced-rtmp)
 
 - HLS
-  - Supports HLS file generation and comes with an HTTP file server
+  - Supports HLS file(mpegts/fmp4) generation and comes with an HTTP file server
   - Through cookie tracking technology, it can simulate HLS playback as a long connection, which can achieve HLS on-demand pulling, playback statistics, and other businesses
   - Supports HLS player and can pull HLS to rtsp/rtmp/mp4
   - Supports H264/H265/AAC/G711/OPUS encoding
@@ -349,6 +350,7 @@ bash build_docker_images.sh
 - Media management platform
   - [GB28181 complete solution with web management website, supporting webrtc and h265 playback](https://github.com/648540858/wvp-GB28181-pro)
   - [Powerful media control and management interface platform, supporting GB28181](https://github.com/chatop2020/AKStream)
+  - [GB28181 server implemented in C++](https://github.com/any12345com/BXC_SipServer)
   - [GB28181 server implemented in Go](https://github.com/panjjo/gosip)
   - [Node-js version of GB28181 platform](https://gitee.com/hfwudao/GB28181_Node_Http)
   - [Hikvision ehome server implemented in Go](https://github.com/tsingeye/FreeEhome)
@@ -363,6 +365,7 @@ bash build_docker_images.sh
   - [Player supporting H265 based on wasm](https://github.com/numberwolf/h265web.js)
   - [WebSocket-fmp4 player based on MSE](https://github.com/v354412101/wsPlayer) 
   - [Domestic webrtc sdk(metaRTC)](https://github.com/metartc/metaRTC)
+  - [GB28181 player implemented in C++](https://github.com/any12345com/BXC_gb28181Player)
 
 ## License
 
@@ -479,6 +482,21 @@ Thanks to all those who have supported this project in various ways, including b
 [朱如洪 ](https://github.com/zhu410289616)
 [lijin](https://github.com/1461521844lijin)
 [PioLing](https://github.com/PioLing)
+[BackT0TheFuture](https://github.com/BackT0TheFuture)
+[perara](https://github.com/perara)
+[codeRATny](https://github.com/codeRATny)
+[dengjfzh](https://github.com/dengjfzh)
+[百鸣](https://github.com/ixingqiao)
+[fruit Juice](https://github.com/xuandu)
+[tbago](https://github.com/tbago)
+[Luosh](https://github.com/Luosh)
+[linxiaoyan87](https://github.com/linxiaoyan)
+[waken](https://github.com/mc373906408)
+[Deepslient](https://github.com/Deepslient)
+
+Also thank to JetBrains for their support for open source project, we developed and debugged zlmediakit with CLion:
+
+[![JetBrains](https://resources.jetbrains.com/storage/products/company/brand/logos/CLion.svg)](https://jb.gg/OpenSourceSupport)
 
 ## Use Cases
 

@@ -117,6 +117,108 @@ API_EXPORT uint64_t API_CALL mk_frame_get_pts(mk_frame frame);
  */
 API_EXPORT uint32_t API_CALL mk_frame_get_flags(mk_frame frame);
 
+//////////////////////////////////////////////////////////////////////
+
+typedef struct mk_buffer_t *mk_buffer;
+typedef struct mk_frame_merger_t *mk_frame_merger;
+
+/**
+ * 创建帧合并器
+ * @param type 起始头类型，0: none, 1: h264_prefix/AnnexB(0x 00 00 00 01), 2: mp4_nal_size(avcC)
+ * @return 帧合并器
+ */
+API_EXPORT mk_frame_merger API_CALL mk_frame_merger_create(int type);
+
+/**
+ * 销毁帧合并器
+ * @param ctx 对象指针
+ */
+API_EXPORT void API_CALL mk_frame_merger_release(mk_frame_merger ctx);
+
+/**
+ * 清空merger对象缓冲，方便复用
+ * @param ctx 对象指针
+ */
+API_EXPORT void API_CALL mk_frame_merger_clear(mk_frame_merger ctx);
+
+/**
+ * 合并帧回调函数
+ * @param user_data 用户数据指针
+ * @param dts 解码时间戳
+ * @param pts 显示时间戳
+ * @param buffer 合并后数据buffer对象
+ * @param have_key_frame 合并后数据中是否包含关键帧
+ */
+typedef void(API_CALL *on_mk_frame_merger)(void *user_data, uint64_t dts, uint64_t pts, mk_buffer buffer, int have_key_frame);
+
+/**
+ * 输入frame到merger对象并合并
+ * @param ctx 对象指针
+ * @param frame 帧数据
+ * @param cb 帧合并回调函数
+ * @param user_data 帧合并回调函数用户数据指针
+ */
+API_EXPORT void API_CALL mk_frame_merger_input(mk_frame_merger ctx, mk_frame frame, on_mk_frame_merger cb, void *user_data);
+
+/**
+ * 强制flush merger对象缓冲，调用此api前需要确保先调用mk_frame_merger_input函数并且回调参数有效
+ * @param ctx 对象指针
+ */
+API_EXPORT void API_CALL mk_frame_merger_flush(mk_frame_merger ctx);
+
+//////////////////////////////////////////////////////////////////////
+
+typedef struct mk_mpeg_muxer_t *mk_mpeg_muxer;
+
+/**
+ * mpeg-ps/ts 打包器输出回调函数
+ * @param user_data 设置回调时的用户数据指针
+ * @param muxer 对象
+ * @param frame 帧数据
+ * @param size 帧数据长度
+ * @param timestamp 时间戳
+ * @param key_pos 是否关键帧
+ */
+typedef void(API_CALL *on_mk_mpeg_muxer_frame)(void *user_data, mk_mpeg_muxer muxer, const char *frame, size_t size, uint64_t timestamp, int key_pos);
+
+/**
+ * mpeg-ps/ts 打包器
+ * @param cb 打包回调函数
+ * @param user_data 回调用户数据指针
+ * @param is_ps 是否是ps
+ * @return 打包器对象
+ */
+API_EXPORT mk_mpeg_muxer API_CALL mk_mpeg_muxer_create(on_mk_mpeg_muxer_frame cb, void *user_data, int is_ps);
+
+/**
+ * 删除mpeg-ps/ts 打包器
+ * @param ctx 打包器
+ */
+API_EXPORT void API_CALL mk_mpeg_muxer_release(mk_mpeg_muxer ctx);
+
+/**
+ * 添加音视频track
+ * @param ctx mk_mpeg_muxer对象
+ * @param track mk_track对象，音视频轨道
+ */
+API_EXPORT void API_CALL mk_mpeg_muxer_init_track(mk_mpeg_muxer ctx, void* track);
+
+/**
+ * 初始化track完毕后调用此函数，
+ * 在单track(只有音频或视频)时，因为ZLMediaKit不知道后续是否还要添加track，所以会多等待3秒钟
+ * 如果产生的流是单Track类型，请调用此函数以便加快流生成速度，当然不调用该函数，影响也不大(会多等待3秒)
+ * @param ctx 对象指针
+ */
+API_EXPORT void API_CALL mk_mpeg_muxer_init_complete(mk_mpeg_muxer ctx);
+
+/**
+ * 输入frame对象
+ * @param ctx mk_mpeg_muxer对象
+ * @param frame 帧对象
+ * @return 1代表成功，0失败
+ */
+API_EXPORT int API_CALL mk_mpeg_muxer_input_frame(mk_mpeg_muxer ctx, mk_frame frame);
+
 #ifdef __cplusplus
 }
 #endif

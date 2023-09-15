@@ -102,7 +102,7 @@ void MP4Demuxer::onVideoTrack(uint32_t track, uint8_t object, int width, int hei
                 uint8_t config[1024 * 10] = {0};
                 int size = mpeg4_avc_to_nalu(&avc, config, sizeof(config));
                 if (size > 0) {
-                    video->inputFrame(std::make_shared<H264FrameNoCacheAble>((char *)config, size, 0, 4));
+                    video->inputFrame(std::make_shared<H264FrameNoCacheAble>((char *)config, size, 0, 0,4));
                 }
             }
         }
@@ -117,7 +117,7 @@ void MP4Demuxer::onVideoTrack(uint32_t track, uint8_t object, int width, int hei
                 uint8_t config[1024 * 10] = {0};
                 int size = mpeg4_hevc_to_nalu(&hevc, config, sizeof(config));
                 if (size > 0) {
-                    video->inputFrame(std::make_shared<H265FrameNoCacheAble>((char *) config, size, 0, 4));
+                    video->inputFrame(std::make_shared<H265FrameNoCacheAble>((char *) config, size, 0, 0,4));
                 }
             }
         }
@@ -247,7 +247,7 @@ Frame::Ptr MP4Demuxer::makeFrame(uint32_t track_id, const Buffer::Ptr &buf, int6
             AACTrack::Ptr track = dynamic_pointer_cast<AACTrack>(it->second);
             assert(track);
             //加上adts头
-            dumpAacConfig(track->getAacCfg(), buf->size() - DATA_OFFSET, (uint8_t *) buf->data() + (DATA_OFFSET - ADTS_HEADER_LEN), ADTS_HEADER_LEN);
+            dumpAacConfig(track->getConfig(), buf->size() - DATA_OFFSET, (uint8_t *) buf->data() + (DATA_OFFSET - ADTS_HEADER_LEN), ADTS_HEADER_LEN);
             ret = std::make_shared<FrameWrapper<FrameFromPtr> >(buf, (uint64_t)dts, (uint64_t)pts, ADTS_HEADER_LEN, DATA_OFFSET - ADTS_HEADER_LEN, codec);
             break;
         }

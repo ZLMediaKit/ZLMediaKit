@@ -8,7 +8,8 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifdef ENABLE_MP4
+#if defined(ENABLE_MP4) || defined(ENABLE_HLS_FMP4)
+
 #include "MP4.h"
 #include "Util/File.h"
 #include "Util/logger.h"
@@ -176,4 +177,4 @@ int MP4FileMemory::onWrite(const void *data, size_t bytes){
 }
 
 }//namespace mediakit
-#endif //NABLE_MP4RECORD
+#endif // defined(ENABLE_MP4) || defined(ENABLE_HLS_FMP4)

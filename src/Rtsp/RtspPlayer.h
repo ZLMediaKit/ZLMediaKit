@@ -129,6 +129,7 @@ private:
     std::string _session_id;
     uint32_t _cseq_send = 1;
     std::string _content_base;
+    std::string _control_url;
     Rtsp::eRtpType _rtp_type = Rtsp::RTP_TCP;
 
     //当前rtp时间戳

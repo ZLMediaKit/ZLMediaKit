@@ -214,6 +214,16 @@ API_EXPORT mk_track API_CALL mk_media_source_get_track(const mk_media_source ctx
     return (mk_track) new Track::Ptr(std::move(tracks[index]));
 }
 
+API_EXPORT int API_CALL mk_media_source_broadcast_msg(const mk_media_source ctx, const char *msg, size_t len) {
+    assert(ctx && msg && len);
+    MediaSource *src = (MediaSource *)ctx;
+
+    Any any;
+    Buffer::Ptr buffer = std::make_shared<BufferLikeString>(std::string(msg, len));
+    any.set(std::move(buffer));
+    return src->broadcastMessage(any);
+}
+
 API_EXPORT int API_CALL mk_media_source_close(const mk_media_source ctx,int force){
     assert(ctx);
     MediaSource *src = (MediaSource *)ctx;

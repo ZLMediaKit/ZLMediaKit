@@ -159,7 +159,7 @@ API_EXPORT void API_CALL mk_set_option(const char *key, const char *val) {
     }
     mINI::Instance()[key] = val;
     //广播配置文件热加载
-    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastReloadConfig);
+    NOTICE_EMIT(BroadcastReloadConfigArgs, Broadcast::kBroadcastReloadConfig);
 }
 
 API_EXPORT const char * API_CALL mk_get_option(const char *key)

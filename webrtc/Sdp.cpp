@@ -1555,7 +1555,10 @@ shared_ptr<RtcSession> RtcConfigure::createAnswer(const RtcSession &offer) const
     //设置音视频端口复用
     if (!offer.group.mids.empty()) {
         for (auto &m : ret->media) {
-            ret->group.mids.emplace_back(m.mid);
+            //The remote end has rejected (port 0) the m-section, so it should not be putting its mid in the group attribute.
+            if (m.port) {
+                ret->group.mids.emplace_back(m.mid);
+            }
         }
     }
     return ret;
@@ -1613,15 +1616,15 @@ RETRY:
     if (offer_media.type == TrackApplication) {
         RtcMedia answer_media = offer_media;
         answer_media.role = mathDtlsRole(offer_media.role);
-#ifdef ENABLE_SCTP
-        answer_media.direction = matchDirection(offer_media.direction, configure.direction);
-        answer_media.candidate = configure.candidate;
         answer_media.ice_ufrag = configure.ice_ufrag;
         answer_media.ice_pwd = configure.ice_pwd;
         answer_media.fingerprint = configure.fingerprint;
         answer_media.ice_lite = configure.ice_lite;
+#ifdef ENABLE_SCTP
+        answer_media.candidate = configure.candidate;
 #else
-        answer_media.direction = RtpDirection::inactive;
+        answer_media.port = 0;
+        WarnL << "answer sdp忽略application mline, 请安装usrsctp后再测试datachannel功能";
 #endif
         ret->media.emplace_back(answer_media);
         return;
@@ -1816,11 +1819,17 @@ bool RtcConfigure::onCheckCodecProfile(const RtcCodecPlan &plan, CodecId codec) 
     return true;
 }
 
+/**
+ Single NAI Unit Mode = 0. // Single NAI mode (Only nals from 1-23 are allowed)
+ Non Interleaved Mode = 1，// Non-interleaved Mode: 1-23，24 (STAP-A)，28 (FU-A) are allowed
+ Interleaved Mode = 2,  // 25 (STAP-B)，26 (MTAP16)，27 (MTAP24)，28 (EU-A)，and 29 (EU-B) are allowed.
+ **/
 void RtcConfigure::onSelectPlan(RtcCodecPlan &plan, CodecId codec) const {
     if (_rtsp_video_plan && codec == CodecH264 && getCodecId(_rtsp_video_plan->codec) == CodecH264) {
-        //h264时，设置packetization-mod为一致
+        // h264时，设置packetization-mod为一致
         auto mode = _rtsp_video_plan->fmtp[kMode];
-        plan.fmtp[kMode] = mode.empty() ? "0" : mode;
+        GET_CONFIG(bool, h264_stap_a, Rtp::kH264StapA);
+        plan.fmtp[kMode] = mode.empty() ? std::to_string(h264_stap_a) : mode;
     }
 }
 
