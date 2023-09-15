@@ -140,7 +140,7 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
     auto now_stream_index = _now_stream_index;
     auto on_res_push = [this](ProtocolOption option){
         if (!_push_src) {
-            _push_src = std::make_shared<RtmpMediaSourceImp>(_media_info._vhost, _media_info._app, _media_info._streamid);
+            _push_src = std::make_shared<RtmpMediaSourceImp>(_media_info);
             //获取所有权
             _push_src_ownership = _push_src->getOwnership();
             _push_src->setProtocolOption(option);

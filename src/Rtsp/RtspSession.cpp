@@ -218,7 +218,7 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
 
 
     auto onResPushSrc = [this, parser, full_url](ProtocolOption option) {
-        SdpParser sdpParser(parser.Content());
+        SdpParser sdpParser(parser.content());
         _sessionid = makeRandStr(12);
         _sdp_track = sdpParser.getAvailableTrack();
         if (_sdp_track.empty()) {
@@ -234,7 +234,7 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
         }
 
         if (!_push_src) {
-            _push_src = std::make_shared<RtspMediaSourceImp>(_media_info._vhost, _media_info._app, _media_info._streamid);
+            _push_src = std::make_shared<RtspMediaSourceImp>(_media_info);
             // 获取所有权
             _push_src_ownership = _push_src->getOwnership();
             _push_src->setProtocolOption(option);
@@ -253,7 +253,7 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
         }
 
         assert(!_push_src);
-        auto src = MediaSource::find(RTSP_SCHEMA, _media_info._vhost, _media_info._app, _media_info._streamid);
+        auto src = MediaSource::find(_media_info);
         auto push_failed = (bool)src;
         RtspMediaSource::Ptr rtsp_src;
         RtspMediaSourceImp::Ptr rtsp_src_imp;
@@ -299,7 +299,7 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
                     return;
                 }
             }else{
-                auto listener = rtsp_src->getListener(true);
+                auto listener = rtsp_src->getListener();
                 //TraceL<<toolkit::demangle(typeid(*listener.lock()).name());
                 auto muxer = dynamic_pointer_cast<MultiMediaSourceMuxer>(listener.lock());
                 if(muxer){
