@@ -40,6 +40,7 @@ private:
 
 private:
     bool _play_result = false;
+    bool _benchmark_mode = false;
 };
 
 using FlvPlayerImp = FlvPlayerBase<FlvPlayer>;
