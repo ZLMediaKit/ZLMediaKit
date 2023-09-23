@@ -54,7 +54,10 @@ void FlvPlayer::onResponseCompleted(const SockException &ex) {
 }
 
 void FlvPlayer::onResponseBody(const char *buf, size_t size) {
-    FlvSplitter::input(buf, size);
+    if (!_benchmark_mode) {
+        // 性能测试模式不做数据解析，节省cpu
+        FlvSplitter::input(buf, size);
+    }
 }
 
 bool FlvPlayer::onRecvMetadata(const AMFValue &metadata) {
@@ -64,6 +67,7 @@ bool FlvPlayer::onRecvMetadata(const AMFValue &metadata) {
 void FlvPlayer::onRecvRtmpPacket(RtmpPacket::Ptr packet) {
     if (!_play_result && !packet->isConfigFrame()) {
         _play_result = true;
+        _benchmark_mode = (*this)[Client::kBenchmarkMode].as<int>();
         onPlayResult(SockException(Err_success, "play http-flv success"));
     }
     onRtmpPacket(std::move(packet));
