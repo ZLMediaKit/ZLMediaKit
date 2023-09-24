@@ -92,7 +92,7 @@ void MP4Recorder::asyncClose() {
         }
         TraceL << "Emit mp4 record event: " << full_path;
         //触发mp4录制切片生成事件
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRecordMP4, info);
+        NOTICE_EMIT(BroadcastRecordMP4Args, Broadcast::kBroadcastRecordMP4, info);
     });
 }
 

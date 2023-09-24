@@ -666,7 +666,7 @@ void installWebApi() {
             ++changed;
         }
         if (changed > 0) {
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastReloadConfig);
+            NOTICE_EMIT(BroadcastReloadConfigArgs, Broadcast::kBroadcastReloadConfig);
             ini.dumpFile(g_ini_file);
         }
         val["changed"] = changed;
@@ -795,23 +795,38 @@ void installWebApi() {
             throw ApiRetException("can not find the stream", API::NotFound);
         }
         src->getPlayerList(
-            [=](const std::list<std::shared_ptr<void>> &info_list) mutable {
+            [=](const std::list<toolkit::Any> &info_list) mutable {
                 val["code"] = API::Success;
                 auto &data = val["data"];
                 data = Value(arrayValue);
                 for (auto &info : info_list) {
-                    auto obj = static_pointer_cast<Value>(info);
-                    data.append(std::move(*obj));
+                    auto &obj = info.get<Value>();
+                    data.append(std::move(obj));
                 }
                 invoker(200, headerOut, val.toStyledString());
             },
-            [](std::shared_ptr<void> &&info) -> std::shared_ptr<void> {
+            [](toolkit::Any &&info) -> toolkit::Any {
                 auto obj = std::make_shared<Value>();
-                auto session = static_pointer_cast<Session>(info);
-                fillSockInfo(*obj, session.get());
-                (*obj)["typeid"] = toolkit::demangle(typeid(*session).name());
-                return obj;
+                auto &sock = info.get<SockInfo>();
+                fillSockInfo(*obj, &sock);
+                (*obj)["typeid"] = toolkit::demangle(typeid(sock).name());
+                toolkit::Any ret;
+                ret.set(obj);
+                return ret;
             });
+    });
+
+    api_regist("/index/api/broadcastMessage", [](API_ARGS_MAP) {
+        CHECK_SECRET();
+        CHECK_ARGS("schema", "vhost", "app", "stream", "msg");
+        auto src = MediaSource::find(allArgs["schema"], allArgs["vhost"], allArgs["app"], allArgs["stream"]);
+        if (!src) {
+            throw ApiRetException("can not find the stream", API::NotFound);
+        }
+        Any any;
+        Buffer::Ptr buffer = std::make_shared<BufferLikeString>(allArgs["msg"]);
+        any.set(std::move(buffer));
+        src->broadcastMessage(any);
     });
 
     //测试url http://127.0.0.1/index/api/getMediaInfo?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs

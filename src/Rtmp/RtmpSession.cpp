@@ -36,7 +36,7 @@ void RtmpSession::onError(const SockException& err) {
     GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
 
     if (_total_bytes >= iFlowThreshold * 1024) {
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, _total_bytes, duration, is_player, static_cast<SockInfo &>(*this));
+        NOTICE_EMIT(BroadcastFlowReportArgs, Broadcast::kBroadcastFlowReport, _media_info, _total_bytes, duration, is_player, *this);
     }
 
     //如果是主动关闭的，那么不延迟注销
@@ -215,7 +215,7 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
             on_res(err, option);
         });
     };
-    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish, MediaOriginType::rtmp_push, _media_info, invoker, static_cast<SockInfo &>(*this));
+    auto flag = NOTICE_EMIT(BroadcastMediaPublishArgs, Broadcast::kBroadcastMediaPublish, MediaOriginType::rtmp_push, _media_info, invoker, *this);
     if(!flag){
         //该事件无人监听，默认鉴权成功
         on_res("", ProtocolOption());
@@ -306,7 +306,11 @@ void RtmpSession::sendPlayResponse(const string &err, const RtmpMediaSource::Ptr
     src->pause(false);
     _ring_reader = src->getRing()->attach(getPoller());
     weak_ptr<RtmpSession> weak_self = static_pointer_cast<RtmpSession>(shared_from_this());
-    _ring_reader->setGetInfoCB([weak_self]() { return weak_self.lock(); });
+    _ring_reader->setGetInfoCB([weak_self]() {
+        Any ret;
+        ret.set(static_pointer_cast<SockInfo>(weak_self.lock()));
+        return ret;
+    });
     _ring_reader->setReadCB([weak_self](const RtmpMediaSource::RingDataType &pkt) {
         auto strong_self = weak_self.lock();
         if (!strong_self) {
@@ -381,7 +385,7 @@ void RtmpSession::doPlay(AMFDecoder &dec){
         });
     };
 
-    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed, _media_info, invoker, static_cast<SockInfo &>(*this));
+    auto flag = NOTICE_EMIT(BroadcastMediaPlayedArgs, Broadcast::kBroadcastMediaPlayed, _media_info, invoker, *this);
     if (!flag) {
         // 该事件无人监听,默认不鉴权
         doPlayResponse("", [token](bool) {});

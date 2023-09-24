@@ -170,7 +170,7 @@ void HttpSession::onError(const SockException &err) {
 
         GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
         if (_total_bytes_usage >= iFlowThreshold * 1024) {
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _mediaInfo, _total_bytes_usage, duration, true, static_cast<SockInfo &>(*this));
+            NOTICE_EMIT(BroadcastFlowReportArgs, Broadcast::kBroadcastFlowReport, _mediaInfo, _total_bytes_usage, duration, true, *this);
         }
         return;
     }
@@ -311,7 +311,7 @@ bool HttpSession::checkLiveStream(const string &schema, const string &url_suffix
         }
     };
 
-    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed, _mediaInfo, invoker, static_cast<SockInfo &>(*this));
+    auto flag = NOTICE_EMIT(BroadcastMediaPlayedArgs, Broadcast::kBroadcastMediaPlayed, _mediaInfo, invoker, *this);
     if (!flag) {
         // 该事件无人监听,默认不鉴权
         onRes("");
@@ -338,7 +338,11 @@ bool HttpSession::checkLiveStreamFMP4(const function<void()> &cb) {
         weak_ptr<HttpSession> weak_self = static_pointer_cast<HttpSession>(shared_from_this());
         fmp4_src->pause(false);
         _fmp4_reader = fmp4_src->getRing()->attach(getPoller());
-        _fmp4_reader->setGetInfoCB([weak_self]() { return weak_self.lock(); });
+        _fmp4_reader->setGetInfoCB([weak_self]() {
+            Any ret;
+            ret.set(static_pointer_cast<SockInfo>(weak_self.lock()));
+            return ret;
+        });
         _fmp4_reader->setDetachCB([weak_self]() {
             auto strong_self = weak_self.lock();
             if (!strong_self) {
@@ -378,7 +382,11 @@ bool HttpSession::checkLiveStreamTS(const function<void()> &cb) {
         weak_ptr<HttpSession> weak_self = static_pointer_cast<HttpSession>(shared_from_this());
         ts_src->pause(false);
         _ts_reader = ts_src->getRing()->attach(getPoller());
-        _ts_reader->setGetInfoCB([weak_self]() { return weak_self.lock(); });
+        _ts_reader->setGetInfoCB([weak_self]() {
+            Any ret;
+            ret.set(static_pointer_cast<SockInfo>(weak_self.lock()));
+            return ret;
+        });
         _ts_reader->setDetachCB([weak_self]() {
             auto strong_self = weak_self.lock();
             if (!strong_self) {
@@ -711,7 +719,7 @@ bool HttpSession::emitHttpEvent(bool doInvoke) {
     };
     ///////////////////广播HTTP事件///////////////////////////
     bool consumed = false; // 该事件是否被消费
-    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpRequest, _parser, invoker, consumed, static_cast<SockInfo &>(*this));
+    NOTICE_EMIT(BroadcastHttpRequestArgs, Broadcast::kBroadcastHttpRequest, _parser, invoker, consumed, *this);
     if (!consumed && doInvoke) {
         // 该事件无人消费，所以返回404
         invoker(404, KeyValue(), HttpBody::Ptr());

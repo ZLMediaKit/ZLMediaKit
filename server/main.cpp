@@ -420,6 +420,12 @@ int start_main(int argc,char *argv[]) {
             sem.post();
         }); // 设置退出信号
 
+        signal(SIGTERM,[](int) {
+            WarnL << "SIGTERM:exit";
+            signal(SIGTERM, SIG_IGN);
+            sem.post();
+        });
+
 #if !defined(_WIN32)
         signal(SIGHUP, [](int) { mediakit::loadIniConfig(g_ini_file.data()); });
 #endif

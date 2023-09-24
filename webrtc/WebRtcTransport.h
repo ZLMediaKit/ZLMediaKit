@@ -112,6 +112,7 @@ public:
      */
     void sendRtpPacket(const char *buf, int len, bool flush, void *ctx = nullptr);
     void sendRtcpPacket(const char *buf, int len, bool flush, void *ctx = nullptr);
+    void sendDatachannel(uint16_t streamId, uint32_t ppid, const char *msg, size_t len);
 
     const EventPoller::Ptr& getPoller() const;
     Session::Ptr getSession() const;

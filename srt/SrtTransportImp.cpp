@@ -17,7 +17,7 @@ SrtTransportImp::~SrtTransportImp() {
     GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
     if (_total_bytes >= iFlowThreshold * 1024) {
         try {
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, _total_bytes, duration, !_is_pusher, static_cast<SockInfo &>(*this));
+            NOTICE_EMIT(BroadcastFlowReportArgs, Broadcast::kBroadcastFlowReport, _media_info, _total_bytes, duration, !_is_pusher, *this);
         } catch (std::exception &ex) {
             WarnL << "Exception occurred: " << ex.what();
         }
@@ -172,9 +172,7 @@ void SrtTransportImp::emitOnPublish() {
     };
 
     // 触发推流鉴权事件
-    auto flag = NoticeCenter::Instance().emitEvent(
-        Broadcast::kBroadcastMediaPublish, MediaOriginType::srt_push, _media_info, invoker,
-        static_cast<SockInfo &>(*this));
+    auto flag = NOTICE_EMIT(BroadcastMediaPublishArgs, Broadcast::kBroadcastMediaPublish, MediaOriginType::srt_push, _media_info, invoker, *this);
     if (!flag) {
         // 该事件无人监听,默认不鉴权
         invoker("", ProtocolOption());
@@ -197,8 +195,7 @@ void SrtTransportImp::emitOnPlay() {
         });
     };
 
-    auto flag = NoticeCenter::Instance().emitEvent(
-        Broadcast::kBroadcastMediaPlayed, _media_info, invoker, static_cast<SockInfo &>(*this));
+    auto flag = NOTICE_EMIT(BroadcastMediaPlayedArgs, Broadcast::kBroadcastMediaPlayed, _media_info, invoker, *this);
     if (!flag) {
         doPlay();
     }
@@ -227,7 +224,11 @@ void SrtTransportImp::doPlay() {
             ts_src->pause(false);
             strong_self->_ts_reader = ts_src->getRing()->attach(strong_self->getPoller());
             weak_ptr<Session> weak_session = strong_self->getSession();
-            strong_self->_ts_reader->setGetInfoCB([weak_session]() { return weak_session.lock(); });
+            strong_self->_ts_reader->setGetInfoCB([weak_session]() {
+                Any ret;
+                ret.set(static_pointer_cast<SockInfo>(weak_session.lock()));
+                return ret;
+            });
             strong_self->_ts_reader->setDetachCB([weak_self]() {
                 auto strong_self = weak_self.lock();
                 if (!strong_self) {

@@ -469,7 +469,7 @@ static void findAsync_l(const MediaInfo &info, const std::shared_ptr<Session> &s
         });
     };
     //广播未找到流,此时可以立即去拉流，这样还来得及
-    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastNotFoundStream, info, static_cast<SockInfo &>(*session), close_player);
+    NOTICE_EMIT(BroadcastNotFoundStreamArgs, Broadcast::kBroadcastNotFoundStream, info, *session, close_player);
 }
 
 void MediaSource::findAsync(const MediaInfo &info, const std::shared_ptr<Session> &session, const function<void (const Ptr &)> &cb) {
@@ -499,7 +499,7 @@ void MediaSource::emitEvent(bool regist){
         listener->onRegist(*this, regist);
     }
     //触发广播
-    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaChanged, regist, *this);
+    NOTICE_EMIT(BroadcastMediaChangedArgs, Broadcast::kBroadcastMediaChanged, regist, *this);
     InfoL << (regist ? "媒体注册:" : "媒体注销:") << getUrl();
 }
 
@@ -669,7 +669,7 @@ void MediaSourceEvent::onReaderChanged(MediaSource &sender, int size){
                 strong_sender->close(false);
             } else {
                 // 直播时触发无人观看事件，让开发者自行选择是否关闭
-                NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastStreamNoneReader, *strong_sender);
+                NOTICE_EMIT(BroadcastStreamNoneReaderArgs, Broadcast::kBroadcastStreamNoneReader, *strong_sender);
             }
         } else {
             //这个是mp4点播，我们自动关闭
