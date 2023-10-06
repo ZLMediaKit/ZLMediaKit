@@ -50,29 +50,69 @@ const string &HttpFileManager::getContentType(const char *name) {
     return HttpConst::getHttpContentType(name);
 }
 
-#ifndef ntohll
-static uint64_t ntohll(uint64_t val) {
-    return (((uint64_t)ntohl(val)) << 32) + ntohl(val >> 32);
-}
-#endif
+namespace {
+class UInt128 {
+public:
+    UInt128() = default;
 
-static uint64_t get_ip_uint64(const std::string &ip) {
+    UInt128(const struct sockaddr_storage &storage) {
+        _family = storage.ss_family;
+        memset(_bytes, 0, 16);
+        switch (storage.ss_family) {
+            case AF_INET: {
+                memcpy(_bytes, &(reinterpret_cast<const struct sockaddr_in &>(storage).sin_addr), 4);
+                break;
+            }
+            case AF_INET6: {
+                memcpy(_bytes, &(reinterpret_cast<const struct sockaddr_in6 &>(storage).sin6_addr), 16);
+                break;
+            }
+            default: CHECK(false, "Invalid socket family"); break;
+        }
+    }
+
+    bool operator==(const UInt128 &that) const { return _family == that._family && !memcmp(_bytes, that._bytes, 16); }
+
+    bool operator<=(const UInt128 &that) const { return *this < that || *this == that; }
+
+    bool operator>=(const UInt128 &that) const { return *this > that || *this == that; }
+
+    bool operator>(const UInt128 &that) const { return that < *this; }
+
+    bool operator<(const UInt128 &that) const {
+        auto sz = _family == AF_INET ? 4 : 16;
+        for (int i = 0; i < sz; ++i) {
+            if (_bytes[i] < that._bytes[i]) {
+                return true;
+            } else if (_bytes[i] > that._bytes[i]) {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    operator bool() const { return _family != -1; }
+
+    bool same_type(const UInt128 &that) const { return _family == that._family; }
+
+private:
+    int _family = -1;
+    uint8_t _bytes[16];
+};
+
+}
+
+static UInt128 get_ip_uint64(const std::string &ip) {
     try {
-        auto storage = SockUtil::make_sockaddr(ip.data(), 0);
-        if (storage.ss_family == AF_INET) {
-            return ntohl(reinterpret_cast<uint32_t &>(reinterpret_cast<struct sockaddr_in &>(storage).sin_addr));
-        }
-        if (storage.ss_family == AF_INET6) {
-            return ntohll(reinterpret_cast<uint64_t &>(reinterpret_cast<struct sockaddr_in6 &>(storage).sin6_addr));
-        }
+        return UInt128(SockUtil::make_sockaddr(ip.data(), 0));
     } catch (std::exception &ex) {
         WarnL << ex.what();
     }
-    return 0;
+    return UInt128();
 }
 
 bool HttpFileManager::isIPAllowed(const std::string &ip) {
-    using IPRangs = std::vector<std::pair<uint64_t /*min_ip*/, uint64_t /*max_ip*/>>;
+    using IPRangs = std::vector<std::pair<UInt128 /*min_ip*/, UInt128 /*max_ip*/>>;
     GET_CONFIG_FUNC(IPRangs, allow_ip_range, Http::kAllowIPRange, [](const string &str) -> IPRangs {
         IPRangs ret;
         auto vec = split(str, ",");
@@ -84,13 +124,17 @@ bool HttpFileManager::isIPAllowed(const std::string &ip) {
             if (range.size() == 2) {
                 auto ip_min = get_ip_uint64(trim(range[0]));
                 auto ip_max = get_ip_uint64(trim(range[1]));
-                if (ip_min && ip_max) {
+                if (ip_min && ip_max && ip_min.same_type(ip_max)) {
                     ret.emplace_back(ip_min, ip_max);
+                } else {
+                    WarnL << "Invalid ip range or family: " << item;
                 }
             } else if (range.size() == 1) {
                 auto ip = get_ip_uint64(trim(range[0]));
                 if (ip) {
                     ret.emplace_back(ip, ip);
+                } else {
+                    WarnL << "Invalid ip: " << item;
                 }
             } else {
                 WarnL << "Invalid ip range: " << item;
@@ -104,7 +148,7 @@ bool HttpFileManager::isIPAllowed(const std::string &ip) {
     }
     auto ip_int = get_ip_uint64(ip);
     for (auto &range : allow_ip_range) {
-        if (ip_int >= range.first && ip_int <= range.second) {
+        if (ip_int.same_type(range.first) && ip_int >= range.first && ip_int <= range.second) {
             return true;
         }
     }
