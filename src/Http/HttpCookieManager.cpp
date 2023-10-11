@@ -61,7 +61,7 @@ bool HttpServerCookie::isExpired() {
     return _ticker.elapsedTime() > _max_elapsed * 1000;
 }
 
-void HttpServerCookie::setAttach(std::shared_ptr<void> attach) {
+void HttpServerCookie::setAttach(toolkit::Any attach) {
     _attach = std::move(attach);
 }
 
@@ -114,8 +114,7 @@ void HttpCookieManager::onManager() {
     }
 }
 
-HttpServerCookie::Ptr HttpCookieManager::addCookie(const string &cookie_name, const string &uid_in,
-                                                   uint64_t max_elapsed, std::shared_ptr<void> attach, int max_client) {
+HttpServerCookie::Ptr HttpCookieManager::addCookie(const string &cookie_name, const string &uid_in, uint64_t max_elapsed, toolkit::Any attach, int max_client) {
     lock_guard<recursive_mutex> lck(_mtx_cookie);
     auto cookie = _generator.obtain();
     auto uid = uid_in.empty() ? cookie : uid_in;
