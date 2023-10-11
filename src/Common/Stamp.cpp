@@ -50,7 +50,7 @@ int64_t DeltaStamp::deltaStamp(int64_t stamp) {
     _last_stamp = stamp;
 
     // 如果时间戳回退不多，那么返回负值，否则返回加1
-    return -ret < MAX_CTS ? ret : 1;
+    return -ret < MAX_DELTA_STAMP ? ret : 1;
 }
 
 void Stamp::setPlayBack(bool playback) {
