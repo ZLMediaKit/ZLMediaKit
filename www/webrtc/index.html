@@ -93,8 +93,8 @@
       var recvOnly = true;
       var resArr = [];
 
-      var ishttps = 'https:' == document.location.protocol ? true : false;
-      var isLocal = "file:" == document.location.protocol ? true : false;
+      var ishttps = 'https:' === document.location.protocol;
+      var isLocal = "file:" === document.location.protocol;
       
       const searchParams = new URL(document.location.href).searchParams;
       let type = searchParams.get('type');
@@ -105,7 +105,7 @@
       const apiPath = `/index/api/webrtc?app=${searchParams.get('app') ?? 'live'}&stream=${searchParams.get('stream') ?? 'test'}&type=${type}`;
 
       if(!ishttps && !isLocal){
-        alert('本demo需要在https的网站访问 ,如果你要推流的话(this demo must access in site of https if you want push stream)');
+        alert('本demo需要在https的网站访问, 如果你要推流的话(this demo must access in site of https if you want to push stream)');
       }
       
       const apiHost = isLocal ? "http://127.0.0.1" : `${document.location.protocol}//${window.location.host}`;
