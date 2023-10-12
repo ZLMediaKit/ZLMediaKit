@@ -31,13 +31,16 @@ namespace mediakit {
 // 每次访问一次该cookie，那么将重新刷新cookie有效期
 // 假如播放器在60秒内都未访问该cookie，那么将重新触发hls播放鉴权
 static int kHlsCookieSecond = 60;
+static int kFindSrcIntervalSecond = 3;
 static const string kCookieName = "ZL_COOKIE";
 static const string kHlsSuffix = "/hls.m3u8";
 static const string kHlsFMP4Suffix = "/hls.fmp4.m3u8";
 
 struct HttpCookieAttachment {
-    //是否已经查找到过MediaSource
+    // 是否已经查找到过MediaSource
     bool _find_src = false;
+    // 查找MediaSource计时
+    Ticker _find_src_ticker;
     //cookie生效作用域，本cookie只对该目录下的文件生效
     string _path;
     //上次鉴权失败信息,为空则上次鉴权成功
@@ -414,7 +417,9 @@ static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo
                 // hls相关信息
                 attach->_hls_data = std::make_shared<HlsCookieData>(media_info, info);
             }
-            callback(err_msg, HttpCookieManager::Instance().addCookie(kCookieName, uid, life_second, attach));
+           toolkit::Any any;
+           any.set(std::move(attach));
+           callback(err_msg, HttpCookieManager::Instance().addCookie(kCookieName, uid, life_second, std::move(any)));
         } else {
             callback(err_msg, nullptr);
         }
@@ -532,14 +537,15 @@ static void accessFile(Session &sender, const Parser &parser, const MediaInfo &m
             return;
         }
 
-        auto src = cookie->getAttach<HttpCookieAttachment>()._hls_data->getMediaSource();
+        auto &attach = cookie->getAttach<HttpCookieAttachment>();
+        auto src = attach._hls_data->getMediaSource();
         if (src) {
-            //直接从内存获取m3u8索引文件(而不是从文件系统)
+            // 直接从内存获取m3u8索引文件(而不是从文件系统)
             response_file(cookie, cb, file_path, parser, src->getIndexFile());
             return;
         }
-        if (cookie->getAttach<HttpCookieAttachment>()._find_src) {
-            //查找过MediaSource，但是流已经注销了，不用再查找
+        if (attach._find_src && attach._find_src_ticker.elapsedTime() < kFindSrcIntervalSecond * 1000) {
+            // 最近已经查找过MediaSource了，为了防止频繁查找导致占用全局互斥锁的问题，我们尝试直接从磁盘返回hls索引文件
             response_file(cookie, cb, file_path, parser);
             return;
         }
@@ -555,10 +561,13 @@ static void accessFile(Session &sender, const Parser &parser, const MediaInfo &m
 
             auto &attach = cookie->getAttach<HttpCookieAttachment>();
             attach._hls_data->setMediaSource(hls);
-            //添加HlsMediaSource的观看人数(HLS是按需生成的，这样可以触发HLS文件的生成)
+            // 添加HlsMediaSource的观看人数(HLS是按需生成的，这样可以触发HLS文件的生成)
             attach._hls_data->addByteUsage(0);
-            //标记找到MediaSource
+            // 标记找到MediaSource
             attach._find_src = true;
+
+            // 重置查找MediaSource计时
+            attach._find_src_ticker.resetTime();
 
             // m3u8文件可能不存在, 等待m3u8索引文件按需生成
             hls->getIndexFile([response_file, file_path, cookie, cb, parser](const string &file) {
