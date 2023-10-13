@@ -20,7 +20,7 @@
 #include "Record/HlsMediaSource.h"
 #include "Common/Parser.h"
 #include "Common/config.h"
-#include "strCoding.h"
+#include "Common/strCoding.h"
 
 using namespace std;
 using namespace toolkit;
@@ -31,12 +31,16 @@ namespace mediakit {
 // 每次访问一次该cookie，那么将重新刷新cookie有效期
 // 假如播放器在60秒内都未访问该cookie，那么将重新触发hls播放鉴权
 static int kHlsCookieSecond = 60;
+static int kFindSrcIntervalSecond = 3;
 static const string kCookieName = "ZL_COOKIE";
 static const string kHlsSuffix = "/hls.m3u8";
+static const string kHlsFMP4Suffix = "/hls.fmp4.m3u8";
 
 struct HttpCookieAttachment {
-    //是否已经查找到过MediaSource
+    // 是否已经查找到过MediaSource
     bool _find_src = false;
+    // 查找MediaSource计时
+    Ticker _find_src_ticker;
     //cookie生效作用域，本cookie只对该目录下的文件生效
     string _path;
     //上次鉴权失败信息,为空则上次鉴权成功
@@ -46,7 +50,112 @@ struct HttpCookieAttachment {
 };
 
 const string &HttpFileManager::getContentType(const char *name) {
-    return getHttpContentType(name);
+    return HttpConst::getHttpContentType(name);
+}
+
+namespace {
+class UInt128 {
+public:
+    UInt128() = default;
+
+    UInt128(const struct sockaddr_storage &storage) {
+        _family = storage.ss_family;
+        memset(_bytes, 0, 16);
+        switch (storage.ss_family) {
+            case AF_INET: {
+                memcpy(_bytes, &(reinterpret_cast<const struct sockaddr_in &>(storage).sin_addr), 4);
+                break;
+            }
+            case AF_INET6: {
+                memcpy(_bytes, &(reinterpret_cast<const struct sockaddr_in6 &>(storage).sin6_addr), 16);
+                break;
+            }
+            default: CHECK(false, "Invalid socket family"); break;
+        }
+    }
+
+    bool operator==(const UInt128 &that) const { return _family == that._family && !memcmp(_bytes, that._bytes, 16); }
+
+    bool operator<=(const UInt128 &that) const { return *this < that || *this == that; }
+
+    bool operator>=(const UInt128 &that) const { return *this > that || *this == that; }
+
+    bool operator>(const UInt128 &that) const { return that < *this; }
+
+    bool operator<(const UInt128 &that) const {
+        auto sz = _family == AF_INET ? 4 : 16;
+        for (int i = 0; i < sz; ++i) {
+            if (_bytes[i] < that._bytes[i]) {
+                return true;
+            } else if (_bytes[i] > that._bytes[i]) {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    operator bool() const { return _family != -1; }
+
+    bool same_type(const UInt128 &that) const { return _family == that._family; }
+
+private:
+    int _family = -1;
+    uint8_t _bytes[16];
+};
+
+}
+
+static UInt128 get_ip_uint64(const std::string &ip) {
+    try {
+        return UInt128(SockUtil::make_sockaddr(ip.data(), 0));
+    } catch (std::exception &ex) {
+        WarnL << ex.what();
+    }
+    return UInt128();
+}
+
+bool HttpFileManager::isIPAllowed(const std::string &ip) {
+    using IPRangs = std::vector<std::pair<UInt128 /*min_ip*/, UInt128 /*max_ip*/>>;
+    GET_CONFIG_FUNC(IPRangs, allow_ip_range, Http::kAllowIPRange, [](const string &str) -> IPRangs {
+        IPRangs ret;
+        auto vec = split(str, ",");
+        for (auto &item : vec) {
+            if (trim(item).empty()) {
+                continue;
+            }
+            auto range = split(item, "-");
+            if (range.size() == 2) {
+                auto ip_min = get_ip_uint64(trim(range[0]));
+                auto ip_max = get_ip_uint64(trim(range[1]));
+                if (ip_min && ip_max && ip_min.same_type(ip_max)) {
+                    ret.emplace_back(ip_min, ip_max);
+                } else {
+                    WarnL << "Invalid ip range or family: " << item;
+                }
+            } else if (range.size() == 1) {
+                auto ip = get_ip_uint64(trim(range[0]));
+                if (ip) {
+                    ret.emplace_back(ip, ip);
+                } else {
+                    WarnL << "Invalid ip: " << item;
+                }
+            } else {
+                WarnL << "Invalid ip range: " << item;
+            }
+        }
+        return ret;
+    });
+
+    if (allow_ip_range.empty()) {
+        return true;
+    }
+    auto ip_int = get_ip_uint64(ip);
+    for (auto &range : allow_ip_range) {
+        if (ip_int.same_type(range.first) && ip_int >= range.first && ip_int <= range.second) {
+            return true;
+        }
+    }
+    return false;
 }
 
 static string searchIndexFile(const string &dir){
@@ -57,7 +166,7 @@ static string searchIndexFile(const string &dir){
     }
     set<string> setFile;
     while ((pDirent = readdir(pDir)) != NULL) {
-        static set<const char *, StrCaseCompare> indexSet = {"index.html", "index.htm", "index"};
+        static set<const char *, StrCaseCompare> indexSet = {"index.html", "index.htm"};
         if (indexSet.find(pDirent->d_name) != indexSet.end()) {
             string ret = pDirent->d_name;
             closedir(pDir);
@@ -188,7 +297,7 @@ static bool emitHlsPlayed(const Parser &parser, const MediaInfo &media_info, con
         //cookie有效期为kHlsCookieSecond
         invoker(err, "", kHlsCookieSecond);
     };
-    bool flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed, media_info, auth_invoker, static_cast<SockInfo &>(sender));
+    bool flag = NOTICE_EMIT(BroadcastMediaPlayedArgs, Broadcast::kBroadcastMediaPlayed, media_info, auth_invoker, sender);
     if (!flag) {
         //未开启鉴权，那么允许播放
         auth_invoker("");
@@ -240,8 +349,8 @@ public:
 static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo &media_info, bool is_dir,
                           const function<void(const string &err_msg, const HttpServerCookie::Ptr &cookie)> &callback) {
     //获取用户唯一id
-    auto uid = parser.Params();
-    auto path = parser.Url();
+    auto uid = parser.params();
+    auto path = parser.url();
 
     //先根据http头中的cookie字段获取cookie
     HttpServerCookie::Ptr cookie = HttpCookieManager::Instance().getCookie(kCookieName, parser.getHeader());
@@ -268,7 +377,7 @@ static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo
                 return;
             }
             //上次鉴权失败，但是如果url参数发生变更，那么也重新鉴权下
-            if (parser.Params().empty() || parser.Params() == cookie->getUid()) {
+            if (parser.params().empty() || parser.params() == cookie->getUid()) {
                 //url参数未变，或者本来就没有url参数，那么判断本次请求为重复请求，无访问权限
                 callback(attach._err_msg, update_cookie ? cookie : nullptr);
                 return;
@@ -278,7 +387,7 @@ static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo
         HttpCookieManager::Instance().delCookie(cookie);
     }
 
-    bool is_hls = media_info.schema == HLS_SCHEMA;
+    bool is_hls = media_info.schema == HLS_SCHEMA || media_info.schema == HLS_FMP4_SCHEMA;
 
     SockInfoImp::Ptr info = std::make_shared<SockInfoImp>();
     info->_identifier = sender.getIdentifier();
@@ -308,7 +417,9 @@ static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo
                 // hls相关信息
                 attach->_hls_data = std::make_shared<HlsCookieData>(media_info, info);
             }
-            callback(err_msg, HttpCookieManager::Instance().addCookie(kCookieName, uid, life_second, attach));
+           toolkit::Any any;
+           any.set(std::move(attach));
+           callback(err_msg, HttpCookieManager::Instance().addCookie(kCookieName, uid, life_second, std::move(any)));
         } else {
             callback(err_msg, nullptr);
         }
@@ -320,10 +431,10 @@ static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo
         return;
     }
 
-    //事件未被拦截，则认为是http下载请求
-    bool flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpAccess, parser, path, is_dir, accessPathInvoker, static_cast<SockInfo &>(sender));
+    // 事件未被拦截，则认为是http下载请求
+    bool flag = NOTICE_EMIT(BroadcastHttpAccessArgs, Broadcast::kBroadcastHttpAccess, parser, path, is_dir, accessPathInvoker, sender);
     if (!flag) {
-        //此事件无人监听，我们默认都有权限访问
+        // 此事件无人监听，我们默认都有权限访问
         callback("", nullptr);
     }
 }
@@ -355,7 +466,7 @@ static string pathCat(const string &a, const string &b){
  * @param cb 回调对象
  */
 static void accessFile(Session &sender, const Parser &parser, const MediaInfo &media_info, const string &file_path, const HttpFileManager::invoker &cb) {
-    bool is_hls = end_with(file_path, kHlsSuffix);
+    bool is_hls = end_with(file_path, kHlsSuffix) || end_with(file_path, kHlsFMP4Suffix);
     if (!is_hls && !File::fileExist(file_path.data())) {
         //文件不存在且不是hls,那么直接返回404
         sendNotFound(cb);
@@ -363,8 +474,13 @@ static void accessFile(Session &sender, const Parser &parser, const MediaInfo &m
     }
     if (is_hls) {
         // hls，那么移除掉后缀获取真实的stream_id并且修改协议为HLS
-        const_cast<string &>(media_info.schema) = HLS_SCHEMA;
-        replace(const_cast<string &>(media_info.stream), kHlsSuffix, "");
+        if (end_with(file_path, kHlsSuffix)) {
+            const_cast<string &>(media_info.schema) = HLS_SCHEMA;
+            replace(const_cast<string &>(media_info.stream), kHlsSuffix, "");
+        } else {
+            const_cast<string &>(media_info.schema) = HLS_FMP4_SCHEMA;
+            replace(const_cast<string &>(media_info.stream), kHlsFMP4Suffix, "");
+        }
     }
 
     weak_ptr<Session> weakSession = static_pointer_cast<Session>(sender.shared_from_this());
@@ -421,14 +537,15 @@ static void accessFile(Session &sender, const Parser &parser, const MediaInfo &m
             return;
         }
 
-        auto src = cookie->getAttach<HttpCookieAttachment>()._hls_data->getMediaSource();
+        auto &attach = cookie->getAttach<HttpCookieAttachment>();
+        auto src = attach._hls_data->getMediaSource();
         if (src) {
-            //直接从内存获取m3u8索引文件(而不是从文件系统)
+            // 直接从内存获取m3u8索引文件(而不是从文件系统)
             response_file(cookie, cb, file_path, parser, src->getIndexFile());
             return;
         }
-        if (cookie->getAttach<HttpCookieAttachment>()._find_src) {
-            //查找过MediaSource，但是流已经注销了，不用再查找
+        if (attach._find_src && attach._find_src_ticker.elapsedTime() < kFindSrcIntervalSecond * 1000) {
+            // 最近已经查找过MediaSource了，为了防止频繁查找导致占用全局互斥锁的问题，我们尝试直接从磁盘返回hls索引文件
             response_file(cookie, cb, file_path, parser);
             return;
         }
@@ -444,10 +561,13 @@ static void accessFile(Session &sender, const Parser &parser, const MediaInfo &m
 
             auto &attach = cookie->getAttach<HttpCookieAttachment>();
             attach._hls_data->setMediaSource(hls);
-            //添加HlsMediaSource的观看人数(HLS是按需生成的，这样可以触发HLS文件的生成)
+            // 添加HlsMediaSource的观看人数(HLS是按需生成的，这样可以触发HLS文件的生成)
             attach._hls_data->addByteUsage(0);
-            //标记找到MediaSource
+            // 标记找到MediaSource
             attach._find_src = true;
+
+            // 重置查找MediaSource计时
+            attach._find_src_ticker.resetTime();
 
             // m3u8文件可能不存在, 等待m3u8索引文件按需生成
             hls->getIndexFile([response_file, file_path, cookie, cb, parser](const string &file) {
@@ -457,7 +577,7 @@ static void accessFile(Session &sender, const Parser &parser, const MediaInfo &m
     });
 }
 
-static string getFilePath(const Parser &parser,const MediaInfo &media_info, Session &sender){
+static string getFilePath(const Parser &parser,const MediaInfo &media_info, Session &sender) {
     GET_CONFIG(bool, enableVhost, General::kEnableVhost);
     GET_CONFIG(string, rootPath, Http::kRootPath);
     GET_CONFIG_FUNC(StrCaseMap, virtualPathMap, Http::kVirtualPath, [](const string &str) {
@@ -469,11 +589,11 @@ static string getFilePath(const Parser &parser,const MediaInfo &media_info, Sess
     if (it != virtualPathMap.end()) {
         //访问的是virtualPath
         path = it->second;
-        url = parser.Url().substr(1 + media_info.app.size());
+        url = parser.url().substr(1 + media_info.app.size());
     } else {
         //访问的是rootPath
         path = rootPath;
-        url = parser.Url();
+        url = parser.url();
     }
     for (auto &ch : url) {
         if (ch == '\\') {
@@ -482,7 +602,14 @@ static string getFilePath(const Parser &parser,const MediaInfo &media_info, Sess
         }
     }
     auto ret = File::absolutePath(enableVhost ? media_info.vhost + url : url, path);
-    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpBeforeAccess, parser, ret, static_cast<SockInfo &>(sender));
+    auto http_root = File::absolutePath(enableVhost ? media_info.vhost + "/" : "/", path);
+    if (!start_with(ret, http_root)) {
+        // 访问的http文件不得在http根目录之外
+        throw std::runtime_error("Attempting to access files outside of the http root directory");
+    }
+    // 替换url，防止返回的目录索引网页被注入非法内容
+    const_cast<Parser&>(parser).setUrl("/" + ret.substr(http_root.size()));
+    NOTICE_EMIT(BroadcastHttpBeforeAccessArgs, Broadcast::kBroadcastHttpBeforeAccess, parser, ret, sender);
     return ret;
 }
 
@@ -493,7 +620,7 @@ static string getFilePath(const Parser &parser,const MediaInfo &media_info, Sess
  * @param cb 回调对象
  */
 void HttpFileManager::onAccessPath(Session &sender, Parser &parser, const HttpFileManager::invoker &cb) {
-    auto fullUrl = string(HTTP_SCHEMA) + "://" + parser["Host"] + parser.FullUrl();
+    auto fullUrl = string(HTTP_SCHEMA) + "://" + parser["Host"] + parser.fullUrl();
     MediaInfo media_info(fullUrl);
     auto file_path = getFilePath(parser, media_info, sender);
     if (file_path.size() == 0) {
@@ -504,15 +631,18 @@ void HttpFileManager::onAccessPath(Session &sender, Parser &parser, const HttpFi
     if (File::is_dir(file_path.data())) {
         auto indexFile = searchIndexFile(file_path);
         if (!indexFile.empty()) {
-            //发现该文件夹下有index文件
+            // 发现该文件夹下有index文件
             file_path = pathCat(file_path, indexFile);
-            parser.setUrl(pathCat(parser.Url(), indexFile));
-            accessFile(sender, parser, media_info, file_path, cb);
-            return;
+            if (!File::is_dir(file_path.data())) {
+                // 不是文件夹
+                parser.setUrl(pathCat(parser.url(), indexFile));
+                accessFile(sender, parser, media_info, file_path, cb);
+                return;
+            }
         }
         string strMenu;
         //生成文件夹菜单索引
-        if (!makeFolderMenu(parser.Url(), file_path, strMenu)) {
+        if (!makeFolderMenu(parser.url(), file_path, strMenu)) {
             //文件夹不存在
             sendNotFound(cb);
             return;
@@ -600,8 +730,8 @@ void HttpResponseInvokerImp::responseFile(const StrCaseMap &requestHeader,
     if (!strRange.empty()) {
         //分节下载
         code = 206;
-        auto iRangeStart = atoll(FindField(strRange.data(), "bytes=", "-").data());
-        auto iRangeEnd = atoll(FindField(strRange.data(), "-", nullptr).data());
+        auto iRangeStart = atoll(findSubString(strRange.data(), "bytes=", "-").data());
+        auto iRangeEnd = atoll(findSubString(strRange.data(), "-", nullptr).data());
         auto fileSize = fileBody->remainSize();
         if (iRangeEnd == 0) {
             iRangeEnd = fileSize - 1;

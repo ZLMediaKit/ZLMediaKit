@@ -36,7 +36,7 @@ void RtmpSession::onError(const SockException& err) {
     GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
 
     if (_total_bytes >= iFlowThreshold * 1024) {
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, _total_bytes, duration, is_player, static_cast<SockInfo &>(*this));
+        NOTICE_EMIT(BroadcastFlowReportArgs, Broadcast::kBroadcastFlowReport, _media_info, _total_bytes, duration, is_player, *this);
     }
 
     //如果是主动关闭的，那么不延迟注销
@@ -215,7 +215,7 @@ void RtmpSession::onCmd_publish(AMFDecoder &dec) {
             on_res(err, option);
         });
     };
-    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish, MediaOriginType::rtmp_push, _media_info, invoker, static_cast<SockInfo &>(*this));
+    auto flag = NOTICE_EMIT(BroadcastMediaPublishArgs, Broadcast::kBroadcastMediaPublish, MediaOriginType::rtmp_push, _media_info, invoker, *this);
     if(!flag){
         //该事件无人监听，默认鉴权成功
         on_res("", ProtocolOption());
@@ -291,17 +291,14 @@ void RtmpSession::sendPlayResponse(const string &err, const RtmpMediaSource::Ptr
                  "description", "Now published." ,
                  "details", _media_info.stream,
                  "clientid", "0"});
-
-    auto &metadata = src->getMetaData();
-    if(metadata){
-        //在有metadata的情况下才发送metadata
-        //其实metadata没什么用，有些推流器不产生metadata
-        // onMetaData
+    // metadata
+    src->getMetaData([&](const AMFValue &metadata) {
         invoke.clear();
         invoke << "onMetaData" << metadata;
         sendResponse(MSG_DATA, invoke.data());
-    }
+    });
 
+    // config frame
     src->getConfigFrame([&](const RtmpPacket::Ptr &pkt) {
         onSendMedia(pkt);
     });
@@ -309,7 +306,11 @@ void RtmpSession::sendPlayResponse(const string &err, const RtmpMediaSource::Ptr
     src->pause(false);
     _ring_reader = src->getRing()->attach(getPoller());
     weak_ptr<RtmpSession> weak_self = static_pointer_cast<RtmpSession>(shared_from_this());
-    _ring_reader->setGetInfoCB([weak_self]() { return weak_self.lock(); });
+    _ring_reader->setGetInfoCB([weak_self]() {
+        Any ret;
+        ret.set(static_pointer_cast<SockInfo>(weak_self.lock()));
+        return ret;
+    });
     _ring_reader->setReadCB([weak_self](const RtmpMediaSource::RingDataType &pkt) {
         auto strong_self = weak_self.lock();
         if (!strong_self) {
@@ -330,6 +331,7 @@ void RtmpSession::sendPlayResponse(const string &err, const RtmpMediaSource::Ptr
         if (!strong_self) {
             return;
         }
+        strong_self->sendUserControl(CONTROL_STREAM_EOF/*or CONTROL_STREAM_DRY ?*/, STREAM_MEDIA);
         strong_self->shutdown(SockException(Err_shutdown,"rtmp ring buffer detached"));
     });
     src->pause(false);
@@ -383,7 +385,7 @@ void RtmpSession::doPlay(AMFDecoder &dec){
         });
     };
 
-    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed, _media_info, invoker, static_cast<SockInfo &>(*this));
+    auto flag = NOTICE_EMIT(BroadcastMediaPlayedArgs, Broadcast::kBroadcastMediaPlayed, _media_info, invoker, *this);
     if (!flag) {
         // 该事件无人监听,默认不鉴权
         doPlayResponse("", [token](bool) {});
@@ -481,6 +483,7 @@ void RtmpSession::setMetaData(AMFDecoder &dec) {
         throw std::runtime_error("can only set metadata");
     }
     _push_metadata = dec.load<AMFValue>();
+    _set_meta_data = false;
 }
 
 void RtmpSession::onProcessCmd(AMFDecoder &dec) {
@@ -528,6 +531,7 @@ void RtmpSession::onRtmpChunk(RtmpPacket::Ptr packet) {
         } else if (type == "onMetaData") {
             //兼容某些不规范的推流器
             _push_metadata = dec.load<AMFValue>();
+            _set_meta_data = false;
         } else {
             TraceP(this) << "unknown notify:" << type;
         }
@@ -537,13 +541,26 @@ void RtmpSession::onRtmpChunk(RtmpPacket::Ptr packet) {
     case MSG_AUDIO:
     case MSG_VIDEO: {
         if (!_push_src) {
-            WarnL << "Not a rtmp push!";
+            if (_ring_reader) {
+                throw std::runtime_error("Rtmp player send media packets");
+            }
+            if (packet->isConfigFrame()) {
+                auto id = packet->type_id;
+                _push_config_packets.emplace(id, std::move(packet));
+            }
+            WarnL << "Rtmp pusher send media packet before handshake completed!";
             return;
         }
 
         if (!_set_meta_data) {
             _set_meta_data = true;
             _push_src->setMetaData(_push_metadata ? _push_metadata : TitleMeta().getMetadata());
+        }
+        if (!_push_config_packets.empty()) {
+            for (auto &pr : _push_config_packets) {
+                _push_src->onWrite(std::move(pr.second));
+            }
+            _push_config_packets.clear();
         }
         _push_src->onWrite(std::move(packet));
         break;

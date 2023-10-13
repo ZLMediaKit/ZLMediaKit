@@ -21,12 +21,13 @@ namespace mediakit {
 class HlsMaker {
 public:
     /**
+     * @param is_fmp4 使用fmp4还是mpegts
      * @param seg_duration 切片文件长度
      * @param seg_number 切片个数
      * @param seg_keep 是否保留切片文件
      */
-    HlsMaker(float seg_duration = 5, uint32_t seg_number = 3, bool seg_keep = false);
-    virtual ~HlsMaker();
+    HlsMaker(bool is_fmp4 = false, float seg_duration = 5, uint32_t seg_number = 3, bool seg_keep = false);
+    virtual ~HlsMaker() = default;
 
     /**
      * 写入ts数据
@@ -35,17 +36,29 @@ public:
      * @param timestamp 毫秒时间戳
      * @param is_idr_fast_packet 是否为关键帧第一个包
      */
-    void inputData(void *data, size_t len, uint64_t timestamp, bool is_idr_fast_packet);
+    void inputData(const char *data, size_t len, uint64_t timestamp, bool is_idr_fast_packet);
+
+    /**
+     * 输入fmp4 init segment
+     * @param data 数据
+     * @param len 数据长度
+     */
+    void inputInitSegment(const char *data, size_t len);
 
     /**
      * 是否为直播
      */
-    bool isLive();
+    bool isLive() const;
 
     /**
      * 是否保留切片文件
      */
-    bool isKeep();
+    bool isKeep() const;
+
+    /**
+     * 是否采用fmp4切片还是mpegts
+     */
+    bool isFmp4() const;
 
     /**
      * 清空记录
@@ -65,6 +78,13 @@ protected:
      * @param index
      */
     virtual void onDelSegment(uint64_t index) = 0;
+
+    /**
+     * 写init.mp4切片文件回调
+     * @param data
+     * @param len
+     */
+    virtual void onWriteInitSegment(const char *data, size_t len) = 0;
 
     /**
      * 写ts切片文件回调
@@ -109,6 +129,7 @@ private:
     void addNewSegment(uint64_t timestamp);
 
 private:
+    bool _is_fmp4 = false;
     float _seg_duration = 0;
     uint32_t _seg_number = 0;
     bool _seg_keep = false;

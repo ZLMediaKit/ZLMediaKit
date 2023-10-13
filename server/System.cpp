@@ -22,10 +22,11 @@
 #include <map>
 #include <iostream>
 
+#include "Common/JemallocUtil.h"
+#include "Common/macros.h"
+#include "System.h"
 #include "Util/logger.h"
 #include "Util/uv_errno.h"
-#include "System.h"
-#include "Common/macros.h"
 
 using namespace std;
 using namespace toolkit;
@@ -54,6 +55,16 @@ string System::execute(const string &cmd) {
 #if !defined(ANDROID) && !defined(_WIN32)
 
 static constexpr int MAX_STACK_FRAMES = 128;
+
+static void save_jemalloc_stats() {
+    string jemalloc_status = JemallocUtil::get_malloc_stats();
+    if (jemalloc_status.empty()) {
+        return;
+    }
+    ofstream out(StrPrinter << exeDir() << "/jemalloc.json", ios::out | ios::binary | ios::trunc);
+    out << jemalloc_status;
+    out.flush();
+}
 
 static void sig_crash(int sig) {
     signal(sig, SIG_DFL);
@@ -126,6 +137,12 @@ void System::startDaemon(bool &kill_parent_if_failed) {
             exit(0);
         });
 
+        signal(SIGTERM,[](int) {
+            WarnL << "收到主动退出信号,关闭父进程与子进程";
+            kill(pid, SIGINT);
+            exit(0);
+        });
+
         do {
             int status = 0;
             if (waitpid(pid, &status, 0) >= 0) {
@@ -143,6 +160,12 @@ void System::startDaemon(bool &kill_parent_if_failed) {
 }
 
 void System::systemSetup(){
+
+#ifdef ENABLE_JEMALLOC_DUMP
+    //Save memory report when program exits
+    atexit(save_jemalloc_stats);
+#endif //ENABLE_JEMALLOC_DUMP
+
 #if !defined(_WIN32)
     struct rlimit rlim,rlim_new;
     if (getrlimit(RLIMIT_CORE, &rlim)==0) {

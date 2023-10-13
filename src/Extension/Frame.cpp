@@ -13,6 +13,7 @@
 #include "H265.h"
 #include "Common/Parser.h"
 #include "Common/Stamp.h"
+#include "Common/MediaSource.h"
 
 using namespace std;
 using namespace toolkit;
@@ -31,11 +32,11 @@ Frame::Ptr Frame::getCacheAbleFrame(const Frame::Ptr &frame){
     return std::make_shared<FrameCacheAble>(frame);
 }
 
-FrameStamp::FrameStamp(Frame::Ptr frame, Stamp &stamp, bool modify_stamp)
+FrameStamp::FrameStamp(Frame::Ptr frame, Stamp &stamp, int modify_stamp)
 {
     _frame = std::move(frame);
-    //覆盖时间戳
-    stamp.revise(_frame->dts(), _frame->pts(), _dts, _pts, modify_stamp);
+    // kModifyStampSystem时采用系统时间戳，kModifyStampRelative采用相对时间戳
+    stamp.revise(_frame->dts(), _frame->pts(), _dts, _pts, modify_stamp == ProtocolOption::kModifyStampSystem);
 }
 
 TrackType getTrackType(CodecId codecId) {

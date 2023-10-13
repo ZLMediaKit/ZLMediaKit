@@ -33,13 +33,13 @@ RtspPlayer::RtspPlayer(const EventPoller::Ptr &poller)
     : TcpClient(poller) {}
 
 RtspPlayer::~RtspPlayer(void) {
-    DebugL << endl;
+    DebugL;
 }
 
 void RtspPlayer::sendTeardown() {
     if (alive()) {
-        if (!_content_base.empty()) {
-            sendRtspRequest("TEARDOWN", _content_base);
+        if (!_control_url.empty()) {
+            sendRtspRequest("TEARDOWN", _control_url);
         }
         shutdown(SockException(Err_shutdown, "teardown"));
     }
@@ -170,11 +170,11 @@ bool RtspPlayer::handleAuthenticationFailure(const string &paramsStr) {
 bool RtspPlayer::handleResponse(const string &cmd, const Parser &parser) {
     string authInfo = parser["WWW-Authenticate"];
     // 发送DESCRIBE命令后的回复
-    if ((parser.Url() == "401") && handleAuthenticationFailure(authInfo)) {
+    if ((parser.status() == "401") && handleAuthenticationFailure(authInfo)) {
         sendOptions();
         return false;
     }
-    if (parser.Url() == "302" || parser.Url() == "301") {
+    if (parser.status() == "302" || parser.status() == "301") {
         auto newUrl = parser["Location"];
         if (newUrl.empty()) {
             throw std::runtime_error("未找到Location字段(跳转url)");
@@ -182,8 +182,8 @@ bool RtspPlayer::handleResponse(const string &cmd, const Parser &parser) {
         play(newUrl);
         return false;
     }
-    if (parser.Url() != "200") {
-        throw std::runtime_error(StrPrinter << cmd << ":" << parser.Url() << " " << parser.Tail() << endl);
+    if (parser.status() != "200") {
+        throw std::runtime_error(StrPrinter << cmd << ":" << parser.status() << " " << parser.statusStr() << endl);
     }
     return true;
 }
@@ -201,7 +201,9 @@ void RtspPlayer::handleResDESCRIBE(const Parser &parser) {
     }
 
     // 解析sdp
-    SdpParser sdpParser(parser.Content());
+    SdpParser sdpParser(parser.content());
+
+    _control_url = sdpParser.getControlUrl(_content_base);
 
     string sdp;
     auto play_track = (TrackType)((int)(*this)[Client::kPlayTrack] - 1);
@@ -267,13 +269,13 @@ void RtspPlayer::sendSetup(unsigned int track_idx) {
 }
 
 void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int track_idx) {
-    if (parser.Url() != "200") {
-        throw std::runtime_error(StrPrinter << "SETUP:" << parser.Url() << " " << parser.Tail() << endl);
+    if (parser.status() != "200") {
+        throw std::runtime_error(StrPrinter << "SETUP:" << parser.status() << " " << parser.statusStr() << endl);
     }
     if (track_idx == 0) {
         _session_id = parser["Session"];
         _session_id.append(";");
-        _session_id = FindField(_session_id.data(), nullptr, ";");
+        _session_id = findSubString(_session_id.data(), nullptr, ";");
     }
 
     auto strTransport = parser["Transport"];
@@ -412,7 +414,7 @@ void RtspPlayer::sendKeepAlive() {
     _on_response = [](const Parser &parser) {};
     if (_supported_cmd.find("GET_PARAMETER") != _supported_cmd.end()) {
         // 支持GET_PARAMETER，用此命令保活
-        sendRtspRequest("GET_PARAMETER", _content_base);
+        sendRtspRequest("GET_PARAMETER", _control_url);
     } else {
         // 不支持GET_PARAMETER，用OPTIONS命令保活
         sendRtspRequest("OPTIONS", _play_url);
@@ -423,12 +425,12 @@ void RtspPlayer::sendPause(int type, uint32_t seekMS) {
     _on_response = std::bind(&RtspPlayer::handleResPAUSE, this, placeholders::_1, type);
     // 开启或暂停rtsp
     switch (type) {
-        case type_pause: sendRtspRequest("PAUSE", _content_base); break;
+        case type_pause: sendRtspRequest("PAUSE", _control_url, {}); break;
         case type_play:
             // sendRtspRequest("PLAY", _content_base);
             // break;
         case type_seek:
-            sendRtspRequest("PLAY", _content_base, { "Range", StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << seekMS / 1000.0 << "-" });
+            sendRtspRequest("PLAY", _control_url, { "Range", StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << seekMS / 1000.0 << "-" });
             break;
         default:
             WarnL << "unknown type : " << type;
@@ -442,18 +444,18 @@ void RtspPlayer::pause(bool bPause) {
 }
 
 void RtspPlayer::speed(float speed) {
-    sendRtspRequest("PLAY", _content_base, { "Scale", StrPrinter << speed });
+    sendRtspRequest("PLAY", _control_url, { "Scale", StrPrinter << speed });
 }
 
 void RtspPlayer::handleResPAUSE(const Parser &parser, int type) {
-    if (parser.Url() != "200") {
+    if (parser.status() != "200") {
         switch (type) {
-            case type_pause: WarnL << "Pause failed:" << parser.Url() << " " << parser.Tail() << endl; break;
+            case type_pause: WarnL << "Pause failed:" << parser.status() << " " << parser.statusStr(); break;
             case type_play:
-                WarnL << "Play failed:" << parser.Url() << " " << parser.Tail() << endl;
-                onPlayResult_l(SockException(Err_shutdown, StrPrinter << "rtsp play failed:" << parser.Url() << " " << parser.Tail()), !_play_check_timer);
+                WarnL << "Play failed:" << parser.status() << " " << parser.statusStr();
+                onPlayResult_l(SockException(Err_other, StrPrinter << "rtsp play failed:" << parser.status() << " " << parser.statusStr()), !_play_check_timer);
                 break;
-            case type_seek: WarnL << "Seek failed:" << parser.Url() << " " << parser.Tail() << endl; break;
+            case type_seek: WarnL << "Seek failed:" << parser.status() << " " << parser.statusStr(); break;
         }
         return;
     }
@@ -469,7 +471,7 @@ void RtspPlayer::handleResPAUSE(const Parser &parser, int type) {
     // 修正时间轴
     auto strRange = parser["Range"];
     if (strRange.size()) {
-        auto strStart = FindField(strRange.data(), "npt=", "-");
+        auto strStart = findSubString(strRange.data(), "npt=", "-");
         if (strStart == "now") {
             strStart = "0";
         }
@@ -481,13 +483,18 @@ void RtspPlayer::handleResPAUSE(const Parser &parser, int type) {
 }
 
 void RtspPlayer::onWholeRtspPacket(Parser &parser) {
+    if (!start_with(parser.method(), "RTSP")) {
+        // 不是rtsp回复，忽略
+        WarnL << "Not rtsp response: " << parser.method();
+        return;
+    }
     try {
         decltype(_on_response) func;
         _on_response.swap(func);
         if (func) {
             func(parser);
         }
-        parser.Clear();
+        parser.clear();
     } catch (std::exception &err) {
         // 定时器_pPlayTimer为空后表明握手结束了
         onPlayResult_l(SockException(Err_other, err.what()), !_play_check_timer);
@@ -537,6 +544,9 @@ float RtspPlayer::getPacketLossRate(TrackType type) const {
     size_t lost = 0, expected = 0;
     try {
         auto track_idx = getTrackIndexByTrackType(type);
+        if (_rtcp_context.empty()) {
+            return 0;
+        }
         auto ctx = _rtcp_context[track_idx];
         lost = ctx->getLost();
         expected = ctx->getExpectedPackets();
@@ -571,6 +581,7 @@ void RtspPlayer::sendRtspRequest(const string &cmd, const string &url, const std
             key = val;
         }
     }
+
     sendRtspRequest(cmd, url, header_map);
 }
 
@@ -615,12 +626,9 @@ void RtspPlayer::sendRtspRequest(const string &cmd, const string &url, const Str
     }
 
     _StrPrinter printer;
-    if (cmd == "PLAY") {
-        printer << cmd << " " << _play_url << " RTSP/1.0\r\n";
-    } else {
-        printer << cmd << " " << url << " RTSP/1.0\r\n";
-    }
+    printer << cmd << " " << url << " RTSP/1.0\r\n";
 
+    TraceL << cmd << " "<< url;
     for (auto &pr : header) {
         printer << pr.first << ": " << pr.second << "\r\n";
     }
@@ -743,7 +751,7 @@ int RtspPlayer::getTrackIndexByTrackType(TrackType track_type) const {
     if (_sdp_track.size() == 1) {
         return 0;
     }
-    throw SockException(Err_shutdown, StrPrinter << "no such track with type:" << getTrackString(track_type));
+    throw SockException(Err_other, StrPrinter << "no such track with type:" << getTrackString(track_type));
 }
 
 ///////////////////////////////////////////////////

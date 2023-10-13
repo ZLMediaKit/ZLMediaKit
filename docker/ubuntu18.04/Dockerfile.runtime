@@ -60,4 +60,4 @@ RUN apt-get update && \
 WORKDIR /opt/media/bin/
 COPY --from=build /opt/media/ZLMediaKit/release/linux/Release/MediaServer /opt/media/bin/MediaServer
 ENV PATH /opt/media/bin:$PATH
-CMD MediaServer
+CMD ["MediaServer"]

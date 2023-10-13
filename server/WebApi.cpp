@@ -130,7 +130,7 @@ static HttpApi toApi(const function<void(API_ARGS_JSON_ASYNC)> &cb) {
         //参数解析成json对象然后处理
         Json::Value args;
         Json::Reader reader;
-        reader.parse(parser.Content(), args);
+        reader.parse(parser.content(), args);
 
         cb(sender, headerOut, HttpAllArgs<decltype(args)>(parser, args), val, invoker);
     };
@@ -152,7 +152,7 @@ static HttpApi toApi(const function<void(API_ARGS_STRING_ASYNC)> &cb) {
         Json::Value val;
         val["code"] = API::Success;
 
-        cb(sender, headerOut, HttpAllArgs<string>(parser, (string &)parser.Content()), val, invoker);
+        cb(sender, headerOut, HttpAllArgs<string>(parser, (string &)parser.content()), val, invoker);
     };
 }
 
@@ -191,13 +191,13 @@ void api_regist(const string &api_path, const function<void(API_ARGS_STRING_ASYN
 static ApiArgsType getAllArgs(const Parser &parser) {
     ApiArgsType allArgs;
     if (parser["Content-Type"].find("application/x-www-form-urlencoded") == 0) {
-        auto contentArgs = parser.parseArgs(parser.Content());
+        auto contentArgs = parser.parseArgs(parser.content());
         for (auto &pr : contentArgs) {
             allArgs[pr.first] = HttpSession::urlDecode(pr.second);
         }
     } else if (parser["Content-Type"].find("application/json") == 0) {
         try {
-            stringstream ss(parser.Content());
+            stringstream ss(parser.content());
             Value jsonArgs;
             ss >> jsonArgs;
             auto keys = jsonArgs.getMemberNames();
@@ -231,7 +231,7 @@ static inline void addHttpListener(){
     GET_CONFIG(bool, api_debug, API::kApiDebug);
     //注册监听kBroadcastHttpRequest事件
     NoticeCenter::Instance().addListener(&web_api_tag, Broadcast::kBroadcastHttpRequest, [](BroadcastHttpRequestArgs) {
-        auto it = s_map_api.find(parser.Url());
+        auto it = s_map_api.find(parser.url());
         if (it == s_map_api.end()) {
             return;
         }
@@ -247,15 +247,15 @@ static inline void addHttpListener(){
                     size = body->remainSize();
                 }
 
-                LogContextCapture log(getLogger(), toolkit::LTrace, __FILE__, "http api debug", __LINE__);
-                log << "\r\n# request:\r\n" << parser.Method() << " " << parser.FullUrl() << "\r\n";
+                LogContextCapture log(getLogger(), toolkit::LDebug, __FILE__, "http api debug", __LINE__);
+                log << "\r\n# request:\r\n" << parser.method() << " " << parser.fullUrl() << "\r\n";
                 log << "# header:\r\n";
 
                 for (auto &pr : parser.getHeader()) {
                     log << pr.first << " : " << pr.second << "\r\n";
                 }
 
-                auto &content = parser.Content();
+                auto &content = parser.content();
                 log << "# content:\r\n" << (content.size() > 4 * 1024 ? content.substr(0, 4 * 1024) : content) << "\r\n";
 
                 if (size > 0 && size < 4 * 1024) {
@@ -321,12 +321,16 @@ static void fillSockInfo(Value& val, SockInfo* info) {
     val["identifier"] = info->getIdentifier();
 }
 
+void dumpMediaTuple(const MediaTuple &tuple, Json::Value& item) {
+    item[VHOST_KEY] = tuple.vhost;
+    item["app"] = tuple.app;
+    item["stream"] = tuple.stream;
+}
+
 Value makeMediaSourceJson(MediaSource &media){
     Value item;
     item["schema"] = media.getSchema();
-    item[VHOST_KEY] = media.getVhost();
-    item["app"] = media.getApp();
-    item["stream"] = media.getId();
+    dumpMediaTuple(media.getMediaTuple(), item);
     item["createStamp"] = (Json::UInt64) media.getCreateStamp();
     item["aliveSecond"] = (Json::UInt64) media.getAliveSecond();
     item["bytesSpeed"] = media.getBytesSpeed();
@@ -533,7 +537,7 @@ void addStreamProxy(const string &vhost, const string &app, const string &stream
     lock_guard<recursive_mutex> lck(s_proxyMapMtx);
     if (s_proxyMap.find(key) != s_proxyMap.end()) {
         //已经在拉流了
-        cb(SockException(Err_success), key);
+        cb(SockException(Err_other, "This stream already exists"), key);
         return;
     }
     //添加拉流代理
@@ -584,7 +588,8 @@ void installWebApi() {
 
     //获取线程负载
     //测试url http://127.0.0.1/index/api/getThreadsLoad
-    api_regist("/index/api/getThreadsLoad",[](API_ARGS_MAP_ASYNC){
+    api_regist("/index/api/getThreadsLoad", [](API_ARGS_MAP_ASYNC) {
+        CHECK_SECRET();
         EventPollerPool::Instance().getExecutorDelay([invoker, headerOut](const vector<int> &vecDelay) {
             Value val;
             auto vec = EventPollerPool::Instance().getExecutorLoad();
@@ -602,7 +607,8 @@ void installWebApi() {
 
     //获取后台工作线程负载
     //测试url http://127.0.0.1/index/api/getWorkThreadsLoad
-    api_regist("/index/api/getWorkThreadsLoad", [](API_ARGS_MAP_ASYNC){
+    api_regist("/index/api/getWorkThreadsLoad", [](API_ARGS_MAP_ASYNC) {
+        CHECK_SECRET();
         WorkThreadPool::Instance().getExecutorDelay([invoker, headerOut](const vector<int> &vecDelay) {
             Value val;
             auto vec = WorkThreadPool::Instance().getExecutorLoad();
@@ -648,6 +654,10 @@ void installWebApi() {
                 continue;
 #endif
             }
+            if (pr.first == FFmpeg::kBin) {
+                WarnL << "Configuration named " << FFmpeg::kBin << " is not allowed to be set by setServerConfig api.";
+                continue;
+            }
             if (ini[pr.first] == pr.second) {
                 continue;
             }
@@ -656,7 +666,7 @@ void installWebApi() {
             ++changed;
         }
         if (changed > 0) {
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastReloadConfig);
+            NOTICE_EMIT(BroadcastReloadConfigArgs, Broadcast::kBroadcastReloadConfig);
             ini.dumpFile(g_ini_file);
         }
         val["changed"] = changed;
@@ -785,23 +795,38 @@ void installWebApi() {
             throw ApiRetException("can not find the stream", API::NotFound);
         }
         src->getPlayerList(
-            [=](const std::list<std::shared_ptr<void>> &info_list) mutable {
+            [=](const std::list<toolkit::Any> &info_list) mutable {
                 val["code"] = API::Success;
                 auto &data = val["data"];
                 data = Value(arrayValue);
                 for (auto &info : info_list) {
-                    auto obj = static_pointer_cast<Value>(info);
-                    data.append(std::move(*obj));
+                    auto &obj = info.get<Value>();
+                    data.append(std::move(obj));
                 }
                 invoker(200, headerOut, val.toStyledString());
             },
-            [](std::shared_ptr<void> &&info) -> std::shared_ptr<void> {
+            [](toolkit::Any &&info) -> toolkit::Any {
                 auto obj = std::make_shared<Value>();
-                auto session = static_pointer_cast<Session>(info);
-                fillSockInfo(*obj, session.get());
-                (*obj)["typeid"] = toolkit::demangle(typeid(*session).name());
-                return obj;
+                auto &sock = info.get<SockInfo>();
+                fillSockInfo(*obj, &sock);
+                (*obj)["typeid"] = toolkit::demangle(typeid(sock).name());
+                toolkit::Any ret;
+                ret.set(obj);
+                return ret;
             });
+    });
+
+    api_regist("/index/api/broadcastMessage", [](API_ARGS_MAP) {
+        CHECK_SECRET();
+        CHECK_ARGS("schema", "vhost", "app", "stream", "msg");
+        auto src = MediaSource::find(allArgs["schema"], allArgs["vhost"], allArgs["app"], allArgs["stream"]);
+        if (!src) {
+            throw ApiRetException("can not find the stream", API::NotFound);
+        }
+        Any any;
+        Buffer::Ptr buffer = std::make_shared<BufferLikeString>(allArgs["msg"]);
+        any.set(std::move(buffer));
+        src->broadcastMessage(any);
     });
 
     //测试url http://127.0.0.1/index/api/getMediaInfo?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs
@@ -1563,7 +1588,7 @@ void installWebApi() {
             }
 
             //找到截图
-            auto tm = FindField(path.data() + scan_path.size(), nullptr, ".jpeg");
+            auto tm = findSubString(path.data() + scan_path.size(), nullptr, ".jpeg");
             if (atoll(tm.data()) + expire_sec < time(NULL)) {
                 //截图已经过期，改名，以便再次请求时，可以返回老截图
                 rename(path.data(), new_snap.data());
@@ -1637,7 +1662,7 @@ void installWebApi() {
             CHECK_ARGS("app", "stream");
 
             return StrPrinter << RTC_SCHEMA << "://" << _args["Host"] << "/" << _args["app"] << "/"
-                              << _args["stream"] << "?" << _args.getParser().Params() + "&session=" + _session_id;
+                              << _args["stream"] << "?" << _args.getParser().params() + "&session=" + _session_id;
         }
 
     private:
@@ -1700,7 +1725,7 @@ void installWebApi() {
 
     api_regist(delete_webrtc_url, [](API_ARGS_MAP_ASYNC) {
         CHECK_ARGS("id", "token");
-        CHECK(allArgs.getParser().Method() == "DELETE", "http method is not DELETE: " + allArgs.getParser().Method());
+        CHECK(allArgs.getParser().method() == "DELETE", "http method is not DELETE: " + allArgs.getParser().method());
         auto obj = WebRtcTransportManager::Instance().getItem(allArgs["id"]);
         if (!obj) {
             invoker(404, headerOut, "id not found");

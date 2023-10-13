@@ -47,21 +47,25 @@ static inline bool isRecording(Recorder::type type, const string &vhost, const s
     return src->isRecording(type);
 }
 
-static inline  bool startRecord(Recorder::type type, const string &vhost, const string &app, const string &stream_id,const string &customized_path, size_t max_second){
+static inline bool startRecord(Recorder::type type, const string &vhost, const string &app, const string &stream_id, const string &customized_path, size_t max_second) {
     auto src = MediaSource::find(vhost, app, stream_id);
     if (!src) {
         WarnL << "未找到相关的MediaSource,startRecord失败:" << vhost << "/" << app << "/" << stream_id;
         return false;
     }
-    return src->setupRecord(type, true, customized_path, max_second);
+    bool ret;
+    src->getOwnerPoller()->sync([&]() { ret = src->setupRecord(type, true, customized_path, max_second); });
+    return ret;
 }
 
-static inline bool stopRecord(Recorder::type type, const string &vhost, const string &app, const string &stream_id){
+static inline bool stopRecord(Recorder::type type, const string &vhost, const string &app, const string &stream_id) {
     auto src = MediaSource::find(vhost, app, stream_id);
-    if(!src){
+    if (!src) {
         return false;
     }
-    return src->setupRecord(type, false, "", 0);
+    bool ret;
+    src->getOwnerPoller()->sync([&]() { ret = src->setupRecord(type, false, "", 0); });
+    return ret;
 }
 
 API_EXPORT int API_CALL mk_recorder_is_recording(int type, const char *vhost, const char *app, const char *stream){

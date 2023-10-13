@@ -41,19 +41,20 @@ MP4Recorder::~MP4Recorder() {
 void MP4Recorder::createFile() {
     closeFile();
     auto date = getTimeStr("%Y-%m-%d");
-    auto time = getTimeStr("%H-%M-%S");
-    auto full_path_tmp = _folder_path + date + "/." + time + ".mp4";
-    auto full_path = _folder_path + date + "/" + time + ".mp4";
+    auto file_name = getTimeStr("%H-%M-%S") + "-" + std::to_string(_file_index++) + ".mp4";
+    auto full_path = _folder_path + date + "/" + file_name;
+    auto full_path_tmp = _folder_path + date + "/." + file_name;
 
     /////record 业务逻辑//////
     _info.start_time = ::time(NULL);
-    _info.file_name = time + ".mp4";
+    _info.file_name = file_name;
     _info.file_path = full_path;
     GET_CONFIG(string, appName, Record::kAppName);
-    _info.url = appName + "/" + _info.app + "/" + _info.stream + "/" + date + "/" + time + ".mp4";
+    _info.url = appName + "/" + _info.app + "/" + _info.stream + "/" + date + "/" + file_name;
 
     try {
         _muxer = std::make_shared<MP4Muxer>();
+        TraceL << "Open tmp mp4 file: " << full_path_tmp;
         _muxer->openMP4(full_path_tmp);
         for (auto &track :_tracks) {
             //添加track
@@ -71,10 +72,13 @@ void MP4Recorder::asyncClose() {
     auto full_path_tmp = _full_path_tmp;
     auto full_path = _full_path;
     auto info = _info;
+    TraceL << "Start close tmp mp4 file: " << full_path_tmp;
     WorkThreadPool::Instance().getExecutor()->async([muxer, full_path_tmp, full_path, info]() mutable {
         info.time_len = muxer->getDuration() / 1000.0f;
         // 关闭mp4可能非常耗时，所以要放在后台线程执行
+        TraceL << "Closing tmp mp4 file: " << full_path_tmp;
         muxer->closeMP4();
+        TraceL << "Closed tmp mp4 file: " << full_path_tmp;
         if (!full_path_tmp.empty()) {
             // 获取文件大小
             info.file_size = File::fileSize(full_path_tmp.data());
@@ -86,8 +90,9 @@ void MP4Recorder::asyncClose() {
             // 临时文件名改成正式文件名，防止mp4未完成时被访问
             rename(full_path_tmp.data(), full_path.data());
         }
+        TraceL << "Emit mp4 record event: " << full_path;
         //触发mp4录制切片生成事件
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRecordMP4, info);
+        NOTICE_EMIT(BroadcastRecordMP4Args, Broadcast::kBroadcastRecordMP4, info);
     });
 }
 

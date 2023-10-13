@@ -45,6 +45,7 @@ public:
 
 private:
     void makeVideoTrack(const AMFValue &val, int bit_rate);
+    void makeVideoTrack(const Track::Ptr &val, int bit_rate);
     void makeAudioTrack(const AMFValue &val, int sample_rate, int channels, int sample_bit, int bit_rate);
 
 private:

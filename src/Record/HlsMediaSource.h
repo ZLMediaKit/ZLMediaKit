@@ -25,7 +25,7 @@ public:
     using RingType = toolkit::RingBuffer<std::string>;
     using Ptr = std::shared_ptr<HlsMediaSource>;
 
-    HlsMediaSource(const MediaTuple& tuple): MediaSource(HLS_SCHEMA, tuple) {}
+    HlsMediaSource(const std::string &schema, const MediaTuple &tuple) : MediaSource(schema, tuple) {}
     ~HlsMediaSource() override = default;
 
     /**
@@ -57,6 +57,11 @@ public:
     }
 
     void onSegmentSize(size_t bytes) { _speed[TrackVideo] += bytes; }
+
+    void getPlayerList(const std::function<void(const std::list<toolkit::Any> &info_list)> &cb,
+                       const std::function<toolkit::Any(toolkit::Any &&info)> &on_change) override {
+        _ring->getInfoList(cb, on_change);
+    }
 
 private:
     RingType::Ptr _ring;

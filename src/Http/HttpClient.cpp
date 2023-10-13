@@ -21,7 +21,7 @@ namespace mediakit {
 void HttpClient::sendRequest(const string &url) {
     clearResponse();
     _url = url;
-    auto protocol = FindField(url.data(), NULL, "://");
+    auto protocol = findSubString(url.data(), NULL, "://");
     uint16_t port;
     bool is_https;
     if (strcasecmp(protocol.data(), "http") == 0) {
@@ -35,11 +35,11 @@ void HttpClient::sendRequest(const string &url) {
         throw std::invalid_argument(strErr);
     }
 
-    auto host = FindField(url.data(), "://", "/");
+    auto host = findSubString(url.data(), "://", "/");
     if (host.empty()) {
-        host = FindField(url.data(), "://", NULL);
+        host = findSubString(url.data(), "://", NULL);
     }
-    _path = FindField(url.data(), host.data(), NULL);
+    _path = findSubString(url.data(), host.data(), NULL);
     if (_path.empty()) {
         _path = "/";
     }
@@ -100,7 +100,7 @@ void HttpClient::clearResponse() {
     _header_recved = false;
     _recved_body_size = 0;
     _total_body_size = 0;
-    _parser.Clear();
+    _parser.clear();
     _chunked_splitter = nullptr;
     _wait_header.resetTime();
     _wait_body.resetTime();
@@ -181,20 +181,20 @@ void HttpClient::onError(const SockException &ex) {
 }
 
 ssize_t HttpClient::onRecvHeader(const char *data, size_t len) {
-    _parser.Parse(data);
-    if (_parser.Url() == "302" || _parser.Url() == "301" || _parser.Url() == "303") {
-        auto new_url = Parser::merge_url(_url, _parser["Location"]);
+    _parser.parse(data, len);
+    if (_parser.status() == "302" || _parser.status() == "301" || _parser.status() == "303") {
+        auto new_url = Parser::mergeUrl(_url, _parser["Location"]);
         if (new_url.empty()) {
             throw invalid_argument("未找到Location字段(跳转url)");
         }
-        if (onRedirectUrl(new_url, _parser.Url() == "302")) {
+        if (onRedirectUrl(new_url, _parser.status() == "302")) {
             HttpClient::sendRequest(new_url);
             return 0;
         }
     }
 
     checkCookie(_parser.getHeader());
-    onResponseHeader(_parser.Url(), _parser.getHeader());
+    onResponseHeader(_parser.status(), _parser.getHeader());
     _header_recved = true;
 
     if (_parser["Transfer-Encoding"] == "chunked") {
@@ -361,8 +361,8 @@ void HttpClient::checkCookie(HttpClient::HttpHeader &headers) {
         int index = 0;
         auto arg_vec = split(it_set_cookie->second, ";");
         for (string &key_val : arg_vec) {
-            auto key = FindField(key_val.data(), NULL, "=");
-            auto val = FindField(key_val.data(), "=", NULL);
+            auto key = findSubString(key_val.data(), NULL, "=");
+            auto val = findSubString(key_val.data(), "=", NULL);
 
             if (index++ == 0) {
                 cookie->setKeyVal(key, val);

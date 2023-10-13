@@ -9,6 +9,7 @@
  */
 
 #include <string.h>
+#include <stdio.h>
 #include "mk_mediakit.h"
 #define LOG_LEV 4
 

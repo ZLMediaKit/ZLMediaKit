@@ -32,14 +32,6 @@
 #define __LITTLE_ENDIAN LITTLE_ENDIAN
 #endif
 
-#ifndef PACKED
-#if !defined(_WIN32)
-#define PACKED __attribute__((packed))
-#else
-#define PACKED
-#endif //! defined(_WIN32)
-#endif
-
 #ifndef CHECK
 #define CHECK(exp, ...) ::mediakit::Assert_ThrowCpp(!(exp), #exp, __FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__)
 #endif // CHECK
@@ -67,6 +59,7 @@
 #define HLS_SCHEMA "hls"
 #define TS_SCHEMA "ts"
 #define FMP4_SCHEMA "fmp4"
+#define HLS_FMP4_SCHEMA "hls.fmp4"
 #define SRT_SCHEMA "srt"
 #define DEFAULT_VHOST "__defaultVhost__"
 

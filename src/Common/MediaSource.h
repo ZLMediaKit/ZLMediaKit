@@ -41,6 +41,7 @@ enum class MediaOriginType : uint8_t {
 std::string getOriginTypeString(MediaOriginType type);
 
 class MediaSource;
+class MultiMediaSourceMuxer;
 class MediaSourceEvent {
 public:
     friend class MediaSource;
@@ -88,6 +89,8 @@ public:
     virtual bool isRecording(MediaSource &sender, Recorder::type type) { return false; }
     // 获取所有track相关信息
     virtual std::vector<Track::Ptr> getMediaTracks(MediaSource &sender, bool trackReady = true) const { return std::vector<Track::Ptr>(); };
+    // 获取MultiMediaSourceMuxer对象
+    virtual std::shared_ptr<MultiMediaSourceMuxer> getMuxer(MediaSource &sender) { return nullptr; }
 
     class SendRtpArgs {
     public:
@@ -136,17 +139,30 @@ class ProtocolOption {
 public:
     ProtocolOption();
 
-    //时间戳修复这一路流标志位
-    bool modify_stamp;
+    enum {
+        kModifyStampOff = 0, // 采用源视频流绝对时间戳，不做任何改变
+        kModifyStampSystem = 1, // 采用zlmediakit接收数据时的系统时间戳(有平滑处理)
+        kModifyStampRelative = 2 // 采用源视频流时间戳相对时间戳(增长量)，有做时间戳跳跃和回退矫正
+    };
+    // 时间戳类型
+    int modify_stamp;
+
     //转协议是否开启音频
     bool enable_audio;
     //添加静音音频，在关闭音频时，此开关无效
     bool add_mute_audio;
+    // 无人观看时，是否直接关闭(而不是通过on_none_reader hook返回close)
+    // 此配置置1时，此流如果无人观看，将不触发on_none_reader hook回调，
+    // 而是将直接关闭流
+    bool auto_close;
+
     //断连续推延时，单位毫秒，默认采用配置文件
     uint32_t continue_push_ms;
 
-    //是否开启转换为hls
+    //是否开启转换为hls(mpegts)
     bool enable_hls;
+    //是否开启转换为hls(fmp4)
+    bool enable_hls_fmp4;
     //是否开启MP4录制
     bool enable_mp4;
     //是否开启转换为rtsp/webrtc
@@ -179,15 +195,20 @@ public:
     //hls录制保存路径
     std::string hls_save_path;
 
+    // 支持通过on_publish返回值替换stream_id
+    std::string stream_replace;
+
     template <typename MAP>
     ProtocolOption(const MAP &allArgs) : ProtocolOption() {
 #define GET_OPT_VALUE(key) getArgsValue(allArgs, #key, key)
         GET_OPT_VALUE(modify_stamp);
         GET_OPT_VALUE(enable_audio);
         GET_OPT_VALUE(add_mute_audio);
+        GET_OPT_VALUE(auto_close);
         GET_OPT_VALUE(continue_push_ms);
 
         GET_OPT_VALUE(enable_hls);
+        GET_OPT_VALUE(enable_hls_fmp4);
         GET_OPT_VALUE(enable_mp4);
         GET_OPT_VALUE(enable_rtsp);
         GET_OPT_VALUE(enable_rtmp);
@@ -205,6 +226,7 @@ public:
         GET_OPT_VALUE(mp4_save_path);
 
         GET_OPT_VALUE(hls_save_path);
+        GET_OPT_VALUE(stream_replace);
     }
 
 private:
@@ -244,6 +266,7 @@ public:
     bool stopSendRtp(MediaSource &sender, const std::string &ssrc) override;
     float getLossRate(MediaSource &sender, TrackType type) override;
     toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;
+    std::shared_ptr<MultiMediaSourceMuxer> getMuxer(MediaSource &sender) override;
 
 private:
     std::weak_ptr<MediaSourceEvent> _listener;
@@ -268,6 +291,8 @@ public:
     std::string param_strs;
 };
 
+bool equalMediaTuple(const MediaTuple& a, const MediaTuple& b);
+
 /**
  * 媒体源，任何rtsp/rtmp的直播流都源自该对象
  */
@@ -282,21 +307,15 @@ public:
     ////////////////获取MediaSource相关信息////////////////
 
     // 获取协议类型
-    const std::string& getSchema() const;
-    // 虚拟主机
-    const std::string& getVhost() const;
-    // 应用名
-    const std::string& getApp() const;
-    // 流id
-    const std::string& getId() const;
+    const std::string& getSchema() const {
+        return _schema;
+    }
 
     const MediaTuple& getMediaTuple() const {
         return _tuple;
     }
 
-    std::string shortUrl() const { return _tuple.shortUrl(); }
-
-    std::string getUrl() const { return _schema + "://" + shortUrl(); }
+    std::string getUrl() const { return _schema + "://" + _tuple.shortUrl(); }
 
     //获取对象所有权
     std::shared_ptr<void> getOwnership();
@@ -321,18 +340,20 @@ public:
     // 设置监听者
     virtual void setListener(const std::weak_ptr<MediaSourceEvent> &listener);
     // 获取监听者
-    std::weak_ptr<MediaSourceEvent> getListener(bool next = false) const;
+    std::weak_ptr<MediaSourceEvent> getListener() const;
 
     // 本协议获取观看者个数，可能返回本协议的观看人数，也可能返回总人数
     virtual int readerCount() = 0;
     // 观看者个数，包括(hls/rtsp/rtmp)
     virtual int totalReaderCount();
     // 获取播放器列表
-    virtual void getPlayerList(const std::function<void(const std::list<std::shared_ptr<void>> &info_list)> &cb,
-                               const std::function<std::shared_ptr<void>(std::shared_ptr<void> &&info)> &on_change) {
+    virtual void getPlayerList(const std::function<void(const std::list<toolkit::Any> &info_list)> &cb,
+                               const std::function<toolkit::Any(toolkit::Any &&info)> &on_change) {
         assert(cb);
-        cb(std::list<std::shared_ptr<void>>());
+        cb(std::list<toolkit::Any>());
     }
+
+    virtual bool broadcastMessage(const toolkit::Any &data) { return false; }
 
     // 获取媒体源类型
     MediaOriginType getOriginType() const;
@@ -363,6 +384,8 @@ public:
     float getLossRate(mediakit::TrackType type);
     // 获取所在线程
     toolkit::EventPoller::Ptr getOwnerPoller();
+    // 获取MultiMediaSourceMuxer对象
+    std::shared_ptr<MultiMediaSourceMuxer> getMuxer();
 
     ////////////////static方法，查找或生成MediaSource////////////////
 

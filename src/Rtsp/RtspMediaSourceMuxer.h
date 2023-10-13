@@ -44,7 +44,8 @@ public:
         _media_src->setTimeStamp(stamp);
     }
 
-    void onAllTrackReady(){
+    void addTrackCompleted() override {
+        RtspMuxer::addTrackCompleted();
         _media_src->setSdp(getSdp());
     }
 

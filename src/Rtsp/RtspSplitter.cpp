@@ -61,11 +61,11 @@ ssize_t RtspSplitter::onRecvHeader(const char *data, size_t len) {
         onRtpPacket(data,len);
         return 0;
     }
-    _parser.Parse(data);
+    _parser.parse(data, len);
     auto ret = getContentLength(_parser);
     if(ret == 0){
         onWholeRtspPacket(_parser);
-        _parser.Clear();
+        _parser.clear();
     }
     return ret;
 }
@@ -73,7 +73,7 @@ ssize_t RtspSplitter::onRecvHeader(const char *data, size_t len) {
 void RtspSplitter::onRecvContent(const char *data, size_t len) {
     _parser.setContent(string(data,len));
     onWholeRtspPacket(_parser);
-    _parser.Clear();
+    _parser.clear();
 }
 
 void RtspSplitter::enableRecvRtp(bool enable) {

@@ -46,7 +46,7 @@
 
 ## 功能清单
 ### 功能一览
-<img width="800" alt="功能一览" src="https://user-images.githubusercontent.com/11495632/190864440-91c45f8f-480f-43db-8110-5bb44e6300ff.png">
+<img width="800" alt="功能一览" src="https://github.com/ZLMediaKit/ZLMediaKit/assets/11495632/481ea769-5b27-495e-bf7d-31191e6af9d2">
 
 - RTSP[S]
   - RTSP[S] 服务器，支持RTMP/MP4/HLS转RTSP[S],支持亚马逊echo show这样的设备
@@ -63,14 +63,16 @@
   - RTMP[S] 发布服务器，支持录制发布流
   - RTMP[S] 播放器，支持RTMP代理，支持生成静音音频
   - RTMP[S] 推流客户端
-  - 支持http[s]-flv直播
+  - 支持http[s]-flv直播服务器
+  - 支持http[s]-flv直播播放器
   - 支持websocket-flv直播
   - 支持H264/H265/AAC/G711/OPUS编码，其他编码能转发但不能转协议
   - 支持[RTMP-H265](https://github.com/ksvc/FFmpeg/wiki)
   - 支持[RTMP-OPUS](https://github.com/ZLMediaKit/ZLMediaKit/wiki/RTMP%E5%AF%B9H265%E5%92%8COPUS%E7%9A%84%E6%94%AF%E6%8C%81)
+  - 支持[enhanced-rtmp(H265)](https://github.com/veovera/enhanced-rtmp)
 
 - HLS
-  - 支持HLS文件生成，自带HTTP文件服务器
+  - 支持HLS文件(mpegts/fmp4)生成，自带HTTP文件服务器
   - 通过cookie追踪技术，可以模拟HLS播放为长连接，可以实现HLS按需拉流、播放统计等业务
   - 支持HLS播发器，支持拉流HLS转rtsp/rtmp/mp4
   - 支持H264/H265/AAC/G711/OPUS编码
@@ -167,30 +169,36 @@ bash build_docker_images.sh
 ```
 
 ## 合作项目
+   
+ - 视频管理平台
+   - [wvp-GB28181-pro](https://github.com/648540858/wvp-GB28181-pro) java实现的开箱即用的GB28181协议视频平台
+   - [AKStream](https://github.com/chatop2020/AKStream) c#实现的全功能的软NVR接口/GB28181平台
+   - [BXC_SipServer](https://github.com/any12345com/BXC_SipServer) c++实现的国标GB28181流媒体信令服务器
+   - [gosip](https://github.com/panjjo/gosip) golang实现的GB28181服务器
+   - [FreeEhome](https://github.com/tsingeye/FreeEhome) golang实现的海康ehome服务器
+  
+ - 播放器
+   - [h265web.js](https://github.com/numberwolf/h265web.js) 基于wasm支持H265的播放器，支持本项目多种专属协议
+   - [jessibuca](https://github.com/langhuihui/jessibuca) 基于wasm支持H265的播放器
+   - [wsPlayer](https://github.com/v354412101/wsPlayer) 基于MSE的websocket-fmp4播放器
+   - [BXC_gb28181Player](https://github.com/any12345com/BXC_gb28181Player) C++开发的支持国标GB28181协议的视频流播放器
 
- - 可视化管理网站
-    - [最新的前后端分离web项目,支持webrtc播放](https://github.com/langmansh/AKStreamNVR)
-    - [基于ZLMediaKit主线的管理WEB网站](https://gitee.com/kkkkk5G/MediaServerUI) 
-    - [基于ZLMediaKit分支的管理WEB网站](https://github.com/chenxiaolei/ZLMediaKit_NVR_UI)
-    - [一个非常漂亮的可视化后台管理系统](https://github.com/MingZhuLiu/ZLMediaServerManagent)
-    
- - 流媒体管理平台
-   - [GB28181完整解决方案,自带web管理网站,支持webrtc、h265播放](https://github.com/648540858/wvp-GB28181-pro)
-   - [功能强大的流媒体控制管理接口平台,支持GB28181](https://github.com/chatop2020/AKStream)
-   - [Go实现的GB28181服务器](https://github.com/panjjo/gosip)
-   - [node-js版本的GB28181平台](https://gitee.com/hfwudao/GB28181_Node_Http)
-   - [Go实现的海康ehome服务器](https://github.com/tsingeye/FreeEhome)
-
- - 客户端
-   - [c sdk完整c#包装库](https://github.com/malegend/ZLMediaKit.Autogen) 
+- WEB管理网站
+   - [AKStreamNVR](https://github.com/langmansh/AKStreamNVR) 前后端分离web项目,支持webrtc播放
+   
+ - SDK
+   - [c# sdk](https://github.com/malegend/ZLMediaKit.Autogen) 本项目c sdk完整c#包装库
+   - [metaRTC](https://github.com/metartc/metaRTC) 全国产纯c webrtc sdk
+   
+ - 其他项目(已停止更新)
+   - [NodeJS实现的GB28181平台](https://gitee.com/hfwudao/GB28181_Node_Http)
+   - [基于ZLMediaKit主线的管理WEB网站 ](https://gitee.com/kkkkk5G/MediaServerUI)
+   - [基于ZLMediaKit分支的管理WEB网站](https://github.com/chenxiaolei/ZLMediaKit_NVR_UI)
+   - [一个非常漂亮的可视化后台管理系统](https://github.com/MingZhuLiu/ZLMediaServerManagent)
    - [基于C SDK实现的推流客户端](https://github.com/hctym1995/ZLM_ApiDemo)
    - [C#版本的Http API与Hook](https://github.com/chengxiaosheng/ZLMediaKit.HttpApi)
    - [DotNetCore的RESTful客户端](https://github.com/MingZhuLiu/ZLMediaKit.DotNetCore.Sdk)
    
- - 播放器
-   - [基于wasm支持H265的播放器](https://github.com/numberwolf/h265web.js)
-   - [基于MSE的websocket-fmp4播放器](https://github.com/v354412101/wsPlayer) 
-   - [全国产webrtc sdk(metaRTC)](https://github.com/metartc/metaRTC)
    
 ## 授权协议
 
@@ -202,9 +210,12 @@ bash build_docker_images.sh
 ## 联系方式
 
  - 邮箱：<1213642868@qq.com>(本项目相关或流媒体相关问题请走issue流程，否则恕不邮件答复)
- - QQ群：两个qq群已满员(共4000人)，后续将不再新建qq群，用户可加入[知识星球](https://github.com/ZLMediaKit/ZLMediaKit/issues/2364)提问以支持本项目。
- - 关注微信公众号：
+ - 请关注微信公众号获取最新消息推送：
  <img src=https://user-images.githubusercontent.com/11495632/232451702-4c50bc72-84d8-4c94-af2b-57290088ba7a.png width=15% />
+ 
+ - 也可以自愿有偿加入知识星球咨询和获取资料：
+ <img src= https://user-images.githubusercontent.com/11495632/231946329-aa8517b0-3cf5-49cf-8c75-a93ed58cb9d2.png width=30% />
+  
 
 ## 怎么提问？
 
@@ -212,9 +223,7 @@ bash build_docker_images.sh
 
  - 1、仔细看下readme、wiki，如果有必要可以查看下issue.
  - 2、如果您的问题还没解决，可以提issue.
- - 3、有些问题，如果不具备参考性的，无需在issue提的，可以在qq群提.
- - 4、QQ私聊一般不接受无偿技术咨询和支持([为什么不提倡QQ私聊](https://github.com/ZLMediaKit/ZLMediaKit/wiki/%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B8%8D%E5%BB%BA%E8%AE%AEQQ%E7%A7%81%E8%81%8A%E5%92%A8%E8%AF%A2%E9%97%AE%E9%A2%98%EF%BC%9F)).
- - 5、如果需要获取更及时贴心的技术支持，可以有偿加入[知识星球](https://github.com/ZLMediaKit/ZLMediaKit/issues/2364).
+ - 3、如果需要获取更及时贴心的技术支持，可以有偿加入[知识星球](https://github.com/ZLMediaKit/ZLMediaKit/issues/2364).
 
 ## 特别感谢
 
@@ -309,6 +318,21 @@ bash build_docker_images.sh
 [朱如洪 ](https://github.com/zhu410289616)
 [lijin](https://github.com/1461521844lijin)
 [PioLing](https://github.com/PioLing)
+[BackT0TheFuture](https://github.com/BackT0TheFuture)
+[perara](https://github.com/perara)
+[codeRATny](https://github.com/codeRATny)
+[dengjfzh](https://github.com/dengjfzh)
+[百鸣](https://github.com/ixingqiao)
+[fruit Juice](https://github.com/xuandu)
+[tbago](https://github.com/tbago)
+[Luosh](https://github.com/Luosh)
+[linxiaoyan87](https://github.com/linxiaoyan)
+[waken](https://github.com/mc373906408)
+[Deepslient](https://github.com/Deepslient)
+
+同时感谢JetBrains对开源项目的支持，本项目使用CLion开发与调试：
+
+[![JetBrains](https://resources.jetbrains.com/storage/products/company/brand/logos/CLion.svg)](https://jb.gg/OpenSourceSupport)
 
 ## 使用案例
 

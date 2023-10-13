@@ -34,11 +34,17 @@ if(ENABLE_SERVER_LIB)
     PRIVATE ${COMPILE_OPTIONS_DEFAULT})
   target_link_libraries(MediaServer
     PRIVATE ${MK_LINK_LIBRARIES})
-  update_cached(MK_LINK_LIBRARIES MediaServer)
+  update_cached_list(MK_LINK_LIBRARIES MediaServer)
   return()
 endif()
 
-add_executable(MediaServer ${MediaServer_SRC_LIST})
+# IOS 不编译可执行程序，只做依赖库
+if(IOS)
+  add_library(MediaServer STATIC ${MediaServer_SRC_LIST})
+else()
+  add_executable(MediaServer ${MediaServer_SRC_LIST})
+endif()
+
 target_compile_definitions(MediaServer
   PRIVATE ${COMPILE_DEFINITIONS})
 target_compile_options(MediaServer

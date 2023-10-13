@@ -99,7 +99,7 @@ extern const std::string kBroadcastStreamNoneReader;
 
 // rtp推流被动停止时触发
 extern const std::string kBroadcastSendRtpStopped;
-#define BroadcastSendRtpStopped MultiMediaSourceMuxer &sender, const std::string &ssrc, const SockException &ex
+#define BroadcastSendRtpStoppedArgs MultiMediaSourceMuxer &sender, const std::string &ssrc, const SockException &ex
 
 // 更新配置文件事件广播,执行loadIniConfig函数加载配置文件成功后会触发该广播
 extern const std::string kBroadcastReloadConfig;
@@ -107,7 +107,7 @@ extern const std::string kBroadcastReloadConfig;
 
 // rtp server 超时
 extern const std::string KBroadcastRtpServerTimeout;
-#define BroadcastRtpServerTimeout uint16_t &local_port, const string &stream_id,int &tcp_mode, bool &re_use_port, uint32_t &ssrc
+#define BroadcastRtpServerTimeoutArgs uint16_t &local_port, const string &stream_id,int &tcp_mode, bool &re_use_port, uint32_t &ssrc
 
 #define ReloadConfigTag ((void *)(0xFF))
 #define RELOAD_KEY(arg, key)                                                                                           \
@@ -190,11 +190,17 @@ extern const std::string kModifyStamp;
 extern const std::string kEnableAudio;
 //添加静音音频，在关闭音频时，此开关无效
 extern const std::string kAddMuteAudio;
+// 无人观看时，是否直接关闭(而不是通过on_none_reader hook返回close)
+// 此配置置1时，此流如果无人观看，将不触发on_none_reader hook回调，
+// 而是将直接关闭流
+extern const std::string kAutoClose;
 //断连续推延时，单位毫秒，默认采用配置文件
 extern const std::string kContinuePushMS;
 
-//是否开启转换为hls
+//是否开启转换为hls(mpegts)
 extern const std::string kEnableHls;
+//是否开启转换为hls(fmp4)
+extern const std::string kEnableHlsFmp4;
 //是否开启MP4录制
 extern const std::string kEnableMP4;
 //是否开启转换为rtsp/webrtc
@@ -248,6 +254,8 @@ extern const std::string kForbidCacheSuffix;
 extern const std::string kForwardedIpHeader;
 // 是否允许所有跨域请求
 extern const std::string kAllowCrossDomains;
+// 允许访问http api和http文件索引的ip地址范围白名单，置空情况下不做限制
+extern const std::string kAllowIPRange;
 } // namespace Http
 
 ////////////SHELL配置///////////
@@ -273,6 +281,11 @@ extern const std::string kDirectProxy;
 
 // rtsp 转发是否使用低延迟模式，当开启时，不会缓存rtp包，来提高并发，可以降低一帧的延迟
 extern const std::string kLowLatency;
+
+//强制协商rtp传输方式 (0:TCP,1:UDP,2:MULTICAST,-1:不限制)
+//当客户端发起RTSP SETUP的时候如果传输类型和此配置不一致则返回461 Unsupport Transport
+//迫使客户端重新SETUP并切换到对应协议。目前支持FFMPEG和VLC
+extern const std::string kRtpTransportType;
 } // namespace Rtsp
 
 ////////////RTMP服务器配置///////////
@@ -293,6 +306,8 @@ extern const std::string kAudioMtuSize;
 extern const std::string kRtpMaxSize;
 // rtp 打包时，低延迟开关，默认关闭（为0），h264存在一帧多个slice（NAL）的情况，在这种情况下，如果开启可能会导致画面花屏
 extern const std::string kLowLatency;
+//H264 rtp打包模式是否采用stap-a模式(为了在老版本浏览器上兼容webrtc)还是采用Single NAL unit packet per H.264 模式
+extern const std::string kH264StapA;
 } // namespace Rtp
 
 ////////////组播配置///////////
