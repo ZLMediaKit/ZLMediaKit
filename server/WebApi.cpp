@@ -1911,24 +1911,28 @@ void installWebApi() {
 void unInstallWebApi(){
     {
         lock_guard<recursive_mutex> lck(s_proxyMapMtx);
-        s_proxyMap.clear();
+        auto proxyMap(std::move(s_proxyMap));
+        proxyMap.clear();
     }
 
     {
         lock_guard<recursive_mutex> lck(s_ffmpegMapMtx);
-        s_ffmpegMap.clear();
+        auto ffmpegMap(std::move(s_ffmpegMap));
+        ffmpegMap.clear();
     }
 
     {
         lock_guard<recursive_mutex> lck(s_proxyPusherMapMtx);
-        s_proxyPusherMap.clear();
+        auto proxyPusherMap(std::move(s_proxyPusherMap));
+        proxyPusherMap.clear();
     }
 
     {
 #if defined(ENABLE_RTPPROXY)
         RtpSelector::Instance().clear();
         lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
-        s_rtpServerMap.clear();
+        auto rtpServerMap(std::move(s_rtpServerMap));
+        rtpServerMap.clear();
 #endif
     }
     NoticeCenter::Instance().delListener(&web_api_tag);
