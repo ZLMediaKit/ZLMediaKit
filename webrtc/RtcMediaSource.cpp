@@ -89,7 +89,7 @@ bool RtcMediaSourceMuxer::inputFrame(const Frame::Ptr &frame)
           addTrack(track);
         if (!_audio_dec) return false;
       }
-      if (readerCount()) {
+      if (readerCount() || !_regist) {
         _audio_dec->inputFrame(frame, true, false);
         if (!_count)
           InfoL << "start transcode " << frame->getCodecName() << "," << frame->pts() << "->Opus";
@@ -108,6 +108,11 @@ bool RtcMediaSourceMuxer::inputFrame(const Frame::Ptr &frame)
 }
 
 #if defined(ENABLE_FFMPEG)
+void RtcMediaSourceMuxer::onRegist(MediaSource &sender, bool regist)
+{
+  MediaSourceEventInterceptor::onRegist(sender, regist);
+  _regist = regist;
+}
 
 bool RtcMediaSourceMuxer::addTrack(const Track::Ptr & track)
 {

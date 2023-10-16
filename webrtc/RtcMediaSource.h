@@ -46,11 +46,13 @@ public:
 #if defined(ENABLE_FFMPEG)
     ~RtcMediaSourceMuxer() override{resetTracks();}
 
+    void onRegist(MediaSource &sender, bool regist) override;
     bool addTrack(const Track::Ptr & track) override;
     void resetTracks() override;
 
 private:
     int _count = 0;
+    bool _regist = false;
     std::shared_ptr<FFmpegDecoder> _audio_dec;
     std::shared_ptr<FFmpegEncoder> _audio_enc;
 #endif
