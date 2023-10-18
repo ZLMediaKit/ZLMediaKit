@@ -16,8 +16,10 @@
 #include "Extension/AAC.h"
 #include "Extension/G711.h"
 #include "Extension/Opus.h"
-using namespace toolkit;
+#include "Extension/JPEG.h"
+
 using namespace std;
+using namespace toolkit;
 
 namespace mediakit {
 
@@ -105,8 +107,9 @@ void MP4Demuxer::onVideoTrack(uint32_t track, uint8_t object, int width, int hei
                     video->inputFrame(std::make_shared<H264FrameNoCacheAble>((char *)config, size, 0, 0,4));
                 }
             }
-        }
             break;
+        }
+
         case MOV_OBJECT_HEVC: {
             auto video = std::make_shared<H265Track>();
             _track_to_codec.emplace(track,video);
@@ -120,11 +123,16 @@ void MP4Demuxer::onVideoTrack(uint32_t track, uint8_t object, int width, int hei
                     video->inputFrame(std::make_shared<H265FrameNoCacheAble>((char *) config, size, 0, 0,4));
                 }
             }
+            break;
         }
+
+        case MOV_OBJECT_JPEG: {
+            auto video = std::make_shared<JPEGTrack>();
+            _track_to_codec.emplace(track,video);
             break;
-        default:
-            WarnL << "不支持该编码类型的MP4,已忽略:" << getObjectName(object);
-            break;
+        }
+
+        default: WarnL << "不支持该编码类型的MP4,已忽略:" << getObjectName(object); break;
     }
 }
 
@@ -240,6 +248,11 @@ Frame::Ptr MP4Demuxer::makeFrame(uint32_t track_id, const Buffer::Ptr &buf, int6
                 break;
             }
             ret = std::make_shared<FrameWrapper<H265FrameNoCacheAble> >(buf, (uint64_t)dts, (uint64_t)pts, 4, DATA_OFFSET);
+            break;
+        }
+
+        case CodecJPEG: {
+            ret = std::make_shared<JPEGFrame>(buf, (uint64_t)dts, 0, DATA_OFFSET);
             break;
         }
 

@@ -85,14 +85,14 @@ public:
     /**
      * 设置附加数据
      */
-    void setAttach(std::shared_ptr<void> attach);
+    void setAttach(toolkit::Any attach);
 
     /*
      * 获取附加数据
      */
     template <class T>
     T& getAttach() {
-        return *static_cast<T *>(_attach.get());
+        return _attach.get<T>();
     }
 
 private:
@@ -104,7 +104,7 @@ private:
     std::string _cookie_uuid;
     uint64_t _max_elapsed;
     toolkit::Ticker _ticker;
-    std::shared_ptr<void> _attach;
+    toolkit::Any _attach;
     std::weak_ptr<HttpCookieManager> _manager;
 };
 
@@ -163,7 +163,7 @@ public:
      */
     HttpServerCookie::Ptr addCookie(
         const std::string &cookie_name, const std::string &uid, uint64_t max_elapsed = COOKIE_DEFAULT_LIFE,
-        std::shared_ptr<void> attach = nullptr,
+        toolkit::Any = toolkit::Any{},
         int max_client = 1);
 
     /**
