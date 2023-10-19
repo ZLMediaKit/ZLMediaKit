@@ -102,7 +102,7 @@ public:
                     process->setOnDetach(std::move(strong_self->_on_detach));
                 }
                 if (!process) { // process 未创建，触发rtp server 超时事件
-                    NOTICE_EMIT(BroadcastRtpServerTimeoutArgs, Broadcast::KBroadcastRtpServerTimeout, strong_self->_local_port, strong_self->_stream_id,
+                    NOTICE_EMIT(BroadcastRtpServerTimeoutArgs, Broadcast::kBroadcastRtpServerTimeout, strong_self->_local_port, strong_self->_stream_id,
                                 (int)strong_self->_tcp_mode, strong_self->_re_use_port, strong_self->_ssrc);
                 }
             }
@@ -161,7 +161,7 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_
     if (local_port == 0) {
         //随机端口，rtp端口采用偶数
         auto pair = std::make_pair(rtp_socket, rtcp_socket);
-        makeSockPair(pair, local_ip, re_use_port);
+        makeSockPair(pair, local_ip, re_use_port, TcpMode::NONE == tcp_mode);
         local_port = rtp_socket->get_local_port();
     } else if (!rtp_socket->bindUdpSock(local_port, local_ip, re_use_port)) {
         //用户指定端口

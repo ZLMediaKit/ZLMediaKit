@@ -166,11 +166,11 @@ void HttpSession::onError(const SockException &err) {
     if (_is_live_stream) {
         // flv/ts播放器
         uint64_t duration = _ticker.createdTime() / 1000;
-        WarnP(this) << "FLV/TS/FMP4播放器(" << _mediaInfo.shortUrl() << ")断开:" << err << ",耗时(s):" << duration;
+        WarnP(this) << "FLV/TS/FMP4播放器(" << _media_info.shortUrl() << ")断开:" << err << ",耗时(s):" << duration;
 
         GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
         if (_total_bytes_usage >= iFlowThreshold * 1024) {
-            NOTICE_EMIT(BroadcastFlowReportArgs, Broadcast::kBroadcastFlowReport, _mediaInfo, _total_bytes_usage, duration, true, *this);
+            NOTICE_EMIT(BroadcastFlowReportArgs, Broadcast::kBroadcastFlowReport, _media_info, _total_bytes_usage, duration, true, *this);
         }
         return;
     }
@@ -263,9 +263,9 @@ bool HttpSession::checkLiveStream(const string &schema, const string &url_suffix
     }
 
     // 解析带上协议+参数完整的url
-    _mediaInfo.parse(schema + "://" + _parser["Host"] + url);
+    _media_info.parse(schema + "://" + _parser["Host"] + url);
 
-    if (_mediaInfo.app.empty() || _mediaInfo.stream.empty()) {
+    if (_media_info.app.empty() || _media_info.stream.empty()) {
         // url不合法
         return false;
     }
@@ -288,7 +288,7 @@ bool HttpSession::checkLiveStream(const string &schema, const string &url_suffix
         }
 
         // 异步查找直播流
-        MediaSource::findAsync(strong_self->_mediaInfo, strong_self, [weak_self, close_flag, cb](const MediaSource::Ptr &src) {
+        MediaSource::findAsync(strong_self->_media_info, strong_self, [weak_self, close_flag, cb](const MediaSource::Ptr &src) {
             auto strong_self = weak_self.lock();
             if (!strong_self) {
                 // 本对象已经销毁
@@ -311,7 +311,7 @@ bool HttpSession::checkLiveStream(const string &schema, const string &url_suffix
         }
     };
 
-    auto flag = NOTICE_EMIT(BroadcastMediaPlayedArgs, Broadcast::kBroadcastMediaPlayed, _mediaInfo, invoker, *this);
+    auto flag = NOTICE_EMIT(BroadcastMediaPlayedArgs, Broadcast::kBroadcastMediaPlayed, _media_info, invoker, *this);
     if (!flag) {
         // 该事件无人监听,默认不鉴权
         onRes("");

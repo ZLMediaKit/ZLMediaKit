@@ -106,7 +106,7 @@ extern const std::string kBroadcastReloadConfig;
 #define BroadcastReloadConfigArgs void
 
 // rtp server 超时
-extern const std::string KBroadcastRtpServerTimeout;
+extern const std::string kBroadcastRtpServerTimeout;
 #define BroadcastRtpServerTimeoutArgs uint16_t &local_port, const string &stream_id,int &tcp_mode, bool &re_use_port, uint32_t &ssrc
 
 #define ReloadConfigTag ((void *)(0xFF))
