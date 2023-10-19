@@ -37,8 +37,8 @@ public:
     void teardown() override;
 
 protected:
-    virtual bool onCheckMeta(const AMFValue &val) = 0;
-    virtual void onMediaData(RtmpPacket::Ptr chunk_data) = 0;
+    virtual bool onMetadata(const AMFValue &val) = 0;
+    virtual void onRtmpPacket(RtmpPacket::Ptr chunk_data) = 0;
     uint32_t getProgressMilliSecond() const;
     void seekToMilliSecond(uint32_t ms);
 

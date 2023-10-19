@@ -30,10 +30,7 @@ H264Frame::Ptr H264RtmpDecoder::obtainFrame() {
  * 返回不带0x00 00 00 01头的sps pps
  */
 static bool getH264Config(const RtmpPacket &thiz, string &sps, string &pps) {
-    if (thiz.getMediaType() != FLV_CODEC_H264) {
-        return false;
-    }
-    if (!thiz.isCfgFrame()) {
+    if ((RtmpVideoCodec)thiz.getRtmpCodecId() != RtmpVideoCodec::h264) {
         return false;
     }
     if (thiz.buffer.size() < 13) {
@@ -59,7 +56,7 @@ static bool getH264Config(const RtmpPacket &thiz, string &sps, string &pps) {
 }
 
 void H264RtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt) {
-    if (pkt->isCfgFrame()) {
+    if (pkt->isConfigFrame()) {
         //缓存sps pps，后续插入到I帧之前
         if (!getH264Config(*pkt, _sps, _pps)) {
             WarnL << "get h264 sps/pps failed, rtmp packet is: " << hexdump(pkt->data(), pkt->size());
@@ -159,26 +156,21 @@ bool H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     }
 
     return _merger.inputFrame(frame, [this](uint64_t dts, uint64_t pts, const Buffer::Ptr &, bool have_key_frame) {
-        //flags
-        _rtmp_packet->buffer[0] = FLV_CODEC_H264 | ((have_key_frame ? FLV_KEY_FRAME : FLV_INTER_FRAME) << 4);
-        //not config
-        _rtmp_packet->buffer[1] = true;
-        int32_t cts = pts - dts;
-        if (cts < 0) {
-            cts = 0;
-        }
-        //cts
-        set_be24(&_rtmp_packet->buffer[2], cts);
-
-        _rtmp_packet->time_stamp = dts;
-        _rtmp_packet->body_size = _rtmp_packet->buffer.size();
-        _rtmp_packet->chunk_id = CHUNK_VIDEO;
-        _rtmp_packet->stream_index = STREAM_MEDIA;
-        _rtmp_packet->type_id = MSG_VIDEO;
-        //输出rtmp packet
-        RtmpCodec::inputRtmp(_rtmp_packet);
-        _rtmp_packet = nullptr;
-    }, &_rtmp_packet->buffer);
+            // flags
+            _rtmp_packet->buffer[0] = (uint8_t)RtmpVideoCodec::h264 | ((uint8_t)(have_key_frame ? RtmpFrameType::key_frame : RtmpFrameType::inter_frame) << 4);
+            _rtmp_packet->buffer[1] = (uint8_t)RtmpH264PacketType::h264_nalu;
+            int32_t cts = pts - dts;
+            // cts
+            set_be24(&_rtmp_packet->buffer[2], cts);
+            _rtmp_packet->time_stamp = dts;
+            _rtmp_packet->body_size = _rtmp_packet->buffer.size();
+            _rtmp_packet->chunk_id = CHUNK_VIDEO;
+            _rtmp_packet->stream_index = STREAM_MEDIA;
+            _rtmp_packet->type_id = MSG_VIDEO;
+            // 输出rtmp packet
+            RtmpCodec::inputRtmp(_rtmp_packet);
+            _rtmp_packet = nullptr;
+        }, &_rtmp_packet->buffer);
 }
 
 void H264RtmpEncoder::makeVideoConfigPkt() {
@@ -186,42 +178,39 @@ void H264RtmpEncoder::makeVideoConfigPkt() {
         WarnL << "sps长度不足4字节";
         return;
     }
-    int8_t flags = FLV_CODEC_H264;
-    flags |= (FLV_KEY_FRAME << 4);
-    bool is_config = true;
-
-    auto rtmpPkt = RtmpPacket::create();
-    //header
-    rtmpPkt->buffer.push_back(flags);
-    rtmpPkt->buffer.push_back(!is_config);
-    //cts
-    rtmpPkt->buffer.append("\x0\x0\x0", 3);
-
-    //AVCDecoderConfigurationRecord start
-    rtmpPkt->buffer.push_back(1); // version
-    rtmpPkt->buffer.push_back(_sps[1]); // profile
-    rtmpPkt->buffer.push_back(_sps[2]); // compat
-    rtmpPkt->buffer.push_back(_sps[3]); // level
-    rtmpPkt->buffer.push_back((char)0xff); // 6 bits reserved + 2 bits nal size length - 1 (11)
-    rtmpPkt->buffer.push_back((char)0xe1); // 3 bits reserved + 5 bits number of sps (00001)
-    //sps
+    auto flags = (uint8_t)RtmpVideoCodec::h264;
+    flags |= ((uint8_t)RtmpFrameType::key_frame << 4);
+    auto pkt = RtmpPacket::create();
+    // header
+    pkt->buffer.push_back(flags);
+    pkt->buffer.push_back((uint8_t)RtmpH264PacketType::h264_config_header);
+    // cts
+    pkt->buffer.append("\x0\x0\x0", 3);
+    // AVCDecoderConfigurationRecord start
+    pkt->buffer.push_back(1); // version
+    pkt->buffer.push_back(_sps[1]); // profile
+    pkt->buffer.push_back(_sps[2]); // compat
+    pkt->buffer.push_back(_sps[3]); // level
+    pkt->buffer.push_back((char)0xff); // 6 bits reserved + 2 bits nal size length - 1 (11)
+    pkt->buffer.push_back((char)0xe1); // 3 bits reserved + 5 bits number of sps (00001)
+    // sps
     uint16_t size = (uint16_t)_sps.size();
     size = htons(size);
-    rtmpPkt->buffer.append((char *) &size, 2);
-    rtmpPkt->buffer.append(_sps);
-    //pps
-    rtmpPkt->buffer.push_back(1); // version
+    pkt->buffer.append((char *)&size, 2);
+    pkt->buffer.append(_sps);
+    // pps
+    pkt->buffer.push_back(1); // version
     size = (uint16_t)_pps.size();
     size = htons(size);
-    rtmpPkt->buffer.append((char *) &size, 2);
-    rtmpPkt->buffer.append(_pps);
+    pkt->buffer.append((char *)&size, 2);
+    pkt->buffer.append(_pps);
 
-    rtmpPkt->body_size = rtmpPkt->buffer.size();
-    rtmpPkt->chunk_id = CHUNK_VIDEO;
-    rtmpPkt->stream_index = STREAM_MEDIA;
-    rtmpPkt->time_stamp = 0;
-    rtmpPkt->type_id = MSG_VIDEO;
-    RtmpCodec::inputRtmp(rtmpPkt);
+    pkt->body_size = pkt->buffer.size();
+    pkt->chunk_id = CHUNK_VIDEO;
+    pkt->stream_index = STREAM_MEDIA;
+    pkt->time_stamp = 0;
+    pkt->type_id = MSG_VIDEO;
+    RtmpCodec::inputRtmp(pkt);
 }
 
 }//namespace mediakit

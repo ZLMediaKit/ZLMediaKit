@@ -89,28 +89,35 @@
     </div>
 
     <script>
-      var player = null
-      var recvOnly = true
-      var resArr = []
+      var player = null;
+      var recvOnly = true;
+      var resArr = [];
 
-      var ishttps = 'https:' == document.location.protocol ? true : false
-      var isLocal = "file:" == document.location.protocol ? true : false
-      var url = document.location.protocol+"//"+window.location.host+"/index/api/webrtc?app=live&stream=test&type=play"
+      var ishttps = 'https:' === document.location.protocol;
+      var isLocal = "file:" === document.location.protocol;
       
+      const searchParams = new URL(document.location.href).searchParams;
+      let type = searchParams.get('type');
+      if (!['echo','push','play'].includes(type)) {
+        type = 'play';
+      }
+      recvOnly = type === 'play';
+      const apiPath = `/index/api/webrtc?app=${searchParams.get('app') ?? 'live'}&stream=${searchParams.get('stream') ?? 'test'}&type=${type}`;
 
       if(!ishttps && !isLocal){
-        alert('本demo需要在https的网站访问 ,如果你要推流的话(this demo must access in site of https if you want push stream)')
+        alert('本demo需要在https的网站访问, 如果你要推流的话(this demo must access in site of https if you want to push stream)');
       }
+      
+      const apiHost = isLocal ? "http://127.0.0.1" : `${document.location.protocol}//${window.location.host}`;
+      var url = apiHost + apiPath;
 
-      if(isLocal){
-        url = "http://127.0.0.1"+"/index/api/webrtc?app=live&stream=test&type=play"
-      }
-      document.getElementById('streamUrl').value = url
-      document.getElementsByName("method").forEach((el,idx)=>{
-        el.onclick=function(e){
+      document.getElementById('streamUrl').value = url;
+      document.getElementsByName("method").forEach((el,idx) => {
+        el.checked = el.value === type;
+        el.onclick = function(e) {
           let url = new URL(document.getElementById('streamUrl').value);
-          url.searchParams.set("type",el.value)
-          document.getElementById('streamUrl').value = url.toString()
+          url.searchParams.set("type",el.value);
+          document.getElementById('streamUrl').value = url.toString();
           
           if(el.value == "play"){
             recvOnly = true;
@@ -122,16 +129,16 @@
         };
       });
 
-      ZLMRTCClient.GetAllScanResolution().forEach((r,i)=>{
+      ZLMRTCClient.GetAllScanResolution().forEach((r,i) => {
           opt = document.createElement('option');
-          opt.text = r.label +"("+r.width+"x"+r.height+")";
+          opt.text = `${r.label}(${r.width}x${r.height})`;
           opt.value = r;
-          document.getElementById("resolution").add(opt,null)
+          if (1080*720 <= r.width * r.height && r.width * r.height <= 1280*720) {
+              opt.selected = true;
+          }
+          document.getElementById("resolution").add(opt,null);
+      });
 
-          //console.log(opt.text.match(/\d+/g))
-
-        
-      })
       function start_play(){
         let elr = document.getElementById("resolution");
         let res = elr.options[elr.selectedIndex].text.match(/\d+/g);
@@ -155,17 +162,17 @@
     
             player.on(ZLMRTCClient.Events.WEBRTC_ICE_CANDIDATE_ERROR,function(e)
             {// ICE 协商出错
-                console.log('ICE 协商出错')
+                console.log('ICE 协商出错');
             });
     
             player.on(ZLMRTCClient.Events.WEBRTC_ON_REMOTE_STREAMS,function(e)
             {//获取到了远端流，可以播放
-                console.log('播放成功',e.streams)
+                console.log('播放成功',e.streams);
             });
     
             player.on(ZLMRTCClient.Events.WEBRTC_OFFER_ANWSER_EXCHANGE_FAILED,function(e)
             {// offer anwser 交换失败
-                console.log('offer anwser 交换失败',e)
+                console.log('offer anwser 交换失败',e);
                 stop();
             });
     
@@ -181,31 +188,31 @@
             player.on(ZLMRTCClient.Events.CAPTURE_STREAM_FAILED,function(s)
             {// 获取本地流失败
     
-              console.log('获取本地流失败')
+              console.log('获取本地流失败');
             });
 
             player.on(ZLMRTCClient.Events.WEBRTC_ON_CONNECTION_STATE_CHANGE,function(state)
             {// RTC 状态变化 ,详情参考 https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/connectionState
-              console.log('当前状态==>',state)
+              console.log('当前状态==>',state);
             });
 
             player.on(ZLMRTCClient.Events.WEBRTC_ON_DATA_CHANNEL_OPEN,function(event)
             {
-              console.log('rtc datachannel 打开 :',event)
+              console.log('rtc datachannel 打开 :',event);
             });
 
             player.on(ZLMRTCClient.Events.WEBRTC_ON_DATA_CHANNEL_MSG,function(event)
             {
-              console.log('rtc datachannel 消息 :',event.data)
-              document.getElementById('msgrecv').value = event.data
+              console.log('rtc datachannel 消息 :',event.data);
+              document.getElementById('msgrecv').value = event.data;
             });
             player.on(ZLMRTCClient.Events.WEBRTC_ON_DATA_CHANNEL_ERR,function(event)
             {
-              console.log('rtc datachannel 错误 :',event)
+              console.log('rtc datachannel 错误 :',event);
             });
             player.on(ZLMRTCClient.Events.WEBRTC_ON_DATA_CHANNEL_CLOSE,function(event)
             {
-              console.log('rtc datachannel 关闭 :',event)
+              console.log('rtc datachannel 关闭 :',event);
             });
       }
 
@@ -220,12 +227,12 @@
         if(document.getElementById('useCamera').checked && !recvOnly)
         {
           ZLMRTCClient.isSupportResolution(w,h).then(e=>{
-            start_play()
+            start_play();
           }).catch(e=>{
-           alert("not support resolution")
+           alert("not support resolution");
           });
         }else{
-          start_play()
+          start_play();
         }
       }
 
@@ -250,13 +257,13 @@
       function send(){
         if(player){
           //send msg refernece https://developer.mozilla.org/en-US/docs/Web/API/RTCDataChannel/send
-          player.sendMsg(document.getElementById('msgsend').value)
+          player.sendMsg(document.getElementById('msgsend').value);
         }
       }
 
       function close(){
         if(player){
-          player.closeDataChannel()
+          player.closeDataChannel();
         }
       }
 
@@ -275,7 +282,7 @@
       }
       function fillStreamList(json) {
           clearStreamList();
-          if (json.code != 0) {
+          if (json.code != 0 || !json.data) {
             return;
           }
           let ss = {};
@@ -284,7 +291,7 @@
               ss[o.app].add(o.stream);
             } else {
               let set = new Set();
-              set.add(o.steram);
+              set.add(o.stream);
               ss[o.app] = set;
             }
           }
@@ -315,8 +322,8 @@
         json.then((json)=> fillStreamList(json));
       }
       setInterval(() => {
-       get_media_list(); 
-      }, 1000);
+       // get_media_list();
+      }, 5000);
 
     </script>
     

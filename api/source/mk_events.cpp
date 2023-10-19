@@ -160,6 +160,13 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
                 s_events.on_mk_log((int) ctx->_level, ctx->_file.data(), ctx->_line, ctx->_function.data(), log.data());
             }
         });
+
+        NoticeCenter::Instance().addListener(&s_tag, Broadcast::kBroadcastSendRtpStopped,[](BroadcastSendRtpStoppedArgs){
+            if (s_events.on_mk_media_send_rtp_stop) {
+                s_events.on_mk_media_send_rtp_stop(sender.getMediaTuple().vhost.c_str(), sender.getMediaTuple().app.c_str(),
+                                                   sender.getMediaTuple().stream.c_str(), ssrc.c_str(), ex.getErrCode(), ex.what());
+            }
+        });
     });
 
 }

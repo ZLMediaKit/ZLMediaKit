@@ -58,7 +58,7 @@ API_EXPORT int API_CALL mk_recorder_is_recording(int type, const char *vhost, co
 
 /**
  * 开始录制
- * @param type 0:hls,1:MP4
+ * @param type 0:hls-ts,1:MP4,2:hls-fmp4,3:http-fmp4,4:http-ts
  * @param vhost 虚拟主机
  * @param app 应用名
  * @param stream 流id
@@ -70,7 +70,7 @@ API_EXPORT int API_CALL mk_recorder_start(int type, const char *vhost, const cha
 
 /**
  * 停止录制
- * @param type 0:hls,1:MP4
+ * @param type 0:hls-ts,1:MP4,2:hls-fmp4,3:http-fmp4,4:http-ts
  * @param vhost 虚拟主机
  * @param app 应用名
  * @param stream 流id

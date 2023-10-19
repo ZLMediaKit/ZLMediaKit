@@ -126,12 +126,13 @@ public:
      */
     toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;
 
-    const std::string& getVhost() const;
-    const std::string& getApp() const;
-    const std::string& getStreamId() const;
-    const MediaTuple& getMediaTuple() const {
-        return _tuple;
-    }
+    /**
+     * 获取本对象
+     */
+    std::shared_ptr<MultiMediaSourceMuxer> getMuxer(MediaSource &sender) override;
+
+    const ProtocolOption &getOption() const;
+    const MediaTuple &getMediaTuple() const;
     std::string shortUrl() const;
 
 protected:
@@ -167,18 +168,14 @@ private:
     toolkit::Ticker _last_check;
     Stamp _stamp[2];
     std::weak_ptr<Listener> _track_listener;
-#if defined(ENABLE_RTPPROXY)
     std::unordered_map<std::string, RingType::RingReader::Ptr> _rtp_sender;
-#endif //ENABLE_RTPPROXY
-
-#if defined(ENABLE_MP4)
     FMP4MediaSourceMuxer::Ptr _fmp4;
-#endif
     RtmpMediaSourceMuxer::Ptr _rtmp;
     RtspMediaSourceMuxer::Ptr _rtsp;
     TSMediaSourceMuxer::Ptr _ts;
     MediaSinkInterface::Ptr _mp4;
     HlsRecorder::Ptr _hls;
+    HlsFMP4Recorder::Ptr _hls_fmp4;
     toolkit::EventPoller::Ptr _poller;
     RingType::Ptr _ring;
 

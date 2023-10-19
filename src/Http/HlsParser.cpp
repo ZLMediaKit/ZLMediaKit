@@ -37,7 +37,7 @@ bool HlsParser::parse(const string &http_url, const string &m3u8) {
 
         if ((_is_m3u8_inner || extinf_dur != 0) && line[0] != '#') {
             segment.duration = extinf_dur;
-            segment.url = Parser::merge_url(http_url, line);
+            segment.url = Parser::mergeUrl(http_url, line);
             if (!_is_m3u8_inner) {
                 //ts按照先后顺序排序
                 ts_map.emplace(index++, segment);

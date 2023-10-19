@@ -180,12 +180,14 @@ bool MP4Reader::pause(MediaSource &sender, bool pause) {
 }
 
 bool MP4Reader::speed(MediaSource &sender, float speed) {
-    if (speed < 0.1 && speed > 20) {
+    if (speed < 0.1 || speed > 20) {
         WarnL << "播放速度取值范围非法:" << speed;
         return false;
     }
-    //设置播放速度后应该恢复播放
-    pause(sender, false);
+    //_seek_ticker重置，赋值_seek_to
+    setCurrentStamp(getCurrentStamp());
+    // 设置播放速度后应该恢复播放
+    _paused = false;
     if (_speed == speed) {
         return true;
     }

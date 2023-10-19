@@ -28,7 +28,11 @@ RtpSender::RtpSender(EventPoller::Ptr poller) {
 }
 
 RtpSender::~RtpSender() {
-    flush();
+    try {
+        flush();
+    } catch (std::exception &ex) {
+        WarnL << "Exception occurred: " << ex.what();
+    }
 }
 
 void RtpSender::startSend(const MediaSourceEvent::SendRtpArgs &args, const function<void(uint16_t local_port, const SockException &ex)> &cb){

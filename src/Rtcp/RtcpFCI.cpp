@@ -240,7 +240,7 @@ public:
     RunLengthChunk(SymbolStatus status, uint16_t run_length);
     // 打印本对象
     string dumpString() const;
-} PACKED;
+};
 
 RunLengthChunk::RunLengthChunk(SymbolStatus status, uint16_t run_length) {
     type = 0;
@@ -291,7 +291,7 @@ public:
     StatusVecChunk(bool symbol_bit, const vector<SymbolStatus> &status);
     // 打印本对象
     string dumpString() const;
-} PACKED;
+};
 
 StatusVecChunk::StatusVecChunk(bool symbol_bit, const vector<SymbolStatus> &status) {
     CHECK(status.size() << symbol_bit <= 14);

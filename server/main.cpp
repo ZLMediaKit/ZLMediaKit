@@ -179,6 +179,29 @@ public:
                                  throw ExitException();
                              });
 #endif
+        (*_parser) << Option(0,/*该选项简称，如果是\x00则说明无简称*/
+                             "log-slice",/*该选项全称,每个选项必须有全称；不得为null或空字符串*/
+                             Option::ArgRequired,/*该选项后面必须跟值*/
+                             "100",/*该选项默认值*/
+                             true,/*该选项是否必须赋值，如果没有默认值且为ArgRequired时用户必须提供该参数否则将抛异常*/
+                             "最大保存日志切片个数",/*该选项说明文字*/
+                             nullptr);
+
+        (*_parser) << Option(0,/*该选项简称，如果是\x00则说明无简称*/
+                             "log-size",/*该选项全称,每个选项必须有全称；不得为null或空字符串*/
+                             Option::ArgRequired,/*该选项后面必须跟值*/
+                             "256",/*该选项默认值*/
+                             true,/*该选项是否必须赋值，如果没有默认值且为ArgRequired时用户必须提供该参数否则将抛异常*/
+                             "单个日志切片最大容量,单位MB",/*该选项说明文字*/
+                             nullptr);
+
+        (*_parser) << Option(0,/*该选项简称，如果是\x00则说明无简称*/
+                             "log-dir",/*该选项全称,每个选项必须有全称；不得为null或空字符串*/
+                             Option::ArgRequired,/*该选项后面必须跟值*/
+                             (exeDir() + "log/").data(),/*该选项默认值*/
+                             true,/*该选项是否必须赋值，如果没有默认值且为ArgRequired时用户必须提供该参数否则将抛异常*/
+                             "日志保存文件夹路径",/*该选项说明文字*/
+                             nullptr);
     }
 
     ~CMD_main() override{}
@@ -213,9 +236,11 @@ int start_main(int argc,char *argv[]) {
         //设置日志
         Logger::Instance().add(std::make_shared<ConsoleChannel>("ConsoleChannel", logLevel));
 #if !defined(ANDROID)
-        auto fileChannel = std::make_shared<FileChannel>("FileChannel", exeDir() + "log/", logLevel);
+        auto fileChannel = std::make_shared<FileChannel>("FileChannel", cmd_main["log-dir"], logLevel);
         // 日志最多保存天数
         fileChannel->setMaxDay(cmd_main["max_day"]);
+        fileChannel->setFileMaxCount(cmd_main["log-slice"]);
+        fileChannel->setFileMaxSize(cmd_main["log-size"]);
         Logger::Instance().add(fileChannel);
 #endif // !defined(ANDROID)
 
@@ -326,6 +351,14 @@ int start_main(int argc,char *argv[]) {
 #endif //defined(ENABLE_SRT)
 
         try {
+            auto &secret = mINI::Instance()[API::kSecret];
+            if (secret == "035c73f7-bb6b-4889-a715-d9eb2d1925cc" || secret.empty()) {
+                // 使用默认secret被禁止启动
+                secret = makeRandStr(32, true);
+                mINI::Instance().dumpFile(g_ini_file);
+                WarnL << "The " << API::kSecret << " is invalid, modified it to: " << secret
+                      << ", saved config file: " << g_ini_file;
+            }
             //rtsp服务器，端口默认554
             if (rtspPort) { rtspSrv->start<RtspSession>(rtspPort); }
             //rtsps服务器，端口默认322
@@ -363,8 +396,7 @@ int start_main(int argc,char *argv[]) {
 #endif//defined(ENABLE_SRT)
 
         } catch (std::exception &ex) {
-            WarnL << "端口占用或无权限:" << ex.what() << endl;
-            ErrorL << "程序启动失败，请修改配置文件中端口号后重试!" << endl;
+            ErrorL << "Start server failed: " << ex.what();
             sleep(1);
 #if !defined(_WIN32)
             if (pid != getpid() && kill_parent_if_failed) {
@@ -384,9 +416,15 @@ int start_main(int argc,char *argv[]) {
         static semaphore sem;
         signal(SIGINT, [](int) {
             InfoL << "SIGINT:exit";
-            signal(SIGINT, SIG_IGN);// 设置退出信号
+            signal(SIGINT, SIG_IGN); // 设置退出信号
             sem.post();
-        });// 设置退出信号
+        }); // 设置退出信号
+
+        signal(SIGTERM,[](int) {
+            WarnL << "SIGTERM:exit";
+            signal(SIGTERM, SIG_IGN);
+            sem.post();
+        });
 
 #if !defined(_WIN32)
         signal(SIGHUP, [](int) { mediakit::loadIniConfig(g_ini_file.data()); });
@@ -395,6 +433,8 @@ int start_main(int argc,char *argv[]) {
     }
     unInstallWebApi();
     unInstallWebHook();
+    onProcessExited();
+
     //休眠1秒再退出，防止资源释放顺序错误
     InfoL << "程序退出中,请等待...";
     sleep(1);

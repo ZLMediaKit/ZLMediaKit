@@ -9,6 +9,7 @@
  */
 
 #include <string.h>
+#include <stdio.h>
 #include "mk_mediakit.h"
 
 typedef struct {

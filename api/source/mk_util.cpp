@@ -65,7 +65,7 @@ API_EXPORT mk_ini API_CALL mk_ini_default() {
 static void emit_ini_file_reload(mk_ini ini) {
     if (ini == mk_ini_default()) {
         // 广播配置文件热加载
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastReloadConfig);
+        NOTICE_EMIT(BroadcastReloadConfigArgs, Broadcast::kBroadcastReloadConfig);
     }
 }
 

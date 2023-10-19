@@ -39,8 +39,10 @@ option(ENABLE_FAAC "Enable FAAC" OFF)
 option(ENABLE_FFMPEG "Enable FFmpeg" OFF)
 option(ENABLE_HLS "Enable HLS" ON)
 option(ENABLE_JEMALLOC_STATIC "Enable static linking to the jemalloc library" OFF)
+option(ENABLE_JEMALLOC_DUMP "Enable jemalloc to dump malloc statistics" OFF)
 option(ENABLE_MEM_DEBUG "Enable Memory Debug" OFF)
 option(ENABLE_MP4 "Enable MP4" ON)
+option(ENABLE_HLS_FMP4 "Enable HLS-FMP4" ON)
 option(ENABLE_MSVC_MT "Enable MSVC Mt/Mtd lib" ON)
 option(ENABLE_MYSQL "Enable MySQL" OFF)
 option(ENABLE_OPENSSL "Enable OpenSSL" ON)
@@ -200,8 +202,8 @@ if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
 endif()
 
 # mediakit 以及各个 runtime 依赖
-update_cached_list(MK_LINK_LIBRARIES "")
-update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_VERSION)
+update_cached(MK_LINK_LIBRARIES "")
+update_cached(MK_COMPILE_DEFINITIONS ENABLE_VERSION)
 
 if (DISABLE_REPORT)
   update_cached_list(MK_COMPILE_DEFINITIONS DISABLE_REPORT)
@@ -334,7 +336,11 @@ if(ENABLE_JEMALLOC_STATIC)
   if(NOT EXISTS ${DEP_ROOT_DIR})
     file(MAKE_DIRECTORY ${DEP_ROOT_DIR})
   endif()
-
+  if (ENABLE_JEMALLOC_DUMP)
+    set(ENABLE_JEMALLOC_STAT ON)
+  else ()
+    set(ENABLE_JEMALLOC_STAT OFF)
+  endif ()
   include(Jemalloc)
   include_directories(SYSTEM ${DEP_ROOT_DIR}/${JEMALLOC_NAME}/include/jemalloc)
   link_directories(${DEP_ROOT_DIR}/${JEMALLOC_NAME}/lib)
@@ -348,6 +354,12 @@ if(JEMALLOC_FOUND)
   message(STATUS "found library: ${JEMALLOC_LIBRARIES}")
   include_directories(${JEMALLOC_INCLUDE_DIR})
   update_cached_list(MK_LINK_LIBRARIES ${JEMALLOC_LIBRARIES})
+  add_definitions(-DUSE_JEMALLOC)
+  message(STATUS "jemalloc will be used to avoid memory fragmentation")
+  if (ENABLE_JEMALLOC_DUMP)
+    add_definitions(-DENABLE_JEMALLOC_DUMP)
+    message(STATUS "jemalloc will save memory usage statistics when the program exits")
+  endif ()
 endif()
 
 # 查找 openssl 是否安装
@@ -449,11 +461,6 @@ if(ENABLE_API)
   add_subdirectory(api)
 endif()
 
-# IOS 不编译可执行程序
-if(IOS)
-  return()
-endif()
-
 ##############################################################################
 
 if(ENABLE_PLAYER AND ENABLE_FFMPEG)
@@ -461,11 +468,18 @@ if(ENABLE_PLAYER AND ENABLE_FFMPEG)
 endif()
 
 #MediaServer主程序
-add_subdirectory(server)
+if(ENABLE_SERVER)
+  add_subdirectory(server)
+endif()
 
 # Android 会 add_subdirectory 并依赖该变量
-if(ENABLE_SERVER_LIB)
+if(ENABLE_SERVER_LIB AND NOT CMAKE_PARENT_LIST_FILE STREQUAL CMAKE_CURRENT_LIST_FILE)
   set(MK_LINK_LIBRARIES ${MK_LINK_LIBRARIES} PARENT_SCOPE)
+endif()
+
+# IOS 不编译可执行程序
+if(IOS)
+  return()
 endif()
 
 #cpp测试demo程序

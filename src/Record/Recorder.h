@@ -44,7 +44,13 @@ public:
         // 录制hls
         type_hls = 0,
         // 录制MP4
-        type_mp4 = 1
+        type_mp4 = 1,
+        // 录制hls.fmp4
+        type_hls_fmp4 = 2,
+        // fmp4直播
+        type_fmp4 = 3,
+        // ts直播
+        type_ts = 4,
     } type;
 
     /**

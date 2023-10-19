@@ -9,6 +9,7 @@
  */
 
 #include "Common/config.h"
+#include "MediaSource.h"
 #include "Util/NoticeCenter.h"
 #include "Util/logger.h"
 #include "Util/onceToken.h"
@@ -30,7 +31,7 @@ bool loadIniConfig(const char *ini_path) {
     }
     try {
         mINI::Instance().parseFile(ini);
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastReloadConfig);
+        NOTICE_EMIT(BroadcastReloadConfigArgs, Broadcast::kBroadcastReloadConfig);
         return true;
     } catch (std::exception &) {
         InfoL << "dump ini file to:" << ini;
@@ -98,9 +99,11 @@ namespace Protocol {
 const string kModifyStamp = PROTOCOL_FIELD "modify_stamp";
 const string kEnableAudio = PROTOCOL_FIELD "enable_audio";
 const string kAddMuteAudio = PROTOCOL_FIELD "add_mute_audio";
+const string kAutoClose = PROTOCOL_FIELD "auto_close";
 const string kContinuePushMS = PROTOCOL_FIELD "continue_push_ms";
 
 const string kEnableHls = PROTOCOL_FIELD "enable_hls";
+const string kEnableHlsFmp4 = PROTOCOL_FIELD "enable_hls_fmp4";
 const string kEnableMP4 = PROTOCOL_FIELD "enable_mp4";
 const string kEnableRtsp = PROTOCOL_FIELD "enable_rtsp";
 const string kEnableRtmp = PROTOCOL_FIELD "enable_rtmp";
@@ -120,12 +123,14 @@ const string kTSDemand = PROTOCOL_FIELD "ts_demand";
 const string kFMP4Demand = PROTOCOL_FIELD "fmp4_demand";
 
 static onceToken token([]() {
-    mINI::Instance()[kModifyStamp] = 0;
+    mINI::Instance()[kModifyStamp] = (int)ProtocolOption::kModifyStampRelative;
     mINI::Instance()[kEnableAudio] = 1;
     mINI::Instance()[kAddMuteAudio] = 1;
     mINI::Instance()[kContinuePushMS] = 15000;
+    mINI::Instance()[kAutoClose] = 0;
 
     mINI::Instance()[kEnableHls] = 1;
+    mINI::Instance()[kEnableHlsFmp4] = 0;
     mINI::Instance()[kEnableMP4] = 0;
     mINI::Instance()[kEnableRtsp] = 1;
     mINI::Instance()[kEnableRtmp] = 1;
@@ -160,6 +165,7 @@ const string kDirMenu = HTTP_FIELD "dirMenu";
 const string kForbidCacheSuffix = HTTP_FIELD "forbidCacheSuffix";
 const string kForwardedIpHeader = HTTP_FIELD "forwarded_ip_header";
 const string kAllowCrossDomains = HTTP_FIELD "allow_cross_domains";
+const string kAllowIPRange = HTTP_FIELD "allow_ip_range";
 
 static onceToken token([]() {
     mINI::Instance()[kSendBufSize] = 64 * 1024;
@@ -188,6 +194,7 @@ static onceToken token([]() {
     mINI::Instance()[kForbidCacheSuffix] = "";
     mINI::Instance()[kForwardedIpHeader] = "";
     mINI::Instance()[kAllowCrossDomains] = 1;
+    mINI::Instance()[kAllowIPRange] = "::1,127.0.0.1,172.16.0.0-172.31.255.255,192.168.0.0-192.168.255.255,10.0.0.0-10.255.255.255";
 });
 
 } // namespace Http
@@ -208,6 +215,7 @@ const string kHandshakeSecond = RTSP_FIELD "handshakeSecond";
 const string kKeepAliveSecond = RTSP_FIELD "keepAliveSecond";
 const string kDirectProxy = RTSP_FIELD "directProxy";
 const string kLowLatency = RTSP_FIELD"lowLatency";
+const string kRtpTransportType = RTSP_FIELD"rtpTransportType";
 
 static onceToken token([]() {
     // 默认Md5方式认证
@@ -216,18 +224,17 @@ static onceToken token([]() {
     mINI::Instance()[kKeepAliveSecond] = 15;
     mINI::Instance()[kDirectProxy] = 1;
     mINI::Instance()[kLowLatency] = 0;
+    mINI::Instance()[kRtpTransportType] = -1;
 });
 } // namespace Rtsp
 
 ////////////RTMP服务器配置///////////
 namespace Rtmp {
 #define RTMP_FIELD "rtmp."
-const string kModifyStamp = RTMP_FIELD "modifyStamp";
 const string kHandshakeSecond = RTMP_FIELD "handshakeSecond";
 const string kKeepAliveSecond = RTMP_FIELD "keepAliveSecond";
 
 static onceToken token([]() {
-    mINI::Instance()[kModifyStamp] = false;
     mINI::Instance()[kHandshakeSecond] = 15;
     mINI::Instance()[kKeepAliveSecond] = 15;
 });
@@ -241,15 +248,15 @@ const string kVideoMtuSize = RTP_FIELD "videoMtuSize";
 const string kAudioMtuSize = RTP_FIELD "audioMtuSize";
 // rtp包最大长度限制，单位是KB
 const string kRtpMaxSize = RTP_FIELD "rtpMaxSize";
-
 const string kLowLatency = RTP_FIELD "lowLatency";
+const string kH264StapA = RTP_FIELD "h264_stap_a";
 
 static onceToken token([]() {
     mINI::Instance()[kVideoMtuSize] = 1400;
     mINI::Instance()[kAudioMtuSize] = 600;
     mINI::Instance()[kRtpMaxSize] = 10;
     mINI::Instance()[kLowLatency] = 0;
-
+    mINI::Instance()[kH264StapA] = 1;
 });
 } // namespace Rtp
 

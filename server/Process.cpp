@@ -108,7 +108,7 @@ static int cloneFunc(void *ptr) {
 
 #endif
 
-void Process::run(const string &cmd, string &log_file) {
+void Process::run(const string &cmd, string log_file) {
     kill(2000);
 #ifdef _WIN32
     STARTUPINFO si = { 0 };

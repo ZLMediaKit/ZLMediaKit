@@ -39,7 +39,7 @@ RtpPacket::Ptr RtpInfo::makeRtp(TrackType type, const void* data, size_t len, bo
     ++_seq;
     header->stamp = htonl(uint64_t(stamp) * _sample_rate / 1000);
     header->ssrc = htonl(_ssrc);
-
+    rtp->ntp_stamp = stamp;
     //有效负载
     if (data) {
         memcpy(&ptr[RtpPacket::kRtpHeaderSize + RtpPacket::kRtpTcpHeaderSize], data, len);

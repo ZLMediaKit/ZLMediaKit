@@ -101,11 +101,10 @@ protected:
     std::string get_peer_ip() override;
 
 private:
-    void Handle_Req_GET(ssize_t &content_len);
-    void Handle_Req_GET_l(ssize_t &content_len, bool sendBody);
-    void Handle_Req_POST(ssize_t &content_len);
-    void Handle_Req_HEAD(ssize_t &content_len);
-    void Handle_Req_OPTIONS(ssize_t &content_len);
+    void onHttpRequest_GET();
+    void onHttpRequest_POST();
+    void onHttpRequest_HEAD();
+    void onHttpRequest_OPTIONS();
 
     bool checkLiveStream(const std::string &schema, const std::string  &url_suffix, const std::function<void(const MediaSource::Ptr &src)> &cb);
 
@@ -132,13 +131,12 @@ private:
     bool _live_over_websocket = false;
     //消耗的总流量
     uint64_t _total_bytes_usage = 0;
-    std::string _origin;
     Parser _parser;
     toolkit::Ticker _ticker;
     TSMediaSource::RingType::RingReader::Ptr _ts_reader;
     FMP4MediaSource::RingType::RingReader::Ptr _fmp4_reader;
     //处理content数据的callback
-    std::function<bool (const char *data,size_t len) > _contentCallBack;
+    std::function<bool (const char *data,size_t len) > _on_recv_body;
 };
 
 using HttpsSession = toolkit::SessionWithSSL<HttpSession>;
