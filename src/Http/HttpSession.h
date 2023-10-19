@@ -124,7 +124,7 @@ private:
     void setSocketFlags();
 
 protected:
-    MediaInfo _mediaInfo;
+    MediaInfo _media_info;
 
 private:
     bool _is_live_stream = false;
