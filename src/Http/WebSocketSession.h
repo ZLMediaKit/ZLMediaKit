@@ -69,7 +69,7 @@ template <typename SessionType>
 class SessionCreator {
 public:
     //返回的Session必须派生于SendInterceptor，可以返回null
-    toolkit::Session::Ptr operator()(const mediakit::Parser &header, const mediakit::HttpSession &parent, const toolkit::Socket::Ptr &pSock){
+    toolkit::Session::Ptr operator()(const mediakit::Parser &header, const mediakit::HttpSession &parent, const toolkit::Socket::Ptr &pSock, mediakit::WebSocketHeader::Type &data_type){
         return std::make_shared<SessionTypeImp<SessionType> >(header,parent,pSock);
     }
 };
@@ -128,7 +128,8 @@ protected:
      */
     bool onWebSocketConnect(const mediakit::Parser &header) override{
         //创建websocket session类
-        _session = _creator(header, *this, HttpSessionType::getSock());
+        auto data_type = DataType;
+        _session = _creator(header, *this, HttpSessionType::getSock(), data_type);
         if (!_session) {
             // 此url不允许创建websocket连接
             return false;
@@ -140,13 +141,13 @@ protected:
 
         //此处截取数据并进行websocket协议打包
         std::weak_ptr<WebSocketSessionBase> weakSelf = std::static_pointer_cast<WebSocketSessionBase>(HttpSessionType::shared_from_this());
-        std::dynamic_pointer_cast<SendInterceptor>(_session)->setOnBeforeSendCB([weakSelf](const toolkit::Buffer::Ptr &buf) {
+        std::dynamic_pointer_cast<SendInterceptor>(_session)->setOnBeforeSendCB([weakSelf, data_type](const toolkit::Buffer::Ptr &buf) {
             auto strongSelf = weakSelf.lock();
             if (strongSelf) {
                 mediakit::WebSocketHeader header;
                 header._fin = true;
                 header._reserved = 0;
-                header._opcode = DataType;
+                header._opcode = data_type;
                 header._mask_flag = false;
                 strongSelf->HttpSessionType::encode(header, buf);
             }

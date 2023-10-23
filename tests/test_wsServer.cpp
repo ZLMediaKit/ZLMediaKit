@@ -81,9 +81,11 @@ public:
  */
 struct EchoSessionCreator {
     //返回的Session必须派生于SendInterceptor，可以返回null(拒绝连接)
-    Session::Ptr operator()(const Parser &header, const HttpSession &parent, const Socket::Ptr &pSock) {
+    Session::Ptr operator()(const Parser &header, const HttpSession &parent, const Socket::Ptr &pSock, mediakit::WebSocketHeader::Type &type) {
 //        return nullptr;
         if (header.url() == "/") {
+            // 可以指定传输方式
+            // type = mediakit::WebSocketHeader::BINARY;
             return std::make_shared<SessionTypeImp<EchoSession> >(header, parent, pSock);
         }
         return std::make_shared<SessionTypeImp<EchoSessionWithUrl> >(header, parent, pSock);
