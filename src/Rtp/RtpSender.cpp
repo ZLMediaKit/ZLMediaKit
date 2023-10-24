@@ -140,7 +140,7 @@ void RtpSender::startSend(const MediaSourceEvent::SendRtpArgs &args, const funct
                     cb(0, SockException(Err_other, ex.what()));
                     return;
                 }
-                strong_self->_socket_rtp->bindPeerAddr((struct sockaddr *)&addr);
+                strong_self->_socket_rtp->bindPeerAddr((struct sockaddr *)&addr, 0, true);
                 strong_self->onConnect();
                 cb(strong_self->_socket_rtp->get_local_port(), SockException());
             });
@@ -182,7 +182,7 @@ void RtpSender::createRtcpSocket() {
         case AF_INET6: ((sockaddr_in6 *)&addr)->sin6_port = htons(ntohs(((sockaddr_in6 *)&addr)->sin6_port) + 1); break;
         default: assert(0); break;
     }
-    _socket_rtcp->bindPeerAddr((struct sockaddr *)&addr);
+    _socket_rtcp->bindPeerAddr((struct sockaddr *)&addr, 0, true);
 
     _rtcp_context = std::make_shared<RtcpContextForSend>();
     weak_ptr<RtpSender> weak_self = shared_from_this();
