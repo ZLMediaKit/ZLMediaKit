@@ -30,6 +30,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <cstring> // std::memcpy(), std::strcmp()
 #include "Util/util.h"
 #include "Util/SSLBox.h"
+#include "Util/SSLUtil.h"
 
 using namespace std;
 
@@ -316,6 +317,8 @@ namespace RTC
             goto error;
         }
         EVP_PKEY_up_ref(privateKey);
+
+        InfoL << "Load webrtc dtls certificate: " << toolkit::SSLUtil::getServerName(certificate);
         return;
 
     error:
