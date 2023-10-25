@@ -342,6 +342,7 @@ bash build_docker_images.sh
 ## Collaborative Projects
 
 - Visual management website
+   - [A backend management website for this project](https://github.com/1002victor/zlm_webassist)
    - [The latest web project with front-end and back-end separation, supporting webrtc playback](https://github.com/langmansh/AKStreamNVR)
    - [Management web site based on ZLMediaKit master branch](https://gitee.com/kkkkk5G/MediaServerUI) 
    - [Management web site based on ZLMediaKit branch](https://github.com/chenxiaolei/ZLMediaKit_NVR_UI)
