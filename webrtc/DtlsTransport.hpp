@@ -88,7 +88,7 @@ namespace RTC
         private:
             DtlsEnvironment();
             void GenerateCertificateAndPrivateKey();
-            void ReadCertificateAndPrivateKeyFromFiles();
+            void ReadCertificateAndPrivateKeyFromContext(SSL_CTX *ctx);
             void CreateSslCtx();
             void GenerateFingerprints();
 
