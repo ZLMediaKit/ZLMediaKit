@@ -132,13 +132,8 @@ namespace RTC
 
         // Generate a X509 certificate and private key (unless PEM files are provided).
         auto ssl = toolkit::SSL_Initor::Instance().getSSLCtx("", true);
-        if (!ssl)
-        {
+        if (!ssl || !ReadCertificateAndPrivateKeyFromContext(ssl.get())) {
             GenerateCertificateAndPrivateKey();
-        }
-        else
-        {
-            ReadCertificateAndPrivateKeyFromContext(ssl.get());
         }
 
         // Create a global SSL_CTX.
@@ -298,31 +293,22 @@ namespace RTC
         MS_THROW_ERROR("DTLS certificate and private key generation failed");
     }
 
-    void DtlsTransport::DtlsEnvironment::ReadCertificateAndPrivateKeyFromContext(SSL_CTX *ctx)
+    bool DtlsTransport::DtlsEnvironment::ReadCertificateAndPrivateKeyFromContext(SSL_CTX *ctx)
     {
         MS_TRACE();
-
         certificate = SSL_CTX_get0_certificate(ctx);
-        if (!certificate)
-        {
-            LOG_OPENSSL_ERROR("SSL_CTX_get0_certificate() failed");
-            goto error;
+        if (!certificate) {
+            return false;
         }
         X509_up_ref(certificate);
 
         privateKey = SSL_CTX_get0_privatekey(ctx);
-        if (!privateKey)
-        {
-            LOG_OPENSSL_ERROR("SSL_CTX_get0_privatekey() failed");
-            goto error;
+        if (!privateKey) {
+            return false;
         }
         EVP_PKEY_up_ref(privateKey);
-
         InfoL << "Load webrtc dtls certificate: " << toolkit::SSLUtil::getServerName(certificate);
-        return;
-
-    error:
-        MS_THROW_ERROR("error reading DTLS certificate and private key PEM files");
+        return true;
     }
 
     void DtlsTransport::DtlsEnvironment::CreateSslCtx()
