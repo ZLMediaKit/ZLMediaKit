@@ -330,6 +330,10 @@ bash build_docker_images.sh
 [linxiaoyan87](https://github.com/linxiaoyan)
 [waken](https://github.com/mc373906408)
 [Deepslient](https://github.com/Deepslient)
+[imp_rayjay](https://github.com/rayjay214)
+[ArmstrongCN](https://github.com/ArmstrongCN)
+[leibnewton](https://github.com/leibnewton)
+[1002victor](https://github.com/1002victor)
 
 同时感谢JetBrains对开源项目的支持，本项目使用CLion开发与调试：
 
