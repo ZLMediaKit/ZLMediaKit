@@ -251,7 +251,7 @@ void WebRtcTransport::sendSockData(const char *buf, size_t len, RTC::TransportTu
 }
 
 Session::Ptr WebRtcTransport::getSession() const {
-    auto tuple = _ice_server->GetSelectedTuple(true);
+    auto tuple = _ice_server ? _ice_server->GetSelectedTuple(true) : nullptr;
     return tuple ? static_pointer_cast<Session>(tuple->shared_from_this()) : nullptr;
 }
 
