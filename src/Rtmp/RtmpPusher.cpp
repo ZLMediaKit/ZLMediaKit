@@ -62,28 +62,32 @@ void RtmpPusher::onPublishResult_l(const SockException &ex, bool handshake_done)
         shutdown(SockException(Err_shutdown,"teardown"));
     }
 }
-
+#ifdef _MSC_VER
+//not #if defined(_WIN32) || defined(_WIN64) because we have strncasecmp in mingw
+#define strncasecmp _strnicmp
+#define strcasecmp _stricmp
+#endif
 void RtmpPusher::publish(const string &url)  {
     teardown();
-    string _head ;
+    string head ;
     // rtmps rt_url head should be rtmps
     const char *rtmp_head = "rtmp://";
     const char *rtmps_head = "rtmps://";
     if(0 == strncasecmp(url.c_str(), rtmp_head, strlen(rtmp_head)))
     {
-        _head = rtmp_head;
+        head = rtmp_head;
     }
     if(0 == strncasecmp(url.c_str(), rtmps_head, strlen(rtmps_head)))
     {
-        _head = rtmps_head;
+        head = rtmps_head;
     }
 
     string host_url = findSubString(url.data(), "://", "/");
     _app = findrSubString(url.data(), (host_url + "/").data(), '/');
     _stream_id = findSubString(url.data(), (host_url + "/" + _app + "/").data(), NULL);
-    _tc_url = _head + host_url + "/" + _app;
+    _tc_url = head + host_url + "/" + _app;
 
-    if (!_app.size() || !_stream_id.size() || !_head.size()) {
+    if (!_app.size() || !_stream_id.size() || !head.size()) {
         onPublishResult_l(SockException(Err_other, "rtmp url非法"), false);
         return;
     }
