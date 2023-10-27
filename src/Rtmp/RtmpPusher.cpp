@@ -73,7 +73,7 @@ void RtmpPusher::publish(const string &url) {
     if (!app_second.empty() && app_second.find('?') == std::string::npos) {
         // _stream_id存在多级；不包含'?', 说明分割符'/'不是url参数的一部分
         _app += "/" + app_second;
-        _stream_id.erase(0, app_second.size());
+        _stream_id.erase(0, app_second.size() + 1);
     }
     _tc_url = schema + "://" + host_url + "/" + _app;
     if (_app.empty() || _stream_id.empty()) {
