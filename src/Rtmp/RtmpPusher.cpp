@@ -65,12 +65,25 @@ void RtmpPusher::onPublishResult_l(const SockException &ex, bool handshake_done)
 
 void RtmpPusher::publish(const string &url)  {
     teardown();
-    string host_url = findSubString(url.data(), "://", "/");
-    _app = findSubString(url.data(), (host_url + "/").data(), "/");
-    _stream_id = findSubString(url.data(), (host_url + "/" + _app + "/").data(), NULL);
-    _tc_url = string("rtmp://") + host_url + "/" + _app;
+    string _head ;
+    // rtmps rt_url head should be rtmps
+    const char *rtmp_head = "rtmp://";
+    const char *rtmps_head = "rtmps://";
+    if(0 == strncasecmp(url.c_str(), rtmp_head, strlen(rtmp_head)))
+    {
+        _head = rtmp_head;
+    }
+    if(0 == strncasecmp(url.c_str(), rtmps_head, strlen(rtmps_head)))
+    {
+        _head = rtmps_head;
+    }
 
-    if (!_app.size() || !_stream_id.size()) {
+    string host_url = findSubString(url.data(), "://", "/");
+    _app = findrSubString(url.data(), (host_url + "/").data(), '/');
+    _stream_id = findSubString(url.data(), (host_url + "/" + _app + "/").data(), NULL);
+    _tc_url = _head + host_url + "/" + _app;
+
+    if (!_app.size() || !_stream_id.size() || !_head.size()) {
         onPublishResult_l(SockException(Err_other, "rtmp url非法"), false);
         return;
     }

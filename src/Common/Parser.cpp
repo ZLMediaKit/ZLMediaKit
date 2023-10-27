@@ -20,6 +20,30 @@ using namespace toolkit;
 
 namespace mediakit {
 
+string findrSubString(const char *buf, const char *start, const char end, size_t buf_size) {
+    if (buf_size <= 0) {
+        buf_size = strlen(buf);
+    }
+    auto msg_start = buf;
+    auto msg_end = buf + buf_size;
+    size_t len = 0;
+    if (start != NULL) {
+        len = strlen(start);
+        msg_start = strstr(buf, start);
+    }
+    if (msg_start == NULL) {
+        return "";
+    }
+    msg_start += len;
+    if (end != NULL) {
+        msg_end = strrchr(msg_start, end);
+        if (msg_end == NULL) {
+            return "";
+        }
+    }
+    return string(msg_start, msg_end);
+}
+
 string findSubString(const char *buf, const char *start, const char *end, size_t buf_size) {
     if (buf_size <= 0) {
         buf_size = strlen(buf);
