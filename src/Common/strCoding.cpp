@@ -36,20 +36,21 @@ void UnicodeToUTF8(char *pOut, const wchar_t *pText) {
     return;
 }
 
-char CharToInt(char ch) {
-    if (ch >= '0' && ch <= '9')return (char) (ch - '0');
-    if (ch >= 'a' && ch <= 'f')return (char) (ch - 'a' + 10);
-    if (ch >= 'A' && ch <= 'F')return (char) (ch - 'A' + 10);
+char HexCharToBin(char ch) {
+    if (ch >= '0' && ch <= '9') return (char)(ch - '0');
+    if (ch >= 'a' && ch <= 'f') return (char)(ch - 'a' + 10);
+    if (ch >= 'A' && ch <= 'F') return (char)(ch - 'A' + 10);
     return -1;
 }
 
-char StrToBin(const char *str) {
-    char tempWord[2];
-    char chn;
-    tempWord[0] = CharToInt(str[0]); //make the B to 11 -- 00001011 
-    tempWord[1] = CharToInt(str[1]); //make the 0 to 0 -- 00000000 
-    chn = (tempWord[0] << 4) | tempWord[1]; //to change the BO to 10110000 
-    return chn;
+char HexStrToBin(const char *str) {
+    auto high = HexCharToBin(str[0]);
+    auto low = HexCharToBin(str[1]);
+    if (high == -1 || low == -1) {
+        // 无法把16进制字符串转换为二进制
+        return -1;
+    }
+    return (high << 4) | low;
 }
 
 string strCoding::UrlEncode(const string &str) {
@@ -70,25 +71,50 @@ string strCoding::UrlEncode(const string &str) {
 
 string strCoding::UrlDecode(const string &str) {
     string output;
-    char tmp[2];
     size_t i = 0, len = str.length();
     while (i < len) {
         if (str[i] == '%') {
-            if (i > len - 3) {
-                //防止内存溢出
+            if (i + 3 > len) {
+                // %后面必须还有两个字节才会反转义
+                output.append(str, i, len - i);
                 break;
             }
-            tmp[0] = str[i + 1];
-            tmp[1] = str[i + 2];
-            output += StrToBin(tmp);
-            i = i + 3;
+            char ch = HexStrToBin(&(str[i + 1]));
+            if (ch == -1) {
+                // %后面两个字节不是16进制字符串，转义失败；直接拼接3个原始字符
+                output.append(str, i, 3);
+            } else {
+                output += ch;
+            }
+            i += 3;
         } else {
             output += str[i];
-            i++;
+            ++i;
         }
     }
     return output;
 }
+
+#if 0
+#include "Util/onceToken.h"
+static toolkit::onceToken token([]() {
+    auto str0 = strCoding::UrlDecode(
+        "rtsp%3A%2F%2Fadmin%3AJm13317934%25jm%40111.47.84.69%3A554%2FStreaming%2FChannels%2F101%3Ftransportmode%3Dunicast%26amp%3Bprofile%3DProfile_1");
+    auto str1 = strCoding::UrlDecode("%j1"); // 测试%后面两个字节不是16进制字符串
+    auto str2 = strCoding::UrlDecode("%a"); // 测试%后面字节数不够
+    auto str3 = strCoding::UrlDecode("%"); // 测试只有%
+    auto str4 = strCoding::UrlDecode("%%%"); // 测试多个%
+    auto str5 = strCoding::UrlDecode("%%%%40"); // 测试多个非法%后恢复正常解析
+    auto str6 = strCoding::UrlDecode("Jm13317934%jm"); // 测试多个非法%后恢复正常解析
+    cout << str0 << endl;
+    cout << str1 << endl;
+    cout << str2 << endl;
+    cout << str3 << endl;
+    cout << str4 << endl;
+    cout << str5 << endl;
+    cout << str6 << endl;
+});
+#endif
 
 ///////////////////////////////windows专用///////////////////////////////////
 #if defined(_WIN32)
