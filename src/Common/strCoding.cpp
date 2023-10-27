@@ -36,7 +36,7 @@ void UnicodeToUTF8(char *pOut, const wchar_t *pText) {
     return;
 }
 
-char HexStrToBin(char ch) {
+char HexCharToBin(char ch) {
     if (ch >= '0' && ch <= '9') return (char)(ch - '0');
     if (ch >= 'a' && ch <= 'f') return (char)(ch - 'a' + 10);
     if (ch >= 'A' && ch <= 'F') return (char)(ch - 'A' + 10);
@@ -44,9 +44,9 @@ char HexStrToBin(char ch) {
 }
 
 char HexStrToBin(const char *str) {
-    auto high = HexStrToBin(str[0]);
-    auto low = HexStrToBin(str[1]);
-    if (high < 0 || low < 0) {
+    auto high = HexCharToBin(str[0]);
+    auto low = HexCharToBin(str[1]);
+    if (high == -1 || low == -1) {
         // 无法把16进制字符串转换为二进制
         return -1;
     }
