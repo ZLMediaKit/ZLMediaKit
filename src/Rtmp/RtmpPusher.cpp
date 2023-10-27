@@ -62,32 +62,21 @@ void RtmpPusher::onPublishResult_l(const SockException &ex, bool handshake_done)
         shutdown(SockException(Err_shutdown,"teardown"));
     }
 }
-#ifdef _MSC_VER
-//not #if defined(_WIN32) || defined(_WIN64) because we have strncasecmp in mingw
-#define strncasecmp _strnicmp
-#define strcasecmp _stricmp
-#endif
-void RtmpPusher::publish(const string &url)  {
+
+void RtmpPusher::publish(const string &url) {
     teardown();
-    string head ;
-    // rtmps rt_url head should be rtmps
-    const char *rtmp_head = "rtmp://";
-    const char *rtmps_head = "rtmps://";
-    if(0 == strncasecmp(url.c_str(), rtmp_head, strlen(rtmp_head)))
-    {
-        head = rtmp_head;
-    }
-    if(0 == strncasecmp(url.c_str(), rtmps_head, strlen(rtmps_head)))
-    {
-        head = rtmps_head;
-    }
-
-    string host_url = findSubString(url.data(), "://", "/");
-    _app = findrSubString(url.data(), (host_url + "/").data(), '/');
+    auto schema = findSubString(url.data(), nullptr, "://");
+    auto host_url = findSubString(url.data(), "://", "/");
+    _app = findSubString(url.data(), (host_url + "/").data(), "/");
     _stream_id = findSubString(url.data(), (host_url + "/" + _app + "/").data(), NULL);
-    _tc_url = head + host_url + "/" + _app;
-
-    if (!_app.size() || !_stream_id.size() || !head.size()) {
+    auto app_second = findSubString(_stream_id.data(), nullptr, "/");
+    if (!app_second.empty() && app_second.find('?') == std::string::npos) {
+        // _stream_id存在多级；不包含'?', 说明分割符'/'不是url参数的一部分
+        _app += "/" + app_second;
+        _stream_id.erase(0, app_second.size());
+    }
+    _tc_url = schema + "://" + host_url + "/" + _app;
+    if (_app.empty() || _stream_id.empty()) {
         onPublishResult_l(SockException(Err_other, "rtmp url非法"), false);
         return;
     }

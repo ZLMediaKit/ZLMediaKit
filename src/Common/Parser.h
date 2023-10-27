@@ -18,7 +18,6 @@
 namespace mediakit {
 
 // 从字符串中提取子字符串
-std::string findrSubString(const char *buf, const char *start, const char end, size_t buf_size = 0);
 std::string findSubString(const char *buf, const char *start, const char *end, size_t buf_size = 0);
 // 把url解析为主机地址和端口号,兼容ipv4/ipv6/dns
 void splitUrl(const std::string &url, std::string &host, uint16_t &port);
