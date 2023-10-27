@@ -48,6 +48,9 @@ char StrToBin(const char *str) {
     char chn;
     tempWord[0] = CharToInt(str[0]); //make the B to 11 -- 00001011 
     tempWord[1] = CharToInt(str[1]); //make the 0 to 0 -- 00000000 
+    if(tempWord[0]<0 || tempWord[1]< 0){
+        return  -1;
+    }
     chn = (tempWord[0] << 4) | tempWord[1]; //to change the BO to 10110000 
     return chn;
 }
@@ -80,7 +83,14 @@ string strCoding::UrlDecode(const string &str) {
             }
             tmp[0] = str[i + 1];
             tmp[1] = str[i + 2];
-            output += StrToBin(tmp);
+            char r = StrToBin(tmp);
+            if(r == -1){// %
+                 output += str[i];
+                 output += tmp[0];
+                 output += tmp[1];
+            }else{
+                 output += r;
+            }
             i = i + 3;
         } else {
             output += str[i];
