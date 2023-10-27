@@ -9,4 +9,4 @@
 	url = https://gitee.com/mirrors/jsoncpp.git
 [submodule "www/webassist"]
 	path = www/webassist
-	url = https://github.com/1002victor/zlm_webassist
+	url = https://gitee.com/victor1002/zlm_webassist
