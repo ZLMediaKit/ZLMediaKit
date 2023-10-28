@@ -16,6 +16,7 @@
 #include <functional>
 #include "Util/List.h"
 #include "Util/TimeTicker.h"
+#include "Common/Stamp.h"
 #include "Network/Buffer.h"
 
 namespace mediakit {
@@ -361,11 +362,18 @@ public:
         return _gop_interval_ms;
     }
 
+    int64_t getDuration() const {
+        std::lock_guard<std::recursive_mutex> lck(_mtx);
+        return _stamp.getRelativeStamp();
+    }
+
 private:
     void doStatistics(const Frame::Ptr &frame) {
         if (!frame->configFrame() && !frame->dropAble()) {
             // 忽略配置帧与可丢弃的帧
             ++_frames;
+            int64_t out;
+            _stamp.revise(frame->dts(), frame->pts(), out, out);
             if (frame->keyFrame() && frame->getTrackType() == TrackVideo) {
                 // 遇视频关键帧时统计
                 ++_video_key_frames;
@@ -384,6 +392,7 @@ private:
     uint64_t _last_frames = 0;
     uint64_t _frames = 0;
     uint64_t _video_key_frames = 0;
+    Stamp _stamp;
     mutable std::recursive_mutex _mtx;
     std::map<void *, FrameWriterInterface::Ptr> _delegates;
 };
