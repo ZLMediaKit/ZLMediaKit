@@ -324,7 +324,7 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const MediaSourceE
 
         // 可能归属线程发生变更
         strong_self->getOwnerPoller(MediaSource::NullMediaSource())->async([=]() {
-            strong_self->_rtp_sender[ssrc] = std::move(reader);
+            strong_self->_rtp_sender.emplace(ssrc,reader);
         });
     });
 #else
