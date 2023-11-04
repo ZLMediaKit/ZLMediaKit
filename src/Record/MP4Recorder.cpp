@@ -34,8 +34,12 @@ MP4Recorder::MP4Recorder(const string &path, const string &vhost, const string &
 }
 
 MP4Recorder::~MP4Recorder() {
-    flush();
-    closeFile();
+    try {
+        flush();
+        closeFile();
+    } catch (std::exception &ex) {
+        WarnL << ex.what();
+    }
 }
 
 void MP4Recorder::createFile() {
