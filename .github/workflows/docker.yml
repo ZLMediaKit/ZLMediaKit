@@ -40,9 +40,7 @@ jobs:
       # https://github.com/sigstore/cosign-installer
       - name: Install cosign
         if: github.event_name != 'pull_request'
-        uses: sigstore/cosign-installer@d6a3abf1bdea83574e28d40543793018b6035605
-        with:
-          cosign-release: 'v1.7.1'
+        uses: sigstore/cosign-installer@d572c9c13673d2e0a26fabf90b5748f36886883f
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
