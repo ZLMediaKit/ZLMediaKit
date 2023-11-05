@@ -89,6 +89,8 @@ public:
             for (auto &rtcp : rtcps) {
                 strong_self->_process->onRtcp(rtcp);
             }
+            // 收到sr rtcp后驱动返回rr rtcp
+            strong_self->sendRtcp(strong_self->_ssrc, (struct sockaddr *)(strong_self->_rtcp_addr.get()));
         });
 
         GET_CONFIG(uint64_t, timeoutSec, RtpProxy::kTimeoutSec);
