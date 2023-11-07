@@ -144,8 +144,8 @@ bool H265Track::inputFrame_l(const Frame::Ptr &frame) {
     return ret;
 }
 
-void H265Track::update() {
-    getHEVCInfo(_vps, _sps, _width, _height, _fps);
+bool H265Track::update() {
+    return getHEVCInfo(_vps, _sps, _width, _height, _fps);
 }
 
 void H265Track::onReady() {

@@ -42,7 +42,7 @@ public:
     /**
      * 更新track信息，比如触发sps/pps解析
      */
-    virtual void update() {}
+    virtual bool update() { return false; }
 
     /**
      * 生成sdp

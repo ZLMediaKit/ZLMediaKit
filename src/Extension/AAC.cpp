@@ -332,8 +332,8 @@ bool AACTrack::inputFrame_l(const Frame::Ptr &frame) {
     return false;
 }
 
-void AACTrack::update() {
-    parseAacConfig(_cfg, _sampleRate, _channel);
+bool AACTrack::update() {
+    return parseAacConfig(_cfg, _sampleRate, _channel);
 }
 
 void AACTrack::onReady() {
