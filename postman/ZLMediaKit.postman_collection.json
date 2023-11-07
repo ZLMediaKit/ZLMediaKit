@@ -1711,9 +1711,15 @@
 							"description": "流id，例如 obs"
 						},
 						{
+							"key": "ssrc_multi_send",
+							"value": "0",
+							"description": "是否支持同ssrc推流到多个上级服务器,该参数非必选参数 默认false",
+							"disabled": true
+						},
+						{
 							"key": "ssrc",
 							"value": "1",
-							"description": "rtp推流的ssrc，ssrc不同时，可以推流到多个上级服务器"
+							"description": "rtp推流的ssrc"
 						},
 						{
 							"key": "dst_url",

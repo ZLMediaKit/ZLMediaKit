@@ -168,7 +168,7 @@ private:
     toolkit::Ticker _last_check;
     Stamp _stamp[2];
     std::weak_ptr<Listener> _track_listener;
-    std::unordered_map<std::string, RingType::RingReader::Ptr> _rtp_sender;
+    std::unordered_multimap<std::string, RingType::RingReader::Ptr> _rtp_sender;
     FMP4MediaSourceMuxer::Ptr _fmp4;
     RtmpMediaSourceMuxer::Ptr _rtmp;
     RtspMediaSourceMuxer::Ptr _rtsp;

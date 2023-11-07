@@ -1245,6 +1245,7 @@ void installWebApi() {
         args.passive = false;
         args.dst_url = allArgs["dst_url"];
         args.dst_port = allArgs["dst_port"];
+        args.ssrc_multi_send = allArgs["ssrc_multi_send"].empty() ? false : allArgs["ssrc_multi_send"].as<bool>();
         args.ssrc = allArgs["ssrc"];
         args.is_udp = allArgs["is_udp"];
         args.src_port = allArgs["src_port"];
