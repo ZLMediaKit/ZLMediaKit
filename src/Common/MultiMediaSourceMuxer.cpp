@@ -45,6 +45,7 @@ static string getTrackInfoStr(const TrackSource *track_src){
     _StrPrinter codec_info;
     auto tracks = track_src->getTracks(true);
     for (auto &track : tracks) {
+        track->update();
         auto codec_type = track->getTrackType();
         codec_info << track->getCodecName();
         switch (codec_type) {

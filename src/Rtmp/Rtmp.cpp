@@ -57,6 +57,7 @@ AudioMeta::AudioMeta(const AudioTrack::Ptr &audio) {
 }
 
 uint8_t getAudioRtmpFlags(const Track::Ptr &track) {
+    track->update();
     switch (track->getTrackType()) {
         case TrackAudio: {
             auto audioTrack = std::dynamic_pointer_cast<AudioTrack>(track);
@@ -115,6 +116,7 @@ uint8_t getAudioRtmpFlags(const Track::Ptr &track) {
 
 void Metadata::addTrack(AMFValue &metadata, const Track::Ptr &track) {
     Metadata::Ptr new_metadata;
+    track->update();
     switch (track->getTrackType()) {
         case TrackVideo: {
             new_metadata = std::make_shared<VideoMeta>(std::dynamic_pointer_cast<VideoTrack>(track));

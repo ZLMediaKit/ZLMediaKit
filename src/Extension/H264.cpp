@@ -168,6 +168,10 @@ bool H264Track::inputFrame(const Frame::Ptr &frame) {
     return ret;
 }
 
+bool H264Track::update() {
+    return getAVCInfo(_sps, _width, _height, _fps);
+}
+
 void H264Track::onReady() {
     if (!getAVCInfo(_sps, _width, _height, _fps)) {
         _sps.clear();

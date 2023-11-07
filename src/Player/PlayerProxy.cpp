@@ -70,6 +70,7 @@ void PlayerProxy::setTranslationInfo()
     _transtalion_info.stream_info.clear();
     auto tracks = _muxer->getTracks();
     for (auto &track : tracks) {
+        track->update();
         _transtalion_info.stream_info.emplace_back();
         auto &back = _transtalion_info.stream_info.back();
         back.bitrate = track->getBitRate();

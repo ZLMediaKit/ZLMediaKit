@@ -128,6 +128,7 @@ public:
     int getVideoWidth() const override;
     float getVideoFps() const override;
     bool inputFrame(const Frame::Ptr &frame) override;
+    bool update() override;
 
 private:
     void onReady();

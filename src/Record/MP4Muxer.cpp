@@ -198,6 +198,7 @@ bool MP4MuxerInterface::addTrack(const Track::Ptr &track) {
         return false;
     }
 
+    track->update();
     switch (track->getCodecId()) {
         case CodecG711A:
         case CodecG711U:
