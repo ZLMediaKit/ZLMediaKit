@@ -51,6 +51,7 @@ private:
     void outputFrame(const RtpPacket::Ptr &rtp, const H265Frame::Ptr &frame);
 
 private:
+    bool _is_gop = false;
     bool _using_donl_field = false;
     bool _gop_dropped = false;
     bool _fu_dropped = true;
