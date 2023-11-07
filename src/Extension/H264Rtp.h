@@ -51,6 +51,7 @@ private:
     void outputFrame(const RtpPacket::Ptr &rtp, const H264Frame::Ptr &frame);
 
 private:
+    bool _is_gop = false;
     bool _gop_dropped = false;
     bool _fu_dropped = true;
     uint16_t _last_seq = 0;
