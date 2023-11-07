@@ -40,6 +40,11 @@ public:
     virtual Track::Ptr clone() = 0;
 
     /**
+     * 更新track信息，比如触发sps/pps解析
+     */
+    virtual void update() {}
+
+    /**
      * 生成sdp
      * @return  sdp对象
      */
