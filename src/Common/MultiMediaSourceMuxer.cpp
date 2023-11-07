@@ -290,12 +290,14 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const MediaSourceE
 
     auto ring = _ring;
     auto ssrc = args.ssrc;
+    auto ssrc_multi_send = args.ssrc_multi_send;
     auto tracks = getTracks(false);
     auto poller = getOwnerPoller(sender);
     auto rtp_sender = std::make_shared<RtpSender>(poller);
+
     weak_ptr<MultiMediaSourceMuxer> weak_self = shared_from_this();
 
-    rtp_sender->startSend(args, [ssrc, weak_self, rtp_sender, cb, tracks, ring, poller](uint16_t local_port, const SockException &ex) mutable {
+    rtp_sender->startSend(args, [ssrc,ssrc_multi_send, weak_self, rtp_sender, cb, tracks, ring, poller](uint16_t local_port, const SockException &ex) mutable {
         cb(local_port, ex);
         auto strong_self = weak_self.lock();
         if (!strong_self || ex) {
@@ -324,6 +326,9 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const MediaSourceE
 
         // 可能归属线程发生变更
         strong_self->getOwnerPoller(MediaSource::NullMediaSource())->async([=]() {
+            if(!ssrc_multi_send) {
+                strong_self->_rtp_sender.erase(ssrc);
+            }
             strong_self->_rtp_sender.emplace(ssrc,reader);
         });
     });

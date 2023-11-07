@@ -104,6 +104,8 @@ public:
         bool passive = false;
         // rtp payload type
         uint8_t pt = 96;
+        //是否支持同ssrc多服务器发送
+        bool ssrc_multi_send = false;
         // 指定rtp ssrc
         std::string ssrc;
         // 指定本地发送端口
