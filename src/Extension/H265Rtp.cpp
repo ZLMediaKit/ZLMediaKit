@@ -163,7 +163,7 @@ bool H265RtpDecoder::mergeFu(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssiz
 
     if (!e_bit) {
         //非末尾包
-        return s_bit ? _frame->keyFrame() : false;
+        return s_bit ? (_frame->keyFrame() || _frame->configFrame()) : false;
     }
 
     //确保下一次fu必须收到第一个包
@@ -175,13 +175,15 @@ bool H265RtpDecoder::mergeFu(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssiz
 
 bool H265RtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool) {
     auto seq = rtp->getSeq();
-    auto ret = decodeRtp(rtp);
+    auto last_is_gop = _is_gop;
+    _is_gop = decodeRtp(rtp);
     if (!_gop_dropped && seq != (uint16_t) (_last_seq + 1) && _last_seq) {
         _gop_dropped = true;
         WarnL << "start drop h265 gop, last seq:" << _last_seq << ", rtp:\r\n" << rtp->dumpString();
     }
     _last_seq = seq;
-    return ret;
+    // 确保有sps rtp的时候，gop从sps开始；否则从关键帧开始
+    return _is_gop && !last_is_gop;
 }
 
 bool H265RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtp) {
@@ -220,7 +222,7 @@ bool H265RtpDecoder::singleFrame(const RtpPacket::Ptr &rtp, const uint8_t *ptr, 
     _frame->_buffer.assign("\x00\x00\x00\x01", 4);
     _frame->_buffer.append((char *) ptr, size);
     _frame->_pts = stamp;
-    auto key = _frame->keyFrame();
+    auto key = _frame->keyFrame() || _frame->configFrame();
     outputFrame(rtp, _frame);
     return key;
 }

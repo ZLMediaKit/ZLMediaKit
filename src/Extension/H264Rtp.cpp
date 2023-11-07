@@ -44,13 +44,15 @@ H264Frame::Ptr H264RtpDecoder::obtainFrame() {
 
 bool H264RtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
     auto seq = rtp->getSeq();
-    auto ret = decodeRtp(rtp);
-    if (!_gop_dropped && seq != (uint16_t) (_last_seq + 1) && _last_seq) {
+    auto last_is_gop = _is_gop;
+    _is_gop = decodeRtp(rtp);
+    if (!_gop_dropped && seq != (uint16_t)(_last_seq + 1) && _last_seq) {
         _gop_dropped = true;
         WarnL << "start drop h264 gop, last seq:" << _last_seq << ", rtp:\r\n" << rtp->dumpString();
     }
     _last_seq = seq;
-    return ret;
+    // 确保有sps rtp的时候，gop从sps开始；否则从关键帧开始
+    return _is_gop && !last_is_gop;
 }
 
 /*
@@ -74,7 +76,7 @@ bool H264RtpDecoder::singleFrame(const RtpPacket::Ptr &rtp, const uint8_t *ptr, 
     _frame->_buffer.assign("\x00\x00\x00\x01", 4);
     _frame->_buffer.append((char *) ptr, size);
     _frame->_pts = stamp;
-    auto key = _frame->keyFrame();
+    auto key = _frame->keyFrame() || _frame->configFrame();
     outputFrame(rtp, _frame);
     return key;
 }
@@ -127,7 +129,7 @@ bool H264RtpDecoder::mergeFu(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssiz
 
     if (!fu->end_bit) {
         //非末尾包
-        return fu->start_bit ? _frame->keyFrame() : false;
+        return fu->start_bit ? (_frame->keyFrame() || _frame->configFrame()) : false;
     }
 
     //确保下一次fu必须收到第一个包
