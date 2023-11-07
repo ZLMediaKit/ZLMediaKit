@@ -52,6 +52,7 @@ public:
     int getAudioSampleRate() const override;
     int getAudioSampleBit() const override;
     bool inputFrame(const Frame::Ptr &frame) override;
+    void update() override;
 
 private:
     void onReady();
