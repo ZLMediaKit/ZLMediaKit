@@ -353,7 +353,6 @@ Value makeMediaSourceJson(MediaSource &media){
     try { current_thread = media.getOwnerPoller()->isCurrentThread();} catch (...) {}
     float last_loss = -1;
     for(auto &track : media.getTracks(false)){
-        track->update();
         Value obj;
         auto codec_type = track->getTrackType();
         obj["codec_id"] = track->getCodecId();
