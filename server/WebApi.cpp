@@ -1182,7 +1182,8 @@ void installWebApi() {
         //回复json
         val["port"] = port;
     });
-      api_regist("/media/api/openRtpServerMultiplex", [](API_ARGS_MAP) {
+
+      api_regist("/index/api/openRtpServerMultiplex", [](API_ARGS_MAP) {
       CHECK_SECRET();
       CHECK_ARGS("port", "stream_id");
       auto stream_id = allArgs["stream_id"];
