@@ -156,7 +156,7 @@ private:
     EventPoller::DelayTask::Ptr _delay_task;
 };
 
-void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_mode, const char *local_ip, bool re_use_port, uint32_t ssrc, bool only_audio) {
+void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_mode, const char *local_ip, bool re_use_port, uint32_t ssrc, bool only_audio, bool multiplex) {
     //创建udp服务器
     Socket::Ptr rtp_socket = Socket::createSocket(nullptr, true);
     Socket::Ptr rtcp_socket = Socket::createSocket(nullptr, true);
@@ -195,7 +195,8 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_
     //创建udp服务器
     UdpServer::Ptr udp_server;
     RtcpHelper::Ptr helper;
-    if (!stream_id.empty()) {
+    //增加了多路复用判断，如果多路复用为true，就走else逻辑，同时保留了原来stream_id为空走else逻辑
+    if (!stream_id.empty() && !multiplex) {
         //指定了流id，那么一个端口一个流(不管是否包含多个ssrc的多个流，绑定rtp源后，会筛选掉ip端口不匹配的流)
         helper = std::make_shared<RtcpHelper>(std::move(rtcp_socket), stream_id);
         helper->startRtcp();

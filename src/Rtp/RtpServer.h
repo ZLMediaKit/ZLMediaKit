@@ -42,9 +42,10 @@ public:
      * @param local_ip 绑定的本地网卡ip
      * @param re_use_port 是否设置socket为re_use属性
      * @param ssrc 指定的ssrc
+     * @param multiplex 多路复用
      */
     void start(uint16_t local_port, const std::string &stream_id = "", TcpMode tcp_mode = PASSIVE,
-               const char *local_ip = "::", bool re_use_port = true, uint32_t ssrc = 0, bool only_audio = false);
+               const char *local_ip = "::", bool re_use_port = true, uint32_t ssrc = 0, bool only_audio = false, bool multiplex = false);
 
     /**
      * 连接到tcp服务(tcp主动模式)
