@@ -1,9 +1,10 @@
 {
 	"info": {
-		"_postman_id": "39e8a1df-cc8e-4e3f-bf5e-197c86e7bf0f",
+		"_postman_id": "509e5f6b-728c-4d5f-b3e8-521d76b2cc7a",
 		"name": "ZLMediaKit",
 		"description": "媒体服务器",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "29185956"
 	},
 	"item": [
 		{
@@ -918,7 +919,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{ZLMediaKit_URL}}/index/api/broadcastMessage?secret={{ZLMediaKit_secret}}&schema=rtsp&vhost={{defaultVhost}}&app=live&stream=test&msg=Hello zlmediakit123",
+					"raw": "{{ZLMediaKit_URL}}/index/api/broadcastMessage?secret={{ZLMediaKit_secret}}&schema=rtsp&vhost={{defaultVhost}}&app=live&stream=test&msg=Hello ZLMediakit",
 					"host": [
 						"{{ZLMediaKit_URL}}"
 					],
@@ -1247,7 +1248,7 @@
 						},
 						{
 							"key": "stamp",
-							"value": 1000,
+							"value": "1000",
 							"description": "要设置的录像播放位置"
 						}
 					]
@@ -1470,6 +1471,53 @@
 						{
 							"key": "only_audio",
 							"value": "1",
+							"description": "是否为单音频track，用于语音对讲",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "创建多路复用RTP服务器(openRtpServerMultiplex)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/openRtpServer?secret={{ZLMediaKit_secret}}&port=0&tcp_mode=1&stream_id=test",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"openRtpServer"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)"
+						},
+						{
+							"key": "port",
+							"value": "0",
+							"description": "绑定的端口，0时为随机端口"
+						},
+						{
+							"key": "tcp_mode",
+							"value": "1",
+							"description": "tcp模式，0时为不启用tcp监听，1时为启用tcp监听"
+						},
+						{
+							"key": "stream_id",
+							"value": "test",
+							"description": "该端口绑定的流id\n"
+						},
+						{
+							"key": "only_audio",
+							"value": "0",
 							"description": "是否为单音频track，用于语音对讲",
 							"disabled": true
 						}
