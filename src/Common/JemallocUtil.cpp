@@ -12,6 +12,7 @@
 #include "JemallocUtil.h"
 #include "Util/logger.h"
 #ifdef USE_JEMALLOC
+#include <array>
 #include <iostream>
 #include <jemalloc/jemalloc.h>
 #endif

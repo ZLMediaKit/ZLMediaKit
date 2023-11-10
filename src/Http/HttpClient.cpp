@@ -80,7 +80,7 @@ void HttpClient::sendRequest(const string &url) {
     }
 
     if (!alive() || host_changed) {
-        startConnect(host, port, _wait_header_ms);
+        startConnect(host, port, _wait_header_ms / 1000.0f);
     } else {
         SockException ex;
         onConnect_l(ex);

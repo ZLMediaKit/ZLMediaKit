@@ -26,7 +26,13 @@ public:
         _media_src = std::make_shared<TSMediaSource>(tuple);
     }
 
-    ~TSMediaSourceMuxer() override { MpegMuxer::flush(); };
+    ~TSMediaSourceMuxer() override {
+        try {
+            MpegMuxer::flush();
+        } catch (std::exception &ex) {
+            WarnL << ex.what();
+        }
+    };
 
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
         setDelegate(listener);

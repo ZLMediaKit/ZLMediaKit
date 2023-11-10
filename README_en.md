@@ -342,6 +342,7 @@ bash build_docker_images.sh
 ## Collaborative Projects
 
 - Visual management website
+   - [A backend management website for this project](https://github.com/1002victor/zlm_webassist)
    - [The latest web project with front-end and back-end separation, supporting webrtc playback](https://github.com/langmansh/AKStreamNVR)
    - [Management web site based on ZLMediaKit master branch](https://gitee.com/kkkkk5G/MediaServerUI) 
    - [Management web site based on ZLMediaKit branch](https://github.com/chenxiaolei/ZLMediaKit_NVR_UI)
@@ -493,6 +494,10 @@ Thanks to all those who have supported this project in various ways, including b
 [linxiaoyan87](https://github.com/linxiaoyan)
 [waken](https://github.com/mc373906408)
 [Deepslient](https://github.com/Deepslient)
+[imp_rayjay](https://github.com/rayjay214)
+[ArmstrongCN](https://github.com/ArmstrongCN)
+[leibnewton](https://github.com/leibnewton)
+[1002victor](https://github.com/1002victor)
 
 Also thank to JetBrains for their support for open source project, we developed and debugged zlmediakit with CLion:
 

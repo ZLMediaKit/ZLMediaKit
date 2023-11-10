@@ -29,6 +29,8 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <cstdio>  // std::sprintf(), std::fopen()
 #include <cstring> // std::memcpy(), std::strcmp()
 #include "Util/util.h"
+#include "Util/SSLBox.h"
+#include "Util/SSLUtil.h"
 
 using namespace std;
 
@@ -129,15 +131,9 @@ namespace RTC
         MS_TRACE();
 
         // Generate a X509 certificate and private key (unless PEM files are provided).
-        if (true /*
-          Settings::configuration.dtlsCertificateFile.empty() ||
-          Settings::configuration.dtlsPrivateKeyFile.empty()*/)
-        {
+        auto ssl = toolkit::SSL_Initor::Instance().getSSLCtx("", true);
+        if (!ssl || !ReadCertificateAndPrivateKeyFromContext(ssl.get())) {
             GenerateCertificateAndPrivateKey();
-        }
-        else
-        {
-            ReadCertificateAndPrivateKeyFromFiles();
         }
 
         // Create a global SSL_CTX.
@@ -297,59 +293,22 @@ namespace RTC
         MS_THROW_ERROR("DTLS certificate and private key generation failed");
     }
 
-    void DtlsTransport::DtlsEnvironment::ReadCertificateAndPrivateKeyFromFiles()
+    bool DtlsTransport::DtlsEnvironment::ReadCertificateAndPrivateKeyFromContext(SSL_CTX *ctx)
     {
-#if 0
         MS_TRACE();
-
-        FILE* file{ nullptr };
-
-        file = fopen(Settings::configuration.dtlsCertificateFile.c_str(), "r");
-
-        if (!file)
-        {
-            MS_ERROR("error reading DTLS certificate file: %s", std::strerror(errno));
-
-            goto error;
+        certificate = SSL_CTX_get0_certificate(ctx);
+        if (!certificate) {
+            return false;
         }
+        X509_up_ref(certificate);
 
-        certificate = PEM_read_X509(file, nullptr, nullptr, nullptr);
-
-        if (!certificate)
-        {
-            LOG_OPENSSL_ERROR("PEM_read_X509() failed");
-
-            goto error;
+        privateKey = SSL_CTX_get0_privatekey(ctx);
+        if (!privateKey) {
+            return false;
         }
-
-        fclose(file);
-
-        file = fopen(Settings::configuration.dtlsPrivateKeyFile.c_str(), "r");
-
-        if (!file)
-        {
-            MS_ERROR("error reading DTLS private key file: %s", std::strerror(errno));
-
-            goto error;
-        }
-
-        privateKey = PEM_read_PrivateKey(file, nullptr, nullptr, nullptr);
-
-        if (!privateKey)
-        {
-            LOG_OPENSSL_ERROR("PEM_read_PrivateKey() failed");
-
-            goto error;
-        }
-
-        fclose(file);
-
-        return;
-
-    error:
-
-        MS_THROW_ERROR("error reading DTLS certificate and private key PEM files");
-#endif
+        EVP_PKEY_up_ref(privateKey);
+        InfoL << "Load webrtc dtls certificate: " << toolkit::SSLUtil::getServerName(certificate);
+        return true;
     }
 
     void DtlsTransport::DtlsEnvironment::CreateSslCtx()

@@ -99,11 +99,13 @@ public:
         // rtp采用ps还是es方式
         bool use_ps = true;
         //发送es流时指定是否只发送纯音频流
-        bool only_audio = true;
+        bool only_audio = false;
         //tcp被动方式
         bool passive = false;
         // rtp payload type
         uint8_t pt = 96;
+        //是否支持同ssrc多服务器发送
+        bool ssrc_multi_send = false;
         // 指定rtp ssrc
         std::string ssrc;
         // 指定本地发送端口

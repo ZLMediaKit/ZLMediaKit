@@ -674,7 +674,7 @@ void installWebHook() {
         });
     });
 
-    NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::KBroadcastRtpServerTimeout, [](BroadcastRtpServerTimeoutArgs) {
+    NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastRtpServerTimeout, [](BroadcastRtpServerTimeoutArgs) {
         GET_CONFIG(string, rtp_server_timeout, Hook::kOnRtpServerTimeout);
         if (!hook_enable || rtp_server_timeout.empty()) {
             return;
