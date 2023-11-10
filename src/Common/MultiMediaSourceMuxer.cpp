@@ -525,6 +525,8 @@ bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
         ret = _fmp4->inputFrame(frame) ? true : ret;
     }
     if (_ring) {
+        // 此场景由于直接转发，可能存在切换线程引起的数据被缓存在管道，所以需要CacheAbleFrame
+        frame = Frame::getCacheAbleFrame(frame);
         if (frame->getTrackType() == TrackVideo) {
             // 视频时，遇到第一帧配置帧或关键帧则标记为gop开始处
             auto video_key_pos = frame->keyFrame() || frame->configFrame();
