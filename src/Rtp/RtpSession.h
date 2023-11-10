@@ -41,6 +41,10 @@ protected:
     void onRtpPacket(const char *data, size_t len) override;
     // RtpSplitter override
     const char *onSearchPacketTail(const char *data, size_t len) override;
+    // 搜寻SSRC
+    const char *searchBySSRC(const char *data, size_t len);
+    // 搜寻PS包里的关键帧标头
+    const char *searchByPsHeaderFlag(const char *data, size_t len);
 
 private:
     bool _delay_close = false;
