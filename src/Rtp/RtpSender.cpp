@@ -173,15 +173,8 @@ void RtpSender::createRtcpSocket() {
         return;
     }
 
-    struct sockaddr_storage addr;
-    //目标rtp端口
-    SockUtil::get_sock_peer_addr(_socket_rtp->rawFD(), addr);
-    //绑定目标rtcp端口(目标rtp端口 + 1)
-    switch (addr.ss_family) {
-        case AF_INET: ((sockaddr_in *)&addr)->sin_port = htons(ntohs(((sockaddr_in *)&addr)->sin_port) + 1); break;
-        case AF_INET6: ((sockaddr_in6 *)&addr)->sin6_port = htons(ntohs(((sockaddr_in6 *)&addr)->sin6_port) + 1); break;
-        default: assert(0); break;
-    }
+    // 绑定目标rtcp端口(目标rtp端口 + 1)
+    auto addr = SockUtil::make_sockaddr(_socket_rtp->get_peer_ip().data(), _socket_rtp->get_peer_port() + 1);
     _socket_rtcp->bindPeerAddr((struct sockaddr *)&addr, 0, true);
 
     _rtcp_context = std::make_shared<RtcpContextForSend>();
