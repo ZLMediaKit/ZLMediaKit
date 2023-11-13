@@ -11,6 +11,7 @@
 
 #include "JemallocUtil.h"
 #include "Util/logger.h"
+#include <cstdint>
 #ifdef USE_JEMALLOC
 #include <array>
 #include <iostream>

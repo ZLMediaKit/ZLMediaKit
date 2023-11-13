@@ -12,6 +12,7 @@
 #define ZLMEDIAKIT_JEMALLOCUTIL_H
 #include <functional>
 #include <string>
+#include <cstdint>
 namespace mediakit {
 class JemallocUtil {
 public:
