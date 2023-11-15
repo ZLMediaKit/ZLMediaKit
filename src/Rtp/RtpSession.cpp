@@ -139,8 +139,15 @@ void RtpSession::onRtpPacket(const char *data, size_t len) {
         } else {
             throw;
         }
-    } catch (...) {
-        throw;
+    } catch (std::exception &ex) {
+        if (!_is_udp) {
+            // tcp情况下立即断开连接
+            throw;
+        }
+        // udp情况下延时断开连接(等待超时自动关闭)，防止频繁创建销毁RtpSession对象
+        WarnP(this) << ex.what();
+        _delay_close = true;
+        return;
     }
     _ticker.resetTime();
 }
