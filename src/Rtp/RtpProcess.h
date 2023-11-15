@@ -94,6 +94,7 @@ private:
 
 private:
     bool _only_audio = false;
+    std::string _auth_err;
     uint64_t _dts = 0;
     uint64_t _total_bytes = 0;
     std::unique_ptr<sockaddr_storage> _addr;
