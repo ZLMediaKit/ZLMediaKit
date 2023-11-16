@@ -21,6 +21,7 @@ void TsPlayer::play(const string &url) {
     TraceL << "play http-ts: " << url;
     _play_result = false;
     _benchmark_mode = (*this)[Client::kBenchmarkMode].as<int>();
+    setProxyUrl(_option.proxy_url);
     setHeaderTimeout((*this)[Client::kTimeoutMS].as<int>());
     setBodyTimeout((*this)[Client::kMediaTimeoutMS].as<int>());
     setMethod("GET");

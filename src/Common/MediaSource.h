@@ -199,6 +199,8 @@ public:
 
     // 支持通过on_publish返回值替换stream_id
     std::string stream_replace;
+    // http proxy url
+    std::string proxy_url;
 
     template <typename MAP>
     ProtocolOption(const MAP &allArgs) : ProtocolOption() {
@@ -229,6 +231,8 @@ public:
 
         GET_OPT_VALUE(hls_save_path);
         GET_OPT_VALUE(stream_replace);
+
+        GET_OPT_VALUE(proxy_url);
     }
 
 private:

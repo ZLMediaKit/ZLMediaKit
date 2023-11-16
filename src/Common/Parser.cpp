@@ -8,12 +8,13 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
-#include <cinttypes>
 #include "Parser.h"
-#include "strCoding.h"
-#include "macros.h"
-#include "Network/sockutil.h"
 #include "Common/macros.h"
+#include "Network/sockutil.h"
+#include "Util/base64.h"
+#include "macros.h"
+#include "strCoding.h"
+#include <cinttypes>
 
 using namespace std;
 using namespace toolkit;
@@ -324,6 +325,24 @@ void splitUrl(const std::string &url, std::string &host, uint16_t &port) {
     CHECK(sscanf(url.data() + pos + 1, "%" SCNu16, &port) == 1, "parse port from url failed:", url);
     host = url.substr(0, pos);
     checkHost(host);
+}
+
+void parseProxyUrl(const std::string &proxy_url, std::string &proxy_host, uint16_t &proxy_port, std::string &proxy_auth){
+    //判断是否包含http://, 如果是则去掉
+    std::string host;
+    auto pos = proxy_url.find("://");
+    if (pos != string::npos) {
+        host = proxy_url.substr(pos + 3);
+    }else{
+        host = proxy_url;
+    }
+    //判断是否包含用户名和密码
+    pos = host.rfind('@');
+    if (pos != string::npos) {
+        proxy_auth = encodeBase64(host.substr(0, pos));
+        host = host.substr(pos + 1, host.size());
+    }
+    splitUrl(host, proxy_host, proxy_port);
 }
 #if 0
 //测试代码

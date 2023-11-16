@@ -27,7 +27,7 @@ namespace mediakit {
 PlayerProxy::PlayerProxy(
     const string &vhost, const string &app, const string &stream_id, const ProtocolOption &option, int retry_count,
     const EventPoller::Ptr &poller, int reconnect_delay_min, int reconnect_delay_max, int reconnect_delay_step)
-    : MediaPlayer(poller)
+    : MediaPlayer(poller, option)
     , _option(option) {
     _tuple.vhost = vhost;
     _tuple.app = app;

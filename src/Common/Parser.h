@@ -21,6 +21,8 @@ namespace mediakit {
 std::string findSubString(const char *buf, const char *start, const char *end, size_t buf_size = 0);
 // 把url解析为主机地址和端口号,兼容ipv4/ipv6/dns
 void splitUrl(const std::string &url, std::string &host, uint16_t &port);
+// 解析proxy url,仅支持http
+void parseProxyUrl(const std::string &proxy_url, std::string &proxy_host, uint16_t &proxy_port, std::string &proxy_auth);
 
 struct StrCaseCompare {
     bool operator()(const std::string &__x, const std::string &__y) const { return strcasecmp(__x.data(), __y.data()) < 0; }
