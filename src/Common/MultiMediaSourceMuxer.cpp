@@ -539,6 +539,9 @@ bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
             _ring->write(frame, !haveVideo());
         }
     }
+    if(frame->getTrackType()==TrackVideo && !frame->dropAble()){
+        _dynamicFPS.inputFrame();
+    }
     return ret;
 }
 
@@ -562,6 +565,10 @@ bool MultiMediaSourceMuxer::isEnabled(){
         }
     }
     return _is_enable;
+}
+
+int MultiMediaSourceMuxer::getAvgFps() {
+    return _dynamicFPS.getDynamicFPS();
 }
 
 }//namespace mediakit

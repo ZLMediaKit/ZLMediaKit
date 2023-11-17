@@ -134,7 +134,8 @@ public:
     const ProtocolOption &getOption() const;
     const MediaTuple &getMediaTuple() const;
     std::string shortUrl() const;
-
+    // 获取平均fps
+    int getAvgFps();
 protected:
     /////////////////////////////////MediaSink override/////////////////////////////////
 
@@ -178,7 +179,7 @@ private:
     HlsFMP4Recorder::Ptr _hls_fmp4;
     toolkit::EventPoller::Ptr _poller;
     RingType::Ptr _ring;
-
+    FrameFps _dynamicFPS;
     //对象个数统计
     toolkit::ObjectStatistic<MultiMediaSourceMuxer> _statistic;
 };

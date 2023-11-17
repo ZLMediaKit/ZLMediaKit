@@ -159,6 +159,10 @@ int MediaSource::getBytesSpeed(TrackType type){
     return _speed[type].getSpeed();
 }
 
+int MediaSource::getAvgFps() {
+    return getMuxer()->getAvgFps();
+}
+
 uint64_t MediaSource::getAliveSecond() const {
     //使用Ticker对象获取存活时间的目的是防止修改系统时间导致回退
     return _ticker.createdTime() / 1000;

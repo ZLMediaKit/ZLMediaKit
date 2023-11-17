@@ -299,6 +299,38 @@ public:
 
 bool equalMediaTuple(const MediaTuple& a, const MediaTuple& b);
 
+class FrameFps {
+public:
+    FrameFps() = default;
+    ~FrameFps() = default;
+
+    void inputFrame() {
+        ++frameCount;
+
+    }
+    int getDynamicFPS() {
+        if (_ticker.elapsedTime() < 1000) {
+            //获取频率小于1秒，那么返回上次计算结果
+            return _fps;
+        }
+        return computeFps();
+    }
+private:
+    int computeFps() {
+        auto elapsed = _ticker.elapsedTime();
+        if (!elapsed) {
+            return _fps;
+        }
+        _fps = (int)(frameCount * 1000 / elapsed);
+        _ticker.resetTime();
+        frameCount = 0;
+        return _fps;
+    }
+private:
+    long frameCount = 0;
+    int _fps = 0;
+    toolkit::Ticker _ticker;
+};
 /**
  * 媒体源，任何rtsp/rtmp的直播流都源自该对象
  */
@@ -340,7 +372,8 @@ public:
     uint64_t getCreateStamp() const { return _create_stamp; }
     // 获取流上线时间，单位秒
     uint64_t getAliveSecond() const;
-
+    // 获取平均fps
+    int getAvgFps();
     ////////////////MediaSourceEvent相关接口实现////////////////
 
     // 设置监听者
