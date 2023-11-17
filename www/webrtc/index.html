@@ -155,44 +155,47 @@
                     audioEnable:document.getElementById('audioEnable').checked,
                     videoEnable:document.getElementById('videoEnable').checked,
                     recvOnly:recvOnly,
-                    resolution:{w:w,h:h},
+                    resolution:{w,h},
                     usedatachannel:document.getElementById('datachannel').checked,
                 }
             );
     
             player.on(ZLMRTCClient.Events.WEBRTC_ICE_CANDIDATE_ERROR,function(e)
-            {// ICE 协商出错
-                console.log('ICE 协商出错');
+            {
+              // ICE 协商出错
+              console.log('ICE 协商出错');
             });
     
             player.on(ZLMRTCClient.Events.WEBRTC_ON_REMOTE_STREAMS,function(e)
-            {//获取到了远端流，可以播放
-                console.log('播放成功',e.streams);
+            {
+              //获取到了远端流，可以播放
+              console.log('播放成功',e.streams);
             });
     
             player.on(ZLMRTCClient.Events.WEBRTC_OFFER_ANWSER_EXCHANGE_FAILED,function(e)
-            {// offer anwser 交换失败
-                console.log('offer anwser 交换失败',e);
-                stop();
+            {
+              // offer anwser 交换失败
+              console.log('offer anwser 交换失败',e);
+              stop();
             });
     
             player.on(ZLMRTCClient.Events.WEBRTC_ON_LOCAL_STREAM,function(s)
-            {// 获取到了本地流
-    
+            {
+              // 获取到了本地流 
               document.getElementById('selfVideo').srcObject=s;
               document.getElementById('selfVideo').muted = true;
-              
-                //console.log('offer anwser 交换失败',e)
+              //console.log('offer anwser 交换失败',e)
             });
 
             player.on(ZLMRTCClient.Events.CAPTURE_STREAM_FAILED,function(s)
-            {// 获取本地流失败
-    
+            {
+              // 获取本地流失败
               console.log('获取本地流失败');
             });
 
             player.on(ZLMRTCClient.Events.WEBRTC_ON_CONNECTION_STATE_CHANGE,function(state)
-            {// RTC 状态变化 ,详情参考 https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/connectionState
+            {
+              // RTC 状态变化 ,详情参考 https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/connectionState
               console.log('当前状态==>',state);
             });
 
@@ -267,19 +270,20 @@
         }
       }
 
-
       function on_click_to_play(app, stream) {
         console.log(`on_click_to_play: ${app}/${stream}`);
         var url = `${document.location.protocol}//${window.location.host}/index/api/webrtc?app=${app}&stream=${stream}&type=play`;
         document.getElementById('streamUrl').value = url;
         start();
       }
+
       function clearStreamList() {
         let content = document.getElementById("olstreamlist");
           while (content.hasChildNodes()) {
             content.removeChild(content.firstChild);
           }
       }
+
       function fillStreamList(json) {
           clearStreamList();
           if (json.code != 0 || !json.data) {
@@ -308,6 +312,7 @@
             }
           }
       }
+
       async function getData(url) {
         const response = await fetch(url, {
             method: 'GET'
@@ -316,11 +321,13 @@
         //console.log(data);
         return data;
       }
+
       function get_media_list() {
         let url = document.location.protocol+"//"+window.location.host+"/index/api/getMediaList?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc";
         let json = getData(url);
         json.then((json)=> fillStreamList(json));
       }
+      
       setInterval(() => {
        // get_media_list();
       }, 5000);
