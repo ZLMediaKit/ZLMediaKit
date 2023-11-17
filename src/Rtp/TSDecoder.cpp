@@ -39,8 +39,7 @@ const char *TSSegment::onSearchPacketTail(const char *data, size_t len) {
     if (((uint8_t *) data)[_size] == TS_SYNC_BYTE) {
         return data + _size;
     }
-    //搜索ts包头
-    auto pos = memchr(data, TS_SYNC_BYTE, len);
+    auto pos = memchr(data + _size, TS_SYNC_BYTE, len - _size);
     if (pos) {
         return (char *) pos;
     }

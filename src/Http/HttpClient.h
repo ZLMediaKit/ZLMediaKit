@@ -183,19 +183,16 @@ protected:
     void onFlush() override;
     void onManager() override;
 
-    bool checkProxyConnected(const char *data, size_t len);
-
-    bool isUsedProxy() const;
-
-    bool isProxyConnected() const;
-
     void clearResponse();
+
+    bool checkProxyConnected(const char *data, size_t len);
+    bool isUsedProxy() const;
+    bool isProxyConnected() const;
 
 private:
     void onResponseCompleted_l(const toolkit::SockException &ex);
     void onConnect_l(const toolkit::SockException &ex);
     void checkCookie(HttpHeader &headers);
-
 
 private:
     //for http response
@@ -225,12 +222,13 @@ private:
     toolkit::Ticker _wait_header;
     toolkit::Ticker _wait_body;
     toolkit::Ticker _wait_complete;
+
+    bool _used_proxy = false;
+    bool _proxy_connected = false;
+    uint16_t _proxy_port;
     std::string _proxy_url;
     std::string _proxy_host;
     std::string _proxy_auth;
-    uint16_t _proxy_port;
-    bool _proxy_connected = false;
-    bool _used_proxy = false;
 };
 
 } /* namespace mediakit */
