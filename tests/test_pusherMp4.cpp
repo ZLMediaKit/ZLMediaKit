@@ -116,5 +116,6 @@ int domain(const string &file, const string &url) {
 int main(int argc, char *argv[]) {
     // 可以使用test_server生成的mp4文件
     // 文件使用绝对路径，推流url支持rtsp和rtmp
-    return domain("/Users/xiongziliang/Downloads/mp4/Quantum.mp4", "rtsp://127.0.0.1/live/rtsp_push");
+    // return domain("/Users/xiongziliang/Downloads/mp4/Quantum.mp4", "rtsp://127.0.0.1/live/rtsp_push");
+    return domain(argv[1], argv[2]);
 }
