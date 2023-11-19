@@ -69,7 +69,7 @@ void RtmpPlayer::play(const string &url)  {
     }
     DebugL << host_url << " " << _app << " " << _stream_id;
 
-    uint16_t port = 1935;
+    uint16_t port = start_with(url, "rtmps") ? 443 : 1935;
     splitUrl(host_url, host_url, port);
 
     if (!(*this)[Client::kNetAdapter].empty()) {
