@@ -90,7 +90,7 @@ const char* sockTypeStr(Session* session) {
 
 WebRtcTransport::WebRtcTransport(const EventPoller::Ptr &poller) {
     _poller = poller;
-    _identifier = "zlm_" + to_string(++s_key);
+    _identifier = "zlm" + to_string(++s_key);
     _packet_pool.setSize(64);
 }
 
