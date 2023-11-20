@@ -21,7 +21,7 @@ class MediaPlayer : public PlayerImp<PlayerBase, PlayerBase> {
 public:
     using Ptr = std::shared_ptr<MediaPlayer>;
 
-    MediaPlayer(const toolkit::EventPoller::Ptr &poller = nullptr, const ProtocolOption &option=ProtocolOption());
+    MediaPlayer(const toolkit::EventPoller::Ptr &poller = nullptr);
     ~MediaPlayer() override = default;
 
     void play(const std::string &url) override;
@@ -29,7 +29,6 @@ public:
     void setOnCreateSocket(toolkit::Socket::onCreateSocket cb);
 
 private:
-    ProtocolOption _option;
     toolkit::EventPoller::Ptr _poller;
     toolkit::Socket::onCreateSocket _on_create_socket;
 };

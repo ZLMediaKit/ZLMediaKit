@@ -403,6 +403,8 @@ extern const std::string kWaitTrackReady;
 // rtsp播放指定track，可选项有0(不指定，默认)、1(视频)、2(音频)
 // 设置方法:player[Client::kPlayTrack] = 0/1/2;
 extern const std::string kPlayTrack;
+//设置代理url，目前只支持http协议
+extern const std::string kProxyUrl;
 } // namespace Client
 } // namespace mediakit
 

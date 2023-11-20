@@ -16,9 +16,8 @@ using namespace toolkit;
 
 namespace mediakit {
 
-MediaPlayer::MediaPlayer(const EventPoller::Ptr &poller, const ProtocolOption &option) {
+MediaPlayer::MediaPlayer(const EventPoller::Ptr &poller) {
     _poller = poller ? poller : EventPollerPool::Instance().getPoller();
-    _option = option;
 }
 
 static void setOnCreateSocket_l(const std::shared_ptr<PlayerBase> &delegate, const Socket::onCreateSocket &cb){
@@ -38,7 +37,6 @@ static void setOnCreateSocket_l(const std::shared_ptr<PlayerBase> &delegate, con
 void MediaPlayer::play(const string &url) {
     _delegate = PlayerBase::createPlayer(_poller, url);
     assert(_delegate);
-    _delegate->setOption(_option);
     setOnCreateSocket_l(_delegate, _on_create_socket);
     _delegate->setOnShutdown(_on_shutdown);
     _delegate->setOnPlayResult(_on_play_result);

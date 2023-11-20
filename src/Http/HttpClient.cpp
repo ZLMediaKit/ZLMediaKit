@@ -420,8 +420,8 @@ bool HttpClient::isProxyConnected() const {
     return _proxy_connected;
 }
 
-void HttpClient::setProxyUrl(const string &proxyUrl) {
-    _proxy_url = proxyUrl;
+void HttpClient::setProxyUrl(string proxy_url) {
+    _proxy_url = std::move(proxy_url);
     if (!_proxy_url.empty()) {
         parseProxyUrl(_proxy_url, _proxy_host, _proxy_port, _proxy_auth);
         _used_proxy = true;

@@ -115,16 +115,10 @@ public:
      */
     virtual void setOnResume(const std::function<void()> &cb) = 0;
 
-    void setOption(const ProtocolOption &option){
-        _option = option;
-    }
-
 protected:
     virtual void onResume() = 0;
     virtual void onShutdown(const toolkit::SockException &ex) = 0;
     virtual void onPlayResult(const toolkit::SockException &ex) = 0;
-protected:
-    ProtocolOption _option;
 };
 
 template<typename Parent, typename Delegate>

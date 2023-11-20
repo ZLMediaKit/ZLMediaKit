@@ -24,7 +24,7 @@ public:
 
 protected:
     void onConnect(const toolkit::SockException &ex) override;
-    virtual ssize_t onRecvHeader(const char *data, size_t len) override;
+    ssize_t onRecvHeader(const char *data, size_t len) override;
 };
 
 } /* namespace mediakit */
