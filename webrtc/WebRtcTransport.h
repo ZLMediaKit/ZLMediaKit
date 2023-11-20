@@ -35,12 +35,11 @@ extern const std::string kTcpPort;
 extern const std::string kTimeOutSec;
 }//namespace RTC
 
-class WebRtcInterface {
+class WebRtcInterface : public LogThreadContext {
 public:
     WebRtcInterface() = default;
     virtual ~WebRtcInterface() = default;
     virtual std::string getAnswerSdp(const std::string &offer) = 0;
-    virtual const std::string& getIdentifier() const = 0;
     virtual const std::string& deleteRandStr() const { static std::string s_null; return s_null; }
 };
 
@@ -52,10 +51,6 @@ public:
     ~WebRtcException() override = default;
     std::string getAnswerSdp(const std::string &offer) override {
         throw _ex;
-    }
-    const std::string &getIdentifier() const override {
-        static std::string s_null;
-        return s_null;
     }
 
 private:
@@ -92,7 +87,7 @@ public:
     /**
      * 获取对象唯一id
      */
-    const std::string& getIdentifier() const override;
+    std::string getIdentifier() const override;
     const std::string& deleteRandStr() const override;
 
     /**

@@ -111,7 +111,7 @@ const EventPoller::Ptr &WebRtcTransport::getPoller() const {
     return _poller;
 }
 
-const string &WebRtcTransport::getIdentifier() const {
+string WebRtcTransport::getIdentifier() const {
     return _identifier;
 }
 
@@ -1081,6 +1081,7 @@ void WebRtcTransportImp::safeShutdown(const SockException &ex) {
     std::weak_ptr<WebRtcTransportImp> weak_self = static_pointer_cast<WebRtcTransportImp>(shared_from_this());
     getPoller()->async([ex, weak_self]() {
         if (auto strong_self = weak_self.lock()) {
+            Logger::setThreadContext(weak_self);
             strong_self->onShutdown(ex);
         }
     });

@@ -196,7 +196,7 @@ bool HlsPlayer::onParsed(bool is_m3u8_inner, int64_t sequence, const map<int, ts
         _timer.reset();
         weak_ptr<HlsPlayer> weak_self = static_pointer_cast<HlsPlayer>(shared_from_this());
         auto url = ts_map.rbegin()->second.url;
-        getPoller()->async([weak_self, url]() {
+        async([weak_self, url]() {
             auto strong_self = weak_self.lock();
             if (strong_self) {
                 strong_self->play(url);

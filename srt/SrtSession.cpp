@@ -125,12 +125,10 @@ void SrtSession::onError(const SockException &err) {
 
     // 防止互相引用导致不释放
     auto transport = std::move(_transport);
-    getPoller()->async(
-        [transport] {
-            //延时减引用，防止使用transport对象时，销毁对象
-            //transport->onShutdown(err);
-        },
-        false);
+    async([transport] {
+            // 延时减引用，防止使用transport对象时，销毁对象
+            // transport->onShutdown(err);
+        },false);
 }
 
 void SrtSession::onManager() {

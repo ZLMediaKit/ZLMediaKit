@@ -1009,7 +1009,7 @@ void RtspSession::startListenPeerUdpData(int track_idx) {
         if (!strong_self) {
             return false;
         }
-
+        Logger::setThreadContext(weak_self);
         if (SockUtil::inet_ntoa(peer_addr) != peer_ip) {
             WarnP(strong_self.get()) << ((interleaved % 2 == 0) ? "收到其他地址的rtp数据:" : "收到其他地址的rtcp数据:")
                                     << SockUtil::inet_ntoa(peer_addr);
@@ -1023,6 +1023,7 @@ void RtspSession::startListenPeerUdpData(int track_idx) {
                 return;
             }
             try {
+                Logger::setThreadContext(weak_self);
                 strong_self->onRcvPeerUdpData(interleaved, buf, addr);
             } catch (SockException &ex) {
                 strong_self->shutdown(ex);
@@ -1048,7 +1049,7 @@ void RtspSession::startListenPeerUdpData(int track_idx) {
                     WarnP(this) << "udp端口为空:" << interleaved;
                     return;
                 }
-                sock->setOnRead([onUdpData,interleaved](const Buffer::Ptr &pBuf, struct sockaddr *pPeerAddr , int addr_len){
+                sock->setOnRead([onUdpData, interleaved](const Buffer::Ptr &pBuf, struct sockaddr *pPeerAddr, int addr_len) {
                     onUdpData(pBuf, pPeerAddr, interleaved);
                 });
             };

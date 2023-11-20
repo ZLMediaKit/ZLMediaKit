@@ -352,6 +352,7 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int track_idx) {
             if (!strongSelf) {
                 return;
             }
+            Logger::setThreadContext(weakSelf);
             if (SockUtil::inet_ntoa(addr) != peer_ip) {
                 WarnL << "收到其他地址的rtp数据:" << SockUtil::inet_ntoa(addr);
                 return;
@@ -367,6 +368,7 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int track_idx) {
                 if (!strongSelf) {
                     return;
                 }
+                Logger::setThreadContext(weakSelf);
                 if (SockUtil::inet_ntoa(addr) != peer_ip) {
                     WarnL << "收到其他地址的rtcp数据:" << SockUtil::inet_ntoa(addr);
                     return;

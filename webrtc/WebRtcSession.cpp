@@ -77,6 +77,7 @@ void WebRtcSession::onRecv_l(const char *data, size_t len) {
                 if (strong_server) {
                     auto session = static_pointer_cast<WebRtcSession>(strong_server->createSession(sock));
                     //2、创建新的WebRtcSession对象(绑定到WebRtcTransport所在线程)，重新处理一遍ice binding request命令
+                    Logger::setThreadContext(session);
                     session->onRecv_l(str.data(), str.size());
                 }
             });
@@ -112,6 +113,7 @@ void WebRtcSession::onError(const SockException &err) {
     auto transport = std::move(_transport);
     getPoller()->async([transport, self]() mutable {
         //延时减引用，防止使用transport对象时，销毁对象
+        Logger::setThreadContext(transport);
         transport->removeTuple(self.get());
         //确保transport在Session对象前销毁，防止WebRtcTransport::onDestory()时获取不到Session对象
         transport = nullptr;

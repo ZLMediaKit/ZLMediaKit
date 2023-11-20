@@ -448,6 +448,7 @@ static void findAsync_l(const MediaInfo &info, const std::shared_ptr<Session> &s
         }
 
         poller->async([weak_session, cancel_all, info, cb_once]() {
+            Logger::setThreadContext(weak_session);
             cancel_all();
             if (auto strong_session = weak_session.lock()) {
                 //播发器请求的流终于注册上了，切换到自己的线程再回复

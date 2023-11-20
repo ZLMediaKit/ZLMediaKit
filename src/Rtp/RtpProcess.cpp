@@ -253,6 +253,7 @@ void RtpProcess::emitOnPublish() {
             if (!strong_self) {
                 return;
             }
+            Logger::setThreadContext(weak_self);
             if (err.empty()) {
                 strong_self->_muxer = std::make_shared<MultiMediaSourceMuxer>(strong_self->_media_info, 0.0f,
                                                                               option);

@@ -123,6 +123,7 @@ bool SrtTransportImp::close(mediakit::MediaSource &sender) {
     getPoller()->async([weak_self, err]() {
         auto strong_self = weak_self.lock();
         if (strong_self) {
+            Logger::setThreadContext(weak_self);
             strong_self->onShutdown(SockException(Err_shutdown, err));
             // 主动关闭推流，那么不延时注销
             strong_self->_muxer = nullptr;
@@ -158,6 +159,7 @@ void SrtTransportImp::emitOnPublish() {
             if (!strong_self) {
                 return;
             }
+            Logger::setThreadContext(weak_self);
             if (err.empty()) {
                 strong_self->_muxer = std::make_shared<MultiMediaSourceMuxer>(strong_self->_media_info,0.0f,
                                                                               option);
@@ -187,6 +189,7 @@ void SrtTransportImp::emitOnPlay() {
             return;
         }
         strong_self->getPoller()->async([strong_self, err] {
+            Logger::setThreadContext(strong_self);
             if (err != "") {
                 strong_self->onShutdown(SockException(Err_refused, err));
             } else {

@@ -26,7 +26,7 @@ RtpServer::~RtpServer() {
     }
 }
 
-class RtcpHelper: public std::enable_shared_from_this<RtcpHelper> {
+class RtcpHelper: public std::enable_shared_from_this<RtcpHelper>, public toolkit::LogThreadContext {
 public:
     using Ptr = std::shared_ptr<RtcpHelper>;
 
@@ -35,12 +35,14 @@ public:
         _stream_id = std::move(stream_id);
     }
 
-    ~RtcpHelper() {
+    ~RtcpHelper() override {
         if (_process) {
             // 删除rtp处理器
             RtpSelector::Instance().delProcess(_stream_id, _process.get());
         }
     }
+
+    std::string getIdentifier() const override { return _process ? _process->getIdentifier() : ""; }
 
     void setRtpServerInfo(uint16_t local_port,RtpServer::TcpMode mode,bool re_use_port,uint32_t ssrc, bool only_audio) {
         _local_port = local_port;
@@ -80,6 +82,7 @@ public:
             if (!strong_self || !strong_self->_process) {
                 return;
             }
+            Logger::setThreadContext(weak_self);
             if (!strong_self->_rtcp_addr) {
                 // 只设置一次rtcp对端端口
                 strong_self->_rtcp_addr = std::make_shared<struct sockaddr_storage>();
@@ -96,6 +99,7 @@ public:
         GET_CONFIG(uint64_t, timeoutSec, RtpProxy::kTimeoutSec);
         _delay_task = _rtcp_sock->getPoller()->doDelayTask(timeoutSec * 1000, [weak_self]() {
             if (auto strong_self = weak_self.lock()) {
+                Logger::setThreadContext(weak_self);
                 auto process = RtpSelector::Instance().getProcess(strong_self->_stream_id, false);
                 if (!process && strong_self->_on_detach) {
                     strong_self->_on_detach();
@@ -205,6 +209,7 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_
         auto ssrc_ptr = std::make_shared<uint32_t>(ssrc);
         _ssrc = ssrc_ptr;
         rtp_socket->setOnRead([rtp_socket, helper, ssrc_ptr, bind_peer_addr](const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len) mutable {
+            Logger::setThreadContext(helper);
             RtpHeader *header = (RtpHeader *)buf->data();
             auto rtp_ssrc = ntohl(header->ssrc);
             auto ssrc = *ssrc_ptr;
@@ -277,6 +282,7 @@ void RtpServer::onConnect() {
     auto rtp_session = std::make_shared<RtpSession>(_rtp_socket);
     rtp_session->attachServer(*_tcp_server);
     _rtp_socket->setOnRead([rtp_session](const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len) {
+        Logger::setThreadContext(rtp_session);
         rtp_session->onRecv(buf);
     });
     weak_ptr<RtpServer> weak_self = shared_from_this();
