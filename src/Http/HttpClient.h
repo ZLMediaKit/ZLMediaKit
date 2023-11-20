@@ -142,7 +142,7 @@ public:
     void setCompleteTimeout(size_t timeout_ms);
 
     /**
-     * 设置htpp代理url
+     * 设置http代理url
      */
     void setProxyUrl(std::string proxy_url);
 
