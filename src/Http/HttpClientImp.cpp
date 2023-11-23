@@ -15,13 +15,30 @@ using namespace toolkit;
 namespace mediakit {
 
 void HttpClientImp::onConnect(const SockException &ex) {
-    if (!isHttps()) {
-        //https 302跳转 http时，需要关闭ssl
+    if (isUsedProxy() && !isProxyConnected()) {
+        // 连接代理服务器
         setDoNotUseSSL();
         HttpClient::onConnect(ex);
     } else {
-        TcpClientWithSSL<HttpClient>::onConnect(ex);
+        if (!isHttps()) {
+            // https 302跳转 http时，需要关闭ssl
+            setDoNotUseSSL();
+            HttpClient::onConnect(ex);
+        } else {
+            TcpClientWithSSL<HttpClient>::onConnect(ex);
+        }
     }
+}
+
+ssize_t HttpClientImp::onRecvHeader(const char *data, size_t len) {
+    if (isUsedProxy() && !isProxyConnected()) {
+        if (checkProxyConnected(data, len)) {
+            clearResponse();
+            onConnect(SockException(Err_success, "proxy connected"));
+            return 0;
+        }
+    }
+    return HttpClient::onRecvHeader(data, len);
 }
 
 } /* namespace mediakit */

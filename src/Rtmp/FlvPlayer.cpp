@@ -22,6 +22,7 @@ FlvPlayer::FlvPlayer(const EventPoller::Ptr &poller) {
 void FlvPlayer::play(const string &url) {
     TraceL << "play http-flv: " << url;
     _play_result = false;
+    setProxyUrl((*this)[Client::kProxyUrl]);
     setHeaderTimeout((*this)[Client::kTimeoutMS].as<int>());
     setBodyTimeout((*this)[Client::kMediaTimeoutMS].as<int>());
     setMethod("GET");

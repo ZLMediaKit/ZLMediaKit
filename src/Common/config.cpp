@@ -353,6 +353,7 @@ const string kBeatIntervalMS = "beat_interval_ms";
 const string kBenchmarkMode = "benchmark_mode";
 const string kWaitTrackReady = "wait_track_ready";
 const string kPlayTrack = "play_track";
+const string kProxyUrl = "proxy_url";
 } // namespace Client
 
 } // namespace mediakit

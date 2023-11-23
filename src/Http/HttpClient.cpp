@@ -78,12 +78,15 @@ void HttpClient::sendRequest(const string &url) {
         printer.pop_back();
         _header.emplace("Cookie", printer);
     }
-
-    if (!alive() || host_changed) {
-        startConnect(host, port, _wait_header_ms / 1000.0f);
+    if (isUsedProxy()) {
+        startConnect(_proxy_host, _proxy_port, _wait_header_ms / 1000.0f);
     } else {
-        SockException ex;
-        onConnect_l(ex);
+        if (!alive() || host_changed) {
+            startConnect(host, port, _wait_header_ms / 1000.0f);
+        } else {
+            SockException ex;
+            onConnect_l(ex);
+        }
     }
 }
 
@@ -158,15 +161,23 @@ void HttpClient::onConnect_l(const SockException &ex) {
         onResponseCompleted_l(ex);
         return;
     }
-
     _StrPrinter printer;
-    printer << _method + " " << _path + " HTTP/1.1\r\n";
-    for (auto &pr : _header) {
-        printer << pr.first + ": ";
-        printer << pr.second + "\r\n";
+    //不使用代理或者代理服务器已经连接成功
+    if (_proxy_connected || !isUsedProxy()) {
+        printer << _method + " " << _path + " HTTP/1.1\r\n";
+        for (auto &pr : _header) {
+            printer << pr.first + ": ";
+            printer << pr.second + "\r\n";
+        }
+        _header.clear();
+        _path.clear();
+    } else {
+        printer << "CONNECT " << _last_host << " HTTP/1.1\r\n";
+        printer << "Proxy-Connection: keep-alive\r\n";
+        if (!_proxy_auth.empty()) {
+            printer << "Proxy-Authorization: Basic " << _proxy_auth << "\r\n";
+        }
     }
-    _header.clear();
-    _path.clear();
     SockSender::send(printer << "\r\n");
     onFlush();
 }
@@ -399,6 +410,30 @@ void HttpClient::setBodyTimeout(size_t timeout_ms) {
 
 void HttpClient::setCompleteTimeout(size_t timeout_ms) {
     _wait_complete_ms = timeout_ms;
+}
+
+bool HttpClient::isUsedProxy() const {
+    return _used_proxy;
+}
+
+bool HttpClient::isProxyConnected() const {
+    return _proxy_connected;
+}
+
+void HttpClient::setProxyUrl(string proxy_url) {
+    _proxy_url = std::move(proxy_url);
+    if (!_proxy_url.empty()) {
+        parseProxyUrl(_proxy_url, _proxy_host, _proxy_port, _proxy_auth);
+        _used_proxy = true;
+    } else {
+        _used_proxy = false;
+    }
+}
+
+bool HttpClient::checkProxyConnected(const char *data, size_t len) {
+    auto ret = strstr(data, "HTTP/1.1 200 Connection established");
+    _proxy_connected = ret != nullptr;
+    return _proxy_connected;
 }
 
 } /* namespace mediakit */
