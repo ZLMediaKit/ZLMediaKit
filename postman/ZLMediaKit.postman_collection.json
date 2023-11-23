@@ -2091,6 +2091,12 @@
 							"description": "mp4文件绝对路径"
 						},
 						{
+							"key": "file_repeat",
+							"value": "1",
+							"description": "是否循环点播mp4文件，如果配置文件已经开启循环点播，此参数无效",
+							"disabled": true
+						},
+						{
 							"key": "enable_hls",
 							"value": "",
 							"description": "是否转hls-ts",
