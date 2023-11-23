@@ -1,0 +1,4233 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "ZLMediaKit HTTP API",
+        "description": "You can test the HTTP API provided by ZlMediaKit here. For usage documentation, please refer to [here](https://docs.zlmediakit.com/guide/media_server/restful_api.html)",
+        "version": "ZLMediaKit(git hash:\"a78ca2e\"/\"2023-11-17T11:12:51+08:00\",branch:\"patch-63\",build time:\"2023-11-23T14:35:02\")",
+        "x-logo": {
+            "url": "/logo.png",
+            "backgroundColor": "#FFFFFF",
+            "altText": "ZLMediaKit"
+        },
+        "termsOfService": "https://docs.zlmediakit.com",
+        "contact": {
+            "name": "Contact Support",
+            "url": "https://docs.zlmediakit.com/more/contact.html",
+            "email": "1213642868@qq.com"
+        },
+        "license": {
+            "name": "MIT",
+            "url": "https://docs.zlmediakit.com/more/license.html"
+        }
+    },
+    "externalDocs": {
+        "url": "https://docs.zlmediakit.com",
+        "description": "ZLMediaKit Documentation"
+    },
+    "servers": [
+        {
+            "url": "/",
+            "description": "Localhost"
+        }
+    ],
+    "paths": {
+        "/index/api/getApiList": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u83b7\u53d6\u670d\u52a1\u5668api\u5217\u8868(getApiList)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u83b7\u53d6\u670d\u52a1\u5668api\u5217\u8868(getApiList)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/getThreadsLoad": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u83b7\u53d6\u7f51\u7edc\u7ebf\u7a0b\u8d1f\u8f7d(getThreadsLoad)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u83b7\u53d6\u7f51\u7edc\u7ebf\u7a0b\u8d1f\u8f7d(getThreadsLoad)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/getStatistic": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u83b7\u53d6\u4e3b\u8981\u5bf9\u8c61\u4e2a\u6570(getStatistic)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u83b7\u53d6\u4e3b\u8981\u5bf9\u8c61\u4e2a\u6570(getStatistic)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/getWorkThreadsLoad": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u83b7\u53d6\u540e\u53f0\u7ebf\u7a0b\u8d1f\u8f7d(getWorkThreadsLoad)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u83b7\u53d6\u540e\u53f0\u7ebf\u7a0b\u8d1f\u8f7d(getWorkThreadsLoad)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/getServerConfig": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u83b7\u53d6\u670d\u52a1\u5668\u914d\u7f6e(getServerConfig)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u83b7\u53d6\u670d\u52a1\u5668\u914d\u7f6e(getServerConfig)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/setServerConfig": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u8bbe\u7f6e\u670d\u52a1\u5668\u914d\u7f6e(setServerConfig)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "api.apiDebug",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "\u914d\u7f6e\u952e\u4e0e\u914d\u7f6e\u9879\u503c",
+                        "example": "0"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u8bbe\u7f6e\u670d\u52a1\u5668\u914d\u7f6e(setServerConfig)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "api.apiDebug",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "\u914d\u7f6e\u952e\u4e0e\u914d\u7f6e\u9879\u503c",
+                        "example": "0"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/restartServer": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u91cd\u542f\u670d\u52a1\u5668(restartServer)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u91cd\u542f\u670d\u52a1\u5668(restartServer)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/getMediaList": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u83b7\u53d6\u6d41\u5217\u8868(getMediaList)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u83b7\u53d6\u6d41\u5217\u8868(getMediaList)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/close_stream": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u5173\u65ad\u5355\u4e2a\u6d41(close_stream)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "schema",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u534f\u8bae\uff0c\u4f8b\u5982 rtsp\u6216rtmp",
+                        "example": "rtsp"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "live"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 test",
+                        "example": "test"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u5173\u65ad\u5355\u4e2a\u6d41(close_stream)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "schema",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u534f\u8bae\uff0c\u4f8b\u5982 rtsp\u6216rtmp",
+                        "example": "rtsp"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "live"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 test",
+                        "example": "test"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/close_streams": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u6279\u91cf\u5173\u65ad\u6d41(close_streams)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "schema",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u534f\u8bae\uff0c\u4f8b\u5982 rtsp\u6216rtmp",
+                        "example": "rtsp"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "live"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 test",
+                        "example": "test"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u6279\u91cf\u5173\u65ad\u6d41(close_streams)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "schema",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u534f\u8bae\uff0c\u4f8b\u5982 rtsp\u6216rtmp",
+                        "example": "rtsp"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "live"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 test",
+                        "example": "test"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/getAllSession": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u83b7\u53d6Session\u5217\u8868(getAllSession)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u83b7\u53d6Session\u5217\u8868(getAllSession)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/kick_session": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u65ad\u5f00tcp\u8fde\u63a5(kick_session)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "id",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "\u5ba2\u6237\u7aef\u552f\u4e00id\uff0c\u53ef\u4ee5\u901a\u8fc7getAllSession\u63a5\u53e3\u83b7\u53d6",
+                        "example": "123456"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u65ad\u5f00tcp\u8fde\u63a5(kick_session)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "id",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "\u5ba2\u6237\u7aef\u552f\u4e00id\uff0c\u53ef\u4ee5\u901a\u8fc7getAllSession\u63a5\u53e3\u83b7\u53d6",
+                        "example": "123456"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/kick_sessions": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u6279\u91cf\u65ad\u5f00tcp\u8fde\u63a5(kick_sessions)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u6279\u91cf\u65ad\u5f00tcp\u8fde\u63a5(kick_sessions)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/addStreamProxy": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u6dfb\u52a0rtsp/rtmp/hls\u62c9\u6d41\u4ee3\u7406(addStreamProxy)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6dfb\u52a0\u7684\u6d41\u7684\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6dfb\u52a0\u7684\u6d41\u7684\u5e94\u7528\u540d\uff0c\u4f8b\u5982live",
+                        "example": "live"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6dfb\u52a0\u7684\u6d41\u7684id\u540d\uff0c\u4f8b\u5982test",
+                        "example": "test"
+                    },
+                    {
+                        "name": "url",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u62c9\u6d41\u5730\u5740\uff0c\u4f8b\u5982rtmp://live.hkstv.hk.lxdns.com/live/hks2",
+                        "example": "rtmp://live.hkstv.hk.lxdns.com/live/hks2"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u6dfb\u52a0rtsp/rtmp/hls\u62c9\u6d41\u4ee3\u7406(addStreamProxy)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6dfb\u52a0\u7684\u6d41\u7684\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6dfb\u52a0\u7684\u6d41\u7684\u5e94\u7528\u540d\uff0c\u4f8b\u5982live",
+                        "example": "live"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6dfb\u52a0\u7684\u6d41\u7684id\u540d\uff0c\u4f8b\u5982test",
+                        "example": "test"
+                    },
+                    {
+                        "name": "url",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u62c9\u6d41\u5730\u5740\uff0c\u4f8b\u5982rtmp://live.hkstv.hk.lxdns.com/live/hks2",
+                        "example": "rtmp://live.hkstv.hk.lxdns.com/live/hks2"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/delStreamProxy": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u5173\u95ed\u62c9\u6d41\u4ee3\u7406(delStreamProxy)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "key",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "addStreamProxy\u63a5\u53e3\u8fd4\u56de\u7684key",
+                        "example": "__defaultVhost__/live/1"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u5173\u95ed\u62c9\u6d41\u4ee3\u7406(delStreamProxy)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "key",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "addStreamProxy\u63a5\u53e3\u8fd4\u56de\u7684key",
+                        "example": "__defaultVhost__/live/1"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/addStreamPusherProxy": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u6dfb\u52a0rtsp/rtmp\u63a8\u6d41(addStreamPusherProxy)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "schema",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u63a8\u6d41\u534f\u8bae\uff0c\u652f\u6301rtsp\u3001rtmp\uff0c\u5927\u5c0f\u5199\u654f\u611f",
+                        "example": "rtmp"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5df2\u6ce8\u518c\u6d41\u7684\u865a\u62df\u4e3b\u673a\uff0c\u4e00\u822c\u4e3a__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5df2\u6ce8\u518c\u6d41\u7684\u5e94\u7528\u540d\uff0c\u4f8b\u5982live",
+                        "example": "live"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5df2\u6ce8\u518c\u6d41\u7684id\u540d\uff0c\u4f8b\u5982test",
+                        "example": "test"
+                    },
+                    {
+                        "name": "dst_url",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u63a8\u6d41\u5730\u5740\uff0c\u9700\u8981\u4e0eschema\u5b57\u6bb5\u534f\u8bae\u4e00\u81f4",
+                        "example": "rtmp://192.168.1.104/live/push"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u6dfb\u52a0rtsp/rtmp\u63a8\u6d41(addStreamPusherProxy)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "schema",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u63a8\u6d41\u534f\u8bae\uff0c\u652f\u6301rtsp\u3001rtmp\uff0c\u5927\u5c0f\u5199\u654f\u611f",
+                        "example": "rtmp"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5df2\u6ce8\u518c\u6d41\u7684\u865a\u62df\u4e3b\u673a\uff0c\u4e00\u822c\u4e3a__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5df2\u6ce8\u518c\u6d41\u7684\u5e94\u7528\u540d\uff0c\u4f8b\u5982live",
+                        "example": "live"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5df2\u6ce8\u518c\u6d41\u7684id\u540d\uff0c\u4f8b\u5982test",
+                        "example": "test"
+                    },
+                    {
+                        "name": "dst_url",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u63a8\u6d41\u5730\u5740\uff0c\u9700\u8981\u4e0eschema\u5b57\u6bb5\u534f\u8bae\u4e00\u81f4",
+                        "example": "rtmp://192.168.1.104/live/push"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/delStreamPusherProxy": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u5173\u95ed\u63a8\u6d41(delStreamPusherProxy)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "key",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "addStreamPusherProxy\u63a5\u53e3\u8fd4\u56de\u7684key",
+                        "example": "rtmp/__defaultVhost__/live/test/f40a8ab006cac16ecc0858409e890491"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u5173\u95ed\u63a8\u6d41(delStreamPusherProxy)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "key",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "addStreamPusherProxy\u63a5\u53e3\u8fd4\u56de\u7684key",
+                        "example": "rtmp/__defaultVhost__/live/test/f40a8ab006cac16ecc0858409e890491"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/addFFmpegSource": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u6dfb\u52a0FFmpeg\u62c9\u6d41\u4ee3\u7406(addFFmpegSource)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "src_url",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "FFmpeg\u62c9\u6d41\u5730\u5740,\u652f\u6301\u4efb\u610f\u534f\u8bae\u6216\u683c\u5f0f(\u53ea\u8981FFmpeg\u652f\u6301\u5373\u53ef)",
+                        "example": "http://hefeng.live.tempsource.cjyun.org/videotmp/s10100-hftv.m3u8"
+                    },
+                    {
+                        "name": "dst_url",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "FFmpeg rtmp\u63a8\u6d41\u5730\u5740\uff0c\u4e00\u822c\u90fd\u662f\u63a8\u7ed9\u81ea\u5df1\uff0c\u4f8b\u5982rtmp://127.0.0.1/live/stream_form_ffmpeg",
+                        "example": "rtmp://127.0.0.1/live/hks2"
+                    },
+                    {
+                        "name": "timeout_ms",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "FFmpeg\u63a8\u6d41\u6210\u529f\u8d85\u65f6\u65f6\u95f4,\u5355\u4f4d\u6beb\u79d2",
+                        "example": "10000"
+                    },
+                    {
+                        "name": "enable_hls",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "\u662f\u5426\u5f00\u542fhls\u5f55\u5236",
+                        "example": "0"
+                    },
+                    {
+                        "name": "enable_mp4",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "\u662f\u5426\u5f00\u542fmp4\u5f55\u5236",
+                        "example": "0"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u6dfb\u52a0FFmpeg\u62c9\u6d41\u4ee3\u7406(addFFmpegSource)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "src_url",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "FFmpeg\u62c9\u6d41\u5730\u5740,\u652f\u6301\u4efb\u610f\u534f\u8bae\u6216\u683c\u5f0f(\u53ea\u8981FFmpeg\u652f\u6301\u5373\u53ef)",
+                        "example": "http://hefeng.live.tempsource.cjyun.org/videotmp/s10100-hftv.m3u8"
+                    },
+                    {
+                        "name": "dst_url",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "FFmpeg rtmp\u63a8\u6d41\u5730\u5740\uff0c\u4e00\u822c\u90fd\u662f\u63a8\u7ed9\u81ea\u5df1\uff0c\u4f8b\u5982rtmp://127.0.0.1/live/stream_form_ffmpeg",
+                        "example": "rtmp://127.0.0.1/live/hks2"
+                    },
+                    {
+                        "name": "timeout_ms",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "FFmpeg\u63a8\u6d41\u6210\u529f\u8d85\u65f6\u65f6\u95f4,\u5355\u4f4d\u6beb\u79d2",
+                        "example": "10000"
+                    },
+                    {
+                        "name": "enable_hls",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "\u662f\u5426\u5f00\u542fhls\u5f55\u5236",
+                        "example": "0"
+                    },
+                    {
+                        "name": "enable_mp4",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "\u662f\u5426\u5f00\u542fmp4\u5f55\u5236",
+                        "example": "0"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/delFFmpegSource": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u5173\u95edFFmpeg\u62c9\u6d41\u4ee3\u7406(delFFmpegSource)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "key",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "5f748d2ef9712e4b2f6f970c1d44d93a"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u5173\u95edFFmpeg\u62c9\u6d41\u4ee3\u7406(delFFmpegSource)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "key",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "5f748d2ef9712e4b2f6f970c1d44d93a"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/isMediaOnline": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u6d41\u662f\u5426\u5728\u7ebf(isMediaOnline)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "schema",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u534f\u8bae\uff0c\u4f8b\u5982 rtsp\u6216rtmp",
+                        "example": "rtsp"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "proxy"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 test",
+                        "example": "1"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u6d41\u662f\u5426\u5728\u7ebf(isMediaOnline)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "schema",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u534f\u8bae\uff0c\u4f8b\u5982 rtsp\u6216rtmp",
+                        "example": "rtsp"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "proxy"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 test",
+                        "example": "1"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/getMediaPlayerList": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u83b7\u53d6\u5a92\u4f53\u6d41\u64ad\u653e\u5668\u5217\u8868(getMediaPlayerList)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "schema",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u534f\u8bae\uff0c\u4f8b\u5982 rtsp\u6216rtmp",
+                        "example": "rtsp"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "proxy"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 test",
+                        "example": "1"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u83b7\u53d6\u5a92\u4f53\u6d41\u64ad\u653e\u5668\u5217\u8868(getMediaPlayerList)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "schema",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u534f\u8bae\uff0c\u4f8b\u5982 rtsp\u6216rtmp",
+                        "example": "rtsp"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "proxy"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 test",
+                        "example": "1"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/broadcastMessage": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u5e7f\u64adwebrtc datachannel\u6d88\u606f(broadcastMessage)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "schema",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u534f\u8bae\uff0c\u4f8b\u5982 rtsp\u6216rtmp\uff0c\u76ee\u524d\u4ec5\u652f\u6301rtsp\u534f\u8bae",
+                        "example": "rtsp"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "live"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 test",
+                        "example": "test"
+                    },
+                    {
+                        "name": "msg",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "Hello ZLMediakit"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u5e7f\u64adwebrtc datachannel\u6d88\u606f(broadcastMessage)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "schema",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u534f\u8bae\uff0c\u4f8b\u5982 rtsp\u6216rtmp\uff0c\u76ee\u524d\u4ec5\u652f\u6301rtsp\u534f\u8bae",
+                        "example": "rtsp"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "live"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 test",
+                        "example": "test"
+                    },
+                    {
+                        "name": "msg",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "Hello ZLMediakit"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/getMediaInfo": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u83b7\u53d6\u6d41\u4fe1\u606f(getMediaInfo)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "schema",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u534f\u8bae\uff0c\u4f8b\u5982 rtsp\u6216rtmp",
+                        "example": "rtsp"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "live"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 test",
+                        "example": "mym9"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u83b7\u53d6\u6d41\u4fe1\u606f(getMediaInfo)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "schema",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u534f\u8bae\uff0c\u4f8b\u5982 rtsp\u6216rtmp",
+                        "example": "rtsp"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "live"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 test",
+                        "example": "mym9"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/getMp4RecordFile": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u83b7\u53d6\u6d41\u4fe1\u606f(getMp4RecordFile)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "proxy"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 test",
+                        "example": "2"
+                    },
+                    {
+                        "name": "customized_path",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5f55\u50cf\u6587\u4ef6\u4fdd\u5b58\u81ea\u5b9a\u4e49\u6839\u76ee\u5f55\uff0c\u4e3a\u7a7a\u5219\u91c7\u7528\u914d\u7f6e\u6587\u4ef6\u8bbe\u7f6e",
+                        "example": "/www"
+                    },
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6d41\u7684\u5f55\u50cf\u65e5\u671f\uff0c\u683c\u5f0f\u4e3a2020-02-01,\u5982\u679c\u4e0d\u662f\u5b8c\u6574\u7684\u65e5\u671f\uff0c\u90a3\u4e48\u662f\u641c\u7d22\u5f55\u50cf\u6587\u4ef6\u5939\u5217\u8868\uff0c\u5426\u5219\u641c\u7d22\u5bf9\u5e94\u65e5\u671f\u4e0b\u7684mp4\u6587\u4ef6\u5217\u8868",
+                        "example": "2020-05-26"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u83b7\u53d6\u6d41\u4fe1\u606f(getMp4RecordFile)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "proxy"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 test",
+                        "example": "2"
+                    },
+                    {
+                        "name": "customized_path",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5f55\u50cf\u6587\u4ef6\u4fdd\u5b58\u81ea\u5b9a\u4e49\u6839\u76ee\u5f55\uff0c\u4e3a\u7a7a\u5219\u91c7\u7528\u914d\u7f6e\u6587\u4ef6\u8bbe\u7f6e",
+                        "example": "/www"
+                    },
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6d41\u7684\u5f55\u50cf\u65e5\u671f\uff0c\u683c\u5f0f\u4e3a2020-02-01,\u5982\u679c\u4e0d\u662f\u5b8c\u6574\u7684\u65e5\u671f\uff0c\u90a3\u4e48\u662f\u641c\u7d22\u5f55\u50cf\u6587\u4ef6\u5939\u5217\u8868\uff0c\u5426\u5219\u641c\u7d22\u5bf9\u5e94\u65e5\u671f\u4e0b\u7684mp4\u6587\u4ef6\u5217\u8868",
+                        "example": "2020-05-26"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/deleteRecordDirectory": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u5220\u9664\u5f55\u50cf\u6587\u4ef6\u5939(deleteRecordDirectory)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "proxy"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 test",
+                        "example": "2"
+                    },
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6d41\u7684\u5f55\u50cf\u65e5\u671f\uff0c\u683c\u5f0f\u4e3a2020-01-01,\u5982\u679c\u4e0d\u662f\u5b8c\u6574\u7684\u65e5\u671f\uff0c\u90a3\u4e48\u4f1a\u5220\u9664\u5931\u8d25",
+                        "example": "2020-01-01"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u5220\u9664\u5f55\u50cf\u6587\u4ef6\u5939(deleteRecordDirectory)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "proxy"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 test",
+                        "example": "2"
+                    },
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6d41\u7684\u5f55\u50cf\u65e5\u671f\uff0c\u683c\u5f0f\u4e3a2020-01-01,\u5982\u679c\u4e0d\u662f\u5b8c\u6574\u7684\u65e5\u671f\uff0c\u90a3\u4e48\u4f1a\u5220\u9664\u5931\u8d25",
+                        "example": "2020-01-01"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/startRecord": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u5f00\u59cb\u5f55\u5236(startRecord)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "0\u4e3ahls\uff0c1\u4e3amp4",
+                        "example": "1"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "live"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 obs",
+                        "example": "obs"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u5f00\u59cb\u5f55\u5236(startRecord)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "0\u4e3ahls\uff0c1\u4e3amp4",
+                        "example": "1"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "live"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 obs",
+                        "example": "obs"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/setRecordSpeed": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u8bbe\u7f6e\u5f55\u50cf\u901f\u5ea6(setRecordSpeed)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "live"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 obs",
+                        "example": "obs"
+                    },
+                    {
+                        "name": "speed",
+                        "in": "query",
+                        "schema": {
+                            "type": "number"
+                        },
+                        "description": "\u8981\u8bbe\u7f6e\u7684\u5f55\u50cf\u500d\u901f",
+                        "example": "2.0"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u8bbe\u7f6e\u5f55\u50cf\u901f\u5ea6(setRecordSpeed)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "live"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 obs",
+                        "example": "obs"
+                    },
+                    {
+                        "name": "speed",
+                        "in": "query",
+                        "schema": {
+                            "type": "number"
+                        },
+                        "description": "\u8981\u8bbe\u7f6e\u7684\u5f55\u50cf\u500d\u901f",
+                        "example": "2.0"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/seekRecordStamp": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u8bbe\u7f6e\u5f55\u50cf\u6d41\u64ad\u653e\u4f4d\u7f6e(seekRecordStamp)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "live"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 obs",
+                        "example": "obs"
+                    },
+                    {
+                        "name": "stamp",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "\u8981\u8bbe\u7f6e\u7684\u5f55\u50cf\u64ad\u653e\u4f4d\u7f6e",
+                        "example": "1000"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u8bbe\u7f6e\u5f55\u50cf\u6d41\u64ad\u653e\u4f4d\u7f6e(seekRecordStamp)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "live"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 obs",
+                        "example": "obs"
+                    },
+                    {
+                        "name": "stamp",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "\u8981\u8bbe\u7f6e\u7684\u5f55\u50cf\u64ad\u653e\u4f4d\u7f6e",
+                        "example": "1000"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/stopRecord": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u505c\u6b62\u5f55\u5236(stopRecord)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "0\u4e3ahls\uff0c1\u4e3amp4",
+                        "example": "1"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "live"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 obs",
+                        "example": "obs"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u505c\u6b62\u5f55\u5236(stopRecord)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "0\u4e3ahls\uff0c1\u4e3amp4",
+                        "example": "1"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "live"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 obs",
+                        "example": "obs"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/isRecording": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u662f\u5426\u6b63\u5728\u5f55\u5236(isRecording)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "0\u4e3ahls\uff0c1\u4e3amp4",
+                        "example": "1"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "live"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 obs",
+                        "example": "obs"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u662f\u5426\u6b63\u5728\u5f55\u5236(isRecording)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "0\u4e3ahls\uff0c1\u4e3amp4",
+                        "example": "1"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "live"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 obs",
+                        "example": "obs"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/getSnap": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u83b7\u53d6\u622a\u56fe(getSnap)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "url",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u9700\u8981\u622a\u56fe\u7684url\uff0c\u53ef\u4ee5\u662f\u672c\u673a\u7684\uff0c\u4e5f\u53ef\u4ee5\u662f\u8fdc\u7a0b\u4e3b\u673a\u7684",
+                        "example": "rtsp://www.mym9.com/101065?from=2019-06-28/01:12:13"
+                    },
+                    {
+                        "name": "timeout_sec",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "\u622a\u56fe\u5931\u8d25\u8d85\u65f6\u65f6\u95f4\uff0c\u9632\u6b62FFmpeg\u4e00\u76f4\u7b49\u5f85\u622a\u56fe",
+                        "example": "10"
+                    },
+                    {
+                        "name": "expire_sec",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "\u622a\u56fe\u7684\u8fc7\u671f\u65f6\u95f4\uff0c\u8be5\u65f6\u95f4\u5185\u4ea7\u751f\u7684\u622a\u56fe\u90fd\u4f1a\u4f5c\u4e3a\u7f13\u5b58\u8fd4\u56de",
+                        "example": "1"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u83b7\u53d6\u622a\u56fe(getSnap)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "url",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u9700\u8981\u622a\u56fe\u7684url\uff0c\u53ef\u4ee5\u662f\u672c\u673a\u7684\uff0c\u4e5f\u53ef\u4ee5\u662f\u8fdc\u7a0b\u4e3b\u673a\u7684",
+                        "example": "rtsp://www.mym9.com/101065?from=2019-06-28/01:12:13"
+                    },
+                    {
+                        "name": "timeout_sec",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "\u622a\u56fe\u5931\u8d25\u8d85\u65f6\u65f6\u95f4\uff0c\u9632\u6b62FFmpeg\u4e00\u76f4\u7b49\u5f85\u622a\u56fe",
+                        "example": "10"
+                    },
+                    {
+                        "name": "expire_sec",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "\u622a\u56fe\u7684\u8fc7\u671f\u65f6\u95f4\uff0c\u8be5\u65f6\u95f4\u5185\u4ea7\u751f\u7684\u622a\u56fe\u90fd\u4f1a\u4f5c\u4e3a\u7f13\u5b58\u8fd4\u56de",
+                        "example": "1"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/getRtpInfo": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u83b7\u53d6rtp\u63a8\u6d41\u4fe1\u606f(getRtpInfo)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "stream_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6d41id",
+                        "example": "test"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u83b7\u53d6rtp\u63a8\u6d41\u4fe1\u606f(getRtpInfo)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "stream_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6d41id",
+                        "example": "test"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/openRtpServer": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u521b\u5efa\u591a\u8def\u590d\u7528RTP\u670d\u52a1\u5668(openRtpServerMultiplex)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "port",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "\u7ed1\u5b9a\u7684\u7aef\u53e3\uff0c0\u65f6\u4e3a\u968f\u673a\u7aef\u53e3",
+                        "example": "0"
+                    },
+                    {
+                        "name": "tcp_mode",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "tcp\u6a21\u5f0f\uff0c0\u65f6\u4e3a\u4e0d\u542f\u7528tcp\u76d1\u542c\uff0c1\u65f6\u4e3a\u542f\u7528tcp\u76d1\u542c",
+                        "example": "1"
+                    },
+                    {
+                        "name": "stream_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u8be5\u7aef\u53e3\u7ed1\u5b9a\u7684\u6d41id\n",
+                        "example": "test"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u521b\u5efa\u591a\u8def\u590d\u7528RTP\u670d\u52a1\u5668(openRtpServerMultiplex)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "port",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "\u7ed1\u5b9a\u7684\u7aef\u53e3\uff0c0\u65f6\u4e3a\u968f\u673a\u7aef\u53e3",
+                        "example": "0"
+                    },
+                    {
+                        "name": "tcp_mode",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "tcp\u6a21\u5f0f\uff0c0\u65f6\u4e3a\u4e0d\u542f\u7528tcp\u76d1\u542c\uff0c1\u65f6\u4e3a\u542f\u7528tcp\u76d1\u542c",
+                        "example": "1"
+                    },
+                    {
+                        "name": "stream_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u8be5\u7aef\u53e3\u7ed1\u5b9a\u7684\u6d41id\n",
+                        "example": "test"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/connectRtpServer": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u8fde\u63a5RTP\u670d\u52a1\u5668(connectRtpServer)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "dst_url",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "tcp\u4e3b\u52a8\u6a21\u5f0f\u65f6\u670d\u52a1\u7aef\u5730\u5740",
+                        "example": "0"
+                    },
+                    {
+                        "name": "dst_port",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "tcp\u4e3b\u52a8\u6a21\u5f0f\u65f6\u670d\u52a1\u7aef\u7aef\u53e3",
+                        "example": "1"
+                    },
+                    {
+                        "name": "stream_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "OpenRtpServer\u65f6\u7ed1\u5b9a\u7684\u6d41id\n",
+                        "example": "test"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u8fde\u63a5RTP\u670d\u52a1\u5668(connectRtpServer)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "dst_url",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "tcp\u4e3b\u52a8\u6a21\u5f0f\u65f6\u670d\u52a1\u7aef\u5730\u5740",
+                        "example": "0"
+                    },
+                    {
+                        "name": "dst_port",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "tcp\u4e3b\u52a8\u6a21\u5f0f\u65f6\u670d\u52a1\u7aef\u7aef\u53e3",
+                        "example": "1"
+                    },
+                    {
+                        "name": "stream_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "OpenRtpServer\u65f6\u7ed1\u5b9a\u7684\u6d41id\n",
+                        "example": "test"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/closeRtpServer": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u5173\u95edRTP\u670d\u52a1\u5668(closeRtpServer)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "stream_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u8be5\u7aef\u53e3\u7ed1\u5b9a\u7684\u6d41id",
+                        "example": "test"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u5173\u95edRTP\u670d\u52a1\u5668(closeRtpServer)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "stream_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u8be5\u7aef\u53e3\u7ed1\u5b9a\u7684\u6d41id",
+                        "example": "test"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/updateRtpServerSSRC": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u66f4\u65b0RTP\u670d\u52a1\u5668\u8fc7\u6ee4SSRC(updateRtpServerSSRC)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "stream_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u8be5\u7aef\u53e3\u7ed1\u5b9a\u7684\u6d41id",
+                        "example": "test"
+                    },
+                    {
+                        "name": "ssrc",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "\u5341\u8fdb\u5236ssrc",
+                        "example": "123456"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u66f4\u65b0RTP\u670d\u52a1\u5668\u8fc7\u6ee4SSRC(updateRtpServerSSRC)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "stream_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u8be5\u7aef\u53e3\u7ed1\u5b9a\u7684\u6d41id",
+                        "example": "test"
+                    },
+                    {
+                        "name": "ssrc",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "\u5341\u8fdb\u5236ssrc",
+                        "example": "123456"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/pauseRtpCheck": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u6682\u505cRTP\u8d85\u65f6\u68c0\u67e5(pauseRtpCheck)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "stream_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u8be5\u7aef\u53e3\u7ed1\u5b9a\u7684\u6d41id",
+                        "example": "test"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u6682\u505cRTP\u8d85\u65f6\u68c0\u67e5(pauseRtpCheck)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "stream_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u8be5\u7aef\u53e3\u7ed1\u5b9a\u7684\u6d41id",
+                        "example": "test"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/resumeRtpCheck": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u6062\u590dRTP\u8d85\u65f6\u68c0\u67e5(resumeRtpCheck)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "stream_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u8be5\u7aef\u53e3\u7ed1\u5b9a\u7684\u6d41id",
+                        "example": "test"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u6062\u590dRTP\u8d85\u65f6\u68c0\u67e5(resumeRtpCheck)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "stream_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u8be5\u7aef\u53e3\u7ed1\u5b9a\u7684\u6d41id",
+                        "example": "test"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/listRtpServer": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u83b7\u53d6RTP\u670d\u52a1\u5668\u5217\u8868(listRtpServer)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u83b7\u53d6RTP\u670d\u52a1\u5668\u5217\u8868(listRtpServer)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/startSendRtp": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u5f00\u59cb\u53d1\u9001rtp(startSendRtp)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "live"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 obs",
+                        "example": "obs"
+                    },
+                    {
+                        "name": "ssrc",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "rtp\u63a8\u6d41\u7684ssrc",
+                        "example": "1"
+                    },
+                    {
+                        "name": "dst_url",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u76ee\u6807ip\u6216\u57df\u540d",
+                        "example": "127.0.0.1"
+                    },
+                    {
+                        "name": "dst_port",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "\u76ee\u6807\u7aef\u53e3",
+                        "example": "10000"
+                    },
+                    {
+                        "name": "is_udp",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "\u662f\u5426\u4e3audp\u6a21\u5f0f,\u5426\u5219\u4e3atcp\u6a21\u5f0f",
+                        "example": "0"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u5f00\u59cb\u53d1\u9001rtp(startSendRtp)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "live"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 obs",
+                        "example": "obs"
+                    },
+                    {
+                        "name": "ssrc",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "rtp\u63a8\u6d41\u7684ssrc",
+                        "example": "1"
+                    },
+                    {
+                        "name": "dst_url",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u76ee\u6807ip\u6216\u57df\u540d",
+                        "example": "127.0.0.1"
+                    },
+                    {
+                        "name": "dst_port",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "\u76ee\u6807\u7aef\u53e3",
+                        "example": "10000"
+                    },
+                    {
+                        "name": "is_udp",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "\u662f\u5426\u4e3audp\u6a21\u5f0f,\u5426\u5219\u4e3atcp\u6a21\u5f0f",
+                        "example": "0"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/startSendRtpPassive": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u5f00\u59cbtcp passive\u88ab\u52a8\u53d1\u9001rtp(startSendRtpPassive)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "live"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 obs",
+                        "example": "test"
+                    },
+                    {
+                        "name": "ssrc",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "rtp\u63a8\u6d41\u7684ssrc\uff0cssrc\u4e0d\u540c\u65f6\uff0c\u53ef\u4ee5\u63a8\u6d41\u5230\u591a\u4e2a\u4e0a\u7ea7\u670d\u52a1\u5668",
+                        "example": "1"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u5f00\u59cbtcp passive\u88ab\u52a8\u53d1\u9001rtp(startSendRtpPassive)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "live"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 obs",
+                        "example": "test"
+                    },
+                    {
+                        "name": "ssrc",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "rtp\u63a8\u6d41\u7684ssrc\uff0cssrc\u4e0d\u540c\u65f6\uff0c\u53ef\u4ee5\u63a8\u6d41\u5230\u591a\u4e2a\u4e0a\u7ea7\u670d\u52a1\u5668",
+                        "example": "1"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/stopSendRtp": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u505c\u6b62 \u53d1\u9001rtp(stopSendRtp)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "live"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 obs",
+                        "example": "obs"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u505c\u6b62 \u53d1\u9001rtp(stopSendRtp)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u5e94\u7528\u540d\uff0c\u4f8b\u5982 live",
+                        "example": "live"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6d41id\uff0c\u4f8b\u5982 obs",
+                        "example": "obs"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/version": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u83b7\u53d6\u7248\u672c\u4fe1\u606f(version)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u83b7\u53d6\u7248\u672c\u4fe1\u606f(version)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/getProxyInfo": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u83b7\u53d6\u62c9\u6d41\u4ee3\u7406\u4fe1\u606f(getProxyInfo)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "key",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "__defaultVhost__/live/test"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u83b7\u53d6\u62c9\u6d41\u4ee3\u7406\u4fe1\u606f(getProxyInfo)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "key",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "__defaultVhost__/live/test"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/getProxyPusherInfo": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u83b7\u53d6\u63a8\u6d41\u4ee3\u7406\u4fe1\u606f(getProxyPusherInfo)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "key",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "rtmp/__defaultVhost__/live/test/f40a8ab006cac16ecc0858409e890491"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u83b7\u53d6\u63a8\u6d41\u4ee3\u7406\u4fe1\u606f(getProxyPusherInfo)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                    },
+                    {
+                        "name": "key",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "rtmp/__defaultVhost__/live/test/f40a8ab006cac16ecc0858409e890491"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

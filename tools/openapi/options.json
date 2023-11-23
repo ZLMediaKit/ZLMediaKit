@@ -1,0 +1,40 @@
+{
+    "info": {
+        "title": "ZLMediaKit HTTP API",
+        "version": "ZLMediaKit(git hash:\"a78ca2e\"/\"2023-11-17T11:12:51+08:00\",branch:\"patch-63\",build time:\"2023-11-23T14:35:02\")",
+        "description": "You can test the HTTP API provided by ZlMediaKit here. For usage documentation, please refer to [here](https://docs.zlmediakit.com/guide/media_server/restful_api.html)",
+        "termsOfService": "https://docs.zlmediakit.com",
+        "license": {
+            "name": "MIT",
+            "url": "https://docs.zlmediakit.com/more/license.html"
+        },
+        "contact": {
+            "name": "Contact Support",
+            "url": "https://docs.zlmediakit.com/more/contact.html",
+            "email": "1213642868@qq.com"
+        },
+        "xLogo": {
+            "url": "/logo.png",
+            "backgroundColor": "#FFFFFF",
+            "altText": "ZLMediaKit"
+        }
+    },
+    "defaultTag": "GET",
+    "outputFormat": "json",
+    "replaceVars": true,
+    "servers": [
+        {
+            "url": "/",
+            "description": "Localhost"
+        }
+    ],
+    "externalDocs": {
+        "description": "ZLMediaKit Documentation",
+        "url": "https://docs.zlmediakit.com"
+    },
+    "additionalVars": {
+        "defaultVhost": "__defaultVhost__",
+        "ZLMediaKit_secret": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX",
+        "ZLMediaKit_URL": ""
+    }
+}
