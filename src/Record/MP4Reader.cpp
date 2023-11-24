@@ -21,6 +21,20 @@ using namespace toolkit;
 namespace mediakit {
 
 MP4Reader::MP4Reader(const std::string &vhost, const std::string &app, const std::string &stream_id, const string &file_path) {
+    ProtocolOption option;
+    // 读取mp4文件并流化时，不重复生成mp4/hls文件
+    option.enable_mp4 = false;
+    option.enable_hls = false;
+    option.enable_hls_fmp4 = false;
+
+    setup(vhost, app, stream_id, file_path, option);
+}
+
+MP4Reader::MP4Reader(const std::string &vhost, const std::string &app, const std::string &stream_id, const string &file_path, const ProtocolOption &option) {
+    setup(vhost, app, stream_id, file_path, option);
+}
+
+void MP4Reader::setup(const std::string &vhost, const std::string &app, const std::string &stream_id, const std::string &file_path, const ProtocolOption &option) {
     //读写文件建议放在后台线程
     auto tuple =  MediaTuple{vhost, app, stream_id};
     _poller = WorkThreadPool::Instance().getPoller();
@@ -42,10 +56,7 @@ MP4Reader::MP4Reader(const std::string &vhost, const std::string &app, const std
     if (tuple.stream.empty()) {
         return;
     }
-    ProtocolOption option;
-    //读取mp4文件并流化时，不重复生成mp4/hls文件
-    option.enable_mp4 = false;
-    option.enable_hls = false;
+
     _muxer = std::make_shared<MultiMediaSourceMuxer>(tuple, _demuxer->getDurationMS() / 1000.0f, option);
     auto tracks = _demuxer->getTracks(false);
     if (tracks.empty()) {
