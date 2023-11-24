@@ -11,43 +11,51 @@
 #include <sys/stat.h>
 #include <math.h>
 #include <signal.h>
-#include <functional>
-#include <unordered_map>
-#include "Util/util.h"
-#include "Util/logger.h"
-#include "Util/onceToken.h"
-#include "Util/NoticeCenter.h"
-#include "Util/File.h"
-#ifdef ENABLE_MYSQL
-#include "Util/SqlPool.h"
-#endif //ENABLE_MYSQL
-#include "Common/config.h"
-#include "Common/MediaSource.h"
-#include "Http/HttpRequester.h"
-#include "Http/HttpSession.h"
-#include "Network/TcpServer.h"
-#include "Network/UdpServer.h"
-#include "Player/PlayerProxy.h"
-#include "Pusher/PusherProxy.h"
-#include "Util/MD5.h"
-#include "WebApi.h"
-#include "WebHook.h"
-#include "Thread/WorkThreadPool.h"
-#include "Rtp/RtpSelector.h"
-#include "FFmpegSource.h"
-#if defined(ENABLE_RTPPROXY)
-#include "Rtp/RtpServer.h"
-#endif
-#ifdef ENABLE_WEBRTC
-#include "../webrtc/WebRtcPlayer.h"
-#include "../webrtc/WebRtcPusher.h"
-#include "../webrtc/WebRtcEchoTest.h"
-#endif
+
 #ifdef _WIN32
 #include <io.h>
 #include <iostream>
 #include <tchar.h>
 #endif // _WIN32
+
+#include <functional>
+#include <unordered_map>
+#include "Util/MD5.h"
+#include "Util/util.h"
+#include "Util/File.h"
+#include "Util/logger.h"
+#include "Util/onceToken.h"
+#include "Util/NoticeCenter.h"
+#include "Network/TcpServer.h"
+#include "Network/UdpServer.h"
+#include "Thread/WorkThreadPool.h"
+
+#ifdef ENABLE_MYSQL
+#include "Util/SqlPool.h"
+#endif //ENABLE_MYSQL
+
+#include "WebApi.h"
+#include "WebHook.h"
+#include "FFmpegSource.h"
+
+#include "Common/config.h"
+#include "Common/MediaSource.h"
+#include "Http/HttpSession.h"
+#include "Http/HttpRequester.h"
+#include "Player/PlayerProxy.h"
+#include "Pusher/PusherProxy.h"
+#include "Rtp/RtpSelector.h"
+#include "Record/MP4Reader.h"
+
+#if defined(ENABLE_RTPPROXY)
+#include "Rtp/RtpServer.h"
+#endif
+
+#ifdef ENABLE_WEBRTC
+#include "../webrtc/WebRtcPlayer.h"
+#include "../webrtc/WebRtcPusher.h"
+#include "../webrtc/WebRtcEchoTest.h"
+#endif
 
 #if defined(ENABLE_VERSION)
 #include "version.h"
@@ -1776,6 +1784,23 @@ void installWebApi() {
         invoker(200, headerOut, val.toStyledString());
     });
 #endif
+
+    api_regist("/index/api/loadMP4File", [](API_ARGS_MAP) {
+        CHECK_SECRET();
+        CHECK_ARGS("vhost", "app", "stream", "file_path");
+
+        ProtocolOption option;
+        // 默认解复用mp4不生成mp4
+        option.enable_mp4 = false;
+        // 但是如果参数明确指定开启mp4, 那么也允许之
+        option.load(allArgs);
+        // 强制无人观看时自动关闭
+        option.auto_close = true;
+
+        auto reader = std::make_shared<MP4Reader>(allArgs["vhost"], allArgs["app"], allArgs["stream"], allArgs["file_path"], option);
+        // sample_ms设置为0，从配置文件加载；file_repeat可以指定，如果配置文件也指定循环解复用，那么强制开启
+        reader->startReadMP4(0, true, allArgs["file_repeat"]);
+    });
 
     ////////////以下是注册的Hook API////////////
     api_regist("/index/hook/on_publish",[](API_ARGS_JSON){
