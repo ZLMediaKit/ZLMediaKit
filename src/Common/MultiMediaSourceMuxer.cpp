@@ -32,6 +32,74 @@ public:
 };
 } // namespace
 
+class FramePacedSender : public FrameWriterInterface, public std::enable_shared_from_this<FramePacedSender> {
+public:
+    using OnFrame = std::function<void(const Frame::Ptr &frame)>;
+    // 最小缓存100ms数据
+    static constexpr auto kMinCacheMS = 100;
+
+    FramePacedSender(uint32_t paced_sender_ms, OnFrame cb) {
+        _paced_sender_ms = paced_sender_ms;
+        _cb = std::move(cb);
+        _stamp[TrackVideo].syncTo(_stamp[TrackAudio]);
+    }
+
+    void resetTimer(const EventPoller::Ptr &poller) {
+        std::weak_ptr<FramePacedSender> weak_self = shared_from_this();
+        _timer = std::make_shared<Timer>(_paced_sender_ms / 1000.0f, [weak_self]() {
+            if (auto strong_self = weak_self.lock()) {
+                strong_self->onTick();
+                return true;
+            }
+            return false;
+        }, poller);
+    }
+
+    bool inputFrame(const Frame::Ptr &frame) override {
+        if (!_timer) {
+            resetTimer(EventPoller::getCurrentPoller());
+            _ticker.resetTime();
+        }
+
+        int64_t dts;
+        _stamp[frame->getTrackType()].revise(frame->dts(), frame->dts(), dts, dts);
+        _cache.emplace_back(dts + kMinCacheMS, Frame::getCacheAbleFrame(frame));
+        return true;
+    }
+
+private:
+    void onTick() {
+        while (!_cache.empty()) {
+            auto &front = _cache.front();
+            if (_ticker.elapsedTime() < front.first) {
+                // 还没到消费时间
+                break;
+            }
+            // 时间到了，该消费frame了
+            // TraceL << front.second->getCodecName() << " " << front.first << " " << _ticker.elapsedTime();
+            _cb(front.second);
+            _cache.pop_front();
+        }
+        if (_cache.size() > 25 * 5) {
+            // 强制flush数据
+            WarnL << "Flush frame paced sender cache: " << _cache.size();
+            while (!_cache.empty()) {
+                auto &front = _cache.front();
+                _cb(front.second);
+                _cache.pop_front();
+            }
+        }
+    }
+
+private:
+    uint32_t _paced_sender_ms;
+    OnFrame _cb;
+    Stamp _stamp[2];
+    Ticker _ticker;
+    Timer::Ptr _timer;
+    std::list<std::pair<uint64_t, Frame::Ptr>> _cache;
+};
+
 static std::shared_ptr<MediaSinkInterface> makeRecorder(MediaSource &sender, const vector<Track::Ptr> &tracks, Recorder::type type, const ProtocolOption &option){
     auto recorder = Recorder::createRecorder(type, sender.getMediaTuple(), option);
     for (auto &track : tracks) {
@@ -367,6 +435,9 @@ EventPoller::Ptr MultiMediaSourceMuxer::getOwnerPoller(MediaSource &sender) {
         if (ret != _poller) {
             WarnL << "OwnerPoller changed " << _poller->getThreadName() << " -> " << ret->getThreadName() << " : " << shortUrl();
             _poller = ret;
+            if (_paced_sender) {
+                _paced_sender->resetTimer(_poller);
+            }
         }
         return ret;
     } catch (MediaSourceEvent::NotImplemented &) {
@@ -407,6 +478,16 @@ bool MultiMediaSourceMuxer::onTrackReady(const Track::Ptr &track) {
 
 void MultiMediaSourceMuxer::onAllTrackReady() {
     CHECK(!_create_in_poller || getOwnerPoller(MediaSource::NullMediaSource())->isCurrentThread());
+
+    if (_option.paced_sender_ms) {
+        std::weak_ptr<MultiMediaSourceMuxer> weak_self = shared_from_this();
+        _paced_sender = std::make_shared<FramePacedSender>(_option.paced_sender_ms, [weak_self](const Frame::Ptr &frame) {
+            if (auto strong_self = weak_self.lock()) {
+                strong_self->onTrackFrame_l(frame);
+            }
+        });
+    }
+
     setMediaListener(getDelegate());
 
     if (_rtmp) {
@@ -492,7 +573,11 @@ void MultiMediaSourceMuxer::resetTracks() {
     }
 }
 
-bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
+bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame) {
+    return _paced_sender ? _paced_sender->inputFrame(frame) : onTrackFrame_l(frame);
+}
+
+bool MultiMediaSourceMuxer::onTrackFrame_l(const Frame::Ptr &frame_in) {
     auto frame = frame_in;
     if (_option.modify_stamp != ProtocolOption::kModifyStampOff) {
         // 时间戳不采用原始的绝对时间戳
