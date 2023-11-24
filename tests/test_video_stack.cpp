@@ -113,9 +113,7 @@ void VideoStack::parseParam(const std::string &param) {
     }
 }
 
-void VideoStack::copyToBuf(const FFmpegFrame::Ptr &frame, const Param &p) {
-
-    auto &buf = _buffer;
+void VideoStack::copyToBuf(const std::shared_ptr<AVFrame> &buf, const FFmpegFrame::Ptr &frame, const Param &p) {
 
     auto sws = std::make_shared<FFmpegSws>(AV_PIX_FMT_YUV420P, p.width, p.height);
 
@@ -203,7 +201,14 @@ void StackPlayer::init(const std::string &url) {
 
 void StackPlayer::addStackPtr(VideoStack* that) {
     //std::unique_lock<std::shared_timed_mutex> wlock(_mx);
-    _stacks.push_back(that);
+    if (!that) {
+        return;
+    }
+    auto it = _stacks.find(that->_stack_id);
+    if (it != _stacks.end()) {
+        return;
+    }
+    _stacks[that->_stack_id] = that;
 }
 
 void StackPlayer::delStackPtr(VideoStack *that) {
@@ -214,8 +219,8 @@ void StackPlayer::delStackPtr(VideoStack *that) {
 
 void StackPlayer::onFrame(const FFmpegFrame::Ptr &frame) {
     //std::shared_lock<std::shared_timed_mutex> rlock(_mx);
-    for (auto &that : _stacks) {
-
+    for (auto &vsp : _stacks) {
+        auto &that = vsp.second;
         if (!that) {
             continue;
         }
@@ -227,12 +232,20 @@ void StackPlayer::onFrame(const FFmpegFrame::Ptr &frame) {
                 }
 
                 // TODO: 待实现帧缓存和帧同步
-                if (std::chrono::steady_clock::now() - p.lastInputTime > std::chrono::milliseconds(20)) {
-
-                    that->copyToBuf(frame, p);
-
-                    p.lastInputTime = std::chrono::steady_clock::now();
+                p.cache.push_back(frame);
+                if (that->isReady.test(p.order)) {
+                    continue;
                 }
+                if (p.cache.size() >= MAX_FRAME_SIZE) {
+                    auto start = std::chrono::high_resolution_clock::now(); // 记录迭代开始时间
+                    for (int i = 0; i < MAX_FRAME_SIZE; i++) {
+                        auto &front = p.cache.front();
+                        that->copyToBuf(that->_buffers[i], front, p);
+                        p.cache.pop_front();
+                        that->isReady.set(p.order);
+                    }
+                }
+
             }
         }
     }
@@ -252,18 +265,23 @@ void VideoStack::init() {
     // dev->initAudio();         //TODO:音频
     _dev->addTrackCompleted();
 
-    _buffer.reset(av_frame_alloc(), [](AVFrame *frame_) { av_frame_free(&frame_); });
+    for (int i = 0; i < MAX_FRAME_SIZE; i++) {
 
-    _buffer->width = _width;
-    _buffer->height = _height;
-    _buffer->format = _pixfmt;
+        std::shared_ptr<AVFrame> frame(av_frame_alloc(), [](AVFrame *frame_) { av_frame_free(&frame_); });
 
-    av_frame_get_buffer(_buffer.get(), 32);
+        frame->width = _width;
+        frame->height = _height;
+        frame->format = _pixfmt;
+
+        av_frame_get_buffer(frame.get(), 32);
+        _buffers.push_back(frame);
+    }
 
     // setBackground(0, 0, 0);
 
     _isExit = false;
 
+    int i = 0;
     for (auto &v : _params) {
         for (auto &p : v) {
             if (p.stream_id.empty()) {
@@ -277,6 +295,9 @@ void VideoStack::init() {
             p.tmp->format = _pixfmt;
 
             av_frame_get_buffer(p.tmp.get(), 32);*/
+            p.order = i++;
+
+            flag.set(p.order);
 
             auto it = playerMap.find(p.stream_id);
             if (it == playerMap.end()) {
@@ -302,16 +323,15 @@ void VideoStack::start() {
             int64_t pts = 0, index = 0;
             auto interval = milliseconds(40); // 设置间隔时间为40毫秒
             while (!_isExit) {
-                auto start = high_resolution_clock::now();
-
-                _dev->inputYUV((char **)_buffer->data, _buffer->linesize, pts);
-                pts += 40;
-                index++;
-
-                auto end = high_resolution_clock::now();
-                auto duration = duration_cast<milliseconds>(end - start);
-                if (duration < interval) {
-                    std::this_thread::sleep_for(interval - duration); // 如果迭代花费时间小于间隔时间，等待剩余时间
+                if (isReady == flag) {
+                    for (auto &buf : _buffers) {
+                        _dev->inputYUV((char **)buf->data, buf->linesize, pts);
+                        pts += 40;
+                        index++;
+                    }
+                    isReady = 0;
+                } else {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(5));
                 }
             }
         }).detach();
