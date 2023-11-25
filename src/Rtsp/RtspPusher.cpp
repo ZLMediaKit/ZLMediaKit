@@ -358,7 +358,10 @@ void RtspPusher::updateRtcpContext(const RtpPacket::Ptr &rtp){
     auto &ticker = _rtcp_send_ticker[track_index];
     auto &rtcp_ctx = _rtcp_context[track_index];
     rtcp_ctx->onRtp(rtp->getSeq(), rtp->getStamp(), rtp->ntp_stamp, rtp->sample_rate, rtp->size() - RtpPacket::kRtpTcpHeaderSize);
-
+    if (!rtp->ntp_stamp && !rtp->getStamp()) {
+        // 忽略时间戳都为0的rtp
+        return;
+    }
     //send rtcp every 5 second
     if (ticker.elapsedTime() > 5 * 1000) {
         ticker.resetTime();
