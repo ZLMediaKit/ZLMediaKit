@@ -58,7 +58,7 @@ public:
     bool inputFrame(const Frame::Ptr &frame) override {
         if (!_timer) {
             resetTimer(EventPoller::getCurrentPoller());
-            _ticker.resetTime();
+            setCurrentStamp(0);
         }
 
         int64_t dts;
@@ -71,7 +71,7 @@ private:
     void onTick() {
         while (!_cache.empty()) {
             auto &front = _cache.front();
-            if (_ticker.elapsedTime() < front.first) {
+            if (getCurrentStamp() < front.first) {
                 // 还没到消费时间
                 break;
             }
@@ -81,6 +81,7 @@ private:
             _cache.pop_front();
         }
         if (_cache.size() > 25 * 5) {
+            auto dts = _cache.back().first;
             // 强制flush数据
             WarnL << "Flush frame paced sender cache: " << _cache.size();
             while (!_cache.empty()) {
@@ -88,11 +89,22 @@ private:
                 _cb(front.second);
                 _cache.pop_front();
             }
+            setCurrentStamp(dts);
         }
+    }
+
+    uint64_t getCurrentStamp () {
+        return _ticker.elapsedTime() + _stamp_offset;
+    }
+
+    uint64_t setCurrentStamp(uint64_t stamp ) {
+        _stamp_offset = stamp;
+        _ticker.resetTime();
     }
 
 private:
     uint32_t _paced_sender_ms;
+    uint64_t _stamp_offset = 0;
     OnFrame _cb;
     Stamp _stamp[2];
     Ticker _ticker;
