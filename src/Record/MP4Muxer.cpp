@@ -169,11 +169,15 @@ void MP4MuxerInterface::stampSync() {
     }
 
     Stamp *audio = nullptr, *video = nullptr;
-    for(auto &pr : _codec_to_trackid){
-        switch (getTrackType((CodecId) pr.first)){
-            case TrackAudio : audio = &pr.second.stamp; break;
-            case TrackVideo : video = &pr.second.stamp; break;
-            default : break;
+    for (auto &pr : _codec_to_trackid) {
+        auto &stamp = pr.second.stamp;
+        // mp4录制时间戳不允许回退，最大跳跃幅度500ms
+        stamp.enableRollback(false);
+        stamp.setMaxDelta(500);
+        switch (getTrackType((CodecId)pr.first)) {
+            case TrackAudio: audio = &stamp; break;
+            case TrackVideo: video = &stamp; break;
+            default: break;
         }
     }
 
