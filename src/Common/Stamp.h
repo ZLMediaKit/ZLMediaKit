@@ -19,19 +19,27 @@ namespace mediakit {
 
 class DeltaStamp{
 public:
-    DeltaStamp() = default;
+    DeltaStamp();
     ~DeltaStamp() = default;
 
     /**
      * 计算时间戳增量
      * @param stamp 绝对时间戳
+     * @param enable_rollback 是否允许相当时间戳回退
      * @return 时间戳增量
      */
-    int64_t deltaStamp(int64_t stamp);
-    int64_t relativeStamp(int64_t stamp);
+    int64_t deltaStamp(int64_t stamp, bool enable_rollback = true);
+    int64_t relativeStamp(int64_t stamp, bool enable_rollback = true);
     int64_t relativeStamp();
 
-private:
+    // 设置最大允许回退或跳跃幅度
+    void setMaxDelta(size_t max_delta);
+
+protected:
+    virtual void needSync() {}
+
+protected:
+    int _max_delta;
     int64_t _last_stamp = 0;
     int64_t _relative_stamp = 0;
 };
@@ -77,6 +85,11 @@ public:
      */
     void syncTo(Stamp &other);
 
+    /**
+     * 是否允许时间戳回退
+     */
+    void enableRollback(bool flag);
+
 private:
     //主要实现音视频时间戳同步功能
     void revise_l(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out,bool modifyStamp = false);
@@ -84,13 +97,18 @@ private:
     //主要实现获取相对时间戳功能
     void revise_l2(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out,bool modifyStamp = false);
 
+    void needSync() override;
+
 private:
+    bool _playback = false;
+    bool _need_sync = false;
+    // 默认不允许时间戳回滚
+    bool _enable_rollback = false;
     int64_t _relative_stamp = 0;
     int64_t _last_dts_in = 0;
     int64_t _last_dts_out = 0;
     int64_t _last_pts_out = 0;
     toolkit::SmoothTicker _ticker;
-    bool _playback = false;
     Stamp *_sync_master = nullptr;
 };
 
