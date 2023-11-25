@@ -14,7 +14,7 @@
 using namespace std;
 using namespace toolkit;
 
-#define ENABLE_NTP_STAMP 0
+#define ENABLE_NTP_STAMP 1
 
 namespace mediakit {
 
@@ -78,6 +78,10 @@ bool RtspMuxer::addTrack(const Track::Ptr &track) {
     //添加其sdp
     _sdp.append(sdp->getSdp());
     trySyncTrack();
+
+    // rtp的时间戳是pts，允许回退
+    _stamp[TrackAudio].enableRollback(true);
+    _stamp[TrackVideo].enableRollback(true);
     return true;
 }
 
