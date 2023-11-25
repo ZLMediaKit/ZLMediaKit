@@ -111,11 +111,18 @@ void HlsMaker::delOldSegment() {
 }
 
 void HlsMaker::addNewSegment(uint64_t stamp) {
-    if (!_last_file_name.empty() && stamp - _last_seg_timestamp < _seg_duration * 1000) {
-        //存在上个切片，并且未到分片时间
-        return;
+    GET_CONFIG(bool, firstTSOneGOP, Hls::kFirstTSOneGOP);
+    if (!firstTSOneGOP) {   
+    	if (!_last_file_name.empty() && stamp - _last_seg_timestamp < _seg_duration * 1000) {
+            //存在上个切片，并且未到分片时间
+            return;
+    	}
     }
-
+    else {
+        if (!_last_file_name.empty() && _file_index>1 && stamp - _last_seg_timestamp < _seg_duration * 1000) {
+	    return;
+	}
+    }
     //关闭并保存上一个切片，如果_seg_number==0,那么是点播。
     flushLastSegment(false);
     //新增切片

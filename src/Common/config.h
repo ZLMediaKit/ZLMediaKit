@@ -350,6 +350,8 @@ extern const std::string kFileBufSize;
 extern const std::string kBroadcastRecordTs;
 // hls直播文件删除延时，单位秒
 extern const std::string kDeleteDelaySec;
+// 如果设置为1，则第一个切片长度强制设置为1个GOP
+extern const std::string kFirstTSOneGOP;
 } // namespace Hls
 
 ////////////Rtp代理相关配置///////////
