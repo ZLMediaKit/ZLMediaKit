@@ -26,6 +26,7 @@ HlsMakerImp::HlsMakerImp(bool is_fmp4, const string &m3u8_file, const string &pa
     _poller = EventPollerPool::Instance().getPoller();
     _path_prefix = m3u8_file.substr(0, m3u8_file.rfind('/'));
     _path_hls = m3u8_file;
+    _path_hls_time = m3u8_file;
     _params = params;
     _buf_size = bufSize;
     _file_buf.reset(new char[bufSize], [](char *ptr) { delete[] ptr; });
@@ -138,6 +139,20 @@ void HlsMakerImp::onWriteHls(const std::string &data) {
         }
     } else {
         WarnL << "Create hls file failed," << _path_hls << " " << get_uv_errmsg();
+    }
+
+    auto strDate = getTimeStr("%Y-%m-%d");
+    auto strHour = getTimeStr("%H");
+    string path_new = StrPrinter << _path_hls_time.substr(0, _path_hls_time.length()-8) << strDate + "/" + strHour + "/" +  "index.m3u8";
+    auto hls1 = makeFile(path_new);
+    if (hls1) {
+        fwrite(data.data(), data.size(), 1, hls1.get());
+        hls1.reset();
+        if (_media_src) {
+            _media_src->setIndexFile(data);
+        }
+    } else {
+        WarnL << "Create hls file failed," << path_new << " " << get_uv_errmsg();
     }
 }
 
