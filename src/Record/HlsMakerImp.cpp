@@ -143,14 +143,14 @@ void HlsMakerImp::onWriteHls(const std::string &data) {
 
     auto strDate = getTimeStr("%Y-%m-%d");
     auto strHour = getTimeStr("%H");
-    string path_new = StrPrinter << _path_hls_time.substr(0, _path_hls_time.length()-8) << strDate + "/" + strHour + "/" +  "index.m3u8";
+    string path_new = StrPrinter << _path_prefix + "/" << strDate + "/" + strHour + "/" +  "index.m3u8";
     auto hls1 = makeFile(path_new);
     if (hls1) {
         fwrite(data.data(), data.size(), 1, hls1.get());
         hls1.reset();
-        if (_media_src) {
-            _media_src->setIndexFile(data);
-        }
+        // if (_media_src) {
+        //     _media_src->setIndexFile(data);
+        // }
     } else {
         WarnL << "Create hls file failed," << path_new << " " << get_uv_errmsg();
     }
