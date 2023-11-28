@@ -8,8 +8,10 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
+#include <ctime>
 #include <iomanip>
 #include "HlsMaker.h"
+#include "Util/util.h"
 #include "Common/config.h"
 
 using namespace std;
@@ -50,13 +52,21 @@ void HlsMaker::makeIndexFile(bool eof) {
     }
 
     stringstream ss;
-    for (auto &tp : _seg_dur_list) {
-        ss << "#EXTINF:" << std::setprecision(3) << std::get<0>(tp) / 1000.0 << ",\n" << std::get<1>(tp) << "\n";
+    if (eof) {
+        for (auto &tp : _seg_dur_list_time) {
+            ss << "#EXTINF:" << std::setprecision(3) << std::get<0>(tp) / 1000.0 << ",\n" << std::get<1>(tp) << "\n";
+        }
+    } else {
+        for (auto &tp : _seg_dur_list) {
+            ss << "#EXTINF:" << std::setprecision(3) << std::get<0>(tp) / 1000.0 << ",\n" << std::get<1>(tp) << "\n";
+        }
     }
     index_str += ss.str();
 
     if (eof) {
         index_str += "#EXT-X-ENDLIST\n";
+        onWriteHlsTime(index_str);
+        return;
     }
     onWriteHls(index_str);
 }
@@ -122,6 +132,12 @@ void HlsMaker::addNewSegment(uint64_t stamp) {
     _last_file_name = onOpenSegment(_file_index++);
     //记录本次切片的起始时间戳
     _last_seg_timestamp = _last_timestamp ? _last_timestamp : stamp;
+
+    if (_last_m3u8_time.empty()) {
+        auto strDate = getTimeStr("%Y-%m-%d");
+        auto strHour = getTimeStr("%H");
+        _last_m3u8_time = strDate + "/" + strHour;
+    }
 }
 
 void HlsMaker::flushLastSegment(bool eof){
@@ -135,11 +151,14 @@ void HlsMaker::flushLastSegment(bool eof){
         seg_dur = 100;
     }
     _seg_dur_list.emplace_back(seg_dur, std::move(_last_file_name));
+    _seg_dur_list_time.emplace_back(seg_dur, std::move(_last_file_name));
     delOldSegment();
     //先flush ts切片，否则可能存在ts文件未写入完毕就被访问的情况
     onFlushLastSegment(seg_dur);
     //然后写m3u8文件
     makeIndexFile(eof);
+    //写m3u8文件(按时间)
+    makeIndexFile(true);
 }
 
 bool HlsMaker::isLive() const {
@@ -159,6 +178,7 @@ void HlsMaker::clear() {
     _last_timestamp = 0;
     _last_seg_timestamp = 0;
     _seg_dur_list.clear();
+    _seg_dur_list_time.clear();
     _last_file_name.clear();
 }
 

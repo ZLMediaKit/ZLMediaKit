@@ -140,7 +140,9 @@ void HlsMakerImp::onWriteHls(const std::string &data) {
     } else {
         WarnL << "Create hls file failed," << _path_hls << " " << get_uv_errmsg();
     }
+}
 
+void HlsMakerImp::onWriteHlsTime(const std::string &data) {
     auto strDate = getTimeStr("%Y-%m-%d");
     auto strHour = getTimeStr("%H");
     string path_new = StrPrinter << _path_prefix + "/" << strDate + "/" + strHour + "/" +  "index.m3u8";
@@ -148,13 +150,14 @@ void HlsMakerImp::onWriteHls(const std::string &data) {
     if (hls1) {
         fwrite(data.data(), data.size(), 1, hls1.get());
         hls1.reset();
-        // if (_media_src) {
-        //     _media_src->setIndexFile(data);
-        // }
+        if (_media_src) {
+            _media_src->setIndexFile(data);
+        }
     } else {
         WarnL << "Create hls file failed," << path_new << " " << get_uv_errmsg();
     }
 }
+
 
 void HlsMakerImp::onFlushLastSegment(uint64_t duration_ms) {
     // 关闭并flush文件到磁盘

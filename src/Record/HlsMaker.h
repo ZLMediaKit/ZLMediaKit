@@ -99,6 +99,11 @@ protected:
     virtual void onWriteHls(const std::string &data) = 0;
 
     /**
+     * 写m3u8文件回调(按时间)
+     */
+    virtual void onWriteHlsTime(const std::string &data) = 0;
+
+    /**
      * 上一个 ts 切片写入完成, 可在这里进行通知处理
      * @param duration_ms 上一个 ts 切片的时长, 单位为毫秒
      */
@@ -137,7 +142,9 @@ private:
     uint64_t _last_seg_timestamp = 0;
     uint64_t _file_index = 0;
     std::string _last_file_name;
+    std::string _last_m3u8_time;
     std::deque<std::tuple<int,std::string> > _seg_dur_list;
+    std::deque<std::tuple<int,std::string> > _seg_dur_list_time;
 };
 
 }//namespace mediakit
