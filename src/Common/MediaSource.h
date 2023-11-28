@@ -202,6 +202,11 @@ public:
 
     template <typename MAP>
     ProtocolOption(const MAP &allArgs) : ProtocolOption() {
+        load(allArgs);
+    }
+
+    template <typename MAP>
+    void load(const MAP &allArgs) {
 #define GET_OPT_VALUE(key) getArgsValue(allArgs, #key, key)
         GET_OPT_VALUE(modify_stamp);
         GET_OPT_VALUE(enable_audio);

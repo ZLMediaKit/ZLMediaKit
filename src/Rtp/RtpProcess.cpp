@@ -79,6 +79,9 @@ bool RtpProcess::inputRtp(bool is_udp, const Socket::Ptr &sock, const char *data
         WarnP(this) << "Not rtp packet";
         return false;
     }
+    if (!_auth_err.empty()) {
+        throw toolkit::SockException(toolkit::Err_other, _auth_err);
+    }
     if (_sock != sock) {
         // 第一次运行本函数
         bool first = !_sock;
@@ -260,6 +263,7 @@ void RtpProcess::emitOnPublish() {
                 strong_self->doCachedFunc();
                 InfoP(strong_self) << "允许RTP推流";
             } else {
+                strong_self->_auth_err = err;
                 WarnP(strong_self) << "禁止RTP推流:" << err;
             }
         });

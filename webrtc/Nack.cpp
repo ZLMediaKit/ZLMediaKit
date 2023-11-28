@@ -258,7 +258,7 @@ uint64_t NackContext::reSendNack() {
     for (auto it = nack_rtp.begin(); it != nack_rtp.end();) {
         if (pid == -1) {
             pid = *it;
-            vec.resize(FCI_NACK::kBitSize, false);
+            vec.assign(FCI_NACK::kBitSize, false);
             ++it;
             continue;
         }
