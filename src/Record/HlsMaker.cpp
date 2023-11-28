@@ -53,23 +53,49 @@ void HlsMaker::makeIndexFile(bool eof) {
     }
 
     stringstream ss;
-    if (eof) {
-        for (auto &tp : _seg_dur_list_time) {
-            ss << "#EXTINF:" << std::setprecision(3) << std::get<0>(tp) / 1000.0 << ",\n" << std::get<1>(tp) << "\n";
-        }
-    } else {
-        for (auto &tp : _seg_dur_list) {
-            ss << "#EXTINF:" << std::setprecision(3) << std::get<0>(tp) / 1000.0 << ",\n" << std::get<1>(tp) << "\n";
-        }
+    for (auto &tp : _seg_dur_list) {
+        ss << "#EXTINF:" << std::setprecision(3) << std::get<0>(tp) / 1000.0 << ",\n" << std::get<1>(tp) << "\n";
     }
     index_str += ss.str();
 
     if (eof) {
         index_str += "#EXT-X-ENDLIST\n";
-        onWriteHlsTime(index_str);
-        return;
     }
     onWriteHls(index_str);
+}
+
+void HlsMaker::makeIndexFileTime(bool eof) {
+    int maxSegmentDuration = 0;
+    for (auto &tp : _seg_dur_list_time) {
+        int dur = std::get<0>(tp);
+        if (dur > maxSegmentDuration) {
+            maxSegmentDuration = dur;
+        }
+    }
+    // auto index_seq = _seg_number ? (_file_index > _seg_number ? _file_index - _seg_number : 0LL) : 0LL;
+    auto index_seq = 0LL;
+
+    string index_str;
+    index_str.reserve(2048);
+    index_str += "#EXTM3U\n";
+    index_str += (_is_fmp4 ? "#EXT-X-VERSION:7\n" : "#EXT-X-VERSION:4\n");
+    index_str += "#EXT-X-PLAYLIST-TYPE:EVENT\n";
+    index_str += "#EXT-X-TARGETDURATION:" + std::to_string((maxSegmentDuration + 999) / 1000) + "\n";
+    index_str += "#EXT-X-MEDIA-SEQUENCE:" + std::to_string(index_seq) + "\n";
+    if (_is_fmp4) {
+        index_str += "#EXT-X-MAP:URI=\"init.mp4\"\n";
+    }
+
+    stringstream ss;
+    for (auto &tp : _seg_dur_list_time) {
+        ss << "#EXTINF:" << std::setprecision(3) << std::get<0>(tp) / 1000.0 << ",\n" << std::get<1>(tp) << "\n";
+    }
+    index_str += ss.str();
+
+    if (eof) {
+        index_str += "#EXT-X-ENDLIST\n";
+    }
+    onWriteHlsTime(index_str);
 }
 
 void HlsMaker::inputInitSegment(const char *data, size_t len) {
@@ -166,7 +192,7 @@ void HlsMaker::flushLastSegment(bool eof){
     //然后写m3u8文件
     makeIndexFile(eof);
     //写m3u8文件(按时间)
-    makeIndexFile(true);
+    makeIndexFileTime(eof);
 }
 
 bool HlsMaker::isLive() const {

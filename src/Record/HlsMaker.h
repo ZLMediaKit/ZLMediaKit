@@ -123,6 +123,12 @@ private:
     void makeIndexFile(bool eof = false);
 
     /**
+     * 生成m3u8文件(按时间)
+     * @param eof true代表点播
+     */
+    void makeIndexFileTime(bool eof = false);
+
+    /**
      * 删除旧的ts切片
      */
     void delOldSegment();
