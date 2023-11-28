@@ -133,10 +133,16 @@ void HlsMaker::addNewSegment(uint64_t stamp) {
     //记录本次切片的起始时间戳
     _last_seg_timestamp = _last_timestamp ? _last_timestamp : stamp;
 
+    auto strDate = getTimeStr("%Y-%m-%d");
+    auto strHour = getTimeStr("%H");
+    string mm = strDate + "/" + strHour;
     if (_last_m3u8_time.empty()) {
-        auto strDate = getTimeStr("%Y-%m-%d");
-        auto strHour = getTimeStr("%H");
-        _last_m3u8_time = strDate + "/" + strHour;
+        _last_m3u8_time = mm;
+    } else {
+        if (_last_m3u8_time.compare(mm) != 0) {
+            _last_m3u8_time = mm;
+            _seg_dur_list_time.clear();
+        }
     }
 }
 
