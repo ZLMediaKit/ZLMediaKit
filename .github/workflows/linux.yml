@@ -34,7 +34,7 @@ jobs:
       run: pwd && cd release/linux/Debug && sudo ./MediaServer -d &
 
     - name: generate openapi
-      run: cd tools/openapi && python3 generates.py
+      run: cd tools/openapi && python3 generates.py install-dependencies
 
     - name: Commit and push if www/swagger/openapi.json changed
       run: |
