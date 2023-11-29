@@ -279,8 +279,8 @@ void HlsMaker::restoreM3u82(std::vector<std::string> lines) {
                 WarnL << "at:npos ";
                 continue;
             }
-            WarnL << "seg_dur--------- " << line.substr(at);
-            seg_dur = std::stof(line.substr(at));
+            WarnL << "seg_dur--------- " << line.substr(at+1);
+            seg_dur = std::stof(line.substr(at+1));
             WarnL << "seg_dur: " << seg_dur;
         } else {
             if (line.back() == 's') {
