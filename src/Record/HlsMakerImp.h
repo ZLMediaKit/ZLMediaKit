@@ -57,7 +57,7 @@ protected:
 private:
     std::shared_ptr<FILE> makeFile(const std::string &file,bool setbuf = false);
     void clearCache(bool immediately, bool eof);
-    std::vector<std::string> onIndexFileExist();
+    void onIndexFileExist();
 
 private:
     int _buf_size;

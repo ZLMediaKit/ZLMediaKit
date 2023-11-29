@@ -103,7 +103,7 @@ string HlsMakerImp::onOpenSegment(uint64_t index) {
     return segment_name + "?" + _params;
 }
 
-std::vector<std::string> HlsMakerImp::onIndexFileExist() {
+void HlsMakerImp::onIndexFileExist() {
     auto strDate = getTimeStr("%Y-%m-%d");
     auto strHour = getTimeStr("%H");
     string pathFile = StrPrinter << _path_prefix + "/" << strDate + "/" + strHour + "/" +  "index.m3u8";
