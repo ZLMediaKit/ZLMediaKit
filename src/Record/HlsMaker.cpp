@@ -250,7 +250,7 @@ void HlsMaker::restoreM3u8(const std::string &text) {
             WarnL << "seg_dur: " << seg_dur;
         } else {
             if (line.back() == 's') {
-                 _seg_dur_list_time.emplace_back(seg_dur, trim(line));
+                //  _seg_dur_list_time.emplace_back(seg_dur, trim(line));
                   WarnL << "lines: " << line;
             }
         }
