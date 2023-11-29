@@ -272,8 +272,8 @@ void HlsMaker::restoreM3u82(std::vector<std::string> lines) {
             continue;
         }
         if (line.front() == '#' && line.back() == ',') {
-            WarnL << "seg_dur: ok";
-            // auto at = line.find(':');
+            auto at = line.find(':');
+            WarnL << "seg_dur: ok" << at;
             // if (at == std::string::npos) {
             //     WarnL << "at:npos ";
             //     continue;
