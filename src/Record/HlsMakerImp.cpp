@@ -32,6 +32,8 @@ HlsMakerImp::HlsMakerImp(bool is_fmp4, const string &m3u8_file, const string &pa
     _buf_size = bufSize;
     _file_buf.reset(new char[bufSize], [](char *ptr) { delete[] ptr; });
     _info.folder = _path_prefix;
+
+    onIndexFileExist();
 }
 
 HlsMakerImp::~HlsMakerImp() {
