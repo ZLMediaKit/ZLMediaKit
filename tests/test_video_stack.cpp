@@ -64,11 +64,11 @@ void VideoStack::parseParam(const std::string &param) {
     int gapvPix = 0;
     int gaphPix = 0;
 
-    _params = std::vector<std::vector<VideoStack::Param>>(rows, std::vector<VideoStack::Param>(cols));
+    _params = std::vector<VideoStack::Param>(rows * cols);
 
     for (int row = 0; row < rows; row++) {
         for (int col = 0; col < cols; col++) {
-            std::string videoID = json["urls"][row][col].asString();
+            std::string url = json["urls"][row][col].asString();
 
             VideoStack::Param param;
             param.posX = gridWidth * col + col * gaphPix;
@@ -77,21 +77,20 @@ void VideoStack::parseParam(const std::string &param) {
             param.width = gridWidth;
             param.height = gridHeight;
 
-            param.stream_id = videoID;
-            _params[row][col] = param;
+            param.url = url;
+            _params[row * cols + col] = param;
         }
     }
 
     // 判断是否需要合并格子 （焦点屏）
     if (!json["span"].empty()) {
-
-        for (const auto &subArray : json["span"]) {
+        for (const auto& subArray : json["span"]) {
             std::array<int, 4> mergePos;
             int index = 0;
 
             // 获取要合并的起始格子和终止格子下标
-            for (const auto &innerArray : subArray) {
-                for (const auto &number : innerArray) {
+            for (const auto& innerArray : subArray) {
+                for (const auto& number : innerArray) {
                     if (index < mergePos.size()) {
                         mergePos[index++] = number.asInt();
                     }
@@ -100,17 +99,19 @@ void VideoStack::parseParam(const std::string &param) {
 
             for (int i = mergePos[0]; i <= mergePos[2]; i++) {
                 for (int j = mergePos[1]; j <= mergePos[3]; j++) {
-                    if (i == mergePos[0] && j == mergePos[1]) // 重新计算合并后格子的宽高
-                    {
-                        _params[i][j].width = (mergePos[3] - mergePos[1] + 1) * gridWidth + (mergePos[3] - mergePos[1]) * gapvPix;
-                        _params[i][j].height = (mergePos[2] - mergePos[0] + 1) * gridHeight + (mergePos[2] - mergePos[0]) * gaphPix;
-                    } else {
-                        _params[i][j] = {}; // 置空被合并的格子
+                    if (i == mergePos[0] && j == mergePos[1]) {
+                        // 重新计算合并后格子的宽高
+                        _params[i * cols + j].width = (mergePos[3] - mergePos[1] + 1) * gridWidth + (mergePos[3] - mergePos[1]) * gapvPix;
+                        _params[i * cols + j].height = (mergePos[2] - mergePos[0] + 1) * gridHeight + (mergePos[2] - mergePos[0]) * gaphPix;
+                    }
+                    else {
+                        _params[i * cols + j] = {}; // 置空被合并的格子
                     }
                 }
             }
         }
     }
+
 }
 
 void VideoStack::copyToBuf(const std::shared_ptr<AVFrame> &buf, const FFmpegFrame::Ptr &frame, const Param &p) {
@@ -145,7 +146,7 @@ void VideoStack::copyToBuf(const std::shared_ptr<AVFrame> &buf, const FFmpegFram
 
 }
 
-void StackPlayer::init(const std::string &url) {
+void StackPlayer::play(const std::string &url) {
     _url = url;
     // 创建拉流 解码对象
     auto player = std::make_shared<mediakit::MediaPlayer>();
@@ -173,6 +174,12 @@ void StackPlayer::init(const std::string &url) {
             // auto decoder = std::make_shared<FFmpegDecoder>(videoTrack, 1, std::vector<std::string>{ "hevc_cuvid", "h264_cuvid"});
             auto decoder = std::make_shared<mediakit::FFmpegDecoder>(videoTrack, 0, std::vector<std::string> { "h264" });
             // auto decoder = std::make_shared<mediakit::FFmpegDecoder>(videoTrack);
+             auto strongSP = weakSP.lock();
+                if (!strongSP) {
+                    return;
+                }
+
+            strongSP->fps = videoTrack->getVideoFps();
 
             decoder->setOnDecode([weakSP](const mediakit::FFmpegFrame::Ptr &frame) mutable {
                 
@@ -189,7 +196,10 @@ void StackPlayer::init(const std::string &url) {
         }
     });
 
-    player->setOnShutdown([](const toolkit::SockException &ex) { InfoL << "Stack play shutdown: " << ex.what(); });
+    player->setOnShutdown([](const toolkit::SockException &ex) { 
+        InfoL << "Stack play shutdown: " << ex.what(); 
+        //TODO:断线 将Param中的isDisconnected置为true,然后编码线程那边对此进行判断，填充断线图片
+        });
 
     (*player)[mediakit::Client::kWaitTrackReady] = false; // 不等待TrackReady
     (*player)[mediakit::Client::kRtpType] = Rtsp::RTP_TCP;
@@ -217,6 +227,81 @@ void StackPlayer::delStackPtr(VideoStack *that) {
 }
 
 
+//TODO: 根据相对pts来进行同步 (单位是ms，可能得加一个pts转换时间基的步骤)
+/* void StackPlayer::syncFrameByPts(const FFmpegFrame::Ptr& frame, VideoStack::Param& p, float target_fps) {
+    static std::shared_ptr<FFmpegFrame> lastFrame = nullptr;
+    static int64_t lastPts = 0; // 上一帧的 PTS
+    static double totalDiff = 0.0;
+
+    // 检查 frame 是否有效
+    if (!frame) return;
+
+    // 首帧时给lastFrame赋值
+    if (!lastFrame) {
+        lastFrame = frame;
+        lastPts = frame->get()->pts;
+        p.write.push_back(frame);
+        p.tail++;
+        return;
+    }
+
+    // 计算两帧之间的时间差（假设 PTS 是以秒为单位）
+    double diff = static_cast<double>(frame->get()->pts - lastPts);
+    double duration = 1000 / target_fps; 
+
+    totalDiff += diff - duration;
+
+    if (totalDiff >= duration) {
+        totalDiff -= duration;
+        // 当累积误差达到一个完整的帧时，复用上一帧
+        p.write.push_back(lastFrame);
+        p.tail++;
+    }
+    else if (totalDiff <= -duration) {
+        totalDiff += duration;
+        // 累积误差小于负的目标帧持续时间时，跳过当前帧（丢弃）
+        // 这里不更新 lastFrame 和 lastPts
+    }
+    else {
+        // 保留当前帧
+        p.write.push_back(frame);
+        p.tail++;
+        lastFrame = frame;
+        lastPts = frame->get()->pts;
+    }
+} */
+
+//直接用fps来计算 进行补帧（复用上一帧）或丢帧
+void StackPlayer::syncFrameByFps(const FFmpegFrame::Ptr& frame, VideoStack::Param& p, float target_fps) {
+
+        // 检查 frame 是否有效
+        if (!frame) return;
+
+        // 首帧时给lastFrame赋值
+        if (!lastFrame) {
+            lastFrame = frame;
+        }
+
+        diff += fps - target_fps;
+
+        if (diff >= fps) {
+            diff -= fps;
+            // 当累积误差达到一个完整的帧时，复用上一帧
+            p.cache.push_back(lastFrame);
+        }
+        else if (diff <= -fps) {
+            // 累积误差小于负的fps时丢弃当前帧
+            diff += fps;
+            // 注意这里不更新 lastFrame，因为我们丢弃了当前帧
+        }
+        else {
+            // 保留当前帧
+            lastFrame = frame;
+            p.cache.push_back(frame);
+        }
+    }
+
+
 void StackPlayer::onFrame(const FFmpegFrame::Ptr &frame) {
     //std::shared_lock<std::shared_timed_mutex> rlock(_mx);
     for (auto &vsp : _stacks) {
@@ -225,28 +310,26 @@ void StackPlayer::onFrame(const FFmpegFrame::Ptr &frame) {
             continue;
         }
 
-        for (auto &v : that->_params) {
-            for (auto &p : v) {
-                if (p.stream_id != _url) {
-                    continue;
-                }
-
-                // TODO: 待实现帧缓存和帧同步
-                p.cache.push_back(frame);
-                if (that->isReady.test(p.order)) {
-                    continue;
-                }
-                if (p.cache.size() >= MAX_FRAME_SIZE) {
-                    auto start = std::chrono::high_resolution_clock::now(); // 记录迭代开始时间
-                    for (int i = 0; i < MAX_FRAME_SIZE; i++) {
-                        auto &front = p.cache.front();
-                        that->copyToBuf(that->_buffers[i], front, p);
-                        p.cache.pop_front();
-                        that->isReady.set(p.order);
-                    }
-                }
-
+        for (auto &p : that->_params) {
+            
+            if (p.url != _url) {
+                continue;
             }
+
+            //p.cache.push_back(frame);
+            syncFrameByFps(frame,p,that->_fps);  //不同帧率的视频，通过复用上一帧或丢帧来实现帧同步
+
+            if (that->isReady.test(p.order)) {
+                continue;
+            }
+            if (p.cache.size() >= MAX_FRAME_SIZE) {
+                for (int i = 0; i < MAX_FRAME_SIZE; i++) {
+                    auto &front = p.cache.front();
+                    that->copyToBuf(that->_buffers[i], front, p);
+                    p.cache.pop_front();
+                    that->isReady.set(p.order);
+                }
+            } 
         }
     }
 }
@@ -282,46 +365,42 @@ void VideoStack::init() {
     _isExit = false;
 
     int i = 0;
-    for (auto &v : _params) {
-        for (auto &p : v) {
-            if (p.stream_id.empty()) {
-                continue;
-            }
+    for (auto &p : _params) {
+        if (p.url.empty()) {
+            continue;
+        }
+        /*p.tmp.reset(av_frame_alloc(), [](AVFrame *frame_) { av_frame_free(&frame_); });
 
-            /*p.tmp.reset(av_frame_alloc(), [](AVFrame *frame_) { av_frame_free(&frame_); });
+        p.tmp->width = p.width;
+        p.tmp->height = p.height;
+        p.tmp->format = _pixfmt;
 
-            p.tmp->width = p.width;
-            p.tmp->height = p.height;
-            p.tmp->format = _pixfmt;
+        av_frame_get_buffer(p.tmp.get(), 32);*/
+        p.order = i++;
 
-            av_frame_get_buffer(p.tmp.get(), 32);*/
-            p.order = i++;
+        flag.set(p.order);
 
-            flag.set(p.order);
+        auto it = playerMap.find(p.url);
+        if (it == playerMap.end()) {
+            // 创建一个
 
-            auto it = playerMap.find(p.stream_id);
-            if (it == playerMap.end()) {
-                // 创建一个
+            auto player = std::make_shared<StackPlayer>();
+            player->play(p.url);
+            player->addStackPtr(this);
 
-                auto player = std::make_shared<StackPlayer>();
-                player->init(p.stream_id);
-                player->addStackPtr(this);
-
-                playerMap[p.stream_id] = player;
-            } else {
-                it->second->addStackPtr(this);
-            }
+            playerMap[p.url] = player;
+        } else {
+            it->second->addStackPtr(this);
         }
     }
+
 
 }
 
 void VideoStack::start() {
-    using namespace std::chrono;
     std::thread(
         [this]() {
             int64_t pts = 0, index = 0;
-            auto interval = milliseconds(40); // 设置间隔时间为40毫秒
             while (!_isExit) {
                 if (isReady == flag) {
                     for (auto &buf : _buffers) {
@@ -342,6 +421,7 @@ static std::unordered_map<uint16_t, toolkit::TcpServer::Ptr> _srvMap;
 // 播放地址 http://127.0.0.1:7089/stack/89.live.flv
 int main(int argc, char *argv[]) {
 
+    EventPollerPool::enableCpuAffinity(false);   //是否开启cpu亲和性
     Logger::Instance().add(std::make_shared<ConsoleChannel>());
 
     TcpServer::Ptr httpSrv(new TcpServer());
