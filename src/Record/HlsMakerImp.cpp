@@ -34,7 +34,7 @@ HlsMakerImp::HlsMakerImp(bool is_fmp4, const string &m3u8_file, const string &pa
     _file_buf.reset(new char[bufSize], [](char *ptr) { delete[] ptr; });
     _info.folder = _path_prefix;
 
-    onIndexFileExist();
+    checkM3u8FileAndRestore();
 }
 
 HlsMakerImp::~HlsMakerImp() {
@@ -103,27 +103,11 @@ string HlsMakerImp::onOpenSegment(uint64_t index) {
     return segment_name + "?" + _params;
 }
 
-void HlsMakerImp::onIndexFileExist() {
+void HlsMakerImp::checkM3u8FileAndRestore() {
     auto strDate = getTimeStr("%Y-%m-%d");
     auto strHour = getTimeStr("%H");
     string pathFile = StrPrinter << _path_prefix + "/" << strDate + "/" + strHour + "/" +  "index.m3u8";
 
-    WarnL << "pathFile: " << pathFile;
-    // string indexContent;
-    // std::ifstream in(pathFile, std::ios::in | std::ios::binary | std::ios::ate);
-    // if (!in.good()) {
-    //     return;
-    // }
-
-    // auto size = in.tellg();
-    // in.seekg(0, std::ios::beg);
-
-    // indexContent.resize(size);
-    // in.read((char *) indexContent.data(), size);
-    // in.close();
-
-    // WarnL << "size: " << size;
-    // restoreM3u8(indexContent);
     std::vector<std::string> lines;  
     std::ifstream file(pathFile);  
   
@@ -138,7 +122,8 @@ void HlsMakerImp::onIndexFileExist() {
         return;
     }
 
-    restoreM3u82(lines);
+    WarnL << "Exist M3u8 file, path: " << pathFile;
+    restoreM3u8(lines);
 }
 
 void HlsMakerImp::onDelSegment(uint64_t index) {

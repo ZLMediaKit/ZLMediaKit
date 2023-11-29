@@ -217,54 +217,10 @@ void HlsMaker::clear() {
     _last_file_name.clear();
 }
 
-void HlsMaker::restoreM3u8(const std::string &text) {
-    std::vector<std::string> tokens(1);
-    std::string map(256, '\0');
-    for (char ch : "\n") {
-        map[(uint8_t) ch] = '\1';
-    }
-    for (char ch : text) {
-        if (!map.at((uint8_t) ch)) {
-            tokens.back().push_back(ch);
-        } else if (tokens.back().size()) {
-            tokens.push_back(std::string());
-        }
-    }
-    while (tokens.size() && tokens.back().empty()) {
-        tokens.pop_back();
-    }
-    
-    auto i = 0;
-    auto seg_dur = 0;
-    for (auto &line : tokens) {
-        WarnL << "line: " << line;
-        // trim blanks
-        line = trim(line);
-        // split line into tokens and parse tokens
-        if (line.empty() || i++ < 5) {
-            continue;
-        }
-        if (line.front() == '#' && line.back() == ',') {
-            auto at = line.find(':');
-            seg_dur = std::stof(line.substr(at+1, line.size() - (at+2) - 1));
-            WarnL << "seg_dur: " << seg_dur;
-        } else {
-            if (line.back() == 's') {
-                //  _seg_dur_list_time.emplace_back(seg_dur, trim(line));
-                  WarnL << "lines: " << line;
-            }
-        }
-        if (line.compare("#EXT-X-ENDLIST") == 0) {
-            break;
-        }
-    }
-}
-
-void HlsMaker::restoreM3u82(std::vector<std::string> lines) {
+void HlsMaker::restoreM3u8(std::vector<std::string> lines) {
     auto i = 0;
     auto seg_dur = 0.0;
     for (auto &line : lines) {
-        WarnL << "line----: " << line;
         // trim blanks
         line = trim(line);
         // split line into tokens and parse tokens
@@ -279,18 +235,16 @@ void HlsMaker::restoreM3u82(std::vector<std::string> lines) {
                 continue;
             }
             seg_dur = std::stof(line.substr(at+1));
-            WarnL << "seg_dur: " << seg_dur;
         } else {
             if (line.back() == 's') {
-                _seg_dur_list_time.emplace_back(seg_dur, std::move(line));
-                WarnL << "lines: " << line;
+                _seg_dur_list_time.emplace_back(seg_dur * 1000, std::move(line));
             }
         }
         if (line.compare("#EXT-X-ENDLIST") == 0) {
             break;
         }
     }
-    WarnL << "ok----: ";
+    WarnL << "restoreM3u8 ok";
 }
 
 }//namespace mediakit

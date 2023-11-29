@@ -68,12 +68,7 @@ public:
     /**
      * 重载m3u8文件
      */
-    void restoreM3u8(const std::string &text);
-
-    /**
-     * 重载m3u8文件
-     */
-    void restoreM3u82(std::vector<std::string>);
+    void restoreM3u8(std::vector<std::string>);
 
 protected:
     /**
