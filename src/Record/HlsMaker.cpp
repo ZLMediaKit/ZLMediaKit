@@ -273,24 +273,22 @@ void HlsMaker::restoreM3u82(std::vector<std::string> lines) {
         }
         if (line.front() == '#' && line.back() == ',') {
             line = line.substr(0, line.size()-1);
-            WarnL << "at:npos " << line;
             auto at = line.find(':');
             if (at == std::string::npos) {
                 WarnL << "at:npos ";
                 continue;
             }
-            WarnL << "seg_dur--------- " << line.substr(at+1);
             seg_dur = std::stof(line.substr(at+1));
             WarnL << "seg_dur: " << seg_dur;
         } else {
             if (line.back() == 's') {
-                //  _seg_dur_list_time.emplace_back(seg_dur, trim(line));
-                  WarnL << "lines: " << line;
+                _seg_dur_list_time.emplace_back(seg_dur, std::move(line));
+                WarnL << "lines: " << line;
             }
         }
-        // if (line.compare("#EXT-X-ENDLIST") == 0) {
-        //     break;
-        // }
+        if (line.compare("#EXT-X-ENDLIST") == 0) {
+            break;
+        }
     }
     WarnL << "ok----: ";
 }
