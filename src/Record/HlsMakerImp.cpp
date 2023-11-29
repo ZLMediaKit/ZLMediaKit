@@ -9,6 +9,7 @@
  */
 
 #include <ctime>
+#include <vector>
 #include <sys/stat.h>
 #include <fstream>
 #include "HlsMakerImp.h"
@@ -102,26 +103,42 @@ string HlsMakerImp::onOpenSegment(uint64_t index) {
     return segment_name + "?" + _params;
 }
 
-void HlsMakerImp::onIndexFileExist() {
+std::vector<std::string> HlsMakerImp::onIndexFileExist() {
     auto strDate = getTimeStr("%Y-%m-%d");
     auto strHour = getTimeStr("%H");
     string pathFile = StrPrinter << _path_prefix + "/" << strDate + "/" + strHour + "/" +  "index.m3u8";
 
     WarnL << "pathFile: " << pathFile;
-    string indexContent;
-    std::ifstream in(pathFile, std::ios::in | std::ios::binary | std::ios::ate);
-    if (!in.good()) {
+    // string indexContent;
+    // std::ifstream in(pathFile, std::ios::in | std::ios::binary | std::ios::ate);
+    // if (!in.good()) {
+    //     return;
+    // }
+
+    // auto size = in.tellg();
+    // in.seekg(0, std::ios::beg);
+
+    // indexContent.resize(size);
+    // in.read((char *) indexContent.data(), size);
+    // in.close();
+
+    // WarnL << "size: " << size;
+    // restoreM3u8(indexContent);
+    std::vector<std::string> lines;  
+    std::ifstream file(pathFile);  
+  
+    if (file.is_open()) {  
+        std::string line;  
+        while (getline(file, line)) {
+            WarnL << "file: " << line;
+            lines.push_back(line);  
+        }  
+        file.close();  
+    } else {  
         return;
     }
 
-    auto size = in.tellg();
-    in.seekg(0, std::ios::beg);
-
-    indexContent.resize(size);
-    in.read((char *) indexContent.data(), size);
-
-    WarnL << "size: " << size;
-    restoreM3u8(indexContent);
+    restoreM3u82(lines);
 }
 
 void HlsMakerImp::onDelSegment(uint64_t index) {

@@ -70,6 +70,11 @@ public:
      */
     void restoreM3u8(const std::string &text);
 
+    /**
+     * 重载m3u8文件
+     */
+    void restoreM3u82(std::vector<std::string>);
+
 protected:
     /**
      * 创建ts切片文件回调
