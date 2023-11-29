@@ -1,14 +1,15 @@
 name: Linux
 
 on: [push, pull_request]
-
+permissions:
+  contents: write
 jobs:
   build:
 
     runs-on: ubuntu-20.04
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v3
 
     - name: 下载submodule源码
       run: mv -f .gitmodules_github .gitmodules && git submodule sync && git submodule update --init
@@ -39,8 +40,8 @@ jobs:
     - name: Commit and push if ./www/swagger/openapi.json changed
       run: |
           git diff --exit-code ./www/swagger/openapi.json || (
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name github-actions
+          git config user.email github-actions@github.com
           git add ./www/swagger/openapi.json
           git commit -m "update openapi.json"
           git push origin HEAD:master
