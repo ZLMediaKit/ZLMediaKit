@@ -10,6 +10,7 @@
 
 #include <ctime>
 #include <sys/stat.h>
+#include <fstream>
 #include "HlsMakerImp.h"
 #include "Util/util.h"
 #include "Util/uv_errno.h"
@@ -99,6 +100,28 @@ string HlsMakerImp::onOpenSegment(uint64_t index) {
     return segment_name + "?" + _params;
 }
 
+void HlsMakerImp::onIndexFileExist() {
+    auto strDate = getTimeStr("%Y-%m-%d");
+    auto strHour = getTimeStr("%H");
+    string pathFile = StrPrinter << _path_prefix + "/" << strDate + "/" + strHour + "/" +  "index.m3u8";
+
+    WarnL << "pathFile: " << pathFile;
+    string indexContent;
+    std::ifstream in(pathFile, std::ios::in | std::ios::binary | std::ios::ate);
+    if (!in.good()) {
+        return;
+    }
+
+    auto size = in.tellg();
+    in.seekg(0, std::ios::beg);
+
+    indexContent.resize(size);
+    in.read((char *) indexContent.data(), size);
+
+    WarnL << "size: " << size;
+    restoreM3u8(indexContent);
+}
+
 void HlsMakerImp::onDelSegment(uint64_t index) {
     auto it = _segment_file_paths.find(index);
     if (it == _segment_file_paths.end()) {
@@ -145,8 +168,8 @@ void HlsMakerImp::onWriteHls(const std::string &data) {
 void HlsMakerImp::onWriteHlsTime(const std::string &data) {
     auto strDate = getTimeStr("%Y-%m-%d");
     auto strHour = getTimeStr("%H");
-    string path_new = StrPrinter << _path_prefix + "/" << strDate + "/" + strHour + "/" +  "index.m3u8";
-    auto hls1 = makeFile(path_new);
+    _path_hls_time = StrPrinter << _path_prefix + "/" << strDate + "/" + strHour + "/" +  "index.m3u8";
+    auto hls1 = makeFile(_path_hls_time);
     if (hls1) {
         fwrite(data.data(), data.size(), 1, hls1.get());
         hls1.reset();
@@ -154,7 +177,7 @@ void HlsMakerImp::onWriteHlsTime(const std::string &data) {
             _media_src->setIndexFile(data);
         }
     } else {
-        WarnL << "Create hls file failed," << path_new << " " << get_uv_errmsg();
+        WarnL << "Create hls file failed," << _path_hls_time << " " << get_uv_errmsg();
     }
 }
 

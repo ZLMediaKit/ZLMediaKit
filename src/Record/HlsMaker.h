@@ -65,6 +65,11 @@ public:
      */
     void clear();
 
+    /**
+     * 重载m3u8文件
+     */
+    void restoreM3u8(const std::string &text);
+
 protected:
     /**
      * 创建ts切片文件回调

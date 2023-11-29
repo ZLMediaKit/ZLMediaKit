@@ -46,6 +46,7 @@ public:
 
 protected:
     std::string onOpenSegment(uint64_t index) override ;
+    
     void onDelSegment(uint64_t index) override;
     void onWriteInitSegment(const char *data, size_t len) override;
     void onWriteSegment(const char *data, size_t len) override;
@@ -56,6 +57,7 @@ protected:
 private:
     std::shared_ptr<FILE> makeFile(const std::string &file,bool setbuf = false);
     void clearCache(bool immediately, bool eof);
+    void onIndexFileExist();
 
 private:
     int _buf_size;
