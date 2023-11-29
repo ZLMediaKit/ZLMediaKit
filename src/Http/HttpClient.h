@@ -201,6 +201,7 @@ private:
     //for http response
     bool _complete = false;
     bool _header_recved = false;
+    bool _http_persistent = true;
     size_t _recved_body_size;
     ssize_t _total_body_size;
     Parser _parser;

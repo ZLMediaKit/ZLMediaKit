@@ -56,10 +56,13 @@ void HttpClient::sendRequest(const string &url) {
     splitUrl(host, host, port);
     _header.emplace("Host", host_header);
     _header.emplace("User-Agent", kServerName);
-    _header.emplace("Connection", "keep-alive");
     _header.emplace("Accept", "*/*");
     _header.emplace("Accept-Language", "zh-CN,zh;q=0.8");
-
+    if(_http_persistent) {
+        _header.emplace("Connection", "keep-alive");
+    } else {
+        _header.emplace("Connection", "close");
+    }
     if (_body && _body->remainSize()) {
         _header.emplace("Content-Length", to_string(_body->remainSize()));
         _header.emplace("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
@@ -81,7 +84,7 @@ void HttpClient::sendRequest(const string &url) {
     if (isUsedProxy()) {
         startConnect(_proxy_host, _proxy_port, _wait_header_ms / 1000.0f);
     } else {
-        if (!alive() || host_changed) {
+        if (!alive() || host_changed || !_http_persistent) {
             startConnect(host, port, _wait_header_ms / 1000.0f);
         } else {
             SockException ex;
@@ -188,6 +191,17 @@ void HttpClient::onRecv(const Buffer::Ptr &pBuf) {
 }
 
 void HttpClient::onError(const SockException &ex) {
+    if(ex.getErrCode() == Err_reset && _http_persistent){
+        // 连接被重置，可能是服务器主动断开了连接, 或者服务器内核参数或防火墙的持久连接空闲时间超时或不一致.
+        // 如果是持久化连接，那么我们可以通过重连来解决这个问题
+        // The connection was reset, possibly because the server actively disconnected the connection,
+        // or the persistent connection idle time of the server kernel parameters or firewall timed out or inconsistent.
+        // If it is a persistent connection, then we can solve this problem by reconnecting
+        WarnL << "http persistent connect reset, try reconnect";
+        _http_persistent = false;
+        sendRequest(_url);
+        return;
+    }
     onResponseCompleted_l(ex);
 }
 
