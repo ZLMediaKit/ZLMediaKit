@@ -285,6 +285,7 @@ void HlsMaker::restoreM3u82(std::vector<std::string> lines) {
         //     break;
         // }
     }
+    WarnL << "ok----: ";
 }
 
 }//namespace mediakit
