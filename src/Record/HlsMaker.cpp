@@ -262,7 +262,7 @@ void HlsMaker::restoreM3u8(const std::string &text) {
 
 void HlsMaker::restoreM3u82(std::vector<std::string> lines) {
     auto i = 0;
-    auto seg_dur = 0;
+    auto seg_dur = 0.0;
     for (auto &line : lines) {
         WarnL << "line----: " << line;
         // trim blanks
@@ -272,14 +272,15 @@ void HlsMaker::restoreM3u82(std::vector<std::string> lines) {
             continue;
         }
         if (line.front() == '#' && line.back() == ',') {
+            line = line.substr(0, line.size()-1);
+            WarnL << "at:npos " << line;
             auto at = line.find(':');
-            WarnL << "seg_dur: ok" << at;
-            // if (at == std::string::npos) {
-            //     WarnL << "at:npos ";
-            //     continue;
-            // }
-            // seg_dur = std::stof(line.substr(at+1, line.size() - (at+2) - 1));
-            // WarnL << "seg_dur: " << seg_dur;
+            if (at == std::string::npos) {
+                WarnL << "at:npos ";
+                continue;
+            }
+            seg_dur = std::stof(line.substr(at));
+            WarnL << "seg_dur: " << seg_dur;
         } else {
             if (line.back() == 's') {
                 //  _seg_dur_list_time.emplace_back(seg_dur, trim(line));
