@@ -78,6 +78,12 @@ def get_version() -> str:
     elif os.path.isfile("../../cmake-build-release/version.h"):
         print("Found version.h in cmake-build-release")
         version_h_path = "../../cmake-build-release/version.h"
+    elif os.path.isfile("../../build/version.h"):
+        print("Found version.h in build")
+        version_h_path = "../../build/version.h"
+    elif os.path.isfile("../../linux_build/version.h"):
+        print("Found version.h in linux_build")
+        version_h_path = "../../linux_build/version.h"
     else:
         print("version.h not found")
         print("Please compile first")
