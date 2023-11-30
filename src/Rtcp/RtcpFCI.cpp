@@ -432,7 +432,7 @@ FCI_TWCC::TwccPacketStatus FCI_TWCC::getPacketChunkList(size_t total_size) const
     CHECK(ptr < end);
     auto seq = getBaseSeq();
     auto rtp_count = getPacketCount();
-    for (uint8_t i = 0; i < rtp_count;) {
+    for (uint16_t i = 0; i < rtp_count;) {
         CHECK(ptr + RunLengthChunk::kSize <= end);
         RunLengthChunk *chunk = (RunLengthChunk *)ptr;
         if (!chunk->type) {
