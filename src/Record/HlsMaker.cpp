@@ -184,19 +184,19 @@ void HlsMaker::flushLastSegment(bool eof){
     auto strDate = getTimeStr("%Y-%m-%d");
     auto strHour = getTimeStr("%H");
     string mm = strDate + "/" + strHour;
-    bool isTrun = false;
+    
     if (_last_m3u8_time.empty()) {
         _last_m3u8_time = mm;
     } else {
         if (_last_m3u8_time.compare(mm) != 0) {
             _last_m3u8_time = mm;
-            isTrun = true;
+            eof = true;
         }
     }
     //写m3u8文件(按时间)
-    makeIndexFileTime(eof || isTrun);
+    makeIndexFileTime(eof);
 
-    if (isTrun) {
+    if (eof) {
         _seg_dur_list_time.clear();
     }
 }
