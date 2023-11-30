@@ -191,6 +191,7 @@ void HlsMaker::flushLastSegment(bool eof){
         if (_last_m3u8_time.compare(mm) != 0) {
             _last_m3u8_time = mm;
             eof = true;
+            DebugL << "eof = true" << mm << _last_m3u8_time;
         }
     }
     //写m3u8文件(按时间)
@@ -198,6 +199,7 @@ void HlsMaker::flushLastSegment(bool eof){
 
     if (eof) {
         _seg_dur_list_time.clear();
+        DebugL << "clear _seg_dur_list_time";
     }
 }
 
