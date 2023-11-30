@@ -106,7 +106,7 @@ protected:
     /**
      * 写m3u8文件回调(按时间)
      */
-    virtual void onWriteHlsTime(const std::string &data) = 0;
+    virtual void onWriteHlsTime(const std::string &data, const std::string &path_hls_time) = 0;
 
     /**
      * 上一个 ts 切片写入完成, 可在这里进行通知处理

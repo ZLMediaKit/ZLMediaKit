@@ -168,14 +168,12 @@ void HlsMakerImp::onWriteHls(const std::string &data) {
     }
 }
 
-void HlsMakerImp::onWriteHlsTime(const std::string &data) {
-    auto strDate = getTimeStr("%Y-%m-%d");
-    auto strHour = getTimeStr("%H");
-    _path_hls_time = StrPrinter << _path_prefix + "/" << strDate + "/" + strHour + "/" +  "index.m3u8";
-    auto hls1 = makeFile(_path_hls_time);
-    if (hls1) {
-        fwrite(data.data(), data.size(), 1, hls1.get());
-        hls1.reset();
+void HlsMakerImp::onWriteHlsTime(const std::string &data, const std::string &path_hls_time) {
+    _path_hls_time = StrPrinter << _path_prefix + "/" << path_hls_time + "/" +  "index.m3u8";
+    auto hls = makeFile(_path_hls_time);
+    if (hls) {
+        fwrite(data.data(), data.size(), 1, hls.get());
+        hls.reset();
         if (_media_src) {
             _media_src->setIndexFile(data);
         }

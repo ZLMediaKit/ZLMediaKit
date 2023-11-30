@@ -51,7 +51,7 @@ protected:
     void onWriteInitSegment(const char *data, size_t len) override;
     void onWriteSegment(const char *data, size_t len) override;
     void onWriteHls(const std::string &data) override;
-    void onWriteHlsTime(const std::string &data) override;
+    void onWriteHlsTime(const std::string &data, const std::string &path_hls_time) override;
     void onFlushLastSegment(uint64_t duration_ms) override;
 
 private:

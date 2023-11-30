@@ -93,10 +93,27 @@ void HlsMaker::makeIndexFileTime(bool eof) {
     }
     index_str += ss.str();
 
+    auto strDate = getTimeStr("%Y-%m-%d");
+    auto strHour = getTimeStr("%H");
+    string mm = strDate + "/" + strHour;
+    
+    if (_last_m3u8_time.empty()) {
+        _last_m3u8_time = mm;
+    } else if (_last_m3u8_time.compare(mm) != 0) {
+        eof = true;
+    }
+
     if (eof) {
         index_str += "#EXT-X-ENDLIST\n";
     }
-    onWriteHlsTime(index_str);
+
+    onWriteHlsTime(index_str, _last_m3u8_time);
+
+    if (eof) {
+        _seg_dur_list_time.clear();
+        _last_m3u8_time = mm;
+        DebugL << "clear _seg_dur_list_time";
+    }
 }
 
 void HlsMaker::inputInitSegment(const char *data, size_t len) {
@@ -181,26 +198,8 @@ void HlsMaker::flushLastSegment(bool eof){
     //然后写m3u8文件
     makeIndexFile(eof);
 
-    auto strDate = getTimeStr("%Y-%m-%d");
-    auto strHour = getTimeStr("%H");
-    string mm = strDate + "/" + strHour;
-    
-    if (_last_m3u8_time.empty()) {
-        _last_m3u8_time = mm;
-    } else {
-        if (_last_m3u8_time.compare(mm) != 0) {
-            _last_m3u8_time = mm;
-            eof = true;
-            DebugL << "eof = true" << mm << _last_m3u8_time;
-        }
-    }
     //写m3u8文件(按时间)
     makeIndexFileTime(eof);
-
-    if (eof) {
-        _seg_dur_list_time.clear();
-        DebugL << "clear _seg_dur_list_time";
-    }
 }
 
 bool HlsMaker::isLive() const {
