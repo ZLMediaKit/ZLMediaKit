@@ -160,18 +160,6 @@ void HlsMaker::addNewSegment(uint64_t stamp) {
     _last_file_name = onOpenSegment(_file_index++);
     //记录本次切片的起始时间戳
     _last_seg_timestamp = _last_timestamp ? _last_timestamp : stamp;
-
-    auto strDate = getTimeStr("%Y-%m-%d");
-    auto strHour = getTimeStr("%H");
-    string mm = strDate + "/" + strHour;
-    if (_last_m3u8_time.empty()) {
-        _last_m3u8_time = mm;
-    } else {
-        if (_last_m3u8_time.compare(mm) != 0) {
-            _last_m3u8_time = mm;
-            _seg_dur_list_time.clear();
-        }
-    }
 }
 
 void HlsMaker::flushLastSegment(bool eof){
@@ -192,8 +180,25 @@ void HlsMaker::flushLastSegment(bool eof){
     onFlushLastSegment(seg_dur);
     //然后写m3u8文件
     makeIndexFile(eof);
+
+    auto strDate = getTimeStr("%Y-%m-%d");
+    auto strHour = getTimeStr("%H");
+    string mm = strDate + "/" + strHour;
+    bool isTrun = false;
+    if (_last_m3u8_time.empty()) {
+        _last_m3u8_time = mm;
+    } else {
+        if (_last_m3u8_time.compare(mm) != 0) {
+            _last_m3u8_time = mm;
+            isTrun = true;
+        }
+    }
     //写m3u8文件(按时间)
-    makeIndexFileTime(eof);
+    makeIndexFileTime(eof || isTrun);
+
+    if (isTrun) {
+        _seg_dur_list_time.clear();
+    }
 }
 
 bool HlsMaker::isLive() const {

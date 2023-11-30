@@ -114,7 +114,6 @@ void HlsMakerImp::checkM3u8FileAndRestore() {
     if (file.is_open()) {  
         std::string line;  
         while (getline(file, line)) {
-            WarnL << "file: " << line;
             lines.push_back(line);  
         }  
         file.close();  
