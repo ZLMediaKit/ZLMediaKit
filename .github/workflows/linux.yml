@@ -1,14 +1,15 @@
 name: Linux
 
 on: [push, pull_request]
-
+permissions:
+  contents: write
 jobs:
   build:
 
     runs-on: ubuntu-20.04
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v3
 
     - name: 下载submodule源码
       run: mv -f .gitmodules_github .gitmodules && git submodule sync && git submodule update --init
@@ -32,5 +33,20 @@ jobs:
 
     - name: 运行MediaServer
       run: pwd && cd release/linux/Debug && sudo ./MediaServer -d &
+
+    - name: generate openapi
+      if: github.ref == 'refs/heads/master'
+      run: cd tools/openapi && python3 generates.py install-dependencies
+
+    - name: Commit and push if ./www/swagger/openapi.json changed
+      if: github.ref == 'refs/heads/master'
+      run: |
+          git diff --exit-code ./www/swagger/openapi.json || (
+          git config user.name alexliyu7352
+          git config user.email liyu7352@gmail.com
+          git add ./www/swagger/openapi.json
+          git commit -m "update openapi.json"
+          git push origin HEAD:master
+          )
 
       
