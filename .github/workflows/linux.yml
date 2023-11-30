@@ -40,8 +40,8 @@ jobs:
     - name: Commit and push if ./www/swagger/openapi.json changed
       run: |
           git diff --exit-code ./www/swagger/openapi.json || (
-          git config user.name github-actions
-          git config user.email github-actions@github.com
+          git config user.name alexliyu7352
+          git config user.email liyu7352@gmail.com
           git add ./www/swagger/openapi.json
           git commit -m "update openapi.json"
           git push origin HEAD:master
