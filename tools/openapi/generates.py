@@ -43,18 +43,26 @@ def run_cmd(cmd: str, assert_success=False, capture_output=False, env=None) -> b
     return True
 
 
-def check_dependencies() -> None:
+def check_dependencies(need_install:bool = False) -> None:
     """
     check dependencies
     :return:
     """
     if not check_installed("p2o"):
-        print()
-        print("p2o is not installed, please install it first!")
-        print("If you use npm, you can install it by the following command:")
-        print("npm install -g postman-to-openapi")
-        print()
-        sys.exit(1)
+        if not need_install:
+            print()
+            print("p2o is not installed, please install it first!")
+            print("If you use npm, you can install it by the following command:")
+            print("npm install -g postman-to-openapi")
+            print()
+            sys.exit(1)
+        else:
+            # 先检查是否安装了npm, 没有就自动安装
+            if not check_installed("npm"):
+                print("npm is not installed, install it first")
+                run_cmd("sudo apt install npm -y")
+            print("p2o is not installed, install it")
+            run_cmd("sudo npm install -g postman-to-openapi")
     else:
         print("p2o is installed")
 
@@ -70,6 +78,12 @@ def get_version() -> str:
     elif os.path.isfile("../../cmake-build-release/version.h"):
         print("Found version.h in cmake-build-release")
         version_h_path = "../../cmake-build-release/version.h"
+    elif os.path.isfile("../../build/version.h"):
+        print("Found version.h in build")
+        version_h_path = "../../build/version.h"
+    elif os.path.isfile("../../linux_build/version.h"):
+        print("Found version.h in linux_build")
+        version_h_path = "../../linux_build/version.h"
     else:
         print("version.h not found")
         print("Please compile first")
@@ -138,7 +152,11 @@ def generate() -> None:
 
 
 if __name__ == "__main__":
-    check_dependencies()
+    # 如果有参数install-dependencies，则安装依赖
+    if len(sys.argv) > 1 and sys.argv[1] == "install-dependencies":
+        check_dependencies(True)
+    else:
+        check_dependencies()
     version = get_version()
     secret = get_secret()
     update_options(version, secret)
