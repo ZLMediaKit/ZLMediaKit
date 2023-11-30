@@ -58,7 +58,7 @@ void HttpClient::sendRequest(const string &url) {
     _header.emplace("User-Agent", kServerName);
     _header.emplace("Accept", "*/*");
     _header.emplace("Accept-Language", "zh-CN,zh;q=0.8");
-    if(_http_persistent) {
+    if (_http_persistent) {
         _header.emplace("Connection", "keep-alive");
     } else {
         _header.emplace("Connection", "close");
@@ -191,7 +191,7 @@ void HttpClient::onRecv(const Buffer::Ptr &pBuf) {
 }
 
 void HttpClient::onError(const SockException &ex) {
-    if(ex.getErrCode() == Err_reset && _http_persistent){
+    if (ex.getErrCode() == Err_reset && _http_persistent) {
         // 连接被重置，可能是服务器主动断开了连接, 或者服务器内核参数或防火墙的持久连接空闲时间超时或不一致.
         // 如果是持久化连接，那么我们可以通过重连来解决这个问题
         // The connection was reset, possibly because the server actively disconnected the connection,
