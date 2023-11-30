@@ -577,8 +577,8 @@ void installWebHook() {
     });
 
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastStreamNoneReader, [](BroadcastStreamNoneReaderArgs) {
-        if (!origin_urls.empty()) {
-            // 边沿站无人观看时立即停止溯源
+        if (!origin_urls.empty() && sender.getOriginType() == MediaOriginType::pull) {
+            // 边沿站无人观看时如果是拉流的则立即停止溯源
             sender.close(false);
             WarnL << "无人观看主动关闭流:" << sender.getOriginUrl();
             return;

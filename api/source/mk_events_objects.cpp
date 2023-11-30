@@ -461,6 +461,13 @@ API_EXPORT void API_CALL mk_publish_auth_invoker_do(const mk_publish_auth_invoke
     (*invoker)(err_msg ? err_msg : "", option);
 }
 
+API_EXPORT void API_CALL mk_publish_auth_invoker_do2(const mk_publish_auth_invoker ctx, const char *err_msg, mk_ini ini) {
+    assert(ctx);
+    Broadcast::PublishAuthInvoker *invoker = (Broadcast::PublishAuthInvoker *)ctx;
+    ProtocolOption option(ini ? *((mINI *)ini) : mINI{} );
+    (*invoker)(err_msg ? err_msg : "", option);
+}
+
 API_EXPORT mk_publish_auth_invoker API_CALL mk_publish_auth_invoker_clone(const mk_publish_auth_invoker ctx){
     assert(ctx);
     Broadcast::PublishAuthInvoker *invoker = (Broadcast::PublishAuthInvoker *)ctx;

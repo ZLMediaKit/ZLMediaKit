@@ -82,7 +82,7 @@ void RtmpPusher::publish(const string &url) {
     }
     DebugL << host_url << " " << _app << " " << _stream_id;
 
-    uint16_t port = 1935;
+    uint16_t port = start_with(url, "rtmps") ? 443 : 1935;
     splitUrl(host_url, host_url, port);
 
     weak_ptr<RtmpPusher> weakSelf = static_pointer_cast<RtmpPusher>(shared_from_this());

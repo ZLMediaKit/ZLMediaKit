@@ -1,4 +1,4 @@
-FROM ubuntu:18.04 AS build
+FROM ubuntu:20.04 AS build
 ARG MODEL
 #shell,rtmp,rtsp,rtsps,http,https,rtp
 EXPOSE 1935/tcp
@@ -31,24 +31,31 @@ RUN apt-get update && \
          gcc \
          g++ \
          libavcodec-dev libavutil-dev libswscale-dev libresample-dev \
+         libsdl-dev libusrsctp-dev \
          gdb && \
          apt-get autoremove -y && \
          apt-get clean -y && \
-         wget https://github.com/cisco/libsrtp/archive/v2.2.0.tar.gz -O libsrtp-2.2.0.tar.gz && tar xfv libsrtp-2.2.0.tar.gz && \
-         cd libsrtp-2.2.0 && ./configure --enable-openssl && make -j $(nproc) && make install && \
-    rm -rf /var/lib/apt/lists/*
+         rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /opt/media
 COPY . /opt/media/ZLMediaKit
 WORKDIR /opt/media/ZLMediaKit
+
+# 3rdpart init
+WORKDIR /opt/media/ZLMediaKit/3rdpart
+RUN wget https://mirror.ghproxy.com/https://github.com/cisco/libsrtp/archive/v2.3.0.tar.gz -O libsrtp-2.3.0.tar.gz && \
+    tar xfv libsrtp-2.3.0.tar.gz && \
+    mv libsrtp-2.3.0 libsrtp && \
+    cd libsrtp && ./configure --enable-openssl && make -j $(nproc) && make install
 #RUN git submodule update --init --recursive && \
+
 RUN mkdir -p build release/linux/${MODEL}/
 
 WORKDIR /opt/media/ZLMediaKit/build
 RUN cmake -DCMAKE_BUILD_TYPE=${MODEL} -DENABLE_WEBRTC=true -DENABLE_FFMPEG=true -DENABLE_TESTS=false -DENABLE_API=false .. && \
     make -j $(nproc)
 
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 ARG MODEL
 
 # ADD sources.list /etc/apt/sources.list
@@ -68,6 +75,7 @@ RUN apt-get update && \
          gcc \
          g++ \
          libavcodec-dev libavutil-dev libswscale-dev libresample-dev \
+         libsdl-dev libusrsctp-dev \
          gdb && \
          apt-get autoremove -y && \
          apt-get clean -y && \
