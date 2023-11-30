@@ -35,9 +35,11 @@ jobs:
       run: pwd && cd release/linux/Debug && sudo ./MediaServer -d &
 
     - name: generate openapi
+      if: github.ref == 'refs/heads/master'
       run: cd tools/openapi && python3 generates.py install-dependencies
 
     - name: Commit and push if ./www/swagger/openapi.json changed
+      if: github.ref == 'refs/heads/master'
       run: |
           git diff --exit-code ./www/swagger/openapi.json || (
           git config user.name alexliyu7352
