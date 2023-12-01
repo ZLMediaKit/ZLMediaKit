@@ -78,15 +78,16 @@ void HttpClient::sendRequest(const string &url) {
         printer.pop_back();
         _header.emplace("Cookie", printer);
     }
-    if (isUsedProxy()) {
-        startConnect(_proxy_host, _proxy_port, _wait_header_ms / 1000.0f);
-    } else {
-        if (!alive() || host_changed) {
-            startConnect(host, port, _wait_header_ms / 1000.0f);
+    if (!alive() || host_changed) {
+        if (isUsedProxy()) {
+            _proxy_connected = false;
+            startConnect(_proxy_host, _proxy_port, _wait_header_ms / 1000.0f);
         } else {
-            SockException ex;
-            onConnect_l(ex);
+            startConnect(host, port, _wait_header_ms / 1000.0f);
         }
+    } else {
+        SockException ex;
+        onConnect_l(ex);
     }
 }
 
