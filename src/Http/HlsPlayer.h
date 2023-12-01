@@ -19,6 +19,7 @@
 #define MIN_TIMEOUT_MULTIPLE 2
 #define MAX_TIMEOUT_MULTIPLE 5
 #define MAX_TRY_FETCH_INDEX_TIMES 5
+#define MAX_TS_DOWNLOAD_FAILED_COUNT 10
 
 namespace mediakit {
 
@@ -56,19 +57,22 @@ public:
 
     /**
      * 开始播放
+     * start play
      */
     void play(const std::string &url) override;
 
     /**
      * 停止播放
+     * stop play
      */
     void teardown() override;
 
 protected:
     /**
      * 收到ts包
-     * @param data ts数据负载
-     * @param len ts包长度
+     * Received ts package
+     * @param data ts数据负载 ts data payload
+     * @param len ts包长度 ts package length
      */
     virtual void onPacket(const char *data, size_t len) = 0;
 
@@ -80,7 +84,7 @@ private:
     bool onRedirectUrl(const std::string &url, bool temporary) override;
 
 private:
-    void playDelay();
+    void playDelay(float delay_sec = 0);
     float delaySecond();
     void fetchSegment();
     void teardown_l(const toolkit::SockException &ex);
@@ -88,7 +92,8 @@ private:
 
 private:
     struct UrlComp {
-        //url忽略？后面的参数
+        // url忽略？后面的参数
+        // Ignore the parameters after the url?
         bool operator()(const std::string& __x, const std::string& __y) const {
             return toolkit::split(__x,"?")[0] < toolkit::split(__y,"?")[0];
         }
@@ -108,6 +113,7 @@ private:
     HttpTSPlayer::Ptr _http_ts_player;
     int _timeout_multiple = MIN_TIMEOUT_MULTIPLE;
     int _try_fetch_index_times = 0;
+    int _ts_download_failed_count = 0;
 };
 
 class HlsPlayerImp : public PlayerImp<HlsPlayer, PlayerBase>, private TrackListener {
