@@ -23,6 +23,7 @@ void HlsPlayer::play(const string &url) {
     _play_result = false;
     _play_url = url;
     setProxyUrl((*this)[Client::kProxyUrl]);
+    setAllowResendRequest(true);
     fetchIndexFile();
 }
 
@@ -90,6 +91,7 @@ void HlsPlayer::fetchSegment() {
     if (!_http_ts_player) {
         _http_ts_player = std::make_shared<HttpTSPlayer>(getPoller());
         _http_ts_player->setProxyUrl((*this)[Client::kProxyUrl]);
+        _http_ts_player->setAllowResendRequest(true);
         _http_ts_player->setOnCreateSocket([weak_self](const EventPoller::Ptr &poller) {
             auto strong_self = weak_self.lock();
             if (strong_self) {
