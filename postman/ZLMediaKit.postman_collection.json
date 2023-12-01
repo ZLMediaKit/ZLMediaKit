@@ -2184,6 +2184,38 @@
 				}
 			},
 			"response": []
+		},
+		{
+			"name": "下载文件(downloadFile)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/downloadFile?file_path=/path/to/file.ext",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"downloadFile"
+					],
+					"query": [
+						{
+							"key": "file_path",
+							"value": "/path/to/file.ext",
+							"description": "文件绝对路径，根据文件名生成Content-Type；该接口将触发on_http_access hook"
+						},
+						{
+							"key": "save_name",
+							"value": "test",
+							"description": "浏览器下载文件后保存文件名；可选参数",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
 		}
 	],
 	"event": [

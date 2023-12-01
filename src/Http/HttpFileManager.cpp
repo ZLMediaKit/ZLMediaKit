@@ -725,6 +725,9 @@ void HttpResponseInvokerImp::responseFile(const StrCaseMap &requestHeader,
         return;
     }
 
+    // 尝试添加Content-Type
+    httpHeader.emplace("Content-Type", HttpConst::getHttpContentType(file.data()));
+
     auto &strRange = const_cast<StrCaseMap &>(requestHeader)["Range"];
     int code = 200;
     if (!strRange.empty()) {

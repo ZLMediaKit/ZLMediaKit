@@ -1809,6 +1809,30 @@ void installWebApi() {
         reader->startReadMP4(0, true, allArgs["file_repeat"]);
     });
 
+    api_regist("/index/api/downloadFile", [](API_ARGS_MAP_ASYNC) {
+        CHECK_ARGS("file_path");
+
+        // 通过on_http_access完成文件下载鉴权，请务必确认访问鉴权url参数以及访问文件路径是否合法
+        HttpSession::HttpAccessPathInvoker file_invoker = [allArgs, invoker](const string &err_msg, const string &cookie_path_in, int life_second) mutable {
+            if (!err_msg.empty()) {
+                invoker(401, StrCaseMap{}, err_msg);
+            } else {
+                StrCaseMap res_header;
+                auto save_name = allArgs["save_name"];
+                if (!save_name.empty()) {
+                    res_header.emplace("Content-Disposition", "attachment;filename=\"" + save_name + "\"");
+                }
+                invoker.responseFile(allArgs.getParser().getHeader(), res_header, allArgs["file_path"]);
+            }
+        };
+
+        bool flag = NOTICE_EMIT(BroadcastHttpAccessArgs, Broadcast::kBroadcastHttpAccess, allArgs.getParser(), allArgs["file_path"], false, file_invoker, sender);
+        if (!flag) {
+            // 文件下载鉴权事件无人监听，不允许下载
+            file_invoker("None http access event listener", "", 0);
+        }
+    });
+
     ////////////以下是注册的Hook API////////////
     api_regist("/index/hook/on_publish",[](API_ARGS_JSON){
         //开始推流事件
