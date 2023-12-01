@@ -540,7 +540,7 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
 }
 
 void addStreamProxy(const string &vhost, const string &app, const string &stream, const string &url, int retry_count,
-                    const ProtocolOption &option, int rtp_type, float timeout_sec,
+                    const ProtocolOption &option, int rtp_type, float timeout_sec, const mINI &args,
                     const function<void(const SockException &ex, const string &key)> &cb) {
     auto key = getProxyKey(vhost, app, stream);
     lock_guard<recursive_mutex> lck(s_proxyMapMtx);
@@ -575,6 +575,7 @@ void addStreamProxy(const string &vhost, const string &app, const string &stream
         lock_guard<recursive_mutex> lck(s_proxyMapMtx);
         s_proxyMap.erase(key);
     });
+    player->mINI::operator=(args);
     player->play(url);
 };
 
@@ -1058,6 +1059,11 @@ void installWebApi() {
         CHECK_SECRET();
         CHECK_ARGS("vhost","app","stream","url");
 
+        mINI args;
+        for (auto &pr : allArgs.getArgs()) {
+            args.emplace(pr.first, pr.second);
+        }
+
         ProtocolOption option(allArgs);
         auto retry_count = allArgs["retry_count"].empty()? -1: allArgs["retry_count"].as<int>();
         addStreamProxy(allArgs["vhost"],
@@ -1068,6 +1074,7 @@ void installWebApi() {
                        option,
                        allArgs["rtp_type"],
                        allArgs["timeout_sec"],
+                       args,
                        [invoker,val,headerOut](const SockException &ex,const string &key) mutable{
                            if (ex) {
                                val["code"] = API::OtherFailed;
@@ -1891,6 +1898,7 @@ void installWebApi() {
                        option,
                        0,//rtp over tcp方式拉流
                        10,//10秒超时
+                       mINI{},
                        [invoker,val,headerOut](const SockException &ex,const string &key) mutable{
                            if(ex){
                                val["code"] = API::OtherFailed;
