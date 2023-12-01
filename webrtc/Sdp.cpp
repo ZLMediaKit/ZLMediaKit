@@ -267,16 +267,23 @@ void RtcSessionSdp::parse(const string &str) {
     static auto flag = registerAllItem();
     RtcSdpBase *media = nullptr;
     auto lines = split(str, "\n");
-    for(auto &line : lines){
+    std::set<std::string> line_set;
+    for (auto &line : lines) {
         trim(line);
-        if(line.size() < 3 || line[1] != '='){
+        if (line.size() < 3 || line[1] != '=') {
             continue;
         }
+
+        if (!line_set.emplace(line).second) {
+            continue;
+        }
+
         auto key = line.substr(0, 1);
         auto value = line.substr(2);
         if (!strcasecmp(key.data(), "m")) {
             medias.emplace_back(RtcSdpBase());
             media = &medias.back();
+            line_set.clear();
         }
 
         SdpItem::Ptr item;
