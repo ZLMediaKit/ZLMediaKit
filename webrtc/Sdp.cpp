@@ -274,10 +274,9 @@ void RtcSessionSdp::parse(const string &str) {
             continue;
         }
 
-        if (line_set.find(line) != line_set.end()) {
+        if (!line_set.emplace(line).second) {
             continue;
         }
-        line_set.emplace(line);
 
         auto key = line.substr(0, 1);
         auto value = line.substr(2);
