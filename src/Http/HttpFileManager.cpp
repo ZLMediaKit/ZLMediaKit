@@ -8,19 +8,15 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
-#include <sys/stat.h>
-#if !defined(_WIN32)
-#include <dirent.h>
-#endif //!defined(_WIN32)
 #include <iomanip>
-#include "HttpFileManager.h"
 #include "Util/File.h"
-#include "HttpConst.h"
-#include "HttpSession.h"
-#include "Record/HlsMediaSource.h"
 #include "Common/Parser.h"
 #include "Common/config.h"
 #include "Common/strCoding.h"
+#include "Record/HlsMediaSource.h"
+#include "HttpConst.h"
+#include "HttpSession.h"
+#include "HttpFileManager.h"
 
 using namespace std;
 using namespace toolkit;
@@ -158,23 +154,29 @@ bool HttpFileManager::isIPAllowed(const std::string &ip) {
     return false;
 }
 
-static string searchIndexFile(const string &dir){
-    DIR *pDir;
-    dirent *pDirent;
-    if ((pDir = opendir(dir.data())) == NULL) {
-        return "";
+static std::string fileName(const string &dir, const string &path) {
+    auto ret = path.substr(dir.size());
+    if (ret.front() == '/') {
+        ret.erase(0, 1);
     }
-    set<string> setFile;
-    while ((pDirent = readdir(pDir)) != NULL) {
-        static set<const char *, StrCaseCompare> indexSet = {"index.html", "index.htm"};
-        if (indexSet.find(pDirent->d_name) != indexSet.end()) {
-            string ret = pDirent->d_name;
-            closedir(pDir);
-            return ret;
+    return ret;
+}
+
+static string searchIndexFile(const string &dir) {
+    std::string ret;
+    static set<std::string, StrCaseCompare> indexSet = { "index.html", "index.htm" };
+    File::scanDir(dir, [&](const string &path, bool is_dir) {
+        if (is_dir) {
+            return true;
         }
-    }
-    closedir(pDir);
-    return "";
+        auto name = fileName(dir, path);
+        if (indexSet.find(name) == indexSet.end()) {
+            return true;
+        }
+        ret = std::move(name);
+        return false;
+    });
+    return ret;
 }
 
 static bool makeFolderMenu(const string &httpPath, const string &strFullPath, string &strRet) {
@@ -223,21 +225,12 @@ static bool makeFolderMenu(const string &httpPath, const string &strFullPath, st
         ss << "</a></li>\r\n";
     }
 
-    DIR *pDir;
-    dirent *pDirent;
-    if ((pDir = opendir(strPathPrefix.data())) == NULL) {
-        return false;
-    }
     multimap<string/*url name*/, std::pair<string/*note name*/, string/*file path*/> > file_map;
-    while ((pDirent = readdir(pDir)) != NULL) {
-        if (File::is_special_dir(pDirent->d_name)) {
-            continue;
-        }
-        if (pDirent->d_name[0] == '.') {
-            continue;
-        }
-        file_map.emplace(strCoding::UrlEncode(pDirent->d_name), std::make_pair(pDirent->d_name, strPathPrefix + "/" + pDirent->d_name));
-    }
+    File::scanDir(strPathPrefix, [&](const std::string &path, bool isDir) {
+        auto name = fileName(strPathPrefix, path);
+        file_map.emplace(strCoding::UrlEncode(name), std::make_pair(name, path));
+        return true;
+    });
     //如果是root目录，添加虚拟目录
     if (httpPath == "/") {
         GET_CONFIG_FUNC(StrCaseMap, virtualPathMap, Http::kVirtualPath, [](const string &str) {
@@ -283,7 +276,6 @@ static bool makeFolderMenu(const string &httpPath, const string &strFullPath, st
         }
         ss << "</a></li>\r\n";
     }
-    closedir(pDir);
     ss << "<ul>\r\n";
     ss << "</ul>\r\n</body></html>";
     ss.str().swap(strRet);
