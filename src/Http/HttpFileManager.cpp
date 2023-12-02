@@ -584,12 +584,13 @@ static string getFilePath(const Parser &parser,const MediaInfo &media_info, Sess
         return Parser::parseArgs(str, ";", ",");
     });
 
-    string url, path;
+    string url, path, virtual_app;
     auto it = virtualPathMap.find(media_info.app);
     if (it != virtualPathMap.end()) {
         //访问的是virtualPath
         path = it->second;
         url = parser.url().substr(1 + media_info.app.size());
+        virtual_app = media_info.app + "/";
     } else {
         //访问的是rootPath
         path = rootPath;
@@ -608,7 +609,7 @@ static string getFilePath(const Parser &parser,const MediaInfo &media_info, Sess
         throw std::runtime_error("Attempting to access files outside of the http root directory");
     }
     // 替换url，防止返回的目录索引网页被注入非法内容
-    const_cast<Parser&>(parser).setUrl("/" + ret.substr(http_root.size()));
+    const_cast<Parser&>(parser).setUrl("/" + virtual_app + ret.substr(http_root.size()));
     NOTICE_EMIT(BroadcastHttpBeforeAccessArgs, Broadcast::kBroadcastHttpBeforeAccess, parser, ret, sender);
     return ret;
 }
