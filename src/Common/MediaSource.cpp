@@ -60,6 +60,7 @@ ProtocolOption::ProtocolOption() {
     GET_CONFIG(bool, s_add_mute_audio, Protocol::kAddMuteAudio);
     GET_CONFIG(bool, s_auto_close, Protocol::kAutoClose);
     GET_CONFIG(uint32_t, s_continue_push_ms, Protocol::kContinuePushMS);
+    GET_CONFIG(uint32_t, s_paced_sender_ms, Protocol::kPacedSenderMS);
 
     GET_CONFIG(bool, s_enable_hls, Protocol::kEnableHls);
     GET_CONFIG(bool, s_enable_hls_fmp4, Protocol::kEnableHlsFmp4);
@@ -86,6 +87,7 @@ ProtocolOption::ProtocolOption() {
     add_mute_audio = s_add_mute_audio;
     auto_close = s_auto_close;
     continue_push_ms = s_continue_push_ms;
+    paced_sender_ms = s_paced_sender_ms;
 
     enable_hls = s_enable_hls;
     enable_hls_fmp4 = s_enable_hls_fmp4;

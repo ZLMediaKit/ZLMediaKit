@@ -196,6 +196,9 @@ extern const std::string kAddMuteAudio;
 extern const std::string kAutoClose;
 //断连续推延时，单位毫秒，默认采用配置文件
 extern const std::string kContinuePushMS;
+// 平滑发送定时器间隔，单位毫秒，置0则关闭；开启后影响cpu性能同时增加内存
+// 该配置开启后可以解决一些流发送不平滑导致zlmediakit转发也不平滑的问题
+extern const std::string kPacedSenderMS;
 
 //是否开启转换为hls(mpegts)
 extern const std::string kEnableHls;

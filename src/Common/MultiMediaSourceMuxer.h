@@ -155,6 +155,7 @@ protected:
      * @param frame
      */
     bool onTrackFrame(const Frame::Ptr &frame) override;
+    bool onTrackFrame_l(const Frame::Ptr &frame);
 
 private:
     void createGopCacheIfNeed();
@@ -163,6 +164,7 @@ private:
     bool _is_enable = false;
     bool _create_in_poller = false;
     bool _video_key_pos = false;
+    std::shared_ptr<class FramePacedSender> _paced_sender;
     MediaTuple _tuple;
     ProtocolOption _option;
     toolkit::Ticker _last_check;
