@@ -72,12 +72,14 @@ const string kApiDebug = API_FIELD"apiDebug";
 const string kSecret = API_FIELD"secret";
 const string kSnapRoot = API_FIELD"snapRoot";
 const string kDefaultSnap = API_FIELD"defaultSnap";
+const string kDownloadRoot = API_FIELD"downloadRoot";
 
 static onceToken token([]() {
     mINI::Instance()[kApiDebug] = "1";
     mINI::Instance()[kSecret] = "035c73f7-bb6b-4889-a715-d9eb2d1925cc";
     mINI::Instance()[kSnapRoot] = "./www/snap/";
     mINI::Instance()[kDefaultSnap] = "./www/logo.png";
+    mINI::Instance()[kDownloadRoot] = "./www";
 });
 }//namespace API
 
@@ -1823,6 +1825,57 @@ void installWebApi() {
         auto reader = std::make_shared<MP4Reader>(allArgs["vhost"], allArgs["app"], allArgs["stream"], allArgs["file_path"], option);
         // sample_ms设置为0，从配置文件加载；file_repeat可以指定，如果配置文件也指定循环解复用，那么强制开启
         reader->startReadMP4(0, true, allArgs["file_repeat"]);
+    });
+
+    GET_CONFIG_FUNC(std::set<std::string>, download_roots, API::kDownloadRoot, [](const string &str) -> std::set<std::string> {
+        std::set<std::string> ret;
+        auto vec = toolkit::split(str, ";");
+        for (auto &item : vec) {
+            auto root = File::absolutePath(item, "", true);
+            ret.emplace(std::move(root));
+        }
+        return ret;
+    });
+
+    api_regist("/index/api/downloadFile", [](API_ARGS_MAP_ASYNC) {
+        CHECK_ARGS("file_path");
+        auto file_path = allArgs["file_path"];
+
+        if (file_path.find("..") != std::string::npos) {
+            invoker(401, StrCaseMap{}, "You can not access parent directory");
+            return;
+        }
+        bool safe = false;
+        for (auto &root : download_roots) {
+            if (start_with(file_path, root)) {
+                safe = true;
+                break;
+            }
+        }
+        if (!safe) {
+            invoker(401, StrCaseMap{}, "You can not download files outside the root directory");
+            return;
+        }
+
+        // 通过on_http_access完成文件下载鉴权，请务必确认访问鉴权url参数以及访问文件路径是否合法
+        HttpSession::HttpAccessPathInvoker file_invoker = [allArgs, invoker](const string &err_msg, const string &cookie_path_in, int life_second) mutable {
+            if (!err_msg.empty()) {
+                invoker(401, StrCaseMap{}, err_msg);
+            } else {
+                StrCaseMap res_header;
+                auto save_name = allArgs["save_name"];
+                if (!save_name.empty()) {
+                    res_header.emplace("Content-Disposition", "attachment;filename=\"" + save_name + "\"");
+                }
+                invoker.responseFile(allArgs.getParser().getHeader(), res_header, allArgs["file_path"]);
+            }
+        };
+
+        bool flag = NOTICE_EMIT(BroadcastHttpAccessArgs, Broadcast::kBroadcastHttpAccess, allArgs.getParser(), file_path, false, file_invoker, sender);
+        if (!flag) {
+            // 文件下载鉴权事件无人监听，不允许下载
+            invoker(401, StrCaseMap {}, "None http access event listener");
+        }
     });
 }
 
