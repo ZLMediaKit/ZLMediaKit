@@ -620,7 +620,7 @@ static string getFilePath(const Parser &parser,const MediaInfo &media_info, Sess
  * @param cb 回调对象
  */
 void HttpFileManager::onAccessPath(Session &sender, Parser &parser, const HttpFileManager::invoker &cb) {
-    auto fullUrl = string(HTTP_SCHEMA) + "://" + parser["Host"] + parser.fullUrl();
+    auto fullUrl = "http://" + parser["Host"] + parser.fullUrl();
     MediaInfo media_info(fullUrl);
     auto file_path = getFilePath(parser, media_info, sender);
     if (file_path.size() == 0) {
