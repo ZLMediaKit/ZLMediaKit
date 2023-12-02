@@ -30,8 +30,8 @@ namespace mediakit {
 // hls的播放cookie缓存时间默认60秒，
 // 每次访问一次该cookie，那么将重新刷新cookie有效期
 // 假如播放器在60秒内都未访问该cookie，那么将重新触发hls播放鉴权
-static int kHlsCookieSecond = 60;
-static int kFindSrcIntervalSecond = 3;
+static size_t kHlsCookieSecond = 60;
+static size_t kFindSrcIntervalSecond = 3;
 static const string kCookieName = "ZL_COOKIE";
 static const string kHlsSuffix = "/hls.m3u8";
 static const string kHlsFMP4Suffix = "/hls.fmp4.m3u8";
