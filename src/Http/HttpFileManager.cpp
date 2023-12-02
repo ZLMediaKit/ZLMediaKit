@@ -713,12 +713,12 @@ void HttpResponseInvokerImp::responseFile(const StrCaseMap &requestHeader,
     }
 
     //file是文件路径
+    GET_CONFIG(string, charSet, Http::kCharSet);
     StrCaseMap &httpHeader = const_cast<StrCaseMap &>(responseHeader);
     auto fileBody = std::make_shared<HttpFileBody>(file, use_mmap);
     if (fileBody->remainSize() < 0) {
         //打开文件失败
         GET_CONFIG(string, notFound, Http::kNotFound);
-        GET_CONFIG(string, charSet, Http::kCharSet);
 
         auto strContentType = StrPrinter << "text/html; charset=" << charSet << endl;
         httpHeader["Content-Type"] = strContentType;
@@ -727,7 +727,7 @@ void HttpResponseInvokerImp::responseFile(const StrCaseMap &requestHeader,
     }
 
     // 尝试添加Content-Type
-    httpHeader.emplace("Content-Type", HttpConst::getHttpContentType(file.data()));
+    httpHeader.emplace("Content-Type", HttpConst::getHttpContentType(file.data()) + "; charset=" + charSet);
 
     auto &strRange = const_cast<StrCaseMap &>(requestHeader)["Range"];
     int code = 200;
