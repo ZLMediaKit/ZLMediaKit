@@ -33,7 +33,7 @@ RtpProcess::RtpProcess(const string &stream_id) {
 
     GET_CONFIG(string, dump_dir, RtpProxy::kDumpDir);
     {
-        FILE *fp = !dump_dir.empty() ? File::create_file(File::absolutePath(_media_info.stream + ".rtp", dump_dir).data(), "wb") : nullptr;
+        FILE *fp = !dump_dir.empty() ? File::create_file(File::absolutePath(_media_info.stream + ".rtp", dump_dir), "wb") : nullptr;
         if (fp) {
             _save_file_rtp.reset(fp, [](FILE *fp) {
                 fclose(fp);
@@ -42,7 +42,7 @@ RtpProcess::RtpProcess(const string &stream_id) {
     }
 
     {
-        FILE *fp = !dump_dir.empty() ? File::create_file(File::absolutePath(_media_info.stream + ".video", dump_dir).data(), "wb") : nullptr;
+        FILE *fp = !dump_dir.empty() ? File::create_file(File::absolutePath(_media_info.stream + ".video", dump_dir), "wb") : nullptr;
         if (fp) {
             _save_file_video.reset(fp, [](FILE *fp) {
                 fclose(fp);

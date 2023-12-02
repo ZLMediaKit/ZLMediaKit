@@ -343,7 +343,7 @@ void FFmpegSnap::makeSnap(const string &play_url, const string &save_path, float
         // FFmpeg进程退出了可以取消定时器了
         delayTask->cancel();
         // 执行回调函数
-        bool success = process->exit_code() == 0 && File::fileSize(save_path.data());
-        cb(success, (!success && !log_file.empty()) ? File::loadFile(log_file.data()) : "");
+        bool success = process->exit_code() == 0 && File::fileSize(save_path);
+        cb(success, (!success && !log_file.empty()) ? File::loadFile(log_file) : "");
     });
 }

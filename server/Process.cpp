@@ -65,7 +65,7 @@ static int runChildProcess(string cmd, string log_file) {
     }
 
     //重定向shell日志至文件
-    auto fp = File::create_file(log_file.data(), "ab");
+    auto fp = File::create_file(log_file, "ab");
     if (!fp) {
         fprintf(stderr, "open log file %s failed:%d(%s)\r\n", log_file.data(), get_uv_error(), get_uv_errmsg());
     } else {
@@ -121,7 +121,7 @@ void Process::run(const string &cmd, string log_file) {
     }
 
     //重定向shell日志至文件
-    auto fp = File::create_file(log_file.data(), "ab");
+    auto fp = File::create_file(log_file, "ab");
     if (!fp) {
         fprintf(stderr, "open log file %s failed:%d(%s)\r\n", log_file.data(), get_uv_error(), get_uv_errmsg());
     } else {

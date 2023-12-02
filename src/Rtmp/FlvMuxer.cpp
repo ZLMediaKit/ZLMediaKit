@@ -174,7 +174,7 @@ void FlvRecorder::startRecord(const EventPoller::Ptr &poller, const RtmpMediaSou
         }
     });
     //新建文件
-    _file.reset(File::create_file(file_path.data(), "wb"), [fileBuf](FILE *fp) {
+    _file.reset(File::create_file(file_path, "wb"), [fileBuf](FILE *fp) {
         if (fp) {
             fflush(fp);
             fclose(fp);

@@ -85,10 +85,10 @@ void MP4Recorder::asyncClose() {
         TraceL << "Closed tmp mp4 file: " << full_path_tmp;
         if (!full_path_tmp.empty()) {
             // 获取文件大小
-            info.file_size = File::fileSize(full_path_tmp.data());
+            info.file_size = File::fileSize(full_path_tmp);
             if (info.file_size < 1024) {
                 // 录像文件太小，删除之
-                File::delete_file(full_path_tmp.data());
+                File::delete_file(full_path_tmp);
                 return;
             }
             // 临时文件名改成正式文件名，防止mp4未完成时被访问

@@ -192,7 +192,7 @@ static bool makeFolderMenu(const string &httpPath, const string &strFullPath, st
         last_dir_name = split(strPathPrefix, "/").back();
     }
 
-    if (!File::is_dir(strPathPrefix.data())) {
+    if (!File::is_dir(strPathPrefix)) {
         return false;
     }
     stringstream ss;
@@ -250,7 +250,7 @@ static bool makeFolderMenu(const string &httpPath, const string &strFullPath, st
     int i = 0;
     for (auto &pr :file_map) {
         auto &strAbsolutePath = pr.second.second;
-        bool isDir = File::is_dir(strAbsolutePath.data());
+        bool isDir = File::is_dir(strAbsolutePath);
         ss << "<li><span>" << i++ << "</span>\t";
         ss << "<a href=\"";
         //路径链接地址
@@ -271,7 +271,7 @@ static bool makeFolderMenu(const string &httpPath, const string &strFullPath, st
             continue;
         }
         //是文件
-        auto fileSize = File::fileSize(strAbsolutePath.data());
+        auto fileSize = File::fileSize(strAbsolutePath);
         if (fileSize < 1024) {
             ss << " (" << fileSize << "B)" << endl;
         } else if (fileSize < 1024 * 1024) {
@@ -467,7 +467,7 @@ static string pathCat(const string &a, const string &b){
  */
 static void accessFile(Session &sender, const Parser &parser, const MediaInfo &media_info, const string &file_path, const HttpFileManager::invoker &cb) {
     bool is_hls = end_with(file_path, kHlsSuffix) || end_with(file_path, kHlsFMP4Suffix);
-    if (!is_hls && !File::fileExist(file_path.data())) {
+    if (!is_hls && !File::fileExist(file_path)) {
         //文件不存在且不是hls,那么直接返回404
         sendNotFound(cb);
         return;
@@ -628,12 +628,12 @@ void HttpFileManager::onAccessPath(Session &sender, Parser &parser, const HttpFi
         return;
     }
     //访问的是文件夹
-    if (File::is_dir(file_path.data())) {
+    if (File::is_dir(file_path)) {
         auto indexFile = searchIndexFile(file_path);
         if (!indexFile.empty()) {
             // 发现该文件夹下有index文件
             file_path = pathCat(file_path, indexFile);
-            if (!File::is_dir(file_path.data())) {
+            if (!File::is_dir(file_path)) {
                 // 不是文件夹
                 parser.setUrl(pathCat(parser.url(), indexFile));
                 accessFile(sender, parser, media_info, file_path, cb);
