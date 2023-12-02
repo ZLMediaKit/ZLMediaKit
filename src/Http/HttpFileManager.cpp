@@ -198,10 +198,10 @@ static bool makeFolderMenu(const string &httpPath, const string &strFullPath, st
     stringstream ss;
     ss << "<html>\r\n"
           "<head>\r\n"
-          "<title>文件索引</title>\r\n"
+          "<title>File Index</title>\r\n"
           "</head>\r\n"
           "<body>\r\n"
-          "<h1>文件索引:";
+          "<h1>Index of ";
 
     ss << httpPath;
     ss << "</h1>\r\n";
@@ -209,7 +209,7 @@ static bool makeFolderMenu(const string &httpPath, const string &strFullPath, st
         ss << "<li><a href=\"";
         ss << "/";
         ss << "\">";
-        ss << "根目录";
+        ss << "root";
         ss << "</a></li>\r\n";
 
         ss << "<li><a href=\"";
@@ -219,7 +219,7 @@ static bool makeFolderMenu(const string &httpPath, const string &strFullPath, st
             ss << "../";
         }
         ss << "\">";
-        ss << "上级目录";
+        ss << "../";
         ss << "</a></li>\r\n";
     }
 
@@ -244,7 +244,7 @@ static bool makeFolderMenu(const string &httpPath, const string &strFullPath, st
             return Parser::parseArgs(str, ";", ",");
         });
         for (auto &pr : virtualPathMap) {
-            file_map.emplace(pr.first, std::make_pair(string("虚拟目录:") + pr.first, File::absolutePath("", pr.second)));
+            file_map.emplace(pr.first, std::make_pair(string("virtual path: ") + pr.first, File::absolutePath("", pr.second)));
         }
     }
     int i = 0;
