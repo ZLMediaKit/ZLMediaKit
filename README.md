@@ -188,6 +188,7 @@ bash build_docker_images.sh
    - [AKStreamNVR](https://github.com/langmansh/AKStreamNVR) 前后端分离web项目,支持webrtc播放
    
  - SDK
+   - [java sdk](https://github.com/lidaofu-hub/j_zlm_sdk) 本项目c sdk完整java包装库
    - [c# sdk](https://github.com/malegend/ZLMediaKit.Autogen) 本项目c sdk完整c#包装库
    - [metaRTC](https://github.com/metartc/metaRTC) 全国产纯c webrtc sdk
    
@@ -334,6 +335,16 @@ bash build_docker_images.sh
 [ArmstrongCN](https://github.com/ArmstrongCN)
 [leibnewton](https://github.com/leibnewton)
 [1002victor](https://github.com/1002victor)
+[Grin](https://github.com/xyyangkun)
+[xbpeng121](https://github.com/xbpeng121)
+[lvchenyun](https://github.com/lvchenyun)
+[Fummowo](https://github.com/Fummowo)
+[Jovial Young ](https://github.com/JHYoung1034)
+[yujitai](https://github.com/yujitai)
+[KisChang](https://github.com/kisChang)
+[zjx94](https://github.com/zjx94)
+[LeiZhi.Mai ](https://github.com/blueskiner)
+[JiaHao](https://github.com/nashiracn)
 
 同时感谢JetBrains对开源项目的支持，本项目使用CLion开发与调试：
 
