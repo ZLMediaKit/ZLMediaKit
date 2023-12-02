@@ -719,7 +719,7 @@ void installWebApi() {
 
             return 0;
         });
-        val["msg"] = "服务器将在一秒后自动重启";
+        val["msg"] = "MediaServer will reboot in on 1 second";
     });
 #else
     //增加Windows下的重启代码
