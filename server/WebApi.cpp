@@ -1536,13 +1536,29 @@ void installWebApi() {
         if (!name.empty()) {
             record_path += name;
         }
-        int result = File::delete_file(record_path.data());
-        if (result) {
-            // 不等于0时代表失败
-            record_path = "delete error";
+        bool recording = false;
+        {
+            auto src = MediaSource::find(allArgs["vhost"], allArgs["app"], allArgs["stream"]);
+            if (src && src->isRecording(Recorder::type_mp4)) {
+                recording = true;
+            }
         }
         val["path"] = record_path;
-        val["code"] = result;
+        if (!recording) {
+            val["code"] = File::delete_file(record_path.data());
+            return;
+        }
+        File::scanDir(record_path, [](const string &path, bool is_dir) {
+            if (is_dir) {
+                return true;
+            }
+            if (path.find("./") != std::string::npos) {
+                File::delete_file(path.data());
+            } else {
+                TraceL << "Ignore tmp mp4 file: " << path;
+            }
+            return true;
+        }, true);
     });
 
     //获取录像文件夹列表或mp4文件列表
