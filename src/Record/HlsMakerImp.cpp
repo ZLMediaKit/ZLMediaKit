@@ -45,6 +45,13 @@ void HlsMakerImp::clearCache() {
     clearCache(true, false);
 }
 
+static void clearHls(const std::list<std::string> &files) {
+    for (auto &file : files) {
+        File::delete_file(file);
+    }
+    File::deleteEmptyDir(File::parentDir(files.back()));
+}
+
 void HlsMakerImp::clearCache(bool immediately, bool eof) {
     // 录制完了
     flushLastSegment(eof);
@@ -52,21 +59,31 @@ void HlsMakerImp::clearCache(bool immediately, bool eof) {
         return;
     }
 
+    {
+        std::list<std::string> lst;
+        lst.emplace_back(_path_hls);
+        if (!_path_init.empty()) {
+            lst.emplace_back(_path_init);
+        }
+        for (auto &pr : _segment_file_paths) {
+            lst.emplace_back(std::move(pr.second));
+        }
+
+        // hls直播才删除文件
+        GET_CONFIG(uint32_t, delay, Hls::kDeleteDelaySec);
+        if (!delay || immediately) {
+            clearHls(lst);
+        } else {
+            _poller->doDelayTask(delay * 1000, [lst]() {
+                clearHls(lst);
+                return 0;
+            });
+        }
+    }
+
     clear();
     _file = nullptr;
     _segment_file_paths.clear();
-
-    // hls直播才删除文件
-    GET_CONFIG(uint32_t, delay, Hls::kDeleteDelaySec);
-    if (!delay || immediately) {
-        File::delete_file(_path_prefix.data());
-    } else {
-        auto path_prefix = _path_prefix;
-        _poller->doDelayTask(delay * 1000, [path_prefix]() {
-            File::delete_file(path_prefix.data());
-            return 0;
-        });
-    }
 }
 
 string HlsMakerImp::onOpenSegment(uint64_t index) {
@@ -103,16 +120,17 @@ void HlsMakerImp::onDelSegment(uint64_t index) {
     if (it == _segment_file_paths.end()) {
         return;
     }
-    File::delete_file(it->second.data());
+    File::delete_file(it->second.data(), true);
     _segment_file_paths.erase(it);
 }
 
 void HlsMakerImp::onWriteInitSegment(const char *data, size_t len) {
     string init_seg_path = _path_prefix + "/init.mp4";
-    _file = makeFile(init_seg_path, true);
+    _file = makeFile(init_seg_path);
 
     if (_file) {
         fwrite(data, len, 1, _file.get());
+        _path_init = std::move(init_seg_path);
         _file = nullptr;
     } else {
         WarnL << "Create file failed," << init_seg_path << " " << get_uv_errmsg();

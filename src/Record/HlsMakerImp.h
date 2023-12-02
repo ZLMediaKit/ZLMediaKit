@@ -60,6 +60,7 @@ private:
     int _buf_size;
     std::string _params;
     std::string _path_hls;
+    std::string _path_init;
     std::string _path_prefix;
     RecordInfo _info;
     std::shared_ptr<FILE> _file;
