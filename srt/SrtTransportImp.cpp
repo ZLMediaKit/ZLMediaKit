@@ -54,7 +54,7 @@ bool SrtTransportImp::parseStreamid(std::string &streamid) {
     if (!toolkit::start_with(streamid, "#!::")) {
         return false;
     }
-    _media_info.schema = SRT_SCHEMA;
+    _media_info.schema = "srt";
 
     std::string real_streamid = streamid.substr(4);
     std::string vhost, app, stream_name;

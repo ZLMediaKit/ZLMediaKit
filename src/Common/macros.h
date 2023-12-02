@@ -51,16 +51,14 @@
     }
 #endif // CLEAR_ARR
 
-#define VHOST_KEY "vhost"
-#define HTTP_SCHEMA "http"
 #define RTSP_SCHEMA "rtsp"
-#define RTC_SCHEMA "rtc"
 #define RTMP_SCHEMA "rtmp"
-#define HLS_SCHEMA "hls"
 #define TS_SCHEMA "ts"
 #define FMP4_SCHEMA "fmp4"
+#define HLS_SCHEMA "hls"
 #define HLS_FMP4_SCHEMA "hls.fmp4"
-#define SRT_SCHEMA "srt"
+
+#define VHOST_KEY "vhost"
 #define DEFAULT_VHOST "__defaultVhost__"
 
 #ifdef __cplusplus
