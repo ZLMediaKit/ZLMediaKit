@@ -263,7 +263,7 @@ int start_main(int argc,char *argv[]) {
         //加载配置文件，如果配置文件不存在就创建一个
         loadIniConfig(g_ini_file.data());
 
-        if (!File::is_dir(ssl_file.data())) {
+        if (!File::is_dir(ssl_file)) {
             //不是文件夹，加载证书，证书包含公钥和私钥
             SSL_Initor::Instance().loadCertificate(ssl_file.data());
         } else {

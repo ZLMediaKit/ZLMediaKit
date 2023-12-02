@@ -25,7 +25,7 @@ void HttpDownloader::startDownload(const string &url, const string &file_path, b
     if (_file_path.empty()) {
         _file_path = exeDir() + "HttpDownloader/" + MD5(url).hexdigest();
     }
-    _save_file = File::create_file(_file_path.data(), append ? "ab" : "wb");
+    _save_file = File::create_file(_file_path, append ? "ab" : "wb");
     if (!_save_file) {
         auto strErr = StrPrinter << "打开文件失败:" << file_path << endl;
         throw std::runtime_error(strErr);

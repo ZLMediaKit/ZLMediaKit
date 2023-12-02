@@ -1547,7 +1547,7 @@ void installWebApi() {
         }
         val["path"] = record_path;
         if (!recording) {
-            val["code"] = File::delete_file(record_path.data());
+            val["code"] = File::delete_file(record_path);
             return;
         }
         File::scanDir(record_path, [](const string &path, bool is_dir) {
@@ -1555,7 +1555,7 @@ void installWebApi() {
                 return true;
             }
             if (path.find("./") != std::string::npos) {
-                File::delete_file(path.data());
+                File::delete_file(path);
             } else {
                 TraceL << "Ignore tmp mp4 file: " << path;
             }
@@ -1608,7 +1608,7 @@ void installWebApi() {
         static bool s_snap_success_once = false;
         StrCaseMap headerOut;
         GET_CONFIG(string, defaultSnap, API::kDefaultSnap);
-        if (!File::fileSize(snap_path.data())) {
+        if (!File::fileSize(snap_path)) {
             if (!err_msg.empty() && (!s_snap_success_once || defaultSnap.empty())) {
                 //重来没截图成功过或者默认截图图片为空，那么直接返回FFmpeg错误日志
                 headerOut["Content-Type"] = HttpFileManager::getContentType(".txt");
@@ -1670,7 +1670,7 @@ void installWebApi() {
         if (!have_old_snap) {
             //无过期截图，生成一个空文件，目的是顺便创建文件夹路径
             //同时防止在FFmpeg生成截图途中不停的尝试调用该api多次启动FFmpeg进程
-            auto file = File::create_file(new_snap.data(), "wb");
+            auto file = File::create_file(new_snap, "wb");
             if (file) {
                 fclose(file);
             }
@@ -1681,10 +1681,10 @@ void installWebApi() {
         FFmpegSnap::makeSnap(allArgs["url"], new_snap_tmp, allArgs["timeout_sec"], [invoker, allArgs, new_snap, new_snap_tmp](bool success, const string &err_msg) {
             if (!success) {
                 //生成截图失败，可能残留空文件
-                File::delete_file(new_snap_tmp.data());
+                File::delete_file(new_snap_tmp);
             } else {
                 //临时文件改成正式文件
-                File::delete_file(new_snap.data());
+                File::delete_file(new_snap);
                 rename(new_snap_tmp.data(), new_snap.data());
             }
             responseSnap(new_snap, allArgs.getParser().getHeader(), invoker, err_msg);
