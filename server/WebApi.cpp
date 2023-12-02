@@ -1547,20 +1547,21 @@ void installWebApi() {
         }
         val["path"] = record_path;
         if (!recording) {
-            val["code"] = File::delete_file(record_path);
+            val["code"] = File::delete_file(record_path, true);
             return;
         }
         File::scanDir(record_path, [](const string &path, bool is_dir) {
             if (is_dir) {
                 return true;
             }
-            if (path.find("./") != std::string::npos) {
+            if (path.find("/.") == std::string::npos) {
                 File::delete_file(path);
             } else {
                 TraceL << "Ignore tmp mp4 file: " << path;
             }
             return true;
-        }, true);
+        }, true, true);
+        File::deleteEmptyDir(record_path);
     });
 
     //获取录像文件夹列表或mp4文件列表
