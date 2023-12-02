@@ -41,7 +41,6 @@ public:
     FramePacedSender(uint32_t paced_sender_ms, OnFrame cb) {
         _paced_sender_ms = paced_sender_ms;
         _cb = std::move(cb);
-        _stamp[TrackVideo].syncTo(_stamp[TrackAudio]);
     }
 
     void resetTimer(const EventPoller::Ptr &poller) {
@@ -57,18 +56,17 @@ public:
 
     bool inputFrame(const Frame::Ptr &frame) override {
         if (!_timer) {
+            setCurrentStamp(frame->dts());
             resetTimer(EventPoller::getCurrentPoller());
-            setCurrentStamp(0);
         }
 
-        int64_t dts;
-        _stamp[frame->getTrackType()].revise(frame->dts(), frame->dts(), dts, dts);
-        _cache.emplace_back(dts + kMinCacheMS, Frame::getCacheAbleFrame(frame));
+        _cache.emplace_back(frame->dts() + _cache_ms, Frame::getCacheAbleFrame(frame));
         return true;
     }
 
 private:
     void onTick() {
+        auto dst = _cache.empty() ? 0 : _cache.back().first;
         while (!_cache.empty()) {
             auto &front = _cache.front();
             if (getCurrentStamp() < front.first) {
@@ -76,37 +74,40 @@ private:
                 break;
             }
             // 时间到了，该消费frame了
-            // TraceL << front.second->getCodecName() << " " << front.first << " " << _ticker.elapsedTime();
             _cb(front.second);
             _cache.pop_front();
         }
+
+        if (_cache.empty() && dst) {
+            // 消费太快，需要增加缓存大小
+            setCurrentStamp(dst);
+            _cache_ms += kMinCacheMS;
+        }
+
+        // 消费太慢，需要强制flush数据
         if (_cache.size() > 25 * 5) {
-            auto dts = _cache.back().first;
-            // 强制flush数据
             WarnL << "Flush frame paced sender cache: " << _cache.size();
             while (!_cache.empty()) {
                 auto &front = _cache.front();
                 _cb(front.second);
                 _cache.pop_front();
             }
-            setCurrentStamp(dts);
+            setCurrentStamp(dst);
         }
     }
 
-    uint64_t getCurrentStamp () {
-        return _ticker.elapsedTime() + _stamp_offset;
-    }
+    uint64_t getCurrentStamp() { return _ticker.elapsedTime() + _stamp_offset; }
 
-    uint64_t setCurrentStamp(uint64_t stamp ) {
+    void setCurrentStamp(uint64_t stamp) {
         _stamp_offset = stamp;
         _ticker.resetTime();
     }
 
 private:
     uint32_t _paced_sender_ms;
+    uint32_t _cache_ms = kMinCacheMS;
     uint64_t _stamp_offset = 0;
     OnFrame _cb;
-    Stamp _stamp[2];
     Ticker _ticker;
     Timer::Ptr _timer;
     std::list<std::pair<uint64_t, Frame::Ptr>> _cache;
