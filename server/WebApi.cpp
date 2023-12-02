@@ -83,7 +83,7 @@ static onceToken token([]() {
 
 using HttpApi = function<void(const Parser &parser, const HttpSession::HttpResponseInvoker &invoker, SockInfo &sender)>;
 //http api列表
-static map<string, HttpApi> s_map_api;
+static map<string, HttpApi, StrCaseCompare> s_map_api;
 
 static void responseApi(const Json::Value &res, const HttpSession::HttpResponseInvoker &invoker){
     GET_CONFIG(string, charSet, Http::kCharSet);
@@ -1546,8 +1546,8 @@ void installWebApi() {
     });
 
     //获取录像文件夹列表或mp4文件列表
-    //http://127.0.0.1/index/api/getMp4RecordFile?vhost=__defaultVhost__&app=live&stream=ss&period=2020-01
-    api_regist("/index/api/getMp4RecordFile", [](API_ARGS_MAP){
+    //http://127.0.0.1/index/api/getMP4RecordFile?vhost=__defaultVhost__&app=live&stream=ss&period=2020-01
+    api_regist("/index/api/getMP4RecordFile", [](API_ARGS_MAP){
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream");
         auto tuple = MediaTuple{allArgs["vhost"], allArgs["app"], allArgs["stream"]};
