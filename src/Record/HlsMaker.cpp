@@ -94,7 +94,7 @@ void HlsMaker::makeIndexFileTime(bool eof) {
     stringstream ss;
     for (auto &tp : _seg_dur_list_time) {
         string s = std::get<1>(tp);
-        ss << "#EXTINF:" << std::setprecision(3) << std::get<0>(tp) / 1000.0 << ",\n" << s.substr(s.find_first_of('/') + 1) << "\n";
+        ss << "#EXTINF:" << std::setprecision(3) << std::get<0>(tp) / 1000.0 << ",\n" << s.substr(s.find_last_of('/') + 1) << "\n";
     }
     index_str += ss.str();
     
