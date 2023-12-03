@@ -87,15 +87,16 @@ void HlsMaker::makeIndexFileTime(bool eof) {
         index_str += "#EXT-X-MAP:URI=\"init.mp4\"\n";
     }
 
-    stringstream ss;
-    for (auto &tp : _seg_dur_list_time) {
-        ss << "#EXTINF:" << std::setprecision(3) << std::get<0>(tp) / 1000.0 << ",\n" << std::get<1>(tp) << "\n";
-    }
-    index_str += ss.str();
-
     auto strDate = getTimeStr("%Y-%m-%d");
     auto strHour = getTimeStr("%H");
     string mm = strDate + "/" + strHour;
+
+    stringstream ss;
+    for (auto &tp : _seg_dur_list_time) {
+        string s = std::get<1>(tp);
+        ss << "#EXTINF:" << std::setprecision(3) << std::get<0>(tp) / 1000.0 << ",\n" << s.substr(s.find_first_of('/') + 1) << "\n";
+    }
+    index_str += ss.str();
     
     if (_last_m3u8_time.empty()) {
         _last_m3u8_time = mm;
