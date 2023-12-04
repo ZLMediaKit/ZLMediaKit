@@ -587,16 +587,14 @@ void MultiMediaSourceMuxer::resetTracks() {
 }
 
 bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame) {
+    if (_option.modify_stamp != ProtocolOption::kModifyStampOff) {
+        // 时间戳不采用原始的绝对时间戳
+        const_cast<Frame::Ptr&>(frame) = std::make_shared<FrameStamp>(frame, _stamp[frame->getTrackType()], _option.modify_stamp);
+    }
     return _paced_sender ? _paced_sender->inputFrame(frame) : onTrackFrame_l(frame);
 }
 
-bool MultiMediaSourceMuxer::onTrackFrame_l(const Frame::Ptr &frame_in) {
-    auto frame = frame_in;
-    if (_option.modify_stamp != ProtocolOption::kModifyStampOff) {
-        // 时间戳不采用原始的绝对时间戳
-        frame = std::make_shared<FrameStamp>(frame, _stamp[frame->getTrackType()], _option.modify_stamp);
-    }
-
+bool MultiMediaSourceMuxer::onTrackFrame_l(const Frame::Ptr &frame) {
     bool ret = false;
     if (_rtmp) {
         ret = _rtmp->inputFrame(frame) ? true : ret;
@@ -624,7 +622,7 @@ bool MultiMediaSourceMuxer::onTrackFrame_l(const Frame::Ptr &frame_in) {
     }
     if (_ring) {
         // 此场景由于直接转发，可能存在切换线程引起的数据被缓存在管道，所以需要CacheAbleFrame
-        frame = Frame::getCacheAbleFrame(frame);
+        const_cast<Frame::Ptr &>(frame) = Frame::getCacheAbleFrame(frame);
         if (frame->getTrackType() == TrackVideo) {
             // 视频时，遇到第一帧配置帧或关键帧则标记为gop开始处
             auto video_key_pos = frame->keyFrame() || frame->configFrame();
