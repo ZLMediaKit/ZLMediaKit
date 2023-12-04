@@ -357,6 +357,7 @@ bash build_docker_images.sh
   - [Hikvision ehome server implemented in Go](https://github.com/tsingeye/FreeEhome)
 
 - Client
+  - [Http Api and hook in zlm-spring-boot-starter](https://github.com/lunasaw/zlm-spring-boot-starter)
   - [Complete java wrapper library for c sdk](https://github.com/lidaofu-hub/j_zlm_sdk)
   - [Complete C# wrapper library for c sdk](https://github.com/malegend/ZLMediaKit.Autogen) 
   - [Push client implemented based on C SDK](https://github.com/hctym1995/ZLM_ApiDemo)
