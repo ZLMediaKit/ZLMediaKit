@@ -102,7 +102,7 @@ private:
             ret = next_seq - seq;
         }
         if (ret > SEQ_MAX >> 1) {
-            return SEQ_MAX - ret;
+            return SEQ_MAX - ret + 1;
         }
         return ret;
     }
