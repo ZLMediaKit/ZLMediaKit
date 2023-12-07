@@ -555,6 +555,9 @@ void addStreamProxy(const string &vhost, const string &app, const string &stream
     auto player = std::make_shared<PlayerProxy>(vhost, app, stream, option, retry_count);
     s_proxyMap[key] = player;
 
+    // 先透传参数
+    player->mINI::operator=(args);
+
     //指定RTP over TCP(播放rtsp时有效)
     (*player)[Client::kRtpType] = rtp_type;
 
@@ -577,7 +580,6 @@ void addStreamProxy(const string &vhost, const string &app, const string &stream
         lock_guard<recursive_mutex> lck(s_proxyMapMtx);
         s_proxyMap.erase(key);
     });
-    player->mINI::operator=(args);
     player->play(url);
 };
 

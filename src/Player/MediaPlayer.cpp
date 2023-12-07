@@ -42,7 +42,9 @@ void MediaPlayer::play(const string &url) {
     _delegate->setOnPlayResult(_on_play_result);
     _delegate->setOnResume(_on_resume);
     _delegate->setMediaSource(_media_src);
-    _delegate->mINI::operator=(*this);
+    for (auto &pr : *this) {
+        (*_delegate)[pr.first] = pr.second;
+    }
     _delegate->play(url);
 }
 
