@@ -13,10 +13,8 @@
 #include "Util/logger.h"
 #include "Extension/H265.h"
 #include "Extension/H264.h"
-#include "Extension/AAC.h"
-#include "Extension/G711.h"
-#include "Extension/Opus.h"
 #include "Extension/JPEG.h"
+#include "Extension/Factory.h"
 
 using namespace std;
 using namespace toolkit;
@@ -61,85 +59,21 @@ int MP4Demuxer::getAllTracks() {
     return mov_reader_getinfo(_mov_reader.get(),&s_on_track,this);
 }
 
-#define SWITCH_CASE(obj_id) case obj_id : return #obj_id
-static const char *getObjectName(int obj_id) {
-    switch (obj_id) {
-        SWITCH_CASE(MOV_OBJECT_TEXT);
-        SWITCH_CASE(MOV_OBJECT_MP4V);
-        SWITCH_CASE(MOV_OBJECT_H264);
-        SWITCH_CASE(MOV_OBJECT_HEVC);
-        SWITCH_CASE(MOV_OBJECT_AAC);
-        SWITCH_CASE(MOV_OBJECT_MP2V);
-        SWITCH_CASE(MOV_OBJECT_AAC_MAIN);
-        SWITCH_CASE(MOV_OBJECT_AAC_LOW);
-        SWITCH_CASE(MOV_OBJECT_AAC_SSR);
-        SWITCH_CASE(MOV_OBJECT_MP3);
-        SWITCH_CASE(MOV_OBJECT_MP1V);
-        SWITCH_CASE(MOV_OBJECT_MP1A);
-        SWITCH_CASE(MOV_OBJECT_JPEG);
-        SWITCH_CASE(MOV_OBJECT_PNG);
-        SWITCH_CASE(MOV_OBJECT_JPEG2000);
-        SWITCH_CASE(MOV_OBJECT_G719);
-        SWITCH_CASE(MOV_OBJECT_OPUS);
-        SWITCH_CASE(MOV_OBJECT_G711a);
-        SWITCH_CASE(MOV_OBJECT_G711u);
-        SWITCH_CASE(MOV_OBJECT_AV1);
-        default: return "unknown mp4 object";
-    }
-}
-
-
 void MP4Demuxer::onVideoTrack(uint32_t track, uint8_t object, int width, int height, const void *extra, size_t bytes) {
-    Track::Ptr video;
-    switch (object) {
-        case MOV_OBJECT_H264: {
-            video = std::make_shared<H264Track>();
-            _track_to_codec.emplace(track, video);
-            break;
-        }
-
-        case MOV_OBJECT_HEVC: {
-            video = std::make_shared<H265Track>();
-            _track_to_codec.emplace(track, video);
-            break;
-        }
-
-        case MOV_OBJECT_JPEG: {
-            video = std::make_shared<JPEGTrack>();
-            _track_to_codec.emplace(track, video);
-            break;
-        }
-
-        default: WarnL << "不支持该编码类型的MP4,已忽略:" << getObjectName(object); break;
+    auto video = Factory::getTrackByCodecId(getCodecByMovId(object));
+    if (!video) {
+        return;
     }
+    _track_to_codec.emplace(track, video);
     if (extra && bytes) {
         video->setExtraData((uint8_t *)extra, bytes);
     }
 }
 
 void MP4Demuxer::onAudioTrack(uint32_t track_id, uint8_t object, int channel_count, int bit_per_sample, int sample_rate, const void *extra, size_t bytes) {
-    Track::Ptr audio;
-    switch(object){
-        case MOV_OBJECT_AAC:{
-            audio = std::make_shared<AACTrack>();
-            _track_to_codec.emplace(track_id, audio);
-            break;
-        }
-
-        case MOV_OBJECT_G711a:
-        case MOV_OBJECT_G711u:{
-            audio = std::make_shared<G711Track>(object == MOV_OBJECT_G711a ? CodecG711A : CodecG711U, sample_rate, channel_count, bit_per_sample / channel_count );
-            _track_to_codec.emplace(track_id, audio);
-            break;
-        }
-
-        case MOV_OBJECT_OPUS: {
-            audio = std::make_shared<OpusTrack>();
-            _track_to_codec.emplace(track_id, audio);
-            break;
-        }
-
-        default: WarnL << "不支持该编码类型的MP4,已忽略:" << getObjectName(object); break;
+    auto audio = Factory::getTrackByCodecId(getCodecByMovId(object), sample_rate, channel_count, bit_per_sample / channel_count);
+    if (!audio) {
+        return;
     }
     if (extra && bytes) {
         audio->setExtraData((uint8_t *)extra, bytes);
@@ -225,10 +159,10 @@ Frame::Ptr MP4Demuxer::makeFrame(uint32_t track_id, const Buffer::Ptr &buf, int6
                 offset += (frame_len + 4);
             }
             if (codec == CodecH264) {
-                ret = std::make_shared<FrameWrapper<H264FrameNoCacheAble> >(buf, (uint64_t)dts, (uint64_t)pts, 4, 0);
+                ret = std::make_shared<FrameFromBuffer<H264FrameNoCacheAble> >(buf, (uint64_t)dts, (uint64_t)pts, 4, 0);
                 break;
             }
-            ret = std::make_shared<FrameWrapper<H265FrameNoCacheAble> >(buf, (uint64_t)dts, (uint64_t)pts, 4, 0);
+            ret = std::make_shared<FrameFromBuffer<H265FrameNoCacheAble> >(buf, (uint64_t)dts, (uint64_t)pts, 4, 0);
             break;
         }
 
@@ -238,7 +172,7 @@ Frame::Ptr MP4Demuxer::makeFrame(uint32_t track_id, const Buffer::Ptr &buf, int6
         }
 
         default: {
-            ret = std::make_shared<FrameWrapper<FrameFromPtr>>(buf, (uint64_t)dts, (uint64_t)pts, 0, 0, codec);
+            ret = std::make_shared<FrameFromBuffer<FrameFromPtr>>(buf, (uint64_t)dts, (uint64_t)pts, 0, 0, codec);
             break;
         }
     }

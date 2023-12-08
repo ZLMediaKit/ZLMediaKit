@@ -115,20 +115,6 @@ bool DevChannel::inputH265(const char *data, int len, uint64_t dts, uint64_t pts
     return inputFrame(frame);
 }
 
-class FrameAutoDelete : public FrameFromPtr{
-public:
-    template <typename ... ARGS>
-    FrameAutoDelete(ARGS && ...args) : FrameFromPtr(std::forward<ARGS>(args)...){}
-
-    ~FrameAutoDelete() override {
-        delete [] _ptr;
-    };
-
-    bool cacheAble() const override {
-        return true;
-    }
-};
-
 bool DevChannel::inputAAC(const char *data_without_adts, int len, uint64_t dts, const char *adts_header){
     if (dts == 0) {
         dts = _aTicker[1].elapsedTime();

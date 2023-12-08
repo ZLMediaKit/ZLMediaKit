@@ -16,6 +16,7 @@
 #include "Extension/AAC.h"
 #include "Extension/G711.h"
 #include "Extension/Opus.h"
+#include "Extension/Factory.h"
 
 #if defined(ENABLE_RTPPROXY) || defined(ENABLE_HLS)
 #include "mpeg-ts.h"
@@ -85,78 +86,18 @@ DecoderImp::DecoderImp(const Decoder::Ptr &decoder, MediaSinkInterface *sink){
 }
 
 #if defined(ENABLE_RTPPROXY) || defined(ENABLE_HLS)
-#define SWITCH_CASE(codec_id) case codec_id : return #codec_id
-static const char *getCodecName(int codec_id) {
-    switch (codec_id) {
-        SWITCH_CASE(PSI_STREAM_MPEG1);
-        SWITCH_CASE(PSI_STREAM_MPEG2);
-        SWITCH_CASE(PSI_STREAM_AUDIO_MPEG1);
-        SWITCH_CASE(PSI_STREAM_MP3);
-        SWITCH_CASE(PSI_STREAM_AAC);
-        SWITCH_CASE(PSI_STREAM_MPEG4);
-        SWITCH_CASE(PSI_STREAM_MPEG4_AAC_LATM);
-        SWITCH_CASE(PSI_STREAM_H264);
-        SWITCH_CASE(PSI_STREAM_MPEG4_AAC);
-        SWITCH_CASE(PSI_STREAM_H265);
-        SWITCH_CASE(PSI_STREAM_AUDIO_AC3);
-        SWITCH_CASE(PSI_STREAM_AUDIO_EAC3);
-        SWITCH_CASE(PSI_STREAM_AUDIO_DTS);
-        SWITCH_CASE(PSI_STREAM_VIDEO_DIRAC);
-        SWITCH_CASE(PSI_STREAM_VIDEO_VC1);
-        SWITCH_CASE(PSI_STREAM_VIDEO_SVAC);
-        SWITCH_CASE(PSI_STREAM_AUDIO_SVAC);
-        SWITCH_CASE(PSI_STREAM_AUDIO_G711A);
-        SWITCH_CASE(PSI_STREAM_AUDIO_G711U);
-        SWITCH_CASE(PSI_STREAM_AUDIO_G722);
-        SWITCH_CASE(PSI_STREAM_AUDIO_G723);
-        SWITCH_CASE(PSI_STREAM_AUDIO_G729);
-        SWITCH_CASE(PSI_STREAM_AUDIO_OPUS);
-        default : return "unknown codec";
+
+void DecoderImp::onStream(int stream, int codecid, const void *extra, size_t bytes, int finish) {
+    // G711传统只支持 8000/1/16的规格，FFmpeg貌似做了扩展，但是这里不管它了
+    auto track = Factory::getTrackByCodecId(getCodecByMpegId(codecid), 8000, 1, 16);
+    if (!track) {
+        return;
     }
-}
-
-void DecoderImp::onStream(int stream, int codecid, const void *extra, size_t bytes, int finish){
-    switch (codecid) {
-        case PSI_STREAM_H264: {
-            onTrack(std::make_shared<H264Track>());
-            break;
-        }
-
-        case PSI_STREAM_H265: {
-            onTrack(std::make_shared<H265Track>());
-            break;
-        }
-
-        case PSI_STREAM_MPEG4_AAC :
-        case PSI_STREAM_AAC: {
-            onTrack(std::make_shared<AACTrack>());
-            break;
-        }
-
-        case PSI_STREAM_AUDIO_G711A:
-        case PSI_STREAM_AUDIO_G711U: {
-            auto codec = codecid == PSI_STREAM_AUDIO_G711A ? CodecG711A : CodecG711U;
-            //G711传统只支持 8000/1/16的规格，FFmpeg貌似做了扩展，但是这里不管它了
-            onTrack(std::make_shared<G711Track>(codec, 8000, 1, 16));
-            break;
-        }
-
-        case PSI_STREAM_AUDIO_OPUS: {
-            onTrack(std::make_shared<OpusTrack>());
-            break;
-        }
-
-        default:
-            if(codecid != 0){
-                WarnL<< "unsupported codec type:" << getCodecName(codecid) << " " << (int)codecid;
-            }
-            break;
-    }
-
-    //防止未获取视频track提前complete导致忽略后续视频的问题，用于兼容一些不太规范的ps流
-    if (finish && _tracks[TrackVideo] ) {
+    onTrack(std::move(track));
+    // 防止未获取视频track提前complete导致忽略后续视频的问题，用于兼容一些不太规范的ps流
+    if (finish && _tracks[TrackVideo]) {
         _sink->addTrackCompleted();
-        InfoL << "add track finished";
+        InfoL << "Add track finished";
     }
 }
 
@@ -171,7 +112,7 @@ void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
             }
             auto frame = std::make_shared<H264FrameNoCacheAble>((char *) data, bytes, (uint64_t)dts, (uint64_t)pts, prefixSize((char *) data, bytes));
             _merger.inputFrame(frame,[this](uint64_t dts, uint64_t pts, const Buffer::Ptr &buffer, bool) {
-                onFrame(std::make_shared<FrameWrapper<H264FrameNoCacheAble> >(buffer, dts, pts, prefixSize(buffer->data(), buffer->size()), 0));
+                onFrame(std::make_shared<FrameFromBuffer<H264FrameNoCacheAble> >(buffer, dts, pts, prefixSize(buffer->data(), buffer->size()), 0));
             });
             break;
         }
@@ -182,7 +123,7 @@ void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
             }
             auto frame = std::make_shared<H265FrameNoCacheAble>((char *) data, bytes, (uint64_t)dts, (uint64_t)pts, prefixSize((char *) data, bytes));
             _merger.inputFrame(frame,[this](uint64_t dts, uint64_t pts, const Buffer::Ptr &buffer, bool) {
-                onFrame(std::make_shared<FrameWrapper<H265FrameNoCacheAble> >(buffer, dts, pts, prefixSize(buffer->data(), buffer->size()), 0));
+                onFrame(std::make_shared<FrameFromBuffer<H265FrameNoCacheAble> >(buffer, dts, pts, prefixSize(buffer->data(), buffer->size()), 0));
             });
             break;
         }
@@ -223,7 +164,7 @@ void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
         default:
             // 海康的 PS 流中会有 codecid 为 0xBD 的包
             if (codecid != 0 && codecid != 0xBD) {
-                WarnL << "unsupported codec type:" << getCodecName(codecid) << " " << (int) codecid;
+                WarnL << "Unsupported codec type:" << codecid;
             }
             break;
     }

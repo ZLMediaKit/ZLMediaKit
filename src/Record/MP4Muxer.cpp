@@ -133,21 +133,6 @@ bool MP4MuxerInterface::inputFrame(const Frame::Ptr &frame) {
     return true;
 }
 
-static uint8_t getObject(CodecId codecId) {
-    switch (codecId){
-        case CodecG711A : return MOV_OBJECT_G711a;
-        case CodecG711U : return MOV_OBJECT_G711u;
-        case CodecOpus : return MOV_OBJECT_OPUS;
-        case CodecAAC : return MOV_OBJECT_AAC;
-        case CodecH264 : return MOV_OBJECT_H264;
-        case CodecH265 : return MOV_OBJECT_HEVC;
-        case CodecJPEG : return MOV_OBJECT_JPEG;
-        case CodecVP9: return MOV_OBJECT_VP9;
-        case CodecAV1: return MOV_OBJECT_AV1;
-        default : return 0;
-    }
-}
-
 void MP4MuxerInterface::stampSync() {
     if (_codec_to_trackid.size() < 2) {
         return;
@@ -172,14 +157,14 @@ bool MP4MuxerInterface::addTrack(const Track::Ptr &track) {
     if (!_mov_writter) {
         _mov_writter = createWriter();
     }
-    auto mp4_object = getObject(track->getCodecId());
-    if (!mp4_object) {
-        WarnL << "MP4录制不支持该编码格式:" << track->getCodecName();
+    auto mp4_object = getMovIdByCodec(track->getCodecId());
+    if (mp4_object == MOV_OBJECT_NONE) {
+        WarnL << "Unsupported codec: " << track->getCodecName();
         return false;
     }
 
     if (!track->ready()) {
-        WarnL << "Track[" << track->getCodecName() << "]未就绪";
+        WarnL << "Track[" << track->getCodecName() << "] unready";
         return false;
     }
 

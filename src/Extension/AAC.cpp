@@ -300,7 +300,7 @@ bool AACTrack::inputFrame(const Frame::Ptr &frame) {
         if (frame_len == (int)frame->size()) {
             return inputFrame_l(frame);
         }
-        auto sub_frame = std::make_shared<FrameTSInternal<FrameFromPtr>>(frame, (char *)ptr, frame_len, ADTS_HEADER_LEN, dts, pts);
+        auto sub_frame = std::make_shared<FrameInternalBase<FrameFromPtr>>(frame, (char *)ptr, frame_len, ADTS_HEADER_LEN, dts, pts);
         ptr += frame_len;
         if (ptr > end) {
             WarnL << "invalid aac length in adts header: " << frame_len

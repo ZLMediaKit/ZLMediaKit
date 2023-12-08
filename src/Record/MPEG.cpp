@@ -30,26 +30,22 @@ MpegMuxer::~MpegMuxer() {
     releaseContext();
 }
 
-#define XX(name, type, value, str, mpeg_id)                                                                                                                    \
-    case name: {                                                                                                                                               \
-        if (mpeg_id == PSI_STREAM_RESERVED) {                                                                                                                  \
-            break;                                                                                                                                             \
-        }                                                                                                                                                      \
-        if (track->getTrackType() == TrackVideo) {                                                                                                             \
-            _have_video = true;                                                                                                                                \
-        }                                                                                                                                                      \
-        _codec_to_trackid[track->getCodecId()] = mpeg_muxer_add_stream((::mpeg_muxer_t *)_context, mpeg_id, nullptr, 0);                                       \
-        return true;                                                                                                                                           \
-    }
 bool MpegMuxer::addTrack(const Track::Ptr &track) {
-    switch (track->getCodecId()) {
-        CODEC_MAP(XX)
-        default: break;
+    auto mpeg_id = getMpegIdByCodec(track->getCodecId());
+    if (mpeg_id == PSI_STREAM_RESERVED) {
+        WarnL << "Unsupported codec: " << track->getCodecName();
+        return false;
     }
-    WarnL << "不支持该编码格式,已忽略:" << track->getCodecName();
-    return false;
+
+    if (track->getTrackType() == TrackVideo) {
+        _have_video = true;
+    }
+    auto extra_data = track->getExtraData();
+    _codec_to_trackid[track->getCodecId()] = mpeg_muxer_add_stream((::mpeg_muxer_t *)_context, mpeg_id,
+                                                                   extra_data ? extra_data->data() : nullptr,
+                                                                   extra_data ? extra_data->size(): 0);
+    return true;
 }
-#undef XX
 
 bool MpegMuxer::inputFrame(const Frame::Ptr &frame) {
     auto it = _codec_to_trackid.find(frame->getCodecId());

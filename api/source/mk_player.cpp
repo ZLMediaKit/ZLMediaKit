@@ -11,7 +11,6 @@
 #include "mk_player.h"
 #include "Util/logger.h"
 #include "Player/MediaPlayer.h"
-#include "Extension/H264.h"
 
 using namespace std;
 using namespace toolkit;

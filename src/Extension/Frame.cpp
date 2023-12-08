@@ -15,6 +15,14 @@
 #include "Common/Stamp.h"
 #include "Common/MediaSource.h"
 
+#if defined(ENABLE_MP4)
+#include "mov-format.h"
+#endif
+
+#if defined(ENABLE_HLS) || defined(ENABLE_RTPPROXY)
+#include "mpeg-proto.h"
+#endif
+
 using namespace std;
 using namespace toolkit;
 
@@ -41,24 +49,71 @@ FrameStamp::FrameStamp(Frame::Ptr frame, Stamp &stamp, int modify_stamp)
 
 TrackType getTrackType(CodecId codecId) {
     switch (codecId) {
-#define XX(name, type, value, str, mpeg_id) case name : return type;
+#define XX(name, type, value, str, mpeg_id, mp4_id) case name : return type;
         CODEC_MAP(XX)
 #undef XX
         default : return TrackInvalid;
     }
 }
 
+#if defined(ENABLE_MP4)
+int getMovIdByCodec(CodecId codecId) {
+    switch (codecId) {
+#define XX(name, type, value, str, mpeg_id, mp4_id) case name : return mp4_id;
+        CODEC_MAP(XX)
+#undef XX
+        default : return MOV_OBJECT_NONE;
+    }
+}
+
+CodecId getCodecByMovId(int object_id) {
+    if (object_id == MOV_OBJECT_NONE) {
+        return CodecInvalid;
+    }
+    switch (object_id) {
+#define XX(name, type, value, str, mpeg_id, mp4_id) case mp4_id : return name;
+        CODEC_MAP(XX)
+#undef XX
+        default : WarnL << "Unsupported mov: " << object_id; return CodecInvalid;
+    }
+}
+#endif
+
+#if defined(ENABLE_HLS) || defined(ENABLE_RTPPROXY)
+int getMpegIdByCodec(CodecId codec) {
+    switch (codec) {
+#define XX(name, type, value, str, mpeg_id, mp4_id) case name : return mpeg_id;
+        CODEC_MAP(XX)
+#undef XX
+        default : return PSI_STREAM_RESERVED;
+    }
+}
+
+CodecId getCodecByMpegId(int mpeg_id) {
+    if (mpeg_id == PSI_STREAM_RESERVED) {
+        return CodecInvalid;
+    }
+    switch (mpeg_id) {
+#define XX(name, type, value, str, mpeg_id, mp4_id) case mpeg_id : return name;
+        CODEC_MAP(XX)
+#undef XX
+        default : WarnL << "Unsupported mpeg: " << mpeg_id; return CodecInvalid;
+    }
+}
+
+#endif
+
 const char *getCodecName(CodecId codec) {
     switch (codec) {
-#define XX(name, type, value, str, mpeg_id) case name : return str;
+#define XX(name, type, value, str, mpeg_id, mp4_id) case name : return str;
         CODEC_MAP(XX)
 #undef XX
         default : return "invalid";
     }
 }
 
-#define XX(name, type, value, str, mpeg_id) {str, name},
-static map<string, CodecId, StrCaseCompare> codec_map = {CODEC_MAP(XX)};
+#define XX(name, type, value, str, mpeg_id, mp4_id) {str, name},
+static map<string, CodecId, StrCaseCompare> codec_map = { CODEC_MAP(XX) };
 #undef XX
 
 CodecId getCodecId(const string &str){

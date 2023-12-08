@@ -201,16 +201,6 @@ vector<Track::Ptr> MediaSink::getTracks(bool ready) const{
     return ret;
 }
 
-class FrameFromStaticPtr : public FrameFromPtr {
-public:
-    template<typename ... ARGS>
-    FrameFromStaticPtr(ARGS &&...args) : FrameFromPtr(std::forward<ARGS>(args)...) {};
-
-    bool cacheAble() const override {
-        return true;
-    }
-};
-
 static uint8_t s_mute_adts[] = {0xff, 0xf1, 0x6c, 0x40, 0x2d, 0x3f, 0xfc, 0x00, 0xe0, 0x34, 0x20, 0xad, 0xf2, 0x3f, 0xb5, 0xdd,
                                 0x73, 0xac, 0xbd, 0xca, 0xd7, 0x7d, 0x4a, 0x13, 0x2d, 0x2e, 0xa2, 0x62, 0x02, 0x70, 0x3c, 0x1c,
                                 0xc5, 0x63, 0x55, 0x69, 0x94, 0xb5, 0x8d, 0x70, 0xd7, 0x24, 0x6a, 0x9e, 0x2e, 0x86, 0x24, 0xea,
@@ -244,7 +234,7 @@ bool MuteAudioMaker::inputFrame(const Frame::Ptr &frame) {
         auto audio_idx = frame->dts() / MUTE_ADTS_DATA_MS;
         if (_audio_idx != audio_idx) {
             _audio_idx = audio_idx;
-            auto aacFrame = std::make_shared<FrameFromStaticPtr>(CodecAAC, (char *) MUTE_ADTS_DATA, MUTE_ADTS_DATA_LEN,
+            auto aacFrame = std::make_shared<FrameToCache<FrameFromPtr>>(CodecAAC, (char *) MUTE_ADTS_DATA, MUTE_ADTS_DATA_LEN,
                                                                  _audio_idx * MUTE_ADTS_DATA_MS, 0, ADTS_HEADER_LEN);
             return FrameDispatcher::inputFrame(aacFrame);
         }
