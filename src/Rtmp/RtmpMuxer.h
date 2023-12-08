@@ -26,7 +26,6 @@ public:
      * 构造函数
      */
     RtmpMuxer(const TitleMeta::Ptr &title);
-    ~RtmpMuxer() override = default;
 
     /**
      * 获取完整的SDP字符串

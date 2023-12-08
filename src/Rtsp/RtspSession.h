@@ -34,7 +34,6 @@ public:
     using onAuth = std::function<void(bool encrypted, const std::string &pwd_or_md5)>;
 
     RtspSession(const toolkit::Socket::Ptr &sock);
-    virtual ~RtspSession();
     ////Session override////
     void onRecv(const toolkit::Buffer::Ptr &buf) override;
     void onError(const toolkit::SockException &err) override;

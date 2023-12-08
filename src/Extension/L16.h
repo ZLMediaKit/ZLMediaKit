@@ -25,8 +25,8 @@ public:
     L16Track(int sample_rate, int channels) : AudioTrackImp(CodecL16,sample_rate,channels,16){}
 
 private:
-    Sdp::Ptr getSdp() override;
-    Track::Ptr clone() override;
+    Sdp::Ptr getSdp(uint8_t payload_type) const override;
+    Track::Ptr clone() const override;
 };
 
 }//namespace mediakit

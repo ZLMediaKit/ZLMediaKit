@@ -26,7 +26,6 @@ public:
 
     template<typename ...ARGS>
     FMP4Packet(ARGS && ...args) : toolkit::BufferString(std::forward<ARGS>(args)...) {};
-    ~FMP4Packet() override = default;
 
 public:
     uint64_t time_stamp = 0;

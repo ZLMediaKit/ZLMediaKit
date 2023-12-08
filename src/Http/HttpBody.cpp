@@ -189,7 +189,6 @@ public:
         _data = map_addr.get() + offset;
         _size = size;
     }
-    ~BufferMmap() override = default;
     //返回数据长度
     char *data() const override { return _data; }
     size_t size() const override { return _size; }

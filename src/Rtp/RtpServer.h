@@ -31,7 +31,6 @@ public:
     using onRecv = std::function<void(const toolkit::Buffer::Ptr &buf)>;
     enum TcpMode { NONE = 0, PASSIVE, ACTIVE };
 
-    RtpServer() = default;
     ~RtpServer();
 
     /**

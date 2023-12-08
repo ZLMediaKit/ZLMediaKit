@@ -66,7 +66,6 @@ public:
 
     template<typename ...ArgsType>
     PusherImp(ArgsType &&...args) : Parent(std::forward<ArgsType>(args)...) {}
-    ~PusherImp() override = default;
 
     /**
      * 开始推流

@@ -87,7 +87,6 @@ namespace mediakit {
 class MpegMuxer : public MediaSinkInterface {
 public:
     MpegMuxer(bool is_ps = false) {}
-    ~MpegMuxer() override = default;
     bool addTrack(const Track::Ptr &track) override { return false; }
     void resetTracks() override {}
     bool inputFrame(const Frame::Ptr &frame) override { return false; }

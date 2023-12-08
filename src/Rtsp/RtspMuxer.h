@@ -22,8 +22,6 @@ class RingDelegateHelper : public toolkit::RingDelegate<RtpPacket::Ptr> {
 public:
     using onRtp = std::function<void(RtpPacket::Ptr in, bool is_key)> ;
 
-    ~RingDelegateHelper() override = default;
-
     RingDelegateHelper(onRtp on_rtp) {
         _on_rtp = std::move(on_rtp);
     }
@@ -47,7 +45,6 @@ public:
      * 构造函数
      */
     RtspMuxer(const TitleSdp::Ptr &title = nullptr);
-    ~RtspMuxer() override = default;
 
     /**
      * 获取完整的SDP字符串
@@ -88,6 +85,7 @@ private:
 
 private:
     bool _live = true;
+    uint8_t _index {0};
     uint32_t _rtp_stamp[TrackMax]{0};
     uint64_t _ntp_stamp[TrackMax]{0};
     uint64_t _ntp_stamp_start;

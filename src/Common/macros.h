@@ -75,7 +75,6 @@ class AssertFailedException : public std::runtime_error {
 public:
     template<typename ...T>
     AssertFailedException(T && ...args) : std::runtime_error(std::forward<T>(args)...) {}
-    ~AssertFailedException() override = default;
 };
 
 extern const char kServerName[];

@@ -55,8 +55,6 @@ public:
         (*_parser) << toolkit::Option('s', "stream", toolkit::Option::ArgRequired, nullptr, false, "流id筛选", nullptr);
     }
 
-    virtual ~CMD_media() {}
-
     const char *description() const override {
         return "媒体源相关操作.";
     }

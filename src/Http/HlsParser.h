@@ -36,9 +36,6 @@ typedef struct{
 
 class HlsParser {
 public:
-    HlsParser() = default;
-    ~HlsParser() = default;
-
     bool parse(const std::string &http_url,const std::string &m3u8);
 
     /**

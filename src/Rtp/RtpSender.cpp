@@ -279,7 +279,7 @@ void RtpSender::onSendRtpUdp(const toolkit::Buffer::Ptr &buf, bool check) {
         return;
     }
     auto rtp = static_pointer_cast<RtpPacket>(buf);
-    _rtcp_context->onRtp(rtp->getSeq(), rtp->getStamp(), rtp->getStampMS(), 90000 /*not used*/, rtp->size());
+    _rtcp_context->onRtp(rtp->getSeq(), rtp->getStamp(), rtp->ntp_stamp, 90000 /*not used*/, rtp->size());
 
     if (!check) {
         //减少判断次数

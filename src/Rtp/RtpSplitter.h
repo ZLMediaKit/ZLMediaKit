@@ -17,10 +17,6 @@
 namespace mediakit{
 
 class RtpSplitter : public HttpRequestSplitter{
-public:
-    RtpSplitter() = default;
-    ~RtpSplitter() override = default;
-
 protected:
     /**
      * 收到rtp包回调

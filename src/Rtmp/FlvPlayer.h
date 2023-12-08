@@ -20,7 +20,6 @@ namespace mediakit {
 class FlvPlayer : public PlayerBase, public HttpClientImp, private FlvSplitter {
 public:
     FlvPlayer(const toolkit::EventPoller::Ptr &poller);
-    ~FlvPlayer() override = default;
 
     void play(const std::string &url) override;
     void teardown() override;

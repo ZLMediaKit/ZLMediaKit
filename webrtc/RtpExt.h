@@ -53,7 +53,6 @@ public:
     template<typename Type>
     friend void appendExt(std::map<uint8_t, RtpExt> &ret, uint8_t *ptr, const uint8_t *end);
     friend class RtpExtContext;
-    ~RtpExt() = default;
 
     static std::map<uint8_t/*id*/, RtpExt/*data*/> getExtValue(const RtpHeader *header);
     static RtpExtType getExtType(const std::string &url);
@@ -119,7 +118,6 @@ public:
     using OnGetRtp = std::function<void(uint8_t pt, uint32_t ssrc, const std::string &rid)>;
 
     RtpExtContext(const RtcMedia &media);
-    ~RtpExtContext() = default;
 
     void setOnGetRtp(OnGetRtp cb);
     std::string getRid(uint32_t ssrc) const;

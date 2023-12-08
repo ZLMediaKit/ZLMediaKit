@@ -18,10 +18,6 @@ CommonRtpDecoder::CommonRtpDecoder(CodecId codec, size_t max_frame_size ){
     obtainFrame();
 }
 
-CodecId CommonRtpDecoder::getCodecId() const {
-    return _codec;
-}
-
 void CommonRtpDecoder::obtainFrame() {
     _frame = FrameImp::create();
     _frame->_codec_id = _codec;
@@ -66,17 +62,12 @@ bool CommonRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool){
 
 ////////////////////////////////////////////////////////////////
 
-CommonRtpEncoder::CommonRtpEncoder(CodecId codec, uint32_t ssrc, uint32_t mtu_size,
-                                   uint32_t sample_rate,  uint8_t payload_type, uint8_t interleaved)
-        : CommonRtpDecoder(codec), RtpInfo(ssrc, mtu_size, sample_rate, payload_type, interleaved) {
-}
-
 bool CommonRtpEncoder::inputFrame(const Frame::Ptr &frame){
     auto stamp = frame->pts();
     auto ptr = frame->data() + frame->prefixSize();
     auto len = frame->size() - frame->prefixSize();
     auto remain_size = len;
-    auto max_size = getMaxSize();
+    auto max_size = getRtpInfo().getMaxSize();
     bool is_key = frame->keyFrame();
     bool mark = false;
     while (remain_size > 0) {
@@ -87,7 +78,7 @@ bool CommonRtpEncoder::inputFrame(const Frame::Ptr &frame){
             rtp_size = remain_size;
             mark = true;
         }
-        RtpCodec::inputRtp(makeRtp(getTrackType(), ptr, rtp_size, mark, stamp), is_key);
+        RtpCodec::inputRtp(getRtpInfo().makeRtp(frame->getTrackType(), ptr, rtp_size, mark, stamp), is_key);
         ptr += rtp_size;
         remain_size -= rtp_size;
         is_key = false;

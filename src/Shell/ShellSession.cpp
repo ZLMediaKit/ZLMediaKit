@@ -28,8 +28,6 @@ ShellSession::ShellSession(const Socket::Ptr &_sock) : Session(_sock) {
     pleaseInputUser();
 }
 
-ShellSession::~ShellSession() = default;
-
 void ShellSession::onRecv(const Buffer::Ptr&buf) {
     //DebugL << hexdump(buf->data(), buf->size());
     GET_CONFIG(uint32_t,maxReqSize,Shell::kMaxReqSize);

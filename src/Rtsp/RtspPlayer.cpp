@@ -479,7 +479,7 @@ void RtspPlayer::handleResPAUSE(const Parser &parser, int type) {
         DebugL << "seekTo(ms):" << iSeekTo;
     }
 
-    onPlayResult_l(SockException(Err_success, type == type_seek ? "resum rtsp success" : "rtsp play success"), !_play_check_timer);
+    onPlayResult_l(SockException(Err_success, type == type_seek ? "resume rtsp success" : "rtsp play success"), !_play_check_timer);
 }
 
 void RtspPlayer::onWholeRtspPacket(Parser &parser) {

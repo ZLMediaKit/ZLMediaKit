@@ -31,8 +31,6 @@ struct StrCaseCompare {
 class StrCaseMap : public std::multimap<std::string, std::string, StrCaseCompare> {
 public:
     using Super = multimap<std::string, std::string, StrCaseCompare>;
-    StrCaseMap() = default;
-    ~StrCaseMap() = default;
 
     std::string &operator[](const std::string &k) {
         auto it = find(k);
@@ -60,9 +58,6 @@ public:
 // rtsp/http/sip解析类
 class Parser {
 public:
-    Parser() = default;
-    ~Parser() = default;
-
     // 解析http/rtsp/sip请求，需要确保buf以\0结尾
     void parse(const char *buf, size_t size);
 
@@ -132,8 +127,6 @@ public:
     std::string _host;
 
 public:
-    RtspUrl() = default;
-    ~RtspUrl() = default;
     void parse(const std::string &url);
 
 private:

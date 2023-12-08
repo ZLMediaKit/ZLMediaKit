@@ -242,8 +242,6 @@ vector<RtcpHeader *> RtcpHeader::loadFromBytes(char *data, size_t len) {
 class BufferRtcp : public Buffer {
 public:
     BufferRtcp(std::shared_ptr<RtcpHeader> rtcp) { _rtcp = std::move(rtcp); }
-    ~BufferRtcp() override  = default;
-
     char *data() const override { return (char *)_rtcp.get(); }
     size_t size() const override { return _rtcp->getSize(); }
 

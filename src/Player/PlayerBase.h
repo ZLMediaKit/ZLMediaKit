@@ -32,7 +32,6 @@ public:
     static Ptr createPlayer(const toolkit::EventPoller::Ptr &poller, const std::string &strUrl);
 
     PlayerBase();
-    ~PlayerBase() override = default;
 
     /**
      * 开始播放
@@ -128,7 +127,6 @@ public:
 
     template<typename ...ArgsType>
     PlayerImp(ArgsType &&...args) : Parent(std::forward<ArgsType>(args)...) {}
-    ~PlayerImp() override = default;
 
     void play(const std::string &url) override {
         return _delegate ? _delegate->play(url) : Parent::play(url);

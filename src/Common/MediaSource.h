@@ -50,10 +50,8 @@ public:
     public:
         template<typename ...T>
         NotImplemented(T && ...args) : std::runtime_error(std::forward<T>(args)...) {}
-        ~NotImplemented() override = default;
     };
 
-    MediaSourceEvent() = default;
     virtual ~MediaSourceEvent() = default;
 
     // 获取媒体源类型
@@ -254,9 +252,6 @@ private:
 //该对象用于拦截感兴趣的MediaSourceEvent事件
 class MediaSourceEventInterceptor : public MediaSourceEvent {
 public:
-    MediaSourceEventInterceptor() = default;
-    ~MediaSourceEventInterceptor() override = default;
-
     void setDelegate(const std::weak_ptr<MediaSourceEvent> &listener);
     std::shared_ptr<MediaSourceEvent> getDelegate() const;
 
@@ -289,7 +284,6 @@ private:
  */
 class MediaInfo: public MediaTuple {
 public:
-    ~MediaInfo() = default;
     MediaInfo() = default;
     MediaInfo(const std::string &url) { parse(url); }
     void parse(const std::string &url);

@@ -191,8 +191,11 @@ void PlayerProxy::setDirectProxy() {
             mediaSource = std::make_shared<RtspMediaSource>(_tuple);
         }
     } else if (dynamic_pointer_cast<RtmpPlayer>(_delegate)) {
-        // rtmp拉流,rtmp强制直接代理
-        mediaSource = std::make_shared<RtmpMediaSource>(_tuple);
+        // rtmp拉流
+        GET_CONFIG(bool, directProxy, Rtmp::kDirectProxy);
+        if (directProxy) {
+            mediaSource = std::make_shared<RtmpMediaSource>(_tuple);
+        }
     }
     if (mediaSource) {
         setMediaSource(mediaSource);

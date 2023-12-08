@@ -157,12 +157,12 @@ void Process::run(const string &cmd, string log_file) {
         WarnL << "clone process failed:" << get_uv_errmsg();
         free(_process_stack);
         _process_stack = nullptr;
-        throw std::runtime_error(StrPrinter << "fork child process failed,err:" << get_uv_errmsg());
+        throw std::runtime_error(StrPrinter << "clone child process failed, cmd: " << cmd << ",err:" << get_uv_errmsg());
     }
 #else
     _pid = fork();
     if (_pid == -1) {
-        throw std::runtime_error(StrPrinter << "fork child process failed,err:" << get_uv_errmsg());
+        throw std::runtime_error(StrPrinter << "fork child process failed, cmd: " << cmd << ",err:" << get_uv_errmsg());
     }
     if (_pid == 0) {
         //子进程

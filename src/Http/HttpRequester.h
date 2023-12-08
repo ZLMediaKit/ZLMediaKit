@@ -20,9 +20,6 @@ public:
     using Ptr = std::shared_ptr<HttpRequester>;
     using HttpRequesterResult = std::function<void(const toolkit::SockException &ex, const Parser &response)>;
 
-    HttpRequester() = default;
-    ~HttpRequester() override = default;
-
     void setOnResult(const HttpRequesterResult &onResult);
     void startRequester(const std::string &url, const HttpRequesterResult &on_result, float timeout_sec = 10);
     void setRetry(size_t count, size_t delay);

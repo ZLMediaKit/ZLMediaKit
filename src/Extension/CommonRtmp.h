@@ -23,42 +23,26 @@ class CommonRtmpDecoder : public RtmpCodec {
 public:
     using Ptr = std::shared_ptr<CommonRtmpDecoder>;
 
-    ~CommonRtmpDecoder() override {}
-
     /**
      * 构造函数
-     * @param codec 编码id
      */
-    CommonRtmpDecoder(CodecId codec);
-
-    /**
-     * 返回编码类型ID
-     */
-    CodecId getCodecId() const override;
+    CommonRtmpDecoder(const Track::Ptr &track) : RtmpCodec(track) {}
 
     /**
      * 输入Rtmp并解码
      * @param rtmp Rtmp数据包
      */
     void inputRtmp(const RtmpPacket::Ptr &rtmp) override;
-
-private:
-    void obtainFrame();
-
-private:
-    CodecId _codec;
-    FrameImp::Ptr _frame;
 };
 
 /**
  * 通用 rtmp编码类
  */
-class CommonRtmpEncoder : public CommonRtmpDecoder {
+class CommonRtmpEncoder : public RtmpCodec {
 public:
     using Ptr = std::shared_ptr<CommonRtmpEncoder>;
 
-    CommonRtmpEncoder(const Track::Ptr &track);
-    ~CommonRtmpEncoder() override{}
+    CommonRtmpEncoder(const Track::Ptr &track) : RtmpCodec(track) {}
 
     /**
      * 输入帧数据
@@ -66,7 +50,7 @@ public:
     bool inputFrame(const Frame::Ptr &frame) override;
 
 private:
-    uint8_t _audio_flv_flags = 0;
+    uint8_t _audio_flv_flags { 0 };
 };
 
 }//namespace mediakit

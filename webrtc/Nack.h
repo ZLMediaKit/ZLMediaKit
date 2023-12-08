@@ -22,9 +22,6 @@ namespace mediakit {
 
 class NackList {
 public:
-    NackList() = default;
-    ~NackList() = default;
-
     void pushBack(RtpPacket::Ptr rtp);
     void forEach(const FCI_NACK &nack, const std::function<void(const RtpPacket::Ptr &rtp)> &cb);
 
@@ -58,7 +55,6 @@ public:
     static_assert(kNackRtpSize >=0 && kNackRtpSize <= FCI_NACK::kBitSize, "NackContext::kNackRtpSize must between 0 and 16");
 
     NackContext();
-    ~NackContext() = default;
 
     void received(uint16_t seq, bool is_rtx = false);
     void setOnNack(onNack cb);

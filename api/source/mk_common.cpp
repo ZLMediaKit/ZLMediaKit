@@ -280,7 +280,6 @@ API_EXPORT uint16_t API_CALL mk_rtc_server_start(uint16_t port) {
 class WebRtcArgsUrl : public mediakit::WebRtcArgs {
 public:
     WebRtcArgsUrl(std::string url) { _url = std::move(url); }
-    ~WebRtcArgsUrl() = default;
 
     toolkit::variant operator[](const std::string &key) const override {
         if (key == "url") {
@@ -305,7 +304,8 @@ API_EXPORT void API_CALL mk_webrtc_get_answer_sdp2(void *user_data, on_user_data
     auto session = std::make_shared<HttpSession>(Socket::createSocket());
     std::string offer_str = offer;
     std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
-    WebRtcPluginManager::Instance().getAnswerSdp(*session, type, WebRtcArgsUrl(url),
+    auto args = std::make_shared<WebRtcArgsUrl>(url);
+    WebRtcPluginManager::Instance().getAnswerSdp(*session, type, *args,
                                                  [offer_str, session, ptr, cb](const WebRtcInterface &exchanger) mutable {
         try {
             auto sdp_answer = exchangeSdp(exchanger, offer_str);

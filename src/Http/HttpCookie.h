@@ -27,8 +27,6 @@ class HttpCookie {
 public:
     using Ptr = std::shared_ptr<HttpCookie>;
     friend class HttpCookieStorage;
-    HttpCookie() = default;
-    ~HttpCookie() = default;
 
     void setPath(const std::string &path);
     void setHost(const std::string &host);
@@ -52,7 +50,6 @@ private:
  */
 class HttpCookieStorage{
 public:
-    ~HttpCookieStorage() = default;
     static HttpCookieStorage &Instance();
     void set(const HttpCookie::Ptr &cookie);
     std::vector<HttpCookie::Ptr> get(const std::string &host,const std::string &path);

@@ -166,6 +166,8 @@ public:
     // ntp时间戳
     uint64_t ntp_stamp;
 
+    bool disable_ntp = false;
+
     static Ptr create();
 
 private:
@@ -232,7 +234,6 @@ public:
 
     SdpParser() = default;
     SdpParser(const std::string &sdp) { load(sdp); }
-    ~SdpParser() = default;
 
     void load(const std::string &sdp);
     bool available() const;
@@ -248,7 +249,7 @@ private:
 /**
  * rtsp sdp基类
  */
-class Sdp : public CodecInfo {
+class Sdp {
 public:
     using Ptr = std::shared_ptr<Sdp>;
 
@@ -302,8 +303,6 @@ public:
     TitleSdp(float dur_sec = 0, const std::map<std::string, std::string> &header = std::map<std::string, std::string>(), int version = 0);
 
     std::string getSdp() const override { return _printer; }
-
-    CodecId getCodecId() const override { return CodecInvalid; }
 
     float getDuration() const { return _dur_sec; }
 

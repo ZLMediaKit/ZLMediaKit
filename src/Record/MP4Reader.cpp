@@ -20,24 +20,25 @@ using namespace toolkit;
 
 namespace mediakit {
 
-MP4Reader::MP4Reader(const std::string &vhost, const std::string &app, const std::string &stream_id, const string &file_path) {
+MP4Reader::MP4Reader(const std::string &vhost, const std::string &app, const std::string &stream_id, const string &file_path,
+                     toolkit::EventPoller::Ptr poller) {
     ProtocolOption option;
     // 读取mp4文件并流化时，不重复生成mp4/hls文件
     option.enable_mp4 = false;
     option.enable_hls = false;
     option.enable_hls_fmp4 = false;
 
-    setup(vhost, app, stream_id, file_path, option);
+    setup(vhost, app, stream_id, file_path, option, std::move(poller));
 }
 
-MP4Reader::MP4Reader(const std::string &vhost, const std::string &app, const std::string &stream_id, const string &file_path, const ProtocolOption &option) {
-    setup(vhost, app, stream_id, file_path, option);
+MP4Reader::MP4Reader(const std::string &vhost, const std::string &app, const std::string &stream_id, const string &file_path, const ProtocolOption &option, toolkit::EventPoller::Ptr poller) {
+    setup(vhost, app, stream_id, file_path, option, std::move(poller));
 }
 
-void MP4Reader::setup(const std::string &vhost, const std::string &app, const std::string &stream_id, const std::string &file_path, const ProtocolOption &option) {
+void MP4Reader::setup(const std::string &vhost, const std::string &app, const std::string &stream_id, const std::string &file_path, const ProtocolOption &option, toolkit::EventPoller::Ptr poller) {
     //读写文件建议放在后台线程
     auto tuple =  MediaTuple{vhost, app, stream_id};
-    _poller = WorkThreadPool::Instance().getPoller();
+    _poller = poller ? std::move(poller) : WorkThreadPool::Instance().getPoller();
     _file_path = file_path;
     if (_file_path.empty()) {
         GET_CONFIG(string, recordPath, Protocol::kMP4SavePath);
@@ -122,6 +123,7 @@ void MP4Reader::stopReadMP4() {
 
 void MP4Reader::startReadMP4(uint64_t sample_ms, bool ref_self, bool file_repeat) {
     GET_CONFIG(uint32_t, sampleMS, Record::kSampleMS);
+    setCurrentStamp(0);
     auto strong_self = shared_from_this();
     if (_muxer) {
         //一直读到所有track就绪为止

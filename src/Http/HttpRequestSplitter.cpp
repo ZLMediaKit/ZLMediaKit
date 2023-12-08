@@ -22,7 +22,7 @@ namespace mediakit {
 void HttpRequestSplitter::input(const char *data,size_t len) {
     {
         auto size = remainDataSize();
-        if (size > kMaxCacheSize) {
+        if (size > _max_cache_size) {
             //缓存太多数据无法处理则上抛异常
             reset();
             throw std::out_of_range("remain data size is too huge, now cleared:" + to_string(size));
@@ -142,6 +142,16 @@ const char *HttpRequestSplitter::remainData() const {
     return _remain_data.data();
 }
 
+void HttpRequestSplitter::setMaxCacheSize(size_t max_cache_size) {
+    if (!max_cache_size) {
+        max_cache_size = kMaxCacheSize;
+    }
+    _max_cache_size = max_cache_size;
+}
+
+HttpRequestSplitter::HttpRequestSplitter() {
+    setMaxCacheSize(0);
+}
 
 } /* namespace mediakit */
 

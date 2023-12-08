@@ -300,8 +300,6 @@ static bool emitHlsPlayed(const Parser &parser, const MediaInfo &media_info, con
 class SockInfoImp : public SockInfo{
 public:
     using Ptr = std::shared_ptr<SockInfoImp>;
-    SockInfoImp() = default;
-    ~SockInfoImp() override = default;
 
     string get_local_ip() override {
         return _local_ip;

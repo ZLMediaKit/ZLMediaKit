@@ -235,10 +235,14 @@ namespace Rtmp {
 #define RTMP_FIELD "rtmp."
 const string kHandshakeSecond = RTMP_FIELD "handshakeSecond";
 const string kKeepAliveSecond = RTMP_FIELD "keepAliveSecond";
+const string kDirectProxy = RTMP_FIELD "directProxy";
+const string kEnhanced = RTMP_FIELD "enhanced";
 
 static onceToken token([]() {
     mINI::Instance()[kHandshakeSecond] = 15;
     mINI::Instance()[kKeepAliveSecond] = 15;
+    mINI::Instance()[kDirectProxy] = 1;
+    mINI::Instance()[kEnhanced] = 1;
 });
 } // namespace Rtmp
 

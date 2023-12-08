@@ -205,7 +205,6 @@ class FrameFromStaticPtr : public FrameFromPtr {
 public:
     template<typename ... ARGS>
     FrameFromStaticPtr(ARGS &&...args) : FrameFromPtr(std::forward<ARGS>(args)...) {};
-    ~FrameFromStaticPtr() override = default;
 
     bool cacheAble() const override {
         return true;
@@ -260,7 +259,7 @@ bool MediaSink::addMuteAudioTrack() {
     if (_track_map.find(TrackAudio) != _track_map.end()) {
         return false;
     }
-    auto audio = std::make_shared<AACTrack>(makeAacConfig(MUTE_ADTS_DATA, ADTS_HEADER_LEN));
+    auto audio = std::make_shared<AACTrack>(MUTE_ADTS_DATA, ADTS_HEADER_LEN);
     _track_map[audio->getTrackType()] = std::make_pair(audio, true);
     audio->addDelegate([this](const Frame::Ptr &frame) {
         return onTrackFrame(frame);

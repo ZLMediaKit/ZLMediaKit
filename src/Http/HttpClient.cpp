@@ -235,7 +235,7 @@ ssize_t HttpClient::onRecvHeader(const char *data, size_t len) {
                 _total_body_size = _recved_body_size;
                 if (_recved_body_size > 0) {
                     onResponseCompleted_l(SockException(Err_success, "success"));
-                }else{
+                } else {
                     onResponseCompleted_l(SockException(Err_other, "no body"));
                 }
             }

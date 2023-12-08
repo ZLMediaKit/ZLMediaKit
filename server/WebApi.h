@@ -53,7 +53,6 @@ public:
     ApiRetException(const char *str = "success" ,int code = API::Success):runtime_error(str){
         _code = code;
     }
-    ~ApiRetException() = default;
     int code(){ return _code; }
 private:
     int _code;
@@ -62,19 +61,16 @@ private:
 class AuthException : public ApiRetException {
 public:
     AuthException(const char *str):ApiRetException(str,API::AuthFailed){}
-    ~AuthException() = default;
 };
 
 class InvalidArgsException: public ApiRetException {
 public:
     InvalidArgsException(const char *str):ApiRetException(str,API::InvalidArgs){}
-    ~InvalidArgsException() = default;
 };
 
 class SuccessException: public ApiRetException {
 public:
     SuccessException():ApiRetException("success",API::Success){}
-    ~SuccessException() = default;
 };
 
 using ApiArgsType = std::map<std::string, std::string, mediakit::StrCaseCompare>;
@@ -154,8 +150,6 @@ public:
             that._clone(*this);
         }
     }
-
-    ~HttpAllArgs() = default;
 
     template<typename Key>
     toolkit::variant operator[](const Key &key) const {

@@ -22,7 +22,6 @@ public:
     using Ptr = std::shared_ptr<MediaPlayer>;
 
     MediaPlayer(const toolkit::EventPoller::Ptr &poller = nullptr);
-    ~MediaPlayer() override = default;
 
     void play(const std::string &url) override;
     toolkit::EventPoller::Ptr getPoller();

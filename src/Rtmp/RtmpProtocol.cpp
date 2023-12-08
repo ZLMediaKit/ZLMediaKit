@@ -187,8 +187,6 @@ public:
         _size = size;
     }
 
-    ~BufferPartial() override = default;
-
     char *data() const override {
         return _data;
     }

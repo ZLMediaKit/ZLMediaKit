@@ -24,7 +24,6 @@ public:
     using onComplete = std::function<void(const toolkit::SockException &)>;
 
     HttpTSPlayer(const toolkit::EventPoller::Ptr &poller = nullptr);
-    ~HttpTSPlayer() override = default;
 
     /**
      * 设置下载完毕或异常断开回调

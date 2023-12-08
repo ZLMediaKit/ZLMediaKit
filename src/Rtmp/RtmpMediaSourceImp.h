@@ -37,8 +37,6 @@ public:
      */
     RtmpMediaSourceImp(const MediaTuple& tuple, int ringSize = RTMP_GOP_SIZE);
 
-    ~RtmpMediaSourceImp() override = default;
-
     /**
      * 设置metadata
      */

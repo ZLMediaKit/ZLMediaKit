@@ -22,8 +22,6 @@ RtmpSession::RtmpSession(const Socket::Ptr &sock) : Session(sock) {
     sock->setSendTimeOutSecond(keep_alive_sec);
 }
 
-RtmpSession::~RtmpSession() = default;
-
 void RtmpSession::onError(const SockException& err) {
     bool is_player = !_push_src_ownership;
     uint64_t duration = _ticker.createdTime() / 1000;

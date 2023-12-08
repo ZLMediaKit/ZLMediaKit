@@ -22,7 +22,6 @@ namespace mediakit{
 
 class MultiCastAddressMaker {
 public:
-    ~MultiCastAddressMaker() = default;
     static MultiCastAddressMaker& Instance();
     static bool isMultiCastAddress(uint32_t addr);
     static std::string toString(uint32_t addr);

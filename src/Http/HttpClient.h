@@ -29,9 +29,6 @@ namespace mediakit {
 
 class HttpArgs : public std::map<std::string, toolkit::variant, StrCaseCompare> {
 public:
-    HttpArgs() = default;
-    ~HttpArgs() = default;
-
     std::string make() const {
         std::string ret;
         for (auto &pr : *this) {
@@ -51,9 +48,6 @@ class HttpClient : public toolkit::TcpClient, public HttpRequestSplitter {
 public:
     using HttpHeader = StrCaseMap;
     using Ptr = std::shared_ptr<HttpClient>;
-
-    HttpClient() = default;
-    ~HttpClient() override = default;
 
     /**
      * 发送http[s]请求

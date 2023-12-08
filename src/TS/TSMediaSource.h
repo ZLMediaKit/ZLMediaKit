@@ -26,7 +26,6 @@ public:
 
     template<typename ...ARGS>
     TSPacket(ARGS && ...args) : BufferOffset<Buffer::Ptr>(std::forward<ARGS>(args)...) {};
-    ~TSPacket() override = default;
 
 public:
     uint64_t time_stamp = 0;

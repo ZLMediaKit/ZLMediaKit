@@ -26,7 +26,6 @@ public:
     using Ptr = std::shared_ptr<HlsMediaSource>;
 
     HlsMediaSource(const std::string &schema, const MediaTuple &tuple) : MediaSource(schema, tuple) {}
-    ~HlsMediaSource() override = default;
 
     /**
      * 	获取媒体源的环形缓冲

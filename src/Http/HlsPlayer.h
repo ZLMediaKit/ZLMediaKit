@@ -25,7 +25,6 @@ namespace mediakit {
 
 class HlsDemuxer : public MediaSinkInterface , public TrackSource, public std::enable_shared_from_this<HlsDemuxer> {
 public:
-    HlsDemuxer() = default;
     ~HlsDemuxer() override { _timer = nullptr; }
 
     void start(const toolkit::EventPoller::Ptr &poller, TrackListener *listener);
@@ -53,7 +52,6 @@ private:
 class HlsPlayer : public  HttpClientImp , public PlayerBase , public HlsParser{
 public:
     HlsPlayer(const toolkit::EventPoller::Ptr &poller);
-    ~HlsPlayer() override = default;
 
     /**
      * 开始播放
@@ -120,7 +118,6 @@ class HlsPlayerImp : public PlayerImp<HlsPlayer, PlayerBase>, private TrackListe
 public:
     using Ptr = std::shared_ptr<HlsPlayerImp>;
     HlsPlayerImp(const toolkit::EventPoller::Ptr &poller = nullptr);
-    ~HlsPlayerImp() override = default;
 
 private:
     //// HlsPlayer override////

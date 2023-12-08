@@ -94,6 +94,10 @@ TrackType CodecInfo::getTrackType() const {
     return mediakit::getTrackType(getCodecId());
 }
 
+std::string CodecInfo::getTrackTypeStr() const {
+    return getTrackString(getTrackType());
+}
+
 static size_t constexpr kMaxFrameCacheSize = 100;
 
 bool FrameMerger::willFlush(const Frame::Ptr &frame) const{
@@ -165,7 +169,19 @@ void FrameMerger::doMerge(BufferLikeString &merged, const Frame::Ptr &frame) con
     }
 }
 
+static bool isNeedMerge(CodecId codec){
+    switch (codec) {
+        case CodecH264:
+        case CodecH265: return true;
+        default: return false;
+    }
+}
+
 bool FrameMerger::inputFrame(const Frame::Ptr &frame, onOutput cb, BufferLikeString *buffer) {
+    if (frame && !isNeedMerge(frame->getCodecId())) {
+        cb(frame->dts(), frame->pts(), frame, true);
+        return true;
+    }
     if (willFlush(frame)) {
         Frame::Ptr back = _frame_cache.back();
         Buffer::Ptr merged_frame = back;
@@ -232,8 +248,6 @@ public:
      * inputFrame后触发onWriteFrame回调
      */
     FrameWriterInterfaceHelper(onWriteFrame cb) { _callback = std::move(cb); }
-
-    virtual ~FrameWriterInterfaceHelper() = default;
 
     /**
      * 写入帧数据

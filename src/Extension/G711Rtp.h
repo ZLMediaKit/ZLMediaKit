@@ -20,23 +20,16 @@ namespace mediakit {
 /**
  * G711 rtp编码类
  */
-class G711RtpEncoder : public CommonRtpDecoder, public RtpInfo {
+class G711RtpEncoder : public RtpCodec {
 public:
     using Ptr = std::shared_ptr<G711RtpEncoder>;
-
-    ~G711RtpEncoder() override = default;
 
     /**
      * 构造函数
      * @param codec 编码类型
-     * @param ssrc ssrc
-     * @param mtu_size mtu 大小
-     * @param sample_rate 采样率
-     * @param payload_type pt类型
-     * @param interleaved rtsp interleaved 值
+     * @param channels 通道数
      */
-    G711RtpEncoder(CodecId codec, uint32_t ssrc, uint32_t mtu_size, uint32_t sample_rate, uint8_t payload_type,
-                   uint8_t interleaved, uint32_t channels);
+    G711RtpEncoder(CodecId codec, uint32_t channels);
 
     /**
      * 输入帧数据并编码成rtp

@@ -18,7 +18,6 @@ namespace mediakit {
 class WebRtcEchoTest : public WebRtcTransportImp {
 public:
     using Ptr = std::shared_ptr<WebRtcEchoTest>;
-    ~WebRtcEchoTest() override = default;
     static Ptr create(const EventPoller::Ptr &poller);
 
 protected:

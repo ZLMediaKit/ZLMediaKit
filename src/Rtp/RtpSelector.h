@@ -41,14 +41,10 @@ private:
 
 class RtpSelector : public std::enable_shared_from_this<RtpSelector>{
 public:
-    RtpSelector() = default;
-    ~RtpSelector() = default;
-
     class ProcessExisted : public std::runtime_error {
     public:
         template<typename ...T>
         ProcessExisted(T && ...args) : std::runtime_error(std::forward<T>(args)...) {}
-        ~ProcessExisted() override = default;
     };
 
     static bool getSSRC(const char *data,size_t data_len, uint32_t &ssrc);

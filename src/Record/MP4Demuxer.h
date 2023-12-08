@@ -20,10 +20,6 @@ class MP4Demuxer : public TrackSource {
 public:
     using Ptr = std::shared_ptr<MP4Demuxer>;
 
-    /**
-     * 创建mp4解复用器
-     */
-    MP4Demuxer();
     ~MP4Demuxer() override;
 
     /**

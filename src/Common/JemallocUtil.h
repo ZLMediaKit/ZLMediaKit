@@ -16,9 +16,6 @@
 namespace mediakit {
 class JemallocUtil {
 public:
-    JemallocUtil() = default;
-    ~JemallocUtil() = default;
-
     static void enable_profiling();
 
     static void disable_profiling();

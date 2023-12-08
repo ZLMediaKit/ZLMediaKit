@@ -23,19 +23,12 @@ class CommonRtpDecoder : public RtpCodec {
 public:
     using Ptr = std::shared_ptr <CommonRtpDecoder>;
 
-    ~CommonRtpDecoder() override {}
-
     /**
      * 构造函数
      * @param codec 编码id
      * @param max_frame_size 允许的最大帧大小
      */
     CommonRtpDecoder(CodecId codec, size_t max_frame_size = 2 * 1024);
-
-    /**
-     * 返回编码类型ID
-     */
-    CodecId getCodecId() const override;
 
     /**
      * 输入rtp并解码
@@ -59,22 +52,9 @@ private:
 /**
  * 通用 rtp编码类
  */
-class CommonRtpEncoder : public CommonRtpDecoder, public RtpInfo {
+class CommonRtpEncoder : public RtpCodec {
 public:
     using Ptr = std::shared_ptr <CommonRtpEncoder>;
-
-    ~CommonRtpEncoder() override {}
-
-    /**
-     * 构造函数
-     * @param codec 编码类型
-     * @param ssrc ssrc
-     * @param mtu_size mtu 大小
-     * @param sample_rate 采样率
-     * @param payload_type pt类型
-     * @param interleaved rtsp interleaved 值
-     */
-    CommonRtpEncoder(CodecId codec, uint32_t ssrc, uint32_t mtu_size, uint32_t sample_rate, uint8_t payload_type, uint8_t interleaved);
 
     /**
      * 输入帧数据并编码成rtp

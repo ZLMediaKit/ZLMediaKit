@@ -65,7 +65,6 @@ private:
 
 class TaskManager {
 public:
-    TaskManager() = default;
     virtual ~TaskManager();
 
     void setMaxTaskSize(size_t size);
@@ -84,7 +83,6 @@ private:
     class ThreadExitException : public std::runtime_error {
     public:
         ThreadExitException() : std::runtime_error("exit") {}
-        ~ThreadExitException() = default;
     };
 
 private:

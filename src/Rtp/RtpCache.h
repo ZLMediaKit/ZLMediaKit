@@ -23,7 +23,6 @@ class RtpCache : protected PacketCache<toolkit::Buffer> {
 public:
     using onFlushed = std::function<void(std::shared_ptr<toolkit::List<toolkit::Buffer::Ptr> >)>;
     RtpCache(onFlushed cb);
-    ~RtpCache() override = default;
 
 protected:
     /**
@@ -42,7 +41,6 @@ private:
 class RtpCachePS : public RtpCache, public PSEncoderImp {
 public:
     RtpCachePS(onFlushed cb, uint32_t ssrc, uint8_t payload_type = 96) : RtpCache(std::move(cb)), PSEncoderImp(ssrc, payload_type) {};
-    ~RtpCachePS() override = default;
     void flush() override;
 
 protected:
@@ -52,7 +50,6 @@ protected:
 class RtpCacheRaw : public RtpCache, public RawEncoderImp {
 public:
     RtpCacheRaw(onFlushed cb, uint32_t ssrc, uint8_t payload_type = 96, bool send_audio = true) : RtpCache(std::move(cb)), RawEncoderImp(ssrc, payload_type, send_audio) {};
-    ~RtpCacheRaw() override = default;
     void flush() override;
 
 protected:

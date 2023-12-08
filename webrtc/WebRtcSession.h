@@ -27,7 +27,6 @@ using namespace toolkit;
 class WebRtcSession : public Session, public HttpRequestSplitter {
 public:
     WebRtcSession(const Socket::Ptr &sock);
-    ~WebRtcSession() override;
 
     void attachServer(const Server &server) override;
     void onRecv(const Buffer::Ptr &) override;

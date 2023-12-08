@@ -174,7 +174,7 @@ void do_http_hook(const string &url, const ArgsType &body, const function<void(c
     GET_CONFIG(float, retry_delay, Hook::kRetryDelay);
 
     const_cast<ArgsType &>(body)["mediaServerId"] = mediaServerId;
-    const_cast<ArgsType &>(body)["hook_index"] = s_hook_index++;
+    const_cast<ArgsType &>(body)["hook_index"] = (Json::UInt64)(s_hook_index++);
 
     auto requester = std::make_shared<HttpRequester>();
     requester->setMethod("POST");

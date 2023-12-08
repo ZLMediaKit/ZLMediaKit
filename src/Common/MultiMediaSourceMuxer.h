@@ -32,13 +32,11 @@ public:
 
     class Listener {
     public:
-        Listener() = default;
         virtual ~Listener() = default;
         virtual void onAllTrackReady() = 0;
     };
 
     MultiMediaSourceMuxer(const MediaTuple& tuple, float dur_sec = 0.0,const ProtocolOption &option = ProtocolOption());
-    ~MultiMediaSourceMuxer() override = default;
 
     /**
      * 设置事件监听器

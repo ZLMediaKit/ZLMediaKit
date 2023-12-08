@@ -24,8 +24,7 @@ class H265RtmpDecoder : public RtmpCodec {
 public:
     using Ptr = std::shared_ptr<H265RtmpDecoder>;
 
-    H265RtmpDecoder();
-    ~H265RtmpDecoder() = default;
+    H265RtmpDecoder(const Track::Ptr &track) : RtmpCodec(track) {}
 
     /**
      * 输入265 Rtmp包
@@ -33,23 +32,18 @@ public:
      */
     void inputRtmp(const RtmpPacket::Ptr &rtmp) override;
 
-    CodecId getCodecId() const override { return CodecH265; }
-
 protected:
-    H265Frame::Ptr obtainFrame();
-
-    void onGetH265(const char *data, size_t size, uint32_t dts, uint32_t pts);
+    void outputFrame(const char *data, size_t size, uint32_t dts, uint32_t pts);
     void splitFrame(const uint8_t *data, size_t size, uint32_t dts, uint32_t pts);
 
 protected:
     RtmpPacketInfo _info;
-    H265Frame::Ptr _h265frame;
 };
 
 /**
  * 265 Rtmp打包类
  */
-class H265RtmpEncoder : public H265RtmpDecoder {
+class H265RtmpEncoder : public RtmpCodec {
 public:
     using Ptr = std::shared_ptr<H265RtmpEncoder>;
 
@@ -59,8 +53,7 @@ public:
      * 那么inputFrame时可以不输入sps pps
      * @param track
      */
-    H265RtmpEncoder(const Track::Ptr &track);
-    ~H265RtmpEncoder() = default;
+    H265RtmpEncoder(const Track::Ptr &track) : RtmpCodec(track) {}
 
     /**
      * 输入265帧，可以不带sps pps
@@ -79,14 +72,6 @@ public:
     void makeConfigPacket() override;
 
 private:
-    void makeVideoConfigPkt();
-
-private:
-    bool _got_config_frame = false;
-    std::string _vps;
-    std::string _sps;
-    std::string _pps;
-    H265Track::Ptr _track;
     RtmpPacket::Ptr _rtmp_packet;
     FrameMerger _merger { FrameMerger::mp4_nal_size };
 };

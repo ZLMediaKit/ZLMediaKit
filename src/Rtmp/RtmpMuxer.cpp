@@ -14,9 +14,9 @@
 namespace mediakit {
 
 RtmpMuxer::RtmpMuxer(const TitleMeta::Ptr &title) {
-    if(!title){
+    if (!title) {
         _metadata = std::make_shared<TitleMeta>()->getMetadata();
-    }else{
+    } else {
         _metadata = title->getMetadata();
     }
     _rtmp_ring = std::make_shared<RtmpRing::RingType>();
@@ -24,16 +24,20 @@ RtmpMuxer::RtmpMuxer(const TitleMeta::Ptr &title) {
 
 bool RtmpMuxer::addTrack(const Track::Ptr &track) {
     auto &encoder = _encoder[track->getTrackType()];
-    //生成rtmp编码器,克隆该Track，防止循环引用
-    encoder = Factory::getRtmpCodecByTrack(track->clone(), true);
+    if (encoder) {
+        WarnL << "Already add a track kind of: " << track->getTrackTypeStr()
+              << ", ignore track: " << track->getCodecName();
+        return false;
+    }
+    encoder = Factory::getRtmpEncoderByTrack(track);
     if (!encoder) {
         return false;
     }
 
-    //设置rtmp输出环形缓存
+    // 设置rtmp输出环形缓存
     encoder->setRtmpRing(_rtmp_ring);
 
-    //添加metadata
+    // 添加metadata
     Metadata::addTrack(_metadata, track);
     return true;
 }
@@ -51,9 +55,9 @@ void RtmpMuxer::flush() {
     }
 }
 
-void RtmpMuxer::makeConfigPacket(){
-    for(auto &encoder : _encoder){
-        if(encoder){
+void RtmpMuxer::makeConfigPacket() {
+    for (auto &encoder : _encoder) {
+        if (encoder) {
             encoder->makeConfigPacket();
         }
     }
@@ -69,10 +73,9 @@ RtmpRing::RingType::Ptr RtmpMuxer::getRtmpRing() const {
 
 void RtmpMuxer::resetTracks() {
     _metadata.clear();
-    for(auto &encoder : _encoder){
+    for (auto &encoder : _encoder) {
         encoder = nullptr;
     }
 }
 
-
-}/* namespace mediakit */
+} /* namespace mediakit */

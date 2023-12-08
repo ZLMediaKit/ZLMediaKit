@@ -28,8 +28,7 @@ public:
     static constexpr SEQ SEQ_MAX = (std::numeric_limits<SEQ>::max)();
     using iterator = typename std::map<SEQ, T>::iterator;
 
-    PacketSortor() = default;
-    ~PacketSortor() = default;
+    virtual ~PacketSortor() = default;
 
     void setOnSort(std::function<void(SEQ seq, T packet)> cb) { _cb = std::move(cb); }
 
@@ -102,7 +101,7 @@ private:
             ret = next_seq - seq;
         }
         if (ret > SEQ_MAX >> 1) {
-            return SEQ_MAX - ret + 1;
+            return SEQ_MAX - ret;
         }
         return ret;
     }
@@ -201,11 +200,9 @@ public:
     public:
         template<typename Type>
         BadRtpException(Type &&type) : invalid_argument(std::forward<Type>(type)) {}
-        ~BadRtpException() = default;
     };
 
     RtpTrack();
-    virtual ~RtpTrack() = default;
 
     void clear();
     uint32_t getSSRC() const;
@@ -229,9 +226,6 @@ class RtpTrackImp : public RtpTrack{
 public:
     using OnSorted = std::function<void(RtpPacket::Ptr)>;
     using BeforeSorted = std::function<void(const RtpPacket::Ptr &)>;
-
-    RtpTrackImp() = default;
-    ~RtpTrackImp() override = default;
 
     void setOnSorted(OnSorted cb);
     void setBeforeSorted(BeforeSorted cb);

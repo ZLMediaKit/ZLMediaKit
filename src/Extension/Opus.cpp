@@ -22,39 +22,33 @@ class OpusSdp : public Sdp {
 public:
     /**
      * 构造opus sdp
+     * @param payload_type rtp payload type
      * @param sample_rate 音频采样率
-     * @param payload_type rtp payload
+     * @param channels 通道数
      * @param bitrate 比特率
      */
-    OpusSdp(int sample_rate,
-            int channels,
-            int bitrate = 128,
-            int payload_type = 98) : Sdp(sample_rate,payload_type){
+    OpusSdp(int payload_type, int sample_rate, int channels, int bitrate) : Sdp(sample_rate, payload_type) {
         _printer << "m=audio 0 RTP/AVP " << payload_type << "\r\n";
         if (bitrate) {
             _printer << "b=AS:" << bitrate << "\r\n";
         }
-        _printer << "a=rtpmap:" << payload_type << " " << getCodecName() << "/" << sample_rate  << "/" << channels << "\r\n";
-        _printer << "a=control:trackID=" << (int)TrackAudio << "\r\n";
+        _printer << "a=rtpmap:" << payload_type << " " << getCodecName(CodecOpus) << "/" << sample_rate  << "/" << channels << "\r\n";
     }
 
     string getSdp() const override {
         return _printer;
     }
 
-    CodecId getCodecId() const override {
-        return CodecOpus;
-    }
 private:
     _StrPrinter _printer;
 };
 
-Sdp::Ptr OpusTrack::getSdp() {
-    if(!ready()){
+Sdp::Ptr OpusTrack::getSdp(uint8_t payload_type) const {
+    if (!ready()) {
         WarnL << getCodecName() << " Track未准备好";
         return nullptr;
     }
-    return std::make_shared<OpusSdp>(getAudioSampleRate(), getAudioChannel(), getBitRate() / 1024);
+    return std::make_shared<OpusSdp>(payload_type, getAudioSampleRate(), getAudioChannel(), getBitRate() / 1024);
 }
 
 }//namespace mediakit

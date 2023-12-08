@@ -21,7 +21,6 @@ public:
     using Ptr = std::shared_ptr<TsPlayerImp>;
 
     TsPlayerImp(const toolkit::EventPoller::Ptr &poller = nullptr);
-    ~TsPlayerImp() override = default;
 
 private:
     //// TsPlayer override////

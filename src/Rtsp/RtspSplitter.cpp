@@ -57,13 +57,16 @@ const char *RtspSplitter::onSearchPacketTail_l(const char *data, size_t len) {
 }
 
 ssize_t RtspSplitter::onRecvHeader(const char *data, size_t len) {
-    if(_isRtpPacket){
-        onRtpPacket(data,len);
+    if (_isRtpPacket) {
+        onRtpPacket(data, len);
+        return 0;
+    }
+    if (len == 4 && !memcmp(data, "\r\n\r\n", 4)) {
         return 0;
     }
     _parser.parse(data, len);
     auto ret = getContentLength(_parser);
-    if(ret == 0){
+    if (ret == 0) {
         onWholeRtspPacket(_parser);
         _parser.clear();
     }

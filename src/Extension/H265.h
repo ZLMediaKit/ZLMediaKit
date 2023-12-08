@@ -19,8 +19,6 @@
 
 namespace mediakit {
 
-bool getHEVCInfo(const std::string &strVps, const std::string &strSps, int &iVideoWidth, int &iVideoHeight, float &iVideoFps);
-
 template<typename Parent>
 class H265FrameHelper : public Parent{
 public:
@@ -63,8 +61,6 @@ public:
     H265FrameHelper(ARGS &&...args): Parent(std::forward<ARGS>(args)...) {
         this->_codec_id = CodecH265;
     }
-
-    ~H265FrameHelper() override = default;
 
     bool keyFrame() const override {
         auto nal_ptr = (uint8_t *) this->data() + this->prefixSize();
@@ -137,25 +133,19 @@ public:
      */
     H265Track(const std::string &vps,const std::string &sps, const std::string &pps,int vps_prefix_len = 4, int sps_prefix_len = 4, int pps_prefix_len = 4);
 
-    /**
-     * 返回不带0x00 00 00 01头的vps/sps/pps
-     */
-    const std::string &getVps() const;
-    const std::string &getSps() const;
-    const std::string &getPps() const;
-
-    bool ready() override;
+    bool ready() const override;
     CodecId getCodecId() const override;
     int getVideoWidth() const override;
     int getVideoHeight() const override;
     float getVideoFps() const override;
     bool inputFrame(const Frame::Ptr &frame) override;
+    toolkit::Buffer::Ptr getExtraData() const override;
+    void setExtraData(const uint8_t *data, size_t size) override;
     bool update() override;
 
 private:
-    void onReady();
-    Sdp::Ptr getSdp() override;
-    Track::Ptr clone() override;
+    Sdp::Ptr getSdp(uint8_t payload_type) const override;
+    Track::Ptr clone() const override;
     bool inputFrame_l(const Frame::Ptr &frame);
     void insertConfigFrame(const Frame::Ptr &frame);
 

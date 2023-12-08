@@ -85,7 +85,6 @@ class CodecInfo {
 public:
     using Ptr = std::shared_ptr<CodecInfo>;
 
-    CodecInfo() = default;
     virtual ~CodecInfo() = default;
 
     /**
@@ -102,6 +101,7 @@ public:
      * 获取音视频类型
      */
     TrackType getTrackType() const;
+    std::string getTrackTypeStr() const;
 };
 
 /**
@@ -110,7 +110,6 @@ public:
 class Frame : public toolkit::Buffer, public CodecInfo {
 public:
     using Ptr = std::shared_ptr<Frame>;
-    virtual ~Frame() = default;
 
     /**
      * 返回解码时间戳，单位毫秒
@@ -267,7 +266,6 @@ private:
 class FrameWriterInterface {
 public:
     using Ptr = std::shared_ptr<FrameWriterInterface>;
-    FrameWriterInterface() = default;
     virtual ~FrameWriterInterface() = default;
 
     /**
@@ -287,8 +285,6 @@ public:
 class FrameDispatcher : public FrameWriterInterface {
 public:
     using Ptr = std::shared_ptr<FrameDispatcher>;
-    FrameDispatcher() = default;
-    ~FrameDispatcher() override = default;
 
     /**
      * 添加代理
@@ -404,10 +400,8 @@ class FrameFromPtr : public Frame {
 public:
     using Ptr = std::shared_ptr<FrameFromPtr>;
 
-    FrameFromPtr(
-        CodecId codec_id, char *ptr, size_t size, uint64_t dts, uint64_t pts = 0, size_t prefix_size = 0,
-        bool is_key = false)
-        : FrameFromPtr(ptr, size, dts, pts, prefix_size, is_key) {
+    FrameFromPtr(CodecId codec_id, char *ptr, size_t size, uint64_t dts, uint64_t pts = 0, size_t prefix_size = 0, bool is_key = false)
+            : FrameFromPtr(ptr, size, dts, pts, prefix_size,is_key) {
         _codec_id = codec_id;
     }
 
@@ -477,8 +471,6 @@ public:
         _decode_able = frame->decodeAble();
     }
 
-    ~FrameCacheAble() override = default;
-
     /**
      * 可以被缓存
      */
@@ -528,8 +520,6 @@ private:
 template <typename Parent>
 class FrameWrapper : public Parent {
 public:
-    ~FrameWrapper() = default;
-
     /**
      * 构造frame
      * @param buf 数据缓存
@@ -580,7 +570,6 @@ public:
     };
 
     FrameMerger(int type);
-    ~FrameMerger() = default;
 
     /**
      * 刷新输出缓冲，注意此时会调用FrameMerger::inputFrame传入的onOutput回调

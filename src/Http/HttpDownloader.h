@@ -20,7 +20,6 @@ public:
     using Ptr = std::shared_ptr<HttpDownloader>;
     using onDownloadResult = std::function<void(const toolkit::SockException &ex, const std::string &filePath)>;
 
-    HttpDownloader() = default;
     ~HttpDownloader() override;
 
     /**

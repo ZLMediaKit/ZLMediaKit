@@ -11,7 +11,7 @@
 #ifndef ZLMEDIAKIT_MP4MUXER_H
 #define ZLMEDIAKIT_MP4MUXER_H
 
-#if defined(ENABLE_MP4) || defined(ENABLE_HLS_FMP4)
+#if defined(ENABLE_MP4)
 
 #include "Common/MediaSink.h"
 #include "Common/Stamp.h"
@@ -21,8 +21,6 @@ namespace mediakit {
 
 class MP4MuxerInterface : public MediaSinkInterface {
 public:
-    MP4MuxerInterface() = default;
-    ~MP4MuxerInterface() override = default;
 
     /**
      * 添加已经ready状态的track
@@ -85,10 +83,7 @@ private:
 class MP4Muxer : public MP4MuxerInterface{
 public:
     using Ptr = std::shared_ptr<MP4Muxer>;
-
-    MP4Muxer() = default;
     ~MP4Muxer() override;
-
     /**
      * 重置所有track
      */
@@ -116,7 +111,6 @@ private:
 class MP4MuxerMemory : public MP4MuxerInterface{
 public:
     MP4MuxerMemory();
-    ~MP4MuxerMemory() override = default;
 
     /**
      * 重置所有track
@@ -162,9 +156,6 @@ namespace mediakit {
 
 class MP4MuxerMemory : public MediaSinkInterface {
 public:
-    MP4MuxerMemory() = default;
-    ~MP4MuxerMemory() override = default;
-
     bool addTrack(const Track::Ptr & track) override { return false; }
     bool inputFrame(const Frame::Ptr &frame) override { return false; }
     const std::string &getInitSegment() { static std::string kNull; return kNull; };
@@ -181,5 +172,5 @@ protected:
 
 } // namespace mediakit
 
-#endif //defined(ENABLE_MP4) || defined(ENABLE_HLS_FMP4)
+#endif //defined(ENABLE_MP4)
 #endif //ZLMEDIAKIT_MP4MUXER_H

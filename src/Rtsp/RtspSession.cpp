@@ -56,8 +56,6 @@ RtspSession::RtspSession(const Socket::Ptr &sock) : Session(sock) {
     sock->setSendTimeOutSecond(keep_alive_sec);
 }
 
-RtspSession::~RtspSession() = default;
-
 void RtspSession::onError(const SockException &err) {
     bool is_player = !_push_src_ownership;
     uint64_t duration = _alive_ticker.createdTime() / 1000;
@@ -679,17 +677,17 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
 
     switch (_rtp_type) {
     case Rtsp::RTP_TCP: {
-        if(_push_src){
-            //rtsp推流时，interleaved由推流者决定
-            auto key_values =  Parser::parseArgs(parser["Transport"],";","=");
-            int interleaved_rtp = -1 , interleaved_rtcp = -1;
-            if(2 == sscanf(key_values["interleaved"].data(),"%d-%d",&interleaved_rtp,&interleaved_rtcp)){
+        if (_push_src) {
+            // rtsp推流时，interleaved由推流者决定
+            auto key_values = Parser::parseArgs(parser["Transport"], ";", "=");
+            int interleaved_rtp = -1, interleaved_rtcp = -1;
+            if (2 == sscanf(key_values["interleaved"].data(), "%d-%d", &interleaved_rtp, &interleaved_rtcp)) {
                 trackRef->_interleaved = interleaved_rtp;
-            }else{
+            } else {
                 throw SockException(Err_shutdown, "can not find interleaved when setup of rtp over tcp");
             }
-        }else{
-            //rtsp播放时，由于数据共享分发，所以interleaved必须由服务器决定
+        } else {
+            // rtsp播放时，由于数据共享分发，所以interleaved必须由服务器决定
             trackRef->_interleaved = 2 * trackRef->_type;
         }
         sendRtspResponse("200 OK",

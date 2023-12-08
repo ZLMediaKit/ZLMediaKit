@@ -26,9 +26,6 @@ public:
     //每个twcc rtcp包发送的最大时间间隔，单位毫秒
     static constexpr size_t kMaxTimeDelta = 256;
 
-    TwccContext() = default;
-    ~TwccContext() = default;
-
     void onRtp(uint32_t ssrc, uint16_t twcc_ext_seq, uint64_t stamp_ms);
     void setOnSendTwccCB(onSendTwccCB cb);
 

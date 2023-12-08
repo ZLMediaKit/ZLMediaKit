@@ -297,6 +297,10 @@ namespace Rtmp {
 extern const std::string kHandshakeSecond;
 // 维持链接超时时间，默认15秒
 extern const std::string kKeepAliveSecond;
+// 是否直接代理
+extern const std::string kDirectProxy;
+// h265-rtmp是否采用增强型(或者国内扩展)
+extern const std::string kEnhanced;
 } // namespace Rtmp
 
 ////////////RTP配置///////////

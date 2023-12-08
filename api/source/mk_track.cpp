@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
@@ -27,8 +27,6 @@ public:
         }
     }
 
-    ~VideoTrackForC() override = default;
-
     int getVideoHeight() const override {
         return _args.video.height;
     }
@@ -45,16 +43,16 @@ public:
         return _codec_id;
     }
 
-    bool ready() override {
+    bool ready() const override {
         return true;
     }
 
-    Track::Ptr clone() override {
-        auto track_in = std::shared_ptr<Track>(shared_from_this());
+    Track::Ptr clone() const override {
+        auto track_in = std::shared_ptr<Track>(const_cast<VideoTrackForC *>(this)->shared_from_this());
         return Factory::getTrackByAbstractTrack(track_in);
     }
 
-    Sdp::Ptr getSdp() override {
+    Sdp::Ptr getSdp(uint8_t) const override {
         return nullptr;
     }
 
@@ -65,17 +63,15 @@ private:
 
 class AudioTrackForC : public AudioTrackImp, public std::enable_shared_from_this<AudioTrackForC> {
 public:
-    ~AudioTrackForC() override = default;
-
     AudioTrackForC(int codec_id, codec_args *args) :
         AudioTrackImp((CodecId) codec_id, args->audio.sample_rate, args->audio.channels, 16) {}
 
-    Track::Ptr clone() override {
-        auto track_in = std::shared_ptr<Track>(shared_from_this());
+    Track::Ptr clone() const override {
+        auto track_in = std::shared_ptr<Track>(const_cast<AudioTrackForC *>(this)->shared_from_this());
         return Factory::getTrackByAbstractTrack(track_in);
     }
 
-    Sdp::Ptr getSdp() override {
+    Sdp::Ptr getSdp(uint8_t payload_type) const override {
         return nullptr;
     }
 };

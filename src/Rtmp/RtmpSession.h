@@ -27,7 +27,6 @@ public:
     using Ptr = std::shared_ptr<RtmpSession>;
 
     RtmpSession(const toolkit::Socket::Ptr &sock);
-    ~RtmpSession() override;
 
     void onRecv(const toolkit::Buffer::Ptr &buf) override;
     void onError(const toolkit::SockException &err) override;

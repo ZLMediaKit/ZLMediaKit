@@ -33,8 +33,6 @@ public:
         _hls->clearCache();
     }
 
-    ~HlsRecorderBase() override = default;
-
     void setMediaSource(const MediaTuple& tuple) {
         _hls->setMediaSource(tuple.vhost, tuple.app, tuple.stream);
     }

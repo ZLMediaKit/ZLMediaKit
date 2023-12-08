@@ -203,11 +203,6 @@ public:
                              "日志保存文件夹路径",/*该选项说明文字*/
                              nullptr);
     }
-
-    ~CMD_main() override{}
-    const char *description() const override{
-        return "主程序命令参数";
-    }
 };
 
 //全局变量，在WebApi中用于保存配置文件用
@@ -264,13 +259,13 @@ int start_main(int argc,char *argv[]) {
         loadIniConfig(g_ini_file.data());
 
         if (!File::is_dir(ssl_file)) {
-            //不是文件夹，加载证书，证书包含公钥和私钥
+            // 不是文件夹，加载证书，证书包含公钥和私钥
             SSL_Initor::Instance().loadCertificate(ssl_file.data());
         } else {
             //加载文件夹下的所有证书
-            File::scanDir(ssl_file, [](const string &path, bool isDir) {
+            File::scanDir(ssl_file,[](const string &path, bool isDir){
                 if (!isDir) {
-                    //最后的一个证书会当做默认证书(客户端ssl握手时未指定主机)
+                    // 最后的一个证书会当做默认证书(客户端ssl握手时未指定主机)
                     SSL_Initor::Instance().loadCertificate(path.data());
                 }
                 return true;
@@ -290,6 +285,7 @@ int start_main(int argc,char *argv[]) {
         //如果需要调用getSnap和addFFmpegSource接口，可以关闭cpu亲和性
 
         EventPollerPool::setPoolSize(threads);
+        WorkThreadPool::setPoolSize(threads);
         EventPollerPool::enableCpuAffinity(affinity);
 
         //简单的telnet服务器，可用于服务器调试，但是不能使用23端口，否则telnet上了莫名其妙的现象

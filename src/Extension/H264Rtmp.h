@@ -24,8 +24,7 @@ class H264RtmpDecoder : public RtmpCodec {
 public:
     using Ptr = std::shared_ptr<H264RtmpDecoder>;
 
-    H264RtmpDecoder();
-    ~H264RtmpDecoder() {}
+    H264RtmpDecoder(const Track::Ptr &track) : RtmpCodec(track) {}
 
     /**
      * 输入264 Rtmp包
@@ -33,24 +32,15 @@ public:
      */
     void inputRtmp(const RtmpPacket::Ptr &rtmp) override;
 
-    CodecId getCodecId() const override{
-        return CodecH264;
-    }
-
-protected:
-    void onGetH264(const char *data, size_t len, uint32_t dts, uint32_t pts);
-    H264Frame::Ptr obtainFrame();
-
-protected:
-    H264Frame::Ptr _h264frame;
-    std::string _sps;
-    std::string _pps;
+private:
+    void outputFrame(const char *data, size_t len, uint32_t dts, uint32_t pts);
+    void splitFrame(const uint8_t *data, size_t size, uint32_t dts, uint32_t pts);
 };
 
 /**
  * 264 Rtmp打包类
  */
-class H264RtmpEncoder : public H264RtmpDecoder{
+class H264RtmpEncoder : public RtmpCodec {
 public:
     using Ptr = std::shared_ptr<H264RtmpEncoder>;
 
@@ -60,8 +50,7 @@ public:
      * 那么inputFrame时可以不输入sps pps
      * @param track
      */
-    H264RtmpEncoder(const Track::Ptr &track);
-    ~H264RtmpEncoder() = default;
+    H264RtmpEncoder(const Track::Ptr &track) : RtmpCodec(track) {}
 
     /**
      * 输入264帧，可以不带sps pps
@@ -80,13 +69,8 @@ public:
     void makeConfigPacket() override;
 
 private:
-    void makeVideoConfigPkt();
-
-private:
-    bool _got_config_frame = false;
-    H264Track::Ptr _track;
     RtmpPacket::Ptr _rtmp_packet;
-    FrameMerger _merger{FrameMerger::mp4_nal_size};
+    FrameMerger _merger { FrameMerger::mp4_nal_size };
 };
 
 }//namespace mediakit

@@ -51,8 +51,6 @@ WebRtcSession::WebRtcSession(const Socket::Ptr &sock) : Session(sock) {
     _over_tcp = sock->sockType() == SockNum::Sock_TCP;
 }
 
-WebRtcSession::~WebRtcSession() = default;
-
 void WebRtcSession::attachServer(const Server &server) {
     _server = std::static_pointer_cast<toolkit::TcpServer>(const_cast<Server &>(server).shared_from_this());
 }

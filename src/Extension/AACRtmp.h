@@ -19,35 +19,23 @@ namespace mediakit{
 /**
  * aac Rtmp转adts类
  */
-class AACRtmpDecoder : public RtmpCodec{
+class AACRtmpDecoder : public RtmpCodec {
 public:
     using Ptr = std::shared_ptr<AACRtmpDecoder>;
 
-    AACRtmpDecoder() {}
-    ~AACRtmpDecoder() {}
+    AACRtmpDecoder(const Track::Ptr &track) : RtmpCodec(track) {}
 
     /**
      * 输入Rtmp并解码
      * @param rtmp Rtmp数据包
      */
     void inputRtmp(const RtmpPacket::Ptr &rtmp) override;
-
-    CodecId getCodecId() const override{
-        return CodecAAC;
-    }
-
-private:
-    void onGetAAC(const char *data, size_t len, uint32_t stamp);
-
-private:
-    std::string _aac_cfg;
 };
-
 
 /**
  * aac adts转Rtmp类
  */
-class AACRtmpEncoder : public AACRtmpDecoder{
+class AACRtmpEncoder : public RtmpCodec {
 public:
     using Ptr = std::shared_ptr<AACRtmpEncoder>;
 
@@ -57,8 +45,7 @@ public:
      * 那么inputFrame时可以不输入adts头
      * @param track
      */
-    AACRtmpEncoder(const Track::Ptr &track);
-    ~AACRtmpEncoder() {}
+    AACRtmpEncoder(const Track::Ptr &track) : RtmpCodec(track) {}
 
     /**
      * 输入aac 数据，可以不带adts头
@@ -72,12 +59,7 @@ public:
     void makeConfigPacket() override;
 
 private:
-    void makeAudioConfigPkt();
-
-private:
-    uint8_t _audio_flv_flags;
-    AACTrack::Ptr _track;
-    std::string _aac_cfg;
+    uint8_t _audio_flv_flags {0};
 };
 
 }//namespace mediakit

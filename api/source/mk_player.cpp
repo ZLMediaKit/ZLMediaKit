@@ -24,7 +24,6 @@ public:
     MediaPlayerForC(){
         _player = std::make_shared<MediaPlayer>();
     }
-    ~MediaPlayerForC() = default;
 
     MediaPlayer *operator->(){
         return _player.get();

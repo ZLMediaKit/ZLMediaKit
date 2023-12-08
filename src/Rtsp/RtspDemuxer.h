@@ -20,8 +20,6 @@ namespace mediakit {
 class RtspDemuxer : public Demuxer {
 public:
     using Ptr = std::shared_ptr<RtspDemuxer>;
-    RtspDemuxer() = default;
-    virtual ~RtspDemuxer() = default;
 
     /**
      * 加载sdp

@@ -27,7 +27,6 @@ public:
     using Ptr = std::shared_ptr<GB28181Process>;
 
     GB28181Process(const MediaInfo &media_info, MediaSinkInterface *sink);
-    ~GB28181Process() override = default;
 
     /**
      * 输入rtp

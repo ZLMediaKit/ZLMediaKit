@@ -80,8 +80,6 @@ public:
         _user_data = std::move(user_data);
     }
 
-    ~TimerForC() = default;
-
     uint64_t operator()(){
         lock_guard<recursive_mutex> lck(_mxt);
         if(!_cb){
@@ -135,8 +133,6 @@ API_EXPORT void API_CALL mk_timer_release(mk_timer ctx){
 
 class WorkThreadPoolForC : public TaskExecutorGetterImp {
 public:
-    ~WorkThreadPoolForC() override = default;
-
     WorkThreadPoolForC(const char *name, size_t n_thread, int priority) {
         //最低优先级
         addPoller(name, n_thread, (ThreadPool::Priority) priority, false);

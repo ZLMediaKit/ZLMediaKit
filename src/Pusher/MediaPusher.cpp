@@ -31,8 +31,6 @@ MediaPusher::MediaPusher(const string &schema,
         MediaPusher(MediaSource::find(schema, vhost, app, stream), poller){
 }
 
-MediaPusher::~MediaPusher() = default;
-
 static void setOnCreateSocket_l(const std::shared_ptr<PusherBase> &delegate, const Socket::onCreateSocket &cb){
     auto helper = dynamic_pointer_cast<SocketHelper>(delegate);
     if (helper) {

@@ -20,7 +20,6 @@ namespace mediakit {
 class ShellSession: public toolkit::Session {
 public:
     ShellSession(const toolkit::Socket::Ptr &_sock);
-    virtual ~ShellSession();
 
     void onRecv(const toolkit::Buffer::Ptr &) override;
     void onError(const toolkit::SockException &err) override;

@@ -113,8 +113,6 @@ private:
  */
 class RandStrGenerator {
 public:
-    RandStrGenerator() = default;
-    ~RandStrGenerator() = default;
 
     /**
      * 获取不碰撞的随机字符串

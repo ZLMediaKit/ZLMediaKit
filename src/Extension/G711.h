@@ -25,8 +25,8 @@ public:
     G711Track(CodecId codecId, int sample_rate, int channels, int sample_bit) : AudioTrackImp(codecId, 8000, 1, 16) {}
 
 private:
-    Sdp::Ptr getSdp() override;
-    Track::Ptr clone() override;
+    Sdp::Ptr getSdp(uint8_t payload_type) const override;
+    Track::Ptr clone() const override;
 };
 
 }//namespace mediakit

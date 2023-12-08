@@ -26,11 +26,11 @@ public:
 
 private:
     //克隆该Track
-    Track::Ptr clone() override {
-        return std::make_shared<std::remove_reference<decltype(*this)>::type >(*this);
+    Track::Ptr clone() const override {
+        return std::make_shared<OpusTrack>(*this);
     }
     //生成sdp
-    Sdp::Ptr getSdp() override ;
+    Sdp::Ptr getSdp(uint8_t payload_type) const override ;
 };
 
 }//namespace mediakit

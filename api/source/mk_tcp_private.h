@@ -33,9 +33,8 @@ private:
 
 class SessionForC : public toolkit::Session {
 public:
-    SessionForC(const toolkit::Socket::Ptr &pSock) ;
-    ~SessionForC() override = default;
-    void onRecv(const toolkit::Buffer::Ptr &buffer) override ;
+    SessionForC(const toolkit::Socket::Ptr &pSock);
+    void onRecv(const toolkit::Buffer::Ptr &buffer) override;
     void onError(const toolkit::SockException &err) override;
     void onManager() override;
     std::shared_ptr<void> _user_data;

@@ -30,8 +30,6 @@ public:
     MediaPusher(const MediaSource::Ptr &src,
                 const toolkit::EventPoller::Ptr &poller = nullptr);
 
-    virtual ~MediaPusher();
-
     void publish(const std::string &url) override;
     toolkit::EventPoller::Ptr getPoller();
     void setOnCreateSocket(toolkit::Socket::onCreateSocket cb);

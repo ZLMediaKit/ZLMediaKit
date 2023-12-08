@@ -30,8 +30,6 @@ public:
      */
     RtspMediaSourceImp(const MediaTuple& tuple, int ringSize = RTP_GOP_SIZE);
 
-    ~RtspMediaSourceImp() override = default;
-
     /**
      * 设置sdp
      */

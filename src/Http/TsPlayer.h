@@ -19,7 +19,6 @@ namespace mediakit {
 class TsPlayer : public HttpTSPlayer, public PlayerBase {
 public:
     TsPlayer(const toolkit::EventPoller::Ptr &poller);
-    ~TsPlayer() override = default;
 
     /**
      * 开始播放

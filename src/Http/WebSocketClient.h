@@ -37,9 +37,7 @@ public:
 
     template <typename... ArgsType>
     ClientTypeImp(ArgsType &&...args) : ClientType(std::forward<ArgsType>(args)...) {}
-    ~ClientTypeImp() override  = default;
 
-protected:
     /**
      * 发送前拦截并打包为websocket协议
      */
@@ -50,6 +48,7 @@ protected:
         return ClientType::send(std::move(buf));
     }
 
+protected:
     /**
      * 设置发送数据截取回调函数
      * @param cb 截取回调函数
@@ -74,7 +73,6 @@ public:
         _Sec_WebSocket_Key = encodeBase64(toolkit::makeRandStr(16, false));
         setPoller(delegate->getPoller());
     }
-    ~HttpWsClient() = default;
 
     /**
      * 发起ws握手

@@ -47,8 +47,6 @@ private:
 class FlvRecorder : public FlvMuxer , public std::enable_shared_from_this<FlvRecorder>{
 public:
     using Ptr = std::shared_ptr<FlvRecorder>;
-    FlvRecorder() = default;
-    ~FlvRecorder() override = default;
 
     void startRecord(const toolkit::EventPoller::Ptr &poller, const RtmpMediaSource::Ptr &media, const std::string &file_path);
     void startRecord(const toolkit::EventPoller::Ptr &poller, const std::string &vhost, const std::string &app, const std::string &stream, const std::string &file_path);

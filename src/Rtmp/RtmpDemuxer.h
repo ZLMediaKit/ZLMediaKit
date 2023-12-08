@@ -24,9 +24,6 @@ class RtmpDemuxer : public Demuxer {
 public:
     using Ptr = std::shared_ptr<RtmpDemuxer>;
 
-    RtmpDemuxer() = default;
-    ~RtmpDemuxer() override = default;
-
     static size_t trackCount(const AMFValue &metadata);
 
     bool loadMetaData(const AMFValue &metadata);

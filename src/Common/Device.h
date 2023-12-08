@@ -49,7 +49,6 @@ public:
     //fDuration<=0为直播，否则为点播
     DevChannel(const MediaTuple& tuple, float duration = 0, const ProtocolOption &option = ProtocolOption())
         : MultiMediaSourceMuxer(tuple, duration, option) {}
-    ~DevChannel() override = default;
 
     /**
      * 初始化视频Track

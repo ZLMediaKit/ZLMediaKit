@@ -29,12 +29,10 @@ public:
      * @param file_path 文件路径，如果为空则根据配置文件和上面参数自动生成，否则使用指定的文件
      */
     MP4Reader(const std::string &vhost, const std::string &app, const std::string &stream_id,
-              const std::string &file_path = "");
+              const std::string &file_path = "", toolkit::EventPoller::Ptr poller = nullptr);
 
     MP4Reader(const std::string &vhost, const std::string &app, const std::string &stream_id,
-              const std::string &file_path, const ProtocolOption &option);
-
-    ~MP4Reader() override = default;
+              const std::string &file_path, const ProtocolOption &option, toolkit::EventPoller::Ptr poller = nullptr);
 
     /**
      * 开始解复用MP4文件
@@ -71,7 +69,7 @@ private:
     void setCurrentStamp(uint32_t stamp);
     bool seekTo(uint32_t stamp_seek);
 
-    void setup(const std::string &vhost, const std::string &app, const std::string &stream_id, const std::string &file_path, const ProtocolOption &option);
+    void setup(const std::string &vhost, const std::string &app, const std::string &stream_id, const std::string &file_path, const ProtocolOption &option, toolkit::EventPoller::Ptr poller);
 
 private:
     bool _file_repeat = false;
