@@ -97,6 +97,8 @@ CodecId getCodecByMpegId(int mpeg_id) {
 #define XX(name, type, value, str, mpeg_id, mp4_id) case mpeg_id : return name;
         CODEC_MAP(XX)
 #undef XX
+        // 海康的 PS 流中会有0xBD 的包
+        case 0xBD: return CodecInvalid;
         default : WarnL << "Unsupported mpeg: " << mpeg_id; return CodecInvalid;
     }
 }

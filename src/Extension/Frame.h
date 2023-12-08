@@ -251,9 +251,9 @@ template <typename Parent>
 class FrameInternalBase : public Parent {
 public:
     using Ptr = std::shared_ptr<FrameInternalBase>;
-    FrameInternalBase(const Frame::Ptr &parent_frame, char *ptr, size_t size, size_t prefix_size, uint64_t dts, uint64_t pts)
+    FrameInternalBase(Frame::Ptr parent_frame, char *ptr, size_t size, size_t prefix_size, uint64_t dts, uint64_t pts)
         : Parent(ptr, size, dts, pts, prefix_size) {
-        _parent_frame = parent_frame;
+        _parent_frame = std::move(parent_frame);
     }
     bool cacheAble() const override { return _parent_frame->cacheAble(); }
 

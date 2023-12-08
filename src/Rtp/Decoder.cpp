@@ -11,11 +11,6 @@
 #include "Decoder.h"
 #include "PSDecoder.h"
 #include "TSDecoder.h"
-#include "Extension/H264.h"
-#include "Extension/H265.h"
-#include "Extension/AAC.h"
-#include "Extension/G711.h"
-#include "Extension/Opus.h"
 #include "Extension/Factory.h"
 
 #if defined(ENABLE_RTPPROXY) || defined(ENABLE_HLS)
@@ -101,72 +96,25 @@ void DecoderImp::onStream(int stream, int codecid, const void *extra, size_t byt
     }
 }
 
-void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t dts,const void *data,size_t bytes) {
+void DecoderImp::onDecode(int stream, int codecid, int flags, int64_t pts, int64_t dts, const void *data, size_t bytes) {
     pts /= 90;
     dts /= 90;
 
-    switch (codecid) {
-        case PSI_STREAM_H264: {
-            if (!_tracks[TrackVideo]) {
-                onTrack(std::make_shared<H264Track>());
-            }
-            auto frame = std::make_shared<H264FrameNoCacheAble>((char *) data, bytes, (uint64_t)dts, (uint64_t)pts, prefixSize((char *) data, bytes));
-            _merger.inputFrame(frame,[this](uint64_t dts, uint64_t pts, const Buffer::Ptr &buffer, bool) {
-                onFrame(std::make_shared<FrameFromBuffer<H264FrameNoCacheAble> >(buffer, dts, pts, prefixSize(buffer->data(), buffer->size()), 0));
-            });
-            break;
-        }
-
-        case PSI_STREAM_H265: {
-            if (!_tracks[TrackVideo]) {
-                onTrack(std::make_shared<H265Track>());
-            }
-            auto frame = std::make_shared<H265FrameNoCacheAble>((char *) data, bytes, (uint64_t)dts, (uint64_t)pts, prefixSize((char *) data, bytes));
-            _merger.inputFrame(frame,[this](uint64_t dts, uint64_t pts, const Buffer::Ptr &buffer, bool) {
-                onFrame(std::make_shared<FrameFromBuffer<H265FrameNoCacheAble> >(buffer, dts, pts, prefixSize(buffer->data(), buffer->size()), 0));
-            });
-            break;
-        }
-
-        case PSI_STREAM_MPEG4_AAC :
-        case PSI_STREAM_AAC: {
-            uint8_t *ptr = (uint8_t *)data;
-            if(!(bytes > 7 && ptr[0] == 0xFF && (ptr[1] & 0xF0) == 0xF0)){
-                //这不是aac
-                break;
-            }
-            if (!_tracks[TrackAudio]) {
-                onTrack(std::make_shared<AACTrack>());
-            }
-            onFrame(std::make_shared<FrameFromPtr>(CodecAAC, (char *) data, bytes, (uint64_t)dts, 0, ADTS_HEADER_LEN));
-            break;
-        }
-
-        case PSI_STREAM_AUDIO_G711A:
-        case PSI_STREAM_AUDIO_G711U: {
-            auto codec = codecid  == PSI_STREAM_AUDIO_G711A ? CodecG711A : CodecG711U;
-            if (!_tracks[TrackAudio]) {
-                //G711传统只支持 8000/1/16的规格，FFmpeg貌似做了扩展，但是这里不管它了
-                onTrack(std::make_shared<G711Track>(codec, 8000, 1, 16));
-            }
-            onFrame(std::make_shared<FrameFromPtr>(codec, (char *) data, bytes, (uint64_t)dts));
-            break;
-        }
-
-        case PSI_STREAM_AUDIO_OPUS: {
-            if (!_tracks[TrackAudio]) {
-                onTrack(std::make_shared<OpusTrack>());
-            }
-            onFrame(std::make_shared<FrameFromPtr>(CodecOpus, (char *) data, bytes, (uint64_t)dts));
-            break;
-        }
-
-        default:
-            // 海康的 PS 流中会有 codecid 为 0xBD 的包
-            if (codecid != 0 && codecid != 0xBD) {
-                WarnL << "Unsupported codec type:" << codecid;
-            }
-            break;
+    auto codec = getCodecByMpegId(codecid);
+    if (codec == CodecInvalid) {
+        return;
+    }
+    if (!_tracks[getTrackType(codec)]) {
+        onTrack(Factory::getTrackByCodecId(codec, 8000, 1, 16));
+    }
+    // TODO 支持多track
+    auto frame = Factory::getFrameFromPtr(codec, (char *) data, bytes, dts, pts);
+    if (getTrackType(codec) == TrackVideo) {
+        _merger.inputFrame(frame, [&](uint64_t dts, uint64_t pts, const Buffer::Ptr &buffer, bool) {
+            onFrame(Factory::getFrameFromBuffer(codec, buffer, dts, pts));
+        });
+    } else {
+        onFrame(frame);
     }
 }
 #else
@@ -175,6 +123,9 @@ void DecoderImp::onStream(int stream,int codecid,const void *extra,size_t bytes,
 #endif
 
 void DecoderImp::onTrack(const Track::Ptr &track) {
+    if (!track) {
+        return;
+    }
     if (!_tracks[track->getTrackType()]) {
         _tracks[track->getTrackType()] = track;
         _sink->addTrack(track);
@@ -183,7 +134,9 @@ void DecoderImp::onTrack(const Track::Ptr &track) {
 }
 
 void DecoderImp::onFrame(const Frame::Ptr &frame) {
-    _sink->inputFrame(frame);
+    if (frame) {
+        _sink->inputFrame(frame);
+    }
 }
 
 }//namespace mediakit

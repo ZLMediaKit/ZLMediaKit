@@ -9,8 +9,8 @@
  */
 
 #include "MediaSink.h"
-#include "Extension/AAC.h"
 #include "Common/config.h"
+#include "Extension/Factory.h"
 
 using namespace std;
 
@@ -226,16 +226,16 @@ static uint8_t s_mute_adts[] = {0xff, 0xf1, 0x6c, 0x40, 0x2d, 0x3f, 0xfc, 0x00, 
                                 0xc5, 0x97, 0x39, 0x6a, 0xb8, 0xa2, 0x55, 0xa8, 0xf8};
 
 #define MUTE_ADTS_DATA s_mute_adts
-#define MUTE_ADTS_DATA_LEN sizeof(s_mute_adts)
 #define MUTE_ADTS_DATA_MS 128
+static uint8_t ADTS_CONFIG[2] = { 0x15, 0x88 };
 
 bool MuteAudioMaker::inputFrame(const Frame::Ptr &frame) {
     if (frame->getTrackType() == TrackVideo) {
         auto audio_idx = frame->dts() / MUTE_ADTS_DATA_MS;
         if (_audio_idx != audio_idx) {
             _audio_idx = audio_idx;
-            auto aacFrame = std::make_shared<FrameToCache<FrameFromPtr>>(CodecAAC, (char *) MUTE_ADTS_DATA, MUTE_ADTS_DATA_LEN,
-                                                                 _audio_idx * MUTE_ADTS_DATA_MS, 0, ADTS_HEADER_LEN);
+            auto aacFrame = std::make_shared<FrameToCache<FrameFromPtr>>(CodecAAC, (char *) MUTE_ADTS_DATA, sizeof(s_mute_adts),
+                                                                         _audio_idx * MUTE_ADTS_DATA_MS, 0, 7);
             return FrameDispatcher::inputFrame(aacFrame);
         }
     }
@@ -249,7 +249,8 @@ bool MediaSink::addMuteAudioTrack() {
     if (_track_map.find(TrackAudio) != _track_map.end()) {
         return false;
     }
-    auto audio = std::make_shared<AACTrack>(MUTE_ADTS_DATA, ADTS_HEADER_LEN);
+    auto audio = Factory::getTrackByCodecId(CodecAAC);
+    audio->setExtraData(ADTS_CONFIG, 2);
     _track_map[audio->getTrackType()] = std::make_pair(audio, true);
     audio->addDelegate([this](const Frame::Ptr &frame) {
         return onTrackFrame(frame);

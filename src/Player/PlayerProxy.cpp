@@ -10,7 +10,6 @@
 
 #include "PlayerProxy.h"
 #include "Common/config.h"
-#include "Extension/AAC.h"
 #include "Rtmp/RtmpMediaSource.h"
 #include "Rtmp/RtmpPlayer.h"
 #include "Rtsp/RtspMediaSource.h"

@@ -11,9 +11,6 @@
 #ifdef ENABLE_MP4
 #include "MP4Demuxer.h"
 #include "Util/logger.h"
-#include "Extension/H265.h"
-#include "Extension/H264.h"
-#include "Extension/JPEG.h"
 #include "Extension/Factory.h"
 
 using namespace std;
@@ -143,8 +140,8 @@ Frame::Ptr MP4Demuxer::makeFrame(uint32_t track_id, const Buffer::Ptr &buf, int6
     Frame::Ptr ret;
     auto codec = it->second->getCodecId();
     switch (codec) {
-        case CodecH264 :
-        case CodecH265 : {
+        case CodecH264:
+        case CodecH265: {
             auto bytes = buf->size();
             auto data = buf->data();
             auto offset = 0u;
@@ -158,21 +155,12 @@ Frame::Ptr MP4Demuxer::makeFrame(uint32_t track_id, const Buffer::Ptr &buf, int6
                 memcpy(data + offset, "\x00\x00\x00\x01", 4);
                 offset += (frame_len + 4);
             }
-            if (codec == CodecH264) {
-                ret = std::make_shared<FrameFromBuffer<H264FrameNoCacheAble> >(buf, (uint64_t)dts, (uint64_t)pts, 4, 0);
-                break;
-            }
-            ret = std::make_shared<FrameFromBuffer<H265FrameNoCacheAble> >(buf, (uint64_t)dts, (uint64_t)pts, 4, 0);
-            break;
-        }
-
-        case CodecJPEG: {
-            ret = std::make_shared<JPEGFrame>(buf, (uint64_t)dts, 0, 0);
+            ret = Factory::getFrameFromBuffer(codec, buf, dts, pts);
             break;
         }
 
         default: {
-            ret = std::make_shared<FrameFromBuffer<FrameFromPtr>>(buf, (uint64_t)dts, (uint64_t)pts, 0, 0, codec);
+            ret = Factory::getFrameFromBuffer(codec, buf, dts, pts);
             break;
         }
     }

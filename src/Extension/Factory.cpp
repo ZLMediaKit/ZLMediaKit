@@ -29,6 +29,7 @@
 #include "Common/config.h"
 
 using namespace std;
+using namespace toolkit;
 
 namespace mediakit{
 
@@ -290,6 +291,40 @@ AMFValue Factory::getAmfByCodecId(CodecId codecId) {
         case CodecAV1: return AMFValue((int)RtmpVideoCodec::fourcc_av1);
         case CodecVP9: return AMFValue((int)RtmpVideoCodec::fourcc_vp9);
         default: return AMFValue(AMF_NULL);
+    }
+}
+
+static size_t aacPrefixSize(const char *data, size_t bytes) {
+    uint8_t *ptr = (uint8_t *)data;
+    size_t prefix = 0;
+    if (!(bytes > ADTS_HEADER_LEN && ptr[0] == 0xFF && (ptr[1] & 0xF0) == 0xF0)) {
+        return 0;
+    }
+    return ADTS_HEADER_LEN;
+}
+
+Frame::Ptr Factory::getFrameFromPtr(CodecId codec, const char *data, size_t bytes, uint64_t dts, uint64_t pts) {
+    switch (codec) {
+        case CodecH264: return std::make_shared<H264FrameNoCacheAble>((char *)data, bytes, dts, pts, prefixSize(data, bytes));
+        case CodecH265: return std::make_shared<H265FrameNoCacheAble>((char *)data, bytes, dts, pts, prefixSize(data, bytes));
+        case CodecAAC: return std::make_shared<FrameFromPtr>(codec, (char *)data, bytes, dts, pts, aacPrefixSize(data, bytes));
+        case CodecOpus:
+        case CodecG711A:
+        case CodecG711U: return std::make_shared<FrameFromPtr>(codec, (char *)data, bytes, dts, pts);
+        default: return nullptr;
+    }
+}
+
+Frame::Ptr Factory::getFrameFromBuffer(CodecId codec, const Buffer::Ptr &data, uint64_t dts, uint64_t pts) {
+    switch (codec) {
+        case CodecH264: return std::make_shared<FrameFromBuffer<H264FrameNoCacheAble>>(data, dts, pts, prefixSize(data->data(), data->size()), 0);
+        case CodecH265: return std::make_shared<FrameFromBuffer<H265FrameNoCacheAble>>(data, dts, pts, prefixSize(data->data(), data->size()), 0);
+        case CodecJPEG: return std::make_shared<JPEGFrame>(data, dts);
+        case CodecAAC: return std::make_shared<FrameFromBuffer<FrameFromPtr>>(data, dts, pts, aacPrefixSize(data->data(), data->size()), 0, codec);
+        case CodecOpus:
+        case CodecG711A:
+        case CodecG711U: return std::make_shared<FrameFromBuffer<FrameFromPtr>>(data, dts, pts, 0, 0, codec);
+        default: return nullptr;
     }
 }
 

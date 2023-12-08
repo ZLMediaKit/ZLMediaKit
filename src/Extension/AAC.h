@@ -17,8 +17,6 @@
 
 namespace mediakit{
 
-int dumpAacConfig(const std::string &config, size_t length, uint8_t *out, size_t out_size);
-
 /**
  * aac音频通道
  */
@@ -32,11 +30,6 @@ public:
      * 通过aac extra data 构造对象
      */
     AACTrack(const std::string &aac_cfg);
-
-    /**
-     * 通过aac adts头 构造对象
-     */
-    AACTrack(const uint8_t *adts, size_t size);
 
     bool ready() const override;
     CodecId getCodecId() const override;

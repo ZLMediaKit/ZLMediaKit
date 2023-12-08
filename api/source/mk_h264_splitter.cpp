@@ -10,8 +10,7 @@
 
 #include "mk_h264_splitter.h"
 #include "Http/HttpRequestSplitter.h"
-#include "Extension/H264.h"
-#include "Extension/H265.h"
+#include "Extension/Factory.h"
 
 using namespace mediakit;
 
@@ -71,9 +70,9 @@ const char *H264Splitter::onSearchPacketTail(const char *data, size_t len) {
     auto last_frame_len = next_frame - last_frame;
     Frame::Ptr frame;
     if (_h265) {
-        frame = std::make_shared<H265FrameNoCacheAble>((char *) last_frame, last_frame_len, 0, 0, prefixSize(last_frame, last_frame_len));
+        frame = Factory::getFrameFromPtr(CodecH265, (char *)last_frame, last_frame_len, 0, 0);
     } else {
-        frame = std::make_shared<H264FrameNoCacheAble>((char *) last_frame, last_frame_len, 0, 0, prefixSize(last_frame, last_frame_len));
+        frame = Factory::getFrameFromPtr(CodecH264, (char *)last_frame, last_frame_len, 0, 0);
     }
     if (frame->decodeAble()) {
         _search_pos = 0;

@@ -244,8 +244,6 @@ AACTrack::AACTrack(const string &aac_cfg) {
     update();
 }
 
-AACTrack::AACTrack(const uint8_t *adts, size_t size) : AACTrack(makeAacConfig(adts, size)) {}
-
 CodecId AACTrack::getCodecId() const {
     return CodecAAC;
 }

@@ -15,7 +15,6 @@
 #include "Util/File.h"
 #include "Util/uv_errno.h"
 #include "Transcode.h"
-#include "Extension/AAC.h"
 #include "Common/config.h"
 #define MAX_DELAY_SECOND 3
 
