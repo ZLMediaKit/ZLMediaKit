@@ -67,11 +67,12 @@ void MP4Demuxer::onVideoTrack(uint32_t track, uint8_t object, int width, int hei
     }
 }
 
-void MP4Demuxer::onAudioTrack(uint32_t track_id, uint8_t object, int channel_count, int bit_per_sample, int sample_rate, const void *extra, size_t bytes) {
+void MP4Demuxer::onAudioTrack(uint32_t track, uint8_t object, int channel_count, int bit_per_sample, int sample_rate, const void *extra, size_t bytes) {
     auto audio = Factory::getTrackByCodecId(getCodecByMovId(object), sample_rate, channel_count, bit_per_sample / channel_count);
     if (!audio) {
         return;
     }
+    _track_to_codec.emplace(track, audio);
     if (extra && bytes) {
         audio->setExtraData((uint8_t *)extra, bytes);
     }

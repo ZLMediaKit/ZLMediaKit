@@ -280,7 +280,8 @@ static Frame::Ptr addADTSHeader(const Frame::Ptr &frame_in, const std::string &a
 
 bool AACTrack::inputFrame(const Frame::Ptr &frame) {
     if (!frame->prefixSize()) {
-        return inputFrame_l(addADTSHeader(frame, getExtraData()->toString()));
+        CHECK(ready());
+        return inputFrame_l(addADTSHeader(frame, _cfg));
     }
 
     bool ret = false;
