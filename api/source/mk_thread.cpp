@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -80,8 +80,6 @@ public:
         _user_data = std::move(user_data);
     }
 
-    ~TimerForC() = default;
-
     uint64_t operator()(){
         lock_guard<recursive_mutex> lck(_mxt);
         if(!_cb){
@@ -135,8 +133,6 @@ API_EXPORT void API_CALL mk_timer_release(mk_timer ctx){
 
 class WorkThreadPoolForC : public TaskExecutorGetterImp {
 public:
-    ~WorkThreadPoolForC() override = default;
-
     WorkThreadPoolForC(const char *name, size_t n_thread, int priority) {
         //最低优先级
         addPoller(name, n_thread, (ThreadPool::Priority) priority, false);

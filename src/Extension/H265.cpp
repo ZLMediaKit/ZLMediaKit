@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -11,6 +11,10 @@
 #include "H265.h"
 #include "SPSParser.h"
 #include "Util/base64.h"
+
+#ifdef ENABLE_MP4
+#include "mpeg4-hevc.h"
+#endif
 
 using namespace std;
 using namespace toolkit;
@@ -58,19 +62,7 @@ H265Track::H265Track(const string &vps,const string &sps, const string &pps,int 
     _vps = vps.substr(vps_prefix_len);
     _sps = sps.substr(sps_prefix_len);
     _pps = pps.substr(pps_prefix_len);
-    onReady();
-}
-
-const string &H265Track::getVps() const {
-    return _vps;
-}
-
-const string &H265Track::getSps() const {
-    return _sps;
-}
-
-const string &H265Track::getPps() const {
-    return _pps;
+    update();
 }
 
 CodecId H265Track::getCodecId() const {
@@ -89,7 +81,7 @@ float H265Track::getVideoFps() const {
     return _fps;
 }
 
-bool H265Track::ready() {
+bool H265Track::ready() const {
     return !_vps.empty() && !_sps.empty() && !_pps.empty();
 }
 
@@ -139,25 +131,58 @@ bool H265Track::inputFrame_l(const Frame::Ptr &frame) {
         }
     }
     if (_width == 0 && ready()) {
-        onReady();
+        update();
     }
     return ret;
+}
+
+toolkit::Buffer::Ptr H265Track::getExtraData() const {
+    CHECK(ready());
+#ifdef ENABLE_MP4
+    struct mpeg4_hevc_t hevc;
+    memset(&hevc, 0, sizeof(hevc));
+    string vps_sps_pps = string("\x00\x00\x00\x01", 4) + _vps + string("\x00\x00\x00\x01", 4) + _sps + string("\x00\x00\x00\x01", 4) + _pps;
+    h265_annexbtomp4(&hevc, vps_sps_pps.data(), (int) vps_sps_pps.size(), NULL, 0, NULL, NULL);
+
+    std::string extra_data;
+    extra_data.resize(1024);
+    auto extra_data_size = mpeg4_hevc_decoder_configuration_record_save(&hevc, (uint8_t *)extra_data.data(), extra_data.size());
+    if (extra_data_size == -1) {
+        WarnL << "生成H265 extra_data 失败";
+        return nullptr;
+    }
+    return std::make_shared<BufferString>(std::move(extra_data));
+#else
+    WarnL << "请开启MP4相关功能并使能\"ENABLE_MP4\",否则对H265的支持不完善";
+    return nullptr;
+#endif
+}
+
+void H265Track::setExtraData(const uint8_t *data, size_t bytes) {
+#ifdef ENABLE_MP4
+    struct mpeg4_hevc_t hevc;
+    memset(&hevc, 0, sizeof(hevc));
+    if (mpeg4_hevc_decoder_configuration_record_load(data, bytes, &hevc) > 0) {
+        std::vector<uint8_t> config(bytes * 2);
+        int size = mpeg4_hevc_to_nalu(&hevc, config.data(), bytes * 2);
+        if (size > 4) {
+            splitH264((char *)config.data(), size, 4, [&](const char *ptr, size_t len, size_t prefix) {
+                inputFrame_l(std::make_shared<H265FrameNoCacheAble>((char *)ptr, len, 0, 0, prefix));
+            });
+            update();
+        }
+    }
+#else
+    WarnL << "请开启MP4相关功能并使能\"ENABLE_MP4\",否则对H265的支持不完善";
+#endif
 }
 
 bool H265Track::update() {
     return getHEVCInfo(_vps, _sps, _width, _height, _fps);
 }
 
-void H265Track::onReady() {
-    if (!getHEVCInfo(_vps, _sps, _width, _height, _fps)) {
-        _vps.clear();
-        _sps.clear();
-        _pps.clear();
-    }
-}
-
-Track::Ptr H265Track::clone() {
-    return std::make_shared<std::remove_reference<decltype(*this)>::type>(*this);
+Track::Ptr H265Track::clone() const {
+    return std::make_shared<H265Track>(*this);
 }
 
 void H265Track::insertConfigFrame(const Frame::Ptr &frame) {
@@ -205,17 +230,13 @@ public:
      * @param payload_type  rtp payload type 默认96
      * @param bitrate 比特率
      */
-    H265Sdp(const string &strVPS,
-            const string &strSPS,
-            const string &strPPS,
-            int bitrate = 4000,
-            int payload_type = 96) : Sdp(90000,payload_type) {
+    H265Sdp(const string &strVPS, const string &strSPS, const string &strPPS, int payload_type, int bitrate) : Sdp(90000, payload_type) {
         //视频通道
         _printer << "m=video 0 RTP/AVP " << payload_type << "\r\n";
         if (bitrate) {
             _printer << "b=AS:" << bitrate << "\r\n";
         }
-        _printer << "a=rtpmap:" << payload_type << " " << getCodecName() << "/" << 90000 << "\r\n";
+        _printer << "a=rtpmap:" << payload_type << " " << getCodecName(CodecH265) << "/" << 90000 << "\r\n";
         _printer << "a=fmtp:" << payload_type << " ";
         _printer << "sprop-vps=";
         _printer << encodeBase64(strVPS) << "; ";
@@ -223,26 +244,20 @@ public:
         _printer << encodeBase64(strSPS) << "; ";
         _printer << "sprop-pps=";
         _printer << encodeBase64(strPPS) << "\r\n";
-        _printer << "a=control:trackID=" << (int)TrackVideo << "\r\n";
     }
 
-    string getSdp() const override {
-        return _printer;
-    }
+    string getSdp() const override { return _printer; }
 
-    CodecId getCodecId() const override {
-        return CodecH265;
-    }
 private:
     _StrPrinter _printer;
 };
 
-Sdp::Ptr H265Track::getSdp() {
-    if(!ready()){
+Sdp::Ptr H265Track::getSdp(uint8_t payload_type) const {
+    if (!ready()) {
         WarnL << getCodecName() << " Track未准备好";
         return nullptr;
     }
-    return std::make_shared<H265Sdp>(getVps(), getSps(), getPps(), getBitRate() / 1024);
+    return std::make_shared<H265Sdp>(_vps, _sps, _pps, payload_type, getBitRate() / 1024);
 }
 
 }//namespace mediakit

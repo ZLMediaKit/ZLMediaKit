@@ -24,7 +24,7 @@ Summary:	A lightweight, high performance and stable stream server and client fra
 
 Group:		development
 License:	MIT
-URL:		https://github.com/xia-chu/ZLMediaKit
+URL:		https://github.com/ZLMediaKit/ZLMediaKit
 Source0:	%{name}-%{version}.tar.xz
 
 %if %{with openssl}

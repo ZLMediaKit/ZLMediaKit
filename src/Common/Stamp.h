@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -17,10 +17,10 @@
 
 namespace mediakit {
 
-class DeltaStamp{
+class DeltaStamp {
 public:
     DeltaStamp();
-    ~DeltaStamp() = default;
+    virtual ~DeltaStamp() = default;
 
     /**
      * 计算时间戳增量
@@ -48,9 +48,6 @@ protected:
 //计算相对时间戳或者产生平滑时间戳
 class Stamp : public DeltaStamp{
 public:
-    Stamp() = default;
-    ~Stamp() = default;
-
     /**
      * 求取相对时间戳,同时实现了音视频同步、限制dts回退等功能
      * @param dts 输入dts，如果为0则根据系统时间戳生成
@@ -116,8 +113,6 @@ private:
 //pts排序后就是dts
 class DtsGenerator{
 public:
-    DtsGenerator() = default;
-    ~DtsGenerator() = default;
     bool getDts(uint64_t pts, uint64_t &dts);
 
 private:
@@ -136,9 +131,6 @@ private:
 
 class NtpStamp {
 public:
-    NtpStamp() = default;
-    ~NtpStamp() = default;
-
     void setNtpStamp(uint32_t rtp_stamp, uint64_t ntp_stamp_ms);
     uint64_t getNtpStamp(uint32_t rtp_stamp, uint32_t sample_rate);
 

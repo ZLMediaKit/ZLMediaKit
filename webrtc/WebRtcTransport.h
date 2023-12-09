@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -37,11 +37,11 @@ extern const std::string kTimeOutSec;
 
 class WebRtcInterface {
 public:
-    WebRtcInterface() = default;
     virtual ~WebRtcInterface() = default;
     virtual std::string getAnswerSdp(const std::string &offer) = 0;
     virtual const std::string& getIdentifier() const = 0;
     virtual const std::string& deleteRandStr() const { static std::string s_null; return s_null; }
+    virtual void setIceCandidate(std::vector<SdpAttrCandidate> cands) {}
 };
 
 std::string exchangeSdp(const WebRtcInterface &exchanger, const std::string& offer);
@@ -49,7 +49,6 @@ std::string exchangeSdp(const WebRtcInterface &exchanger, const std::string& off
 class WebRtcException : public WebRtcInterface {
 public:
     WebRtcException(const SockException &ex) : _ex(ex) {};
-    ~WebRtcException() override = default;
     std::string getAnswerSdp(const std::string &offer) override {
         throw _ex;
     }
@@ -70,7 +69,6 @@ class WebRtcTransport : public WebRtcInterface, public RTC::DtlsTransport::Liste
 public:
     using Ptr = std::shared_ptr<WebRtcTransport>;
     WebRtcTransport(const EventPoller::Ptr &poller);
-    ~WebRtcTransport() override = default;
 
     /**
      * 创建对象
@@ -251,6 +249,7 @@ public:
     void onSendRtp(const RtpPacket::Ptr &rtp, bool flush, bool rtx = false);
 
     void createRtpChannel(const std::string &rid, uint32_t ssrc, MediaTrack &track);
+    void setIceCandidate(std::vector<SdpAttrCandidate> cands) override;
     void removeTuple(RTC::TransportTuple* tuple);
     void safeShutdown(const SockException &ex);
 
@@ -306,6 +305,7 @@ private:
     std::unordered_map<uint32_t/*ssrc*/, MediaTrack::Ptr> _ssrc_to_track;
     //根据接收rtp的pt获取相关信息
     std::unordered_map<uint8_t/*pt*/, std::unique_ptr<WrappedMediaTrack>> _pt_to_track;
+    std::vector<SdpAttrCandidate> _cands;
 };
 
 class WebRtcTransportManager {
@@ -324,9 +324,8 @@ private:
     std::unordered_map<std::string, std::weak_ptr<WebRtcTransportImp> > _map;
 };
 
-class WebRtcArgs {
+class WebRtcArgs : public std::enable_shared_from_this<WebRtcArgs> {
 public:
-    WebRtcArgs() = default;
     virtual ~WebRtcArgs() = default;
 
     virtual variant operator[](const std::string &key) const = 0;
@@ -336,17 +335,20 @@ class WebRtcPluginManager {
 public:
     using onCreateRtc = std::function<void(const WebRtcInterface &rtc)>;
     using Plugin = std::function<void(Session &sender, const WebRtcArgs &args, const onCreateRtc &cb)>;
+    using Listener = std::function<void(Session &sender, const std::string &type, const WebRtcArgs &args, const WebRtcInterface &rtc)>;
 
     static WebRtcPluginManager &Instance();
 
     void registerPlugin(const std::string &type, Plugin cb);
     void getAnswerSdp(Session &sender, const std::string &type, const WebRtcArgs &args, const onCreateRtc &cb);
+    void setListener(Listener cb);
 
 private:
     WebRtcPluginManager() = default;
 
 private:
     mutable std::mutex _mtx_creator;
+    Listener _listener;
     std::unordered_map<std::string, Plugin> _map_creator;
 };
 

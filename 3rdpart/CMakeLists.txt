@@ -47,7 +47,7 @@ set(MediaServer_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/media-server")
 # TODO: 补一个函数处理各种库
 
 # 添加 mov、flv 库用于 MP4 录制
-if (ENABLE_MP4 OR ENABLE_HLS_FMP4)
+if (ENABLE_MP4)
   # MOV
   set(MediaServer_MOV_ROOT ${MediaServer_ROOT}/libmov)
   aux_source_directory(${MediaServer_MOV_ROOT}/include MOV_SRC_LIST)
@@ -79,10 +79,6 @@ if (ENABLE_MP4 OR ENABLE_HLS_FMP4)
   if (ENABLE_MP4)
     message(STATUS "ENABLE_MP4 defined")
     update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_MP4)
-  endif ()
-  if (ENABLE_HLS_FMP4)
-    message(STATUS "ENABLE_HLS_FMP4 defined")
-    update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_HLS_FMP4)
   endif ()
 endif ()
 

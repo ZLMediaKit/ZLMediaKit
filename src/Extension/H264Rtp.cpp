@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -192,10 +192,6 @@ void H264RtpDecoder::outputFrame(const RtpPacket::Ptr &rtp, const H264Frame::Ptr
 
 ////////////////////////////////////////////////////////////////////////
 
-H264RtpEncoder::H264RtpEncoder(uint32_t ssrc, uint32_t mtu, uint32_t sample_rate, uint8_t pt, uint8_t interleaved)
-        : RtpInfo(ssrc, mtu, sample_rate, pt, interleaved) {
-}
-
 void H264RtpEncoder::insertConfigFrame(uint64_t pts){
     if (!_sps || !_pps) {
         return;
@@ -206,7 +202,7 @@ void H264RtpEncoder::insertConfigFrame(uint64_t pts){
 }
 
 void H264RtpEncoder::packRtp(const char *ptr, size_t len, uint64_t pts, bool is_mark, bool gop_pos){
-    if (len + 3 <= getMaxSize()) {
+    if (len + 3 <= getRtpInfo().getMaxSize()) {
         // 采用STAP-A/Single NAL unit packet per H.264 模式
         packRtpSmallFrame(ptr, len, pts, is_mark, gop_pos);
     } else {
@@ -216,7 +212,7 @@ void H264RtpEncoder::packRtp(const char *ptr, size_t len, uint64_t pts, bool is_
 }
 
 void H264RtpEncoder::packRtpFu(const char *ptr, size_t len, uint64_t pts, bool is_mark, bool gop_pos){
-    auto packet_size = getMaxSize() - 2;
+    auto packet_size = getRtpInfo().getMaxSize() - 2;
     if (len <= packet_size + 1) {
         // 小于FU-A打包最小字节长度要求，采用STAP-A/Single NAL unit packet per H.264 模式
         packRtpSmallFrame(ptr, len, pts, is_mark, gop_pos);
@@ -238,7 +234,7 @@ void H264RtpEncoder::packRtpFu(const char *ptr, size_t len, uint64_t pts, bool i
         }
 
         //传入nullptr先不做payload的内存拷贝
-        auto rtp = makeRtp(getTrackType(), nullptr, packet_size + 2, fu_flags->end_bit && is_mark, pts);
+        auto rtp = getRtpInfo().makeRtp(TrackVideo, nullptr, packet_size + 2, fu_flags->end_bit && is_mark, pts);
         //rtp payload 负载部分
         uint8_t *payload = rtp->getPayload();
         //FU-A 第1个字节
@@ -266,7 +262,7 @@ void H264RtpEncoder::packRtpSmallFrame(const char *data, size_t len, uint64_t pt
 
 void H264RtpEncoder::packRtpStapA(const char *ptr, size_t len, uint64_t pts, bool is_mark, bool gop_pos){
     // 如果帧长度不超过mtu,为了兼容性 webrtc，采用STAP-A模式打包
-    auto rtp = makeRtp(getTrackType(), nullptr, len + 3, is_mark, pts);
+    auto rtp = getRtpInfo().makeRtp(TrackVideo, nullptr, len + 3, is_mark, pts);
     uint8_t *payload = rtp->getPayload();
     //STAP-A
     payload[0] = (ptr[0] & (~0x1F)) | 24;
@@ -279,7 +275,7 @@ void H264RtpEncoder::packRtpStapA(const char *ptr, size_t len, uint64_t pts, boo
 
 void H264RtpEncoder::packRtpSingleNalu(const char *data, size_t len, uint64_t pts, bool is_mark, bool gop_pos) {
     // Single NAL unit packet per H.264 模式
-    RtpCodec::inputRtp(makeRtp(getTrackType(), data, len, is_mark, pts), gop_pos);
+    RtpCodec::inputRtp(getRtpInfo().makeRtp(TrackVideo, data, len, is_mark, pts), gop_pos);
 }
 
 bool H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {

@@ -1,21 +1,16 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
-#if defined(ENABLE_MP4) || defined(ENABLE_HLS_FMP4)
+#if defined(ENABLE_MP4)
 
 #include "MP4Muxer.h"
-#include "Extension/AAC.h"
-#include "Extension/G711.h"
-#include "Extension/H264.h"
-#include "Extension/H265.h"
-#include "Extension/JPEG.h"
 #include "Common/config.h"
 
 using namespace std;
@@ -121,18 +116,6 @@ bool MP4MuxerInterface::inputFrame(const Frame::Ptr &frame) {
             });
             break;
         }
-        case CodecJPEG:{
-            int64_t dts_out, pts_out;
-            track_info.stamp.revise(frame->dts(), frame->pts(), dts_out, pts_out);
-            mp4_writer_write(_mov_writter.get(),
-                             track_info.track_id,
-                             frame->data(),
-                             frame->size(),
-                             pts_out,
-                             dts_out,
-                             frame->keyFrame() ? MOV_AV_FLAG_KEYFREAME : 0);
-            break;
-        }
 
         default: {
             int64_t dts_out, pts_out;
@@ -148,19 +131,6 @@ bool MP4MuxerInterface::inputFrame(const Frame::Ptr &frame) {
         }
     }
     return true;
-}
-
-static uint8_t getObject(CodecId codecId) {
-    switch (codecId){
-        case CodecG711A : return MOV_OBJECT_G711a;
-        case CodecG711U : return MOV_OBJECT_G711u;
-        case CodecOpus : return MOV_OBJECT_OPUS;
-        case CodecAAC : return MOV_OBJECT_AAC;
-        case CodecH264 : return MOV_OBJECT_H264;
-        case CodecH265 : return MOV_OBJECT_HEVC;
-        case CodecJPEG : return MOV_OBJECT_JPEG;
-        default : return 0;
-    }
 }
 
 void MP4MuxerInterface::stampSync() {
@@ -187,159 +157,51 @@ bool MP4MuxerInterface::addTrack(const Track::Ptr &track) {
     if (!_mov_writter) {
         _mov_writter = createWriter();
     }
-    auto mp4_object = getObject(track->getCodecId());
-    if (!mp4_object) {
-        WarnL << "MP4录制不支持该编码格式:" << track->getCodecName();
+    auto mp4_object = getMovIdByCodec(track->getCodecId());
+    if (mp4_object == MOV_OBJECT_NONE) {
+        WarnL << "Unsupported codec: " << track->getCodecName();
         return false;
     }
 
     if (!track->ready()) {
-        WarnL << "Track[" << track->getCodecName() << "]未就绪";
+        WarnL << "Track[" << track->getCodecName() << "] unready";
         return false;
     }
 
     track->update();
-    switch (track->getCodecId()) {
-        case CodecG711A:
-        case CodecG711U:
-        case CodecOpus: {
-            auto audio_track = dynamic_pointer_cast<AudioTrack>(track);
-            if (!audio_track) {
-                WarnL << "不是音频Track:" << track->getCodecName();
-                return false;
-            }
 
-            auto track_id = mp4_writer_add_audio(_mov_writter.get(),
-                                                 mp4_object,
-                                                 audio_track->getAudioChannel(),
-                                                 audio_track->getAudioSampleBit() * audio_track->getAudioChannel(),
-                                                 audio_track->getAudioSampleRate(),
-                                                 nullptr, 0);
-            if (track_id < 0) {
-                WarnL << "添加Track[" << track->getCodecName() << "]失败:" << track_id;
-                return false;
-            }
-            _codec_to_trackid[track->getCodecId()].track_id = track_id;
-            break;
+    auto extra = track->getExtraData();
+    auto extra_data = extra ? extra->data() : nullptr;
+    auto extra_size = extra ? extra->size() : 0;
+    if (track->getTrackType() == TrackVideo) {
+        auto video_track = dynamic_pointer_cast<VideoTrack>(track);
+        if (!video_track) {
+            WarnL << "不是VideoTrack";
+            return false;
         }
 
-        case CodecAAC: {
-            auto audio_track = dynamic_pointer_cast<AACTrack>(track);
-            if (!audio_track) {
-                WarnL << "不是AAC Track";
-                return false;
-            }
-
-            auto track_id = mp4_writer_add_audio(_mov_writter.get(),
-                                                 mp4_object,
-                                                 audio_track->getAudioChannel(),
-                                                 audio_track->getAudioSampleBit() * audio_track->getAudioChannel(),
-                                                 audio_track->getAudioSampleRate(),
-                                                 audio_track->getConfig().data(),
-                                                 audio_track->getConfig().size());
-            if (track_id < 0) {
-                WarnL << "添加AAC Track失败:" << track_id;
-                return false;
-            }
-            _codec_to_trackid[track->getCodecId()].track_id = track_id;
-            break;
+        auto track_id = mp4_writer_add_video(_mov_writter.get(), mp4_object, video_track->getVideoWidth(), video_track->getVideoHeight(), extra_data, extra_size);
+        if (track_id < 0) {
+            WarnL << "添加Video Track失败:" << video_track->getCodecName();
+            return false;
+        }
+        _codec_to_trackid[track->getCodecId()].track_id = track_id;
+        _have_video = true;
+    } else if (track->getTrackType() == TrackAudio) {
+        auto audio_track = dynamic_pointer_cast<AudioTrack>(track);
+        if (!audio_track) {
+            WarnL << "不是音频Track:" << track->getCodecName();
+            return false;
         }
 
-        case CodecH264: {
-            auto h264_track = dynamic_pointer_cast<H264Track>(track);
-            if (!h264_track) {
-                WarnL << "不是H264 Track";
-                return false;
-            }
-
-            struct mpeg4_avc_t avc;
-            memset(&avc, 0, sizeof(avc));
-            string sps_pps = string("\x00\x00\x00\x01", 4) + h264_track->getSps() +
-                             string("\x00\x00\x00\x01", 4) + h264_track->getPps();
-            h264_annexbtomp4(&avc, sps_pps.data(), (int) sps_pps.size(), NULL, 0, NULL, NULL);
-
-            uint8_t extra_data[1024];
-            int extra_data_size = mpeg4_avc_decoder_configuration_record_save(&avc, extra_data, sizeof(extra_data));
-            if (extra_data_size == -1) {
-                WarnL << "生成H264 extra_data 失败";
-                return false;
-            }
-
-            auto track_id = mp4_writer_add_video(_mov_writter.get(),
-                                                 mp4_object,
-                                                 h264_track->getVideoWidth(),
-                                                 h264_track->getVideoHeight(),
-                                                 extra_data,
-                                                 extra_data_size);
-
-            if (track_id < 0) {
-                WarnL << "添加H264 Track失败:" << track_id;
-                return false;
-            }
-            _codec_to_trackid[track->getCodecId()].track_id = track_id;
-            _have_video = true;
-            break;
+        auto track_id = mp4_writer_add_audio(_mov_writter.get(), mp4_object, audio_track->getAudioChannel(),
+                                             audio_track->getAudioSampleBit() * audio_track->getAudioChannel(),
+                                             audio_track->getAudioSampleRate(), extra_data, extra_size);
+        if (track_id < 0) {
+            WarnL << "添加Track[" << track->getCodecName() << "]失败:" << track_id;
+            return false;
         }
-
-        case CodecH265: {
-            auto h265_track = dynamic_pointer_cast<H265Track>(track);
-            if (!h265_track) {
-                WarnL << "不是H265 Track";
-                return false;
-            }
-
-            struct mpeg4_hevc_t hevc;
-            memset(&hevc, 0, sizeof(hevc));
-            string vps_sps_pps = string("\x00\x00\x00\x01", 4) + h265_track->getVps() +
-                                 string("\x00\x00\x00\x01", 4) + h265_track->getSps() +
-                                 string("\x00\x00\x00\x01", 4) + h265_track->getPps();
-            h265_annexbtomp4(&hevc, vps_sps_pps.data(), (int) vps_sps_pps.size(), NULL, 0, NULL, NULL);
-
-            uint8_t extra_data[1024];
-            int extra_data_size = mpeg4_hevc_decoder_configuration_record_save(&hevc, extra_data, sizeof(extra_data));
-            if (extra_data_size == -1) {
-                WarnL << "生成H265 extra_data 失败";
-                return false;
-            }
-
-            auto track_id = mp4_writer_add_video(_mov_writter.get(),
-                                                 mp4_object,
-                                                 h265_track->getVideoWidth(),
-                                                 h265_track->getVideoHeight(),
-                                                 extra_data,
-                                                 extra_data_size);
-            if (track_id < 0) {
-                WarnL << "添加H265 Track失败:" << track_id;
-                return false;
-            }
-            _codec_to_trackid[track->getCodecId()].track_id = track_id;
-            _have_video = true;
-            break;
-        }
-
-    case CodecJPEG: {
-            auto jpeg_track = dynamic_pointer_cast<JPEGTrack>(track);
-            if (!jpeg_track) {
-                WarnL << "不是JPEG Track";
-                return false;
-            }
-
-            auto track_id = mp4_writer_add_video(_mov_writter.get(),
-                                                 mp4_object,
-                                                 jpeg_track->getVideoWidth(),
-                                                 jpeg_track->getVideoHeight(),
-                                                 nullptr,
-                                                 0);
-            if (track_id < 0) {
-                WarnL << "添加JPEG Track失败:" << track_id;
-                return false;
-            }
-            _codec_to_trackid[track->getCodecId()].track_id = track_id;
-            _have_video = true;
-            break;
-        }
-
-        default: WarnL << "MP4录制不支持该编码格式:" << track->getCodecName(); return false;
+        _codec_to_trackid[track->getCodecId()].track_id = track_id;
     }
 
     //尝试音视频同步
@@ -398,4 +260,4 @@ bool MP4MuxerMemory::inputFrame(const Frame::Ptr &frame) {
 }
 
 }//namespace mediakit
-#endif //defined(ENABLE_MP4) || defined(ENABLE_HLS_FMP4)
+#endif //defined(ENABLE_MP4)

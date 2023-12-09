@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -21,7 +21,6 @@ class SendInterceptor{
 public:
     using onBeforeSendCB =std::function<ssize_t (const toolkit::Buffer::Ptr &buf)>;
 
-    SendInterceptor() = default;
     virtual ~SendInterceptor() = default;
     virtual void setOnBeforeSendCB(const onBeforeSendCB &cb) = 0;
 };
@@ -37,8 +36,6 @@ public:
 
     SessionTypeImp(const mediakit::Parser &header, const mediakit::HttpSession &parent, const toolkit::Socket::Ptr &pSock) :
             SessionType(pSock) {}
-
-    ~SessionTypeImp() = default;
 
     /**
      * 设置发送数据截取回调函数
@@ -82,7 +79,6 @@ template<typename Creator, typename HttpSessionType = mediakit::HttpSession, med
 class WebSocketSessionBase : public HttpSessionType {
 public:
     WebSocketSessionBase(const toolkit::Socket::Ptr &pSock) : HttpSessionType(pSock){}
-    virtual ~WebSocketSessionBase() = default;
 
     //收到eof或其他导致脱离TcpServer事件的回调
     void onError(const toolkit::SockException &err) override{
@@ -249,7 +245,6 @@ template<typename SessionType,typename HttpSessionType = mediakit::HttpSession, 
 class WebSocketSession : public WebSocketSessionBase<SessionCreator<SessionType>,HttpSessionType,DataType>{
 public:
     WebSocketSession(const toolkit::Socket::Ptr &pSock) : WebSocketSessionBase<SessionCreator<SessionType>,HttpSessionType,DataType>(pSock){}
-    virtual ~WebSocketSession() = default;
 };
 
 #endif //ZLMEDIAKIT_WEBSOCKETSESSION_H

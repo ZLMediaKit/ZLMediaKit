@@ -25,12 +25,6 @@ public:
     typedef std::shared_ptr <JPEGRtpDecoder> Ptr;
 
     JPEGRtpDecoder();
-    ~JPEGRtpDecoder() override = default;
-
-    /**
-     * 返回编码类型ID
-     */
-    CodecId getCodecId() const override;
 
     /**
      * 输入rtp并解码
@@ -43,12 +37,9 @@ private:
     struct PayloadContext _ctx;
 };
 
-class JPEGRtpEncoder : public JPEGRtpDecoder, public RtpInfo {
+class JPEGRtpEncoder : public RtpCodec {
 public:
     using Ptr = std::shared_ptr<JPEGRtpEncoder>;
-
-    JPEGRtpEncoder(uint32_t ssrc, uint32_t mtu = 1400, uint32_t sample_rate = 90000, uint8_t payload_type = 96, uint8_t interleaved = TrackVideo * 2);
-    ~JPEGRtpEncoder() = default;
 
     bool inputFrame(const Frame::Ptr &frame) override;
 

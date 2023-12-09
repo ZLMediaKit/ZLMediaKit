@@ -2,11 +2,7 @@
 
 namespace mediakit {
 
-G711RtpEncoder::G711RtpEncoder(
-    CodecId codec, uint32_t ssrc, uint32_t mtu_size, uint32_t sample_rate, uint8_t payload_type, uint8_t interleaved,
-    uint32_t channels)
-    : CommonRtpDecoder(codec)
-    , RtpInfo(ssrc, mtu_size, sample_rate, payload_type, interleaved) {
+G711RtpEncoder::G711RtpEncoder(CodecId codec, uint32_t channels){
     _cache_frame = FrameImp::create();
     _cache_frame->_codec_id = codec;
     _channels = channels;
@@ -40,7 +36,7 @@ bool G711RtpEncoder::inputFrame(const Frame::Ptr &frame) {
         }
         n++;
         stamp += 20;
-        RtpCodec::inputRtp(makeRtp(getTrackType(), ptr, rtp_size, mark, stamp), false);
+        RtpCodec::inputRtp(getRtpInfo().makeRtp(TrackAudio, ptr, rtp_size, mark, stamp), false);
         ptr += rtp_size;
         remain_size -= rtp_size;
     }

@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -40,12 +40,13 @@ public:
     using HttpAccessPathInvoker = std::function<void(const std::string &errMsg,const std::string &accessPath, int cookieLifeSecond)>;
 
     HttpSession(const toolkit::Socket::Ptr &pSock);
-    ~HttpSession() override;
 
     void onRecv(const toolkit::Buffer::Ptr &) override;
     void onError(const toolkit::SockException &err) override;
     void onManager() override;
     static std::string urlDecode(const std::string &str);
+    void setTimeoutSec(size_t second);
+    void setMaxReqSize(size_t max_req_size);
 
 protected:
     //FlvMuxer override
@@ -129,6 +130,10 @@ protected:
 private:
     bool _is_live_stream = false;
     bool _live_over_websocket = false;
+    //超时时间
+    size_t _keep_alive_sec = 0;
+    //最大http请求字节大小
+    size_t _max_req_size = 0;
     //消耗的总流量
     uint64_t _total_bytes_usage = 0;
     Parser _parser;

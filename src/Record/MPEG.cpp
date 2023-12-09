@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -30,26 +30,19 @@ MpegMuxer::~MpegMuxer() {
     releaseContext();
 }
 
-#define XX(name, type, value, str, mpeg_id)                                                                                                                    \
-    case name: {                                                                                                                                               \
-        if (mpeg_id == PSI_STREAM_RESERVED) {                                                                                                                  \
-            break;                                                                                                                                             \
-        }                                                                                                                                                      \
-        if (track->getTrackType() == TrackVideo) {                                                                                                             \
-            _have_video = true;                                                                                                                                \
-        }                                                                                                                                                      \
-        _codec_to_trackid[track->getCodecId()] = mpeg_muxer_add_stream((::mpeg_muxer_t *)_context, mpeg_id, nullptr, 0);                                       \
-        return true;                                                                                                                                           \
-    }
 bool MpegMuxer::addTrack(const Track::Ptr &track) {
-    switch (track->getCodecId()) {
-        CODEC_MAP(XX)
-        default: break;
+    auto mpeg_id = getMpegIdByCodec(track->getCodecId());
+    if (mpeg_id == PSI_STREAM_RESERVED) {
+        WarnL << "Unsupported codec: " << track->getCodecName();
+        return false;
     }
-    WarnL << "不支持该编码格式,已忽略:" << track->getCodecName();
-    return false;
+
+    if (track->getTrackType() == TrackVideo) {
+        _have_video = true;
+    }
+    _codec_to_trackid[track->getCodecId()] = mpeg_muxer_add_stream((::mpeg_muxer_t *)_context, mpeg_id, nullptr, 0);
+    return true;
 }
-#undef XX
 
 bool MpegMuxer::inputFrame(const Frame::Ptr &frame) {
     auto it = _codec_to_trackid.find(frame->getCodecId());
@@ -73,19 +66,16 @@ bool MpegMuxer::inputFrame(const Frame::Ptr &frame) {
         }
 
         case CodecAAC: {
-            if (frame->prefixSize() == 0) {
-                WarnL << "必须提供adts头才能mpeg-ts打包";
-                return false;
-            }
+            CHECK(frame->prefixSize(), "Mpeg muxer required aac frame with adts heade");
         }
 
         default: {
             if (!_have_video) {
-                //没有视频时，才以音频时间戳为TS的时间戳
+                // 没有视频时，才以音频时间戳为TS的时间戳
                 _timestamp = frame->dts();
             }
 
-            if(frame->getTrackType() == TrackType::TrackVideo){
+            if (frame->getTrackType() == TrackType::TrackVideo) {
                 _key_pos = frame->keyFrame();
                 _timestamp = frame->dts();
             }

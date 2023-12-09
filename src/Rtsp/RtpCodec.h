@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -23,23 +23,14 @@ public:
     using Ptr = std::shared_ptr<RtpRing>;
     using RingType = toolkit::RingBuffer<RtpPacket::Ptr>;
 
-    RtpRing() = default;
     virtual ~RtpRing() = default;
-
-    /**
-     * 获取rtp环形缓存
-     * @return
-     */
-    virtual RingType::Ptr getRtpRing() const {
-        return _ring;
-    }
 
     /**
      * 设置rtp环形缓存
      * @param ring
      */
-    virtual void setRtpRing(const RingType::Ptr &ring) {
-        _ring = ring;
+    void setRtpRing(RingType::Ptr ring) {
+        _ring = std::move(ring);
     }
 
     /**
@@ -74,15 +65,9 @@ public:
         _interleaved = interleaved;
     }
 
-    virtual ~RtpInfo() = default;
-
     //返回rtp负载最大长度
     size_t getMaxSize() const {
         return _mtu_size - RtpPacket::kRtpHeaderSize;
-    }
-
-    uint32_t getSsrc() const {
-        return _ssrc;
     }
 
     RtpPacket::Ptr makeRtp(TrackType type,const void *data, size_t len, bool mark, uint64_t stamp);
@@ -96,17 +81,21 @@ private:
     size_t _mtu_size;
 };
 
-class RtpCodec : public RtpRing, public FrameDispatcher, public CodecInfo {
+class RtpCodec : public RtpRing, public FrameDispatcher {
 public:
     using Ptr = std::shared_ptr<RtpCodec>;
 
-    RtpCodec() = default;
-    ~RtpCodec() override = default;
+    void setRtpInfo(uint32_t ssrc, size_t mtu_size, uint32_t sample_rate, uint8_t pt, uint8_t interleaved) {
+        _rtp_info.reset(new RtpInfo(ssrc, mtu_size, sample_rate, pt, interleaved));
+    }
+
+    RtpInfo &getRtpInfo() { return *_rtp_info; }
+
+private:
+    std::unique_ptr<RtpInfo> _rtp_info;
 };
 
 }//namespace mediakit
-
-
 
 
 #endif //ZLMEDIAKIT_RTPCODEC_H

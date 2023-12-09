@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -12,11 +12,6 @@
 #include "GB28181Process.h"
 #include "Extension/CommonRtp.h"
 #include "Extension/Factory.h"
-#include "Extension/G711.h"
-#include "Extension/H264.h"
-#include "Extension/H265.h"
-#include "Extension/Opus.h"
-#include "Extension/JPEG.h"
 #include "Http/HttpTSPlayer.h"
 #include "Util/File.h"
 #include "Common/config.h"
@@ -44,8 +39,6 @@ public:
         // GB28181推流不支持ntp时间戳
         setNtpStamp(0, 0);
     }
-
-    ~RtpReceiverImp() override = default;
 
     bool inputRtp(TrackType type, uint8_t *ptr, size_t len) {
         return RtpTrack::inputRtp(type, _sample_rate, ptr, len).operator bool();
@@ -92,7 +85,8 @@ bool GB28181Process::inputRtp(bool, const char *data, size_t data_len) {
             case Rtsp::PT_PCMU: {
                 // CodecG711U or CodecG711A
                 ref = std::make_shared<RtpReceiverImp>(8000, [this](RtpPacket::Ptr rtp) { onRtpSorted(std::move(rtp)); });
-                auto track = std::make_shared<G711Track>(pt == Rtsp::PT_PCMU ? CodecG711U : CodecG711A, 8000, 1, 16);
+                auto track = Factory::getTrackByCodecId(pt == Rtsp::PT_PCMU ? CodecG711U : CodecG711A, 8000, 1, 16);
+                CHECK(track);
                 _interface->addTrack(track);
                 _rtp_decoder[pt] = Factory::getRtpDecoderByTrack(track);
                 break;
@@ -100,7 +94,8 @@ bool GB28181Process::inputRtp(bool, const char *data, size_t data_len) {
             case Rtsp::PT_JPEG: {
                 // mjpeg
                 ref = std::make_shared<RtpReceiverImp>(90000, [this](RtpPacket::Ptr rtp) { onRtpSorted(std::move(rtp)); });
-                auto track = std::make_shared<JPEGTrack>();
+                auto track = Factory::getTrackByCodecId(CodecJPEG);
+                CHECK(track);
                 _interface->addTrack(track);
                 _rtp_decoder[pt] = Factory::getRtpDecoderByTrack(track);
                 break;
@@ -109,19 +104,20 @@ bool GB28181Process::inputRtp(bool, const char *data, size_t data_len) {
                 if (pt == opus_pt) {
                     // opus负载
                     ref = std::make_shared<RtpReceiverImp>(48000, [this](RtpPacket::Ptr rtp) { onRtpSorted(std::move(rtp)); });
-                    auto track = std::make_shared<OpusTrack>();
+                    auto track = Factory::getTrackByCodecId(CodecOpus);
+                    CHECK(track);
                     _interface->addTrack(track);
                     _rtp_decoder[pt] = Factory::getRtpDecoderByTrack(track);
                 } else if (pt == h265_pt) {
                     // H265负载
                     ref = std::make_shared<RtpReceiverImp>(90000, [this](RtpPacket::Ptr rtp) { onRtpSorted(std::move(rtp)); });
-                    auto track = std::make_shared<H265Track>();
+                    auto track = Factory::getTrackByCodecId(CodecH265);
                     _interface->addTrack(track);
                     _rtp_decoder[pt] = Factory::getRtpDecoderByTrack(track);
                 } else if (pt == h264_pt) {
                     // H264负载
                     ref = std::make_shared<RtpReceiverImp>(90000, [this](RtpPacket::Ptr rtp) { onRtpSorted(std::move(rtp)); });
-                    auto track = std::make_shared<H264Track>();
+                    auto track = Factory::getTrackByCodecId(CodecH264);
                     _interface->addTrack(track);
                     _rtp_decoder[pt] = Factory::getRtpDecoderByTrack(track);
                 } else {

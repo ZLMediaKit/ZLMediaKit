@@ -1,14 +1,15 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #include "Rtmp.h"
+#include "Common/config.h"
 #include "Extension/Factory.h"
 
 namespace mediakit {
@@ -35,8 +36,7 @@ VideoMeta::VideoMeta(const VideoTrack::Ptr &video) {
     if (video->getBitRate()) {
         _metadata.set("videodatarate", video->getBitRate() / 1024);
     }
-    _codecId = video->getCodecId();
-    _metadata.set("videocodecid", Factory::getAmfByCodecId(_codecId));
+    _metadata.set("videocodecid", Factory::getAmfByCodecId(video->getCodecId()));
 }
 
 AudioMeta::AudioMeta(const AudioTrack::Ptr &audio) {
@@ -52,8 +52,7 @@ AudioMeta::AudioMeta(const AudioTrack::Ptr &audio) {
     if (audio->getAudioChannel() > 0) {
         _metadata.set("stereo", audio->getAudioChannel() > 1);
     }
-    _codecId = audio->getCodecId();
-    _metadata.set("audiocodecid", Factory::getAmfByCodecId(_codecId));
+    _metadata.set("audiocodecid", Factory::getAmfByCodecId(audio->getCodecId()));
 }
 
 uint8_t getAudioRtmpFlags(const Track::Ptr &track) {
@@ -259,36 +258,6 @@ void RtmpHandshake::random_generate(char *bytes, int size) {
     }
 }
 
-#pragma pack(push, 1)
-
-struct RtmpVideoHeaderEnhanced {
-#if __BYTE_ORDER == __BIG_ENDIAN
-    uint8_t enhanced : 1;
-    uint8_t frame_type : 3;
-    uint8_t pkt_type : 4;
-    uint32_t fourcc;
-#else
-    uint8_t pkt_type : 4;
-    uint8_t frame_type : 3;
-    uint8_t enhanced : 1;
-    uint32_t fourcc;
-#endif
-};
-
-struct RtmpVideoHeaderClassic {
-#if __BYTE_ORDER == __BIG_ENDIAN
-    uint8_t frame_type : 4;
-    uint8_t codec_id : 4;
-    uint8_t h264_pkt_type;
-#else
-    uint8_t codec_id : 4;
-    uint8_t frame_type : 4;
-    uint8_t h264_pkt_type;
-#endif
-};
-
-#pragma pack(pop)
-
 CodecId parseVideoRtmpPacket(const uint8_t *data, size_t size, RtmpPacketInfo *info) {
     RtmpPacketInfo save;
     info = info ? info : &save;
@@ -298,7 +267,7 @@ CodecId parseVideoRtmpPacket(const uint8_t *data, size_t size, RtmpPacketInfo *i
     RtmpVideoHeaderEnhanced *enhanced_header = (RtmpVideoHeaderEnhanced *)data;
     if (enhanced_header->enhanced) {
         // IsExHeader == 1
-        CHECK(size >= 5, "Invalid rtmp buffer size: ", size);
+        CHECK(size > RtmpPacketInfo::kEnhancedRtmpHeaderSize, "Invalid rtmp buffer size: ", size);
         info->is_enhanced = true;
         info->video.frame_type = (RtmpFrameType)(enhanced_header->frame_type);
         info->video.pkt_type = (RtmpPacketType)(enhanced_header->pkt_type);

@@ -1,9 +1,9 @@
 ﻿/*
-* Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+* Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
 *
-* This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+* This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
 *
-* Use of this source code is governed by MIT license that can be found in the
+* Use of this source code is governed by MIT-like license that can be found in the
 * LICENSE file in the root of the source tree. All contributing project authors
 * may be found in the AUTHORS file in the root of the source tree.
 */
@@ -18,9 +18,6 @@ namespace mediakit {
 /// 缓存刷新策略类
 class FlushPolicy {
 public:
-    FlushPolicy() = default;
-    ~FlushPolicy() = default;
-
     bool isFlushAble(bool is_video, bool is_key, uint64_t new_stamp, size_t cache_size);
 
 private:
@@ -79,13 +76,8 @@ private:
         // 但是却对性能提升很大，这样做还是比较划算的
 
         GET_CONFIG(int, mergeWriteMS, General::kMergeWriteMS);
-
         GET_CONFIG(int, rtspLowLatency, Rtsp::kLowLatency);
-        if (std::is_same<packet, RtpPacket>::value && rtspLowLatency) {
-            return true;
-        }
-
-        return std::is_same<packet, RtpPacket>::value ? false : (mergeWriteMS <= 0);
+        return std::is_same<packet, RtpPacket>::value ? rtspLowLatency : (mergeWriteMS <= 0);
     }
 
 private:

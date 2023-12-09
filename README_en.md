@@ -157,7 +157,7 @@ It is recommended to compile on Ubuntu or macOS. Compiling on Windows is cumbers
 
 - **You must use Git to clone the complete code. Do not download the source code by downloading the ZIP package. Otherwise, the submodule code will not be downloaded by default. You can do it like this:**
 ```
-git clone https://github.com/xia-chu/ZLMediaKit.git
+git clone https://github.com/ZLMediaKit/ZLMediaKit.git
 cd ZLMediaKit
 git submodule update --init
 ```

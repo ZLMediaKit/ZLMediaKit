@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -132,6 +132,32 @@ public:
     uint8_t streamid[3] = {0}; /* Always 0. */
 };
 
+struct RtmpVideoHeaderEnhanced {
+#if __BYTE_ORDER == __BIG_ENDIAN
+    uint8_t enhanced : 1;
+    uint8_t frame_type : 3;
+    uint8_t pkt_type : 4;
+    uint32_t fourcc;
+#else
+    uint8_t pkt_type : 4;
+    uint8_t frame_type : 3;
+    uint8_t enhanced : 1;
+    uint32_t fourcc;
+#endif
+};
+
+struct RtmpVideoHeaderClassic {
+#if __BYTE_ORDER == __BIG_ENDIAN
+    uint8_t frame_type : 4;
+    uint8_t codec_id : 4;
+    uint8_t h264_pkt_type;
+#else
+    uint8_t codec_id : 4;
+    uint8_t frame_type : 4;
+    uint8_t h264_pkt_type;
+#endif
+};
+
 #pragma pack(pop)
 
 class RtmpPacket : public toolkit::Buffer{
@@ -188,17 +214,17 @@ private:
 /**
  * rtmp metadata基类，用于描述rtmp格式信息
  */
-class Metadata : public CodecInfo{
+class Metadata {
 public:
     using Ptr = std::shared_ptr<Metadata>;
 
     Metadata(): _metadata(AMF_OBJECT) {}
-    virtual ~Metadata() = default;
     const AMFValue &getMetadata() const{
         return _metadata;
     }
 
     static void addTrack(AMFValue &metadata, const Track::Ptr &track);
+
 protected:
     AMFValue _metadata;
 };
@@ -206,7 +232,7 @@ protected:
 /**
 * metadata中除音视频外的其他描述部分
 */
-class TitleMeta : public Metadata{
+class TitleMeta : public Metadata {
 public:
     using Ptr = std::shared_ptr<TitleMeta>;
 
@@ -214,37 +240,20 @@ public:
               size_t fileSize = 0,
               const std::map<std::string, std::string> &header = std::map<std::string, std::string>());
 
-    CodecId getCodecId() const override{
-        return CodecInvalid;
-    }
 };
 
-class VideoMeta : public Metadata{
+class VideoMeta : public Metadata {
 public:
     using Ptr = std::shared_ptr<VideoMeta>;
 
     VideoMeta(const VideoTrack::Ptr &video);
-    virtual ~VideoMeta() = default;
-
-    CodecId getCodecId() const override{
-        return _codecId;
-    }
-private:
-    CodecId _codecId;
 };
 
-class AudioMeta : public Metadata{
+class AudioMeta : public Metadata {
 public:
     using Ptr = std::shared_ptr<AudioMeta>;
 
     AudioMeta(const AudioTrack::Ptr &audio);
-    virtual ~AudioMeta() = default;
-
-    CodecId getCodecId() const override{
-        return _codecId;
-    }
-private:
-    CodecId _codecId;
 };
 
 //根据音频track获取flags
@@ -353,6 +362,8 @@ enum class RtmpAACPacketType : uint8_t {
 ////////////////////////////////////////////
 
 struct RtmpPacketInfo {
+    enum { kEnhancedRtmpHeaderSize = sizeof(RtmpVideoHeaderEnhanced) };
+
     CodecId codec = CodecInvalid;
     bool is_enhanced;
     union {

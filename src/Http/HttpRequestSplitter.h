@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -18,7 +18,7 @@ namespace mediakit {
 
 class HttpRequestSplitter {
 public:
-    HttpRequestSplitter() = default;
+    HttpRequestSplitter();
     virtual ~HttpRequestSplitter() = default;
 
     /**
@@ -43,6 +43,11 @@ public:
      * 获取剩余数据指针
      */
     const char *remainData() const;
+
+    /**
+     * 设置最大缓存大小
+     */
+    void setMaxCacheSize(size_t max_cache_size);
 
 protected:
     /**
@@ -80,6 +85,7 @@ protected:
 
 private:
     ssize_t _content_len = 0;
+    size_t _max_cache_size = 0;
     size_t _remain_data_size = 0;
     toolkit::BufferLikeString _remain_data;
 };

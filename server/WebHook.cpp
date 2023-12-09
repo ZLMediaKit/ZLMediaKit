@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -174,7 +174,7 @@ void do_http_hook(const string &url, const ArgsType &body, const function<void(c
     GET_CONFIG(float, retry_delay, Hook::kRetryDelay);
 
     const_cast<ArgsType &>(body)["mediaServerId"] = mediaServerId;
-    const_cast<ArgsType &>(body)["hook_index"] = s_hook_index++;
+    const_cast<ArgsType &>(body)["hook_index"] = (Json::UInt64)(s_hook_index++);
 
     auto requester = std::make_shared<HttpRequester>();
     requester->setMethod("POST");

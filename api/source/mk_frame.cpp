@@ -1,115 +1,70 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #include "mk_frame.h"
-#include "mk_track.h"
-#include "Extension/Frame.h"
-#include "Extension/H264.h"
-#include "Extension/H265.h"
-#include "Extension/AAC.h"
 #include "Record/MPEG.h"
+#include "Extension/Factory.h"
 
 using namespace mediakit;
 
 extern "C" {
-#define XX(name, type, value, str, mpeg_id) API_EXPORT const int MK##name = value;
+#define XX(name, type, value, str, mpeg_id, mp4_id) API_EXPORT const int MK##name = value;
     CODEC_MAP(XX)
 #undef XX
 }
 
-class FrameFromPtrForC : public FrameFromPtr {
+namespace {
+class BufferFromPtr : public toolkit::Buffer {
 public:
-    using Ptr = std::shared_ptr<FrameFromPtrForC>;
-
-    template<typename ...ARGS>
-    FrameFromPtrForC(bool cache_able, uint32_t flags, on_mk_frame_data_release cb, std::shared_ptr<void> user_data, ARGS &&...args) : FrameFromPtr(
-            std::forward<ARGS>(args)...) {
-        _flags = flags;
+    BufferFromPtr(char *ptr, size_t size, on_mk_frame_data_release cb, std::shared_ptr<void> user_data) {
+        _ptr = ptr;
+        _size = size;
         _cb = cb;
         _user_data = std::move(user_data);
-        _cache_able = cache_able;
     }
 
-    ~FrameFromPtrForC() override {
-        if (_cb) {
-            _cb(_user_data.get(), _ptr);
-        }
+    ~BufferFromPtr() override {
+        _cb(_user_data.get(), _ptr);
     }
 
-    bool cacheAble() const override {
-        return _cache_able;
-    }
-
-    bool keyFrame() const override {
-        return _flags & MK_FRAME_FLAG_IS_KEY;
-    }
-
-    bool configFrame() const override {
-        return _flags & MK_FRAME_FLAG_IS_CONFIG;
-    }
-
-    //默认返回false
-    bool dropAble() const override {
-        return _flags & MK_FRAME_FLAG_DROP_ABLE;
-    }
-
-    //默认返回true
-    bool decodeAble() const override {
-        return !(_flags & MK_FRAME_FLAG_NOT_DECODE_ABLE);
-    }
+    char *data() const override { return _ptr; }
+    size_t size() const override { return _size; }
 
 private:
-    uint32_t _flags;
+    char *_ptr;
+    size_t _size;
     on_mk_frame_data_release _cb;
     std::shared_ptr<void> _user_data;
-    bool _cache_able;
 };
+}; // namespace
 
-static mk_frame mk_frame_create_complex(int codec_id, uint64_t dts, uint64_t pts, uint32_t frame_flags, size_t prefix_size,
-                                       char *data, size_t size, on_mk_frame_data_release cb, std::shared_ptr<void> user_data) {
-    switch (codec_id) {
-        case CodecH264:
-            return (mk_frame)new Frame::Ptr(new H264FrameHelper<FrameFromPtrForC>(
-                cb, frame_flags, cb, std::move(user_data), (CodecId)codec_id, data, size, dts, pts, prefix_size));
-        case CodecH265:
-            return (mk_frame)new Frame::Ptr(new H265FrameHelper<FrameFromPtrForC>(
-                cb, frame_flags, cb, std::move(user_data), (CodecId)codec_id, data, size, dts, pts, prefix_size));
-        default:
-            return (mk_frame)new Frame::Ptr(new FrameFromPtrForC(
-                cb, frame_flags, cb, std::move(user_data), (CodecId)codec_id, data, size, dts, pts, prefix_size));
+static mk_frame mk_frame_create_complex(int codec_id, uint64_t dts, uint64_t pts, const char *data, size_t size,
+                                        on_mk_frame_data_release cb, std::shared_ptr<void> user_data) {
+    if (!cb) {
+        // no cacheable
+        return (mk_frame) new Frame::Ptr(Factory::getFrameFromPtr((CodecId)codec_id, data, size, dts, pts));
     }
+    // cacheable
+    auto buffer = std::make_shared<BufferFromPtr>((char *)data, size, cb, std::move(user_data));
+    return (mk_frame) new Frame::Ptr(Factory::getFrameFromBuffer((CodecId)codec_id, std::move(buffer), dts, pts));
 }
 
 API_EXPORT mk_frame API_CALL mk_frame_create(int codec_id, uint64_t dts, uint64_t pts, const char *data, size_t size,
-                                              on_mk_frame_data_release cb, void *user_data) {
+                                            on_mk_frame_data_release cb, void *user_data) {
     return mk_frame_create2(codec_id, dts, pts, data, size, cb, user_data, nullptr);
 }
+
 API_EXPORT mk_frame API_CALL mk_frame_create2(int codec_id, uint64_t dts, uint64_t pts, const char *data, size_t size,
-                                            on_mk_frame_data_release cb, void *user_data, on_user_data_free user_data_free) {
+                                              on_mk_frame_data_release cb, void *user_data, on_user_data_free user_data_free) {
     std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
-    switch (codec_id) {
-        case CodecH264:
-        case CodecH265:
-            return mk_frame_create_complex(codec_id, dts, pts, 0, prefixSize(data, size), (char *)data, size, cb, std::move(ptr));
-
-        case CodecAAC: {
-            int prefix = 0;
-            if ((((uint8_t *) data)[0] == 0xFF && (((uint8_t *) data)[1] & 0xF0) == 0xF0) && size > ADTS_HEADER_LEN) {
-                prefix = ADTS_HEADER_LEN;
-            }
-            return mk_frame_create_complex(codec_id, dts, pts, 0, prefix, (char *)data, size, cb, std::move(ptr));
-        }
-
-        default:
-            return mk_frame_create_complex(codec_id, dts, pts, 0, 0, (char *)data, size, cb, std::move(ptr));
-    }
+    return mk_frame_create_complex(codec_id, dts, pts, data, size, cb, std::move(ptr));
 }
 
 API_EXPORT void API_CALL mk_frame_unref(mk_frame frame) {

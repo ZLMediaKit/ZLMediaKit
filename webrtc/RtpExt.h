@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -53,7 +53,6 @@ public:
     template<typename Type>
     friend void appendExt(std::map<uint8_t, RtpExt> &ret, uint8_t *ptr, const uint8_t *end);
     friend class RtpExtContext;
-    ~RtpExt() = default;
 
     static std::map<uint8_t/*id*/, RtpExt/*data*/> getExtValue(const RtpHeader *header);
     static RtpExtType getExtType(const std::string &url);
@@ -119,7 +118,6 @@ public:
     using OnGetRtp = std::function<void(uint8_t pt, uint32_t ssrc, const std::string &rid)>;
 
     RtpExtContext(const RtcMedia &media);
-    ~RtpExtContext() = default;
 
     void setOnGetRtp(OnGetRtp cb);
     std::string getRid(uint32_t ssrc) const;

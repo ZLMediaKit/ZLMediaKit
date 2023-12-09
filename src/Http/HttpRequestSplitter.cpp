@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -22,7 +22,7 @@ namespace mediakit {
 void HttpRequestSplitter::input(const char *data,size_t len) {
     {
         auto size = remainDataSize();
-        if (size > kMaxCacheSize) {
+        if (size > _max_cache_size) {
             //缓存太多数据无法处理则上抛异常
             reset();
             throw std::out_of_range("remain data size is too huge, now cleared:" + to_string(size));
@@ -142,6 +142,16 @@ const char *HttpRequestSplitter::remainData() const {
     return _remain_data.data();
 }
 
+void HttpRequestSplitter::setMaxCacheSize(size_t max_cache_size) {
+    if (!max_cache_size) {
+        max_cache_size = kMaxCacheSize;
+    }
+    _max_cache_size = max_cache_size;
+}
+
+HttpRequestSplitter::HttpRequestSplitter() {
+    setMaxCacheSize(0);
+}
 
 } /* namespace mediakit */
 

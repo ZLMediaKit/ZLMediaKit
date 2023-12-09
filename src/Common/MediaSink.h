@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -21,7 +21,6 @@ namespace mediakit{
 
 class TrackListener {
 public:
-    TrackListener() = default;
     virtual ~TrackListener() = default;
 
     /**
@@ -45,9 +44,6 @@ public:
 class MediaSinkInterface : public FrameWriterInterface, public TrackListener {
 public:
     using Ptr = std::shared_ptr<MediaSinkInterface>;
-
-    MediaSinkInterface() = default;
-    ~MediaSinkInterface() override = default;
 };
 
 /**
@@ -56,8 +52,6 @@ public:
 class MuteAudioMaker : public FrameDispatcher {
 public:
     using Ptr = std::shared_ptr<MuteAudioMaker>;
-    MuteAudioMaker() = default;
-    ~MuteAudioMaker() override = default;
     bool inputFrame(const Frame::Ptr &frame) override;
 
 private:
@@ -71,9 +65,6 @@ private:
 class MediaSink : public MediaSinkInterface, public TrackSource{
 public:
     using Ptr = std::shared_ptr<MediaSink>;
-    MediaSink() = default;
-    ~MediaSink() override = default;
-
     /**
      * 输入frame
      * @param frame
@@ -112,7 +103,7 @@ public:
     std::vector<Track::Ptr> getTracks(bool trackReady = true) const override;
 
     /**
-     * 返回是否所有track已经准备完成
+     * 判断是否已经触发onAllTrackReady事件
      */
     bool isAllTrackReady() const;
 
@@ -188,9 +179,6 @@ private:
 
 class MediaSinkDelegate : public MediaSink {
 public:
-    MediaSinkDelegate() = default;
-    ~MediaSinkDelegate() override = default;
-
     /**
      * 设置track监听器
      */
@@ -207,9 +195,6 @@ private:
 
 class Demuxer : protected TrackListener, public TrackSource {
 public:
-    Demuxer() = default;
-    ~Demuxer() override = default;
-
     void setTrackListener(TrackListener *listener, bool wait_track_ready = false);
     std::vector<Track::Ptr> getTracks(bool trackReady = true) const override;
 

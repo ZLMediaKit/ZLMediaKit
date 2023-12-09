@@ -105,7 +105,11 @@ void RtmpMediaSourceImp::onWrite(RtmpPacket::Ptr pkt, bool /*= true*/) {
         // 未获取到所有Track后，或者开启转协议，那么需要解复用rtmp
         _demuxer->inputRtmp(pkt);
     }
-    RtmpMediaSource::onWrite(std::move(pkt));
+    GET_CONFIG(bool, directProxy, Rtmp::kDirectProxy);
+    if (directProxy) {
+        //直接代理模式才直接使用原始rtmp
+        RtmpMediaSource::onWrite(std::move(pkt));
+    }
 }
 
 int RtmpMediaSourceImp::totalReaderCount() {
@@ -113,10 +117,9 @@ int RtmpMediaSourceImp::totalReaderCount() {
 }
 
 void RtmpMediaSourceImp::setProtocolOption(const ProtocolOption &option) {
-    // 不重复生成rtmp
+    GET_CONFIG(bool, direct_proxy, Rtmp::kDirectProxy);
     _option = option;
-    // 不重复生成rtmp协议
-    _option.enable_rtmp = false;
+    _option.enable_rtmp = !direct_proxy;
     _muxer = std::make_shared<MultiMediaSourceMuxer>(_tuple, _demuxer->getDuration(), _option);
     _muxer->setMediaListener(getListener());
     _muxer->setTrackListener(std::static_pointer_cast<RtmpMediaSourceImp>(shared_from_this()));

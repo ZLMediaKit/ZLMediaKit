@@ -94,7 +94,7 @@ RUN cd /opt \
     && make install
 
 RUN cd /opt \
-    && git clone --depth 1 https://github.com/xia-chu/ZLMediaKit.git \
+    && git clone --depth 1 https://github.com/ZLMediaKit/ZLMediaKit.git \
     && cd ZLMediaKit \
     && git submodule update --init \
     && mkdir -p build release/linux/Release/ \
@@ -112,7 +112,7 @@ RUN mkdir -p /opt/build/opt/zlm/ /opt/build/usr/local/bin/ /opt/build/usr/bin/  
     && /usr/bin/cp -ip /usr/bin/which ./usr/bin/
 
 FROM centos:${Version}
-LABEL maintainer="chengxiaosheng <kevin__cheng@outlook.com>" project-url="https://github.com/xia-chu/ZLMediaKit" description="一个基于C++11的高性能运营级流媒体服务框架"
+LABEL maintainer="chengxiaosheng <kevin__cheng@outlook.com>" project-url="https://github.com/ZLMediaKit/ZLMediaKit" description="一个基于C++11的高性能运营级流媒体服务框架"
 
 EXPOSE 9000/tcp \
  1935/tcp \
