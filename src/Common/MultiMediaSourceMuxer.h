@@ -162,11 +162,12 @@ private:
     bool _is_enable = false;
     bool _create_in_poller = false;
     bool _video_key_pos = false;
+    float _dur_sec;
     std::shared_ptr<class FramePacedSender> _paced_sender;
     MediaTuple _tuple;
     ProtocolOption _option;
     toolkit::Ticker _last_check;
-    Stamp _stamp[2];
+    std::unordered_map<int, Stamp> _stamps;
     std::weak_ptr<Listener> _track_listener;
     std::unordered_multimap<std::string, RingType::RingReader::Ptr> _rtp_sender;
     FMP4MediaSourceMuxer::Ptr _fmp4;

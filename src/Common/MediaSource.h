@@ -202,6 +202,9 @@ public:
     // 支持通过on_publish返回值替换stream_id
     std::string stream_replace;
 
+    // 最大track数
+    size_t max_track = 2;
+
     template <typename MAP>
     ProtocolOption(const MAP &allArgs) : ProtocolOption() {
         load(allArgs);
@@ -237,6 +240,7 @@ public:
 
         GET_OPT_VALUE(hls_save_path);
         GET_OPT_VALUE(stream_replace);
+        GET_OPT_VALUE(max_track);
     }
 
 private:

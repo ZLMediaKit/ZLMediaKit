@@ -254,8 +254,7 @@ void RtpProcess::emitOnPublish() {
                 return;
             }
             if (err.empty()) {
-                strong_self->_muxer = std::make_shared<MultiMediaSourceMuxer>(strong_self->_media_info, 0.0f,
-                                                                              option);
+                strong_self->_muxer = std::make_shared<MultiMediaSourceMuxer>(strong_self->_media_info, 0.0f, option);
                 if (strong_self->_only_audio) {
                     strong_self->_muxer->setOnlyAudio();
                 }

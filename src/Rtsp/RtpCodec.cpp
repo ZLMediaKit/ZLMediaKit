@@ -19,6 +19,7 @@ RtpPacket::Ptr RtpInfo::makeRtp(TrackType type, const void* data, size_t len, bo
     rtp->setSize(payload_len + RtpPacket::kRtpTcpHeaderSize);
     rtp->sample_rate = _sample_rate;
     rtp->type = type;
+    rtp->track_index = _track_index;
 
     //rtsp over tcp 头
     auto ptr = (uint8_t *) rtp->data();

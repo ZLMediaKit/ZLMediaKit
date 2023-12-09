@@ -27,7 +27,8 @@ MP4Reader::MP4Reader(const std::string &vhost, const std::string &app, const std
     option.enable_mp4 = false;
     option.enable_hls = false;
     option.enable_hls_fmp4 = false;
-
+    // mp4支持多track
+    option.max_track = 16;
     setup(vhost, app, stream_id, file_path, option, std::move(poller));
 }
 

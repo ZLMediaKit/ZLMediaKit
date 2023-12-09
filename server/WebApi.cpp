@@ -1818,6 +1818,8 @@ void installWebApi() {
         CHECK_ARGS("vhost", "app", "stream", "file_path");
 
         ProtocolOption option;
+        // mp4支持多track
+        option.max_track = 16;
         // 默认解复用mp4不生成mp4
         option.enable_mp4 = false;
         // 但是如果参数明确指定开启mp4, 那么也允许之

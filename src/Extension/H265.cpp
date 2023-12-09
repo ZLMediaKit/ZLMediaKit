@@ -195,6 +195,7 @@ void H265Track::insertConfigFrame(const Frame::Ptr &frame) {
         vpsFrame->_buffer.assign("\x00\x00\x00\x01", 4);
         vpsFrame->_buffer.append(_vps);
         vpsFrame->_dts = frame->dts();
+        vpsFrame->setIndex(frame->getIndex());
         VideoTrack::inputFrame(vpsFrame);
     }
     if (!_sps.empty()) {
@@ -203,6 +204,7 @@ void H265Track::insertConfigFrame(const Frame::Ptr &frame) {
         spsFrame->_buffer.assign("\x00\x00\x00\x01", 4);
         spsFrame->_buffer.append(_sps);
         spsFrame->_dts = frame->dts();
+        spsFrame->setIndex(frame->getIndex());
         VideoTrack::inputFrame(spsFrame);
     }
 
@@ -212,6 +214,7 @@ void H265Track::insertConfigFrame(const Frame::Ptr &frame) {
         ppsFrame->_buffer.assign("\x00\x00\x00\x01", 4);
         ppsFrame->_buffer.append(_pps);
         ppsFrame->_dts = frame->dts();
+        ppsFrame->setIndex(frame->getIndex());
         VideoTrack::inputFrame(ppsFrame);
     }
 }

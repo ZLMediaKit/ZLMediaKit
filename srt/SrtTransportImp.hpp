@@ -86,8 +86,6 @@ private:
     DecoderImp::Ptr _decoder;
     std::recursive_mutex _func_mtx;
     std::deque<std::function<void()>> _cached_func;
-
-    std::unordered_map<int, Stamp> _type_to_stamp;
 };
 
 } // namespace SRT
