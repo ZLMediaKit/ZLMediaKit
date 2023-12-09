@@ -12,6 +12,8 @@
 #include "Common/config.h"
 #include "Extension/Factory.h"
 
+#define MUTE_AUDIO_INDEX 0xFFFF
+
 using namespace std;
 
 namespace mediakit{
@@ -35,9 +37,9 @@ bool MediaSink::addTrack(const Track::Ptr &track_in) {
     }
     //克隆Track，只拷贝其数据，不拷贝其数据转发关系
     auto track = track_in->clone();
-    auto track_type = track->getTrackType();
-    _track_map[track_type] = std::make_pair(track, false);
-    _track_ready_callback[track_type] = [this, track]() {
+    auto index = track->getIndex();
+    _track_map[index] = std::make_pair(track, false);
+    _track_ready_callback[index] = [this, track]() {
         onTrackReady(track);
     };
     _ticker.resetTime();
@@ -46,7 +48,7 @@ bool MediaSink::addTrack(const Track::Ptr &track_in) {
         if (_all_track_ready) {
             return onTrackFrame(frame);
         }
-        auto &frame_unread = _frame_unread[frame->getTrackType()];
+        auto &frame_unread = _frame_unread[frame->getIndex()];
 
         GET_CONFIG(uint32_t, kMaxUnreadyFrame, General::kUnreadyFrameCache);
         if (frame_unread.size() > kMaxUnreadyFrame) {
@@ -72,7 +74,7 @@ void MediaSink::resetTracks() {
 }
 
 bool MediaSink::inputFrame(const Frame::Ptr &frame) {
-    auto it = _track_map.find(frame->getTrackType());
+    auto it = _track_map.find(frame->getIndex());
     if (it == _track_map.end()) {
         return false;
     }
@@ -138,7 +140,7 @@ void MediaSink::setMaxTrackCount(size_t i) {
         WarnL << "All track is ready, set max track count ignored";
         return;
     }
-    _max_track_size = MAX(MIN(i, 2), 1);
+    _max_track_size = MAX(i, 1);
     checkTrackIfReady();
 }
 
@@ -166,15 +168,13 @@ void MediaSink::emitAllTrackReady() {
         //最少有一个有效的Track
         onAllTrackReady_l();
 
-        //全部Track就绪，我们一次性把之前的帧输出
-        for(auto &pr : _frame_unread){
+        // 全部Track就绪，我们一次性把之前的帧输出
+        for (auto &pr : _frame_unread) {
             if (_track_map.find(pr.first) == _track_map.end()) {
-                //该Track已经被移除
+                // 该Track已经被移除
                 continue;
             }
-            pr.second.for_each([&](const Frame::Ptr &frame) {
-                MediaSink::inputFrame(frame);
-            });
+            pr.second.for_each([&](const Frame::Ptr &frame) { MediaSink::inputFrame(frame); });
         }
         _frame_unread.clear();
     }
@@ -236,6 +236,7 @@ bool MuteAudioMaker::inputFrame(const Frame::Ptr &frame) {
             _audio_idx = audio_idx;
             auto aacFrame = std::make_shared<FrameToCache<FrameFromPtr>>(CodecAAC, (char *) MUTE_ADTS_DATA, sizeof(s_mute_adts),
                                                                          _audio_idx * MUTE_ADTS_DATA_MS, 0, 7);
+            aacFrame->setIndex(MUTE_AUDIO_INDEX);
             return FrameDispatcher::inputFrame(aacFrame);
         }
     }
@@ -246,12 +247,15 @@ bool MediaSink::addMuteAudioTrack() {
     if (!_enable_audio) {
         return false;
     }
-    if (_track_map.find(TrackAudio) != _track_map.end()) {
-        return false;
+    for (auto &pr : _track_map) {
+        if (pr.second.first->getTrackType() == TrackAudio) {
+            return false;
+        }
     }
     auto audio = Factory::getTrackByCodecId(CodecAAC);
+    audio->setIndex(MUTE_AUDIO_INDEX);
     audio->setExtraData(ADTS_CONFIG, 2);
-    _track_map[audio->getTrackType()] = std::make_pair(audio, true);
+    _track_map[MUTE_AUDIO_INDEX] = std::make_pair(audio, true);
     audio->addDelegate([this](const Frame::Ptr &frame) {
         return onTrackFrame(frame);
     });

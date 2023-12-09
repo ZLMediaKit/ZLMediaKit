@@ -86,7 +86,7 @@ public:
     void addTrackCompleted() override;
 
     /**
-     * 设置最大track数，取值范围1~2；该方法与addTrackCompleted类型；
+     * 设置最大track数，取值范围>=1；该方法与addTrackCompleted类型；
      * 在设置单track时，可以加快媒体注册速度
      */
     void setMaxTrackCount(size_t i);
