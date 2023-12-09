@@ -147,9 +147,28 @@ void DecoderImp::onStream(int stream, int codecid, const void *extra, size_t byt
         }
 
         default:
-            if(codecid != 0){
-                WarnL<< "unsupported codec type:" << getCodecName(codecid) << " " << (int)codecid;
+#if defined(ENABLE_FFMPEG)
+            if (_audioTranscoder && ffmpeg::is_audio_psi_codec(codecid)) {
+                if (_audioTranscoder->initDecodeCodec(codecid)) {
+                    onTrack(std::make_shared<AACTrack>());
+                } else {
+                    _audioTranscoder->setOnOutputAudioData(nullptr);
+                    _audioTranscoder->release();
+                    _audioTranscoder.reset();
+                    if (codecid != 0) {
+                        WarnL << "unsupported codec type:" << getCodecName(codecid) << " " << (int)codecid;
+                    }
+                }
+            } else {
+                if (codecid != 0) {
+                    WarnL << "unsupported codec type:" << getCodecName(codecid) << " " << (int)codecid;
+                }
             }
+#else
+            if (codecid != 0) {
+                WarnL << "unsupported codec type:" << getCodecName(codecid) << " " << (int)codecid;
+            }
+#endif
             break;
     }
 
@@ -221,10 +240,24 @@ void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
         }
 
         default:
+#if defined(ENABLE_FFMPEG)
+            if (_audioTranscoder && ffmpeg::is_audio_psi_codec(codecid)) {
+                if (!_tracks[TrackAudio]) {
+                    onTrack(std::make_shared<AACTrack>());
+                }
+                _audioTranscoder->inputAudioData((uint8_t *)data, bytes, pts, dts);
+            } else {
+                // 海康的 PS 流中会有 codecid 为 0xBD 的包
+                if (codecid != 0 && codecid != 0xBD) {
+                    WarnL << "unsupported codec type:" << getCodecName(codecid) << " " << (int)codecid;
+                }
+            }
+#else
             // 海康的 PS 流中会有 codecid 为 0xBD 的包
             if (codecid != 0 && codecid != 0xBD) {
-                WarnL << "unsupported codec type:" << getCodecName(codecid) << " " << (int) codecid;
+                WarnL << "unsupported codec type:" << getCodecName(codecid) << " " << (int)codecid;
             }
+#endif
             break;
     }
 }
@@ -244,6 +277,27 @@ void DecoderImp::onTrack(const Track::Ptr &track) {
 void DecoderImp::onFrame(const Frame::Ptr &frame) {
     _sink->inputFrame(frame);
 }
-
-}//namespace mediakit
+void DecoderImp::setForceToAac(bool forceToAac) {
+#if defined(ENABLE_FFMPEG)
+    if (forceToAac) {
+        _audioTranscoder = std::make_shared<AudioTranscoder>();
+        _audioTranscoder->setOnOutputAudioData([this](const uint8_t *data, int size, int64_t pts, int64_t dts) {
+            if (!_tracks[TrackAudio]) {
+                onTrack(std::make_shared<AACTrack>());
+            }
+            onFrame(std::make_shared<FrameFromPtr>(CodecAAC, (char *)data, size, (uint32_t)dts, 0, ADTS_HEADER_LEN));
+        });
+    }
+#endif
+}
+DecoderImp::~DecoderImp() {
+#if defined(ENABLE_FFMPEG)
+    if (_audioTranscoder) {
+        _audioTranscoder->setOnOutputAudioData(nullptr);
+        _audioTranscoder->release();
+        _audioTranscoder.reset();
+    }
+#endif
+}
+} // namespace mediakit
 

@@ -356,6 +356,7 @@ const string kBenchmarkMode = "benchmark_mode";
 const string kWaitTrackReady = "wait_track_ready";
 const string kPlayTrack = "play_track";
 const string kProxyUrl = "proxy_url";
+const string kForceToAac = "force_to_aac";
 } // namespace Client
 
 } // namespace mediakit

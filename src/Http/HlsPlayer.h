@@ -23,7 +23,7 @@
 
 namespace mediakit {
 
-class HlsDemuxer : public MediaSinkInterface , public TrackSource, public std::enable_shared_from_this<HlsDemuxer> {
+class HlsDemuxer : public MediaSinkInterface , public TrackSource, public toolkit::mINI, public std::enable_shared_from_this<HlsDemuxer> {
 public:
     HlsDemuxer() = default;
     ~HlsDemuxer() override { _timer = nullptr; }

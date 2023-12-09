@@ -15,10 +15,14 @@
 #include <memory>
 #include <functional>
 #include "Common/MediaSink.h"
-
+#include "FFmpeg/AudioTranscoder.h"
+#include "Util/mini.h"
+#if defined(ENABLE_FFMPEG)
+#include "FFmpeg/AudioTranscoder.h"
+#endif
 namespace mediakit {
 
-class Decoder {
+class Decoder: public toolkit::mINI{
 public:
     using Ptr = std::shared_ptr<Decoder>;
     using onDecode = std::function<void(int stream, int codecid, int flags, int64_t pts, int64_t dts, const void *data, size_t bytes)>;
@@ -42,11 +46,12 @@ public:
     typedef enum { decoder_ts = 0, decoder_ps } Type;
 
     using Ptr = std::shared_ptr<DecoderImp>;
-    ~DecoderImp() = default;
+    ~DecoderImp();
 
     static Ptr createDecoder(Type type, MediaSinkInterface *sink);
     ssize_t input(const uint8_t *data, size_t bytes);
     void flush();
+    void setForceToAac(bool forceToAac);
 
 protected:
     void onTrack(const Track::Ptr &track);
@@ -59,6 +64,9 @@ private:
 
 private:
     Decoder::Ptr _decoder;
+#if defined(ENABLE_FFMPEG)
+    AudioTranscoder::Ptr _audioTranscoder;
+#endif
     MediaSinkInterface *_sink;
     FrameMerger _merger{FrameMerger::none};
     Track::Ptr _tracks[TrackMax];

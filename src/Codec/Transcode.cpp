@@ -9,14 +9,9 @@
  */
 
 #if defined(ENABLE_FFMPEG)
-#if !defined(_WIN32)
-#include <dlfcn.h>
-#endif
-#include "Util/File.h"
-#include "Util/uv_errno.h"
 #include "Transcode.h"
+#include "FFmpeg/Utils.h"
 #include "Extension/AAC.h"
-#include "Common/config.h"
 #define MAX_DELAY_SECOND 3
 
 using namespace std;
@@ -24,91 +19,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-static string ffmpeg_err(int errnum) {
-    char errbuf[AV_ERROR_MAX_STRING_SIZE];
-    av_strerror(errnum, errbuf, AV_ERROR_MAX_STRING_SIZE);
-    return errbuf;
-}
 
-std::shared_ptr<AVPacket> alloc_av_packet() {
-    auto pkt = std::shared_ptr<AVPacket>(av_packet_alloc(), [](AVPacket *pkt) {
-        av_packet_free(&pkt);
-    });
-    pkt->data = NULL;    // packet data will be allocated by the encoder
-    pkt->size = 0;
-    return pkt;
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////
-static void on_ffmpeg_log(void *ctx, int level, const char *fmt, va_list args) {
-    GET_CONFIG(bool, enable_ffmpeg_log, General::kEnableFFmpegLog);
-    if (!enable_ffmpeg_log) {
-        return;
-    }
-    LogLevel lev;
-    switch (level) {
-        case AV_LOG_FATAL: lev = LError; break;
-        case AV_LOG_ERROR: lev = LError; break;
-        case AV_LOG_WARNING: lev = LWarn; break;
-        case AV_LOG_INFO: lev = LInfo; break;
-        case AV_LOG_VERBOSE: lev = LDebug; break;
-        case AV_LOG_DEBUG: lev = LDebug; break;
-        case AV_LOG_TRACE: lev = LTrace; break;
-        default: lev = LTrace; break;
-    }
-    LoggerWrapper::printLogV(::toolkit::getLogger(), lev, __FILE__, ctx ? av_default_item_name(ctx) : "NULL", level, fmt, args);
-}
-
-static bool setupFFmpeg_l() {
-    av_log_set_level(AV_LOG_TRACE);
-    av_log_set_flags(AV_LOG_PRINT_LEVEL);
-    av_log_set_callback(on_ffmpeg_log);
-#if (LIBAVCODEC_VERSION_MAJOR < 58)
-    avcodec_register_all();
-#endif
-    return true;
-}
-
-static void setupFFmpeg() {
-    static auto flag = setupFFmpeg_l();
-}
-
-static bool checkIfSupportedNvidia_l() {
-#if !defined(_WIN32)
-    GET_CONFIG(bool, check_nvidia_dev, General::kCheckNvidiaDev);
-    if (!check_nvidia_dev) {
-        return false;
-    }
-    auto so = dlopen("libnvcuvid.so.1", RTLD_LAZY);
-    if (!so) {
-        WarnL << "libnvcuvid.so.1加载失败:" << get_uv_errmsg();
-        return false;
-    }
-    dlclose(so);
-
-    bool find_driver = false;
-    File::scanDir("/dev", [&](const string &path, bool is_dir) {
-        if (!is_dir && start_with(path, "/dev/nvidia")) {
-            //找到nvidia的驱动
-            find_driver = true;
-            return false;
-        }
-        return true;
-    }, false);
-
-    if (!find_driver) {
-        WarnL << "英伟达硬件编解码器驱动文件 /dev/nvidia* 不存在";
-    }
-    return find_driver;
-#else
-    return false;
-#endif
-}
-
-static bool checkIfSupportedNvidia() {
-    static auto ret = checkIfSupportedNvidia_l();
-    return ret;
-}
 
 //////////////////////////////////////////////////////////////////////////////////////////
 
@@ -316,7 +227,7 @@ static inline const AVCodec *getCodecByName(const std::vector<std::string> &code
 }
 
 FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num, const std::vector<std::string> &codec_name) {
-    setupFFmpeg();
+    ffmpeg::setupFFmpeg();
     const AVCodec *codec = nullptr;
     const AVCodec *codec_default = nullptr;
     if (!codec_name.empty()) {
@@ -328,7 +239,7 @@ FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num, const std:
             if (codec && codec->id == AV_CODEC_ID_H264) {
                 break;
             }
-            if (checkIfSupportedNvidia()) {
+            if (ffmpeg::checkIfSupportedNvidia()) {
                 codec = getCodec({{"libopenh264"}, {AV_CODEC_ID_H264}, {"h264_qsv"}, {"h264_videotoolbox"}, {"h264_cuvid"}, {"h264_nvmpi"}});
             } else {
                 codec = getCodec({{"libopenh264"}, {AV_CODEC_ID_H264}, {"h264_qsv"}, {"h264_videotoolbox"}, {"h264_nvmpi"}});
@@ -339,7 +250,7 @@ FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num, const std:
             if (codec && codec->id == AV_CODEC_ID_HEVC) {
                 break;
             }
-            if (checkIfSupportedNvidia()) {
+            if (ffmpeg::checkIfSupportedNvidia()) {
                 codec = getCodec({{AV_CODEC_ID_HEVC}, {"hevc_qsv"}, {"hevc_videotoolbox"}, {"hevc_cuvid"}, {"hevc_nvmpi"}});
             } else {
                 codec = getCodec({{AV_CODEC_ID_HEVC}, {"hevc_qsv"}, {"hevc_videotoolbox"}, {"hevc_nvmpi"}});
@@ -456,11 +367,11 @@ FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num, const std:
 
         if (codec_default && codec_default != codec) {
             //硬件编解码器打开失败，尝试软件的
-            WarnL << "打开解码器" << codec->name << "失败，原因是:" << ffmpeg_err(ret) << ", 再尝试打开解码器" << codec_default->name;
+            WarnL << "打开解码器" << codec->name << "失败，原因是:" << ffmpeg::ffmpeg_err(ret) << ", 再尝试打开解码器" << codec_default->name;
             codec = codec_default;
             continue;
         }
-        throw std::runtime_error(StrPrinter << "打开解码器" << codec->name << "失败:" << ffmpeg_err(ret));
+        throw std::runtime_error(StrPrinter << "打开解码器" << codec->name << "失败:" << ffmpeg::ffmpeg_err(ret));
     }
 }
 
@@ -484,7 +395,7 @@ void FFmpegDecoder::flush() {
             break;
         }
         if (ret < 0) {
-            WarnL << "avcodec_receive_frame failed:" << ffmpeg_err(ret);
+            WarnL << "avcodec_receive_frame failed:" << ffmpeg::ffmpeg_err(ret);
             break;
         }
         onDecode(out_frame);
@@ -526,7 +437,7 @@ bool FFmpegDecoder::inputFrame(const Frame::Ptr &frame, bool live, bool async, b
 bool FFmpegDecoder::decodeFrame(const char *data, size_t size, uint64_t dts, uint64_t pts, bool live, bool key_frame) {
     TimeTicker2(30, TraceL);
 
-    auto pkt = alloc_av_packet();
+    auto pkt = ffmpeg::alloc_av_packet();
     pkt->data = (uint8_t *) data;
     pkt->size = size;
     pkt->dts = dts;
@@ -538,7 +449,7 @@ bool FFmpegDecoder::decodeFrame(const char *data, size_t size, uint64_t dts, uin
     auto ret = avcodec_send_packet(_context.get(), pkt.get());
     if (ret < 0) {
         if (ret != AVERROR_INVALIDDATA) {
-            WarnL << "avcodec_send_packet failed:" << ffmpeg_err(ret);
+            WarnL << "avcodec_send_packet failed:" << ffmpeg::ffmpeg_err(ret);
         }
         return false;
     }
@@ -550,7 +461,7 @@ bool FFmpegDecoder::decodeFrame(const char *data, size_t size, uint64_t dts, uin
             break;
         }
         if (ret < 0) {
-            WarnL << "avcodec_receive_frame failed:" << ffmpeg_err(ret);
+            WarnL << "avcodec_receive_frame failed:" << ffmpeg::ffmpeg_err(ret);
             break;
         }
         if (live && pts - out_frame->get()->pts > MAX_DELAY_SECOND * 1000 && _ticker.createdTime() > 10 * 1000) {
@@ -614,7 +525,7 @@ FFmpegFrame::Ptr FFmpegSwr::inputFrame(const FFmpegFrame::Ptr &frame) {
 
         int ret = 0;
         if (0 != (ret = swr_convert_frame(_ctx, out->get(), frame->get()))) {
-            WarnL << "swr_convert_frame failed:" << ffmpeg_err(ret);
+            WarnL << "swr_convert_frame failed:" << ffmpeg::ffmpeg_err(ret);
             return nullptr;
         }
         return out;
@@ -680,7 +591,7 @@ FFmpegFrame::Ptr FFmpegSws::inputFrame(const FFmpegFrame::Ptr &frame, int &ret, 
             }
         }
         if (0 >= (ret = sws_scale(_ctx, frame->get()->data, frame->get()->linesize, 0, frame->get()->height, out->get()->data, out->get()->linesize))) {
-            WarnL << "sws_scale failed:" << ffmpeg_err(ret);
+            WarnL << "sws_scale failed:" << ffmpeg::ffmpeg_err(ret);
             return nullptr;
         }
 

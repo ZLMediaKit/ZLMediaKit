@@ -379,34 +379,54 @@ extern const std::string kGopCache;
  * rtsp/rtmp播放器、推流器相关设置名，
  * 这些设置项都不是配置文件用
  * 只用于设置某个播放器或推流器实例用
+ * rtsp/rtmp Player/Pusher instance config
+ * these config not for ini file
+ * just for PlayerBase/PusherBase instance
  */
 namespace Client {
 // 指定网卡ip
+// Setting network card ip
 extern const std::string kNetAdapter;
 // 设置rtp传输类型，可选项有0(tcp，默认)、1(udp)、2(组播)
 // 设置方法:player[PlayerBase::kRtpType] = 0/1/2;
+// Setting rtp transmission type, optional 0 (tcp, default), 1 (udp), 2 (multicast)
+// Setting method: player[PlayerBase::kRtpType] = 0/1/2;
 extern const std::string kRtpType;
 // rtsp认证用户名
+// rtsp authentication username
 extern const std::string kRtspUser;
 // rtsp认证用用户密码，可以是明文也可以是md5,md5密码生成方式 md5(username:realm:password)
+// password are used for RTSP authentication, which can be either plain text or MD5 encrypted. The MD5 password is generated using the following format: md5(username:realm:password).
 extern const std::string kRtspPwd;
 // rtsp认证用用户密码是否为md5类型
+// Whether the user password used for RTSP authentication is MD5 type
 extern const std::string kRtspPwdIsMD5;
 // 握手超时时间，默认10,000 毫秒
+// Handshake timeout time, default 10,000 milliseconds
 extern const std::string kTimeoutMS;
 // rtp/rtmp包接收超时时间，默认5000秒
+// rtp/rtmp packet receive timeout time, default 5000 seconds
 extern const std::string kMediaTimeoutMS;
 // rtsp/rtmp心跳时间,默认5000毫秒
+// rtsp/rtmp heartbeat time, default 5000 milliseconds
 extern const std::string kBeatIntervalMS;
 // 是否为性能测试模式，性能测试模式开启后不会解析rtp或rtmp包
+// Whether it is performance test mode, rtp or rtmp packet will not be parsed after performance test mode is turned on
 extern const std::string kBenchmarkMode;
 // 播放器在触发播放成功事件时，是否等待所有track ready时再回调
+// Should the player wait for all tracks to be ready before triggering the playback success event callback?
 extern const std::string kWaitTrackReady;
 // rtsp播放指定track，可选项有0(不指定，默认)、1(视频)、2(音频)
 // 设置方法:player[Client::kPlayTrack] = 0/1/2;
+// rtsp play specified track, optional 0 (not specified, default), 1 (video), 2 (audio)
+// Setting method: player[Client::kPlayTrack] = 0/1/2;
 extern const std::string kPlayTrack;
 //设置代理url，目前只支持http协议
+// Setting proxy url, currently only http protocol is supported
 extern const std::string kProxyUrl;
+//强制转码为AAC
+// Force transcoding to AAC
+extern const std::string kForceToAac;
 } // namespace Client
 } // namespace mediakit
 

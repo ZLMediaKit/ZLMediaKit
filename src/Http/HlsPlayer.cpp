@@ -433,6 +433,8 @@ HlsPlayerImp::HlsPlayerImp(const EventPoller::Ptr &poller) : PlayerImp<HlsPlayer
 void HlsPlayerImp::onPacket(const char *data, size_t len) {
     if (!_decoder && _demuxer) {
         _decoder = DecoderImp::createDecoder(DecoderImp::decoder_ts, _demuxer.get());
+        _decoder->setForceToAac((*this)[Client::kForceToAac].as<bool>());
+
     }
 
     if (_decoder && _demuxer) {
@@ -450,6 +452,7 @@ void HlsPlayerImp::onPlayResult(const SockException &ex) {
         PlayerImp<HlsPlayer, PlayerBase>::onPlayResult(ex);
     } else {
         auto demuxer = std::make_shared<HlsDemuxer>();
+        demuxer->mINI::operator=(*this);
         demuxer->start(getPoller(), this);
         _demuxer = std::move(demuxer);
     }
