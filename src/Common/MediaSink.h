@@ -164,17 +164,20 @@ private:
     bool addMuteAudioTrack();
 
 private:
+    bool _audio_add = false;
+    bool _have_video = false;
     bool _enable_audio = true;
     bool _only_audio = false;
     bool _add_mute_audio = true;
     bool _all_track_ready = false;
-    bool _have_video = false;
     size_t _max_track_size = 2;
-    std::unordered_map<int, std::pair<Track::Ptr, bool/*got frame*/> > _track_map;
-    std::unordered_map<int, toolkit::List<Frame::Ptr> > _frame_unread;
-    std::unordered_map<int, std::function<void()> > _track_ready_callback;
+
     toolkit::Ticker _ticker;
     MuteAudioMaker::Ptr _mute_audio_maker;
+
+    std::unordered_map<int, toolkit::List<Frame::Ptr> > _frame_unread;
+    std::unordered_map<int, std::function<void()> > _track_ready_callback;
+    std::unordered_map<int, std::pair<Track::Ptr, bool/*got frame*/> > _track_map;
 };
 
 

@@ -35,17 +35,16 @@ bool MediaSink::addTrack(const Track::Ptr &track_in) {
         WarnL << "All track is ready, add track too late: " << track_in->getCodecName();
         return false;
     }
-    //克隆Track，只拷贝其数据，不拷贝其数据转发关系
+    // 克隆Track，只拷贝其数据，不拷贝其数据转发关系
     auto track = track_in->clone();
     auto index = track->getIndex();
     if (!_track_map.emplace(index, std::make_pair(track, false)).second) {
         WarnL << "Already add a same track: " << track->getIndex() << ", codec: " << track->getCodecName();
         return false;
     }
-    _track_ready_callback[index] = [this, track]() {
-        onTrackReady(track);
-    };
     _ticker.resetTime();
+    _audio_add = track->getTrackType() == TrackAudio ? true : _audio_add;
+    _track_ready_callback[index] = [this, track]() { onTrackReady(track); };
 
     track->addDelegate([this](const Frame::Ptr &frame) {
         if (_all_track_ready) {
@@ -55,11 +54,11 @@ bool MediaSink::addTrack(const Track::Ptr &track_in) {
 
         GET_CONFIG(uint32_t, kMaxUnreadyFrame, General::kUnreadyFrameCache);
         if (frame_unread.size() > kMaxUnreadyFrame) {
-            //未就绪的的track，不能缓存太多的帧，否则可能内存溢出
+            // 未就绪的的track，不能缓存太多的帧，否则可能内存溢出
             frame_unread.clear();
             WarnL << "Cached frame of unready track(" << frame->getCodecName() << ") is too much, now cleared";
         }
-        //还有Track未就绪，先缓存之
+        // 还有Track未就绪，先缓存之
         frame_unread.emplace_back(Frame::getCacheAbleFrame(frame));
         return true;
     });
@@ -67,13 +66,14 @@ bool MediaSink::addTrack(const Track::Ptr &track_in) {
 }
 
 void MediaSink::resetTracks() {
-    _all_track_ready = false;
+    _audio_add = false;
     _have_video = false;
-    _track_map.clear();
-    _track_ready_callback.clear();
+    _all_track_ready = false;
+    _mute_audio_maker = nullptr;
     _ticker.resetTime();
-    _max_track_size = 2;
+    _track_map.clear();
     _frame_unread.clear();
+    _track_ready_callback.clear();
 }
 
 bool MediaSink::inputFrame(const Frame::Ptr &frame) {
@@ -81,7 +81,7 @@ bool MediaSink::inputFrame(const Frame::Ptr &frame) {
     if (it == _track_map.end()) {
         return false;
     }
-    //got frame
+    // got frame
     it->second.second = true;
     auto ret = it->second.first->inputFrame(frame);
     if (_mute_audio_maker && frame->getTrackType() == TrackVideo) {
@@ -92,11 +92,11 @@ bool MediaSink::inputFrame(const Frame::Ptr &frame) {
     return ret;
 }
 
-void MediaSink::checkTrackIfReady(){
+void MediaSink::checkTrackIfReady() {
     if (!_all_track_ready && !_track_ready_callback.empty()) {
         for (auto &pr : _track_map) {
             if (pr.second.second && pr.second.first->ready()) {
-                //Track由未就绪状态转换成就绪状态，我们就触发onTrackReady回调
+                // Track由未就绪状态转换成就绪状态，我们就触发onTrackReady回调
                 auto it = _track_ready_callback.find(pr.first);
                 if (it != _track_ready_callback.end()) {
                     it->second();
@@ -106,28 +106,34 @@ void MediaSink::checkTrackIfReady(){
         }
     }
 
-    if(!_all_track_ready){
+    if (!_all_track_ready) {
         GET_CONFIG(uint32_t, kMaxWaitReadyMS, General::kWaitTrackReadyMS);
-        if(_ticker.elapsedTime() > kMaxWaitReadyMS){
-            //如果超过规定时间，那么不再等待并忽略未准备好的Track
+        if (_ticker.elapsedTime() > kMaxWaitReadyMS) {
+            // 如果超过规定时间，那么不再等待并忽略未准备好的Track
             emitAllTrackReady();
             return;
         }
 
-        if(!_track_ready_callback.empty()){
-            //在超时时间内，如果存在未准备好的Track，那么继续等待
+        if (!_track_ready_callback.empty()) {
+            // 在超时时间内，如果存在未准备好的Track，那么继续等待
             return;
         }
 
-        if(_track_map.size() == _max_track_size){
-            //如果已经添加了音视频Track，并且不存在未准备好的Track，那么说明所有Track都准备好了
+        if (_only_audio && _audio_add) {
+            // 只开启音频
+            emitAllTrackReady();
+            return;
+        }
+
+        if (_track_map.size() == _max_track_size) {
+            // 如果已经添加了音视频Track，并且不存在未准备好的Track，那么说明所有Track都准备好了
             emitAllTrackReady();
             return;
         }
 
         GET_CONFIG(uint32_t, kMaxAddTrackMS, General::kWaitAddTrackMS);
-        if(_track_map.size() == 1 && _ticker.elapsedTime() > kMaxAddTrackMS){
-            //如果只有一个Track，那么在该Track添加后，我们最多还等待若干时间(可能后面还会添加Track)
+        if (_track_map.size() == 1 && _ticker.elapsedTime() > kMaxAddTrackMS) {
+            // 如果只有一个Track，那么在该Track添加后，我们最多还等待若干时间(可能后面还会添加Track)
             emitAllTrackReady();
             return;
         }
@@ -154,9 +160,9 @@ void MediaSink::emitAllTrackReady() {
 
     DebugL << "All track ready use " << _ticker.elapsedTime() << "ms";
     if (!_track_ready_callback.empty()) {
-        //这是超时强制忽略未准备好的Track
+        // 这是超时强制忽略未准备好的Track
         _track_ready_callback.clear();
-        //移除未准备好的Track
+        // 移除未准备好的Track
         for (auto it = _track_map.begin(); it != _track_map.end();) {
             if (!it->second.second || !it->second.first->ready()) {
                 WarnL << "Track not ready for a long time, ignored: " << it->second.first->getCodecName();
@@ -168,7 +174,7 @@ void MediaSink::emitAllTrackReady() {
     }
 
     if (!_track_map.empty()) {
-        //最少有一个有效的Track
+        // 最少有一个有效的Track
         onAllTrackReady_l();
 
         // 全部Track就绪，我们一次性把之前的帧输出
@@ -184,7 +190,7 @@ void MediaSink::emitAllTrackReady() {
 }
 
 void MediaSink::onAllTrackReady_l() {
-    //是否添加静音音频
+    // 是否添加静音音频
     if (_add_mute_audio) {
         addMuteAudioTrack();
     }
@@ -193,10 +199,10 @@ void MediaSink::onAllTrackReady_l() {
     _have_video = (bool)getTrack(TrackVideo);
 }
 
-vector<Track::Ptr> MediaSink::getTracks(bool ready) const{
+vector<Track::Ptr> MediaSink::getTracks(bool ready) const {
     vector<Track::Ptr> ret;
-    for (auto &pr : _track_map){
-        if(ready && !pr.second.first->ready()){
+    for (auto &pr : _track_map) {
+        if (ready && !pr.second.first->ready()) {
             continue;
         }
         ret.emplace_back(pr.second.first);
@@ -264,13 +270,9 @@ bool MediaSink::addMuteAudioTrack() {
     audio->setIndex(MUTE_AUDIO_INDEX);
     audio->setExtraData(ADTS_CONFIG, 2);
     _track_map[MUTE_AUDIO_INDEX] = std::make_pair(audio, true);
-    audio->addDelegate([this](const Frame::Ptr &frame) {
-        return onTrackFrame(frame);
-    });
+    audio->addDelegate([this](const Frame::Ptr &frame) { return onTrackFrame(frame); });
     _mute_audio_maker = std::make_shared<MuteAudioMaker>();
-    _mute_audio_maker->addDelegate([audio](const Frame::Ptr &frame) {
-        return audio->inputFrame(frame);
-    });
+    _mute_audio_maker->addDelegate([audio](const Frame::Ptr &frame) { return audio->inputFrame(frame); });
     onTrackReady(audio);
     TraceL << "Mute aac track added";
     return true;
@@ -282,14 +284,12 @@ bool MediaSink::isAllTrackReady() const {
 
 void MediaSink::enableAudio(bool flag) {
     _enable_audio = flag;
-    _max_track_size = flag ? 2 : 1;
 }
 
-void MediaSink::setOnlyAudio(){
+void MediaSink::setOnlyAudio() {
     _only_audio = true;
     _enable_audio = true;
     _add_mute_audio = false;
-    _max_track_size = 1;
 }
 
 void MediaSink::enableMuteAudio(bool flag) {
@@ -344,9 +344,7 @@ bool Demuxer::addTrack(const Track::Ptr &track) {
     }
 
     if (_sink->addTrack(track)) {
-        track->addDelegate([this](const Frame::Ptr &frame) {
-            return _sink->inputFrame(frame);
-        });
+        track->addDelegate([this](const Frame::Ptr &frame) { return _sink->inputFrame(frame); });
         return true;
     }
     return false;
@@ -382,4 +380,4 @@ vector<Track::Ptr> Demuxer::getTracks(bool ready) const {
     }
     return ret;
 }
-}//namespace mediakit
+} // namespace mediakit
