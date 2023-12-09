@@ -241,6 +241,54 @@ protected:
     FrameImp() = default;
 };
 
+// 包装一个指针成不可缓存的frame
+class FrameFromPtr : public Frame {
+public:
+    using Ptr = std::shared_ptr<FrameFromPtr>;
+
+    FrameFromPtr(CodecId codec_id, char *ptr, size_t size, uint64_t dts, uint64_t pts = 0, size_t prefix_size = 0, bool is_key = false)
+        : FrameFromPtr(ptr, size, dts, pts, prefix_size, is_key) {
+        _codec_id = codec_id;
+    }
+
+    char *data() const override { return _ptr; }
+    size_t size() const override { return _size; }
+    uint64_t dts() const override { return _dts; }
+    uint64_t pts() const override { return _pts ? _pts : dts(); }
+    size_t prefixSize() const override { return _prefix_size; }
+    bool cacheAble() const override { return false; }
+    bool keyFrame() const override { return _is_key; }
+    bool configFrame() const override { return false; }
+
+    CodecId getCodecId() const override {
+        if (_codec_id == CodecInvalid) {
+            throw std::invalid_argument("Invalid codec type of FrameFromPtr");
+        }
+        return _codec_id;
+    }
+
+protected:
+    FrameFromPtr() = default;
+
+    FrameFromPtr(char *ptr, size_t size, uint64_t dts, uint64_t pts = 0, size_t prefix_size = 0, bool is_key = false) {
+        _ptr = ptr;
+        _size = size;
+        _dts = dts;
+        _pts = pts;
+        _prefix_size = prefix_size;
+        _is_key = is_key;
+    }
+
+protected:
+    bool _is_key;
+    char *_ptr;
+    uint64_t _dts;
+    uint64_t _pts = 0;
+    size_t _size;
+    size_t _prefix_size;
+    CodecId _codec_id = CodecInvalid;
+};
+
 /**
  * 一个Frame类中可以有多个帧(AAC)，时间戳会变化
  * ZLMediaKit会先把这种复合帧split成单个帧然后再处理
@@ -251,10 +299,11 @@ template <typename Parent>
 class FrameInternalBase : public Parent {
 public:
     using Ptr = std::shared_ptr<FrameInternalBase>;
-    FrameInternalBase(Frame::Ptr parent_frame, char *ptr, size_t size, size_t prefix_size, uint64_t dts, uint64_t pts)
-        : Parent(ptr, size, dts, pts, prefix_size) {
+    FrameInternalBase(Frame::Ptr parent_frame, char *ptr, size_t size, uint64_t dts, uint64_t pts = 0, size_t prefix_size = 0)
+        : Parent(parent_frame->getCodecId(), ptr, size, dts, pts, prefix_size) {
         _parent_frame = std::move(parent_frame);
     }
+
     bool cacheAble() const override { return _parent_frame->cacheAble(); }
 
 private:
@@ -272,56 +321,7 @@ class FrameInternal : public FrameInternalBase<Parent> {
 public:
     using Ptr = std::shared_ptr<FrameInternal>;
     FrameInternal(const Frame::Ptr &parent_frame, char *ptr, size_t size, size_t prefix_size)
-        : FrameInternalBase<Parent>(parent_frame, ptr, size, prefix_size, parent_frame->dts(), parent_frame->pts()) {}
-};
-
-// 包装一个指针成不可缓存的frame
-class FrameFromPtr : public Frame {
-public:
-    using Ptr = std::shared_ptr<FrameFromPtr>;
-
-    FrameFromPtr(CodecId codec_id, char *ptr, size_t size, uint64_t dts, uint64_t pts = 0, size_t prefix_size = 0, bool is_key = false)
-        : FrameFromPtr(ptr, size, dts, pts, prefix_size, is_key) {
-        _codec_id = codec_id;
-    }
-
-    FrameFromPtr(char *ptr, size_t size, uint64_t dts, uint64_t pts = 0, size_t prefix_size = 0, bool is_key = false) {
-        _ptr = ptr;
-        _size = size;
-        _dts = dts;
-        _pts = pts;
-        _prefix_size = prefix_size;
-        _is_key = is_key;
-    }
-
-    char *data() const override { return _ptr; }
-    size_t size() const override { return _size; }
-    uint64_t dts() const override { return _dts; }
-    uint64_t pts() const override { return _pts ? _pts : dts(); }
-    size_t prefixSize() const override { return _prefix_size; }
-    bool cacheAble() const override { return false; }
-    bool keyFrame() const override { return _is_key; }
-    bool configFrame() const override { return false; }
-    void setCodecId(CodecId codec_id) { _codec_id = codec_id; }
-
-    CodecId getCodecId() const override {
-        if (_codec_id == CodecInvalid) {
-            throw std::invalid_argument("Invalid codec type of FrameFromPtr");
-        }
-        return _codec_id;
-    }
-
-protected:
-    FrameFromPtr() = default;
-
-protected:
-    bool _is_key;
-    char *_ptr;
-    uint64_t _dts;
-    uint64_t _pts = 0;
-    size_t _size;
-    size_t _prefix_size;
-    CodecId _codec_id = CodecInvalid;
+        : FrameInternalBase<Parent>(parent_frame, ptr, size, parent_frame->dts(), parent_frame->pts(), prefix_size) {}
 };
 
 // 管理一个指针生命周期并生产一个frame
@@ -352,14 +352,18 @@ class FrameCacheAble : public FrameFromPtr {
 public:
     using Ptr = std::shared_ptr<FrameCacheAble>;
 
-    FrameCacheAble(const Frame::Ptr &frame, bool force_key_frame = false) {
+    FrameCacheAble(const Frame::Ptr &frame, bool force_key_frame = false, toolkit::Buffer::Ptr buf = nullptr) {
         if (frame->cacheAble()) {
-            _frame = frame;
             _ptr = frame->data();
+            _buffer = frame;
+        } else if (buf) {
+            _ptr = frame->data();
+            _buffer = std::move(buf);
         } else {
-            _buffer = FrameImp::create();
-            _buffer->_buffer.assign(frame->data(), frame->size());
-            _ptr = _buffer->data();
+            auto buffer = std::make_shared<toolkit::BufferLikeString>();
+            buffer->assign(frame->data(), frame->size());
+            _ptr = buffer->data();
+            _buffer = std::move(buffer);
         }
         _size = frame->size();
         _dts = frame->dts();
@@ -386,8 +390,7 @@ private:
     bool _config;
     bool _drop_able;
     bool _decode_able;
-    Frame::Ptr _frame;
-    FrameImp::Ptr _buffer;
+    toolkit::Buffer::Ptr _buffer;
 };
 
 //该类实现frame级别的时间戳覆盖
@@ -429,7 +432,7 @@ public:
      * @param prefix 帧前缀长度
      * @param offset buffer有效数据偏移量
      */
-    FrameFromBuffer(toolkit::Buffer::Ptr buf, uint64_t dts, uint64_t pts, size_t prefix, size_t offset)
+    FrameFromBuffer(toolkit::Buffer::Ptr buf, uint64_t dts, uint64_t pts, size_t prefix = 0, size_t offset = 0)
         : Parent(buf->data() + offset, buf->size() - offset, dts, pts, prefix) {
         _buf = std::move(buf);
     }
@@ -443,7 +446,7 @@ public:
      * @param offset buffer有效数据偏移量
      * @param codec 帧类型
      */
-    FrameFromBuffer(toolkit::Buffer::Ptr buf, uint64_t dts, uint64_t pts, size_t prefix, size_t offset, CodecId codec)
+    FrameFromBuffer(CodecId codec, toolkit::Buffer::Ptr buf, uint64_t dts, uint64_t pts, size_t prefix = 0, size_t offset = 0)
         : Parent(codec, buf->data() + offset, buf->size() - offset, dts, pts, prefix) {
         _buf = std::move(buf);
     }

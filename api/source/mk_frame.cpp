@@ -77,10 +77,10 @@ static mk_frame mk_frame_create_complex(int codec_id, uint64_t dts, uint64_t pts
     switch (codec_id) {
         case CodecH264:
             return (mk_frame)new Frame::Ptr(new H264FrameHelper<FrameFromPtrForC>(
-                cb, frame_flags, cb, std::move(user_data), (CodecId)codec_id, data, size, dts, pts, prefix_size));
+                cb, frame_flags, cb, std::move(user_data), data, size, dts, pts, prefix_size));
         case CodecH265:
             return (mk_frame)new Frame::Ptr(new H265FrameHelper<FrameFromPtrForC>(
-                cb, frame_flags, cb, std::move(user_data), (CodecId)codec_id, data, size, dts, pts, prefix_size));
+                cb, frame_flags, cb, std::move(user_data), data, size, dts, pts, prefix_size));
         default:
             return (mk_frame)new Frame::Ptr(new FrameFromPtrForC(
                 cb, frame_flags, cb, std::move(user_data), (CodecId)codec_id, data, size, dts, pts, prefix_size));

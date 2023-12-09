@@ -29,40 +29,34 @@ private:
     uint64_t _tmp = 0;
 };
 
-class JPEGFrame : public Frame {
+class JPEGFrameType {
+public:
+    virtual ~JPEGFrameType() = default;
+    virtual uint8_t pixType() const = 0;
+};
+
+template <typename Parent>
+class JPEGFrame : public Parent, public JPEGFrameType {
 public:
     static constexpr auto kJFIFSize = 20u;
     /**
      *  JPEG/MJPEG帧
-     * @param buffer 帧数据
-     * @param dts 时间戳,单位毫秒
      * @param pix_type pixel format type; AV_PIX_FMT_YUVJ422P || (AVCOL_RANGE_JPEG && AV_PIX_FMT_YUV422P) : 1; AV_PIX_FMT_YUVJ420P || (AVCOL_RANGE_JPEG && AV_PIX_FMT_YUV420P) : 0
-     * @param offset buffer有效帧数据偏移量
      */
-    JPEGFrame(toolkit::Buffer::Ptr buffer, uint64_t dts, uint8_t pix_type = 0, size_t offset = 0) {
-        _buffer = std::move(buffer);
-        _dts = dts;
+    template <typename... ARGS>
+    JPEGFrame(uint8_t pix_type, ARGS &&...args) : Parent(std::forward<ARGS>(args)...) {
         _pix_type = pix_type;
-        _offset = offset;
         // JFIF头固定20个字节长度
-        CHECK(_buffer->size() > _offset + kJFIFSize);
+        CHECK(this->size() > kJFIFSize);
     }
-    uint64_t dts() const override { return _dts; }
     size_t prefixSize() const override { return 0; }
     bool keyFrame() const override { return true; }
     bool configFrame() const override { return false; }
     CodecId getCodecId() const override { return CodecJPEG; }
-
-    char *data() const override { return _buffer->data() + _offset; }
-    size_t size() const override { return _buffer->size() - _offset; }
-
-    uint8_t pixType() const { return _pix_type; }
+    uint8_t pixType() const override { return _pix_type; }
 
 private:
     uint8_t _pix_type;
-    size_t _offset;
-    uint64_t _dts;
-    toolkit::Buffer::Ptr _buffer;
 };
 
 }//namespace mediakit

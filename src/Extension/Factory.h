@@ -88,7 +88,7 @@ public:
     static AMFValue getAmfByCodecId(CodecId codecId);
 
     static Frame::Ptr getFrameFromPtr(CodecId codec, const char *data, size_t size, uint64_t dts, uint64_t pts);
-    static Frame::Ptr getFrameFromBuffer(CodecId codec, const toolkit::Buffer::Ptr &data, uint64_t dts, uint64_t pts);
+    static Frame::Ptr getFrameFromBuffer(CodecId codec, toolkit::Buffer::Ptr data, uint64_t dts, uint64_t pts);
 };
 
 }//namespace mediakit

@@ -155,12 +155,12 @@ Frame::Ptr MP4Demuxer::makeFrame(uint32_t track_id, const Buffer::Ptr &buf, int6
                 memcpy(data + offset, "\x00\x00\x00\x01", 4);
                 offset += (frame_len + 4);
             }
-            ret = Factory::getFrameFromBuffer(codec, buf, dts, pts);
+            ret = Factory::getFrameFromBuffer(codec, std::move(buf), dts, pts);
             break;
         }
 
         default: {
-            ret = Factory::getFrameFromBuffer(codec, buf, dts, pts);
+            ret = Factory::getFrameFromBuffer(codec, std::move(buf), dts, pts);
             break;
         }
     }

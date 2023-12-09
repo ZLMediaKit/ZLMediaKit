@@ -788,6 +788,8 @@ JPEGRtpDecoder::JPEGRtpDecoder() {
     memset(&_ctx.timestamp, 0, sizeof(_ctx) - offsetof(decltype(_ctx), timestamp));
 }
 
+using JPEGFrameImp = JPEGFrame<FrameFromBuffer<FrameFromPtr> >;
+
 bool JPEGRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool) {
     auto payload = rtp->getPayload();
     auto size = rtp->getPayloadSize();
@@ -802,8 +804,7 @@ bool JPEGRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool) {
     uint8_t type;
     if (0 == jpeg_parse_packet(nullptr, &_ctx, &stamp, payload, size, seq, marker ? RTP_FLAG_MARKER : 0, &type)) {
         auto buffer = std::make_shared<toolkit::BufferString>(std::move(_ctx.frame));
-        // JFIF头固定20个字节长度
-        auto frame = std::make_shared<JPEGFrame>(std::move(buffer), stamp / 90, type);
+        auto frame = std::make_shared<JPEGFrameImp>(type, std::move(buffer), stamp / 90, 0);
         _ctx.frame.clear();
         RtpCodec::inputFrame(std::move(frame));
     }
@@ -815,11 +816,11 @@ bool JPEGRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool) {
 
 bool JPEGRtpEncoder::inputFrame(const Frame::Ptr &frame) {
     // JFIF头固定20个字节长度
-    auto ptr = (uint8_t *)frame->data() + frame->prefixSize() + JPEGFrame::kJFIFSize;
-    auto len = frame->size() - frame->prefixSize() - JPEGFrame::kJFIFSize;
+    auto ptr = (uint8_t *)frame->data() + frame->prefixSize() + JPEGFrameImp::kJFIFSize;
+    auto len = frame->size() - frame->prefixSize() - JPEGFrameImp::kJFIFSize;
     auto pts = frame->pts();
     auto type = 1;
-    auto jpeg = dynamic_pointer_cast<JPEGFrame>(frame);
+    auto jpeg = dynamic_pointer_cast<JPEGFrameType>(frame);
     if (jpeg) {
         type = jpeg->pixType();
     }

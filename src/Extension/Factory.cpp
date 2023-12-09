@@ -307,6 +307,7 @@ Frame::Ptr Factory::getFrameFromPtr(CodecId codec, const char *data, size_t byte
     switch (codec) {
         case CodecH264: return std::make_shared<H264FrameNoCacheAble>((char *)data, bytes, dts, pts, prefixSize(data, bytes));
         case CodecH265: return std::make_shared<H265FrameNoCacheAble>((char *)data, bytes, dts, pts, prefixSize(data, bytes));
+        case CodecJPEG: return std::make_shared<JPEGFrame<FrameFromPtr>>(0, codec, (char *)data, bytes, dts, pts);
         case CodecAAC: return std::make_shared<FrameFromPtr>(codec, (char *)data, bytes, dts, pts, aacPrefixSize(data, bytes));
         case CodecOpus:
         case CodecG711A:
@@ -315,17 +316,9 @@ Frame::Ptr Factory::getFrameFromPtr(CodecId codec, const char *data, size_t byte
     }
 }
 
-Frame::Ptr Factory::getFrameFromBuffer(CodecId codec, const Buffer::Ptr &data, uint64_t dts, uint64_t pts) {
-    switch (codec) {
-        case CodecH264: return std::make_shared<FrameFromBuffer<H264FrameNoCacheAble>>(data, dts, pts, prefixSize(data->data(), data->size()), 0);
-        case CodecH265: return std::make_shared<FrameFromBuffer<H265FrameNoCacheAble>>(data, dts, pts, prefixSize(data->data(), data->size()), 0);
-        case CodecJPEG: return std::make_shared<JPEGFrame>(data, dts);
-        case CodecAAC: return std::make_shared<FrameFromBuffer<FrameFromPtr>>(data, dts, pts, aacPrefixSize(data->data(), data->size()), 0, codec);
-        case CodecOpus:
-        case CodecG711A:
-        case CodecG711U: return std::make_shared<FrameFromBuffer<FrameFromPtr>>(data, dts, pts, 0, 0, codec);
-        default: return nullptr;
-    }
+Frame::Ptr Factory::getFrameFromBuffer(CodecId codec, Buffer::Ptr data, uint64_t dts, uint64_t pts) {
+    auto frame =  Factory::getFrameFromPtr(codec, data->data(), data->size(), dts, pts);
+    return std::make_shared<FrameCacheAble>(frame, false, std::move(data));
 }
 
 }//namespace mediakit
