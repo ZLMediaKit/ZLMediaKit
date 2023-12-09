@@ -11,6 +11,7 @@
 #ifndef ZLMEDIAKIT_DECODER_H
 #define ZLMEDIAKIT_DECODER_H
 
+#include <map>
 #include <stdint.h>
 #include <memory>
 #include <functional>
@@ -48,8 +49,8 @@ public:
     void flush();
 
 protected:
-    void onTrack(const Track::Ptr &track);
-    void onFrame(const Frame::Ptr &frame);
+    void onTrack(int index, const Track::Ptr &track);
+    void onFrame(int index, const Frame::Ptr &frame);
 
 private:
     DecoderImp(const Decoder::Ptr &decoder, MediaSinkInterface *sink);
@@ -59,8 +60,12 @@ private:
 private:
     Decoder::Ptr _decoder;
     MediaSinkInterface *_sink;
-    FrameMerger _merger{FrameMerger::none};
-    Track::Ptr _tracks[TrackMax];
+
+    class FrameMergerImp : public FrameMerger {
+    public:
+        FrameMergerImp() : FrameMerger(FrameMerger::none) {}
+    };
+    std::map<int, std::pair<Track::Ptr, FrameMergerImp> > _tracks;
 };
 
 }//namespace mediakit

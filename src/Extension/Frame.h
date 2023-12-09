@@ -124,6 +124,13 @@ public:
      */
     TrackType getTrackType() const;
     std::string getTrackTypeStr() const;
+
+    void setIndex(int index) { _index = index; }
+
+    int getIndex() const { return _index < 0 ? (int)getTrackType() : _index; }
+
+private:
+    int _index = -1;
 };
 
 /**
