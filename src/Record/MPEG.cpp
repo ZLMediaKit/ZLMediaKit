@@ -18,7 +18,7 @@
 
 using namespace toolkit;
 
-namespace mediakit{
+namespace mediakit {
 
 MpegMuxer::MpegMuxer(bool is_ps) {
     _is_ps = is_ps;
@@ -40,27 +40,27 @@ bool MpegMuxer::addTrack(const Track::Ptr &track) {
     if (track->getTrackType() == TrackVideo) {
         _have_video = true;
     }
-    _codec_to_trackid[track->getCodecId()] = mpeg_muxer_add_stream((::mpeg_muxer_t *)_context, mpeg_id, nullptr, 0);
+    _tracks[track->getIndex()].track_id = mpeg_muxer_add_stream((::mpeg_muxer_t *)_context, mpeg_id, nullptr, 0);
     return true;
 }
 
 bool MpegMuxer::inputFrame(const Frame::Ptr &frame) {
-    auto it = _codec_to_trackid.find(frame->getCodecId());
-    if (it == _codec_to_trackid.end()) {
+    auto it = _tracks.find(frame->getIndex());
+    if (it == _tracks.end()) {
         return false;
     }
-    auto track_id = it->second;
+    auto &track = it->second;
     _key_pos = !_have_video;
     switch (frame->getCodecId()) {
         case CodecH264:
         case CodecH265: {
-            //这里的代码逻辑是让SPS、PPS、IDR这些时间戳相同的帧打包到一起当做一个帧处理，
-            return _frame_merger.inputFrame(frame,[this, track_id](uint64_t dts, uint64_t pts, const Buffer::Ptr &buffer, bool have_idr) {
+            // 这里的代码逻辑是让SPS、PPS、IDR这些时间戳相同的帧打包到一起当做一个帧处理，
+            return track.merger.inputFrame(frame, [&](uint64_t dts, uint64_t pts, const Buffer::Ptr &buffer, bool have_idr) {
                 _key_pos = have_idr;
-                //取视频时间戳为TS的时间戳
+                // 取视频时间戳为TS的时间戳
                 _timestamp = dts;
                 _max_cache_size = 512 + 1.2 * buffer->size();
-                mpeg_muxer_input((::mpeg_muxer_t *)_context, track_id, have_idr ? 0x0001 : 0, pts * 90LL,dts * 90LL, buffer->data(), buffer->size());
+                mpeg_muxer_input((::mpeg_muxer_t *)_context, track.track_id, have_idr ? 0x0001 : 0, pts * 90LL, dts * 90LL, buffer->data(), buffer->size());
                 flushCache();
             });
         }
@@ -80,7 +80,7 @@ bool MpegMuxer::inputFrame(const Frame::Ptr &frame) {
                 _timestamp = frame->dts();
             }
             _max_cache_size = 512 + 1.2 * frame->size();
-            mpeg_muxer_input((::mpeg_muxer_t *)_context, track_id, frame->keyFrame() ? 0x0001 : 0, frame->pts() * 90LL, frame->dts() * 90LL, frame->data(), frame->size());
+            mpeg_muxer_input((::mpeg_muxer_t *)_context, track.track_id, frame->keyFrame() ? 0x0001 : 0, frame->pts() * 90LL, frame->dts() * 90LL, frame->data(), frame->size());
             flushCache();
             return true;
         }
@@ -103,7 +103,6 @@ void MpegMuxer::createContext() {
                 if (!thiz->_current_buffer
                     || thiz->_current_buffer->size() + bytes > thiz->_current_buffer->getCapacity()) {
                     if (thiz->_current_buffer) {
-                        //WarnL << "need realloc mpeg buffer" << thiz->_current_buffer->size() + bytes  << " > " << thiz->_current_buffer->getCapacity();
                         thiz->flushCache();
                     }
                     thiz->_current_buffer = thiz->_buffer_pool.obtain2();
@@ -143,12 +142,13 @@ void MpegMuxer::releaseContext() {
         mpeg_muxer_destroy((::mpeg_muxer_t *)_context);
         _context = nullptr;
     }
-    _codec_to_trackid.clear();
-    _frame_merger.clear();
+    _tracks.clear();
 }
 
 void MpegMuxer::flush() {
-    _frame_merger.flush();
+    for (auto &pr : _tracks) {
+        pr.second.merger.flush();
+    }
 }
 
 }//mediakit

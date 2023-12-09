@@ -11,7 +11,6 @@
 #ifndef ZLMEDIAKIT_DECODER_H
 #define ZLMEDIAKIT_DECODER_H
 
-#include <map>
 #include <stdint.h>
 #include <memory>
 #include <functional>
@@ -65,7 +64,7 @@ private:
     public:
         FrameMergerImp() : FrameMerger(FrameMerger::none) {}
     };
-    std::map<int, std::pair<Track::Ptr, FrameMergerImp> > _tracks;
+    std::unordered_map<int, std::pair<Track::Ptr, FrameMergerImp> > _tracks;
 };
 
 }//namespace mediakit

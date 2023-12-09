@@ -71,7 +71,7 @@ private:
     MP4FileDisk::Ptr _mp4_file;
     MP4FileDisk::Reader _mov_reader;
     uint64_t _duration_ms = 0;
-    std::map<int, Track::Ptr> _track_to_codec;
+    std::unordered_map<int, Track::Ptr> _track_to_codec;
     toolkit::ResourcePool<toolkit::BufferRaw> _buffer_pool;
 };
 
