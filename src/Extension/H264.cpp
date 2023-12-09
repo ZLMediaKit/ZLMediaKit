@@ -285,6 +285,7 @@ void H264Track::insertConfigFrame(const Frame::Ptr &frame) {
         spsFrame->_buffer.assign("\x00\x00\x00\x01", 4);
         spsFrame->_buffer.append(_sps);
         spsFrame->_dts = frame->dts();
+        spsFrame->setIndex(frame->getIndex());
         VideoTrack::inputFrame(spsFrame);
     }
 
@@ -294,6 +295,7 @@ void H264Track::insertConfigFrame(const Frame::Ptr &frame) {
         ppsFrame->_buffer.assign("\x00\x00\x00\x01", 4);
         ppsFrame->_buffer.append(_pps);
         ppsFrame->_dts = frame->dts();
+        ppsFrame->setIndex(frame->getIndex());
         VideoTrack::inputFrame(ppsFrame);
     }
 }

@@ -42,6 +42,7 @@ Frame::Ptr Frame::getCacheAbleFrame(const Frame::Ptr &frame){
 
 FrameStamp::FrameStamp(Frame::Ptr frame, Stamp &stamp, int modify_stamp)
 {
+    setIndex(frame->getIndex());
     _frame = std::move(frame);
     // kModifyStampSystem时采用系统时间戳，kModifyStampRelative采用相对时间戳
     stamp.revise(_frame->dts(), _frame->pts(), _dts, _pts, modify_stamp == ProtocolOption::kModifyStampSystem);

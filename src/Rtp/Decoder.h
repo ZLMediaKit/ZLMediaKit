@@ -48,8 +48,8 @@ public:
     void flush();
 
 protected:
-    void onTrack(const Track::Ptr &track);
-    void onFrame(const Frame::Ptr &frame);
+    void onTrack(int index, const Track::Ptr &track);
+    void onFrame(int index, const Frame::Ptr &frame);
 
 private:
     DecoderImp(const Decoder::Ptr &decoder, MediaSinkInterface *sink);
@@ -57,10 +57,15 @@ private:
     void onStream(int stream, int codecid, const void *extra, size_t bytes, int finish);
 
 private:
+    bool _have_video = false;
     Decoder::Ptr _decoder;
     MediaSinkInterface *_sink;
-    FrameMerger _merger{FrameMerger::none};
-    Track::Ptr _tracks[TrackMax];
+
+    class FrameMergerImp : public FrameMerger {
+    public:
+        FrameMergerImp() : FrameMerger(FrameMerger::none) {}
+    };
+    std::unordered_map<int, std::pair<Track::Ptr, FrameMergerImp> > _tracks;
 };
 
 }//namespace mediakit

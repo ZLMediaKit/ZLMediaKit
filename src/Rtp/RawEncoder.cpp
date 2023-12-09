@@ -72,7 +72,7 @@ RtpCodec::Ptr RawEncoderImp::createRtpEncoder(const Track::Ptr &track) {
         sample_rate = std::static_pointer_cast<AudioTrack>(track)->getAudioSampleRate();
     }
     auto ret = Factory::getRtpEncoderByCodecId(track->getCodecId(), _payload_type);
-    ret->setRtpInfo(_ssrc, mtu, sample_rate, _payload_type, 2 * track->getTrackType());
+    ret->setRtpInfo(_ssrc, mtu, sample_rate, _payload_type);
     return ret;
 }
 

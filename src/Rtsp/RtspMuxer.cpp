@@ -19,18 +19,19 @@ namespace mediakit {
 
 void RtspMuxer::onRtp(RtpPacket::Ptr in, bool is_key) {
     if (_live) {
-        if (_rtp_stamp[in->type] != in->getHeader()->stamp) {
+        auto &ref = _tracks[in->track_index];
+        if (ref.rtp_stamp != in->getHeader()->stamp) {
             // rtp时间戳变化才计算ntp，节省cpu资源
             int64_t stamp_ms = in->getStamp() * uint64_t(1000) / in->sample_rate;
             int64_t stamp_ms_inc;
             // 求rtp时间戳增量
-            _stamp[in->type].revise(stamp_ms, stamp_ms, stamp_ms_inc, stamp_ms_inc);
-            _rtp_stamp[in->type] = in->getHeader()->stamp;
-            _ntp_stamp[in->type] = stamp_ms_inc + _ntp_stamp_start;
+            ref.stamp.revise(stamp_ms, stamp_ms, stamp_ms_inc, stamp_ms_inc);
+            ref.rtp_stamp = in->getHeader()->stamp;
+            ref.ntp_stamp = stamp_ms_inc + _ntp_stamp_start;
         }
 
         // rtp拦截入口，此处统一赋值ntp
-        in->ntp_stamp = _ntp_stamp[in->type];
+        in->ntp_stamp = ref.ntp_stamp;
     } else {
         // 点播情况下设置ntp时间戳为rtp时间戳加基准ntp时间戳
         in->ntp_stamp = _ntp_stamp_start + (in->getStamp() * uint64_t(1000) / in->sample_rate);
@@ -55,16 +56,20 @@ RtspMuxer::RtspMuxer(const TitleSdp::Ptr &title) {
 }
 
 bool RtspMuxer::addTrack(const Track::Ptr &track) {
-    auto &encoder = _encoder[track->getTrackType()];
-    if (encoder) {
-        WarnL << "Already add a track kind of: " << track->getTrackTypeStr()
-              << ", ignore track: " << track->getCodecName();
+    if (_track_existed[track->getTrackType()]) {
+        // rtsp不支持多个同类型track
+        WarnL << "Already add a track kind of: " << track->getTrackTypeStr() << ", ignore track: " << track->getCodecName();
         return false;
     }
+
+    auto &ref = _tracks[track->getIndex()];
+    auto &encoder = ref.encoder;
+    CHECK(!encoder);
+
     // payload type 96以后则为动态pt
     Sdp::Ptr sdp = track->getSdp(96 + _index);
     if (!sdp) {
-        WarnL << "rtsp复用器不支持该编码:" << track->getCodecName();
+        WarnL << "Unsupported codec: " << track->getCodecName();
         return false;
     }
 
@@ -72,6 +77,9 @@ bool RtspMuxer::addTrack(const Track::Ptr &track) {
     if (!encoder) {
         return false;
     }
+
+    // 标记已经存在该类型track
+    _track_existed[track->getTrackType()] = true;
 
     {
         static atomic<uint32_t> s_ssrc(0);
@@ -90,7 +98,7 @@ bool RtspMuxer::addTrack(const Track::Ptr &track) {
         GET_CONFIG(uint32_t, audio_mtu, Rtp::kAudioMtuSize);
         GET_CONFIG(uint32_t, video_mtu, Rtp::kVideoMtuSize);
         auto mtu = track->getTrackType() == TrackVideo ? video_mtu : audio_mtu;
-        encoder->setRtpInfo(ssrc, mtu, sdp->getSampleRate(), sdp->getPayloadType(), 2 * track->getTrackType());
+        encoder->setRtpInfo(ssrc, mtu, sdp->getSampleRate(), sdp->getPayloadType(), 2 * track->getTrackType(), track->getIndex());
     }
 
     // 设置rtp输出环形缓存
@@ -106,28 +114,33 @@ bool RtspMuxer::addTrack(const Track::Ptr &track) {
     trySyncTrack();
 
     // rtp的时间戳是pts，允许回退
-    _stamp[TrackVideo].enableRollback(true);
-
+    if (track->getTrackType() == TrackVideo) {
+        ref.stamp.enableRollback(true);
+    }
     ++_index;
     return true;
 }
 
 void RtspMuxer::trySyncTrack() {
-    if (_encoder[TrackAudio] && _encoder[TrackVideo]) {
-        // 音频时间戳同步于视频，因为音频时间戳被修改后不影响播放
-        _stamp[TrackAudio].syncTo(_stamp[TrackVideo]);
+    Stamp *first = nullptr;
+    for (auto &pr : _tracks) {
+        if (!first) {
+            first = &pr.second.stamp;
+        } else {
+            pr.second.stamp.syncTo(*first);
+        }
     }
 }
 
 bool RtspMuxer::inputFrame(const Frame::Ptr &frame) {
-    auto &encoder = _encoder[frame->getTrackType()];
+    auto &encoder = _tracks[frame->getIndex()].encoder;
     return encoder ? encoder->inputFrame(frame) : false;
 }
 
 void RtspMuxer::flush() {
-    for (auto &encoder : _encoder) {
-        if (encoder) {
-            encoder->flush();
+    for (auto &pr : _tracks) {
+        if (pr.second.encoder) {
+            pr.second.encoder->flush();
         }
     }
 }
@@ -142,9 +155,8 @@ RtpRing::RingType::Ptr RtspMuxer::getRtpRing() const {
 
 void RtspMuxer::resetTracks() {
     _sdp.clear();
-    for (auto &encoder : _encoder) {
-        encoder = nullptr;
-    }
+    _tracks.clear();
+    CLEAR_ARR(_track_existed);
 }
 
 } /* namespace mediakit */

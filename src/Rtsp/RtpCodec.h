@@ -54,7 +54,7 @@ class RtpInfo {
 public:
     using Ptr = std::shared_ptr<RtpInfo>;
 
-    RtpInfo(uint32_t ssrc, size_t mtu_size, uint32_t sample_rate, uint8_t pt, uint8_t interleaved) {
+    RtpInfo(uint32_t ssrc, size_t mtu_size, uint32_t sample_rate, uint8_t pt, uint8_t interleaved, int track_index) {
         if (ssrc == 0) {
             ssrc = ((uint64_t) this) & 0xFFFFFFFF;
         }
@@ -63,6 +63,7 @@ public:
         _mtu_size = mtu_size;
         _sample_rate = sample_rate;
         _interleaved = interleaved;
+        _track_index = track_index;
     }
 
     //返回rtp负载最大长度
@@ -78,6 +79,7 @@ private:
     uint16_t _seq = 0;
     uint32_t _ssrc;
     uint32_t _sample_rate;
+    int _track_index;
     size_t _mtu_size;
 };
 
@@ -85,8 +87,8 @@ class RtpCodec : public RtpRing, public FrameDispatcher {
 public:
     using Ptr = std::shared_ptr<RtpCodec>;
 
-    void setRtpInfo(uint32_t ssrc, size_t mtu_size, uint32_t sample_rate, uint8_t pt, uint8_t interleaved) {
-        _rtp_info.reset(new RtpInfo(ssrc, mtu_size, sample_rate, pt, interleaved));
+    void setRtpInfo(uint32_t ssrc, size_t mtu_size, uint32_t sample_rate, uint8_t pt, uint8_t interleaved = 0, int track_index = 0) {
+        _rtp_info.reset(new RtpInfo(ssrc, mtu_size, sample_rate, pt, interleaved, track_index));
     }
 
     RtpInfo &getRtpInfo() { return *_rtp_info; }

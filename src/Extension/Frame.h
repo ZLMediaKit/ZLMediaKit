@@ -123,7 +123,24 @@ public:
      * 获取音视频类型
      */
     TrackType getTrackType() const;
+
+    /**
+     * 获取音视频类型描述
+     */
     std::string getTrackTypeStr() const;
+
+    /**
+     * 设置track index, 用于支持多track
+     */
+    void setIndex(int index) { _index = index; }
+
+    /**
+     * 获取track index, 用于支持多track
+     */
+    int getIndex() const { return _index < 0 ? (int)getTrackType() : _index; }
+
+private:
+    int _index = -1;
 };
 
 /**
@@ -302,6 +319,7 @@ public:
     FrameInternalBase(Frame::Ptr parent_frame, char *ptr, size_t size, uint64_t dts, uint64_t pts = 0, size_t prefix_size = 0)
         : Parent(parent_frame->getCodecId(), ptr, size, dts, pts, prefix_size) {
         _parent_frame = std::move(parent_frame);
+        this->setIndex(_parent_frame->getIndex());
     }
 
     bool cacheAble() const override { return _parent_frame->cacheAble(); }
@@ -353,6 +371,7 @@ public:
     using Ptr = std::shared_ptr<FrameCacheAble>;
 
     FrameCacheAble(const Frame::Ptr &frame, bool force_key_frame = false, toolkit::Buffer::Ptr buf = nullptr) {
+        setIndex(frame->getIndex());
         if (frame->cacheAble()) {
             _ptr = frame->data();
             _buffer = frame;

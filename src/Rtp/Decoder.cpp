@@ -62,7 +62,9 @@ DecoderImp::Ptr DecoderImp::createDecoder(Type type, MediaSinkInterface *sink){
 }
 
 void DecoderImp::flush() {
-    _merger.flush();
+    for (auto &pr : _tracks) {
+        pr.second.second.flush();
+    }
 }
 
 ssize_t DecoderImp::input(const uint8_t *data, size_t bytes){
@@ -88,9 +90,9 @@ void DecoderImp::onStream(int stream, int codecid, const void *extra, size_t byt
     if (!track) {
         return;
     }
-    onTrack(std::move(track));
+    onTrack(stream, std::move(track));
     // 防止未获取视频track提前complete导致忽略后续视频的问题，用于兼容一些不太规范的ps流
-    if (finish && _tracks[TrackVideo]) {
+    if (finish && _have_video) {
         _sink->addTrackCompleted();
         InfoL << "Add track finished";
     }
@@ -104,37 +106,43 @@ void DecoderImp::onDecode(int stream, int codecid, int flags, int64_t pts, int64
     if (codec == CodecInvalid) {
         return;
     }
-    if (!_tracks[getTrackType(codec)]) {
-        onTrack(Factory::getTrackByCodecId(codec, 8000, 1, 16));
+    auto &ref = _tracks[stream];
+    if (!ref.first) {
+        onTrack(stream, Factory::getTrackByCodecId(codec, 8000, 1, 16));
     }
-    // TODO 支持多track
-    auto frame = Factory::getFrameFromPtr(codec, (char *) data, bytes, dts, pts);
-    if (getTrackType(codec) == TrackVideo) {
-        _merger.inputFrame(frame, [&](uint64_t dts, uint64_t pts, const Buffer::Ptr &buffer, bool) {
-            onFrame(Factory::getFrameFromBuffer(codec, buffer, dts, pts));
-        });
-    } else {
-        onFrame(frame);
+    auto frame = Factory::getFrameFromPtr(codec, (char *)data, bytes, dts, pts);
+    if (getTrackType(codec) != TrackVideo) {
+        onFrame(stream, frame);
+        return;
     }
+    ref.second.inputFrame(frame, [&](uint64_t dts, uint64_t pts, const Buffer::Ptr &buffer, bool) {
+        onFrame(stream, Factory::getFrameFromBuffer(codec, buffer, dts, pts));
+    });
 }
 #else
 void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t dts,const void *data,size_t bytes) {}
 void DecoderImp::onStream(int stream,int codecid,const void *extra,size_t bytes,int finish) {}
 #endif
 
-void DecoderImp::onTrack(const Track::Ptr &track) {
+void DecoderImp::onTrack(int index, const Track::Ptr &track) {
     if (!track) {
         return;
     }
-    if (!_tracks[track->getTrackType()]) {
-        _tracks[track->getTrackType()] = track;
-        _sink->addTrack(track);
-        InfoL << "got track: " << track->getCodecName();
+    track->setIndex(index);
+    auto &ref = _tracks[index];
+    if (ref.first) {
+        WarnL << "Already existed a same track: " << index << ", codec: " << track->getCodecName();
+        return;
     }
+    ref.first = track;
+    _sink->addTrack(track);
+    InfoL << "Got track: " << track->getCodecName();
+    _have_video = track->getTrackType() == TrackVideo ? true : _have_video;
 }
 
-void DecoderImp::onFrame(const Frame::Ptr &frame) {
+void DecoderImp::onFrame(int index, const Frame::Ptr &frame) {
     if (frame) {
+        frame->setIndex(index);
         _sink->inputFrame(frame);
     }
 }

@@ -23,16 +23,21 @@ RtmpMuxer::RtmpMuxer(const TitleMeta::Ptr &title) {
 }
 
 bool RtmpMuxer::addTrack(const Track::Ptr &track) {
-    auto &encoder = _encoder[track->getTrackType()];
-    if (encoder) {
-        WarnL << "Already add a track kind of: " << track->getTrackTypeStr()
-              << ", ignore track: " << track->getCodecName();
+    if (_track_existed[track->getTrackType()]) {
+        // rtmp不支持多个同类型track
+        WarnL << "Already add a track kind of: " << track->getTrackTypeStr() << ", ignore track: " << track->getCodecName();
         return false;
     }
+
+    auto &encoder = _encoders[track->getIndex()];
+    CHECK(!encoder);
     encoder = Factory::getRtmpEncoderByTrack(track);
     if (!encoder) {
         return false;
     }
+
+    // 标记已经存在该类型track
+    _track_existed[track->getTrackType()] = true;
 
     // 设置rtmp输出环形缓存
     encoder->setRtmpRing(_rtmp_ring);
@@ -43,22 +48,22 @@ bool RtmpMuxer::addTrack(const Track::Ptr &track) {
 }
 
 bool RtmpMuxer::inputFrame(const Frame::Ptr &frame) {
-    auto &encoder = _encoder[frame->getTrackType()];
+    auto &encoder = _encoders[frame->getIndex()];
     return encoder ? encoder->inputFrame(frame) : false;
 }
 
 void RtmpMuxer::flush() {
-    for (auto &encoder : _encoder) {
-        if (encoder) {
-            encoder->flush();
+    for (auto &pr : _encoders) {
+        if (pr.second) {
+            pr.second->flush();
         }
     }
 }
 
 void RtmpMuxer::makeConfigPacket() {
-    for (auto &encoder : _encoder) {
-        if (encoder) {
-            encoder->makeConfigPacket();
+    for (auto &pr : _encoders) {
+        if (pr.second) {
+            pr.second->makeConfigPacket();
         }
     }
 }
@@ -73,9 +78,8 @@ RtmpRing::RingType::Ptr RtmpMuxer::getRtmpRing() const {
 
 void RtmpMuxer::resetTracks() {
     _metadata.clear();
-    for (auto &encoder : _encoder) {
-        encoder = nullptr;
-    }
+    _encoders.clear();
+    CLEAR_ARR(_track_existed);
 }
 
 } /* namespace mediakit */

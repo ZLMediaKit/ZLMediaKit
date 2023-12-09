@@ -72,12 +72,18 @@ private:
     bool _started = false;
     bool _have_video = false;
     MP4FileIO::Writer _mov_writter;
-    struct track_info {
+
+    class FrameMergerImp : public FrameMerger {
+    public:
+        FrameMergerImp() : FrameMerger(FrameMerger::mp4_nal_size) {}
+    };
+
+    struct MP4Track {
         int track_id = -1;
         Stamp stamp;
+        FrameMergerImp merger;
     };
-    std::unordered_map<int, track_info> _codec_to_trackid;
-    FrameMerger _frame_merger { FrameMerger::mp4_nal_size };
+    std::unordered_map<int, MP4Track> _tracks;
 };
 
 class MP4Muxer : public MP4MuxerInterface{

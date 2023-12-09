@@ -85,13 +85,20 @@ private:
 
 private:
     bool _live = true;
+    bool _track_existed[2] = { false, false };
+
     uint8_t _index {0};
-    uint32_t _rtp_stamp[TrackMax]{0};
-    uint64_t _ntp_stamp[TrackMax]{0};
     uint64_t _ntp_stamp_start;
     std::string _sdp;
-    Stamp _stamp[TrackMax];
-    RtpCodec::Ptr _encoder[TrackMax];
+
+    struct TrackInfo {
+        Stamp stamp;
+        uint32_t rtp_stamp { 0 };
+        uint64_t ntp_stamp { 0 };
+        RtpCodec::Ptr encoder;
+    };
+
+    std::unordered_map<int, TrackInfo> _tracks;
     RtpRing::RingType::Ptr _rtpRing;
     RtpRing::RingType::Ptr _rtpInterceptor;
 };

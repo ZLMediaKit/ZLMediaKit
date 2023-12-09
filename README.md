@@ -36,6 +36,7 @@
 - 极致体验，[独家特性](https://github.com/ZLMediaKit/ZLMediaKit/wiki/ZLMediakit%E7%8B%AC%E5%AE%B6%E7%89%B9%E6%80%A7%E4%BB%8B%E7%BB%8D)
 - [谁在使用zlmediakit?](https://github.com/ZLMediaKit/ZLMediaKit/issues/511)
 - 全面支持ipv6网络
+- 支持多轨道模式(一个流中多个视频/音频)
 
 ## 项目定位
 
@@ -76,16 +77,19 @@
   - 通过cookie追踪技术，可以模拟HLS播放为长连接，可以实现HLS按需拉流、播放统计等业务
   - 支持HLS播发器，支持拉流HLS转rtsp/rtmp/mp4
   - 支持H264/H265/AAC/G711/OPUS编码
+  - 支持多轨道模式
   
 - TS
   - 支持http[s]-ts直播
   - 支持ws[s]-ts直播
   - 支持H264/H265/AAC/G711/OPUS编码
+  - 支持多轨道模式
   
 - fMP4
   - 支持http[s]-fmp4直播
   - 支持ws[s]-fmp4直播
   - 支持H264/H265/AAC/G711/OPUS/MJPEG编码
+  - 支持多轨道模式
 
 - HTTP[S]与WebSocket
   - 服务器支持`目录索引生成`,`文件下载`,`表单提交请求`
@@ -104,11 +108,13 @@
   - 支持es/ps rtp转推
   - 支持GB28181主动拉流模式
   - 支持双向语音对讲
+  - 支持多轨道模式
 
 - MP4点播与录制
   - 支持录制为FLV/HLS/MP4
   - RTSP/RTMP/HTTP-FLV/WS-FLV支持MP4文件点播，支持seek
   - 支持H264/H265/AAC/G711/OPUS编码
+  - 支持多轨道模式
   
 - WebRTC
   - 支持WebRTC推流，支持转其他协议

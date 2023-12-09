@@ -287,18 +287,7 @@ std::string SrtTransportImp::getIdentifier() const {
 
 bool SrtTransportImp::inputFrame(const Frame::Ptr &frame) {
     if (_muxer) {
-        //TraceL<<"before type "<<frame->getCodecName()<<" dts "<<frame->dts()<<" pts "<<frame->pts();
-        auto frame_tmp = std::make_shared<FrameStamp>(frame, _type_to_stamp[frame->getTrackType()],false);
-        if(_type_to_stamp.size()>1){
-            // 有音视频，检查是否时间戳是否差距过大
-            auto diff = _type_to_stamp[TrackType::TrackVideo].getRelativeStamp() - _type_to_stamp[TrackType::TrackAudio].getRelativeStamp();
-            if(std::abs(diff) > 5000){
-                // 超过5s，应该同步 TODO
-                WarnL << _media_info.full_url <<" video or audio not sync : "<<diff;
-            }
-        }
-        //TraceL<<"after type "<<frame_tmp->getCodecName()<<" dts "<<frame_tmp->dts()<<" pts "<<frame_tmp->pts();
-        return _muxer->inputFrame(frame_tmp);
+        return _muxer->inputFrame(frame);
     }
     if (_cached_func.size() > 200) {
         WarnL << "cached frame of track(" << frame->getCodecName() << ") is too much, now dropped";
@@ -306,17 +295,11 @@ bool SrtTransportImp::inputFrame(const Frame::Ptr &frame) {
     }
     auto frame_cached = Frame::getCacheAbleFrame(frame);
     lock_guard<recursive_mutex> lck(_func_mtx);
-    _cached_func.emplace_back([this, frame_cached]() { 
-        //TraceL<<"before type "<<frame_cached->getCodecName()<<" dts "<<frame_cached->dts()<<" pts "<<frame_cached->pts();
-        auto frame_tmp = std::make_shared<FrameStamp>(frame_cached, _type_to_stamp[frame_cached->getTrackType()],false);
-        //TraceL<<"after type "<<frame_tmp->getCodecName()<<" dts "<<frame_tmp->dts()<<" pts "<<frame_tmp->pts();
-        _muxer->inputFrame(frame_tmp);
-    });
+    _cached_func.emplace_back([this, frame_cached]() { _muxer->inputFrame(frame_cached); });
     return true;
 }
 
 bool SrtTransportImp::addTrack(const Track::Ptr &track) {
-    _type_to_stamp.emplace(track->getTrackType(),Stamp());
     if (_muxer) {
         return _muxer->addTrack(track);
     }
@@ -332,9 +315,6 @@ void SrtTransportImp::addTrackCompleted() {
     } else {
         lock_guard<recursive_mutex> lck(_func_mtx);
         _cached_func.emplace_back([this]() { _muxer->addTrackCompleted(); });
-    }
-    if(_type_to_stamp.size() >1){
-        _type_to_stamp[TrackType::TrackAudio].syncTo(_type_to_stamp[TrackType::TrackVideo]);
     }
 }
 

@@ -96,7 +96,16 @@ void PlayerProxy::setTranslationInfo()
     }
 }
 
+static int getMaxTrackSize(const std::string &url) {
+    if (url.find(".m3u8") != std::string::npos || url.find(".ts") != std::string::npos) {
+        // hls和ts协议才开放多track支持
+        return 16;
+    }
+    return 2;
+}
+
 void PlayerProxy::play(const string &strUrlTmp) {
+    _option.max_track = getMaxTrackSize(strUrlTmp);
     weak_ptr<PlayerProxy> weakSelf = shared_from_this();
     std::shared_ptr<int> piFailedCnt(new int(0)); // 连续播放失败次数
     setOnPlayResult([weakSelf, strUrlTmp, piFailedCnt](const SockException &err) {

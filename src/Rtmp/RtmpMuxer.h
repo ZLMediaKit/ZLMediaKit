@@ -64,10 +64,13 @@ public:
      * 生成config包
      */
      void makeConfigPacket();
+
 private:
-    RtmpRing::RingType::Ptr _rtmp_ring;
+    bool _track_existed[2] = { false, false };
+
     AMFValue _metadata;
-    RtmpCodec::Ptr _encoder[TrackMax];
+    RtmpRing::RingType::Ptr _rtmp_ring;
+    std::unordered_map<int, RtmpCodec::Ptr> _encoders;
 };
 
 

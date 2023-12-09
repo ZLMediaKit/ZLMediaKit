@@ -34,7 +34,10 @@ public:
      * 复制拷贝，只能拷贝派生类的信息，
      * 环形缓存和代理关系不能拷贝，否则会关系紊乱
      */
-    Track(const Track &that) { _bit_rate = that._bit_rate; }
+    Track(const Track &that) {
+        _bit_rate = that._bit_rate;
+        setIndex(that.getIndex());
+    }
 
     /**
      * 是否准备好，准备好才能获取譬如sps pps等信息

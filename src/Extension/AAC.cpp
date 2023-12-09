@@ -275,6 +275,7 @@ static Frame::Ptr addADTSHeader(const Frame::Ptr &frame_in, const std::string &a
     frame->_dts = frame_in->dts();
     frame->_buffer.assign(adts_header, size);
     frame->_buffer.append(frame_in->data(), frame_in->size());
+    frame->setIndex(frame_in->getIndex());
     return frame;
 }
 
