@@ -61,6 +61,7 @@ void MP4Demuxer::onVideoTrack(uint32_t track, uint8_t object, int width, int hei
     if (!video) {
         return;
     }
+    video->setIndex(track);
     _track_to_codec.emplace(track, video);
     if (extra && bytes) {
         video->setExtraData((uint8_t *)extra, bytes);
@@ -72,6 +73,7 @@ void MP4Demuxer::onAudioTrack(uint32_t track, uint8_t object, int channel_count,
     if (!audio) {
         return;
     }
+    audio->setIndex(track);
     _track_to_codec.emplace(track, audio);
     if (extra && bytes) {
         audio->setExtraData((uint8_t *)extra, bytes);
@@ -166,15 +168,16 @@ Frame::Ptr MP4Demuxer::makeFrame(uint32_t track_id, const Buffer::Ptr &buf, int6
         }
     }
     if (ret) {
+        ret->setIndex(track_id);
         it->second->inputFrame(ret);
     }
     return ret;
 }
 
-vector<Track::Ptr> MP4Demuxer::getTracks(bool trackReady) const {
+vector<Track::Ptr> MP4Demuxer::getTracks(bool ready) const {
     vector<Track::Ptr> ret;
     for (auto &pr : _track_to_codec) {
-        if (trackReady && !pr.second->ready()) {
+        if (ready && !pr.second->ready()) {
             continue;
         }
         ret.push_back(pr.second);
