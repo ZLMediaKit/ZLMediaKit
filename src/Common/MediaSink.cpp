@@ -82,7 +82,7 @@ bool MediaSink::inputFrame(const Frame::Ptr &frame) {
     it->second.second = true;
     auto ret = it->second.first->inputFrame(frame);
     if (_mute_audio_maker && frame->getTrackType() == TrackVideo) {
-        //视频驱动产生静音音频
+        // 视频驱动产生静音音频
         _mute_audio_maker->inputFrame(frame);
     }
     checkTrackIfReady();
@@ -230,15 +230,20 @@ static uint8_t s_mute_adts[] = {0xff, 0xf1, 0x6c, 0x40, 0x2d, 0x3f, 0xfc, 0x00, 
 static uint8_t ADTS_CONFIG[2] = { 0x15, 0x88 };
 
 bool MuteAudioMaker::inputFrame(const Frame::Ptr &frame) {
-    if (frame->getTrackType() == TrackVideo) {
-        auto audio_idx = frame->dts() / MUTE_ADTS_DATA_MS;
-        if (_audio_idx != audio_idx) {
-            _audio_idx = audio_idx;
-            auto aacFrame = std::make_shared<FrameToCache<FrameFromPtr>>(CodecAAC, (char *) MUTE_ADTS_DATA, sizeof(s_mute_adts),
-                                                                         _audio_idx * MUTE_ADTS_DATA_MS, 0, 7);
-            aacFrame->setIndex(MUTE_AUDIO_INDEX);
-            return FrameDispatcher::inputFrame(aacFrame);
-        }
+    if (_track_index == -1) {
+        // 锁定track
+        _track_index = frame->getIndex();
+    }
+    if (frame->getIndex() != _track_index) {
+        // 不是锁定的track
+        return false;
+    }
+    auto audio_idx = frame->dts() / MUTE_ADTS_DATA_MS;
+    if (_audio_idx != audio_idx) {
+        _audio_idx = audio_idx;
+        auto aacFrame = std::make_shared<FrameToCache<FrameFromPtr>>(CodecAAC, (char *)MUTE_ADTS_DATA, sizeof(s_mute_adts), _audio_idx * MUTE_ADTS_DATA_MS, 0, 7);
+        aacFrame->setIndex(MUTE_AUDIO_INDEX);
+        return FrameDispatcher::inputFrame(aacFrame);
     }
     return false;
 }

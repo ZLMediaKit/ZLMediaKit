@@ -55,6 +55,7 @@ public:
     bool inputFrame(const Frame::Ptr &frame) override;
 
 private:
+    int _track_index = -1;
     uint64_t _audio_idx = 0;
 };
 
