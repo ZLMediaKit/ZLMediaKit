@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -248,20 +248,8 @@ void H265RtpDecoder::outputFrame(const RtpPacket::Ptr &rtp, const H265Frame::Ptr
 
 ////////////////////////////////////////////////////////////////////////
 
-H265RtpEncoder::H265RtpEncoder(uint32_t ui32Ssrc,
-                               uint32_t ui32MtuSize,
-                               uint32_t ui32SampleRate,
-                               uint8_t ui8PayloadType,
-                               uint8_t ui8Interleaved) :
-        RtpInfo(ui32Ssrc,
-                ui32MtuSize,
-                ui32SampleRate,
-                ui8PayloadType,
-                ui8Interleaved) {
-}
-
 void H265RtpEncoder::packRtpFu(const char *ptr, size_t len, uint64_t pts, bool is_mark, bool gop_pos){
-    auto max_size = getMaxSize() - 3;
+    auto max_size = getRtpInfo().getMaxSize() - 3;
     auto nal_type = H265_TYPE(ptr[0]); //获取NALU的5bit 帧类型
     unsigned char s_e_flags;
     bool fu_start = true;
@@ -283,7 +271,7 @@ void H265RtpEncoder::packRtpFu(const char *ptr, size_t len, uint64_t pts, bool i
 
         {
             // 传入nullptr先不做payload的内存拷贝
-            auto rtp = makeRtp(getTrackType(), nullptr, max_size + 3, mark_bit, pts);
+            auto rtp = getRtpInfo().makeRtp(TrackVideo, nullptr, max_size + 3, mark_bit, pts);
             // rtp payload 负载部分
             uint8_t *payload = rtp->getPayload();
             // FU 第1个字节，表明为FU
@@ -304,9 +292,9 @@ void H265RtpEncoder::packRtpFu(const char *ptr, size_t len, uint64_t pts, bool i
 }
 
 void H265RtpEncoder::packRtp(const char *ptr, size_t len, uint64_t pts, bool is_mark, bool gop_pos){
-    if (len <= getMaxSize()) {
+    if (len <= getRtpInfo().getMaxSize()) {
         //signal-nalu 
-        RtpCodec::inputRtp(makeRtp(getTrackType(), ptr, len, is_mark, pts), gop_pos);
+        RtpCodec::inputRtp(getRtpInfo().makeRtp(TrackVideo, ptr, len, is_mark, pts), gop_pos);
     } else {
         //FU-A模式
         packRtpFu(ptr, len, pts, is_mark, gop_pos);

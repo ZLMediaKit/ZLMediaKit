@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -157,12 +157,12 @@ void Process::run(const string &cmd, string log_file) {
         WarnL << "clone process failed:" << get_uv_errmsg();
         free(_process_stack);
         _process_stack = nullptr;
-        throw std::runtime_error(StrPrinter << "fork child process failed,err:" << get_uv_errmsg());
+        throw std::runtime_error(StrPrinter << "clone child process failed, cmd: " << cmd << ",err:" << get_uv_errmsg());
     }
 #else
     _pid = fork();
     if (_pid == -1) {
-        throw std::runtime_error(StrPrinter << "fork child process failed,err:" << get_uv_errmsg());
+        throw std::runtime_error(StrPrinter << "fork child process failed, cmd: " << cmd << ",err:" << get_uv_errmsg());
     }
     if (_pid == 0) {
         //子进程

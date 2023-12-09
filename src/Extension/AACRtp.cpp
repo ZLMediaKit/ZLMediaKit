@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -12,62 +12,35 @@
 
 namespace mediakit{
 
-AACRtpEncoder::AACRtpEncoder(uint32_t ui32Ssrc,
-                             uint32_t ui32MtuSize,
-                             uint32_t ui32SampleRate,
-                             uint8_t ui8PayloadType,
-                             uint8_t ui8Interleaved) :
-        RtpInfo(ui32Ssrc,
-                ui32MtuSize,
-                ui32SampleRate,
-                ui8PayloadType,
-                ui8Interleaved){
-}
-
 bool AACRtpEncoder::inputFrame(const Frame::Ptr &frame) {
-    auto stamp = frame->dts();
-    auto data = frame->data() + frame->prefixSize();
-    auto len = frame->size() - frame->prefixSize();
-    auto ptr = (char *) data;
-    auto remain_size = len;
-    auto max_size = getMaxSize() - 4;
+    auto ptr = (char *)frame->data() + frame->prefixSize();
+    auto size = frame->size() - frame->prefixSize();
+    auto remain_size = size;
+    auto max_size = getRtpInfo().getMaxSize() - 4;
     while (remain_size > 0) {
         if (remain_size <= max_size) {
-            _section_buf[0] = 0;
-            _section_buf[1] = 16;
-            _section_buf[2] = (len >> 5) & 0xFF;
-            _section_buf[3] = ((len & 0x1F) << 3) & 0xFF;
-            memcpy(_section_buf + 4, ptr, remain_size);
-            makeAACRtp(_section_buf, remain_size + 4, true, stamp);
+            outputRtp(ptr, remain_size, size, true, frame->dts());
             break;
         }
-        _section_buf[0] = 0;
-        _section_buf[1] = 16;
-        _section_buf[2] = ((len) >> 5) & 0xFF;
-        _section_buf[3] = ((len & 0x1F) << 3) & 0xFF;
-        memcpy(_section_buf + 4, ptr, max_size);
-        makeAACRtp(_section_buf, max_size + 4, false, stamp);
+        outputRtp(ptr, max_size, size, false, frame->dts());
         ptr += max_size;
         remain_size -= max_size;
     }
-    return len > 0;
+    return true;
 }
 
-void AACRtpEncoder::makeAACRtp(const void *data, size_t len, bool mark, uint64_t stamp) {
-    RtpCodec::inputRtp(makeRtp(getTrackType(), data, len, mark, stamp), false);
+void AACRtpEncoder::outputRtp(const char *data, size_t len, size_t total_len, bool mark, uint64_t stamp) {
+    auto rtp = getRtpInfo().makeRtp(TrackAudio, nullptr, len + 4, mark, stamp);
+    auto payload = rtp->data() + RtpPacket::kRtpTcpHeaderSize + RtpPacket::kRtpHeaderSize;
+    payload[0] = 0;
+    payload[1] = 16;
+    payload[2] = ((total_len) >> 5) & 0xFF;
+    payload[3] = ((total_len & 0x1F) << 3) & 0xFF;
+    memcpy(payload + 4, data, len);
+    RtpCodec::inputRtp(std::move(rtp), false);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
-
-AACRtpDecoder::AACRtpDecoder(const Track::Ptr &track) {
-    auto aacTrack = std::dynamic_pointer_cast<AACTrack>(track);
-    if (!aacTrack || !aacTrack->ready()) {
-        WarnL << "该aac track无效!";
-    } else {
-        _aac_cfg = aacTrack->getConfig();
-    }
-    obtainFrame();
-}
 
 AACRtpDecoder::AACRtpDecoder() {
     obtainFrame();
@@ -145,17 +118,8 @@ bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
 void AACRtpDecoder::flushData() {
     auto ptr = reinterpret_cast<const uint8_t *>(_frame->data());
     if ((ptr[0] == 0xFF && (ptr[1] & 0xF0) == 0xF0) && _frame->size() > ADTS_HEADER_LEN) {
-        //adts头打入了rtp包，不符合规范，兼容EasyPusher的bug
+        // adts头打入了rtp包，不符合规范，兼容EasyPusher的bug
         _frame->_prefix_size = ADTS_HEADER_LEN;
-    } else {
-        //没有adts头则插入adts头
-        char adts_header[128] = {0};
-        auto size = dumpAacConfig(_aac_cfg, _frame->_buffer.size(), (uint8_t *) adts_header, sizeof(adts_header));
-        if (size > 0) {
-            //插入adts头
-            _frame->_buffer.insert(0, adts_header, size);
-            _frame->_prefix_size = size;
-        }
     }
     RtpCodec::inputFrame(_frame);
     obtainFrame();

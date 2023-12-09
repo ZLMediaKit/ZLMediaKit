@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -30,8 +30,6 @@ namespace mediakit {
 class HttpBody : public std::enable_shared_from_this<HttpBody>{
 public:
     using Ptr = std::shared_ptr<HttpBody>;
-    HttpBody() = default;
-
     virtual ~HttpBody() = default;
 
     /**
@@ -75,7 +73,6 @@ class HttpStringBody : public HttpBody{
 public:
     using Ptr = std::shared_ptr<HttpStringBody>;
     HttpStringBody(std::string str);
-    ~HttpStringBody() override = default;
 
     int64_t remainSize() override;
     toolkit::Buffer::Ptr readData(size_t size) override ;
@@ -92,7 +89,6 @@ class HttpBufferBody : public HttpBody{
 public:
     using Ptr = std::shared_ptr<HttpBufferBody>;
     HttpBufferBody(toolkit::Buffer::Ptr buffer);
-    ~HttpBufferBody() override = default;
 
     int64_t remainSize() override;
     toolkit::Buffer::Ptr readData(size_t size) override;
@@ -114,7 +110,6 @@ public:
      * @param use_mmap 是否使用mmap方式访问文件
      */
     HttpFileBody(const std::string &file_path, bool use_mmap = true);
-    ~HttpFileBody() override = default;
 
     /**
      * 设置读取范围
@@ -151,7 +146,6 @@ public:
      * @param boundary boundary字符串
      */
     HttpMultiFormBody(const HttpArgs &args,const std::string &filePath,const std::string &boundary = "0xKhTmLbOuNdArY");
-    virtual ~HttpMultiFormBody() = default;
     int64_t remainSize() override ;
     toolkit::Buffer::Ptr readData(size_t size) override;
 
