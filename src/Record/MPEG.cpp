@@ -40,10 +40,7 @@ bool MpegMuxer::addTrack(const Track::Ptr &track) {
     if (track->getTrackType() == TrackVideo) {
         _have_video = true;
     }
-    auto extra_data = track->getExtraData();
-    _codec_to_trackid[track->getCodecId()] = mpeg_muxer_add_stream((::mpeg_muxer_t *)_context, mpeg_id,
-                                                                   extra_data ? extra_data->data() : nullptr,
-                                                                   extra_data ? extra_data->size(): 0);
+    _codec_to_trackid[track->getCodecId()] = mpeg_muxer_add_stream((::mpeg_muxer_t *)_context, mpeg_id, nullptr, 0);
     return true;
 }
 
@@ -69,19 +66,16 @@ bool MpegMuxer::inputFrame(const Frame::Ptr &frame) {
         }
 
         case CodecAAC: {
-            if (frame->prefixSize() == 0) {
-                WarnL << "必须提供adts头才能mpeg-ts打包";
-                return false;
-            }
+            CHECK(frame->prefixSize(), "Mpeg muxer required aac frame with adts heade");
         }
 
         default: {
             if (!_have_video) {
-                //没有视频时，才以音频时间戳为TS的时间戳
+                // 没有视频时，才以音频时间戳为TS的时间戳
                 _timestamp = frame->dts();
             }
 
-            if(frame->getTrackType() == TrackType::TrackVideo){
+            if (frame->getTrackType() == TrackType::TrackVideo) {
                 _key_pos = frame->keyFrame();
                 _timestamp = frame->dts();
             }
