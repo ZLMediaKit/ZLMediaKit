@@ -133,7 +133,7 @@ void DecoderImp::onTrack(int index, const Track::Ptr &track) {
     if (!ref.first) {
         ref.first = track;
         _sink->addTrack(track);
-        InfoL << "got track: " << track->getCodecName();
+        InfoL << "Got track: " << track->getCodecName();
     }
 }
 
