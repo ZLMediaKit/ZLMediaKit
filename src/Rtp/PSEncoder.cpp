@@ -22,7 +22,7 @@ namespace mediakit{
 PSEncoderImp::PSEncoderImp(uint32_t ssrc, uint8_t payload_type) : MpegMuxer(true) {
     GET_CONFIG(uint32_t,video_mtu,Rtp::kVideoMtuSize);
     _rtp_encoder = std::make_shared<CommonRtpEncoder>();
-    _rtp_encoder->setRtpInfo(ssrc, video_mtu, 90000, payload_type, 0);
+    _rtp_encoder->setRtpInfo(ssrc, video_mtu, 90000, payload_type);
     auto ring = std::make_shared<RtpRing::RingType>();
     ring->setDelegate(std::make_shared<RingDelegateHelper>([this](RtpPacket::Ptr rtp, bool is_key) { onRTP(std::move(rtp), is_key); }));
     _rtp_encoder->setRtpRing(std::move(ring));

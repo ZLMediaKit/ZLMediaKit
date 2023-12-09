@@ -166,7 +166,7 @@ public:
     // ntp时间戳
     uint64_t ntp_stamp;
 
-    bool disable_ntp = false;
+    int track_index;
 
     static Ptr create();
 
