@@ -92,7 +92,7 @@ void DecoderImp::onStream(int stream, int codecid, const void *extra, size_t byt
     }
     onTrack(stream, std::move(track));
     // 防止未获取视频track提前complete导致忽略后续视频的问题，用于兼容一些不太规范的ps流
-    if (finish && _tracks[stream].first) {
+    if (finish && _have_video) {
         _sink->addTrackCompleted();
         InfoL << "Add track finished";
     }
@@ -130,11 +130,14 @@ void DecoderImp::onTrack(int index, const Track::Ptr &track) {
     }
     track->setIndex(index);
     auto &ref = _tracks[index];
-    if (!ref.first) {
-        ref.first = track;
-        _sink->addTrack(track);
-        InfoL << "Got track: " << track->getCodecName();
+    if (ref.first) {
+        WarnL << "Already existed a same track: " << index << ", codec: " << track->getCodecName();
+        return;
     }
+    ref.first = track;
+    _sink->addTrack(track);
+    InfoL << "Got track: " << track->getCodecName();
+    _have_video = track->getTrackType() == TrackVideo ? true : _have_video;
 }
 
 void DecoderImp::onFrame(int index, const Frame::Ptr &frame) {
