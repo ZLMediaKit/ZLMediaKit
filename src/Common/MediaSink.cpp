@@ -38,7 +38,10 @@ bool MediaSink::addTrack(const Track::Ptr &track_in) {
     //克隆Track，只拷贝其数据，不拷贝其数据转发关系
     auto track = track_in->clone();
     auto index = track->getIndex();
-    _track_map[index] = std::make_pair(track, false);
+    if (!_track_map.emplace(index, std::make_pair(track, false)).second) {
+        WarnL << "Already add a same track: " << track->getIndex() << ", codec: " << track->getCodecName();
+        return false;
+    }
     _track_ready_callback[index] = [this, track]() {
         onTrackReady(track);
     };
