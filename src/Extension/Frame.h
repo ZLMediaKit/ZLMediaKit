@@ -123,10 +123,20 @@ public:
      * 获取音视频类型
      */
     TrackType getTrackType() const;
+
+    /**
+     * 获取音视频类型描述
+     */
     std::string getTrackTypeStr() const;
 
+    /**
+     * 设置track index, 用于支持多track
+     */
     void setIndex(int index) { _index = index; }
 
+    /**
+     * 获取track index, 用于支持多track
+     */
     int getIndex() const { return _index < 0 ? (int)getTrackType() : _index; }
 
 private:
