@@ -1737,8 +1737,8 @@ void installWebApi() {
         auto offer = allArgs.getArgs();
         CHECK(!offer.empty(), "http body(webrtc offer sdp) is empty");
 
-        WebRtcPluginManager::Instance().getAnswerSdp(static_cast<Session&>(sender), type,
-                                                     WebRtcArgsImp(allArgs, sender.getIdentifier()),
+        auto args = std::make_shared<WebRtcArgsImp>(allArgs, sender.getIdentifier());
+        WebRtcPluginManager::Instance().getAnswerSdp(static_cast<Session&>(sender), type, *args,
                                                      [invoker, val, offer, headerOut](const WebRtcInterface &exchanger) mutable {
             //设置返回类型
             headerOut["Content-Type"] = HttpFileManager::getContentType(".json");
@@ -1765,7 +1765,8 @@ void installWebApi() {
 
         auto &session = static_cast<Session&>(sender);
         auto location = std::string("http") + (session.overSsl() ? "s" : "") + "://" + allArgs["host"] + delete_webrtc_url;
-        WebRtcPluginManager::Instance().getAnswerSdp(session, type, WebRtcArgsImp(allArgs, sender.getIdentifier()),
+        auto args = std::make_shared<WebRtcArgsImp>(allArgs, sender.getIdentifier());
+        WebRtcPluginManager::Instance().getAnswerSdp(session, type, *args,
                                                      [invoker, offer, headerOut, location](const WebRtcInterface &exchanger) mutable {
                 // 设置跨域
                 headerOut["Access-Control-Allow-Origin"] = "*";
