@@ -477,6 +477,8 @@ add_subdirectory(3rdpart)
 
 add_subdirectory(src)
 
+add_subdirectory(ext-codec)
+
 if(ENABLE_SRT)
   add_subdirectory(srt)
 endif()

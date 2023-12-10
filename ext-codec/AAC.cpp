@@ -9,6 +9,10 @@
  */
 
 #include "AAC.h"
+#include "AACRtp.h"
+#include "AACRtmp.h"
+#include "Common/Parser.h"
+#include "Extension/Factory.h"
 #ifdef ENABLE_MP4
 #include "mpeg4-aac.h"
 #endif
@@ -357,4 +361,73 @@ Sdp::Ptr AACTrack::getSdp(uint8_t payload_type) const {
     return std::make_shared<AACSdp>(getExtraData()->toString(), payload_type, getAudioSampleRate(), getAudioChannel(), getBitRate() / 1024);
 }
 
-}//namespace mediakit
+namespace {
+
+CodecId getCodec() {
+    return CodecAAC;
+}
+
+Track::Ptr getTrackByCodecId(int sample_rate, int channels, int sample_bit) {
+    return std::make_shared<AACTrack>();
+}
+
+Track::Ptr getTrackBySdp(const SdpTrack::Ptr &track) {
+    string aac_cfg_str = findSubString(track->_fmtp.data(), "config=", ";");
+    if (aac_cfg_str.empty()) {
+        aac_cfg_str = findSubString(track->_fmtp.data(), "config=", nullptr);
+    }
+    if (aac_cfg_str.empty()) {
+        // 如果sdp中获取不到aac config信息，那么在rtp也无法获取，那么忽略该Track
+        return nullptr;
+    }
+    string aac_cfg;
+    for (size_t i = 0; i < aac_cfg_str.size() / 2; ++i) {
+        unsigned int cfg;
+        sscanf(aac_cfg_str.substr(i * 2, 2).data(), "%02X", &cfg);
+        cfg &= 0x00FF;
+        aac_cfg.push_back((char)cfg);
+    }
+    return std::make_shared<AACTrack>(aac_cfg);
+}
+
+RtpCodec::Ptr getRtpEncoderByCodecId(uint8_t pt) {
+    return std::make_shared<AACRtpEncoder>();
+}
+
+RtpCodec::Ptr getRtpDecoderByCodecId() {
+    return std::make_shared<AACRtpDecoder>();
+}
+
+RtmpCodec::Ptr getRtmpEncoderByTrack(const Track::Ptr &track) {
+    return std::make_shared<AACRtmpEncoder>(track);
+}
+
+RtmpCodec::Ptr getRtmpDecoderByTrack(const Track::Ptr &track) {
+    return std::make_shared<AACRtmpDecoder>(track);
+}
+
+size_t aacPrefixSize(const char *data, size_t bytes) {
+    uint8_t *ptr = (uint8_t *)data;
+    size_t prefix = 0;
+    if (!(bytes > ADTS_HEADER_LEN && ptr[0] == 0xFF && (ptr[1] & 0xF0) == 0xF0)) {
+        return 0;
+    }
+    return ADTS_HEADER_LEN;
+}
+
+Frame::Ptr getFrameFromPtr(const char *data, size_t bytes, uint64_t dts, uint64_t pts) {
+    return std::make_shared<FrameFromPtr>(CodecAAC, (char *)data, bytes, dts, pts, aacPrefixSize(data, bytes));
+}
+
+} // namespace
+
+CodecPlugin aac_plugin = { getCodec,
+                           getTrackByCodecId,
+                           getTrackBySdp,
+                           getRtpEncoderByCodecId,
+                           getRtpDecoderByCodecId,
+                           getRtmpEncoderByTrack,
+                           getRtmpDecoderByTrack,
+                           getFrameFromPtr };
+
+} // namespace mediakit

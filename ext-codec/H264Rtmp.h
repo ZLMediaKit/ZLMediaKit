@@ -8,44 +8,41 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef ZLMEDIAKIT_H265RTMPCODEC_H
-#define ZLMEDIAKIT_H265RTMPCODEC_H
+#ifndef ZLMEDIAKIT_H264RTMPCODEC_H
+#define ZLMEDIAKIT_H264RTMPCODEC_H
 
+#include "H264.h"
 #include "Rtmp/RtmpCodec.h"
 #include "Extension/Track.h"
-#include "Extension/H265.h"
 
 namespace mediakit {
 /**
- * h265 Rtmp解码类
- * 将 h265 over rtmp 解复用出 h265-Frame
+ * h264 Rtmp解码类
+ * 将 h264 over rtmp 解复用出 h264-Frame
  */
-class H265RtmpDecoder : public RtmpCodec {
+class H264RtmpDecoder : public RtmpCodec {
 public:
-    using Ptr = std::shared_ptr<H265RtmpDecoder>;
+    using Ptr = std::shared_ptr<H264RtmpDecoder>;
 
-    H265RtmpDecoder(const Track::Ptr &track) : RtmpCodec(track) {}
+    H264RtmpDecoder(const Track::Ptr &track) : RtmpCodec(track) {}
 
     /**
-     * 输入265 Rtmp包
+     * 输入264 Rtmp包
      * @param rtmp Rtmp包
      */
     void inputRtmp(const RtmpPacket::Ptr &rtmp) override;
 
-protected:
-    void outputFrame(const char *data, size_t size, uint32_t dts, uint32_t pts);
+private:
+    void outputFrame(const char *data, size_t len, uint32_t dts, uint32_t pts);
     void splitFrame(const uint8_t *data, size_t size, uint32_t dts, uint32_t pts);
-
-protected:
-    RtmpPacketInfo _info;
 };
 
 /**
- * 265 Rtmp打包类
+ * 264 Rtmp打包类
  */
-class H265RtmpEncoder : public RtmpCodec {
+class H264RtmpEncoder : public RtmpCodec {
 public:
-    using Ptr = std::shared_ptr<H265RtmpEncoder>;
+    using Ptr = std::shared_ptr<H264RtmpEncoder>;
 
     /**
      * 构造函数，track可以为空，此时则在inputFrame时输入sps pps
@@ -53,10 +50,10 @@ public:
      * 那么inputFrame时可以不输入sps pps
      * @param track
      */
-    H265RtmpEncoder(const Track::Ptr &track) : RtmpCodec(track) {}
+    H264RtmpEncoder(const Track::Ptr &track) : RtmpCodec(track) {}
 
     /**
-     * 输入265帧，可以不带sps pps
+     * 输入264帧，可以不带sps pps
      * @param frame 帧数据
      */
     bool inputFrame(const Frame::Ptr &frame) override;
@@ -76,6 +73,6 @@ private:
     FrameMerger _merger { FrameMerger::mp4_nal_size };
 };
 
-} // namespace mediakit
+}//namespace mediakit
 
-#endif // ZLMEDIAKIT_H265RTMPCODEC_H
+#endif //ZLMEDIAKIT_H264RTMPCODEC_H

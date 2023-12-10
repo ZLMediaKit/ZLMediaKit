@@ -8,21 +8,21 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef ZLMEDIAKIT_G711_H
-#define ZLMEDIAKIT_G711_H
+#ifndef ZLMEDIAKIT_L16_H
+#define ZLMEDIAKIT_L16_H
 
-#include "Frame.h"
-#include "Track.h"
+#include "Extension/Frame.h"
+#include "Extension/Track.h"
 
-namespace mediakit{
+namespace mediakit {
 
 /**
- * G711音频通道
+ * L16音频通道
  */
-class G711Track : public AudioTrackImp{
+class L16Track : public AudioTrackImp{
 public:
-    using Ptr = std::shared_ptr<G711Track>;
-    G711Track(CodecId codecId, int sample_rate, int channels, int sample_bit) : AudioTrackImp(codecId, 8000, 1, 16) {}
+    using Ptr = std::shared_ptr<L16Track>;
+    L16Track(int sample_rate, int channels) : AudioTrackImp(CodecL16,sample_rate,channels,16){}
 
 private:
     Sdp::Ptr getSdp(uint8_t payload_type) const override;
@@ -30,4 +30,4 @@ private:
 };
 
 }//namespace mediakit
-#endif //ZLMEDIAKIT_G711_H
+#endif //ZLMEDIAKIT_L16_H

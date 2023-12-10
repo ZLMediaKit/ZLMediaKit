@@ -11,8 +11,8 @@
 #ifndef ZLMEDIAKIT_H264_H
 #define ZLMEDIAKIT_H264_H
 
-#include "Frame.h"
-#include "Track.h"
+#include "Extension/Frame.h"
+#include "Extension/Track.h"
 
 #define H264_TYPE(v) ((uint8_t)(v) & 0x1F)
 
