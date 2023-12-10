@@ -98,19 +98,21 @@ void HlsMaker::makeIndexFileTime(bool eof) {
     }
     index_str += ss.str();
     
+    bool truncate = false;
     if (_last_m3u8_time.empty()) {
         _last_m3u8_time = mm;
     } else if (_last_m3u8_time.compare(mm) != 0) {
-        eof = true;
+        truncate = true;
     }
 
-    if (eof) {
+    if (eof || truncate) {
         index_str += "#EXT-X-ENDLIST\n";
     }
 
     onWriteHlsTime(index_str, _last_m3u8_time);
+    DebugL << "write _last_m3u8_time" << _last_m3u8_time;
 
-    if (eof) {
+    if (truncate) {
         _seg_dur_list_time.clear();
         _last_m3u8_time = mm;
         DebugL << "clear _seg_dur_list_time";
