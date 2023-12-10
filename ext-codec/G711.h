@@ -8,30 +8,26 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef ZLMEDIAKIT_OPUS_H
-#define ZLMEDIAKIT_OPUS_H
+#ifndef ZLMEDIAKIT_G711_H
+#define ZLMEDIAKIT_G711_H
 
-#include "Frame.h"
-#include "Track.h"
+#include "Extension/Frame.h"
+#include "Extension/Track.h"
 
 namespace mediakit{
 
 /**
- * Opus帧音频通道
+ * G711音频通道
  */
-class OpusTrack : public AudioTrackImp{
+class G711Track : public AudioTrackImp{
 public:
-    using Ptr = std::shared_ptr<OpusTrack>;
-    OpusTrack() : AudioTrackImp(CodecOpus,48000,2,16){}
+    using Ptr = std::shared_ptr<G711Track>;
+    G711Track(CodecId codecId, int sample_rate, int channels, int sample_bit) : AudioTrackImp(codecId, 8000, 1, 16) {}
 
 private:
-    //克隆该Track
-    Track::Ptr clone() const override {
-        return std::make_shared<OpusTrack>(*this);
-    }
-    //生成sdp
-    Sdp::Ptr getSdp(uint8_t payload_type) const override ;
+    Sdp::Ptr getSdp(uint8_t payload_type) const override;
+    Track::Ptr clone() const override;
 };
 
 }//namespace mediakit
-#endif //ZLMEDIAKIT_OPUS_H
+#endif //ZLMEDIAKIT_G711_H
