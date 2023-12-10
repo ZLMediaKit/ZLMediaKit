@@ -96,36 +96,19 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
 
         default: {
             //其他codec不支持
-            WarnL << "暂不支持该rtsp编码类型:" << track->getName();
+            WarnL << "Unsupported rtsp sdp: " << track->getName();
             return nullptr;
         }
     }
 }
 
-Track::Ptr Factory::getTrackByAbstractTrack(const Track::Ptr& track) {
+Track::Ptr Factory::getTrackByAbstractTrack(const Track::Ptr &track) {
     auto codec = track->getCodecId();
-    switch (codec) {
-        case CodecG711A:
-        case CodecG711U: {
-            auto audio_track = dynamic_pointer_cast<AudioTrackImp>(track);
-            return std::make_shared<G711Track>(codec, audio_track->getAudioSampleRate(), audio_track->getAudioChannel(), 16);
-        }
-        case CodecL16: {
-            auto audio_track = dynamic_pointer_cast<AudioTrackImp>(track);
-            return std::make_shared<L16Track>(audio_track->getAudioSampleRate(), audio_track->getAudioChannel());
-        }
-        case CodecAAC: return std::make_shared<AACTrack>();
-        case CodecOpus: return std::make_shared<OpusTrack>();
-        case CodecH265: return std::make_shared<H265Track>();
-        case CodecH264: return std::make_shared<H264Track>();
-        case CodecJPEG: return std::make_shared<JPEGTrack>();
-
-        default: {
-            //其他codec不支持
-            WarnL << "暂不支持该该编码类型创建Track:" << track->getCodecName();
-            return nullptr;
-        }
+    if (track->getTrackType() == TrackVideo) {
+        return getTrackByCodecId(codec);
     }
+    auto audio_track = dynamic_pointer_cast<AudioTrack>(track);
+    return getTrackByCodecId(codec, audio_track->getAudioSampleRate(), audio_track->getAudioChannel(), audio_track->getAudioSampleBit());
 }
 
 RtpCodec::Ptr Factory::getRtpEncoderByCodecId(CodecId codec_id, uint8_t pt) {
@@ -143,21 +126,21 @@ RtpCodec::Ptr Factory::getRtpEncoderByCodecId(CodecId codec_id, uint8_t pt) {
             return std::make_shared<CommonRtpEncoder>();
         }
         case CodecJPEG: return std::make_shared<JPEGRtpEncoder>();
-        default: WarnL << "暂不支持该CodecId:" << codec_id; return nullptr;
+        default: WarnL << "Unsupported codec: " << codec_id; return nullptr;
     }
 }
 
-RtpCodec::Ptr Factory::getRtpDecoderByTrack(const Track::Ptr &track) {
-    switch (track->getCodecId()){
+RtpCodec::Ptr Factory::getRtpDecoderByCodecId(CodecId codec) {
+    switch (codec){
         case CodecH264 : return std::make_shared<H264RtpDecoder>();
         case CodecH265 : return std::make_shared<H265RtpDecoder>();
         case CodecAAC : return std::make_shared<AACRtpDecoder>();
         case CodecL16 :
         case CodecOpus :
         case CodecG711A :
-        case CodecG711U : return std::make_shared<CommonRtpDecoder>(track->getCodecId());
+        case CodecG711U : return std::make_shared<CommonRtpDecoder>(codec);
         case CodecJPEG: return std::make_shared<JPEGRtpDecoder>();
-        default : WarnL << "暂不支持该CodecId:" << track->getCodecName(); return nullptr;
+        default : WarnL << "Unsupported codec: " << getCodecName(codec); return nullptr;
     }
 }
 
@@ -172,7 +155,7 @@ static CodecId getVideoCodecIdByAmf(const AMFValue &val){
         if (str == "hev1" || str == "hvc1") {
             return CodecH265;
         }
-        WarnL << "暂不支持该视频Amf:" << str;
+        WarnL << "Unsupported codec: " << str;
         return CodecInvalid;
     }
 
@@ -184,7 +167,7 @@ static CodecId getVideoCodecIdByAmf(const AMFValue &val){
             case RtmpVideoCodec::h265: return CodecH265;
             case RtmpVideoCodec::fourcc_av1: return CodecAV1;
             case RtmpVideoCodec::fourcc_vp9: return CodecVP9;
-            default: WarnL << "暂不支持该视频Amf:" << (int)type_id; return CodecInvalid;
+            default: WarnL << "Unsupported codec: " << (int)type_id; return CodecInvalid;
         }
     }
     return CodecInvalid;
@@ -196,10 +179,11 @@ Track::Ptr Factory::getTrackByCodecId(CodecId codecId, int sample_rate, int chan
         case CodecH265 : return std::make_shared<H265Track>();
         case CodecAAC : return std::make_shared<AACTrack>();
         case CodecOpus: return std::make_shared<OpusTrack>();
+        case CodecL16:  return std::make_shared<L16Track>(sample_rate, channels);
         case CodecG711A :
         case CodecG711U : return (sample_rate && channels && sample_bit) ? std::make_shared<G711Track>(codecId, sample_rate, channels, sample_bit) : nullptr;
         case CodecJPEG : return std::make_shared<JPEGTrack>();
-        default : WarnL << "暂不支持该CodecId:" << codecId; return nullptr;
+        default : WarnL << "Unsupported codec: " << codecId; return nullptr;
     }
 }
 
@@ -217,7 +201,7 @@ static CodecId getAudioCodecIdByAmf(const AMFValue &val) {
         if (str == "mp4a") {
             return CodecAAC;
         }
-        WarnL << "暂不支持该音频Amf:" << str;
+        WarnL << "Unsupported codec: " << str;
         return CodecInvalid;
     }
 
@@ -228,7 +212,7 @@ static CodecId getAudioCodecIdByAmf(const AMFValue &val) {
             case RtmpAudioCodec::g711a : return CodecG711A;
             case RtmpAudioCodec::g711u : return CodecG711U;
             case RtmpAudioCodec::opus : return CodecOpus;
-            default : WarnL << "暂不支持该音频Amf:" << (int)type_id; return CodecInvalid;
+            default : WarnL << "Unsupported codec: " << (int)type_id; return CodecInvalid;
         }
     }
 
@@ -251,7 +235,7 @@ RtmpCodec::Ptr Factory::getRtmpDecoderByTrack(const Track::Ptr &track) {
         case CodecOpus :
         case CodecG711A :
         case CodecG711U : return std::make_shared<CommonRtmpDecoder>(track);
-        default : WarnL << "暂不支持该CodecId:" << track->getCodecName(); return nullptr;
+        default : WarnL << "Unsupported codec: " << track->getCodecName(); return nullptr;
     }
 }
 
@@ -266,16 +250,16 @@ RtmpCodec::Ptr Factory::getRtmpEncoderByTrack(const Track::Ptr &track) {
             auto audio_track = dynamic_pointer_cast<AudioTrack>(track);
             if (audio_track->getAudioSampleRate() != 8000 || audio_track->getAudioChannel() != 1 || audio_track->getAudioSampleBit() != 16) {
                 //rtmp对g711只支持8000/1/16规格，但是ZLMediaKit可以解析其他规格的G711
-                WarnL << "RTMP只支持8000/1/16规格的G711,目前规格是:"
+                WarnL << "RTMP only support G711 with 8000/1/16, now is"
                       << audio_track->getAudioSampleRate() << "/"
                       << audio_track->getAudioChannel() << "/"
                       << audio_track->getAudioSampleBit()
-                      << ",该音频已被忽略";
+                      << ", ignored it";
                 return nullptr;
             }
             return std::make_shared<CommonRtmpEncoder>(track);
         }
-        default : WarnL << "暂不支持该CodecId:" << track->getCodecName(); return nullptr;
+        default : WarnL << "Unsupported codec: " << track->getCodecName(); return nullptr;
     }
 }
 

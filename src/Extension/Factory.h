@@ -53,7 +53,7 @@ public:
     /**
      * 根据Track生成Rtp解包器
      */
-    static RtpCodec::Ptr getRtpDecoderByTrack(const Track::Ptr &track);
+    static RtpCodec::Ptr getRtpDecoderByCodecId(CodecId codec);
 
 
     ////////////////////////////////rtmp相关//////////////////////////////////
