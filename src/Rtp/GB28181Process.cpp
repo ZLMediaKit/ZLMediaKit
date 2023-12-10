@@ -89,7 +89,7 @@ bool GB28181Process::inputRtp(bool, const char *data, size_t data_len) {
                 CHECK(track);
                 track->setIndex(pt);
                 _interface->addTrack(track);
-                _rtp_decoder[pt] = Factory::getRtpDecoderByTrack(track);
+                _rtp_decoder[pt] = Factory::getRtpDecoderByCodecId(track->getCodecId());
                 break;
             }
             case Rtsp::PT_JPEG: {
@@ -99,7 +99,7 @@ bool GB28181Process::inputRtp(bool, const char *data, size_t data_len) {
                 CHECK(track);
                 track->setIndex(pt);
                 _interface->addTrack(track);
-                _rtp_decoder[pt] = Factory::getRtpDecoderByTrack(track);
+                _rtp_decoder[pt] = Factory::getRtpDecoderByCodecId(track->getCodecId());
                 break;
             }
             default: {
@@ -110,7 +110,7 @@ bool GB28181Process::inputRtp(bool, const char *data, size_t data_len) {
                     CHECK(track);
                     track->setIndex(pt);
                     _interface->addTrack(track);
-                    _rtp_decoder[pt] = Factory::getRtpDecoderByTrack(track);
+                    _rtp_decoder[pt] = Factory::getRtpDecoderByCodecId(track->getCodecId());
                 } else if (pt == h265_pt) {
                     // H265负载
                     ref = std::make_shared<RtpReceiverImp>(90000, [this](RtpPacket::Ptr rtp) { onRtpSorted(std::move(rtp)); });
@@ -118,7 +118,7 @@ bool GB28181Process::inputRtp(bool, const char *data, size_t data_len) {
                     CHECK(track);
                     track->setIndex(pt);
                     _interface->addTrack(track);
-                    _rtp_decoder[pt] = Factory::getRtpDecoderByTrack(track);
+                    _rtp_decoder[pt] = Factory::getRtpDecoderByCodecId(track->getCodecId());
                 } else if (pt == h264_pt) {
                     // H264负载
                     ref = std::make_shared<RtpReceiverImp>(90000, [this](RtpPacket::Ptr rtp) { onRtpSorted(std::move(rtp)); });
@@ -126,7 +126,7 @@ bool GB28181Process::inputRtp(bool, const char *data, size_t data_len) {
                     CHECK(track);
                     track->setIndex(pt);
                     _interface->addTrack(track);
-                    _rtp_decoder[pt] = Factory::getRtpDecoderByTrack(track);
+                    _rtp_decoder[pt] = Factory::getRtpDecoderByCodecId(track->getCodecId());
                 } else {
                     if (pt != Rtsp::PT_MP2T && pt != ps_pt) {
                         WarnL << "Unknown rtp payload type(" << (int)pt << "), decode it as mpeg-ps or mpeg-ts";

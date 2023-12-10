@@ -9,10 +9,14 @@
  */
 
 #include "H264.h"
+#include "H264Rtmp.h"
+#include "H264Rtp.h"
 #include "SPSParser.h"
 #include "Util/logger.h"
 #include "Util/base64.h"
+#include "Common/Parser.h"
 #include "Common/config.h"
+#include "Extension/Factory.h"
 
 #ifdef ENABLE_MP4
 #include "mpeg4-avc.h"
@@ -345,5 +349,61 @@ Sdp::Ptr H264Track::getSdp(uint8_t payload_type) const {
     }
     return std::make_shared<H264Sdp>(_sps, _pps, payload_type, getBitRate() / 1024);
 }
+
+namespace {
+
+CodecId getCodec() {
+    return CodecH264;
+}
+
+Track::Ptr getTrackByCodecId(int sample_rate, int channels, int sample_bit) {
+    return std::make_shared<H264Track>();
+}
+
+Track::Ptr getTrackBySdp(const SdpTrack::Ptr &track) {
+    //a=fmtp:96 packetization-mode=1;profile-level-id=42C01F;sprop-parameter-sets=Z0LAH9oBQBboQAAAAwBAAAAPI8YMqA==,aM48gA==
+    auto map = Parser::parseArgs(track->_fmtp, ";", "=");
+    auto sps_pps = map["sprop-parameter-sets"];
+    string base64_SPS = findSubString(sps_pps.data(), NULL, ",");
+    string base64_PPS = findSubString(sps_pps.data(), ",", NULL);
+    auto sps = decodeBase64(base64_SPS);
+    auto pps = decodeBase64(base64_PPS);
+    if (sps.empty() || pps.empty()) {
+        //如果sdp里面没有sps/pps,那么可能在后续的rtp里面恢复出sps/pps
+        return std::make_shared<H264Track>();
+    }
+    return std::make_shared<H264Track>(sps, pps, 0, 0);
+}
+
+RtpCodec::Ptr getRtpEncoderByCodecId(uint8_t pt) {
+    return std::make_shared<H264RtpEncoder>();
+}
+
+RtpCodec::Ptr getRtpDecoderByCodecId() {
+    return std::make_shared<H264RtpDecoder>();
+}
+
+RtmpCodec::Ptr getRtmpEncoderByTrack(const Track::Ptr &track) {
+    return std::make_shared<H264RtmpEncoder>(track);
+}
+
+RtmpCodec::Ptr getRtmpDecoderByTrack(const Track::Ptr &track) {
+    return std::make_shared<H264RtmpDecoder>(track);
+}
+
+Frame::Ptr getFrameFromPtr(const char *data, size_t bytes, uint64_t dts, uint64_t pts) {
+    return std::make_shared<H264FrameNoCacheAble>((char *)data, bytes, dts, pts, prefixSize(data, bytes));
+}
+
+} // namespace
+
+CodecPlugin h264_plugin = { getCodec,
+                            getTrackByCodecId,
+                            getTrackBySdp,
+                            getRtpEncoderByCodecId,
+                            getRtpDecoderByCodecId,
+                            getRtmpEncoderByTrack,
+                            getRtmpDecoderByTrack,
+                            getFrameFromPtr };
 
 } // namespace mediakit

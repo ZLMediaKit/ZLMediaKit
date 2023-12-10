@@ -9,11 +9,14 @@
  */
 
 #include "Opus.h"
+#include "Extension/Factory.h"
+#include "Extension/CommonRtp.h"
+#include "Extension/CommonRtmp.h"
 
 using namespace std;
 using namespace toolkit;
 
-namespace mediakit{
+namespace mediakit {
 
 /**
  * Opus类型SDP
@@ -50,5 +53,50 @@ Sdp::Ptr OpusTrack::getSdp(uint8_t payload_type) const {
     }
     return std::make_shared<OpusSdp>(payload_type, getAudioSampleRate(), getAudioChannel(), getBitRate() / 1024);
 }
+
+namespace {
+
+CodecId getCodec() {
+    return CodecOpus;
+}
+
+Track::Ptr getTrackByCodecId(int sample_rate, int channels, int sample_bit) {
+    return std::make_shared<OpusTrack>();
+}
+
+Track::Ptr getTrackBySdp(const SdpTrack::Ptr &track) {
+    return std::make_shared<OpusTrack>();
+}
+
+RtpCodec::Ptr getRtpEncoderByCodecId(uint8_t pt) {
+    return std::make_shared<CommonRtpEncoder>();
+}
+
+RtpCodec::Ptr getRtpDecoderByCodecId() {
+    return std::make_shared<CommonRtpDecoder>(CodecOpus);
+}
+
+RtmpCodec::Ptr getRtmpEncoderByTrack(const Track::Ptr &track) {
+    return std::make_shared<CommonRtmpEncoder>(track);
+}
+
+RtmpCodec::Ptr getRtmpDecoderByTrack(const Track::Ptr &track) {
+    return std::make_shared<CommonRtmpDecoder>(track);
+}
+
+Frame::Ptr getFrameFromPtr(const char *data, size_t bytes, uint64_t dts, uint64_t pts) {
+    return std::make_shared<FrameFromPtr>(CodecOpus, (char *)data, bytes, dts, pts);
+}
+
+} // namespace
+
+CodecPlugin opus_plugin = { getCodec,
+                            getTrackByCodecId,
+                            getTrackBySdp,
+                            getRtpEncoderByCodecId,
+                            getRtpDecoderByCodecId,
+                            getRtmpEncoderByTrack,
+                            getRtmpDecoderByTrack,
+                            getFrameFromPtr };
 
 }//namespace mediakit

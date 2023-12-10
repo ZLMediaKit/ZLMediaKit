@@ -9,8 +9,12 @@
  */
 
 #include "H265.h"
+#include "H265Rtp.h"
+#include "H265Rtmp.h"
 #include "SPSParser.h"
 #include "Util/base64.h"
+#include "Common/Parser.h"
+#include "Extension/Factory.h"
 
 #ifdef ENABLE_MP4
 #include "mpeg4-hevc.h"
@@ -262,6 +266,60 @@ Sdp::Ptr H265Track::getSdp(uint8_t payload_type) const {
     }
     return std::make_shared<H265Sdp>(_vps, _sps, _pps, payload_type, getBitRate() / 1024);
 }
+
+namespace {
+
+CodecId getCodec() {
+    return CodecH265;
+}
+
+Track::Ptr getTrackByCodecId(int sample_rate, int channels, int sample_bit) {
+    return std::make_shared<H265Track>();
+}
+
+Track::Ptr getTrackBySdp(const SdpTrack::Ptr &track) {
+    // a=fmtp:96 sprop-sps=QgEBAWAAAAMAsAAAAwAAAwBdoAKAgC0WNrkky/AIAAADAAgAAAMBlQg=; sprop-pps=RAHA8vA8kAA=
+    auto map = Parser::parseArgs(track->_fmtp, ";", "=");
+    auto vps = decodeBase64(map["sprop-vps"]);
+    auto sps = decodeBase64(map["sprop-sps"]);
+    auto pps = decodeBase64(map["sprop-pps"]);
+    if (sps.empty() || pps.empty()) {
+        // 如果sdp里面没有sps/pps,那么可能在后续的rtp里面恢复出sps/pps
+        return std::make_shared<H265Track>();
+    }
+    return std::make_shared<H265Track>(vps, sps, pps, 0, 0, 0);
+}
+
+RtpCodec::Ptr getRtpEncoderByCodecId(uint8_t pt) {
+    return std::make_shared<H265RtpEncoder>();
+}
+
+RtpCodec::Ptr getRtpDecoderByCodecId() {
+    return std::make_shared<H265RtpDecoder>();
+}
+
+RtmpCodec::Ptr getRtmpEncoderByTrack(const Track::Ptr &track) {
+    return std::make_shared<H265RtmpEncoder>(track);
+}
+
+RtmpCodec::Ptr getRtmpDecoderByTrack(const Track::Ptr &track) {
+    return std::make_shared<H265RtmpDecoder>(track);
+}
+
+Frame::Ptr getFrameFromPtr(const char *data, size_t bytes, uint64_t dts, uint64_t pts) {
+    return std::make_shared<H265FrameNoCacheAble>((char *)data, bytes, dts, pts, prefixSize(data, bytes));
+}
+
+} // namespace
+
+CodecPlugin h265_plugin = { getCodec,
+                            getTrackByCodecId,
+                            getTrackBySdp,
+                            getRtpEncoderByCodecId,
+                            getRtpDecoderByCodecId,
+                            getRtmpEncoderByTrack,
+                            getRtmpDecoderByTrack,
+                            getFrameFromPtr };
 
 }//namespace mediakit
 

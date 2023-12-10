@@ -1,8 +1,8 @@
 ﻿#ifndef ZLMEDIAKIT_JPEG_H
 #define ZLMEDIAKIT_JPEG_H
 
-#include "Frame.h"
-#include "Track.h"
+#include "Extension/Frame.h"
+#include "Extension/Track.h"
 
 namespace mediakit {
 

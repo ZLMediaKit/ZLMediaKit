@@ -92,7 +92,7 @@ void RtspDemuxer::makeAudioTrack(const SdpTrack::Ptr &audio) {
     }
     setBitRate(audio, _audio_track);
     //生成RtpCodec对象以便解码rtp
-    _audio_rtp_decoder = Factory::getRtpDecoderByTrack(_audio_track);
+    _audio_rtp_decoder = Factory::getRtpDecoderByCodecId(_audio_track->getCodecId());
     if (!_audio_rtp_decoder) {
         //找不到相应的rtp解码器，该track无效
         _audio_track.reset();
@@ -114,7 +114,7 @@ void RtspDemuxer::makeVideoTrack(const SdpTrack::Ptr &video) {
     }
     setBitRate(video, _video_track);
     //生成RtpCodec对象以便解码rtp
-    _video_rtp_decoder = Factory::getRtpDecoderByTrack(_video_track);
+    _video_rtp_decoder = Factory::getRtpDecoderByCodecId(_video_track->getCodecId());
     if (!_video_rtp_decoder) {
         //找不到相应的rtp解码器，该track无效
         _video_track.reset();

@@ -17,11 +17,35 @@
 #include "Extension/Frame.h"
 #include "Rtsp/RtpCodec.h"
 #include "Rtmp/RtmpCodec.h"
+#include "Util/onceToken.h"
 
-namespace mediakit{
+#define REGISTER_STATIC_VAR_INNER(var_name, line) var_name##_##line##__
+#define REGISTER_STATIC_VAR(var_name, line) REGISTER_STATIC_VAR_INNER(var_name, line)
+
+#define REGISTER_CODEC(plugin) \
+static toolkit::onceToken REGISTER_STATIC_VAR(s_token, __LINE__) ([]() { \
+    Factory::registerPlugin(plugin); \
+});
+
+namespace mediakit {
+
+struct CodecPlugin {
+    CodecId (*getCodec)();
+    Track::Ptr (*getTrackByCodecId)(int sample_rate, int channels, int sample_bit);
+    Track::Ptr (*getTrackBySdp)(const SdpTrack::Ptr &track);
+    RtpCodec::Ptr (*getRtpEncoderByCodecId)(uint8_t pt);
+    RtpCodec::Ptr (*getRtpDecoderByCodecId)();
+    RtmpCodec::Ptr (*getRtmpEncoderByTrack)(const Track::Ptr &track);
+    RtmpCodec::Ptr (*getRtmpDecoderByTrack)(const Track::Ptr &track);
+    Frame::Ptr (*getFrameFromPtr)(const char *data, size_t bytes, uint64_t dts, uint64_t pts);
+};
 
 class Factory {
 public:
+    /**
+     * 注册插件，非线程安全的
+     */
+    static void registerPlugin(const CodecPlugin &plugin);
 
     /**
      * 根据codec_id 获取track
@@ -53,7 +77,7 @@ public:
     /**
      * 根据Track生成Rtp解包器
      */
-    static RtpCodec::Ptr getRtpDecoderByTrack(const Track::Ptr &track);
+    static RtpCodec::Ptr getRtpDecoderByCodecId(CodecId codec);
 
 
     ////////////////////////////////rtmp相关//////////////////////////////////
