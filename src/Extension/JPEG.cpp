@@ -1,6 +1,8 @@
 ﻿#include "JPEG.h"
+#include "JPEGRtp.h"
 #include "Rtsp/Rtsp.h"
 #include "Util/util.h"
+#include "Factory.h"
 
 using namespace toolkit;
 
@@ -47,4 +49,53 @@ private:
 Sdp::Ptr JPEGTrack::getSdp(uint8_t) const {
     return std::make_shared<JPEGSdp>(getBitRate() / 1024);
 }
+
+
+namespace {
+
+CodecId getCodec() {
+    return CodecJPEG;
+}
+
+Track::Ptr getTrackByCodecId(int sample_rate, int channels, int sample_bit) {
+    return std::make_shared<JPEGTrack>();
+}
+
+Track::Ptr getTrackBySdp(const SdpTrack::Ptr &track) {
+    return std::make_shared<JPEGTrack>();
+}
+
+RtpCodec::Ptr getRtpEncoderByCodecId(uint8_t pt) {
+    return std::make_shared<JPEGRtpEncoder>();
+}
+
+RtpCodec::Ptr getRtpDecoderByCodecId() {
+    return std::make_shared<JPEGRtpDecoder>();
+}
+
+RtmpCodec::Ptr getRtmpEncoderByTrack(const Track::Ptr &track) {
+    WarnL << "Unsupported jpeg rtmp encoder";
+    return nullptr;
+}
+
+RtmpCodec::Ptr getRtmpDecoderByTrack(const Track::Ptr &track) {
+    WarnL << "Unsupported jpeg rtmp decoder";
+    return nullptr;
+}
+
+Frame::Ptr getFrameFromPtr(const char *data, size_t bytes, uint64_t dts, uint64_t pts) {
+    return std::make_shared<JPEGFrame<FrameFromPtr>>(0, CodecJPEG, (char *)data, bytes, dts, pts);
+}
+
+} // namespace
+
+CodecPlugin jpeg_plugin = { .getCodec = getCodec,
+                            .getTrackByCodecId = getTrackByCodecId,
+                            .getTrackBySdp = getTrackBySdp,
+                            .getRtpEncoderByCodecId = getRtpEncoderByCodecId,
+                            .getRtpDecoderByCodecId = getRtpDecoderByCodecId,
+                            .getRtmpEncoderByTrack = getRtmpEncoderByTrack,
+                            .getRtmpDecoderByTrack = getRtmpDecoderByTrack,
+                            .getFrameFromPtr = getFrameFromPtr };
+
 } // namespace mediakit
