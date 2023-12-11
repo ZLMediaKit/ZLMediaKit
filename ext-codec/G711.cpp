@@ -181,7 +181,7 @@ CodecPlugin g711u_plugin = { getCodecU,
                              getRtpDecoderByCodecIdU,
                              getRtmpEncoderByTrack,
                              getRtmpDecoderByTrack,
-                             getFrameFromPtrA };
+                             getFrameFromPtrU };
 
 }//namespace mediakit
 
