@@ -79,7 +79,7 @@ CodecId getCodecA() {
 }
 
 CodecId getCodecU() {
-    return CodecG711A;
+    return CodecG711U;
 }
 
 Track::Ptr getTrackByCodecId_l(CodecId codec, int sample_rate, int channels, int sample_bit) {
