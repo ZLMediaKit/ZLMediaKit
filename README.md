@@ -36,6 +36,7 @@
 - 极致体验，[独家特性](https://github.com/ZLMediaKit/ZLMediaKit/wiki/ZLMediakit%E7%8B%AC%E5%AE%B6%E7%89%B9%E6%80%A7%E4%BB%8B%E7%BB%8D)
 - [谁在使用zlmediakit?](https://github.com/ZLMediaKit/ZLMediaKit/issues/511)
 - 全面支持ipv6网络
+- 支持多轨道模式(一个流中多个视频/音频)
 
 ## 项目定位
 
@@ -76,16 +77,19 @@
   - 通过cookie追踪技术，可以模拟HLS播放为长连接，可以实现HLS按需拉流、播放统计等业务
   - 支持HLS播发器，支持拉流HLS转rtsp/rtmp/mp4
   - 支持H264/H265/AAC/G711/OPUS编码
+  - 支持多轨道模式
   
 - TS
   - 支持http[s]-ts直播
   - 支持ws[s]-ts直播
   - 支持H264/H265/AAC/G711/OPUS编码
+  - 支持多轨道模式
   
 - fMP4
   - 支持http[s]-fmp4直播
   - 支持ws[s]-fmp4直播
   - 支持H264/H265/AAC/G711/OPUS/MJPEG编码
+  - 支持多轨道模式
 
 - HTTP[S]与WebSocket
   - 服务器支持`目录索引生成`,`文件下载`,`表单提交请求`
@@ -104,11 +108,13 @@
   - 支持es/ps rtp转推
   - 支持GB28181主动拉流模式
   - 支持双向语音对讲
+  - 支持多轨道模式
 
 - MP4点播与录制
   - 支持录制为FLV/HLS/MP4
   - RTSP/RTMP/HTTP-FLV/WS-FLV支持MP4文件点播，支持seek
   - 支持H264/H265/AAC/G711/OPUS编码
+  - 支持多轨道模式
   
 - WebRTC
   - 支持WebRTC推流，支持转其他协议
@@ -188,6 +194,8 @@ bash build_docker_images.sh
    - [AKStreamNVR](https://github.com/langmansh/AKStreamNVR) 前后端分离web项目,支持webrtc播放
    
  - SDK
+   - [spring-boot-starter](https://github.com/lunasaw/zlm-spring-boot-starter) 本项目hook和rest接口starter
+   - [java sdk](https://github.com/lidaofu-hub/j_zlm_sdk) 本项目c sdk完整java包装库
    - [c# sdk](https://github.com/malegend/ZLMediaKit.Autogen) 本项目c sdk完整c#包装库
    - [metaRTC](https://github.com/metartc/metaRTC) 全国产纯c webrtc sdk
    
@@ -334,6 +342,16 @@ bash build_docker_images.sh
 [ArmstrongCN](https://github.com/ArmstrongCN)
 [leibnewton](https://github.com/leibnewton)
 [1002victor](https://github.com/1002victor)
+[Grin](https://github.com/xyyangkun)
+[xbpeng121](https://github.com/xbpeng121)
+[lvchenyun](https://github.com/lvchenyun)
+[Fummowo](https://github.com/Fummowo)
+[Jovial Young ](https://github.com/JHYoung1034)
+[yujitai](https://github.com/yujitai)
+[KisChang](https://github.com/kisChang)
+[zjx94](https://github.com/zjx94)
+[LeiZhi.Mai ](https://github.com/blueskiner)
+[JiaHao](https://github.com/nashiracn)
 
 同时感谢JetBrains对开源项目的支持，本项目使用CLion开发与调试：
 

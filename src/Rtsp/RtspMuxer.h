@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -21,8 +21,6 @@ namespace mediakit{
 class RingDelegateHelper : public toolkit::RingDelegate<RtpPacket::Ptr> {
 public:
     using onRtp = std::function<void(RtpPacket::Ptr in, bool is_key)> ;
-
-    ~RingDelegateHelper() override = default;
 
     RingDelegateHelper(onRtp on_rtp) {
         _on_rtp = std::move(on_rtp);
@@ -47,7 +45,6 @@ public:
      * 构造函数
      */
     RtspMuxer(const TitleSdp::Ptr &title = nullptr);
-    ~RtspMuxer() override = default;
 
     /**
      * 获取完整的SDP字符串
@@ -88,12 +85,20 @@ private:
 
 private:
     bool _live = true;
-    uint32_t _rtp_stamp[TrackMax]{0};
-    uint64_t _ntp_stamp[TrackMax]{0};
+    bool _track_existed[2] = { false, false };
+
+    uint8_t _index {0};
     uint64_t _ntp_stamp_start;
     std::string _sdp;
-    Stamp _stamp[TrackMax];
-    RtpCodec::Ptr _encoder[TrackMax];
+
+    struct TrackInfo {
+        Stamp stamp;
+        uint32_t rtp_stamp { 0 };
+        uint64_t ntp_stamp { 0 };
+        RtpCodec::Ptr encoder;
+    };
+
+    std::unordered_map<int, TrackInfo> _tracks;
     RtpRing::RingType::Ptr _rtpRing;
     RtpRing::RingType::Ptr _rtpInterceptor;
 };

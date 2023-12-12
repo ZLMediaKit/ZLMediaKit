@@ -47,7 +47,7 @@ set(MediaServer_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/media-server")
 # TODO: 补一个函数处理各种库
 
 # 添加 mov、flv 库用于 MP4 录制
-if (ENABLE_MP4 OR ENABLE_HLS_FMP4)
+if (ENABLE_MP4)
   # MOV
   set(MediaServer_MOV_ROOT ${MediaServer_ROOT}/libmov)
   aux_source_directory(${MediaServer_MOV_ROOT}/include MOV_SRC_LIST)
@@ -79,10 +79,6 @@ if (ENABLE_MP4 OR ENABLE_HLS_FMP4)
   if (ENABLE_MP4)
     message(STATUS "ENABLE_MP4 defined")
     update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_MP4)
-  endif ()
-  if (ENABLE_HLS_FMP4)
-    message(STATUS "ENABLE_HLS_FMP4 defined")
-    update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_HLS_FMP4)
   endif ()
 endif ()
 
@@ -149,6 +145,17 @@ if(HAVE_SENDMMSG_API)
 endif()
 if(HAVE_RECVMMSG_API)
   list(APPEND COMPILE_DEFINITIONS HAVE_RECVMMSG_API)
+endif()
+
+# check the socket buffer size set by the upper cmake project, if it is set, use the setting of the upper cmake project, otherwise set it to 256K
+# if the socket buffer size is set to 0, it means that the socket buffer size is not set, and the kernel default value is used(just for linux)
+if(DEFINED SOCKET_DEFAULT_BUF_SIZE)
+  if (SOCKET_DEFAULT_BUF_SIZE EQUAL 0)
+    message(STATUS "Socket default buffer size is not set, use the kernel default value")
+  else()
+    message(STATUS "Socket default buffer size is set to ${SOCKET_DEFAULT_BUF_SIZE}")
+  endif ()
+  add_definitions(-DSOCKET_DEFAULT_BUF_SIZE=${SOCKET_DEFAULT_BUF_SIZE})
 endif()
 
 set(ToolKit_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/ZLToolKit)

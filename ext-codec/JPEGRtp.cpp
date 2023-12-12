@@ -745,10 +745,10 @@ void JPEGRtpEncoder::rtpSendJpeg(const uint8_t *buf, int size, uint64_t pts, uin
             hdr_size += 4 + 64 * nb_qtables;
 
         /* payload max in one packet */
-        len = MIN(size, (int)getMaxSize() - hdr_size);
+        len = MIN(size, (int)getRtpInfo().getMaxSize() - hdr_size);
 
         /* marker bit is last packet in frame */
-        auto rtp_packet = makeRtp(getTrackType(), nullptr, len + hdr_size, size == len, pts);
+        auto rtp_packet = getRtpInfo().makeRtp(TrackVideo, nullptr, len + hdr_size, size == len, pts);
         p = rtp_packet->getPayload();
 
         /* set main header */
@@ -788,9 +788,7 @@ JPEGRtpDecoder::JPEGRtpDecoder() {
     memset(&_ctx.timestamp, 0, sizeof(_ctx) - offsetof(decltype(_ctx), timestamp));
 }
 
-CodecId JPEGRtpDecoder::getCodecId() const {
-    return CodecJPEG;
-}
+using JPEGFrameImp = JPEGFrame<FrameFromBuffer<FrameFromPtr> >;
 
 bool JPEGRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool) {
     auto payload = rtp->getPayload();
@@ -806,8 +804,7 @@ bool JPEGRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool) {
     uint8_t type;
     if (0 == jpeg_parse_packet(nullptr, &_ctx, &stamp, payload, size, seq, marker ? RTP_FLAG_MARKER : 0, &type)) {
         auto buffer = std::make_shared<toolkit::BufferString>(std::move(_ctx.frame));
-        // JFIF头固定20个字节长度
-        auto frame = std::make_shared<JPEGFrame>(std::move(buffer), stamp / 90, type, 20);
+        auto frame = std::make_shared<JPEGFrameImp>(type, std::move(buffer), stamp / 90, 0);
         _ctx.frame.clear();
         RtpCodec::inputFrame(std::move(frame));
     }
@@ -817,17 +814,13 @@ bool JPEGRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool) {
 
 ////////////////////////////////////////////////////////////////////////
 
-JPEGRtpEncoder::JPEGRtpEncoder(
-    uint32_t ssrc, uint32_t mtu, uint32_t sample_rate, uint8_t payload_type, uint8_t interleaved)
-    : RtpInfo(ssrc, mtu, sample_rate, payload_type, interleaved) {}
-
-
 bool JPEGRtpEncoder::inputFrame(const Frame::Ptr &frame) {
-    auto ptr = (uint8_t *)frame->data() + frame->prefixSize();
-    auto len = frame->size() - frame->prefixSize();
+    // JFIF头固定20个字节长度
+    auto ptr = (uint8_t *)frame->data() + frame->prefixSize() + JPEGFrameImp::kJFIFSize;
+    auto len = frame->size() - frame->prefixSize() - JPEGFrameImp::kJFIFSize;
     auto pts = frame->pts();
     auto type = 1;
-    auto jpeg = dynamic_pointer_cast<JPEGFrame>(frame);
+    auto jpeg = dynamic_pointer_cast<JPEGFrameType>(frame);
     if (jpeg) {
         type = jpeg->pixType();
     }

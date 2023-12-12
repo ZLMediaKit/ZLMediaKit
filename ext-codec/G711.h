@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -11,8 +11,8 @@
 #ifndef ZLMEDIAKIT_G711_H
 #define ZLMEDIAKIT_G711_H
 
-#include "Frame.h"
-#include "Track.h"
+#include "Extension/Frame.h"
+#include "Extension/Track.h"
 
 namespace mediakit{
 
@@ -25,8 +25,8 @@ public:
     G711Track(CodecId codecId, int sample_rate, int channels, int sample_bit) : AudioTrackImp(codecId, 8000, 1, 16) {}
 
 private:
-    Sdp::Ptr getSdp() override;
-    Track::Ptr clone() override;
+    Sdp::Ptr getSdp(uint8_t payload_type) const override;
+    Track::Ptr clone() const override;
 };
 
 }//namespace mediakit
