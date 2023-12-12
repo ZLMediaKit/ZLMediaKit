@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -37,20 +37,19 @@ protected:
     onStream _on_stream;
 };
 
-class DecoderImp{
+class DecoderImp {
 public:
     typedef enum { decoder_ts = 0, decoder_ps } Type;
 
     using Ptr = std::shared_ptr<DecoderImp>;
-    ~DecoderImp() = default;
 
     static Ptr createDecoder(Type type, MediaSinkInterface *sink);
     ssize_t input(const uint8_t *data, size_t bytes);
     void flush();
 
 protected:
-    void onTrack(const Track::Ptr &track);
-    void onFrame(const Frame::Ptr &frame);
+    void onTrack(int index, const Track::Ptr &track);
+    void onFrame(int index, const Frame::Ptr &frame);
 
 private:
     DecoderImp(const Decoder::Ptr &decoder, MediaSinkInterface *sink);
@@ -58,10 +57,15 @@ private:
     void onStream(int stream, int codecid, const void *extra, size_t bytes, int finish);
 
 private:
+    bool _have_video = false;
     Decoder::Ptr _decoder;
     MediaSinkInterface *_sink;
-    FrameMerger _merger{FrameMerger::none};
-    Track::Ptr _tracks[TrackMax];
+
+    class FrameMergerImp : public FrameMerger {
+    public:
+        FrameMergerImp() : FrameMerger(FrameMerger::none) {}
+    };
+    std::unordered_map<int, std::pair<Track::Ptr, FrameMergerImp> > _tracks;
 };
 
 }//namespace mediakit

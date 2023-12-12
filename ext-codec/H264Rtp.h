@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -11,12 +11,12 @@
 #ifndef ZLMEDIAKIT_H264RTPCODEC_H
 #define ZLMEDIAKIT_H264RTPCODEC_H
 
-#include "Rtsp/RtpCodec.h"
-#include "Extension/H264.h"
+#include "H264.h"
 // for DtsGenerator
 #include "Common/Stamp.h"
+#include "Rtsp/RtpCodec.h"
 
-namespace mediakit{
+namespace mediakit {
 
 /**
  * h264 rtp解码类
@@ -28,7 +28,6 @@ public:
     using Ptr = std::shared_ptr<H264RtpDecoder>;
 
     H264RtpDecoder();
-    ~H264RtpDecoder() override = default;
 
     /**
      * 输入264 rtp包
@@ -36,10 +35,6 @@ public:
      * @param key_pos 此参数忽略之
      */
     bool inputRtp(const RtpPacket::Ptr &rtp, bool key_pos = true) override;
-
-    CodecId getCodecId() const override{
-        return CodecH264;
-    }
 
 private:
     bool singleFrame(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssize_t size, uint64_t stamp);
@@ -62,26 +57,11 @@ private:
 /**
  * 264 rtp打包类
  */
-class H264RtpEncoder : public H264RtpDecoder ,public RtpInfo{
+class H264RtpEncoder : public RtpCodec {
 public:
     using Ptr = std::shared_ptr<H264RtpEncoder>;
 
     /**
-     * @param ssrc ssrc
-     * @param mtu mtu大小
-     * @param sample_rate 采样率，强制为90000
-     * @param pt pt类型
-     * @param interleaved rtsp interleaved
-     */
-    H264RtpEncoder(uint32_t ssrc,
-                   uint32_t mtu = 1400,
-                   uint32_t sample_rate = 90000,
-                   uint8_t pt = 96,
-                   uint8_t interleaved = TrackVideo * 2);
-
-    ~H264RtpEncoder() override = default;
-
-        /**
      * 输入264帧
      * @param frame 帧数据，必须
      */

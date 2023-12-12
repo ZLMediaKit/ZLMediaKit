@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -11,10 +11,10 @@
 #ifndef ZLMEDIAKIT_OPUS_H
 #define ZLMEDIAKIT_OPUS_H
 
-#include "Frame.h"
-#include "Track.h"
+#include "Extension/Frame.h"
+#include "Extension/Track.h"
 
-namespace mediakit{
+namespace mediakit {
 
 /**
  * Opus帧音频通道
@@ -26,11 +26,11 @@ public:
 
 private:
     //克隆该Track
-    Track::Ptr clone() override {
-        return std::make_shared<std::remove_reference<decltype(*this)>::type >(*this);
+    Track::Ptr clone() const override {
+        return std::make_shared<OpusTrack>(*this);
     }
     //生成sdp
-    Sdp::Ptr getSdp() override ;
+    Sdp::Ptr getSdp(uint8_t payload_type) const override ;
 };
 
 }//namespace mediakit

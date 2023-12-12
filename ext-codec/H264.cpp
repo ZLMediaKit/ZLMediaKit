@@ -1,18 +1,26 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #include "H264.h"
+#include "H264Rtmp.h"
+#include "H264Rtp.h"
 #include "SPSParser.h"
 #include "Util/logger.h"
 #include "Util/base64.h"
+#include "Common/Parser.h"
 #include "Common/config.h"
+#include "Extension/Factory.h"
+
+#ifdef ENABLE_MP4
+#include "mpeg4-avc.h"
+#endif
 
 using namespace std;
 using namespace toolkit;
@@ -109,24 +117,7 @@ size_t prefixSize(const char *ptr, size_t len) {
 H264Track::H264Track(const string &sps, const string &pps, int sps_prefix_len, int pps_prefix_len) {
     _sps = sps.substr(sps_prefix_len);
     _pps = pps.substr(pps_prefix_len);
-    onReady();
-}
-
-H264Track::H264Track(const Frame::Ptr &sps, const Frame::Ptr &pps) {
-    if (sps->getCodecId() != CodecH264 || pps->getCodecId() != CodecH264) {
-        throw std::invalid_argument("必须输入H264类型的帧");
-    }
-    _sps = string(sps->data() + sps->prefixSize(), sps->size() - sps->prefixSize());
-    _pps = string(pps->data() + pps->prefixSize(), pps->size() - pps->prefixSize());
-    onReady();
-}
-
-const string &H264Track::getSps() const {
-    return _sps;
-}
-
-const string &H264Track::getPps() const {
-    return _pps;
+    update();
 }
 
 CodecId H264Track::getCodecId() const {
@@ -145,7 +136,7 @@ float H264Track::getVideoFps() const {
     return _fps;
 }
 
-bool H264Track::ready() {
+bool H264Track::ready() const {
     return !_sps.empty() && !_pps.empty();
 }
 
@@ -168,19 +159,87 @@ bool H264Track::inputFrame(const Frame::Ptr &frame) {
     return ret;
 }
 
+toolkit::Buffer::Ptr H264Track::getExtraData() const {
+    CHECK(ready());
+
+#ifdef ENABLE_MP4
+    struct mpeg4_avc_t avc;
+    memset(&avc, 0, sizeof(avc));
+    string sps_pps = string("\x00\x00\x00\x01", 4) + _sps + string("\x00\x00\x00\x01", 4) + _pps;
+    h264_annexbtomp4(&avc, sps_pps.data(), (int)sps_pps.size(), NULL, 0, NULL, NULL);
+
+    std::string extra_data;
+    extra_data.resize(1024);
+    auto extra_data_size = mpeg4_avc_decoder_configuration_record_save(&avc, (uint8_t *)extra_data.data(), extra_data.size());
+    if (extra_data_size == -1) {
+        WarnL << "生成H264 extra_data 失败";
+        return nullptr;
+    }
+    extra_data.resize(extra_data_size);
+    return std::make_shared<BufferString>(std::move(extra_data));
+#else
+    std::string extra_data;
+    // AVCDecoderConfigurationRecord start
+    extra_data.push_back(1); // version
+    extra_data.push_back(_sps[1]); // profile
+    extra_data.push_back(_sps[2]); // compat
+    extra_data.push_back(_sps[3]); // level
+    extra_data.push_back((char)0xff); // 6 bits reserved + 2 bits nal size length - 1 (11)
+    extra_data.push_back((char)0xe1); // 3 bits reserved + 5 bits number of sps (00001)
+    // sps
+    uint16_t size = (uint16_t)_sps.size();
+    size = htons(size);
+    extra_data.append((char *)&size, 2);
+    extra_data.append(_sps);
+    // pps
+    extra_data.push_back(1); // version
+    size = (uint16_t)_pps.size();
+    size = htons(size);
+    extra_data.append((char *)&size, 2);
+    extra_data.append(_pps);
+    return std::make_shared<BufferString>(std::move(extra_data));
+#endif
+}
+
+void H264Track::setExtraData(const uint8_t *data, size_t bytes) {
+#ifdef ENABLE_MP4
+    struct mpeg4_avc_t avc;
+    memset(&avc, 0, sizeof(avc));
+    if (mpeg4_avc_decoder_configuration_record_load(data, bytes, &avc) > 0) {
+        std::vector<uint8_t> config(bytes * 2);
+        int size = mpeg4_avc_to_nalu(&avc, config.data(), bytes * 2);
+        if (size > 4) {
+            splitH264((char *)config.data(), size, 4, [&](const char *ptr, size_t len, size_t prefix) {
+                inputFrame_l(std::make_shared<H264FrameNoCacheAble>((char *)ptr, len, 0, 0, prefix));
+            });
+            update();
+        }
+    }
+#else
+    CHECK(bytes >= 8); // 6 + 2
+    size_t offset = 6;
+
+    uint16_t sps_size = data[offset] << 8 | data[offset + 1];
+    auto sps_ptr = data + offset + 2;
+    offset += (2 + sps_size);
+    CHECK(bytes >= offset + 2); // + pps_size
+    _sps.assign((char *)sps_ptr, sps_size);
+
+    uint16_t pps_size = data[offset] << 8 | data[offset + 1];
+    auto pps_ptr = data + offset + 2;
+    offset += (2 + pps_size);
+    CHECK(bytes >= offset);
+    _pps.assign((char *)pps_ptr, pps_size);
+    update();
+#endif
+}
+
 bool H264Track::update() {
     return getAVCInfo(_sps, _width, _height, _fps);
 }
 
-void H264Track::onReady() {
-    if (!getAVCInfo(_sps, _width, _height, _fps)) {
-        _sps.clear();
-        _pps.clear();
-    }
-}
-
-Track::Ptr H264Track::clone() {
-    return std::make_shared<std::remove_reference<decltype(*this)>::type>(*this);
+Track::Ptr H264Track::clone() const {
+    return std::make_shared<H264Track>(*this);
 }
 
 bool H264Track::inputFrame_l(const Frame::Ptr &frame) {
@@ -218,7 +277,7 @@ bool H264Track::inputFrame_l(const Frame::Ptr &frame) {
     }
 
     if (_width == 0 && ready()) {
-        onReady();
+        update();
     }
     return ret;
 }
@@ -230,6 +289,7 @@ void H264Track::insertConfigFrame(const Frame::Ptr &frame) {
         spsFrame->_buffer.assign("\x00\x00\x00\x01", 4);
         spsFrame->_buffer.append(_sps);
         spsFrame->_dts = frame->dts();
+        spsFrame->setIndex(frame->getIndex());
         VideoTrack::inputFrame(spsFrame);
     }
 
@@ -239,20 +299,19 @@ void H264Track::insertConfigFrame(const Frame::Ptr &frame) {
         ppsFrame->_buffer.assign("\x00\x00\x00\x01", 4);
         ppsFrame->_buffer.append(_pps);
         ppsFrame->_dts = frame->dts();
+        ppsFrame->setIndex(frame->getIndex());
         VideoTrack::inputFrame(ppsFrame);
     }
 }
 
 class H264Sdp : public Sdp {
 public:
-    H264Sdp(const string &strSPS, const string &strPPS, int bitrate, int payload_type = 96)
-        : Sdp(90000, payload_type) {
-        //视频通道
+    H264Sdp(const string &strSPS, const string &strPPS, int payload_type, int bitrate) : Sdp(90000, payload_type) {
         _printer << "m=video 0 RTP/AVP " << payload_type << "\r\n";
         if (bitrate) {
             _printer << "b=AS:" << bitrate << "\r\n";
         }
-        _printer << "a=rtpmap:" << payload_type << " " << getCodecName() << "/" << 90000 << "\r\n";
+        _printer << "a=rtpmap:" << payload_type << " " << getCodecName(CodecH264) << "/" << 90000 << "\r\n";
 
         /**
          Single NAI Unit Mode = 0. // Single NAI mode (Only nals from 1-23 are allowed)
@@ -275,23 +334,76 @@ public:
         _printer << "; sprop-parameter-sets=";
         _printer << encodeBase64(strSPS) << ",";
         _printer << encodeBase64(strPPS) << "\r\n";
-        _printer << "a=control:trackID=" << (int)TrackVideo << "\r\n";
     }
 
     string getSdp() const { return _printer; }
-
-    CodecId getCodecId() const { return CodecH264; }
 
 private:
     _StrPrinter _printer;
 };
 
-Sdp::Ptr H264Track::getSdp() {
+Sdp::Ptr H264Track::getSdp(uint8_t payload_type) const {
     if (!ready()) {
         WarnL << getCodecName() << " Track未准备好";
         return nullptr;
     }
-    return std::make_shared<H264Sdp>(getSps(), getPps(), getBitRate() / 1024);
+    return std::make_shared<H264Sdp>(_sps, _pps, payload_type, getBitRate() / 1024);
 }
+
+namespace {
+
+CodecId getCodec() {
+    return CodecH264;
+}
+
+Track::Ptr getTrackByCodecId(int sample_rate, int channels, int sample_bit) {
+    return std::make_shared<H264Track>();
+}
+
+Track::Ptr getTrackBySdp(const SdpTrack::Ptr &track) {
+    //a=fmtp:96 packetization-mode=1;profile-level-id=42C01F;sprop-parameter-sets=Z0LAH9oBQBboQAAAAwBAAAAPI8YMqA==,aM48gA==
+    auto map = Parser::parseArgs(track->_fmtp, ";", "=");
+    auto sps_pps = map["sprop-parameter-sets"];
+    string base64_SPS = findSubString(sps_pps.data(), NULL, ",");
+    string base64_PPS = findSubString(sps_pps.data(), ",", NULL);
+    auto sps = decodeBase64(base64_SPS);
+    auto pps = decodeBase64(base64_PPS);
+    if (sps.empty() || pps.empty()) {
+        //如果sdp里面没有sps/pps,那么可能在后续的rtp里面恢复出sps/pps
+        return std::make_shared<H264Track>();
+    }
+    return std::make_shared<H264Track>(sps, pps, 0, 0);
+}
+
+RtpCodec::Ptr getRtpEncoderByCodecId(uint8_t pt) {
+    return std::make_shared<H264RtpEncoder>();
+}
+
+RtpCodec::Ptr getRtpDecoderByCodecId() {
+    return std::make_shared<H264RtpDecoder>();
+}
+
+RtmpCodec::Ptr getRtmpEncoderByTrack(const Track::Ptr &track) {
+    return std::make_shared<H264RtmpEncoder>(track);
+}
+
+RtmpCodec::Ptr getRtmpDecoderByTrack(const Track::Ptr &track) {
+    return std::make_shared<H264RtmpDecoder>(track);
+}
+
+Frame::Ptr getFrameFromPtr(const char *data, size_t bytes, uint64_t dts, uint64_t pts) {
+    return std::make_shared<H264FrameNoCacheAble>((char *)data, bytes, dts, pts, prefixSize(data, bytes));
+}
+
+} // namespace
+
+CodecPlugin h264_plugin = { getCodec,
+                            getTrackByCodecId,
+                            getTrackBySdp,
+                            getRtpEncoderByCodecId,
+                            getRtpDecoderByCodecId,
+                            getRtmpEncoderByTrack,
+                            getRtmpDecoderByTrack,
+                            getFrameFromPtr };
 
 } // namespace mediakit

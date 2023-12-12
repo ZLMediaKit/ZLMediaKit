@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -57,13 +57,16 @@ const char *RtspSplitter::onSearchPacketTail_l(const char *data, size_t len) {
 }
 
 ssize_t RtspSplitter::onRecvHeader(const char *data, size_t len) {
-    if(_isRtpPacket){
-        onRtpPacket(data,len);
+    if (_isRtpPacket) {
+        onRtpPacket(data, len);
+        return 0;
+    }
+    if (len == 4 && !memcmp(data, "\r\n\r\n", 4)) {
         return 0;
     }
     _parser.parse(data, len);
     auto ret = getContentLength(_parser);
-    if(ret == 0){
+    if (ret == 0) {
         onWholeRtspPacket(_parser);
         _parser.clear();
     }

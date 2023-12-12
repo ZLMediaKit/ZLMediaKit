@@ -1,8 +1,8 @@
 ﻿#ifndef ZLMEDIAKIT_JPEG_H
 #define ZLMEDIAKIT_JPEG_H
 
-#include "Frame.h"
-#include "Track.h"
+#include "Extension/Frame.h"
+#include "Extension/Track.h"
 
 namespace mediakit {
 
@@ -14,12 +14,12 @@ public:
     int getVideoHeight() const override { return _height; }
     int getVideoWidth() const override { return _width; }
     float getVideoFps() const override { return _fps; }
-    bool ready() override { return _fps > 0; }
+    bool ready() const override { return _fps > 0; }
     bool inputFrame(const Frame::Ptr &frame) override;
 
 private:
-    Sdp::Ptr getSdp() override;
-    Track::Ptr clone() override { return std::make_shared<std::remove_reference<decltype(*this)>::type>(*this); }
+    Sdp::Ptr getSdp(uint8_t payload_type) const override;
+    Track::Ptr clone() const override { return std::make_shared<JPEGTrack>(*this); }
     void getVideoResolution(const uint8_t *buf, int len);
 
 private:
@@ -29,39 +29,34 @@ private:
     uint64_t _tmp = 0;
 };
 
-class JPEGFrame : public Frame {
+class JPEGFrameType {
 public:
+    virtual ~JPEGFrameType() = default;
+    virtual uint8_t pixType() const = 0;
+};
+
+template <typename Parent>
+class JPEGFrame : public Parent, public JPEGFrameType {
+public:
+    static constexpr auto kJFIFSize = 20u;
     /**
      *  JPEG/MJPEG帧
-     * @param buffer 帧数据
-     * @param dts 时间戳,单位毫秒
      * @param pix_type pixel format type; AV_PIX_FMT_YUVJ422P || (AVCOL_RANGE_JPEG && AV_PIX_FMT_YUV422P) : 1; AV_PIX_FMT_YUVJ420P || (AVCOL_RANGE_JPEG && AV_PIX_FMT_YUV420P) : 0
-     * @param prefix_size JFIF头大小
      */
-    JPEGFrame(toolkit::Buffer::Ptr buffer, uint64_t dts, uint8_t pix_type = 0, size_t prefix_size = 0) {
-        _buffer = std::move(buffer);
-        _dts = dts;
+    template <typename... ARGS>
+    JPEGFrame(uint8_t pix_type, ARGS &&...args) : Parent(std::forward<ARGS>(args)...) {
         _pix_type = pix_type;
-        _prefix_size = prefix_size;
+        // JFIF头固定20个字节长度
+        CHECK(this->size() > kJFIFSize);
     }
-    ~JPEGFrame() override = default;
-
-    uint64_t dts() const override { return _dts; }
-    size_t prefixSize() const override { return _prefix_size; }
+    size_t prefixSize() const override { return 0; }
     bool keyFrame() const override { return true; }
     bool configFrame() const override { return false; }
     CodecId getCodecId() const override { return CodecJPEG; }
-
-    char *data() const override { return _buffer->data(); }
-    size_t size() const override { return _buffer->size(); }
-
-    uint8_t pixType() const {return _pix_type; }
+    uint8_t pixType() const override { return _pix_type; }
 
 private:
     uint8_t _pix_type;
-    size_t _prefix_size;
-    uint64_t _dts;
-    toolkit::Buffer::Ptr _buffer;
 };
 
 }//namespace mediakit

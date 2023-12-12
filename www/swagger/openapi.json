@@ -3,7 +3,7 @@
     "info": {
         "title": "ZLMediaKit HTTP API",
         "description": "You can test the HTTP API provided by ZlMediaKit here. For usage documentation, please refer to [here](https://docs.zlmediakit.com/guide/media_server/restful_api.html)",
-        "version": "ZLMediaKit(git hash:\"a78ca2e\"/\"2023-11-17T11:12:51+08:00\",branch:\"patch-63\",build time:\"2023-11-23T14:35:02\")",
+        "version": "ZLMediaKit(git hash:\"5028151\"/\"2023-12-01T14:43:35+08:00\",branch:\"master\",build time:\"2023-12-01T07:54:14\")",
         "x-logo": {
             "url": "/logo.png",
             "backgroundColor": "#FFFFFF",
@@ -45,7 +45,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     }
                 ],
                 "responses": {
@@ -70,7 +70,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     }
                 ],
                 "responses": {
@@ -97,7 +97,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     }
                 ],
                 "responses": {
@@ -122,7 +122,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     }
                 ],
                 "responses": {
@@ -149,7 +149,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     }
                 ],
                 "responses": {
@@ -174,7 +174,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     }
                 ],
                 "responses": {
@@ -201,7 +201,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     }
                 ],
                 "responses": {
@@ -226,7 +226,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     }
                 ],
                 "responses": {
@@ -253,7 +253,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     }
                 ],
                 "responses": {
@@ -278,7 +278,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     }
                 ],
                 "responses": {
@@ -305,7 +305,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "api.apiDebug",
@@ -339,7 +339,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "api.apiDebug",
@@ -375,7 +375,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     }
                 ],
                 "responses": {
@@ -400,7 +400,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     }
                 ],
                 "responses": {
@@ -427,7 +427,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     }
                 ],
                 "responses": {
@@ -452,7 +452,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     }
                 ],
                 "responses": {
@@ -479,7 +479,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "schema",
@@ -540,7 +540,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "schema",
@@ -603,7 +603,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "schema",
@@ -664,7 +664,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "schema",
@@ -727,7 +727,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     }
                 ],
                 "responses": {
@@ -752,7 +752,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     }
                 ],
                 "responses": {
@@ -779,7 +779,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "id",
@@ -813,7 +813,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "id",
@@ -849,7 +849,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     }
                 ],
                 "responses": {
@@ -874,7 +874,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     }
                 ],
                 "responses": {
@@ -901,7 +901,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "vhost",
@@ -962,7 +962,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "vhost",
@@ -1025,7 +1025,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "key",
@@ -1059,7 +1059,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "key",
@@ -1095,7 +1095,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "schema",
@@ -1165,7 +1165,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "schema",
@@ -1237,7 +1237,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "key",
@@ -1271,7 +1271,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "key",
@@ -1307,7 +1307,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "src_url",
@@ -1377,7 +1377,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "src_url",
@@ -1449,7 +1449,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "key",
@@ -1482,7 +1482,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "key",
@@ -1517,7 +1517,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "schema",
@@ -1578,7 +1578,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "schema",
@@ -1641,7 +1641,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "schema",
@@ -1702,7 +1702,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "schema",
@@ -1765,7 +1765,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "schema",
@@ -1834,7 +1834,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "schema",
@@ -1905,7 +1905,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "schema",
@@ -1966,7 +1966,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "schema",
@@ -2029,7 +2029,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "vhost",
@@ -2099,7 +2099,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "vhost",
@@ -2171,7 +2171,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "vhost",
@@ -2232,7 +2232,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "vhost",
@@ -2295,7 +2295,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "type",
@@ -2356,7 +2356,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "type",
@@ -2419,7 +2419,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "vhost",
@@ -2480,7 +2480,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "vhost",
@@ -2543,7 +2543,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "vhost",
@@ -2604,7 +2604,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "vhost",
@@ -2667,7 +2667,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "type",
@@ -2728,7 +2728,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "type",
@@ -2791,7 +2791,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "type",
@@ -2852,7 +2852,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "type",
@@ -2915,7 +2915,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "url",
@@ -2967,7 +2967,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "url",
@@ -3021,7 +3021,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "stream_id",
@@ -3055,7 +3055,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "stream_id",
@@ -3091,7 +3091,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "port",
@@ -3143,7 +3143,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "port",
@@ -3197,7 +3197,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "dst_url",
@@ -3249,7 +3249,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "dst_url",
@@ -3303,7 +3303,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "stream_id",
@@ -3337,7 +3337,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "stream_id",
@@ -3373,7 +3373,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "stream_id",
@@ -3416,7 +3416,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "stream_id",
@@ -3461,7 +3461,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "stream_id",
@@ -3495,7 +3495,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "stream_id",
@@ -3531,7 +3531,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "stream_id",
@@ -3565,7 +3565,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "stream_id",
@@ -3601,7 +3601,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     }
                 ],
                 "responses": {
@@ -3626,7 +3626,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     }
                 ],
                 "responses": {
@@ -3653,7 +3653,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "vhost",
@@ -3741,7 +3741,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "vhost",
@@ -3831,7 +3831,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "vhost",
@@ -3892,7 +3892,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "vhost",
@@ -3955,7 +3955,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "vhost",
@@ -4007,7 +4007,7 @@
                             "type": "string"
                         },
                         "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "vhost",
@@ -4060,7 +4060,7 @@
                         "schema": {
                             "type": "string"
                         },
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     }
                 ],
                 "responses": {
@@ -4084,7 +4084,7 @@
                         "schema": {
                             "type": "string"
                         },
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     }
                 ],
                 "responses": {
@@ -4110,7 +4110,7 @@
                         "schema": {
                             "type": "string"
                         },
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "key",
@@ -4142,7 +4142,7 @@
                         "schema": {
                             "type": "string"
                         },
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "key",
@@ -4176,7 +4176,7 @@
                         "schema": {
                             "type": "string"
                         },
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "key",
@@ -4208,7 +4208,7 @@
                         "schema": {
                             "type": "string"
                         },
-                        "example": "1oV1R5Z9xlrjH4QN7GXNvS5IUaYtuFgX"
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     },
                     {
                         "name": "key",
@@ -4217,6 +4217,130 @@
                             "type": "string"
                         },
                         "example": "rtmp/__defaultVhost__/live/test/f40a8ab006cac16ecc0858409e890491"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/loadMP4File": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u70b9\u64admp4\u6587\u4ef6(loadMP4File)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6dfb\u52a0\u7684\u6d41\u7684\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6dfb\u52a0\u7684\u6d41\u7684\u5e94\u7528\u540d\uff0c\u4f8b\u5982live",
+                        "example": "live"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6dfb\u52a0\u7684\u6d41\u7684id\u540d\uff0c\u4f8b\u5982test",
+                        "example": "test"
+                    },
+                    {
+                        "name": "file_path",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "mp4\u6587\u4ef6\u7edd\u5bf9\u8def\u5f84",
+                        "example": "/path/to/mp4/file.mp4"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "POST"
+                ],
+                "summary": "\u70b9\u64admp4\u6587\u4ef6(loadMP4File)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "api\u64cd\u4f5c\u5bc6\u94a5(\u914d\u7f6e\u6587\u4ef6\u914d\u7f6e)",
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
+                    },
+                    {
+                        "name": "vhost",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6dfb\u52a0\u7684\u6d41\u7684\u865a\u62df\u4e3b\u673a\uff0c\u4f8b\u5982__defaultVhost__",
+                        "example": "__defaultVhost__"
+                    },
+                    {
+                        "name": "app",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6dfb\u52a0\u7684\u6d41\u7684\u5e94\u7528\u540d\uff0c\u4f8b\u5982live",
+                        "example": "live"
+                    },
+                    {
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "\u6dfb\u52a0\u7684\u6d41\u7684id\u540d\uff0c\u4f8b\u5982test",
+                        "example": "test"
+                    },
+                    {
+                        "name": "file_path",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "mp4\u6587\u4ef6\u7edd\u5bf9\u8def\u5f84",
+                        "example": "/path/to/mp4/file.mp4"
                     }
                 ],
                 "responses": {

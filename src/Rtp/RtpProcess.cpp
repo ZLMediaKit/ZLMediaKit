@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -33,7 +33,7 @@ RtpProcess::RtpProcess(const string &stream_id) {
 
     GET_CONFIG(string, dump_dir, RtpProxy::kDumpDir);
     {
-        FILE *fp = !dump_dir.empty() ? File::create_file(File::absolutePath(_media_info.stream + ".rtp", dump_dir).data(), "wb") : nullptr;
+        FILE *fp = !dump_dir.empty() ? File::create_file(File::absolutePath(_media_info.stream + ".rtp", dump_dir), "wb") : nullptr;
         if (fp) {
             _save_file_rtp.reset(fp, [](FILE *fp) {
                 fclose(fp);
@@ -42,7 +42,7 @@ RtpProcess::RtpProcess(const string &stream_id) {
     }
 
     {
-        FILE *fp = !dump_dir.empty() ? File::create_file(File::absolutePath(_media_info.stream + ".video", dump_dir).data(), "wb") : nullptr;
+        FILE *fp = !dump_dir.empty() ? File::create_file(File::absolutePath(_media_info.stream + ".video", dump_dir), "wb") : nullptr;
         if (fp) {
             _save_file_video.reset(fp, [](FILE *fp) {
                 fclose(fp);
@@ -254,8 +254,7 @@ void RtpProcess::emitOnPublish() {
                 return;
             }
             if (err.empty()) {
-                strong_self->_muxer = std::make_shared<MultiMediaSourceMuxer>(strong_self->_media_info, 0.0f,
-                                                                              option);
+                strong_self->_muxer = std::make_shared<MultiMediaSourceMuxer>(strong_self->_media_info, 0.0f, option);
                 if (strong_self->_only_audio) {
                     strong_self->_muxer->setOnlyAudio();
                 }

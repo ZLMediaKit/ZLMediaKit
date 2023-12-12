@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -24,11 +24,10 @@ using namespace toolkit;
 namespace mediakit {
 
 HttpSession::HttpSession(const Socket::Ptr &pSock) : Session(pSock) {
-    GET_CONFIG(uint32_t, keep_alive_sec, Http::kKeepAliveSecond);
-    pSock->setSendTimeOutSecond(keep_alive_sec);
+    //设置默认参数
+    setMaxReqSize(0);
+    setTimeoutSec(0);
 }
-
-HttpSession::~HttpSession() = default;
 
 void HttpSession::onHttpRequest_HEAD() {
     // 暂时全部返回200 OK，因为HTTP GET存在按需生成流的操作，所以不能按照HTTP GET的流程返回
@@ -99,11 +98,10 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
         return _on_recv_body ? -1 : 0;
     }
 
-    GET_CONFIG(size_t, maxReqSize, Http::kMaxReqSize);
-    if (content_len > maxReqSize) {
+    if (content_len > _max_req_size) {
         //// 不定长body或超大body ////
         if (content_len != SIZE_MAX) {
-            WarnL << "Http body size is too huge: " << content_len << " > " << maxReqSize
+            WarnL << "Http body size is too huge: " << content_len << " > " << _max_req_size
                   << ", please set " << Http::kMaxReqSize << " in config.ini file.";
         }
 
@@ -176,11 +174,27 @@ void HttpSession::onError(const SockException &err) {
     }
 }
 
-void HttpSession::onManager() {
-    GET_CONFIG(uint32_t, keepAliveSec, Http::kKeepAliveSecond);
+void HttpSession::setTimeoutSec(size_t keep_alive_sec) {
+    if (!keep_alive_sec) {
+        GET_CONFIG(size_t, s_keep_alive_sec, Http::kKeepAliveSecond);
+        keep_alive_sec = s_keep_alive_sec;
+    }
+    _keep_alive_sec = keep_alive_sec;
+    getSock()->setSendTimeOutSecond(keep_alive_sec);
+}
 
-    if (_ticker.elapsedTime() > keepAliveSec * 1000) {
-        // 1分钟超时
+void HttpSession::setMaxReqSize(size_t max_req_size) {
+    if (!max_req_size) {
+        GET_CONFIG(size_t, s_max_req_size, Http::kMaxReqSize);
+        max_req_size = s_max_req_size;
+    }
+    _max_req_size = max_req_size;
+    setMaxCacheSize(max_req_size);
+}
+
+void HttpSession::onManager() {
+    if (_ticker.elapsedTime() > _keep_alive_sec * 1000) {
+        //http超时
         shutdown(SockException(Err_timeout, "session timeout"));
     }
 }
@@ -509,7 +523,6 @@ public:
         _body = body;
         _close_when_complete = close_when_complete;
     }
-    ~AsyncSenderData() = default;
 
 private:
     std::weak_ptr<HttpSession> _session;
