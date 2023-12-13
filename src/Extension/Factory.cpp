@@ -205,6 +205,9 @@ Frame::Ptr Factory::getFrameFromPtr(CodecId codec, const char *data, size_t byte
 
 Frame::Ptr Factory::getFrameFromBuffer(CodecId codec, Buffer::Ptr data, uint64_t dts, uint64_t pts) {
     auto frame = Factory::getFrameFromPtr(codec, data->data(), data->size(), dts, pts);
+    if(!frame){
+        return nullptr;
+    }
     return std::make_shared<FrameCacheAble>(frame, false, std::move(data));
 }
 
