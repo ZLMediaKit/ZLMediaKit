@@ -110,6 +110,10 @@ void DecoderImp::onDecode(int stream, int codecid, int flags, int64_t pts, int64
     if (!ref.first) {
         onTrack(stream, Factory::getTrackByCodecId(codec, 8000, 1, 16));
     }
+    if (!ref.first) {
+        WarnL << "not support codec :" << getCodecName(codec);
+        return;
+    }
     auto frame = Factory::getFrameFromPtr(codec, (char *)data, bytes, dts, pts);
     if (getTrackType(codec) != TrackVideo) {
         onFrame(stream, frame);
