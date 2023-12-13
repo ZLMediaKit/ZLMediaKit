@@ -1485,14 +1485,14 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{ZLMediaKit_URL}}/index/api/openRtpServerMultiplex?secret={{ZLMediaKit_secret}}&port=0&tcp_mode=1&stream_id=test",
+					"raw": "{{ZLMediaKit_URL}}/index/api/openRtpServer?secret={{ZLMediaKit_secret}}&port=0&tcp_mode=1&stream_id=test",
 					"host": [
 						"{{ZLMediaKit_URL}}"
 					],
 					"path": [
 						"index",
 						"api",
-						"openRtpServerMultiplex"
+						"openRtpServer"
 					],
 					"query": [
 						{
