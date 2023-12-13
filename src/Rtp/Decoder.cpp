@@ -115,7 +115,7 @@ void DecoderImp::onDecode(int stream, int codecid, int flags, int64_t pts, int64
         onFrame(stream, frame);
         return;
     }
-    ref.second.inputFrame(frame, [&](uint64_t dts, uint64_t pts, const Buffer::Ptr &buffer, bool) {
+    ref.second.inputFrame(frame, [&,codec](uint64_t dts, uint64_t pts, const Buffer::Ptr &buffer, bool) {
         onFrame(stream, Factory::getFrameFromBuffer(codec, buffer, dts, pts));
     });
 }

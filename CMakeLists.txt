@@ -21,7 +21,7 @@
 # SOFTWARE.
 #
 
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.1.3)
 
 # 加载自定义模块
 # Load custom modules
