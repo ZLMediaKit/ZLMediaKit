@@ -24,15 +24,23 @@ HlsMaker::HlsMaker(bool is_fmp4, float seg_duration, uint32_t seg_number, bool s
     _seg_keep = seg_keep;
 }
 
-void HlsMaker::makeIndexFile(bool eof) {
+void HlsMaker::makeIndexFile(bool include_retain, bool eof) {
+    GET_CONFIG(uint32_t, segRetain, Hls::kSegmentRetain);
+    std::deque<std::tuple<int, std::string>> temp(_seg_dur_list);
+    if (!include_retain) {
+        while (temp.size() > _seg_number) {
+            temp.pop_front();
+        }
+    }
     int maxSegmentDuration = 0;
-    for (auto &tp : _seg_dur_list) {
+    for (auto &tp : temp) {
         int dur = std::get<0>(tp);
         if (dur > maxSegmentDuration) {
             maxSegmentDuration = dur;
         }
     }
-    auto index_seq = _seg_number ? (_file_index > _seg_number ? _file_index - _seg_number : 0LL) : 0LL;
+    auto index_seq
+        = _seg_number ? (_file_index > _seg_number ? (include_retain ? _file_index - _seg_number - segRetain : _file_index - _seg_number) : 0LL) : 0LL;
 
     string index_str;
     index_str.reserve(2048);
@@ -50,7 +58,7 @@ void HlsMaker::makeIndexFile(bool eof) {
     }
 
     stringstream ss;
-    for (auto &tp : _seg_dur_list) {
+    for (auto &tp : temp) {
         ss << "#EXTINF:" << std::setprecision(3) << std::get<0>(tp) / 1000.0 << ",\n" << std::get<1>(tp) << "\n";
     }
     index_str += ss.str();
@@ -58,7 +66,7 @@ void HlsMaker::makeIndexFile(bool eof) {
     if (eof) {
         index_str += "#EXT-X-ENDLIST\n";
     }
-    onWriteHls(index_str);
+    onWriteHls(index_str, include_retain);
 }
 
 void HlsMaker::inputInitSegment(const char *data, size_t len) {
@@ -91,19 +99,19 @@ void HlsMaker::inputData(const char *data, size_t len, uint64_t timestamp, bool 
 }
 
 void HlsMaker::delOldSegment() {
+    GET_CONFIG(uint32_t, segRetain, Hls::kSegmentRetain);
     if (_seg_number == 0) {
         //如果设置为保留0个切片，则认为是保存为点播
         return;
     }
     //在hls m3u8索引文件中,我们保存的切片个数跟_seg_number相关设置一致
-    if (_file_index > _seg_number) {
+    if (_file_index > _seg_number + segRetain) {
         _seg_dur_list.pop_front();
     }
     //如果设置为一直保存，就不删除
     if (_seg_keep) {
         return;
     }
-    GET_CONFIG(uint32_t, segRetain, Hls::kSegmentRetain);
     //但是实际保存的切片个数比m3u8所述多若干个,这样做的目的是防止播放器在切片删除前能下载完毕
     if (_file_index > _seg_number + segRetain) {
         onDelSegment(_file_index - _seg_number - segRetain - 1);
@@ -139,7 +147,8 @@ void HlsMaker::flushLastSegment(bool eof){
     //先flush ts切片，否则可能存在ts文件未写入完毕就被访问的情况
     onFlushLastSegment(seg_dur);
     //然后写m3u8文件
-    makeIndexFile(eof);
+    makeIndexFile(true, eof);
+    makeIndexFile(false, eof);
 }
 
 bool HlsMaker::isLive() const {
