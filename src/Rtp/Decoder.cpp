@@ -111,7 +111,7 @@ void DecoderImp::onDecode(int stream, int codecid, int flags, int64_t pts, int64
         onTrack(stream, Factory::getTrackByCodecId(codec, 8000, 1, 16));
     }
     if (!ref.first) {
-        WarnL << "not support codec :" << getCodecName(codec);
+        WarnL << "Unsupported codec :" << getCodecName(codec);
         return;
     }
     auto frame = Factory::getFrameFromPtr(codec, (char *)data, bytes, dts, pts);
@@ -119,7 +119,7 @@ void DecoderImp::onDecode(int stream, int codecid, int flags, int64_t pts, int64
         onFrame(stream, frame);
         return;
     }
-    ref.second.inputFrame(frame, [&](uint64_t dts, uint64_t pts, const Buffer::Ptr &buffer, bool) {
+    ref.second.inputFrame(frame, [this, stream, codec](uint64_t dts, uint64_t pts, const Buffer::Ptr &buffer, bool) {
         onFrame(stream, Factory::getFrameFromBuffer(codec, buffer, dts, pts));
     });
 }
