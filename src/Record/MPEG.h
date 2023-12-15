@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -70,8 +70,17 @@ private:
     uint32_t _max_cache_size = 0;
     uint64_t _timestamp = 0;
     struct mpeg_muxer_t *_context = nullptr;
-    std::unordered_map<int, int/*track_id*/> _codec_to_trackid;
-    FrameMerger _frame_merger{FrameMerger::h264_prefix};
+
+    class FrameMergerImp : public FrameMerger {
+    public:
+        FrameMergerImp() : FrameMerger(FrameMerger::h264_prefix) {}
+    };
+
+    struct MP4Track {
+        int track_id = -1;
+        FrameMergerImp merger;
+    };
+    std::unordered_map<int, MP4Track> _tracks;
     toolkit::BufferRaw::Ptr _current_buffer;
     toolkit::ResourcePool<toolkit::BufferRaw> _buffer_pool;
 };
@@ -87,7 +96,6 @@ namespace mediakit {
 class MpegMuxer : public MediaSinkInterface {
 public:
     MpegMuxer(bool is_ps = false) {}
-    ~MpegMuxer() override = default;
     bool addTrack(const Track::Ptr &track) override { return false; }
     void resetTracks() override {}
     bool inputFrame(const Frame::Ptr &frame) override { return false; }

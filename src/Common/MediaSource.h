@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -50,10 +50,8 @@ public:
     public:
         template<typename ...T>
         NotImplemented(T && ...args) : std::runtime_error(std::forward<T>(args)...) {}
-        ~NotImplemented() override = default;
     };
 
-    MediaSourceEvent() = default;
     virtual ~MediaSourceEvent() = default;
 
     // 获取媒体源类型
@@ -161,6 +159,10 @@ public:
     //断连续推延时，单位毫秒，默认采用配置文件
     uint32_t continue_push_ms;
 
+    // 平滑发送定时器间隔，单位毫秒，置0则关闭；开启后影响cpu性能同时增加内存
+    // 该配置开启后可以解决一些流发送不平滑导致zlmediakit转发也不平滑的问题
+    uint32_t paced_sender_ms;
+
     //是否开启转换为hls(mpegts)
     bool enable_hls;
     //是否开启转换为hls(fmp4)
@@ -200,14 +202,23 @@ public:
     // 支持通过on_publish返回值替换stream_id
     std::string stream_replace;
 
+    // 最大track数
+    size_t max_track = 2;
+
     template <typename MAP>
     ProtocolOption(const MAP &allArgs) : ProtocolOption() {
+        load(allArgs);
+    }
+
+    template <typename MAP>
+    void load(const MAP &allArgs) {
 #define GET_OPT_VALUE(key) getArgsValue(allArgs, #key, key)
         GET_OPT_VALUE(modify_stamp);
         GET_OPT_VALUE(enable_audio);
         GET_OPT_VALUE(add_mute_audio);
         GET_OPT_VALUE(auto_close);
         GET_OPT_VALUE(continue_push_ms);
+        GET_OPT_VALUE(paced_sender_ms);
 
         GET_OPT_VALUE(enable_hls);
         GET_OPT_VALUE(enable_hls_fmp4);
@@ -229,6 +240,7 @@ public:
 
         GET_OPT_VALUE(hls_save_path);
         GET_OPT_VALUE(stream_replace);
+        GET_OPT_VALUE(max_track);
     }
 
 private:
@@ -244,9 +256,6 @@ private:
 //该对象用于拦截感兴趣的MediaSourceEvent事件
 class MediaSourceEventInterceptor : public MediaSourceEvent {
 public:
-    MediaSourceEventInterceptor() = default;
-    ~MediaSourceEventInterceptor() override = default;
-
     void setDelegate(const std::weak_ptr<MediaSourceEvent> &listener);
     std::shared_ptr<MediaSourceEvent> getDelegate() const;
 
@@ -279,7 +288,6 @@ private:
  */
 class MediaInfo: public MediaTuple {
 public:
-    ~MediaInfo() = default;
     MediaInfo() = default;
     MediaInfo(const std::string &url) { parse(url); }
     void parse(const std::string &url);

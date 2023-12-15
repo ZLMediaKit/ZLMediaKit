@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -22,9 +22,6 @@ namespace mediakit {
 
 class NackList {
 public:
-    NackList() = default;
-    ~NackList() = default;
-
     void pushBack(RtpPacket::Ptr rtp);
     void forEach(const FCI_NACK &nack, const std::function<void(const RtpPacket::Ptr &rtp)> &cb);
 
@@ -58,7 +55,6 @@ public:
     static_assert(kNackRtpSize >=0 && kNackRtpSize <= FCI_NACK::kBitSize, "NackContext::kNackRtpSize must between 0 and 16");
 
     NackContext();
-    ~NackContext() = default;
 
     void received(uint16_t seq, bool is_rtx = false);
     void setOnNack(onNack cb);

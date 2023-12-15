@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -174,7 +174,7 @@ void do_http_hook(const string &url, const ArgsType &body, const function<void(c
     GET_CONFIG(float, retry_delay, Hook::kRetryDelay);
 
     const_cast<ArgsType &>(body)["mediaServerId"] = mediaServerId;
-    const_cast<ArgsType &>(body)["hook_index"] = s_hook_index++;
+    const_cast<ArgsType &>(body)["hook_index"] = (Json::UInt64)(s_hook_index++);
 
     auto requester = std::make_shared<HttpRequester>();
     requester->setMethod("POST");
@@ -301,7 +301,7 @@ static void pullStreamFromOrigin(const vector<string> &urls, size_t index, size_
     option.enable_hls = option.enable_hls || (args.schema == HLS_SCHEMA);
     option.enable_mp4 = false;
 
-    addStreamProxy(args.vhost, args.app, args.stream, url, retry_count, option, Rtsp::RTP_TCP, timeout_sec, [=](const SockException &ex, const string &key) mutable {
+    addStreamProxy(args.vhost, args.app, args.stream, url, retry_count, option, Rtsp::RTP_TCP, timeout_sec, mINI{}, [=](const SockException &ex, const string &key) mutable {
         if (!ex) {
             return;
         }
@@ -577,8 +577,8 @@ void installWebHook() {
     });
 
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastStreamNoneReader, [](BroadcastStreamNoneReaderArgs) {
-        if (!origin_urls.empty()) {
-            // 边沿站无人观看时立即停止溯源
+        if (!origin_urls.empty() && sender.getOriginType() == MediaOriginType::pull) {
+            // 边沿站无人观看时如果是拉流的则立即停止溯源
             sender.close(false);
             WarnL << "无人观看主动关闭流:" << sender.getOriginUrl();
             return;

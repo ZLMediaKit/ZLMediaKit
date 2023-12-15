@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -111,11 +111,11 @@ void HlsMaker::delOldSegment() {
 }
 
 void HlsMaker::addNewSegment(uint64_t stamp) {
-    if (!_last_file_name.empty() && stamp - _last_seg_timestamp < _seg_duration * 1000) {
-        //存在上个切片，并且未到分片时间
+    GET_CONFIG(bool, fastRegister, Hls::kFastRegister);
+    if (_file_index > fastRegister  && stamp - _last_seg_timestamp < _seg_duration * 1000) {
+        //确保序号为0的切片立即open，如果开启快速注册功能，序号为1的切片也应该遇到关键帧立即生成；否则需要等切片时长够长
         return;
     }
-
     //关闭并保存上一个切片，如果_seg_number==0,那么是点播。
     flushLastSegment(false);
     //新增切片

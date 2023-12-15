@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -11,11 +11,7 @@
 #include "Device.h"
 #include "Util/logger.h"
 #include "Util/base64.h"
-#include "Extension/AAC.h"
-#include "Extension/Opus.h"
-#include "Extension/G711.h"
-#include "Extension/H264.h"
-#include "Extension/H265.h"
+#include "Extension/Factory.h"
 #ifdef ENABLE_FAAC
 #include "Codec/AACEncoder.h"
 #endif //ENABLE_FAAC
@@ -85,15 +81,7 @@ bool DevChannel::inputH264(const char *data, int len, uint64_t dts, uint64_t pts
         pts = dts;
     }
 
-    //由于rtmp/hls/mp4需要缓存时间戳相同的帧，
-    //所以使用FrameNoCacheAble类型的帧反而会在转换成FrameCacheAble时多次内存拷贝
-    //在此处只拷贝一次，性能开销更低
-    auto frame = FrameImp::create<H264Frame>();
-    frame->_dts = dts;
-    frame->_pts = pts;
-    frame->_buffer.assign(data, len);
-    frame->_prefix_size = prefixSize(data,len);
-    return inputFrame(frame);
+    return inputFrame(Factory::getFrameFromPtr(CodecH264,data, len, dts, pts));
 }
 
 bool DevChannel::inputH265(const char *data, int len, uint64_t dts, uint64_t pts) {
@@ -104,30 +92,10 @@ bool DevChannel::inputH265(const char *data, int len, uint64_t dts, uint64_t pts
         pts = dts;
     }
 
-    //由于rtmp/hls/mp4需要缓存时间戳相同的帧，
-    //所以使用FrameNoCacheAble类型的帧反而会在转换成FrameCacheAble时多次内存拷贝
-    //在此处只拷贝一次，性能开销更低
-    auto frame = FrameImp::create<H265Frame>();
-    frame->_dts = dts;
-    frame->_pts = pts;
-    frame->_buffer.assign(data, len);
-    frame->_prefix_size = prefixSize(data,len);
-    return inputFrame(frame);
+    return inputFrame(Factory::getFrameFromPtr(CodecH265, data, len, dts, pts));
 }
 
-class FrameAutoDelete : public FrameFromPtr{
-public:
-    template <typename ... ARGS>
-    FrameAutoDelete(ARGS && ...args) : FrameFromPtr(std::forward<ARGS>(args)...){}
-
-    ~FrameAutoDelete() override {
-        delete [] _ptr;
-    };
-
-    bool cacheAble() const override {
-        return true;
-    }
-};
+#define ADTS_HEADER_LEN 7
 
 bool DevChannel::inputAAC(const char *data_without_adts, int len, uint64_t dts, const char *adts_header){
     if (dts == 0) {
@@ -136,47 +104,36 @@ bool DevChannel::inputAAC(const char *data_without_adts, int len, uint64_t dts, 
 
     if (!adts_header) {
         //没有adts头
-        return inputFrame(std::make_shared<FrameFromPtr>(_audio->codecId, (char *) data_without_adts, len, dts, 0, 0));
+        return inputFrame(std::make_shared<FrameFromPtr>(CodecAAC, (char *) data_without_adts, len, dts, 0, 0));
     }
 
     if (adts_header + ADTS_HEADER_LEN == data_without_adts) {
         //adts头和帧在一起
-        return inputFrame(std::make_shared<FrameFromPtr>(_audio->codecId, (char *) data_without_adts - ADTS_HEADER_LEN, len + ADTS_HEADER_LEN, dts, 0, ADTS_HEADER_LEN));
+        return inputFrame(std::make_shared<FrameFromPtr>(CodecAAC, (char *) data_without_adts - ADTS_HEADER_LEN, len + ADTS_HEADER_LEN, dts, 0, ADTS_HEADER_LEN));
     }
 
     //adts头和帧不在一起
     char *data_with_adts = new char[len + ADTS_HEADER_LEN];
     memcpy(data_with_adts, adts_header, ADTS_HEADER_LEN);
     memcpy(data_with_adts + ADTS_HEADER_LEN, data_without_adts, len);
-    return inputFrame(std::make_shared<FrameAutoDelete>(_audio->codecId, data_with_adts, len + ADTS_HEADER_LEN, dts, 0, ADTS_HEADER_LEN));
-
+    return inputFrame(std::make_shared<FrameAutoDelete>(CodecAAC, data_with_adts, len + ADTS_HEADER_LEN, dts, 0, ADTS_HEADER_LEN));
 }
 
 bool DevChannel::inputAudio(const char *data, int len, uint64_t dts){
     if (dts == 0) {
         dts = _aTicker[1].elapsedTime();
     }
-    return inputFrame(std::make_shared<FrameFromPtr>(_audio->codecId, (char *) data, len, dts, 0));
+    return inputFrame(Factory::getFrameFromPtr(_audio->codecId, (char *) data, len, dts, dts));
 }
 
 bool DevChannel::initVideo(const VideoInfo &info) {
     _video = std::make_shared<VideoInfo>(info);
-    switch (info.codecId){
-        case CodecH265 : return addTrack(std::make_shared<H265Track>());
-        case CodecH264 : return addTrack(std::make_shared<H264Track>());
-        default: WarnL << "不支持该类型的视频编码类型:" << info.codecId; return false;
-    }
+    return addTrack(Factory::getTrackByCodecId(info.codecId));
 }
 
 bool DevChannel::initAudio(const AudioInfo &info) {
     _audio = std::make_shared<AudioInfo>(info);
-    switch (info.codecId) {
-        case CodecAAC : return addTrack(std::make_shared<AACTrack>());
-        case CodecG711A :
-        case CodecG711U : return addTrack(std::make_shared<G711Track>(info.codecId, info.iSampleRate, info.iChannel, info.iSampleBit));
-        case CodecOpus : return addTrack(std::make_shared<OpusTrack>());
-        default: WarnL << "不支持该类型的音频编码类型:" << info.codecId; return false;
-    }
+    return addTrack(Factory::getTrackByCodecId(info.codecId, info.iSampleRate, info.iChannel, info.iSampleBit));
 }
 
 bool DevChannel::inputFrame(const Frame::Ptr &frame) {

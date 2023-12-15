@@ -157,7 +157,7 @@ It is recommended to compile on Ubuntu or macOS. Compiling on Windows is cumbers
 
 - **You must use Git to clone the complete code. Do not download the source code by downloading the ZIP package. Otherwise, the submodule code will not be downloaded by default. You can do it like this:**
 ```
-git clone https://github.com/xia-chu/ZLMediaKit.git
+git clone https://github.com/ZLMediaKit/ZLMediaKit.git
 cd ZLMediaKit
 git submodule update --init
 ```
@@ -357,6 +357,8 @@ bash build_docker_images.sh
   - [Hikvision ehome server implemented in Go](https://github.com/tsingeye/FreeEhome)
 
 - Client
+  - [Http Api and hook in zlm-spring-boot-starter](https://github.com/lunasaw/zlm-spring-boot-starter)
+  - [Complete java wrapper library for c sdk](https://github.com/lidaofu-hub/j_zlm_sdk)
   - [Complete C# wrapper library for c sdk](https://github.com/malegend/ZLMediaKit.Autogen) 
   - [Push client implemented based on C SDK](https://github.com/hctym1995/ZLM_ApiDemo)
   - [Http API and Hook in C#](https://github.com/chengxiaosheng/ZLMediaKit.HttpApi)
@@ -498,6 +500,16 @@ Thanks to all those who have supported this project in various ways, including b
 [ArmstrongCN](https://github.com/ArmstrongCN)
 [leibnewton](https://github.com/leibnewton)
 [1002victor](https://github.com/1002victor)
+[Grin](https://github.com/xyyangkun)
+[xbpeng121](https://github.com/xbpeng121)
+[lvchenyun](https://github.com/lvchenyun)
+[Fummowo](https://github.com/Fummowo)
+[Jovial Young ](https://github.com/JHYoung1034)
+[yujitai](https://github.com/yujitai)
+[KisChang](https://github.com/kisChang)
+[zjx94](https://github.com/zjx94)
+[LeiZhi.Mai ](https://github.com/blueskiner)
+[JiaHao](https://github.com/nashiracn)
 
 Also thank to JetBrains for their support for open source project, we developed and debugged zlmediakit with CLion:
 

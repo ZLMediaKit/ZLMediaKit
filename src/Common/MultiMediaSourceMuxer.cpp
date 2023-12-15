@@ -1,9 +1,9 @@
 ﻿/*
-* Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+* Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
 *
-* This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+* This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
 *
-* Use of this source code is governed by MIT license that can be found in the
+* Use of this source code is governed by MIT-like license that can be found in the
 * LICENSE file in the root of the source tree. All contributing project authors
 * may be found in the AUTHORS file in the root of the source tree.
 */
@@ -31,6 +31,87 @@ public:
     int readerCount() override { return 0; }
 };
 } // namespace
+
+class FramePacedSender : public FrameWriterInterface, public std::enable_shared_from_this<FramePacedSender> {
+public:
+    using OnFrame = std::function<void(const Frame::Ptr &frame)>;
+    // 最小缓存100ms数据
+    static constexpr auto kMinCacheMS = 100;
+
+    FramePacedSender(uint32_t paced_sender_ms, OnFrame cb) {
+        _paced_sender_ms = paced_sender_ms;
+        _cb = std::move(cb);
+    }
+
+    void resetTimer(const EventPoller::Ptr &poller) {
+        std::weak_ptr<FramePacedSender> weak_self = shared_from_this();
+        _timer = std::make_shared<Timer>(_paced_sender_ms / 1000.0f, [weak_self]() {
+            if (auto strong_self = weak_self.lock()) {
+                strong_self->onTick();
+                return true;
+            }
+            return false;
+        }, poller);
+    }
+
+    bool inputFrame(const Frame::Ptr &frame) override {
+        if (!_timer) {
+            setCurrentStamp(frame->dts());
+            resetTimer(EventPoller::getCurrentPoller());
+        }
+
+        _cache.emplace_back(frame->dts() + _cache_ms, Frame::getCacheAbleFrame(frame));
+        return true;
+    }
+
+private:
+    void onTick() {
+        auto dst = _cache.empty() ? 0 : _cache.back().first;
+        while (!_cache.empty()) {
+            auto &front = _cache.front();
+            if (getCurrentStamp() < front.first) {
+                // 还没到消费时间
+                break;
+            }
+            // 时间到了，该消费frame了
+            _cb(front.second);
+            _cache.pop_front();
+        }
+
+        if (_cache.empty() && dst) {
+            // 消费太快，需要增加缓存大小
+            setCurrentStamp(dst);
+            _cache_ms += kMinCacheMS;
+        }
+
+        // 消费太慢，需要强制flush数据
+        if (_cache.size() > 25 * 5) {
+            WarnL << "Flush frame paced sender cache: " << _cache.size();
+            while (!_cache.empty()) {
+                auto &front = _cache.front();
+                _cb(front.second);
+                _cache.pop_front();
+            }
+            setCurrentStamp(dst);
+        }
+    }
+
+    uint64_t getCurrentStamp() { return _ticker.elapsedTime() + _stamp_offset; }
+
+    void setCurrentStamp(uint64_t stamp) {
+        _stamp_offset = stamp;
+        _ticker.resetTime();
+    }
+
+private:
+    uint32_t _paced_sender_ms;
+    uint32_t _cache_ms = kMinCacheMS;
+    uint64_t _stamp_offset = 0;
+    OnFrame _cb;
+    Ticker _ticker;
+    Timer::Ptr _timer;
+    std::list<std::pair<uint64_t, Frame::Ptr>> _cache;
+};
 
 static std::shared_ptr<MediaSinkInterface> makeRecorder(MediaSource &sender, const vector<Track::Ptr> &tracks, Recorder::type type, const ProtocolOption &option){
     auto recorder = Recorder::createRecorder(type, sender.getMediaTuple(), option);
@@ -96,11 +177,8 @@ MultiMediaSourceMuxer::MultiMediaSourceMuxer(const MediaTuple& tuple, float dur_
     _poller = EventPollerPool::Instance().getPoller();
     _create_in_poller = _poller->isCurrentThread();
     _option = option;
-    if (dur_sec > 0.01) {
-        // 点播
-        _stamp[TrackVideo].setPlayBack();
-        _stamp[TrackAudio].setPlayBack();
-    }
+    _dur_sec = dur_sec;
+    setMaxTrackCount(option.max_track);
 
     if (option.enable_rtmp) {
         _rtmp = std::make_shared<RtmpMediaSourceMuxer>(_tuple, option, std::make_shared<TitleMeta>(dur_sec));
@@ -367,6 +445,9 @@ EventPoller::Ptr MultiMediaSourceMuxer::getOwnerPoller(MediaSource &sender) {
         if (ret != _poller) {
             WarnL << "OwnerPoller changed " << _poller->getThreadName() << " -> " << ret->getThreadName() << " : " << shortUrl();
             _poller = ret;
+            if (_paced_sender) {
+                _paced_sender->resetTimer(_poller);
+            }
         }
         return ret;
     } catch (MediaSourceEvent::NotImplemented &) {
@@ -380,6 +461,12 @@ std::shared_ptr<MultiMediaSourceMuxer> MultiMediaSourceMuxer::getMuxer(MediaSour
 }
 
 bool MultiMediaSourceMuxer::onTrackReady(const Track::Ptr &track) {
+    auto &stamp = _stamps[track->getIndex()];
+    if (_dur_sec > 0.01) {
+        // 点播
+        stamp.setPlayBack();
+    }
+
     bool ret = false;
     if (_rtmp) {
         ret = _rtmp->addTrack(track) ? true : ret;
@@ -407,6 +494,16 @@ bool MultiMediaSourceMuxer::onTrackReady(const Track::Ptr &track) {
 
 void MultiMediaSourceMuxer::onAllTrackReady() {
     CHECK(!_create_in_poller || getOwnerPoller(MediaSource::NullMediaSource())->isCurrentThread());
+
+    if (_option.paced_sender_ms) {
+        std::weak_ptr<MultiMediaSourceMuxer> weak_self = shared_from_this();
+        _paced_sender = std::make_shared<FramePacedSender>(_option.paced_sender_ms, [weak_self](const Frame::Ptr &frame) {
+            if (auto strong_self = weak_self.lock()) {
+                strong_self->onTrackFrame_l(frame);
+            }
+        });
+    }
+
     setMediaListener(getDelegate());
 
     if (_rtmp) {
@@ -442,10 +539,14 @@ void MultiMediaSourceMuxer::onAllTrackReady() {
         createGopCacheIfNeed();
     }
 #endif
-    auto tracks = getTracks(false);
-    if (tracks.size() >= 2) {
-        // 音频时间戳同步于视频，因为音频时间戳被修改后不影响播放
-        _stamp[TrackAudio].syncTo(_stamp[TrackVideo]);
+
+    Stamp *first = nullptr;
+    for (auto &pr : _stamps) {
+        if (!first) {
+            first = &pr.second;
+        } else {
+            pr.second.syncTo(*first);
+        }
     }
     InfoL << "stream: " << shortUrl() << " , codec info: " << getTrackInfoStr(this);
 }
@@ -492,13 +593,15 @@ void MultiMediaSourceMuxer::resetTracks() {
     }
 }
 
-bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
-    auto frame = frame_in;
+bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame) {
     if (_option.modify_stamp != ProtocolOption::kModifyStampOff) {
         // 时间戳不采用原始的绝对时间戳
-        frame = std::make_shared<FrameStamp>(frame, _stamp[frame->getTrackType()], _option.modify_stamp);
+        const_cast<Frame::Ptr&>(frame) = std::make_shared<FrameStamp>(frame, _stamps[frame->getIndex()], _option.modify_stamp);
     }
+    return _paced_sender ? _paced_sender->inputFrame(frame) : onTrackFrame_l(frame);
+}
 
+bool MultiMediaSourceMuxer::onTrackFrame_l(const Frame::Ptr &frame) {
     bool ret = false;
     if (_rtmp) {
         ret = _rtmp->inputFrame(frame) ? true : ret;
@@ -526,7 +629,7 @@ bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
     }
     if (_ring) {
         // 此场景由于直接转发，可能存在切换线程引起的数据被缓存在管道，所以需要CacheAbleFrame
-        frame = Frame::getCacheAbleFrame(frame);
+        const_cast<Frame::Ptr &>(frame) = Frame::getCacheAbleFrame(frame);
         if (frame->getTrackType() == TrackVideo) {
             // 视频时，遇到第一帧配置帧或关键帧则标记为gop开始处
             auto video_key_pos = frame->keyFrame() || frame->configFrame();

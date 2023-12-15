@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -20,8 +20,13 @@ using namespace toolkit;
 
 namespace mediakit {
 
-int64_t DeltaStamp::relativeStamp(int64_t stamp) {
-    _relative_stamp += deltaStamp(stamp);
+DeltaStamp::DeltaStamp() {
+    // 时间戳最大允许跳跃300ms
+    _max_delta = 300;
+}
+
+int64_t DeltaStamp::relativeStamp(int64_t stamp, bool enable_rollback) {
+    _relative_stamp += deltaStamp(stamp, enable_rollback);
     return _relative_stamp;
 }
 
@@ -29,7 +34,7 @@ int64_t DeltaStamp::relativeStamp() {
     return _relative_stamp;
 }
 
-int64_t DeltaStamp::deltaStamp(int64_t stamp) {
+int64_t DeltaStamp::deltaStamp(int64_t stamp, bool enable_rollback) {
     if (!_last_stamp) {
         // 第一次计算时间戳增量,时间戳增量为0
         if (stamp) {
@@ -43,14 +48,25 @@ int64_t DeltaStamp::deltaStamp(int64_t stamp) {
         // 时间戳增量为正，返回之
         _last_stamp = stamp;
         // 在直播情况下，时间戳增量不得大于MAX_DELTA_STAMP，否则强制相对时间戳加1
-        return ret < MAX_DELTA_STAMP ? ret : 1;
+        if (ret > _max_delta) {
+            needSync();
+            return 1;
+        }
+        return ret;
     }
 
     // 时间戳增量为负，说明时间戳回环了或回退了
     _last_stamp = stamp;
+    if (!enable_rollback || -ret > _max_delta) {
+        // 不允许回退或者回退太多了, 强制时间戳加1
+        needSync();
+        return 1;
+    }
+    return ret;
+}
 
-    // 如果时间戳回退不多，那么返回负值，否则返回加1
-    return -ret < MAX_DELTA_STAMP ? ret : 1;
+void DeltaStamp::setMaxDelta(size_t max_delta) {
+    _max_delta = max_delta;
 }
 
 void Stamp::setPlayBack(bool playback) {
@@ -58,7 +74,16 @@ void Stamp::setPlayBack(bool playback) {
 }
 
 void Stamp::syncTo(Stamp &other) {
+    _need_sync = true;
     _sync_master = &other;
+}
+
+void Stamp::needSync() {
+    _need_sync = true;
+}
+
+void Stamp::enableRollback(bool flag) {
+    _enable_rollback = flag;
 }
 
 // 限制dts回退
@@ -87,15 +112,26 @@ void Stamp::revise_l(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_ou
         return;
     }
 
-    if (_sync_master && _sync_master->_last_dts_in) {
+    // 需要同步时间戳
+    if (_sync_master && _sync_master->_last_dts_in && (_need_sync || _sync_master->_need_sync)) {
         // 音视频dts当前时间差
         int64_t dts_diff = _last_dts_in - _sync_master->_last_dts_in;
         if (ABS(dts_diff) < 5000) {
             // 如果绝对时间戳小于5秒，那么说明他们的起始时间戳是一致的，那么强制同步
-            _relative_stamp = _sync_master->_relative_stamp + dts_diff;
+            auto target_stamp = _sync_master->_relative_stamp + dts_diff;
+            if (target_stamp > _relative_stamp || _enable_rollback) {
+                // 强制同步后，时间戳增加跳跃了，或允许回退
+                TraceL << "Relative stamp changed: " << _relative_stamp << " -> " << target_stamp;
+                _relative_stamp = target_stamp;
+            } else {
+                // 不允许回退, 则让另外一个Track的时间戳增长
+                target_stamp = _relative_stamp - dts_diff;
+                TraceL << "Relative stamp changed: " << _sync_master->_relative_stamp << " -> " << target_stamp;
+                _sync_master->_relative_stamp = target_stamp;
+            }
         }
-        // 下次不用再强制同步
-        _sync_master = nullptr;
+        _need_sync = false;
+        _sync_master->_need_sync = false;
     }
 }
 
@@ -124,7 +160,7 @@ void Stamp::revise_l2(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_o
             // 内部自己生产时间戳
             _relative_stamp = _ticker.elapsedTime();
         } else {
-            _relative_stamp += deltaStamp(dts);
+            _relative_stamp += deltaStamp(dts, _enable_rollback);
         }
         _last_dts_in = dts;
     }

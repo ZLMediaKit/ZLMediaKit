@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -14,47 +14,56 @@
 namespace mediakit {
 
 RtmpMuxer::RtmpMuxer(const TitleMeta::Ptr &title) {
-    if(!title){
+    if (!title) {
         _metadata = std::make_shared<TitleMeta>()->getMetadata();
-    }else{
+    } else {
         _metadata = title->getMetadata();
     }
     _rtmp_ring = std::make_shared<RtmpRing::RingType>();
 }
 
 bool RtmpMuxer::addTrack(const Track::Ptr &track) {
-    auto &encoder = _encoder[track->getTrackType()];
-    //生成rtmp编码器,克隆该Track，防止循环引用
-    encoder = Factory::getRtmpCodecByTrack(track->clone(), true);
+    if (_track_existed[track->getTrackType()]) {
+        // rtmp不支持多个同类型track
+        WarnL << "Already add a track kind of: " << track->getTrackTypeStr() << ", ignore track: " << track->getCodecName();
+        return false;
+    }
+
+    auto &encoder = _encoders[track->getIndex()];
+    CHECK(!encoder);
+    encoder = Factory::getRtmpEncoderByTrack(track);
     if (!encoder) {
         return false;
     }
 
-    //设置rtmp输出环形缓存
+    // 标记已经存在该类型track
+    _track_existed[track->getTrackType()] = true;
+
+    // 设置rtmp输出环形缓存
     encoder->setRtmpRing(_rtmp_ring);
 
-    //添加metadata
+    // 添加metadata
     Metadata::addTrack(_metadata, track);
     return true;
 }
 
 bool RtmpMuxer::inputFrame(const Frame::Ptr &frame) {
-    auto &encoder = _encoder[frame->getTrackType()];
+    auto &encoder = _encoders[frame->getIndex()];
     return encoder ? encoder->inputFrame(frame) : false;
 }
 
 void RtmpMuxer::flush() {
-    for (auto &encoder : _encoder) {
-        if (encoder) {
-            encoder->flush();
+    for (auto &pr : _encoders) {
+        if (pr.second) {
+            pr.second->flush();
         }
     }
 }
 
-void RtmpMuxer::makeConfigPacket(){
-    for(auto &encoder : _encoder){
-        if(encoder){
-            encoder->makeConfigPacket();
+void RtmpMuxer::makeConfigPacket() {
+    for (auto &pr : _encoders) {
+        if (pr.second) {
+            pr.second->makeConfigPacket();
         }
     }
 }
@@ -69,10 +78,8 @@ RtmpRing::RingType::Ptr RtmpMuxer::getRtmpRing() const {
 
 void RtmpMuxer::resetTracks() {
     _metadata.clear();
-    for(auto &encoder : _encoder){
-        encoder = nullptr;
-    }
+    _encoders.clear();
+    CLEAR_ARR(_track_existed);
 }
 
-
-}/* namespace mediakit */
+} /* namespace mediakit */

@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -101,6 +101,7 @@ const string kEnableAudio = PROTOCOL_FIELD "enable_audio";
 const string kAddMuteAudio = PROTOCOL_FIELD "add_mute_audio";
 const string kAutoClose = PROTOCOL_FIELD "auto_close";
 const string kContinuePushMS = PROTOCOL_FIELD "continue_push_ms";
+const string kPacedSenderMS = PROTOCOL_FIELD "paced_sender_ms";
 
 const string kEnableHls = PROTOCOL_FIELD "enable_hls";
 const string kEnableHlsFmp4 = PROTOCOL_FIELD "enable_hls_fmp4";
@@ -127,6 +128,7 @@ static onceToken token([]() {
     mINI::Instance()[kEnableAudio] = 1;
     mINI::Instance()[kAddMuteAudio] = 1;
     mINI::Instance()[kContinuePushMS] = 15000;
+    mINI::Instance()[kPacedSenderMS] = 0;
     mINI::Instance()[kAutoClose] = 0;
 
     mINI::Instance()[kEnableHls] = 1;
@@ -233,10 +235,14 @@ namespace Rtmp {
 #define RTMP_FIELD "rtmp."
 const string kHandshakeSecond = RTMP_FIELD "handshakeSecond";
 const string kKeepAliveSecond = RTMP_FIELD "keepAliveSecond";
+const string kDirectProxy = RTMP_FIELD "directProxy";
+const string kEnhanced = RTMP_FIELD "enhanced";
 
 static onceToken token([]() {
     mINI::Instance()[kHandshakeSecond] = 15;
     mINI::Instance()[kKeepAliveSecond] = 15;
+    mINI::Instance()[kDirectProxy] = 1;
+    mINI::Instance()[kEnhanced] = 1;
 });
 } // namespace Rtmp
 
@@ -305,6 +311,7 @@ const string kSegmentRetain = HLS_FIELD "segRetain";
 const string kFileBufSize = HLS_FIELD "fileBufSize";
 const string kBroadcastRecordTs = HLS_FIELD "broadcastRecordTs";
 const string kDeleteDelaySec = HLS_FIELD "deleteDelaySec";
+const string kFastRegister = HLS_FIELD "fastRegister";
 
 static onceToken token([]() {
     mINI::Instance()[kSegmentDuration] = 2;
@@ -314,6 +321,7 @@ static onceToken token([]() {
     mINI::Instance()[kFileBufSize] = 64 * 1024;
     mINI::Instance()[kBroadcastRecordTs] = false;
     mINI::Instance()[kDeleteDelaySec] = 10;
+    mINI::Instance()[kFastRegister] = false;
 });
 } // namespace Hls
 
@@ -353,6 +361,7 @@ const string kBeatIntervalMS = "beat_interval_ms";
 const string kBenchmarkMode = "benchmark_mode";
 const string kWaitTrackReady = "wait_track_ready";
 const string kPlayTrack = "play_track";
+const string kProxyUrl = "proxy_url";
 } // namespace Client
 
 } // namespace mediakit
