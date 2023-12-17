@@ -944,25 +944,29 @@ void installWebApi() {
 
     //批量断开tcp连接，比如说可以断开rtsp、rtmp播放器等
     //测试url http://127.0.0.1/index/api/kick_sessions?local_port=1935
-    api_regist("/index/api/kick_sessions",[](API_ARGS_MAP){
+    api_regist("/index/api/kick_sessions", [](API_ARGS_MAP) {
         CHECK_SECRET();
         uint16_t local_port = allArgs["local_port"].as<uint16_t>();
         string peer_ip = allArgs["peer_ip"];
         size_t count_hit = 0;
 
         list<Session::Ptr> session_list;
-        SessionMap::Instance().for_each_session([&](const string &id,const Session::Ptr &session){
-            if(local_port != 0 && local_port != session->get_local_port()){
+        SessionMap::Instance().for_each_session([&](const string &id, const Session::Ptr &session) {
+            if (local_port != 0 && local_port != session->get_local_port()) {
                 return;
             }
-            if(!peer_ip.empty() && peer_ip != session->get_peer_ip()){
+            if (!peer_ip.empty() && peer_ip != session->get_peer_ip()) {
+                return;
+            }
+            if (session->getIdentifier() == sender.getIdentifier()) {
+                // 忽略本http链接
                 return;
             }
             session_list.emplace_back(session);
             ++count_hit;
         });
 
-        for(auto &session : session_list){
+        for (auto &session : session_list) {
             session->safeShutdown();
         }
         val["count_hit"] = (Json::UInt64)count_hit;
