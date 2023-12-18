@@ -244,8 +244,8 @@ AVFrame *FFmpegFrame::get() const {
 
 void FFmpegFrame::fillPicture(AVPixelFormat target_format, int target_width, int target_height) {
     assert(_data == nullptr);
-    _data = new char[av_image_get_buffer_size(target_format, target_width, target_height, 1)];
-    av_image_fill_arrays(_frame->data, _frame->linesize, (uint8_t *) _data,  target_format, target_width, target_height,1);
+    _data = new char[av_image_get_buffer_size(target_format, target_width, target_height, 32)];
+    av_image_fill_arrays(_frame->data, _frame->linesize, (uint8_t *) _data,  target_format, target_width, target_height, 32);
 }
 
 ///////////////////////////////////////////////////////////////////////////
