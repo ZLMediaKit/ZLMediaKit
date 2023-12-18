@@ -46,11 +46,7 @@ RtpSession::RtpSession(const Socket::Ptr &sock)
     }
 }
 
-RtpSession::~RtpSession() {
-    if (_process) {
-        RtpSelector::Instance().delProcess(_stream_id, _process.get());
-    }
-}
+RtpSession::~RtpSession() = default;
 
 void RtpSession::onRecv(const Buffer::Ptr &data) {
     if (_is_udp) {
@@ -62,6 +58,9 @@ void RtpSession::onRecv(const Buffer::Ptr &data) {
 
 void RtpSession::onError(const SockException &err) {
     WarnP(this) << _stream_id << " " << err;
+    if (_process) {
+        RtpSelector::Instance().delProcess(_stream_id, _process.get());
+    }
 }
 
 void RtpSession::onManager() {

@@ -673,7 +673,7 @@ FFmpegFrame::Ptr FFmpegSws::inputFrame(const FFmpegFrame::Ptr &frame, int &ret, 
         auto out = std::make_shared<FFmpegFrame>();
         if (!out->get()->data[0]) {
             if (data) {
-                av_image_fill_arrays(out->get()->data, out->get()->linesize, data, _target_format, target_width, target_height, 1);
+                av_image_fill_arrays(out->get()->data, out->get()->linesize, data, _target_format, target_width, target_height, 32);
             } else {
                 out->fillPicture(_target_format, target_width, target_height);
             }

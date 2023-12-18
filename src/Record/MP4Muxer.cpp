@@ -104,7 +104,7 @@ bool MP4MuxerInterface::inputFrame(const Frame::Ptr &frame) {
         case CodecH264:
         case CodecH265: {
             // 这里的代码逻辑是让SPS、PPS、IDR这些时间戳相同的帧打包到一起当做一个帧处理，
-            track.merger.inputFrame(frame, [&](uint64_t dts, uint64_t pts, const Buffer::Ptr &buffer, bool have_idr) {
+            track.merger.inputFrame(frame, [this, &track](uint64_t dts, uint64_t pts, const Buffer::Ptr &buffer, bool have_idr) {
                 int64_t dts_out, pts_out;
                 track.stamp.revise(dts, pts, dts_out, pts_out);
                 mp4_writer_write(_mov_writter.get(), track.track_id, buffer->data(), buffer->size(), pts_out, dts_out, have_idr ? MOV_AV_FLAG_KEYFREAME : 0);
