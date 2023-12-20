@@ -346,6 +346,11 @@ int start_main(int argc,char *argv[]) {
         uint16_t srtPort = mINI::Instance()[SRT::kPort];
 #endif //defined(ENABLE_SRT)
 
+        installWebApi();
+        InfoL << "已启动http api 接口";
+        installWebHook();
+        InfoL << "已启动http hook 接口";
+
         try {
             auto &secret = mINI::Instance()[API::kSecret];
             if (secret == "035c73f7-bb6b-4889-a715-d9eb2d1925cc" || secret.empty()) {
@@ -402,11 +407,6 @@ int start_main(int argc,char *argv[]) {
 #endif
             return -1;
         }
-
-        installWebApi();
-        InfoL << "已启动http api 接口";
-        installWebHook();
-        InfoL << "已启动http hook 接口";
 
         //设置退出信号处理函数
         static semaphore sem;
