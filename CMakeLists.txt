@@ -193,6 +193,12 @@ if(UNIX)
     "-Wall;-Wextra"
     "-Wno-unused-function;-Wno-unused-parameter;-Wno-unused-variable"
     "-Wno-error=extra;-Wno-error=missing-field-initializers;-Wno-error=type-limits")
+
+  if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+    set(COMPILE_OPTIONS_DEFAULT ${COMPILE_OPTIONS_DEFAULT} "-g3")
+  else()
+    set(COMPILE_OPTIONS_DEFAULT ${COMPILE_OPTIONS_DEFAULT} "-g0")
+  endif()
 elseif(WIN32)
   if (MSVC)
     set(COMPILE_OPTIONS_DEFAULT
