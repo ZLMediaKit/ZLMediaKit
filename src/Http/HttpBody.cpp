@@ -181,6 +181,10 @@ int HttpFileBody::sendFile(int fd) {
 #endif
 }
 
+bool HttpFileBody::isMem(){
+    return false;
+}
+
 class BufferMmap : public Buffer {
 public:
     using Ptr = std::shared_ptr<BufferMmap>;

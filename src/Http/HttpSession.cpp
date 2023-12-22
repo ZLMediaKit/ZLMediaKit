@@ -141,12 +141,12 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
         _parser.clear();
 
         // 后续是header
-        setContentLen(0);
+        //setContentLen(0);
         return false;
     };
 
     // 声明后续都是body；Http body在本对象缓冲，不通过HttpRequestSplitter保存
-    return -1;
+    return content_len;
 }
 
 void HttpSession::onRecvContent(const char *data, size_t len) {
@@ -685,6 +685,14 @@ void HttpSession::sendResponse(int code,
     if (body->remainSize() > sendBufSize) {
         // 文件下载提升发送性能
         setSocketFlags();
+    }
+
+    if(body->isMem()){
+        send(body->readData(body->remainSize()));
+        if(bClose){
+            shutdown(SockException(Err_shutdown, StrPrinter << "close connection after send http body"));
+        }
+        return;
     }
 
     // 发送http body

@@ -44,6 +44,12 @@ public:
      */
     virtual toolkit::Buffer::Ptr readData(size_t size) { return nullptr;};
 
+     /**
+     * 判断数据是否在内存里，默认是在内存里
+     * @return 默认返回true
+     */
+    virtual bool isMem(){return true;};
+
     /**
      * 异步请求读取一定字节数，返回大小可能小于size
      * @param size 请求大小
@@ -117,10 +123,11 @@ public:
      * @param max_size 最大读取字节数
      */
     void setRange(uint64_t offset, uint64_t max_size);
-
+    
     int64_t remainSize() override;
     toolkit::Buffer::Ptr readData(size_t size) override;
     int sendFile(int fd) override;
+    bool isMem() override;
 
 private:
     int64_t _read_to = 0;
