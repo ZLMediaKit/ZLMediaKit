@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 28
+    compileSdkVersion 30
     //ndkVersion "25.1.xxx"
     defaultConfig {
         applicationId "com.zlmediakit.demo"
@@ -33,6 +33,19 @@ android {
             path "src/main/cpp/CMakeLists.txt"
         }
     }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+//    kotlinOptions {
+//        jvmTarget = "17"
+//    }
+
+//    buildFeatures {
+//        viewBinding = true
+//        buildConfig = true
+//    }
+
 }
 
 dependencies {
