@@ -124,29 +124,18 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
     }
 
     //// body size明确指定且小于最大值的情况 ////
-    auto body = std::make_shared<std::string>();
-    // 预留一定的内存buffer，防止频繁的内存拷贝
-    body->reserve(content_len);
-
-    _on_recv_body = [this, body, content_len, it](const char *data, size_t len) mutable {
-        body->append(data, len);
-        if (body->size() < content_len) {
-            // 未收满数据
-            return true;
-        }
-
+    _on_recv_body = [this, it](const char *data, size_t len) mutable {
         // 收集body完毕
-        _parser.setContent(std::move(*body));
+        _parser.setContent(std::string(data, len));
         (this->*(it->second))();
         _parser.clear();
 
-        // 后续是header
-        setContentLen(0);
+        // _on_recv_body置空
         return false;
     };
 
-    // 声明后续都是body；Http body在本对象缓冲，不通过HttpRequestSplitter保存
-    return -1;
+    // 声明body长度，通过HttpRequestSplitter缓存然后一次性回调到_on_recv_body
+    return content_len;
 }
 
 void HttpSession::onRecvContent(const char *data, size_t len) {
