@@ -10,26 +10,26 @@ set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/libs_export/${ANDROID_ABI
 set(OPENSSL_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../libs/${ANDROID_ABI}")
 
 #由于openssl库编译时未指定-fPIC，到时github action ci编译失败，先屏蔽掉
-#set(OPENSSL_INCLUDE_DIR "${OPENSSL_ROOT_DIR}/include")
-#set(OPENSSL_CRYPTO_LIBRARY "${OPENSSL_ROOT_DIR}/libcrypto.a")
-#set(OPENSSL_SSL_LIBRARY "${OPENSSL_ROOT_DIR}/libssl.a")
+set(OPENSSL_INCLUDE_DIR "3rdpart/openssl/include")
+set(OPENSSL_CRYPTO_LIBRARY "Android/app/libs/arm64-v8a/libcrypto.a")
+set(OPENSSL_SSL_LIBRARY "Android/app/libs/arm64-v8a/libssl.a")
 
 ###################################################################
 # 编译openssl 1.1.1k
 
-if (ANDROID)
-    message(WARNING "Enable Android openssl compile")
-    execute_process(
-            COMMAND bash -c "./../../3rdpart/openssl/Configure android-aarch64 -D__ANDROID_API__=16"
-            OUTPUT_VARIABLE output
-            RESULT_VARIABLE result
-    )
-    if (result)
-        message(FATAL_ERROR "Failed to execute bash command: ${result}")
-    endif ()
-    message(WARNING "Enable Android openssl compile===================")
-    message("Output: ${output}")
-ENDIF ()
+#if (ANDROID)
+#    message(WARNING "Enable Android openssl compile")
+#    execute_process(
+#            COMMAND bash -c "./../../3rdpart/openssl/Configure android-aarch64 -D__ANDROID_API__=16"
+#            OUTPUT_VARIABLE output
+#            RESULT_VARIABLE result
+#    )
+#    if (result)
+#        message(FATAL_ERROR "Failed to execute bash command: ${result}")
+#    endif ()
+#    message(WARNING "Enable Android openssl compile===================")
+#    message("Output: ${output}")
+#ENDIF ()
 
 #设置工程源码根目录
 set(JNI_Root ${CMAKE_CURRENT_SOURCE_DIR})
