@@ -14,6 +14,14 @@ set(OPENSSL_INCLUDE_DIR "3rdpart/openssl/include")
 set(OPENSSL_CRYPTO_LIBRARY "Android/app/libs/arm64-v8a/libcrypto.a")
 set(OPENSSL_SSL_LIBRARY "Android/app/libs/arm64-v8a/libssl.a")
 
+
+
+set(SRTP_INCLUDE_DIRS "3rdpart/libsrtp/include")
+set(SRTP_LIBRARIES "Android/app/libs/arm64-v8a/libsrtp2.a")
+
+include_directories(${OPENSSL_INCLUDE_DIR})
+include_directories(${SRTP_INCLUDE_DIRS})
+
 ###################################################################
 # 编译openssl 1.1.1k
 
