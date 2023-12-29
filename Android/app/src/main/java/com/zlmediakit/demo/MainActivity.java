@@ -34,7 +34,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        String sd_dir = Environment.getExternalStoragePublicDirectory("").toString();
+        String sd_dir = Environment.getExternalStoragePublicDirectory("zlmediakit").toString();
         if(permissionSuccess){
             Toast.makeText(this,"你可以修改配置文件再启动：" + sd_dir + "/zlmediakit.ini" ,Toast.LENGTH_LONG).show();
             Toast.makeText(this,"SSL证书请放置在：" + sd_dir + "/zlmediakit.pem" ,Toast.LENGTH_LONG).show();
