@@ -69,12 +69,16 @@ CodecId getCodecByMovId(int object_id) {
     if (object_id == MOV_OBJECT_NONE) {
         return CodecInvalid;
     }
-    switch (object_id) {
-#define XX(name, type, value, str, mpeg_id, mp4_id) case mp4_id : return name;
-        CODEC_MAP(XX)
+
+#define XX(name, type, value, str, mpeg_id, mp4_id) { mp4_id, name },
+    static map<int, CodecId> s_map = { CODEC_MAP(XX) };
 #undef XX
-        default : WarnL << "Unsupported mov: " << object_id; return CodecInvalid;
+    auto it = s_map.find(object_id);
+    if (it == s_map.end()) {
+        WarnL << "Unsupported mov: " << object_id;
+        return CodecInvalid;
     }
+    return it->second;
 }
 #endif
 
@@ -89,17 +93,20 @@ int getMpegIdByCodec(CodecId codec) {
 }
 
 CodecId getCodecByMpegId(int mpeg_id) {
-    if (mpeg_id == PSI_STREAM_RESERVED) {
+    if (mpeg_id == PSI_STREAM_RESERVED || mpeg_id == 0xBD) {
+        // 海康的 PS 流中会有0xBD 的包
         return CodecInvalid;
     }
-    switch (mpeg_id) {
-#define XX(name, type, value, str, mpeg_id, mp4_id) case mpeg_id : return name;
-        CODEC_MAP(XX)
+
+#define XX(name, type, value, str, mpeg_id, mp4_id) { mpeg_id, name },
+    static map<int, CodecId> s_map = { CODEC_MAP(XX) };
 #undef XX
-        // 海康的 PS 流中会有0xBD 的包
-        case 0xBD: return CodecInvalid;
-        default : WarnL << "Unsupported mpeg: " << mpeg_id; return CodecInvalid;
+    auto it = s_map.find(mpeg_id);
+    if (it == s_map.end()) {
+        WarnL << "Unsupported mpeg: " << mpeg_id;
+        return CodecInvalid;
     }
+    return it->second;
 }
 
 #endif
