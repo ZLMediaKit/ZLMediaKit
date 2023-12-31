@@ -14,6 +14,7 @@
 #include "Rtcp.h"
 
 namespace mediakit {
+#pragma pack(push, 1)
 
 /////////////////////////////////////////// PSFB ////////////////////////////////////////////////////
 
@@ -375,6 +376,6 @@ private:
     // feedback packet count,反馈包号,本包是第几个transport-cc包，每次加1                          |
     uint8_t fb_pkt_count;
 };
-
+#pragma pack(pop)
 } // namespace mediakit
 #endif // ZLMEDIAKIT_RTCPFCI_H

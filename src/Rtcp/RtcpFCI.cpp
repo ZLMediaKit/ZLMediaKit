@@ -210,7 +210,7 @@ string FCI_NACK::dumpString() const {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+#pragma pack(push, 1)
 class RunLengthChunk {
 public:
     static size_t constexpr kSize = 2;
@@ -241,6 +241,7 @@ public:
     // 打印本对象
     string dumpString() const;
 };
+#pragma pack(pop)
 
 RunLengthChunk::RunLengthChunk(SymbolStatus status, uint16_t run_length) {
     type = 0;
@@ -261,7 +262,7 @@ string RunLengthChunk::dumpString() const {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+#pragma pack(push, 1)
 class StatusVecChunk {
 public:
     static size_t constexpr kSize = 2;
@@ -292,6 +293,7 @@ public:
     // 打印本对象
     string dumpString() const;
 };
+#pragma pack(pop)
 
 StatusVecChunk::StatusVecChunk(bool symbol_bit, const vector<SymbolStatus> &status) {
     CHECK(status.size() << symbol_bit <= 14);
