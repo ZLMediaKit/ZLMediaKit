@@ -96,7 +96,7 @@ protected:
     /**
      * 写m3u8文件回调
      */
-    virtual void onWriteHls(const std::string &data) = 0;
+    virtual void onWriteHls(const std::string &data, bool include_delay) = 0;
 
     /**
      * 上一个 ts 切片写入完成, 可在这里进行通知处理
@@ -115,7 +115,7 @@ private:
      * 生成m3u8文件
      * @param eof true代表点播
      */
-    void makeIndexFile(bool eof = false);
+    void makeIndexFile(bool include_delay, bool eof = false);
 
     /**
      * 删除旧的ts切片
