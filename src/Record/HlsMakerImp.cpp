@@ -21,11 +21,20 @@ using namespace toolkit;
 
 namespace mediakit {
 
+std::string getDelayPath(const std::string& originalPath) {
+    std::size_t pos = originalPath.find(".m3u8");
+    if (pos != std::string::npos) {
+        return originalPath.substr(0, pos) + "_delay.m3u8";
+    }
+    return originalPath;
+}
+
 HlsMakerImp::HlsMakerImp(bool is_fmp4, const string &m3u8_file, const string &params, uint32_t bufSize, float seg_duration,
                          uint32_t seg_number, bool seg_keep) : HlsMaker(is_fmp4, seg_duration, seg_number, seg_keep) {
     _poller = EventPollerPool::Instance().getPoller();
     _path_prefix = m3u8_file.substr(0, m3u8_file.rfind('/'));
     _path_hls = m3u8_file;
+    _path_hls_delay = getDelayPath(m3u8_file);
     _params = params;
     _buf_size = bufSize;
     _file_buf.reset(new char[bufSize], [](char *ptr) { delete[] ptr; });
@@ -62,6 +71,7 @@ void HlsMakerImp::clearCache(bool immediately, bool eof) {
     {
         std::list<std::string> lst;
         lst.emplace_back(_path_hls);
+        lst.emplace_back(_path_hls_delay);
         if (!_path_init.empty()) {
             lst.emplace_back(_path_init);
         }
@@ -146,8 +156,9 @@ void HlsMakerImp::onWriteSegment(const char *data, size_t len) {
     }
 }
 
-void HlsMakerImp::onWriteHls(const std::string &data) {
-    auto hls = makeFile(_path_hls);
+void HlsMakerImp::onWriteHls(const std::string &data, bool include_delay) {
+    auto path = include_delay ? _path_hls_delay : _path_hls;
+    auto hls = makeFile(path);
     if (hls) {
         fwrite(data.data(), data.size(), 1, hls.get());
         hls.reset();
@@ -155,7 +166,7 @@ void HlsMakerImp::onWriteHls(const std::string &data) {
             _media_src->setIndexFile(data);
         }
     } else {
-        WarnL << "Create hls file failed," << _path_hls << " " << get_uv_errmsg();
+        WarnL << "Create hls file failed," << path << " " << get_uv_errmsg();
     }
 }
 
