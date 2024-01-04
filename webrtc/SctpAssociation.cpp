@@ -674,14 +674,15 @@ namespace RTC
 
                     case SCTP_COMM_LOST:
                     {
-                        if (notification->sn_header.sn_length > 0)
+                        auto offset = (char *)&notification->sn_assoc_change.sac_info[0] - (char *)notification;
+                        auto len = (ptrdiff_t)notification->sn_assoc_change.sac_length - offset;
+
+                        if (len > 0)
                         {
                             static const size_t BufferSize{ 1024 };
                             static char buffer[BufferSize];
 
-                            uint32_t len = notification->sn_header.sn_length;
-
-                            for (uint32_t i{ 0 }; i < len; ++i)
+                            for (uint32_t i{ 0 }; i < (uint32_t)len; ++i)
                             {
                                 std::snprintf(
                                   buffer, BufferSize, " 0x%02x", notification->sn_assoc_change.sac_info[i]);
@@ -742,14 +743,15 @@ namespace RTC
 
                     case SCTP_CANT_STR_ASSOC:
                     {
-                        if (notification->sn_header.sn_length > 0)
+                        auto offset = (char *)&notification->sn_assoc_change.sac_info[0] - (char *)notification;
+                        auto len = (ptrdiff_t)notification->sn_assoc_change.sac_length - offset;
+
+                        if (len > 0)
                         {
                             static const size_t BufferSize{ 1024 };
                             static char buffer[BufferSize];
 
-                            uint32_t len = notification->sn_header.sn_length;
-
-                            for (uint32_t i{ 0 }; i < len; ++i)
+                            for (uint32_t i{ 0 }; i < (uint32_t)len; ++i)
                             {
                                 std::snprintf(
                                   buffer, BufferSize, " 0x%02x", notification->sn_assoc_change.sac_info[i]);
