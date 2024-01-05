@@ -674,15 +674,14 @@ namespace RTC
 
                     case SCTP_COMM_LOST:
                     {
-                        auto offset = (char *)&notification->sn_assoc_change.sac_info[0] - (char *)notification;
-                        auto len = (ptrdiff_t)notification->sn_assoc_change.sac_length - offset;
-
-                        if (len > 0)
+                        if (notification->sn_header.sn_length > 0)
                         {
                             static const size_t BufferSize{ 1024 };
-                            static char buffer[BufferSize];
+                            thread_local static char buffer[BufferSize];
 
-                            for (uint32_t i{ 0 }; i < (uint32_t)len; ++i)
+                            uint32_t len = notification->sn_assoc_change.sac_length - sizeof(struct sctp_assoc_change);
+
+                            for (uint32_t i{ 0 }; i < len; ++i)
                             {
                                 std::snprintf(
                                   buffer, BufferSize, " 0x%02x", notification->sn_assoc_change.sac_info[i]);
@@ -743,15 +742,14 @@ namespace RTC
 
                     case SCTP_CANT_STR_ASSOC:
                     {
-                        auto offset = (char *)&notification->sn_assoc_change.sac_info[0] - (char *)notification;
-                        auto len = (ptrdiff_t)notification->sn_assoc_change.sac_length - offset;
-
-                        if (len > 0)
+                        if (notification->sn_header.sn_length > 0)
                         {
                             static const size_t BufferSize{ 1024 };
-                            static char buffer[BufferSize];
+                            thread_local static char buffer[BufferSize];
 
-                            for (uint32_t i{ 0 }; i < (uint32_t)len; ++i)
+                            uint32_t len = notification->sn_assoc_change.sac_length - sizeof(struct sctp_assoc_change);
+
+                            for (uint32_t i{ 0 }; i < len; ++i)
                             {
                                 std::snprintf(
                                   buffer, BufferSize, " 0x%02x", notification->sn_assoc_change.sac_info[i]);
@@ -788,7 +786,7 @@ namespace RTC
             case SCTP_REMOTE_ERROR:
             {
                 static const size_t BufferSize{ 1024 };
-                static char buffer[BufferSize];
+                thread_local static char buffer[BufferSize];
 
                 uint32_t len = notification->sn_remote_error.sre_length - sizeof(struct sctp_remote_error);
 
@@ -824,7 +822,7 @@ namespace RTC
             case SCTP_SEND_FAILED_EVENT:
             {
                 static const size_t BufferSize{ 1024 };
-                static char buffer[BufferSize];
+                thread_local static char buffer[BufferSize];
 
                 uint32_t len =
                   notification->sn_send_failed_event.ssfe_length - sizeof(struct sctp_send_failed_event);
