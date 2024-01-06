@@ -62,9 +62,16 @@ public:
         _ring->getInfoList(cb, on_change);
     }
 
+    /**
+     * 设置清空缓存的标志位
+     */
+    void setClearCache(bool clear_cache) { _clear_cache = clear_cache; };
+
 private:
     RingType::Ptr _ring;
     std::string _index_file;
+    bool _clear_cache = false;
+    bool _registered = false;
     mutable std::mutex _mtx_index;
     toolkit::List<std::function<void(const std::string &)>> _list_cb;
 };

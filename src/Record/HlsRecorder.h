@@ -49,6 +49,7 @@ public:
         _enabled = _option.hls_demand ? (_hls->isLive() ? size : true) : true;
         if (!size && _hls->isLive() && _option.hls_demand) {
             // hls直播时，如果无人观看就删除视频缓存，目的是为了防止视频跳跃
+            _hls->getMediaSource()->setClearCache(true);
             _clear_cache = true;
         }
         MediaSourceEventInterceptor::onReaderChanged(sender, size);
@@ -59,6 +60,7 @@ public:
             _clear_cache = false;
             //清空旧的m3u8索引文件于ts切片
             _hls->clearCache();
+            _hls->getMediaSource()->setClearCache(false);
             _hls->getMediaSource()->setIndexFile("");
         }
         if (_enabled || !_option.hls_demand) {
