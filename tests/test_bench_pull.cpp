@@ -123,7 +123,7 @@ int main(int argc, char *argv[]) {
         auto tag = player.get();
         player->setOnCreateSocket([](const EventPoller::Ptr &poller) {
             //socket关闭互斥锁，提高性能
-            return std::make_shared<Socket>(poller, false);
+            return Socket::createSocket(poller, false);
         });
         //设置播放失败监听
         player->setOnPlayResult([&mtx, &player_map, tag](const SockException &ex) {
