@@ -162,7 +162,7 @@ void HlsMakerImp::onWriteHls(const std::string &data, bool include_delay) {
     if (hls) {
         fwrite(data.data(), data.size(), 1, hls.get());
         hls.reset();
-        if (_media_src) {
+        if (_media_src && !include_delay) {
             _media_src->setIndexFile(data);
         }
     } else {
