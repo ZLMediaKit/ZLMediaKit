@@ -349,6 +349,8 @@ extern const std::string kSegmentDuration;
 extern const std::string kSegmentNum;
 // 如果设置为0，则不保留切片，设置为1则一直保留切片
 extern const std::string kSegmentKeep;
+// HLS切片延迟个数，大于0将生成hls_delay.m3u8文件，0则不生成
+extern const std::string kSegmentDelay;
 // HLS切片从m3u8文件中移除后，继续保留在磁盘上的个数
 extern const std::string kSegmentRetain;
 // HLS文件写缓存大小

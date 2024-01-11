@@ -307,6 +307,7 @@ namespace Hls {
 const string kSegmentDuration = HLS_FIELD "segDur";
 const string kSegmentNum = HLS_FIELD "segNum";
 const string kSegmentKeep = HLS_FIELD "segKeep";
+const string kSegmentDelay = HLS_FIELD "segDelay";
 const string kSegmentRetain = HLS_FIELD "segRetain";
 const string kFileBufSize = HLS_FIELD "fileBufSize";
 const string kBroadcastRecordTs = HLS_FIELD "broadcastRecordTs";
@@ -317,6 +318,7 @@ static onceToken token([]() {
     mINI::Instance()[kSegmentDuration] = 2;
     mINI::Instance()[kSegmentNum] = 3;
     mINI::Instance()[kSegmentKeep] = false;
+    mINI::Instance()[kSegmentDelay] = 0;
     mINI::Instance()[kSegmentRetain] = 5;
     mINI::Instance()[kFileBufSize] = 64 * 1024;
     mINI::Instance()[kBroadcastRecordTs] = false;

@@ -370,7 +370,7 @@ if(ENABLE_JEMALLOC_STATIC)
     set(ENABLE_JEMALLOC_STAT OFF)
   endif ()
   include(Jemalloc)
-  include_directories(SYSTEM ${DEP_ROOT_DIR}/${JEMALLOC_NAME}/include/jemalloc)
+  include_directories(SYSTEM ${DEP_ROOT_DIR}/${JEMALLOC_NAME}/include)
   link_directories(${DEP_ROOT_DIR}/${JEMALLOC_NAME}/lib)
   # 用于影响后续查找过程
   # Used to affect subsequent lookup process
