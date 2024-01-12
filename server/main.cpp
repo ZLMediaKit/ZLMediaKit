@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -203,11 +203,6 @@ public:
                              "日志保存文件夹路径",/*该选项说明文字*/
                              nullptr);
     }
-
-    ~CMD_main() override{}
-    const char *description() const override{
-        return "主程序命令参数";
-    }
 };
 
 //全局变量，在WebApi中用于保存配置文件用
@@ -263,14 +258,14 @@ int start_main(int argc,char *argv[]) {
         //加载配置文件，如果配置文件不存在就创建一个
         loadIniConfig(g_ini_file.data());
 
-        if (!File::is_dir(ssl_file.data())) {
-            //不是文件夹，加载证书，证书包含公钥和私钥
+        if (!File::is_dir(ssl_file)) {
+            // 不是文件夹，加载证书，证书包含公钥和私钥
             SSL_Initor::Instance().loadCertificate(ssl_file.data());
         } else {
             //加载文件夹下的所有证书
-            File::scanDir(ssl_file, [](const string &path, bool isDir) {
+            File::scanDir(ssl_file,[](const string &path, bool isDir){
                 if (!isDir) {
-                    //最后的一个证书会当做默认证书(客户端ssl握手时未指定主机)
+                    // 最后的一个证书会当做默认证书(客户端ssl握手时未指定主机)
                     SSL_Initor::Instance().loadCertificate(path.data());
                 }
                 return true;
@@ -290,6 +285,7 @@ int start_main(int argc,char *argv[]) {
         //如果需要调用getSnap和addFFmpegSource接口，可以关闭cpu亲和性
 
         EventPollerPool::setPoolSize(threads);
+        WorkThreadPool::setPoolSize(threads);
         EventPollerPool::enableCpuAffinity(affinity);
 
         //简单的telnet服务器，可用于服务器调试，但是不能使用23端口，否则telnet上了莫名其妙的现象
@@ -350,6 +346,11 @@ int start_main(int argc,char *argv[]) {
         uint16_t srtPort = mINI::Instance()[SRT::kPort];
 #endif //defined(ENABLE_SRT)
 
+        installWebApi();
+        InfoL << "已启动http api 接口";
+        installWebHook();
+        InfoL << "已启动http hook 接口";
+
         try {
             auto &secret = mINI::Instance()[API::kSecret];
             if (secret == "035c73f7-bb6b-4889-a715-d9eb2d1925cc" || secret.empty()) {
@@ -406,11 +407,6 @@ int start_main(int argc,char *argv[]) {
 #endif
             return -1;
         }
-
-        installWebApi();
-        InfoL << "已启动http api 接口";
-        installWebHook();
-        InfoL << "已启动http hook 接口";
 
         //设置退出信号处理函数
         static semaphore sem;

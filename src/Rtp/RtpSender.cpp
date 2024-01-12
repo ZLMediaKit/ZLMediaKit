@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -140,7 +140,7 @@ void RtpSender::startSend(const MediaSourceEvent::SendRtpArgs &args, const funct
                     cb(0, SockException(Err_other, ex.what()));
                     return;
                 }
-                strong_self->_socket_rtp->bindPeerAddr((struct sockaddr *)&addr);
+                strong_self->_socket_rtp->bindPeerAddr((struct sockaddr *)&addr, 0, true);
                 strong_self->onConnect();
                 cb(strong_self->_socket_rtp->get_local_port(), SockException());
             });
@@ -173,16 +173,9 @@ void RtpSender::createRtcpSocket() {
         return;
     }
 
-    struct sockaddr_storage addr;
-    //目标rtp端口
-    SockUtil::get_sock_peer_addr(_socket_rtp->rawFD(), addr);
-    //绑定目标rtcp端口(目标rtp端口 + 1)
-    switch (addr.ss_family) {
-        case AF_INET: ((sockaddr_in *)&addr)->sin_port = htons(ntohs(((sockaddr_in *)&addr)->sin_port) + 1); break;
-        case AF_INET6: ((sockaddr_in6 *)&addr)->sin6_port = htons(ntohs(((sockaddr_in6 *)&addr)->sin6_port) + 1); break;
-        default: assert(0); break;
-    }
-    _socket_rtcp->bindPeerAddr((struct sockaddr *)&addr);
+    // 绑定目标rtcp端口(目标rtp端口 + 1)
+    auto addr = SockUtil::make_sockaddr(_socket_rtp->get_peer_ip().data(), _socket_rtp->get_peer_port() + 1);
+    _socket_rtcp->bindPeerAddr((struct sockaddr *)&addr, 0, true);
 
     _rtcp_context = std::make_shared<RtcpContextForSend>();
     weak_ptr<RtpSender> weak_self = shared_from_this();
@@ -286,7 +279,7 @@ void RtpSender::onSendRtpUdp(const toolkit::Buffer::Ptr &buf, bool check) {
         return;
     }
     auto rtp = static_pointer_cast<RtpPacket>(buf);
-    _rtcp_context->onRtp(rtp->getSeq(), rtp->getStamp(), rtp->getStampMS(), 90000 /*not used*/, rtp->size());
+    _rtcp_context->onRtp(rtp->getSeq(), rtp->getStamp(), rtp->ntp_stamp, 90000 /*not used*/, rtp->size());
 
     if (!check) {
         //减少判断次数

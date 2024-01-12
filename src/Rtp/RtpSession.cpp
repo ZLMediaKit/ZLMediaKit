@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -35,7 +35,8 @@ void RtpSession::setParams(mINI &ini) {
     _only_audio = ini[kOnlyAudio];
 }
 
-RtpSession::RtpSession(const Socket::Ptr &sock) : Session(sock) {
+RtpSession::RtpSession(const Socket::Ptr &sock)
+    : Session(sock) {
     socklen_t addr_len = sizeof(_addr);
     getpeername(sock->rawFD(), (struct sockaddr *)&_addr, &addr_len);
     _is_udp = sock->sockType() == SockNum::Sock_UDP;
@@ -45,11 +46,7 @@ RtpSession::RtpSession(const Socket::Ptr &sock) : Session(sock) {
     }
 }
 
-RtpSession::~RtpSession() {
-    if(_process){
-        RtpSelector::Instance().delProcess(_stream_id,_process.get());
-    }
-}
+RtpSession::~RtpSession() = default;
 
 void RtpSession::onRecv(const Buffer::Ptr &data) {
     if (_is_udp) {
@@ -61,14 +58,17 @@ void RtpSession::onRecv(const Buffer::Ptr &data) {
 
 void RtpSession::onError(const SockException &err) {
     WarnP(this) << _stream_id << " " << err;
+    if (_process) {
+        RtpSelector::Instance().delProcess(_stream_id, _process.get());
+    }
 }
 
 void RtpSession::onManager() {
-    if(_process && !_process->alive()){
+    if (_process && !_process->alive()) {
         shutdown(SockException(Err_timeout, "receive rtp timeout"));
     }
 
-    if(!_process && _ticker.createdTime() > 10 * 1000){
+    if (!_process && _ticker.createdTime() > 10 * 1000) {
         shutdown(SockException(Err_timeout, "illegal connection"));
     }
 }
@@ -139,8 +139,15 @@ void RtpSession::onRtpPacket(const char *data, size_t len) {
         } else {
             throw;
         }
-    } catch (...) {
-        throw;
+    } catch (std::exception &ex) {
+        if (!_is_udp) {
+            // tcp情况下立即断开连接
+            throw;
+        }
+        // udp情况下延时断开连接(等待超时自动关闭)，防止频繁创建销毁RtpSession对象
+        WarnP(this) << ex.what();
+        _delay_close = true;
+        return;
     }
     _ticker.resetTime();
 }
@@ -153,59 +160,115 @@ bool RtpSession::close(MediaSource &sender) {
 }
 
 static const char *findSSRC(const char *data, ssize_t len, uint32_t ssrc) {
-    //rtp前面必须预留两个字节的长度字段
+    // rtp前面必须预留两个字节的长度字段
     for (ssize_t i = 2; i <= len - 4; ++i) {
-        auto ptr = (const uint8_t *) data + i;
-        if (ptr[0] == (ssrc >> 24) && ptr[1] == ((ssrc >> 16) & 0xFF) &&
-            ptr[2] == ((ssrc >> 8) & 0xFF) && ptr[3] == (ssrc & 0xFF)) {
-            return (const char *) ptr;
+        auto ptr = (const uint8_t *)data + i;
+        if (ptr[0] == (ssrc >> 24) && ptr[1] == ((ssrc >> 16) & 0xFF) && ptr[2] == ((ssrc >> 8) & 0xFF)
+            && ptr[3] == (ssrc & 0xFF)) {
+            return (const char *)ptr;
         }
     }
     return nullptr;
 }
 
-//rtp长度到ssrc间的长度固定为10
+static const char *findPsHeaderFlag(const char *data, ssize_t len) {
+    for (ssize_t i = 2; i <= len - 4; ++i) {
+        auto ptr = (const uint8_t *)data + i;
+        // PsHeader 0x000001ba、PsSystemHeader0x000001bb（关键帧标识）
+        if (ptr[0] == (0x00) && ptr[1] == (0x00) && ptr[2] == (0x01) && ptr[3] == (0xbb)) {
+            return (const char *)ptr;
+        }
+    }
+
+    return nullptr;
+}
+
+// rtp长度到ssrc间的长度固定为10
 static size_t constexpr kSSRCOffset = 2 + 4 + 4;
+// rtp长度到ps header间的长度固定为14 （暂时不采用找ps header,采用找system header代替）
+// rtp长度到ps system header间的长度固定为20 (关键帧标识)
+static size_t constexpr kPSHeaderOffset = 2 + 4 + 4 + 4 + 20;
 
 const char *RtpSession::onSearchPacketTail(const char *data, size_t len) {
     if (!_search_rtp) {
-        //tcp上下文正常，不用搜索ssrc
+        // tcp上下文正常，不用搜索ssrc
         return RtpSplitter::onSearchPacketTail(data, len);
     }
     if (!_process) {
-        throw SockException(Err_shutdown, "ssrc未获取到，无法通过ssrc恢复tcp上下文");
+        InfoL << "ssrc未获取到，无法通过ssrc恢复tcp上下文；尝试搜索PsSystemHeader恢复tcp上下文。";
+        auto rtp_ptr1 = searchByPsHeaderFlag(data, len);
+        return rtp_ptr1;
     }
-    //搜索第一个rtp的ssrc
+    auto rtp_ptr0 = searchBySSRC(data, len);
+    if (rtp_ptr0) {
+        return rtp_ptr0;
+    }
+    // ssrc搜索失败继续尝试搜索ps header flag
+    auto rtp_ptr2 = searchByPsHeaderFlag(data, len);
+    return rtp_ptr2;
+}
+
+const char *RtpSession::searchBySSRC(const char *data, size_t len) {
+    InfoL << "尝试rtp搜索ssrc..._ssrc=" << _ssrc;
+    // 搜索第一个rtp的ssrc
     auto ssrc_ptr0 = findSSRC(data, len, _ssrc);
     if (!ssrc_ptr0) {
-        //未搜索到任意rtp，返回数据不够
+        // 未搜索到任意rtp，返回数据不够
+        InfoL << "rtp搜索ssrc失败（第一个数据不够），丢弃rtp数据为：" << len;
         return nullptr;
     }
-    //这两个字节是第一个rtp的长度字段
+    // 这两个字节是第一个rtp的长度字段
     auto rtp_len_ptr = (ssrc_ptr0 - kSSRCOffset);
     auto rtp_len = ((uint8_t *)rtp_len_ptr)[0] << 8 | ((uint8_t *)rtp_len_ptr)[1];
 
-    //搜索第二个rtp的ssrc
-    auto ssrc_ptr1 = findSSRC(ssrc_ptr0 + rtp_len, data + (ssize_t) len - ssrc_ptr0 - rtp_len, _ssrc);
+    // 搜索第二个rtp的ssrc
+    auto ssrc_ptr1 = findSSRC(ssrc_ptr0 + rtp_len, data + (ssize_t)len - ssrc_ptr0 - rtp_len, _ssrc);
     if (!ssrc_ptr1) {
-        //未搜索到第二个rtp，返回数据不够
+        // 未搜索到第二个rtp，返回数据不够
+        InfoL << "rtp搜索ssrc失败(第二个数据不够)，丢弃rtp数据为：" << len;
         return nullptr;
     }
 
-    //两个ssrc的间隔正好等于rtp的长度(外加rtp长度字段)，那么说明找到rtp
+    // 两个ssrc的间隔正好等于rtp的长度(外加rtp长度字段)，那么说明找到rtp
     auto ssrc_offset = ssrc_ptr1 - ssrc_ptr0;
     if (ssrc_offset == rtp_len + 2 || ssrc_offset == rtp_len + 4) {
-        InfoL << "rtp搜索成功，tcp上下文恢复成功，丢弃的rtp残余数据为：" << rtp_len_ptr - data;
+        InfoL << "rtp搜索ssrc成功，tcp上下文恢复成功，丢弃的rtp残余数据为：" << rtp_len_ptr - data;
         _search_rtp_finished = true;
         if (rtp_len_ptr == data) {
-            //停止搜索rtp，否则会进入死循环
+            // 停止搜索rtp，否则会进入死循环
             _search_rtp = false;
         }
-        //前面的数据都需要丢弃，这个是rtp的起始
+        // 前面的数据都需要丢弃，这个是rtp的起始
         return rtp_len_ptr;
     }
-    //第一个rtp长度不匹配，说明第一个找到的ssrc不是rtp，丢弃之，我们从第二个ssrc所在rtp开始搜索
+    // 第一个rtp长度不匹配，说明第一个找到的ssrc不是rtp，丢弃之，我们从第二个ssrc所在rtp开始搜索
     return ssrc_ptr1 - kSSRCOffset;
+}
+
+const char *RtpSession::searchByPsHeaderFlag(const char *data, size_t len) {
+    InfoL << "尝试rtp搜索PsSystemHeaderFlag..._ssrc=" << _ssrc;
+    // 搜索rtp中的第一个PsHeaderFlag
+    auto ps_header_flag_ptr = findPsHeaderFlag(data, len);
+    if (!ps_header_flag_ptr) {
+        InfoL << "rtp搜索flag失败，丢弃rtp数据为：" << len;
+        return nullptr;
+    }
+
+    auto rtp_ptr = ps_header_flag_ptr - kPSHeaderOffset;
+    _search_rtp_finished = true;
+    if (rtp_ptr == data) {
+        // 停止搜索rtp，否则会进入死循环
+        _search_rtp = false;
+    }
+    InfoL << "rtp搜索flag成功，tcp上下文恢复成功，丢弃的rtp残余数据为：" << rtp_ptr - data;
+
+    // TODO or Not ? 更新设置ssrc
+    uint32_t rtp_ssrc = 0;
+    RtpSelector::getSSRC(rtp_ptr + 2, len, rtp_ssrc);
+    _ssrc = rtp_ssrc;
+    InfoL << "设置_ssrc为：" << _ssrc;
+    // RtpServer::updateSSRC(uint32_t ssrc)
+    return rtp_ptr;
 }
 
 }//namespace mediakit

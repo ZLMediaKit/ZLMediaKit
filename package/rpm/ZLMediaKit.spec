@@ -18,13 +18,13 @@
 %bcond_with cxx_api
 
 Name:		ZLMediaKit
-Version:	5.0.0
+Version:	8.0.0
 Release:	1%{?dist}
 Summary:	A lightweight, high performance and stable stream server and client framework based on C++11.
 
 Group:		development
 License:	MIT
-URL:		https://github.com/xia-chu/ZLMediaKit
+URL:		https://github.com/ZLMediaKit/ZLMediaKit
 Source0:	%{name}-%{version}.tar.xz
 
 %if %{with openssl}

@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -146,15 +146,13 @@ void RtmpDemuxer::makeVideoTrack(const Track::Ptr &track, int bit_rate) {
         return;
     }
     // 生成rtmpCodec对象以便解码rtmp
-    _video_rtmp_decoder = Factory::getRtmpCodecByTrack(_video_track, false);
+    _video_rtmp_decoder = Factory::getRtmpDecoderByTrack(_video_track);
     if (!_video_rtmp_decoder) {
         // 找不到相应的rtmp解码器，该track无效
         _video_track.reset();
         return;
     }
     _video_track->setBitRate(bit_rate);
-    // 设置rtmp解码器代理，生成的frame写入该Track
-    _video_rtmp_decoder->addDelegate(_video_track);
     addTrack(_video_track);
     _try_get_video_track = true;
 }
@@ -169,15 +167,13 @@ void RtmpDemuxer::makeAudioTrack(const AMFValue &audioCodec, int sample_rate, in
         return;
     }
     // 生成rtmpCodec对象以便解码rtmp
-    _audio_rtmp_decoder = Factory::getRtmpCodecByTrack(_audio_track, false);
+    _audio_rtmp_decoder = Factory::getRtmpDecoderByTrack(_audio_track);
     if (!_audio_rtmp_decoder) {
         // 找不到相应的rtmp解码器，该track无效
         _audio_track.reset();
         return;
     }
     _audio_track->setBitRate(bit_rate);
-    // 设置rtmp解码器代理，生成的frame写入该Track
-    _audio_rtmp_decoder->addDelegate(_audio_track);
     addTrack(_audio_track);
     _try_get_audio_track = true;
 }

@@ -1,9 +1,10 @@
 {
 	"info": {
-		"_postman_id": "39e8a1df-cc8e-4e3f-bf5e-197c86e7bf0f",
+		"_postman_id": "509e5f6b-728c-4d5f-b3e8-521d76b2cc7a",
 		"name": "ZLMediaKit",
 		"description": "媒体服务器",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "29185956"
 	},
 	"item": [
 		{
@@ -918,7 +919,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{ZLMediaKit_URL}}/index/api/broadcastMessage?secret={{ZLMediaKit_secret}}&schema=rtsp&vhost={{defaultVhost}}&app=live&stream=test&msg=Hello zlmediakit123",
+					"raw": "{{ZLMediaKit_URL}}/index/api/broadcastMessage?secret={{ZLMediaKit_secret}}&schema=rtsp&vhost={{defaultVhost}}&app=live&stream=test&msg=Hello ZLMediakit",
 					"host": [
 						"{{ZLMediaKit_URL}}"
 					],
@@ -1247,7 +1248,7 @@
 						},
 						{
 							"key": "stamp",
-							"value": 1000,
+							"value": "1000",
 							"description": "要设置的录像播放位置"
 						}
 					]
@@ -1470,6 +1471,53 @@
 						{
 							"key": "only_audio",
 							"value": "1",
+							"description": "是否为单音频track，用于语音对讲",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "创建多路复用RTP服务器(openRtpServerMultiplex)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/openRtpServer?secret={{ZLMediaKit_secret}}&port=0&tcp_mode=1&stream_id=test",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"openRtpServer"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)"
+						},
+						{
+							"key": "port",
+							"value": "0",
+							"description": "绑定的端口，0时为随机端口"
+						},
+						{
+							"key": "tcp_mode",
+							"value": "1",
+							"description": "tcp模式，0时为不启用tcp监听，1时为启用tcp监听"
+						},
+						{
+							"key": "stream_id",
+							"value": "test",
+							"description": "该端口绑定的流id\n"
+						},
+						{
+							"key": "only_audio",
+							"value": "0",
 							"description": "是否为单音频track，用于语音对讲",
 							"disabled": true
 						}
@@ -1711,9 +1759,15 @@
 							"description": "流id，例如 obs"
 						},
 						{
+							"key": "ssrc_multi_send",
+							"value": "0",
+							"description": "是否支持同ssrc推流到多个上级服务器,该参数非必选参数 默认false",
+							"disabled": true
+						},
+						{
 							"key": "ssrc",
 							"value": "1",
-							"description": "rtp推流的ssrc，ssrc不同时，可以推流到多个上级服务器"
+							"description": "rtp推流的ssrc"
 						},
 						{
 							"key": "dst_url",
@@ -1989,6 +2043,174 @@
 						{
 							"key": "key",
 							"value": "rtmp/__defaultVhost__/live/test/f40a8ab006cac16ecc0858409e890491"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "点播mp4文件(loadMP4File)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/loadMP4File?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=live&stream=test&file_path=/path/to/mp4/file.mp4",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"loadMP4File"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "添加的流的虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "live",
+							"description": "添加的流的应用名，例如live"
+						},
+						{
+							"key": "stream",
+							"value": "test",
+							"description": "添加的流的id名，例如test"
+						},
+						{
+							"key": "file_path",
+							"value": "/path/to/mp4/file.mp4",
+							"description": "mp4文件绝对路径"
+						},
+						{
+							"key": "file_repeat",
+							"value": "1",
+							"description": "是否循环点播mp4文件，如果配置文件已经开启循环点播，此参数无效",
+							"disabled": true
+						},
+						{
+							"key": "enable_hls",
+							"value": "",
+							"description": "是否转hls-ts",
+							"disabled": true
+						},
+						{
+							"key": "enable_hls_fmp4",
+							"value": "",
+							"description": "是否转hls-fmp4",
+							"disabled": true
+						},
+						{
+							"key": "enable_mp4",
+							"value": "",
+							"description": "是否mp4录制，默认不开启(覆盖配置文件)",
+							"disabled": true
+						},
+						{
+							"key": "enable_rtsp",
+							"value": "1",
+							"description": "是否转协议为rtsp/webrtc",
+							"disabled": true
+						},
+						{
+							"key": "enable_rtmp",
+							"value": "1",
+							"description": "是否转协议为rtmp/flv",
+							"disabled": true
+						},
+						{
+							"key": "enable_ts",
+							"value": "1",
+							"description": "是否转协议为http-ts/ws-ts",
+							"disabled": true
+						},
+						{
+							"key": "enable_fmp4",
+							"value": "1",
+							"description": "是否转协议为http-fmp4/ws-fmp4",
+							"disabled": true
+						},
+						{
+							"key": "enable_audio",
+							"value": "1",
+							"description": "转协议是否开启音频",
+							"disabled": true
+						},
+						{
+							"key": "add_mute_audio",
+							"value": "1",
+							"description": "转协议无音频时，是否添加静音aac音频",
+							"disabled": true
+						},
+						{
+							"key": "mp4_save_path",
+							"value": "",
+							"description": "mp4录制保存根目录，置空使用默认目录",
+							"disabled": true
+						},
+						{
+							"key": "mp4_max_second",
+							"value": "1800",
+							"description": "mp4录制切片大小，单位秒",
+							"disabled": true
+						},
+						{
+							"key": "hls_save_path",
+							"value": "",
+							"description": "hls保存根目录，置空使用默认目录",
+							"disabled": true
+						},
+						{
+							"key": "modify_stamp",
+							"value": "",
+							"description": "是否修改原始时间戳，默认值2；取值范围：0.采用源视频流绝对时间戳，不做任何改变;1.采用zlmediakit接收数据时的系统时间戳(有平滑处理);2.采用源视频流时间戳相对时间戳(增长量)，有做时间戳跳跃和回退矫正",
+							"disabled": true
+						},
+						{
+							"key": "auto_close",
+							"value": "",
+							"description": "无人观看时，是否直接关闭(而不是通过on_none_reader hook返回close)；强制开启，此参数不生效",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "下载文件(downloadFile)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/downloadFile?file_path=/path/to/file.ext",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"downloadFile"
+					],
+					"query": [
+						{
+							"key": "file_path",
+							"value": "/path/to/file.ext",
+							"description": "文件绝对路径，根据文件名生成Content-Type；该接口将触发on_http_access hook"
+						},
+						{
+							"key": "save_name",
+							"value": "test",
+							"description": "浏览器下载文件后保存文件名；可选参数",
+							"disabled": true
 						}
 					]
 				}

@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -28,8 +28,7 @@ public:
     static constexpr SEQ SEQ_MAX = (std::numeric_limits<SEQ>::max)();
     using iterator = typename std::map<SEQ, T>::iterator;
 
-    PacketSortor() = default;
-    ~PacketSortor() = default;
+    virtual ~PacketSortor() = default;
 
     void setOnSort(std::function<void(SEQ seq, T packet)> cb) { _cb = std::move(cb); }
 
@@ -201,11 +200,9 @@ public:
     public:
         template<typename Type>
         BadRtpException(Type &&type) : invalid_argument(std::forward<Type>(type)) {}
-        ~BadRtpException() = default;
     };
 
     RtpTrack();
-    virtual ~RtpTrack() = default;
 
     void clear();
     uint32_t getSSRC() const;
@@ -229,9 +226,6 @@ class RtpTrackImp : public RtpTrack{
 public:
     using OnSorted = std::function<void(RtpPacket::Ptr)>;
     using BeforeSorted = std::function<void(const RtpPacket::Ptr &)>;
-
-    RtpTrackImp() = default;
-    ~RtpTrackImp() override = default;
 
     void setOnSorted(OnSorted cb);
     void setBeforeSorted(BeforeSorted cb);

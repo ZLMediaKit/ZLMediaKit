@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -21,11 +21,20 @@ using namespace toolkit;
 
 namespace mediakit {
 
+std::string getDelayPath(const std::string& originalPath) {
+    std::size_t pos = originalPath.find(".m3u8");
+    if (pos != std::string::npos) {
+        return originalPath.substr(0, pos) + "_delay.m3u8";
+    }
+    return originalPath;
+}
+
 HlsMakerImp::HlsMakerImp(bool is_fmp4, const string &m3u8_file, const string &params, uint32_t bufSize, float seg_duration,
                          uint32_t seg_number, bool seg_keep) : HlsMaker(is_fmp4, seg_duration, seg_number, seg_keep) {
     _poller = EventPollerPool::Instance().getPoller();
     _path_prefix = m3u8_file.substr(0, m3u8_file.rfind('/'));
     _path_hls = m3u8_file;
+    _path_hls_delay = getDelayPath(m3u8_file);
     _params = params;
     _buf_size = bufSize;
     _file_buf.reset(new char[bufSize], [](char *ptr) { delete[] ptr; });
@@ -45,6 +54,13 @@ void HlsMakerImp::clearCache() {
     clearCache(true, false);
 }
 
+static void clearHls(const std::list<std::string> &files) {
+    for (auto &file : files) {
+        File::delete_file(file);
+    }
+    File::deleteEmptyDir(File::parentDir(files.back()));
+}
+
 void HlsMakerImp::clearCache(bool immediately, bool eof) {
     // 录制完了
     flushLastSegment(eof);
@@ -52,21 +68,32 @@ void HlsMakerImp::clearCache(bool immediately, bool eof) {
         return;
     }
 
+    {
+        std::list<std::string> lst;
+        lst.emplace_back(_path_hls);
+        lst.emplace_back(_path_hls_delay);
+        if (!_path_init.empty()) {
+            lst.emplace_back(_path_init);
+        }
+        for (auto &pr : _segment_file_paths) {
+            lst.emplace_back(std::move(pr.second));
+        }
+
+        // hls直播才删除文件
+        GET_CONFIG(uint32_t, delay, Hls::kDeleteDelaySec);
+        if (!delay || immediately) {
+            clearHls(lst);
+        } else {
+            _poller->doDelayTask(delay * 1000, [lst]() {
+                clearHls(lst);
+                return 0;
+            });
+        }
+    }
+
     clear();
     _file = nullptr;
     _segment_file_paths.clear();
-
-    // hls直播才删除文件
-    GET_CONFIG(uint32_t, delay, Hls::kDeleteDelaySec);
-    if (!delay || immediately) {
-        File::delete_file(_path_prefix.data());
-    } else {
-        auto path_prefix = _path_prefix;
-        _poller->doDelayTask(delay * 1000, [path_prefix]() {
-            File::delete_file(path_prefix.data());
-            return 0;
-        });
-    }
 }
 
 string HlsMakerImp::onOpenSegment(uint64_t index) {
@@ -103,16 +130,17 @@ void HlsMakerImp::onDelSegment(uint64_t index) {
     if (it == _segment_file_paths.end()) {
         return;
     }
-    File::delete_file(it->second.data());
+    File::delete_file(it->second.data(), true);
     _segment_file_paths.erase(it);
 }
 
 void HlsMakerImp::onWriteInitSegment(const char *data, size_t len) {
     string init_seg_path = _path_prefix + "/init.mp4";
-    _file = makeFile(init_seg_path, true);
+    _file = makeFile(init_seg_path);
 
     if (_file) {
         fwrite(data, len, 1, _file.get());
+        _path_init = std::move(init_seg_path);
         _file = nullptr;
     } else {
         WarnL << "Create file failed," << init_seg_path << " " << get_uv_errmsg();
@@ -128,16 +156,17 @@ void HlsMakerImp::onWriteSegment(const char *data, size_t len) {
     }
 }
 
-void HlsMakerImp::onWriteHls(const std::string &data) {
-    auto hls = makeFile(_path_hls);
+void HlsMakerImp::onWriteHls(const std::string &data, bool include_delay) {
+    auto path = include_delay ? _path_hls_delay : _path_hls;
+    auto hls = makeFile(path);
     if (hls) {
         fwrite(data.data(), data.size(), 1, hls.get());
         hls.reset();
-        if (_media_src) {
+        if (_media_src && !include_delay) {
             _media_src->setIndexFile(data);
         }
     } else {
-        WarnL << "Create hls file failed," << _path_hls << " " << get_uv_errmsg();
+        WarnL << "Create hls file failed," << path << " " << get_uv_errmsg();
     }
 }
 

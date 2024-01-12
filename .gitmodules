@@ -7,3 +7,6 @@
 [submodule "3rdpart/jsoncpp"]
 	path = 3rdpart/jsoncpp
 	url = https://gitee.com/mirrors/jsoncpp.git
+[submodule "www/webassist"]
+	path = www/webassist
+	url = https://gitee.com/victor1002/zlm_webassist

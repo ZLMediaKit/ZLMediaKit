@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -29,9 +29,6 @@ namespace mediakit {
 
 class HttpArgs : public std::map<std::string, toolkit::variant, StrCaseCompare> {
 public:
-    HttpArgs() = default;
-    ~HttpArgs() = default;
-
     std::string make() const {
         std::string ret;
         for (auto &pr : *this) {
@@ -51,9 +48,6 @@ class HttpClient : public toolkit::TcpClient, public HttpRequestSplitter {
 public:
     using HttpHeader = StrCaseMap;
     using Ptr = std::shared_ptr<HttpClient>;
-
-    HttpClient() = default;
-    ~HttpClient() override = default;
 
     /**
      * 发送http[s]请求
@@ -141,6 +135,18 @@ public:
      */
     void setCompleteTimeout(size_t timeout_ms);
 
+    /**
+     * 设置http代理url
+     */
+    void setProxyUrl(std::string proxy_url);
+
+    /**
+     * 当重用连接失败时, 是否允许重新发起请求
+     * If the reuse connection fails, whether to allow the request to be resent
+     * @param allow true:允许重新发起请求 / true: allow the request to be resent
+     */
+    void setAllowResendRequest(bool allow);
+
 protected:
     /**
      * 收到http回复头
@@ -181,16 +187,23 @@ protected:
     void onFlush() override;
     void onManager() override;
 
+    void clearResponse();
+
+    bool checkProxyConnected(const char *data, size_t len);
+    bool isUsedProxy() const;
+    bool isProxyConnected() const;
+
 private:
     void onResponseCompleted_l(const toolkit::SockException &ex);
     void onConnect_l(const toolkit::SockException &ex);
     void checkCookie(HttpHeader &headers);
-    void clearResponse();
 
 private:
     //for http response
     bool _complete = false;
     bool _header_recved = false;
+    bool _http_persistent = true;
+    bool _allow_resend_request = false;
     size_t _recved_body_size;
     ssize_t _total_body_size;
     Parser _parser;
@@ -215,6 +228,13 @@ private:
     toolkit::Ticker _wait_header;
     toolkit::Ticker _wait_body;
     toolkit::Ticker _wait_complete;
+
+    bool _used_proxy = false;
+    bool _proxy_connected = false;
+    uint16_t _proxy_port;
+    std::string _proxy_url;
+    std::string _proxy_host;
+    std::string _proxy_auth;
 };
 
 } /* namespace mediakit */

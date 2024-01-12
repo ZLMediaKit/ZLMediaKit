@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -25,7 +25,7 @@ void HttpDownloader::startDownload(const string &url, const string &file_path, b
     if (_file_path.empty()) {
         _file_path = exeDir() + "HttpDownloader/" + MD5(url).hexdigest();
     }
-    _save_file = File::create_file(_file_path.data(), append ? "ab" : "wb");
+    _save_file = File::create_file(_file_path, append ? "ab" : "wb");
     if (!_save_file) {
         auto strErr = StrPrinter << "打开文件失败:" << file_path << endl;
         throw std::runtime_error(strErr);

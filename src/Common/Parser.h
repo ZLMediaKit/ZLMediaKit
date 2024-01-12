@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -21,6 +21,8 @@ namespace mediakit {
 std::string findSubString(const char *buf, const char *start, const char *end, size_t buf_size = 0);
 // 把url解析为主机地址和端口号,兼容ipv4/ipv6/dns
 void splitUrl(const std::string &url, std::string &host, uint16_t &port);
+// 解析proxy url,仅支持http
+void parseProxyUrl(const std::string &proxy_url, std::string &proxy_host, uint16_t &proxy_port, std::string &proxy_auth);
 
 struct StrCaseCompare {
     bool operator()(const std::string &__x, const std::string &__y) const { return strcasecmp(__x.data(), __y.data()) < 0; }
@@ -29,8 +31,6 @@ struct StrCaseCompare {
 class StrCaseMap : public std::multimap<std::string, std::string, StrCaseCompare> {
 public:
     using Super = multimap<std::string, std::string, StrCaseCompare>;
-    StrCaseMap() = default;
-    ~StrCaseMap() = default;
 
     std::string &operator[](const std::string &k) {
         auto it = find(k);
@@ -58,9 +58,6 @@ public:
 // rtsp/http/sip解析类
 class Parser {
 public:
-    Parser() = default;
-    ~Parser() = default;
-
     // 解析http/rtsp/sip请求，需要确保buf以\0结尾
     void parse(const char *buf, size_t size);
 
@@ -130,8 +127,6 @@ public:
     std::string _host;
 
 public:
-    RtspUrl() = default;
-    ~RtspUrl() = default;
     void parse(const std::string &url);
 
 private:

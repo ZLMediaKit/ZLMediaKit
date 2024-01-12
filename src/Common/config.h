@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -106,7 +106,7 @@ extern const std::string kBroadcastReloadConfig;
 #define BroadcastReloadConfigArgs void
 
 // rtp server 超时
-extern const std::string KBroadcastRtpServerTimeout;
+extern const std::string kBroadcastRtpServerTimeout;
 #define BroadcastRtpServerTimeoutArgs uint16_t &local_port, const string &stream_id,int &tcp_mode, bool &re_use_port, uint32_t &ssrc
 
 #define ReloadConfigTag ((void *)(0xFF))
@@ -196,6 +196,9 @@ extern const std::string kAddMuteAudio;
 extern const std::string kAutoClose;
 //断连续推延时，单位毫秒，默认采用配置文件
 extern const std::string kContinuePushMS;
+// 平滑发送定时器间隔，单位毫秒，置0则关闭；开启后影响cpu性能同时增加内存
+// 该配置开启后可以解决一些流发送不平滑导致zlmediakit转发也不平滑的问题
+extern const std::string kPacedSenderMS;
 
 //是否开启转换为hls(mpegts)
 extern const std::string kEnableHls;
@@ -294,6 +297,10 @@ namespace Rtmp {
 extern const std::string kHandshakeSecond;
 // 维持链接超时时间，默认15秒
 extern const std::string kKeepAliveSecond;
+// 是否直接代理
+extern const std::string kDirectProxy;
+// h265-rtmp是否采用增强型(或者国内扩展)
+extern const std::string kEnhanced;
 } // namespace Rtmp
 
 ////////////RTP配置///////////
@@ -342,6 +349,8 @@ extern const std::string kSegmentDuration;
 extern const std::string kSegmentNum;
 // 如果设置为0，则不保留切片，设置为1则一直保留切片
 extern const std::string kSegmentKeep;
+// HLS切片延迟个数，大于0将生成hls_delay.m3u8文件，0则不生成
+extern const std::string kSegmentDelay;
 // HLS切片从m3u8文件中移除后，继续保留在磁盘上的个数
 extern const std::string kSegmentRetain;
 // HLS文件写缓存大小
@@ -350,6 +359,8 @@ extern const std::string kFileBufSize;
 extern const std::string kBroadcastRecordTs;
 // hls直播文件删除延时，单位秒
 extern const std::string kDeleteDelaySec;
+// 如果设置为1，则第一个切片长度强制设置为1个GOP
+extern const std::string kFastRegister;
 } // namespace Hls
 
 ////////////Rtp代理相关配置///////////
@@ -403,6 +414,8 @@ extern const std::string kWaitTrackReady;
 // rtsp播放指定track，可选项有0(不指定，默认)、1(视频)、2(音频)
 // 设置方法:player[Client::kPlayTrack] = 0/1/2;
 extern const std::string kPlayTrack;
+//设置代理url，目前只支持http协议
+extern const std::string kProxyUrl;
 } // namespace Client
 } // namespace mediakit
 
