@@ -14,16 +14,24 @@
 using namespace std;
 using namespace toolkit;
 
+#define CHECK_RET(...)                                                         \
+    try {                                                                      \
+        CHECK(__VA_ARGS__);                                                    \
+    } catch (AssertFailedException & ex) {                                     \
+        WarnL << ex.what();                                                    \
+        return;                                                                \
+    }
+
 namespace mediakit {
 
 void H264RtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt) {
     if (pkt->isConfigFrame()) {
-        CHECK(pkt->size() > 5);
+        CHECK_RET(pkt->size() > 5);
         getTrack()->setExtraData((uint8_t *)pkt->data() + 5, pkt->size() - 5);
         return;
     }
 
-    CHECK(pkt->size() > 9);
+    CHECK_RET(pkt->size() > 9);
     uint8_t *cts_ptr = (uint8_t *)(pkt->buffer.data() + 2);
     int32_t cts = (((cts_ptr[0] << 16) | (cts_ptr[1] << 8) | (cts_ptr[2])) + 0xff800000) ^ 0xff800000;
     auto pts = pkt->time_stamp + cts;

@@ -18,6 +18,14 @@
 using namespace std;
 using namespace toolkit;
 
+#define CHECK_RET(...)                                                         \
+    try {                                                                      \
+        CHECK(__VA_ARGS__);                                                    \
+    } catch (AssertFailedException & ex) {                                     \
+        WarnL << ex.what();                                                    \
+        return;                                                                \
+    }
+
 namespace mediakit {
 
 void H265RtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt) {
@@ -44,7 +52,7 @@ void H265RtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt) {
                 auto data = (uint8_t *)pkt->data() + RtmpPacketInfo::kEnhancedRtmpHeaderSize;
                 auto size = pkt->size() - RtmpPacketInfo::kEnhancedRtmpHeaderSize;
                 auto pts = pkt->time_stamp;
-                CHECK(size > 3);
+                CHECK_RET(size > 3);
                 if (RtmpPacketType::PacketTypeCodedFrames == _info.video.pkt_type) {
                     // SI24 = [CompositionTime Offset]
                     int32_t cts = (((data[0] << 16) | (data[1] << 8) | (data[2])) + 0xff800000) ^ 0xff800000;
@@ -52,7 +60,7 @@ void H265RtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt) {
                     data += 3;
                     size -= 3;
                 }
-                CHECK(size > 4);
+                CHECK_RET(size > 4);
                 splitFrame(data, size, pkt->time_stamp, pts);
                 break;
             }
@@ -63,12 +71,12 @@ void H265RtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt) {
 
     // 国内扩展(12) H265 rtmp
     if (pkt->isConfigFrame()) {
-        CHECK(pkt->size() > 5);
+        CHECK_RET(pkt->size() > 5);
         getTrack()->setExtraData((uint8_t *)pkt->data() + 5, pkt->size() - 5);
         return;
     }
 
-    CHECK(pkt->size() > 9);
+    CHECK_RET(pkt->size() > 9);
     uint8_t *cts_ptr = (uint8_t *)(pkt->buffer.data() + 2);
     int32_t cts = (((cts_ptr[0] << 16) | (cts_ptr[1] << 8) | (cts_ptr[2])) + 0xff800000) ^ 0xff800000;
     auto pts = pkt->time_stamp + cts;
