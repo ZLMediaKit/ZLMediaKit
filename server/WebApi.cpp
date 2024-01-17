@@ -1197,7 +1197,7 @@ void installWebApi() {
             //兼容老版本请求，新版本去除enable_tcp参数并新增tcp_mode参数
             tcp_mode = 1;
         }
-        auto local_ip="::";
+        std::string local_ip="::";
         if(!allArgs["local_ip"].empty()){
             local_ip=allArgs["local_ip"];
         }
@@ -1219,7 +1219,7 @@ void installWebApi() {
           // 兼容老版本请求，新版本去除enable_tcp参数并新增tcp_mode参数
           tcp_mode = 1;
       }
-        auto local_ip="::";
+      std::string local_ip = "::";
         if(!allArgs["local_ip"].empty()){
             local_ip=allArgs["local_ip"];
         }
