@@ -222,7 +222,8 @@ if(ENABLE_CXX_API)
   # 保留目录结构
   install(DIRECTORY ${ToolKit_ROOT}/src/
     DESTINATION ${INSTALL_PATH_INCLUDE}/ZLToolKit
-    REGEX "(.*[.](md|cpp|mm)|win32)$" EXCLUDE)
+    FILES_MATCHING
+    PATTERN "*.h")
   install(TARGETS zltoolkit
     DESTINATION ${INSTALL_PATH_LIB})
 endif()
