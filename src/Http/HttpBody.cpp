@@ -153,6 +153,11 @@ static std::shared_ptr<char> getSharedMmap(const string &file_path, int64_t &fil
 
     auto addr_ = ::MapViewOfFile(hmapping, FILE_MAP_READ, 0, 0, 0);
 
+    if (addr_ == nullptr) {
+        mmap_close(hfile, hmapping, addr_);
+        return nullptr;
+    }
+
     std::shared_ptr<char> ret((char *)(addr_), [hfile, hmapping, fp, file_path](char *addr_) {
         mmap_close(hfile, hmapping, addr_);
         delSharedMmap(file_path, addr_);
