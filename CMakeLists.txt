@@ -193,6 +193,12 @@ if(UNIX)
     "-Wall;-Wextra"
     "-Wno-unused-function;-Wno-unused-parameter;-Wno-unused-variable"
     "-Wno-error=extra;-Wno-error=missing-field-initializers;-Wno-error=type-limits")
+
+  if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+    set(COMPILE_OPTIONS_DEFAULT ${COMPILE_OPTIONS_DEFAULT} "-g3")
+  else()
+    set(COMPILE_OPTIONS_DEFAULT ${COMPILE_OPTIONS_DEFAULT} "-g0")
+  endif()
 elseif(WIN32)
   if (MSVC)
     set(COMPILE_OPTIONS_DEFAULT
@@ -364,7 +370,7 @@ if(ENABLE_JEMALLOC_STATIC)
     set(ENABLE_JEMALLOC_STAT OFF)
   endif ()
   include(Jemalloc)
-  include_directories(SYSTEM ${DEP_ROOT_DIR}/${JEMALLOC_NAME}/include/jemalloc)
+  include_directories(SYSTEM ${DEP_ROOT_DIR}/${JEMALLOC_NAME}/include)
   link_directories(${DEP_ROOT_DIR}/${JEMALLOC_NAME}/lib)
   # 用于影响后续查找过程
   # Used to affect subsequent lookup process
