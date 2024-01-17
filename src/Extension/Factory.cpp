@@ -197,8 +197,8 @@ AMFValue Factory::getAmfByCodecId(CodecId codecId) {
 Frame::Ptr Factory::getFrameFromPtr(CodecId codec, const char *data, size_t bytes, uint64_t dts, uint64_t pts) {
     auto it = s_plugins.find(codec);
     if (it == s_plugins.end()) {
-        WarnL << "Unsupported codec: " << getCodecName(codec);
-        return nullptr;
+        // 创建不支持codec的frame
+        return std::make_shared<FrameFromPtr>(codec, (char *)data, bytes, dts, pts);
     }
     return it->second->getFrameFromPtr(data, bytes, dts, pts);
 }

@@ -18,7 +18,7 @@
 %bcond_with cxx_api
 
 Name:		ZLMediaKit
-Version:	5.0.0
+Version:	8.0.0
 Release:	1%{?dist}
 Summary:	A lightweight, high performance and stable stream server and client framework based on C++11.
 
