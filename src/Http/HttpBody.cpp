@@ -159,7 +159,7 @@ static std::shared_ptr<char> getSharedMmap(const string &file_path, int64_t &fil
         return nullptr;
     }
 
-    std::shared_ptr<char> ret((char *)(addr_), [hfile, hmapping, fp, file_path](char *addr_) {
+    std::shared_ptr<char> ret((char *)(addr_), [hfile, hmapping, file_path](char *addr_) {
         mmap_close(hfile, hmapping, addr_);
         delSharedMmap(file_path, addr_);
     });
