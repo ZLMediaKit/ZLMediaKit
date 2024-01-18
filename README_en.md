@@ -279,12 +279,12 @@ git submodule update --init
             return;
         }
 
-        auto viedoTrack = strongPlayer->getTrack(TrackVideo);
-        if (!viedoTrack) {
+        auto videoTrack = strongPlayer->getTrack(TrackVideo);
+        if (!videoTrack) {
             WarnL << "No video Track!";
             return;
         }
-        viedoTrack->addDelegate([](const Frame::Ptr &frame) {
+        videoTrack->addDelegate([](const Frame::Ptr &frame) {
             //please decode video here
         });
     });
