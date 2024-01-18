@@ -1,10 +1,11 @@
 {
 	"info": {
-		"_postman_id": "509e5f6b-728c-4d5f-b3e8-521d76b2cc7a",
+		"_postman_id": "08e3bc35-5318-4949-81bb-90d854706194",
 		"name": "ZLMediaKit",
 		"description": "媒体服务器",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "29185956"
+		"_exporter_id": "29185956",
+		"_collection_link": "https://lively-station-598157.postman.co/workspace/%E6%B5%81%E5%AA%92%E4%BD%93%E6%9C%8D%E5%8A%A1~1e119172-45b0-4ed6-b1fc-8a15d0e2d5f8/collection/29185956-08e3bc35-5318-4949-81bb-90d854706194?action=share&source=collection_link&creator=29185956"
 	},
 	"item": [
 		{
@@ -1216,7 +1217,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{ZLMediaKit_URL}}/index/api/seekRecordStamp?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=live&stream=obs&stamp",
+					"raw": "{{ZLMediaKit_URL}}/index/api/seekRecordStamp?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=live&stream=obs&stamp=1000",
 					"host": [
 						"{{ZLMediaKit_URL}}"
 					],
@@ -1473,6 +1474,12 @@
 							"value": "1",
 							"description": "是否为单音频track，用于语音对讲",
 							"disabled": true
+						},
+						{
+							"key": "local_ip",
+							"value": "::",
+							"description": "指定创建RTP的本地ip，ipv4可填”0.0.0.0“，ipv6可填”::“，一般保持默认",
+							"disabled": true
 						}
 					]
 				}
@@ -1485,14 +1492,14 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{ZLMediaKit_URL}}/index/api/openRtpServer?secret={{ZLMediaKit_secret}}&port=0&tcp_mode=1&stream_id=test",
+					"raw": "{{ZLMediaKit_URL}}/index/api/openRtpServerMultiplex?secret={{ZLMediaKit_secret}}&port=0&tcp_mode=1&stream_id=test",
 					"host": [
 						"{{ZLMediaKit_URL}}"
 					],
 					"path": [
 						"index",
 						"api",
-						"openRtpServer"
+						"openRtpServerMultiplex"
 					],
 					"query": [
 						{
@@ -1519,6 +1526,12 @@
 							"key": "only_audio",
 							"value": "0",
 							"description": "是否为单音频track，用于语音对讲",
+							"disabled": true
+						},
+						{
+							"key": "local_ip",
+							"value": "::",
+							"description": "指定创建RTP的本地ip，ipv4可填”0.0.0.0“，ipv6可填”::“，一般保持默认",
 							"disabled": true
 						}
 					]
