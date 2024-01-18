@@ -1197,9 +1197,9 @@ void installWebApi() {
             //兼容老版本请求，新版本去除enable_tcp参数并新增tcp_mode参数
             tcp_mode = 1;
         }
-        std::string local_ip="::";
-        if(!allArgs["local_ip"].empty()){
-            local_ip=allArgs["local_ip"];
+        std::string local_ip = "::";
+        if (!allArgs["local_ip"].empty()) {
+            local_ip = allArgs["local_ip"];
         }
         auto port = openRtpServer(allArgs["port"], stream_id, tcp_mode, local_ip, allArgs["re_use_port"].as<bool>(),
                                   allArgs["ssrc"].as<uint32_t>(), allArgs["only_audio"].as<bool>());
@@ -1219,10 +1219,10 @@ void installWebApi() {
           // 兼容老版本请求，新版本去除enable_tcp参数并新增tcp_mode参数
           tcp_mode = 1;
       }
-      std::string local_ip = "::";
-        if(!allArgs["local_ip"].empty()){
-            local_ip=allArgs["local_ip"];
-        }
+      auto local_ip = "::";
+      if (!allArgs["local_ip"].empty()) {
+          local_ip = allArgs["local_ip"];
+      }
       auto port = openRtpServer(allArgs["port"], stream_id, tcp_mode, local_ip, true, 0, allArgs["only_audio"].as<bool>(),true);
       if (port == 0) {
           throw InvalidArgsException("该stream_id已存在");
