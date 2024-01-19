@@ -694,10 +694,22 @@ string HttpSession::urlDecode(const string &str) {
     return ret;
 }
 
+string HttpSession::urlDecodeComponent(const string &str) {
+    auto ret = strCoding::UrlDecodeComponent(str);
+#ifdef _WIN32
+    GET_CONFIG(string, charSet, Http::kCharSet);
+    bool isGb2312 = !strcasecmp(charSet.data(), "gb2312");
+    if (isGb2312) {
+        ret = strCoding::UTF8ToGB2312(ret);
+    }
+#endif // _WIN32
+    return ret;
+}
+
 void HttpSession::urlDecode(Parser &parser) {
     parser.setUrl(urlDecode(parser.url()));
     for (auto &pr : _parser.getUrlArgs()) {
-        const_cast<string &>(pr.second) = urlDecode(pr.second);
+        const_cast<string &>(pr.second) = urlDecodeComponent(pr.second);
     }
 }
 

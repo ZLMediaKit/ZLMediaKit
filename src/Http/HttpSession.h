@@ -45,6 +45,7 @@ public:
     void onError(const toolkit::SockException &err) override;
     void onManager() override;
     static std::string urlDecode(const std::string &str);
+    static std::string urlDecodeComponent(const std::string &str);
     void setTimeoutSec(size_t second);
     void setMaxReqSize(size_t max_req_size);
 
