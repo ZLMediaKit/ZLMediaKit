@@ -70,7 +70,7 @@ string strCoding::UrlEncode(const string &str) {
     return out;
 }
 
-string UrlEncodeComponent(const string &str) {
+string strCoding::UrlEncodeComponent(const string &str) {
     const char *dont_escape = "!'()*-._~";
     string out;
     size_t len = str.size();
@@ -113,7 +113,7 @@ string strCoding::UrlDecode(const string &str) {
     return output;
 }
 
-std::string UrlDecodeComponent(const std::string &str) {
+std::string strCoding::UrlDecodeComponent(const std::string &str) {
     string output;
     size_t i = 0, len = str.length();
     while (i < len) {
