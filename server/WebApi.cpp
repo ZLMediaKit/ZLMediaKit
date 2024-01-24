@@ -1755,8 +1755,7 @@ void installWebApi() {
         }
 
         auto args = std::make_shared<WebRtcArgsImp>(allArgs, sender.getIdentifier());
-        WebRtcPluginManager::Instance().getAnswerSdp(static_cast<Session&>(sender), type, *args,
-                                                     [invoker, val, offer, headerOut](const WebRtcInterface &exchanger) mutable {
+        WebRtcPluginManager::Instance().getAnswerSdp(static_cast<Session&>(sender), type, *args, [invoker, val, offer, headerOut, localIp](const WebRtcInterface &exchanger) mutable {
             //设置返回类型
             headerOut["Content-Type"] = HttpFileManager::getContentType(".json");
             //设置跨域
