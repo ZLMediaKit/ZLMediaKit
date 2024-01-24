@@ -201,9 +201,26 @@ void WebRtcTransport::OnDtlsTransportConnected(
     onStartWebRTC();
 }
 
+#pragma pack(push, 1)
+struct DtlsHeader {
+    uint8_t content_type;
+    uint16_t dtls_version;
+    uint16_t epoch;
+    uint8_t seq[6];
+    uint16_t length;
+    uint8_t payload[1];
+};
+#pragma pack(pop)
+
 void WebRtcTransport::OnDtlsTransportSendData(
     const RTC::DtlsTransport *dtlsTransport, const uint8_t *data, size_t len) {
-    sendSockData((char *)data, len, nullptr);
+    size_t offset = 0;
+    while(offset < len) {
+        auto *header = reinterpret_cast<const DtlsHeader *>(data + offset);
+        auto length = ntohs(header->length) + offsetof(DtlsHeader, payload);
+        sendSockData((char *)data + offset, length, nullptr);
+        offset += length;
+    }
 }
 
 void WebRtcTransport::OnDtlsTransportConnecting(const RTC::DtlsTransport *dtlsTransport) {
