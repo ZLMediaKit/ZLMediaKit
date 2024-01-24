@@ -20,6 +20,7 @@
 
 #include <functional>
 #include <unordered_map>
+#include <regex>
 #include "Util/MD5.h"
 #include "Util/util.h"
 #include "Util/File.h"
