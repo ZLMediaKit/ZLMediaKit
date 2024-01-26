@@ -20,6 +20,7 @@
 
 #include <functional>
 #include <unordered_map>
+#include <regex>
 #include "Util/MD5.h"
 #include "Util/util.h"
 #include "Util/File.h"
@@ -1746,16 +1747,22 @@ void installWebApi() {
         auto type = allArgs["type"];
         auto offer = allArgs.getArgs();
         CHECK(!offer.empty(), "http body(webrtc offer sdp) is empty");
+        std::string host = allArgs.getParser()["Host"];
+        std::string localIp = host.substr(0, host.find(':'));
+        std::regex ipv4Regex("^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
+        if (!std::regex_match(localIp, ipv4Regex)) {
+            localIp = "";
+        }
 
         auto args = std::make_shared<WebRtcArgsImp>(allArgs, sender.getIdentifier());
-        WebRtcPluginManager::Instance().getAnswerSdp(static_cast<Session&>(sender), type, *args,
-                                                     [invoker, val, offer, headerOut](const WebRtcInterface &exchanger) mutable {
+        WebRtcPluginManager::Instance().getAnswerSdp(static_cast<Session&>(sender), type, *args, [invoker, val, offer, headerOut, localIp](const WebRtcInterface &exchanger) mutable {
             //设置返回类型
             headerOut["Content-Type"] = HttpFileManager::getContentType(".json");
             //设置跨域
             headerOut["Access-Control-Allow-Origin"] = "*";
 
             try {
+                setLocalIp(exchanger,localIp);
                 val["sdp"] = exchangeSdp(exchanger, offer);
                 val["id"] = exchanger.getIdentifier();
                 val["type"] = "answer";

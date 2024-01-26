@@ -42,9 +42,12 @@ public:
     virtual const std::string& getIdentifier() const = 0;
     virtual const std::string& deleteRandStr() const { static std::string s_null; return s_null; }
     virtual void setIceCandidate(std::vector<SdpAttrCandidate> cands) {}
+    virtual void setLocalIp(const std::string &localIp) {}
 };
 
 std::string exchangeSdp(const WebRtcInterface &exchanger, const std::string& offer);
+
+void setLocalIp(const WebRtcInterface &exchanger, const std::string &localIp);
 
 class WebRtcException : public WebRtcInterface {
 public:
@@ -253,6 +256,7 @@ public:
     void removeTuple(RTC::TransportTuple* tuple);
     void safeShutdown(const SockException &ex);
 
+    void setLocalIp(const std::string &localIp) override;
 protected:
     void OnIceServerSelectedTuple(const RTC::IceServer *iceServer, RTC::TransportTuple *tuple) override;
     WebRtcTransportImp(const EventPoller::Ptr &poller,bool preferred_tcp = false);
@@ -306,6 +310,8 @@ private:
     //根据接收rtp的pt获取相关信息
     std::unordered_map<uint8_t/*pt*/, std::unique_ptr<WrappedMediaTrack>> _pt_to_track;
     std::vector<SdpAttrCandidate> _cands;
+    //源访问的hostip
+    std::string _localIp;
 };
 
 class WebRtcTransportManager {
