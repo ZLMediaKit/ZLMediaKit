@@ -65,6 +65,7 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
 
     _parser.parse(header, len);
     CHECK(_parser.url()[0] == '/');
+    _origin = _parser["Origin"];
 
     urlDecode(_parser);
     auto &cmd = _parser.method();
@@ -606,8 +607,8 @@ void HttpSession::sendResponse(int code,
     headerOut.emplace("Connection", bClose ? "close" : "keep-alive");
 
     GET_CONFIG(bool, allow_cross_domains, Http::kAllowCrossDomains);
-    if (allow_cross_domains) {
-        headerOut.emplace("Access-Control-Allow-Origin", "*");
+    if (allow_cross_domains && !_origin.empty()) {
+        headerOut.emplace("Access-Control-Allow-Origin", _origin);
         headerOut.emplace("Access-Control-Allow-Credentials", "true");
     }
 

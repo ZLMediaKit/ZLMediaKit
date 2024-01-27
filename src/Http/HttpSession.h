@@ -136,6 +136,8 @@ private:
     size_t _max_req_size = 0;
     //消耗的总流量
     uint64_t _total_bytes_usage = 0;
+    // http请求中的 Origin字段
+    std::string _origin;
     Parser _parser;
     toolkit::Ticker _ticker;
     TSMediaSource::RingType::RingReader::Ptr _ts_reader;
