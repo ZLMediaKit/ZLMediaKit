@@ -38,8 +38,9 @@ bool RtpSelector::getSSRC(const char *data, size_t data_len, uint32_t &ssrc){
 RtpProcess::Ptr RtpSelector::getProcess(const string &stream_id,bool makeNew) {
     lock_guard<decltype(_mtx_map)> lck(_mtx_map);
     string stream_id_origin = stream_id;
-    if (_map_stream_replace.find(stream_id) != _map_stream_replace.end()) {
-        stream_id_origin = _map_stream_replace[stream_id];
+    auto it_replace = _map_stream_replace.find(stream_id);
+    if (it_replace != _map_stream_replace.end()) {
+        stream_id_origin = it_replace->second;
     }
 
     auto it = _map_rtp_process.find(stream_id_origin);
