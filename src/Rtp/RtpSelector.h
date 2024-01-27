@@ -70,14 +70,18 @@ public:
      */
     void delProcess(const std::string &stream_id, const RtpProcess *ptr);
 
+    void addStreamReplace(const std::string &stream_id, const std::string &stream_replace);
+
 private:
     void onManager();
     void createTimer();
+    void delStreamReplace(const std::string &stream_id);
 
 private:
     toolkit::Timer::Ptr _timer;
     std::recursive_mutex _mtx_map;
     std::unordered_map<std::string,RtpProcessHelper::Ptr> _map_rtp_process;
+    std::unordered_map<std::string,std::string> _map_stream_replace;
 };
 
 }//namespace mediakit
