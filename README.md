@@ -352,6 +352,12 @@ bash build_docker_images.sh
 [zjx94](https://github.com/zjx94)
 [LeiZhi.Mai ](https://github.com/blueskiner)
 [JiaHao](https://github.com/nashiracn)
+[chdahuzi](https://github.com/chdahuzi)
+[snysmtx](https://github.com/snysmtx)
+[SetoKaiba](https://github.com/SetoKaiba)
+[sandro-qiang](https://github.com/sandro-qiang)
+[Paul Philippov](https://github.com/themactep)
+[张传峰](https://github.com/zhang-chuanfeng)
 
 同时感谢JetBrains对开源项目的支持，本项目使用CLion开发与调试：
 
