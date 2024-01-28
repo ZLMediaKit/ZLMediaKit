@@ -18,9 +18,11 @@ namespace mediakit {
 
 class strCoding {
 public:
-    static std::string UrlEncode(const std::string &str); //url utf8编码
+    [[deprecated]] static std::string UrlEncode(const std::string &str); //url utf8编码, deprecated
+    static std::string UrlEncodePath(const std::string &str); //url路径 utf8编码
     static std::string UrlEncodeComponent(const std::string &str); // url参数 utf8编码
-    static std::string UrlDecode(const std::string &str); //url utf8解码
+    [[deprecated]] static std::string UrlDecode(const std::string &str); //url utf8解码, deprecated
+    static std::string UrlDecodePath(const std::string &str); //url路径 utf8解码
     static std::string UrlDecodeComponent(const std::string &str); // url参数 utf8解码
 #if defined(_WIN32)
     static std::string UTF8ToGB2312(const std::string &str);//utf_8转为gb2312
