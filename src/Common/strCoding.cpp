@@ -69,6 +69,40 @@ string strCoding::UrlEncode(const string &str) {
     return out;
 }
 
+string strCoding::UrlEncodePath(const string &str) {
+    const char *dont_escape = "!#&'*+:=?@/._-$,;~()";
+    string out;
+    size_t len = str.size();
+    for (size_t i = 0; i < len; ++i) {
+        char ch = str[i];
+        if (isalnum((uint8_t) ch) || strchr(dont_escape, (uint8_t) ch) != NULL) {
+            out.push_back(ch);
+        } else {
+            char buf[4];
+            sprintf(buf, "%%%X%X", (uint8_t) ch >> 4, (uint8_t) ch & 0x0F);
+            out.append(buf);
+        }
+    }
+    return out;
+}
+
+string strCoding::UrlEncodeComponent(const string &str) {
+    const char *dont_escape = "!'()*-._~";
+    string out;
+    size_t len = str.size();
+    for (size_t i = 0; i < len; ++i) {
+        char ch = str[i];
+        if (isalnum((uint8_t) ch) || strchr(dont_escape, (uint8_t) ch) != NULL) {
+            out.push_back(ch);
+        } else {
+            char buf[4];
+            sprintf(buf, "%%%X%X", (uint8_t) ch >> 4, (uint8_t) ch & 0x0F);
+            out.append(buf);
+        }
+    }
+    return out;
+}
+
 string strCoding::UrlDecode(const string &str) {
     string output;
     size_t i = 0, len = str.length();
@@ -87,6 +121,62 @@ string strCoding::UrlDecode(const string &str) {
                 output += ch;
             }
             i += 3;
+        } else {
+            output += str[i];
+            ++i;
+        }
+    }
+    return output;
+}
+
+string strCoding::UrlDecodePath(const string &str) {
+    const char *dont_unescape = "#$&+,/:;=?@";
+    string output;
+    size_t i = 0, len = str.length();
+    while (i < len) {
+        if (str[i] == '%') {
+            if (i + 3 > len) {
+                // %后面必须还有两个字节才会反转义
+                output.append(str, i, len - i);
+                break;
+            }
+            char ch = HexStrToBin(&(str[i + 1]));
+            if (ch == -1 || strchr(dont_unescape, (unsigned char)ch) != NULL) {
+                // %后面两个字节不是16进制字符串，转义失败；或者转义出来可能会造成url包含非path部分，比如#?，说明提交的是非法拼接的url；直接拼接3个原始字符
+                output.append(str, i, 3);
+            } else {
+                output += ch;
+            }
+            i += 3;
+        } else {
+            output += str[i];
+            ++i;
+        }
+    }
+    return output;
+}
+
+std::string strCoding::UrlDecodeComponent(const std::string &str) {
+    string output;
+    size_t i = 0, len = str.length();
+    while (i < len) {
+        if (str[i] == '%') {
+            if (i + 3 > len) {
+                // %后面必须还有两个字节才会反转义
+                output.append(str, i, len - i);
+                break;
+            }
+            char ch = HexStrToBin(&(str[i + 1]));
+            if (ch == -1) {
+                // %后面两个字节不是16进制字符串，转义失败；直接拼接3个原始字符
+                output.append(str, i, 3);
+            } else {
+                output += ch;
+            }
+            i += 3;
+        } else if (str[i] == '+') {
+            output += ' ';
+            ++i;
         } else {
             output += str[i];
             ++i;
