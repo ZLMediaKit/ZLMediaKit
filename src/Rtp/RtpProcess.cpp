@@ -11,6 +11,7 @@
 #if defined(ENABLE_RTPPROXY)
 #include "GB28181Process.h"
 #include "RtpProcess.h"
+#include "RtpSelector.h"
 #include "Http/HttpTSPlayer.h"
 #include "Util/File.h"
 #include "Common/config.h"
@@ -255,6 +256,9 @@ void RtpProcess::emitOnPublish() {
             }
             if (err.empty()) {
                 strong_self->_muxer = std::make_shared<MultiMediaSourceMuxer>(strong_self->_media_info, 0.0f, option);
+                if (!option.stream_replace.empty()) {
+                    RtpSelector::Instance().addStreamReplace(strong_self->_media_info.stream, option.stream_replace);
+                }
                 if (strong_self->_only_audio) {
                     strong_self->_muxer->setOnlyAudio();
                 }
