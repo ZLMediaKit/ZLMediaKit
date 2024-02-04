@@ -1750,7 +1750,7 @@ void installWebApi() {
         std::string host = allArgs.getParser()["Host"];
         std::string localIp = host.substr(0, host.find(':'));
         std::regex ipv4Regex("^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
-        if (!std::regex_match(localIp, ipv4Regex)) {
+        if (!std::regex_match(localIp, ipv4Regex)||localIp=="127.0.0.1") {
             localIp = "";
         }
 
