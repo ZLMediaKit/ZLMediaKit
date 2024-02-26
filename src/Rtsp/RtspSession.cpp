@@ -301,21 +301,26 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
             }else{
                 auto listener = rtsp_src->getListener();
                 //TraceL<<toolkit::demangle(typeid(*listener.lock()).name());
-                auto muxer = dynamic_pointer_cast<MultiMediaSourceMuxer>(listener.lock());
-                if(muxer){
-                    //TraceL;
-                     rtsp_src_imp = dynamic_pointer_cast<RtspMediaSourceImp>(muxer->getTrackListener().lock());
-                     if(rtsp_src_imp){
+                auto rtsp_muxer = dynamic_pointer_cast<RtspMediaSourceMuxer>(listener.lock());
+                if (rtsp_muxer) {
+                    auto muxer = dynamic_pointer_cast<MultiMediaSourceMuxer>(rtsp_muxer->getDelegate());
+                    if (muxer) {
                         //TraceL;
-                        _push_src_ownership = rtsp_src_imp->getOwnership();
-                        if(_push_src_ownership){
-                            _push_src = std::move(rtsp_src_imp);
-                            onResPushSrc(option);
-                            return;
-                        }else{
-                            WarnL<<"not reach this";
+                        rtsp_src_imp = dynamic_pointer_cast<RtspMediaSourceImp>(muxer->getTrackListener().lock());
+                        if (rtsp_src_imp) {
+                            //TraceL;
+                            _push_src_ownership = rtsp_src_imp->getOwnership();
+                            if (_push_src_ownership) {
+                                _push_src = std::move(rtsp_src_imp);
+                                onResPushSrc(option);
+                                return;
+                            } else {
+                                WarnL << "not reach this";
+                            }
                         }
-                     }
+                    }else{
+                        WarnL << "not reach this";
+                    }
                 }
             }
             sendRtspResponse("406 Not Acceptable", { "Content-Type", "text/plain" }, "not reach this");
