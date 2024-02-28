@@ -21,6 +21,8 @@
 # SOFTWARE.
 #
 
+cmake_minimum_required(VERSION 3.6.0)
+
 set(LINK_LIBRARIES ${MK_LINK_LIBRARIES})
 
 find_package(PkgConfig QUIET)
