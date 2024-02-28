@@ -34,6 +34,10 @@ bool RawEncoderImp::addTrack(const Track::Ptr &track) {
         auto ring = std::make_shared<RtpRing::RingType>();
         ring->setDelegate(std::make_shared<RingDelegateHelper>([this](RtpPacket::Ptr rtp, bool is_key) { onRTP(std::move(rtp), true); }));
         _rtp_encoder->setRtpRing(std::move(ring));
+        if(track->getCodecId() == CodecG711A || track->getCodecId() == CodecG711U){
+            GET_CONFIG(int, dur_ms, RtpProxy::KRtpG711DurMs);
+            _rtp_encoder->setOpt(RtpCodec::RTP_ENCODER_PKT_DUR_MS,&dur_ms,sizeof(dur_ms));
+        }
         return true;
     }
 

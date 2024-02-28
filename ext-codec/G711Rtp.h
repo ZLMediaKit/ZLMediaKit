@@ -36,9 +36,12 @@ public:
      */
     bool inputFrame(const Frame::Ptr &frame) override;
 
+    void setOpt(int opt,void* option_value,size_t option_len) override;
+
 private:
     uint32_t _channels = 1;
     FrameImp::Ptr _cache_frame;
+    uint32_t _pkt_dur_ms = 20;
 };
 
 }//namespace mediakit

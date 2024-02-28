@@ -382,6 +382,8 @@ extern const std::string kPSPT;
 extern const std::string kOpusPT;
 // RtpSender相关功能是否提前开启gop缓存优化级联秒开体验，默认开启
 extern const std::string kGopCache;
+// 国标发送g711 rtp 打包时，每个包的语音时长是多少，默认是200 ms
+extern const std::string KRtpG711DurMs;
 } // namespace RtpProxy
 
 /**
