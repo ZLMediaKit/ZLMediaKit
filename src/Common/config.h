@@ -109,6 +109,21 @@ extern const std::string kBroadcastReloadConfig;
 extern const std::string kBroadcastRtpServerTimeout;
 #define BroadcastRtpServerTimeoutArgs uint16_t &local_port, const string &stream_id,int &tcp_mode, bool &re_use_port, uint32_t &ssrc
 
+// rtc transport sctp 连接状态
+extern const std::string kBroadcastRtcSctpConnecting;
+extern const std::string kBroadcastRtcSctpConnected;
+extern const std::string kBroadcastRtcSctpFailed;
+extern const std::string kBroadcastRtcSctpClosed;
+#define BroadcastRtcSctpConnectArgs WebRtcTransport& sender
+
+// rtc transport sctp 发送数据
+extern const std::string kBroadcastRtcSctpSend;
+#define BroadcastRtcSctpSendArgs WebRtcTransport& sender, const uint8_t *&data, size_t& len
+
+// rtc transport sctp 接收数据
+extern const std::string kBroadcastRtcSctpReceived;
+#define BroadcastRtcSctpReceivedArgs WebRtcTransport& sender, uint16_t &streamId, uint32_t &ppid, const uint8_t *&msg, size_t &len
+
 #define ReloadConfigTag ((void *)(0xFF))
 #define RELOAD_KEY(arg, key)                                                                                           \
     do {                                                                                                               \

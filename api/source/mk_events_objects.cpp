@@ -17,6 +17,7 @@
 
 #include "Http/HttpClient.h"
 #include "Rtsp/RtspSession.h"
+#include "webrtc/WebRtcTransport.h"
 
 using namespace toolkit;
 using namespace mediakit;
@@ -497,4 +498,11 @@ API_EXPORT void API_CALL mk_auth_invoker_clone_release(const mk_auth_invoker ctx
     assert(ctx);
     Broadcast::AuthInvoker *invoker = (Broadcast::AuthInvoker *)ctx;
     delete invoker;
+}
+
+///////////////////////////////////////////WebRtcTransport/////////////////////////////////////////////
+API_EXPORT void API_CALL mk_rtc_sendDatachannel(const mk_rtc_transport ctx, uint16_t streamId, uint32_t ppid, const char* msg, size_t len){
+    assert(ctx);
+    WebRtcTransport* transport =  (WebRtcTransport *)ctx;
+    transport->sendDatachannel(streamId, ppid, msg, len);
 }

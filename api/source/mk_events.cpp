@@ -14,6 +14,7 @@
 #include "Http/HttpSession.h"
 #include "Rtsp/RtspSession.h"
 #include "Record/MP4Recorder.h"
+#include "webrtc/WebRtcTransport.h"
 
 using namespace toolkit;
 using namespace mediakit;
@@ -165,6 +166,42 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
             if (s_events.on_mk_media_send_rtp_stop) {
                 s_events.on_mk_media_send_rtp_stop(sender.getMediaTuple().vhost.c_str(), sender.getMediaTuple().app.c_str(),
                                                    sender.getMediaTuple().stream.c_str(), ssrc.c_str(), ex.getErrCode(), ex.what());
+            }
+        });
+
+        NoticeCenter::Instance().addListener(&s_tag, Broadcast::kBroadcastRtcSctpConnecting,[](BroadcastRtcSctpConnectArgs){
+            if (s_events.on_mk_rtc_sctp_connecting) {
+                s_events.on_mk_rtc_sctp_connecting((mk_rtc_transport)&sender);
+            }
+        });
+
+        NoticeCenter::Instance().addListener(&s_tag, Broadcast::kBroadcastRtcSctpConnected,[](BroadcastRtcSctpConnectArgs){
+            if (s_events.on_mk_rtc_sctp_connected) {
+                s_events.on_mk_rtc_sctp_connected((mk_rtc_transport)&sender);
+            }
+        });
+
+        NoticeCenter::Instance().addListener(&s_tag, Broadcast::kBroadcastRtcSctpFailed,[](BroadcastRtcSctpConnectArgs){
+            if (s_events.on_mk_rtc_sctp_failed) {
+                s_events.on_mk_rtc_sctp_failed((mk_rtc_transport)&sender);
+            }
+        });
+
+        NoticeCenter::Instance().addListener(&s_tag, Broadcast::kBroadcastRtcSctpClosed,[](BroadcastRtcSctpConnectArgs){
+            if (s_events.on_mk_rtc_sctp_closed) {
+                s_events.on_mk_rtc_sctp_closed((mk_rtc_transport)&sender);
+            }
+        });
+
+        NoticeCenter::Instance().addListener(&s_tag, Broadcast::kBroadcastRtcSctpSend,[](BroadcastRtcSctpSendArgs){
+            if (s_events.on_mk_rtc_sctp_send) {
+                s_events.on_mk_rtc_sctp_send((mk_rtc_transport)&sender, data, len);
+            }
+        });
+
+        NoticeCenter::Instance().addListener(&s_tag, Broadcast::kBroadcastRtcSctpReceived,[](BroadcastRtcSctpReceivedArgs){
+            if (s_events.on_mk_rtc_sctp_received) {
+                s_events.on_mk_rtc_sctp_received((mk_rtc_transport)&sender, streamId, ppid, msg, len);
             }
         });
     });
