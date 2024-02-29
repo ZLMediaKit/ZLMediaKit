@@ -99,11 +99,10 @@ public:
     /**
      * @brief 设置rtp打包器与解包器的相关参数，主要应用与g711 rtp 打包器，使用方法类似setsockopt
      * 
-     * @param opt 
-     * @param option_value 
-     * @param option_len 
+     * @param opt 设置的选项
+     * @param param 设置的参数
      */
-    virtual void setOpt(int opt,void* option_value,size_t option_len) {};
+    virtual void setOpt(int opt, const toolkit::Any &param) {};
 
 
 

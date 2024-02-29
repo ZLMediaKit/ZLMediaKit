@@ -36,7 +36,7 @@ public:
      */
     bool inputFrame(const Frame::Ptr &frame) override;
 
-    void setOpt(int opt,void* option_value,size_t option_len) override;
+    void setOpt(int opt, const toolkit::Any &param) override;
 
 private:
     uint32_t _channels = 1;

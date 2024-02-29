@@ -8,10 +8,17 @@ G711RtpEncoder::G711RtpEncoder(CodecId codec, uint32_t channels){
     _channels = channels;
 }
 
-void G711RtpEncoder::setOpt(int opt,void* option_value,size_t option_len){
-    if(opt == RTP_ENCODER_PKT_DUR_MS && option_len == 4 && option_value != NULL){
-        _pkt_dur_ms = *((int*)option_value);
-        _pkt_dur_ms = (_pkt_dur_ms+19)/20*20;
+void G711RtpEncoder::setOpt(int opt, const toolkit::Any &param){
+    if(opt == RTP_ENCODER_PKT_DUR_MS){
+        if(param.is<uint32_t>()){
+            auto dur = param.get<uint32_t>();
+            if(dur < 20 || dur >180){
+                WarnL << "set g711 rtp encoder  duration ms failed for " << dur;
+                return;
+            }
+            //向上 20ms 取整
+            _pkt_dur_ms = (dur+19)/20*20;
+        }
     }
 }
 

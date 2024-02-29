@@ -349,7 +349,7 @@ static onceToken token([]() {
     mINI::Instance()[kPSPT] = 96;
     mINI::Instance()[kOpusPT] = 100;
     mINI::Instance()[kGopCache] = 1;
-    mINI::Instance()[KRtpG711DurMs] = 200;
+    mINI::Instance()[KRtpG711DurMs] = 100;
 });
 } // namespace RtpProxy
 
