@@ -306,7 +306,7 @@ void WebRtcTransport::OnSctpAssociationMessageReceived(
     params.streamId = streamId;
 
     GET_CONFIG(bool, datachannel_echo, Rtc::kDataChannelEcho);
-    if(datachannel_echo){
+    if (datachannel_echo) {
         // 回显数据
         _sctp->SendSctpMessage(params, ppid, msg, len);
     }

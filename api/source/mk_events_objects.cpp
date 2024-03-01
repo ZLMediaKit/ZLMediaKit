@@ -503,9 +503,13 @@ API_EXPORT void API_CALL mk_auth_invoker_clone_release(const mk_auth_invoker ctx
 ///////////////////////////////////////////WebRtcTransport/////////////////////////////////////////////
 API_EXPORT void API_CALL mk_rtc_sendDatachannel(const mk_rtc_transport ctx, uint16_t streamId, uint32_t ppid, const char* msg, size_t len){
 #ifdef ENABLE_WEBRTC
-    assert(ctx);
-    WebRtcTransport* transport =  (WebRtcTransport *)ctx;
-    transport->sendDatachannel(streamId, ppid, msg, len);
+    assert(ctx && msg);
+    WebRtcTransport* transport = (WebRtcTransport *)ctx;
+    string msg_str(msg, len);
+    transport->getPoller()->async([streamId,ppid,msg_str,transport](){
+        //切换线程后再操作
+        transport->sendDatachannel(streamId, ppid, msg_str.c_str(), msg_str.size());
+    });
 #else
     WarnL << "未启用webrtc功能, 编译时请开启ENABLE_WEBRTC";
 #endif

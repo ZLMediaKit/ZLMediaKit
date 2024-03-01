@@ -364,7 +364,7 @@ typedef struct mk_rtc_transport_t *mk_rtc_transport;
  * @param msg 数据
  * @param len 数据长度
  */
-API_EXPORT void API_CALL mk_rtc_sendDatachannel(const mk_rtc_transport ctx, uint16_t streamId, uint32_t ppid, const char* msg, size_t len);
+API_EXPORT void API_CALL mk_rtc_send_datachannel(const mk_rtc_transport ctx, uint16_t streamId, uint32_t ppid, const char* msg, size_t len);
 
 #ifdef __cplusplus
 }
