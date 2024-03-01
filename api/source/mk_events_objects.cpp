@@ -505,8 +505,8 @@ API_EXPORT void API_CALL mk_rtc_sendDatachannel(const mk_rtc_transport ctx, uint
 #ifdef ENABLE_WEBRTC
     assert(ctx && msg);
     WebRtcTransport* transport = (WebRtcTransport *)ctx;
-    string msg_str(msg, len);
-    transport->getPoller()->async([streamId,ppid,msg_str,transport](){
+    std::string msg_str(msg, len);
+    transport->getPoller()->async([streamId, ppid, msg_str, transport](){
         //切换线程后再操作
         transport->sendDatachannel(streamId, ppid, msg_str.c_str(), msg_str.size());
     });
