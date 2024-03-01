@@ -21,8 +21,6 @@
 # SOFTWARE.
 #
 
-cmake_minimum_required(VERSION 3.6.0)
-
 set(LINK_LIBRARIES ${MK_LINK_LIBRARIES})
 
 find_package(PkgConfig QUIET)
@@ -33,7 +31,9 @@ if(PKG_CONFIG_FOUND)
     list(APPEND LINK_LIBRARIES PkgConfig::SDL2)
     message(STATUS "found library: ${SDL2_LIBRARIES}")
   endif()
-else()
+endif()
+
+if(NOT SDL2_FOUND)
   find_package(SDL2 QUIET)
   if(SDL2_FOUND)
     include_directories(SYSTEM ${SDL2_INCLUDE_DIR})
