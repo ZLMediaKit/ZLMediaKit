@@ -40,8 +40,8 @@ public:
 
 private:
     uint32_t _channels = 1;
-    FrameImp::Ptr _cache_frame;
     uint32_t _pkt_dur_ms = 20;
+    FrameImp::Ptr _cache_frame;
 };
 
 }//namespace mediakit

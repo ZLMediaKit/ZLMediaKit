@@ -8,16 +8,16 @@ G711RtpEncoder::G711RtpEncoder(CodecId codec, uint32_t channels){
     _channels = channels;
 }
 
-void G711RtpEncoder::setOpt(int opt, const toolkit::Any &param){
-    if(opt == RTP_ENCODER_PKT_DUR_MS){
-        if(param.is<uint32_t>()){
+void G711RtpEncoder::setOpt(int opt, const toolkit::Any &param) {
+    if (opt == RTP_ENCODER_PKT_DUR_MS) {
+        if (param.is<uint32_t>()) {
             auto dur = param.get<uint32_t>();
-            if(dur < 20 || dur >180){
+            if (dur < 20 || dur > 180) {
                 WarnL << "set g711 rtp encoder  duration ms failed for " << dur;
                 return;
             }
-            //向上 20ms 取整
-            _pkt_dur_ms = (dur+19)/20*20;
+            // 向上 20ms 取整
+            _pkt_dur_ms = (dur + 19) / 20 * 20;
         }
     }
 }
@@ -38,7 +38,7 @@ bool G711RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     auto ptr = _cache_frame->data() + _cache_frame->prefixSize();
     auto len = _cache_frame->size() - _cache_frame->prefixSize();
     auto remain_size = len;
-    auto max_size = 160 * _channels * _pkt_dur_ms/20; // 20 ms per rtp
+    auto max_size = 160 * _channels * _pkt_dur_ms / 20; // 20 ms per 160 byte
     uint32_t n = 0;
     bool mark = true;
     while (remain_size >= max_size) {
@@ -55,7 +55,7 @@ bool G711RtpEncoder::inputFrame(const Frame::Ptr &frame) {
         remain_size -= rtp_size;
     }
     _cache_frame->_buffer.erase(0, n * max_size);
-    _cache_frame->_pts += _pkt_dur_ms * n;
+    _cache_frame->_pts += (uint64_t)_pkt_dur_ms * n;
     return len > 0;
 }
 
