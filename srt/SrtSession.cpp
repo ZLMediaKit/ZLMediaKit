@@ -22,7 +22,7 @@ EventPoller::Ptr SrtSession::queryPoller(const Buffer::Ptr &buffer) {
 
     if (DataPacket::isDataPacket(data, size)) {
         uint32_t socket_id = DataPacket::getSocketID(data, size);
-        auto trans = SrtTransportManager::Instance().getItem(std::to_string(socket_id));
+        auto trans = SrtTransportManager::Instance().getItem(socket_id);
         return trans ? trans->getPoller() : nullptr;
     }
 
@@ -34,14 +34,14 @@ EventPoller::Ptr SrtSession::queryPoller(const Buffer::Ptr &buffer) {
         } else if (type == HandshakePacket::HS_TYPE_CONCLUSION) {
             // 握手第二阶段
             uint32_t sync_cookie = HandshakePacket::getSynCookie(data, size);
-            auto trans = SrtTransportManager::Instance().getHandshakeItem(std::to_string(sync_cookie));
+            auto trans = SrtTransportManager::Instance().getHandshakeItem(sync_cookie);
             return trans ? trans->getPoller() : nullptr;
         } else {
             WarnL << " not reach there";
         }
     } else {
         uint32_t socket_id = ControlPacket::getSocketID(data, size);
-        auto trans = SrtTransportManager::Instance().getItem(std::to_string(socket_id));
+        auto trans = SrtTransportManager::Instance().getItem(socket_id);
         return trans ? trans->getPoller() : nullptr;
     }
     return nullptr;
@@ -61,7 +61,7 @@ void SrtSession::onRecv(const Buffer::Ptr &buffer) {
 
         if (DataPacket::isDataPacket(data, size)) {
             uint32_t socket_id = DataPacket::getSocketID(data, size);
-            auto trans = SrtTransportManager::Instance().getItem(std::to_string(socket_id));
+            auto trans = SrtTransportManager::Instance().getItem(socket_id);
             if (trans) {
                 _transport = std::move(trans);
             } else {
@@ -78,7 +78,7 @@ void SrtSession::onRecv(const Buffer::Ptr &buffer) {
             } else if (type == HandshakePacket::HS_TYPE_CONCLUSION) {
                 // 握手第二阶段
                 uint32_t sync_cookie = HandshakePacket::getSynCookie(data, size);
-                auto trans = SrtTransportManager::Instance().getHandshakeItem(std::to_string(sync_cookie));
+                auto trans = SrtTransportManager::Instance().getHandshakeItem(sync_cookie);
                 if (trans) {
                     _transport = std::move(trans);
                 } else {
@@ -89,7 +89,7 @@ void SrtSession::onRecv(const Buffer::Ptr &buffer) {
             }
         } else {
             uint32_t socket_id = ControlPacket::getSocketID(data, size);
-            auto trans = SrtTransportManager::Instance().getItem(std::to_string(socket_id));
+            auto trans = SrtTransportManager::Instance().getItem(socket_id);
             if (trans) {
                 _transport = std::move(trans);
             } else {

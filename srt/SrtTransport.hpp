@@ -164,23 +164,23 @@ private:
 class SrtTransportManager {
 public:
     static SrtTransportManager &Instance();
-    SrtTransport::Ptr getItem(const std::string &key);
-    void addItem(const std::string &key, const SrtTransport::Ptr &ptr);
-    void removeItem(const std::string &key);
+    SrtTransport::Ptr getItem(const uint32_t key);
+    void addItem(const uint32_t key, const SrtTransport::Ptr &ptr);
+    void removeItem(const uint32_t key);
 
-    void addHandshakeItem(const std::string &key, const SrtTransport::Ptr &ptr);
-    void removeHandshakeItem(const std::string &key);
-    SrtTransport::Ptr getHandshakeItem(const std::string &key);
+    void addHandshakeItem(const uint32_t key, const SrtTransport::Ptr &ptr);
+    void removeHandshakeItem(const uint32_t key);
+    SrtTransport::Ptr getHandshakeItem(const uint32_t key);
 
 private:
     SrtTransportManager() = default;
 
 private:
     std::mutex _mtx;
-    std::unordered_map<std::string, std::weak_ptr<SrtTransport>> _map;
+    std::unordered_map<uint32_t , std::weak_ptr<SrtTransport>> _map;
 
     std::mutex _handshake_mtx;
-    std::unordered_map<std::string, std::weak_ptr<SrtTransport>> _handshake_map;
+    std::unordered_map<uint32_t, std::weak_ptr<SrtTransport>> _handshake_map;
 };
 
 } // namespace SRT
