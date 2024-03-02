@@ -501,14 +501,17 @@ API_EXPORT void API_CALL mk_auth_invoker_clone_release(const mk_auth_invoker ctx
 }
 
 ///////////////////////////////////////////WebRtcTransport/////////////////////////////////////////////
-API_EXPORT void API_CALL mk_rtc_sendDatachannel(const mk_rtc_transport ctx, uint16_t streamId, uint32_t ppid, const char* msg, size_t len){
+API_EXPORT void API_CALL mk_rtc_sendDatachannel(const mk_rtc_transport ctx, uint16_t streamId, uint32_t ppid, const char *msg, size_t len) {
 #ifdef ENABLE_WEBRTC
     assert(ctx && msg);
-    WebRtcTransport* transport = (WebRtcTransport *)ctx;
+    WebRtcTransport *transport = (WebRtcTransport *)ctx;
     std::string msg_str(msg, len);
-    transport->getPoller()->async([streamId, ppid, msg_str, transport](){
-        //切换线程后再操作
-        transport->sendDatachannel(streamId, ppid, msg_str.c_str(), msg_str.size());
+    std::weak_ptr<WebRtcTransport> weak_trans = transport->shared_from_this();
+    transport->getPoller()->async([streamId, ppid, msg_str, weak_trans]() {
+        // 切换线程后再操作
+        if (auto trans = weak_trans.lock()) {
+            trans->sendDatachannel(streamId, ppid, msg_str.c_str(), msg_str.size());
+        }
     });
 #else
     WarnL << "未启用webrtc功能, 编译时请开启ENABLE_WEBRTC";
