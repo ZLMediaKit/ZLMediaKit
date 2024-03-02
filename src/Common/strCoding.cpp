@@ -79,7 +79,7 @@ string strCoding::UrlEncodePath(const string &str) {
             out.push_back(ch);
         } else {
             char buf[4];
-            sprintf(buf, "%%%X%X", (uint8_t) ch >> 4, (uint8_t) ch & 0x0F);
+            snprintf(buf, 4, "%%%X%X", (uint8_t) ch >> 4, (uint8_t) ch & 0x0F);
             out.append(buf);
         }
     }
@@ -96,7 +96,7 @@ string strCoding::UrlEncodeComponent(const string &str) {
             out.push_back(ch);
         } else {
             char buf[4];
-            sprintf(buf, "%%%X%X", (uint8_t) ch >> 4, (uint8_t) ch & 0x0F);
+            snprintf(buf, 4, "%%%X%X", (uint8_t) ch >> 4, (uint8_t) ch & 0x0F);
             out.append(buf);
         }
     }
