@@ -16,11 +16,19 @@
 #include "Record/MPEG.h"
 #include "Common/MediaSink.h"
 
-namespace mediakit{
+namespace mediakit {
+
 class CommonRtpEncoder;
-class PSEncoderImp : public MpegMuxer{
+
+class PSEncoderImp : public MpegMuxer {
 public:
-    PSEncoderImp(uint32_t ssrc, uint8_t payload_type = 96);
+    /**
+     * 创建psh或ts rtp编码器
+     * @param ssrc rtp的ssrc
+     * @param payload_type rtp的pt
+     * @param ps_or_ts true: ps, false: ts
+     */
+    PSEncoderImp(uint32_t ssrc, uint8_t payload_type = 96, bool ps_or_ts = true);
     ~PSEncoderImp() override;
 
 protected:

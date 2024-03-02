@@ -40,7 +40,9 @@ private:
 
 class RtpCachePS : public RtpCache, public PSEncoderImp {
 public:
-    RtpCachePS(onFlushed cb, uint32_t ssrc, uint8_t payload_type = 96) : RtpCache(std::move(cb)), PSEncoderImp(ssrc, payload_type) {};
+    RtpCachePS(onFlushed cb, uint32_t ssrc, uint8_t payload_type = 96, bool ps_or_ts = true) :
+        RtpCache(std::move(cb)), PSEncoderImp(ssrc, ps_or_ts ? payload_type : Rtsp::PT_MP2T, ps_or_ts) {};
+
     void flush() override;
 
 protected:
@@ -56,6 +58,7 @@ protected:
     void onRTP(toolkit::Buffer::Ptr rtp, bool is_key = false) override;
 };
 
-}//namespace mediakit
+} //namespace mediakit
+
 #endif//ENABLE_RTPPROXY
 #endif //ZLMEDIAKIT_RTPCACHE_H

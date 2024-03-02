@@ -19,9 +19,17 @@ using namespace toolkit;
 
 namespace mediakit{
 
-PSEncoderImp::PSEncoderImp(uint32_t ssrc, uint8_t payload_type) : MpegMuxer(true) {
-    GET_CONFIG(uint32_t,video_mtu,Rtp::kVideoMtuSize);
+PSEncoderImp::PSEncoderImp(uint32_t ssrc, uint8_t payload_type, bool ps_or_ts) : MpegMuxer(ps_or_ts) {
+    GET_CONFIG(uint32_t, s_video_mtu, Rtp::kVideoMtuSize);
     _rtp_encoder = std::make_shared<CommonRtpEncoder>();
+    auto video_mtu = s_video_mtu;
+    if (!ps_or_ts) {
+        // 确保ts rtp负载部分长度是188的倍数
+        video_mtu = RtpPacket::kRtpHeaderSize + (s_video_mtu - (s_video_mtu % 188));
+        if (video_mtu > s_video_mtu) {
+            video_mtu -= 188;
+        }
+    }
     _rtp_encoder->setRtpInfo(ssrc, video_mtu, 90000, payload_type);
     auto ring = std::make_shared<RtpRing::RingType>();
     ring->setDelegate(std::make_shared<RingDelegateHelper>([this](RtpPacket::Ptr rtp, bool is_key) { onRTP(std::move(rtp), is_key); }));
