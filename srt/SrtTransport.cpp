@@ -700,7 +700,7 @@ void SrtTransport::sendPacket(Buffer::Ptr pkt, bool flush) {
     }
 }
 
-std::string SrtTransport::getIdentifier() {
+std::string SrtTransport::getIdentifier() const {
     return _selected_session ? _selected_session->getIdentifier() : "";
 }
 
@@ -739,7 +739,7 @@ void SrtTransport::onShutdown(const SockException &ex) {
     }
 }
 
-size_t SrtTransport::getPayloadSize() {
+size_t SrtTransport::getPayloadSize() const {
     size_t ret = (_mtu - 28 - 16) / 188 * 188;
     return ret;
 }

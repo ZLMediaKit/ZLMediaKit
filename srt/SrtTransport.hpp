@@ -45,7 +45,7 @@ public:
     virtual void inputSockData(uint8_t *buf, int len, struct sockaddr_storage *addr);
     virtual void onSendTSData(const Buffer::Ptr &buffer, bool flush);
 
-    std::string getIdentifier();
+    std::string getIdentifier() const;
     void unregisterSelf();
     void unregisterSelfHandshake();
 
@@ -89,7 +89,7 @@ private:
     void sendShutDown();
     void sendMsgDropReq(uint32_t first, uint32_t last);
 
-    size_t getPayloadSize();
+    size_t getPayloadSize() const;
 
     void createTimerForCheckAlive();
 
