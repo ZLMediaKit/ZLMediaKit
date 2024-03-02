@@ -605,6 +605,7 @@ void JPEGRtpEncoder::rtpSendJpeg(const uint8_t *buf, int size, uint64_t pts, uin
     int i;
     int default_huffman_tables = 0;
     uint8_t *out = nullptr;
+    uint16_t restart_interval = 0;
 
     /* preparse the header for getting some info */
     for (i = 0; i < size; i++) {
@@ -714,6 +715,9 @@ void JPEGRtpEncoder::rtpSendJpeg(const uint8_t *buf, int size, uint64_t pts, uin
                 return;
             }
             break;
+        } else if (buf[i + 1] == DRI) {
+            type |= 0x40;
+            restart_interval = AV_RB16(&buf[i + 4]);
         }
     }
     if (default_huffman_tables && default_huffman_tables != 31) {
@@ -744,6 +748,9 @@ void JPEGRtpEncoder::rtpSendJpeg(const uint8_t *buf, int size, uint64_t pts, uin
         if (off == 0 && nb_qtables)
             hdr_size += 4 + 64 * nb_qtables;
 
+        if (type & 0x40)
+            hdr_size += 4;
+
         /* payload max in one packet */
         len = MIN(size, (int)getRtpInfo().getMaxSize() - hdr_size);
 
@@ -758,6 +765,13 @@ void JPEGRtpEncoder::rtpSendJpeg(const uint8_t *buf, int size, uint64_t pts, uin
         bytestream_put_byte(&p, 255);
         bytestream_put_byte(&p, w);
         bytestream_put_byte(&p, h);
+
+        /* set dri */
+        if (type & 0x40) {
+            bytestream_put_be16(&p, restart_interval);
+            bytestream_put_byte(&p, 0xff);
+            bytestream_put_byte(&p, 0xff);
+        }
 
         if (off == 0 && nb_qtables) {
             /* set quantization tables header */

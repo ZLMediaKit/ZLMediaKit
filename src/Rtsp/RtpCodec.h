@@ -93,6 +93,17 @@ public:
 
     RtpInfo &getRtpInfo() { return *_rtp_info; }
 
+    enum {
+        RTP_ENCODER_PKT_DUR_MS = 1 // 主要应用于g711 rtp 打包器每个包的时间长度，option_value 为int*, option_len 为4
+    };
+    /**
+     * @brief 设置rtp打包器与解包器的相关参数，主要应用与g711 rtp 打包器，使用方法类似setsockopt
+     *
+     * @param opt 设置的选项
+     * @param param 设置的参数
+     */
+    virtual void setOpt(int opt, const toolkit::Any &param) {};
+
 private:
     std::unique_ptr<RtpInfo> _rtp_info;
 };

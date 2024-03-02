@@ -12,6 +12,7 @@
 #define MK_PROXY_PLAYER_H_
 
 #include "mk_common.h"
+#include "mk_util.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,6 +31,17 @@ typedef struct mk_proxy_player_t *mk_proxy_player;
  * @return 对象指针
  */
 API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create(const char *vhost, const char *app, const char *stream, int hls_enabled, int mp4_enabled);
+
+/**
+ * 创建一个代理播放器
+ * @param vhost 虚拟主机名，一般为__defaultVhost__
+ * @param app 应用名
+ * @param stream 流名
+ * @param option ProtocolOption相关配置
+ * @return 对象指针
+ */
+API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create2(const char *vhost, const char *app, const char *stream, mk_ini option);
+
 
 /**
  * 销毁代理播放器

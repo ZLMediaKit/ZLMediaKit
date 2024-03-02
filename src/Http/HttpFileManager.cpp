@@ -228,7 +228,7 @@ static bool makeFolderMenu(const string &httpPath, const string &strFullPath, st
     multimap<string/*url name*/, std::pair<string/*note name*/, string/*file path*/> > file_map;
     File::scanDir(strPathPrefix, [&](const std::string &path, bool isDir) {
         auto name = fileName(strPathPrefix, path);
-        file_map.emplace(strCoding::UrlEncode(name), std::make_pair(name, path));
+        file_map.emplace(strCoding::UrlEncodePath(name), std::make_pair(name, path));
         return true;
     });
     //如果是root目录，添加虚拟目录
