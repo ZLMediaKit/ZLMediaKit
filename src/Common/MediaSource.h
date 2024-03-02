@@ -92,10 +92,11 @@ public:
 
     class SendRtpArgs {
     public:
+        enum Type { kRtpRAW = 0, kRtpPS = 1, kRtpTS = 2 };
         // 是否采用udp方式发送rtp
         bool is_udp = true;
-        // rtp采用ps还是es方式
-        bool use_ps = true;
+        // rtp类型
+        Type type = kRtpPS;
         //发送es流时指定是否只发送纯音频流
         bool only_audio = false;
         //tcp被动方式
