@@ -38,16 +38,12 @@ bool G711RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     auto ptr = _cache_frame->data() + _cache_frame->prefixSize();
     auto len = _cache_frame->size() - _cache_frame->prefixSize();
     auto remain_size = len;
-    auto max_size = 160 * _channels * _pkt_dur_ms / 20; // 20 ms per 160 byte
-    uint32_t n = 0;
+    size_t max_size = 160 * _channels * _pkt_dur_ms / 20; // 20 ms per 160 byte
+    size_t n = 0;
     bool mark = true;
     while (remain_size >= max_size) {
-        size_t rtp_size;
-        if (remain_size >= max_size) {
-            rtp_size = max_size;
-        } else {
-            break;
-        }
+        assert(remain_size >= max_size);
+        const size_t rtp_size = max_size;
         n++;
         stamp += _pkt_dur_ms;
         RtpCodec::inputRtp(getRtpInfo().makeRtp(TrackAudio, ptr, rtp_size, mark, stamp), true);
