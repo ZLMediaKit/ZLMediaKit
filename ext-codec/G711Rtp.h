@@ -36,8 +36,11 @@ public:
      */
     bool inputFrame(const Frame::Ptr &frame) override;
 
+    void setOpt(int opt, const toolkit::Any &param) override;
+
 private:
     uint32_t _channels = 1;
+    uint32_t _pkt_dur_ms = 20;
     FrameImp::Ptr _cache_frame;
 };
 
