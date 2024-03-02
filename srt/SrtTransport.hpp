@@ -45,7 +45,7 @@ public:
     virtual void inputSockData(uint8_t *buf, int len, struct sockaddr_storage *addr);
     virtual void onSendTSData(const Buffer::Ptr &buffer, bool flush);
 
-    std::string getIdentifier();
+    std::string getIdentifier() const;
     void unregisterSelf();
     void unregisterSelfHandshake();
 
@@ -89,7 +89,7 @@ private:
     void sendShutDown();
     void sendMsgDropReq(uint32_t first, uint32_t last);
 
-    size_t getPayloadSize();
+    size_t getPayloadSize() const;
 
     void createTimerForCheckAlive();
 
@@ -164,23 +164,23 @@ private:
 class SrtTransportManager {
 public:
     static SrtTransportManager &Instance();
-    SrtTransport::Ptr getItem(const std::string &key);
-    void addItem(const std::string &key, const SrtTransport::Ptr &ptr);
-    void removeItem(const std::string &key);
+    SrtTransport::Ptr getItem(const uint32_t key);
+    void addItem(const uint32_t key, const SrtTransport::Ptr &ptr);
+    void removeItem(const uint32_t key);
 
-    void addHandshakeItem(const std::string &key, const SrtTransport::Ptr &ptr);
-    void removeHandshakeItem(const std::string &key);
-    SrtTransport::Ptr getHandshakeItem(const std::string &key);
+    void addHandshakeItem(const uint32_t key, const SrtTransport::Ptr &ptr);
+    void removeHandshakeItem(const uint32_t key);
+    SrtTransport::Ptr getHandshakeItem(const uint32_t key);
 
 private:
     SrtTransportManager() = default;
 
 private:
     std::mutex _mtx;
-    std::unordered_map<std::string, std::weak_ptr<SrtTransport>> _map;
+    std::unordered_map<uint32_t , std::weak_ptr<SrtTransport>> _map;
 
     std::mutex _handshake_mtx;
-    std::unordered_map<std::string, std::weak_ptr<SrtTransport>> _handshake_map;
+    std::unordered_map<uint32_t, std::weak_ptr<SrtTransport>> _handshake_map;
 };
 
 } // namespace SRT

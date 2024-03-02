@@ -24,6 +24,32 @@ SrtTransportImp::~SrtTransportImp() {
     }
 }
 
+
+SrtTransport::Ptr querySrtTransport(uint8_t *data, size_t size, const EventPoller::Ptr& poller) {
+    if (DataPacket::isDataPacket(data, size)) {
+        uint32_t socket_id = DataPacket::getSocketID(data, size);
+        return SrtTransportManager::Instance().getItem(socket_id);
+    }
+
+    if (HandshakePacket::isHandshakePacket(data, size)) {
+        auto type = HandshakePacket::getHandshakeType(data, size);
+        if (type == HandshakePacket::HS_TYPE_INDUCTION) {
+            // 握手第一阶段
+            return poller ? std::make_shared<SrtTransportImp>(poller) : nullptr;
+        }
+
+        if (type == HandshakePacket::HS_TYPE_CONCLUSION) {
+            // 握手第二阶段
+            uint32_t sync_cookie = HandshakePacket::getSynCookie(data, size);
+            return SrtTransportManager::Instance().getHandshakeItem(sync_cookie);
+        }
+    }
+
+    uint32_t socket_id = ControlPacket::getSocketID(data, size);
+    return SrtTransportManager::Instance().getItem(socket_id);
+}
+
+
 void SrtTransportImp::onHandShakeFinished(std::string &streamid, struct sockaddr_storage *addr) {
     SrtTransport::onHandShakeFinished(streamid,addr);
     // TODO parse stream id like this zlmediakit.com/live/test?token=1213444&type=push
