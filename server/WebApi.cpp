@@ -119,7 +119,7 @@ static HttpApi toApi(const function<void(API_ARGS_MAP_ASYNC)> &cb) {
 
         //参数解析成map
         auto args = getAllArgs(parser);
-        cb(sender, headerOut, HttpAllArgs<decltype(args)>(parser, args), val, invoker);
+        cb(sender, headerOut, ArgsMap(parser, args), val, invoker);
     };
 }
 
@@ -147,7 +147,7 @@ static HttpApi toApi(const function<void(API_ARGS_JSON_ASYNC)> &cb) {
         Json::Reader reader;
         reader.parse(parser.content(), args);
 
-        cb(sender, headerOut, HttpAllArgs<decltype(args)>(parser, args), val, invoker);
+        cb(sender, headerOut, ArgsJson(parser, args), val, invoker);
     };
 }
 
@@ -167,7 +167,7 @@ static HttpApi toApi(const function<void(API_ARGS_STRING_ASYNC)> &cb) {
         Json::Value val;
         val["code"] = API::Success;
 
-        cb(sender, headerOut, HttpAllArgs<string>(parser, (string &)parser.content()), val, invoker);
+        cb(sender, headerOut, ArgsString(parser, (string &)parser.content()), val, invoker);
     };
 }
 
@@ -662,13 +662,6 @@ void addStreamPusherProxy(const string &schema,
     pusher->publish(url);
 }
 
-template <typename Type>
-static void getArgsValue(const HttpAllArgs<ApiArgsType> &allArgs, const string &key, Type &value) {
-    auto val = allArgs[key];
-    if (!val.empty()) {
-        value = (Type)val;
-    }
-}
 
 /**
  * 安装api接口
@@ -735,7 +728,7 @@ void installWebApi() {
         CHECK_SECRET();
         auto &ini = mINI::Instance();
         int changed = API::Success;
-        for (auto &pr : allArgs.getArgs()) {
+        for (auto &pr : allArgs.args) {
             if (ini.find(pr.first) == ini.end()) {
 #if 1
                 //没有这个key
@@ -1093,7 +1086,7 @@ void installWebApi() {
         CHECK_ARGS("vhost","app","stream","url");
 
         mINI args;
-        for (auto &pr : allArgs.getArgs()) {
+        for (auto &pr : allArgs.args) {
             args.emplace(pr.first, pr.second);
         }
 
@@ -1190,7 +1183,7 @@ void installWebApi() {
     //测试url http://127.0.0.1/index/api/downloadBin
     api_regist("/index/api/downloadBin",[](API_ARGS_MAP_ASYNC){
         CHECK_SECRET();
-        invoker.responseFile(allArgs.getParser().getHeader(),StrCaseMap(),exePath());
+        invoker.responseFile(allArgs.parser.getHeader(), StrCaseMap(), exePath());
     });
 
 #if defined(ENABLE_RTPPROXY)
@@ -1697,7 +1690,7 @@ void installWebApi() {
 
             //截图存在，且未过期，那么返回之
             res_old_snap = true;
-            responseSnap(path, allArgs.getParser().getHeader(), invoker);
+            responseSnap(path, allArgs.parser.getHeader(), invoker);
             //中断遍历
             return false;
         });
@@ -1728,7 +1721,7 @@ void installWebApi() {
                 File::delete_file(new_snap);
                 rename(new_snap_tmp.data(), new_snap.data());
             }
-            responseSnap(new_snap, allArgs.getParser().getHeader(), invoker, err_msg);
+            responseSnap(new_snap, allArgs.parser.getHeader(), invoker, err_msg);
         });
     });
 
@@ -1743,7 +1736,7 @@ void installWebApi() {
 #ifdef ENABLE_WEBRTC
     class WebRtcArgsImp : public WebRtcArgs {
     public:
-        WebRtcArgsImp(const HttpAllArgs<string> &args, std::string session_id)
+        WebRtcArgsImp(const ArgsString &args, std::string session_id)
             : _args(args)
             , _session_id(std::move(session_id)) {}
         ~WebRtcArgsImp() override = default;
@@ -1761,40 +1754,32 @@ void installWebApi() {
             CHECK_ARGS("app", "stream");
 
             return StrPrinter << "rtc://" << _args["Host"] << "/" << _args["app"] << "/"
-                              << _args["stream"] << "?" << _args.getParser().params() + "&session=" + _session_id;
+                              << _args["stream"] << "?" << _args.parser.params() + "&session=" + _session_id;
         }
 
     private:
-        HttpAllArgs<string> _args;
+        ArgsString _args;
         std::string _session_id;
     };
 
     api_regist("/index/api/webrtc",[](API_ARGS_STRING_ASYNC){
         CHECK_ARGS("type");
         auto type = allArgs["type"];
-        auto offer = allArgs.getArgs();
+        auto offer = allArgs.args;
         CHECK(!offer.empty(), "http body(webrtc offer sdp) is empty");
-        std::string host = allArgs.getParser()["Host"];
-        std::string localIp = host.substr(0, host.find(':'));
 
-        auto isVaildIP = [](std::string ip)-> bool {
-            int a,b,c,d;
-            return sscanf(ip.c_str(),"%d.%d.%d.%d", &a, &b, &c, &d) == 4;
-        };
-        if (!isVaildIP(localIp) || localIp=="127.0.0.1") {
-            localIp = "";
-        }
-
+        auto &session = static_cast<Session&>(sender);
         auto args = std::make_shared<WebRtcArgsImp>(allArgs, sender.getIdentifier());
-        WebRtcPluginManager::Instance().getAnswerSdp(static_cast<Session&>(sender), type, *args, [invoker, val, offer, headerOut, localIp](const WebRtcInterface &exchanger) mutable {
+        WebRtcPluginManager::Instance().negotiateSdp(session, type, *args, [invoker, val, offer, headerOut, args](const WebRtcInterface &exchanger) mutable {
             //设置返回类型
             headerOut["Content-Type"] = HttpFileManager::getContentType(".json");
             //设置跨域
             headerOut["Access-Control-Allow-Origin"] = "*";
 
+            setWebRtcArgs(*args, exchanger);
+            auto& handler = const_cast<WebRtcInterface &>(exchanger);
             try {
-                setLocalIp(exchanger,localIp);
-                val["sdp"] = exchangeSdp(exchanger, offer);
+                val["sdp"] = handler.getAnswerSdp(offer);
                 val["id"] = exchanger.getIdentifier();
                 val["type"] = "answer";
                 invoker(200, headerOut, val.toStyledString());
@@ -1808,26 +1793,27 @@ void installWebApi() {
 
     static constexpr char delete_webrtc_url [] = "/index/api/delete_webrtc";
     static auto whip_whep_func = [](const char *type, API_ARGS_STRING_ASYNC) {
-        auto offer = allArgs.getArgs();
+        auto offer = allArgs.args;
         CHECK(!offer.empty(), "http body(webrtc offer sdp) is empty");
 
         auto &session = static_cast<Session&>(sender);
-        auto location = std::string("http") + (session.overSsl() ? "s" : "") + "://" + allArgs["host"] + delete_webrtc_url;
+        auto location = std::string(session.overSsl() ? "https://" : "http://") + allArgs["host"] + delete_webrtc_url;
         auto args = std::make_shared<WebRtcArgsImp>(allArgs, sender.getIdentifier());
-        WebRtcPluginManager::Instance().getAnswerSdp(session, type, *args,
-                                                     [invoker, offer, headerOut, location](const WebRtcInterface &exchanger) mutable {
-                // 设置跨域
-                headerOut["Access-Control-Allow-Origin"] = "*";
-                try {
-                    // 设置返回类型
-                    headerOut["Content-Type"] = "application/sdp";
-                    headerOut["Location"] = location + "?id=" + exchanger.getIdentifier() + "&token=" + exchanger.deleteRandStr();
-                    invoker(201, headerOut, exchangeSdp(exchanger, offer));
-                } catch (std::exception &ex) {
-                    headerOut["Content-Type"] = "text/plain";
-                    invoker(406, headerOut, ex.what());
-                }
-            });
+        WebRtcPluginManager::Instance().negotiateSdp(session, type, *args, [invoker, offer, headerOut, location, args](const WebRtcInterface &exchanger) mutable {
+            // 设置跨域
+            headerOut["Access-Control-Allow-Origin"] = "*";
+            setWebRtcArgs(*args, exchanger);
+            auto& handler = const_cast<WebRtcInterface &>(exchanger);
+            try {
+                // 设置返回类型
+                headerOut["Content-Type"] = "application/sdp";
+                headerOut["Location"] = location + "?id=" + exchanger.getIdentifier() + "&token=" + exchanger.deleteRandStr();
+                invoker(201, headerOut, handler.getAnswerSdp(offer));
+            } catch (std::exception &ex) {
+                headerOut["Content-Type"] = "text/plain";
+                invoker(406, headerOut, ex.what());
+            }
+        });
     };
 
     api_regist("/index/api/whip", [](API_ARGS_STRING_ASYNC) { whip_whep_func("push", API_ARGS_VALUE, invoker); });
@@ -1835,7 +1821,7 @@ void installWebApi() {
 
     api_regist(delete_webrtc_url, [](API_ARGS_MAP_ASYNC) {
         CHECK_ARGS("id", "token");
-        CHECK(allArgs.getParser().method() == "DELETE", "http method is not DELETE: " + allArgs.getParser().method());
+        CHECK(allArgs.parser.method() == "DELETE", "http method is not DELETE: " + allArgs.parser.method());
         auto obj = WebRtcTransportManager::Instance().getItem(allArgs["id"]);
         if (!obj) {
             invoker(404, headerOut, "id not found");
@@ -1921,11 +1907,11 @@ void installWebApi() {
                 if (!save_name.empty()) {
                     res_header.emplace("Content-Disposition", "attachment;filename=\"" + save_name + "\"");
                 }
-                invoker.responseFile(allArgs.getParser().getHeader(), res_header, allArgs["file_path"]);
+                invoker.responseFile(allArgs.parser.getHeader(), res_header, allArgs["file_path"]);
             }
         };
 
-        bool flag = NOTICE_EMIT(BroadcastHttpAccessArgs, Broadcast::kBroadcastHttpAccess, allArgs.getParser(), file_path, false, file_invoker, sender);
+        bool flag = NOTICE_EMIT(BroadcastHttpAccessArgs, Broadcast::kBroadcastHttpAccess, allArgs.parser, file_path, false, file_invoker, sender);
         if (!flag) {
             // 文件下载鉴权事件无人监听，不允许下载
             invoker(401, StrCaseMap {}, "None http access event listener");
