@@ -584,6 +584,60 @@ void addStreamProxy(const string &vhost, const string &app, const string &stream
     player->play(url);
 };
 
+
+void addStreamPusherProxy(const string &schema,
+                          const string &vhost,
+                          const string &app,
+                          const string &stream,
+                          const string &url,
+                          int retry_count,
+                          int rtp_type,
+                          float timeout_sec,
+                          const function<void(const SockException &ex, const string &key)> &cb) {
+    auto key = getPusherKey(schema, vhost, app, stream, url);
+    auto src = MediaSource::find(schema, vhost, app, stream);
+    if (!src) {
+        cb(SockException(Err_other, "can not find the source stream"), key);
+        return;
+    }
+    lock_guard<recursive_mutex> lck(s_proxyPusherMapMtx);
+    if (s_proxyPusherMap.find(key) != s_proxyPusherMap.end()) {
+        //已经在推流了
+        cb(SockException(Err_success), key);
+        return;
+    }
+
+    //添加推流代理
+    auto pusher = std::make_shared<PusherProxy>(src, retry_count);
+    s_proxyPusherMap[key] = pusher;
+
+    //指定RTP over TCP(播放rtsp时有效)
+    pusher->emplace(Client::kRtpType, rtp_type);
+
+    if (timeout_sec > 0.1f) {
+        //推流握手超时时间
+        pusher->emplace(Client::kTimeoutMS, timeout_sec * 1000);
+    }
+
+    //开始推流，如果推流失败或者推流中止，将会自动重试若干次，默认一直重试
+    pusher->setPushCallbackOnce([cb, key, url](const SockException &ex) {
+        if (ex) {
+            WarnL << "Push " << url << " failed, key: " << key << ", err: " << ex;
+            lock_guard<recursive_mutex> lck(s_proxyPusherMapMtx);
+            s_proxyPusherMap.erase(key);
+        }
+        cb(ex, key);
+    });
+
+    //被主动关闭推流
+    pusher->setOnClose([key, url](const SockException &ex) {
+        WarnL << "Push " << url << " failed, key: " << key << ", err: " << ex;
+        lock_guard<recursive_mutex> lck(s_proxyPusherMapMtx);
+        s_proxyPusherMap.erase(key);
+    });
+    pusher->publish(url);
+}
+
 template <typename Type>
 static void getArgsValue(const HttpAllArgs<ApiArgsType> &allArgs, const string &key, Type &value) {
     auto val = allArgs[key];
@@ -972,59 +1026,6 @@ void installWebApi() {
         }
         val["count_hit"] = (Json::UInt64)count_hit;
     });
-
-    static auto addStreamPusherProxy = [](const string &schema,
-                                          const string &vhost,
-                                          const string &app,
-                                          const string &stream,
-                                          const string &url,
-                                          int retry_count,
-                                          int rtp_type,
-                                          float timeout_sec,
-                                          const function<void(const SockException &ex, const string &key)> &cb) {
-        auto key = getPusherKey(schema, vhost, app, stream, url);
-        auto src = MediaSource::find(schema, vhost, app, stream);
-        if (!src) {
-            cb(SockException(Err_other, "can not find the source stream"), key);
-            return;
-        }
-        lock_guard<recursive_mutex> lck(s_proxyPusherMapMtx);
-        if (s_proxyPusherMap.find(key) != s_proxyPusherMap.end()) {
-            //已经在推流了
-            cb(SockException(Err_success), key);
-            return;
-        }
-
-        //添加推流代理
-        auto pusher = std::make_shared<PusherProxy>(src, retry_count);
-        s_proxyPusherMap[key] = pusher;
-
-        //指定RTP over TCP(播放rtsp时有效)
-        (*pusher)[Client::kRtpType] = rtp_type;
-
-        if (timeout_sec > 0.1) {
-            //推流握手超时时间
-            (*pusher)[Client::kTimeoutMS] = timeout_sec * 1000;
-        }
-
-        //开始推流，如果推流失败或者推流中止，将会自动重试若干次，默认一直重试
-        pusher->setPushCallbackOnce([cb, key, url](const SockException &ex) {
-            if (ex) {
-                WarnL << "Push " << url << " failed, key: " << key << ", err: " << ex;
-                lock_guard<recursive_mutex> lck(s_proxyPusherMapMtx);
-                s_proxyPusherMap.erase(key);
-            }
-            cb(ex, key);
-        });
-
-        //被主动关闭推流
-        pusher->setOnClose([key, url](const SockException &ex) {
-            WarnL << "Push " << url << " failed, key: " << key << ", err: " << ex;
-            lock_guard<recursive_mutex> lck(s_proxyPusherMapMtx);
-            s_proxyPusherMap.erase(key);
-        });
-        pusher->publish(url);
-    };
 
     //动态添加rtsp/rtmp推流代理
     //测试url http://127.0.0.1/index/api/addStreamPusherProxy?schema=rtmp&vhost=__defaultVhost__&app=proxy&stream=0&dst_url=rtmp://127.0.0.1/live/obs
