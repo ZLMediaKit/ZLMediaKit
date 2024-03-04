@@ -23,11 +23,16 @@ namespace mediakit {
 
 PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &in_poller, const string &url_in) {
     auto poller = in_poller ? in_poller : EventPollerPool::Instance().getPoller();
-    static auto releasePlayer = [poller](PlayerBase *ptr) {
-        poller->async([ptr]() {
-            onceToken token(nullptr, [&]() { delete ptr; });
-            ptr->teardown();
-        });
+    std::weak_ptr<EventPoller> weak_poller = poller;
+    static auto release_func = [weak_poller](PlayerBase *ptr) {
+        if (auto poller = weak_poller.lock()) {
+            poller->async([ptr]() {
+                onceToken token(nullptr, [&]() { delete ptr; });
+                ptr->teardown();
+            });
+        } else {
+            delete ptr;
+        }
     };
     string url = url_in;
     string prefix = findSubString(url.data(), NULL, "://");
@@ -38,29 +43,29 @@ PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &in_poller, cons
     }
 
     if (strcasecmp("rtsps", prefix.data()) == 0) {
-        return PlayerBase::Ptr(new TcpClientWithSSL<RtspPlayerImp>(poller), releasePlayer);
+        return PlayerBase::Ptr(new TcpClientWithSSL<RtspPlayerImp>(poller), release_func);
     }
 
     if (strcasecmp("rtsp", prefix.data()) == 0) {
-        return PlayerBase::Ptr(new RtspPlayerImp(poller), releasePlayer);
+        return PlayerBase::Ptr(new RtspPlayerImp(poller), release_func);
     }
 
     if (strcasecmp("rtmps", prefix.data()) == 0) {
-        return PlayerBase::Ptr(new TcpClientWithSSL<RtmpPlayerImp>(poller), releasePlayer);
+        return PlayerBase::Ptr(new TcpClientWithSSL<RtmpPlayerImp>(poller), release_func);
     }
 
     if (strcasecmp("rtmp", prefix.data()) == 0) {
-        return PlayerBase::Ptr(new RtmpPlayerImp(poller), releasePlayer);
+        return PlayerBase::Ptr(new RtmpPlayerImp(poller), release_func);
     }
     if ((strcasecmp("http", prefix.data()) == 0 || strcasecmp("https", prefix.data()) == 0)) {
         if (end_with(url, ".m3u8") || end_with(url_in, ".m3u8")) {
-            return PlayerBase::Ptr(new HlsPlayerImp(poller), releasePlayer);
+            return PlayerBase::Ptr(new HlsPlayerImp(poller), release_func);
         }
         if (end_with(url, ".ts") || end_with(url_in, ".ts")) {
-            return PlayerBase::Ptr(new TsPlayerImp(poller), releasePlayer);
+            return PlayerBase::Ptr(new TsPlayerImp(poller), release_func);
         }
         if (end_with(url, ".flv") || end_with(url_in, ".flv")) {
-            return PlayerBase::Ptr(new FlvPlayerImp(poller), releasePlayer);
+            return PlayerBase::Ptr(new FlvPlayerImp(poller), release_func);
         }
     }
 

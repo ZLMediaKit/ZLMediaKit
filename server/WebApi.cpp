@@ -1289,7 +1289,10 @@ void installWebApi() {
         if (!src) {
             throw ApiRetException("can not find the source stream", API::NotFound);
         }
-
+        if (!allArgs["use_ps"].empty()) {
+            // 兼容之前的use_ps参数
+            allArgs["type"] = allArgs["use_ps"].as<int>();
+        }
         MediaSourceEvent::SendRtpArgs args;
         args.passive = false;
         args.dst_url = allArgs["dst_url"];
@@ -1299,11 +1302,11 @@ void installWebApi() {
         args.is_udp = allArgs["is_udp"];
         args.src_port = allArgs["src_port"];
         args.pt = allArgs["pt"].empty() ? 96 : allArgs["pt"].as<int>();
-        args.use_ps = allArgs["use_ps"].empty() ? true : allArgs["use_ps"].as<bool>();
+        args.type = (MediaSourceEvent::SendRtpArgs::Type)(allArgs["type"].as<int>());
         args.only_audio = allArgs["only_audio"].as<bool>();
         args.udp_rtcp_timeout = allArgs["udp_rtcp_timeout"];
         args.recv_stream_id = allArgs["recv_stream_id"];
-        TraceL << "startSendRtp, pt " << int(args.pt) << " ps " << args.use_ps << " audio " << args.only_audio;
+        TraceL << "startSendRtp, pt " << int(args.pt) << " rtp type " << args.type << " audio " << args.only_audio;
 
         src->getOwnerPoller()->async([=]() mutable {
             src->startSendRtp(args, [val, headerOut, invoker](uint16_t local_port, const SockException &ex) mutable {
@@ -1326,18 +1329,23 @@ void installWebApi() {
             throw ApiRetException("can not find the source stream", API::NotFound);
         }
 
+        if (!allArgs["use_ps"].empty()) {
+            // 兼容之前的use_ps参数
+            allArgs["type"] = allArgs["use_ps"].as<int>();
+        }
+
         MediaSourceEvent::SendRtpArgs args;
         args.passive = true;
         args.ssrc = allArgs["ssrc"];
         args.is_udp = false;
         args.src_port = allArgs["src_port"];
         args.pt = allArgs["pt"].empty() ? 96 : allArgs["pt"].as<int>();
-        args.use_ps = allArgs["use_ps"].empty() ? true : allArgs["use_ps"].as<bool>();
+        args.type = (MediaSourceEvent::SendRtpArgs::Type)(allArgs["type"].as<int>());
         args.only_audio = allArgs["only_audio"].as<bool>();
         args.recv_stream_id = allArgs["recv_stream_id"];
         //tcp被动服务器等待链接超时时间
         args.tcp_passive_close_delay_ms = allArgs["close_delay_ms"];
-        TraceL << "startSendRtpPassive, pt " << int(args.pt) << " ps " << args.use_ps << " audio " <<  args.only_audio;
+        TraceL << "startSendRtpPassive, pt " << int(args.pt) << " rtp type " << args.type << " audio " <<  args.only_audio;
 
         src->getOwnerPoller()->async([=]() mutable {
             src->startSendRtp(args, [val, headerOut, invoker](uint16_t local_port, const SockException &ex) mutable {
@@ -1749,8 +1757,12 @@ void installWebApi() {
         CHECK(!offer.empty(), "http body(webrtc offer sdp) is empty");
         std::string host = allArgs.getParser()["Host"];
         std::string localIp = host.substr(0, host.find(':'));
-        std::regex ipv4Regex("^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
-        if (!std::regex_match(localIp, ipv4Regex)||localIp=="127.0.0.1") {
+
+        auto isVaildIP = [](std::string ip)-> bool {
+            int a,b,c,d;
+            return sscanf(ip.c_str(),"%d.%d.%d.%d", &a, &b, &c, &d) == 4;
+        };
+        if (!isVaildIP(localIp) || localIp=="127.0.0.1") {
             localIp = "";
         }
 
