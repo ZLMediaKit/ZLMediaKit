@@ -40,10 +40,11 @@ void RtpSender::startSend(const MediaSourceEvent::SendRtpArgs &args, const funct
     if (!_interface) {
         //重连时不重新创建对象
         auto lam = [this](std::shared_ptr<List<Buffer::Ptr>> list) { onFlushRtpList(std::move(list)); };
-        if (args.use_ps) {
-            _interface = std::make_shared<RtpCachePS>(lam, atoi(args.ssrc.data()), args.pt);
-        } else {
-            _interface = std::make_shared<RtpCacheRaw>(lam, atoi(args.ssrc.data()), args.pt, args.only_audio);
+        switch (args.type) {
+            case MediaSourceEvent::SendRtpArgs::kRtpPS: _interface = std::make_shared<RtpCachePS>(lam, atoi(args.ssrc.data()), args.pt, true); break;
+            case MediaSourceEvent::SendRtpArgs::kRtpTS: _interface = std::make_shared<RtpCachePS>(lam, atoi(args.ssrc.data()), args.pt, false); break;
+            case MediaSourceEvent::SendRtpArgs::kRtpRAW: _interface = std::make_shared<RtpCacheRaw>(lam, atoi(args.ssrc.data()), args.pt, args.only_audio); break;
+            default: CHECK(0, "invalid rtp type:" + to_string(args.type)); break;
         }
     }
 

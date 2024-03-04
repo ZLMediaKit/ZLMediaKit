@@ -55,6 +55,9 @@ const string kStartBitrate = RTC_FIELD "start_bitrate";
 const string kMaxBitrate = RTC_FIELD "max_bitrate";
 const string kMinBitrate = RTC_FIELD "min_bitrate";
 
+// 数据通道设置
+const string kDataChannelEcho = RTC_FIELD "datachannel_echo";
+
 static onceToken token([]() {
     mINI::Instance()[kTimeOutSec] = 15;
     mINI::Instance()[kExternIP] = "";
@@ -65,6 +68,8 @@ static onceToken token([]() {
     mINI::Instance()[kStartBitrate] = 0;
     mINI::Instance()[kMaxBitrate] = 0;
     mINI::Instance()[kMinBitrate] = 0;
+
+    mINI::Instance()[kDataChannelEcho] = true;
 });
 
 } // namespace RTC
@@ -201,9 +206,26 @@ void WebRtcTransport::OnDtlsTransportConnected(
     onStartWebRTC();
 }
 
+#pragma pack(push, 1)
+struct DtlsHeader {
+    uint8_t content_type;
+    uint16_t dtls_version;
+    uint16_t epoch;
+    uint8_t seq[6];
+    uint16_t length;
+    uint8_t payload[1];
+};
+#pragma pack(pop)
+
 void WebRtcTransport::OnDtlsTransportSendData(
     const RTC::DtlsTransport *dtlsTransport, const uint8_t *data, size_t len) {
-    sendSockData((char *)data, len, nullptr);
+    size_t offset = 0;
+    while(offset < len) {
+        auto *header = reinterpret_cast<const DtlsHeader *>(data + offset);
+        auto length = ntohs(header->length) + offsetof(DtlsHeader, payload);
+        sendSockData((char *)data + offset, length, nullptr);
+        offset += length;
+    }
 }
 
 void WebRtcTransport::OnDtlsTransportConnecting(const RTC::DtlsTransport *dtlsTransport) {
@@ -233,22 +255,47 @@ void WebRtcTransport::OnDtlsTransportApplicationDataReceived(
 #ifdef ENABLE_SCTP
 void WebRtcTransport::OnSctpAssociationConnecting(RTC::SctpAssociation *sctpAssociation) {
     TraceL << getIdentifier();
+    try {
+        NOTICE_EMIT(BroadcastRtcSctpConnectArgs, Broadcast::kBroadcastRtcSctpConnecting, *this);
+    } catch (std::exception &ex) {
+        WarnL << "Exception occurred: " << ex.what();
+    }
 }
 
 void WebRtcTransport::OnSctpAssociationConnected(RTC::SctpAssociation *sctpAssociation) {
     InfoL << getIdentifier();
+    try {
+        NOTICE_EMIT(BroadcastRtcSctpConnectArgs, Broadcast::kBroadcastRtcSctpConnected, *this);
+    } catch (std::exception &ex) {
+        WarnL << "Exception occurred: " << ex.what();
+    }
 }
 
 void WebRtcTransport::OnSctpAssociationFailed(RTC::SctpAssociation *sctpAssociation) {
     WarnL << getIdentifier();
+    try {
+        NOTICE_EMIT(BroadcastRtcSctpConnectArgs, Broadcast::kBroadcastRtcSctpFailed, *this);
+    } catch (std::exception &ex) {
+        WarnL << "Exception occurred: " << ex.what();
+    }
 }
 
 void WebRtcTransport::OnSctpAssociationClosed(RTC::SctpAssociation *sctpAssociation) {
     InfoL << getIdentifier();
+    try {
+        NOTICE_EMIT(BroadcastRtcSctpConnectArgs, Broadcast::kBroadcastRtcSctpClosed, *this);
+    } catch (std::exception &ex) {
+        WarnL << "Exception occurred: " << ex.what();
+    }
 }
 
 void WebRtcTransport::OnSctpAssociationSendData(
     RTC::SctpAssociation *sctpAssociation, const uint8_t *data, size_t len) {
+    try {
+        NOTICE_EMIT(BroadcastRtcSctpSendArgs, Broadcast::kBroadcastRtcSctpSend, *this, data, len);
+    } catch (std::exception &ex) {
+        WarnL << "Exception occurred: " << ex.what();
+    }
     _dtls_transport->SendApplicationData(data, len);
 }
 
@@ -257,8 +304,18 @@ void WebRtcTransport::OnSctpAssociationMessageReceived(
     InfoL << getIdentifier() << " " << streamId << " " << ppid << " " << len << " " << string((char *)msg, len);
     RTC::SctpStreamParameters params;
     params.streamId = streamId;
-    // 回显数据
-    _sctp->SendSctpMessage(params, ppid, msg, len);
+
+    GET_CONFIG(bool, datachannel_echo, Rtc::kDataChannelEcho);
+    if (datachannel_echo) {
+        // 回显数据
+        _sctp->SendSctpMessage(params, ppid, msg, len);
+    }
+
+    try {
+        NOTICE_EMIT(BroadcastRtcSctpReceivedArgs, Broadcast::kBroadcastRtcSctpReceived, *this, streamId, ppid, msg, len);
+    } catch (std::exception &ex) {
+        WarnL << "Exception occurred: " << ex.what();
+    }
 }
 #endif
 
@@ -618,7 +675,7 @@ void WebRtcTransportImp::onCheckAnswer(RtcSession &sdp) {
     });
     for (auto &m : sdp.media) {
         m.addr.reset();
-        m.addr.address = extern_ips.empty() ? SockUtil::get_local_ip() : extern_ips[0];
+        m.addr.address = extern_ips.empty() ? _localIp.empty() ? SockUtil::get_local_ip() : _localIp : extern_ips[0];
         m.rtcp_addr.reset();
         m.rtcp_addr.address = m.addr.address;
 
@@ -713,7 +770,7 @@ void WebRtcTransportImp::onRtcConfigure(RtcConfigure &configure) const {
         return ret;
     });
     if (extern_ips.empty()) {
-        std::string local_ip = SockUtil::get_local_ip();
+        std::string local_ip = _localIp.empty() ? SockUtil::get_local_ip() : _localIp;
         if (local_udp_port) { configure.addCandidate(*makeIceCandidate(local_ip, local_udp_port, 120, "udp")); }
         if (local_tcp_port) { configure.addCandidate(*makeIceCandidate(local_ip, local_tcp_port, _preferred_tcp ? 125 : 115, "tcp")); }
     } else {
@@ -729,6 +786,10 @@ void WebRtcTransportImp::onRtcConfigure(RtcConfigure &configure) const {
 
 void WebRtcTransportImp::setIceCandidate(vector<SdpAttrCandidate> cands) {
     _cands = std::move(cands);
+}
+
+void WebRtcTransportImp::setLocalIp(const std::string &localIp) {
+    _localIp = localIp;
 }
 
 ///////////////////////////////////////////////////////////////////
@@ -1220,6 +1281,10 @@ void WebRtcPluginManager::registerPlugin(const string &type, Plugin cb) {
 
 std::string exchangeSdp(const WebRtcInterface &exchanger, const std::string& offer) {
     return const_cast<WebRtcInterface &>(exchanger).getAnswerSdp(offer);
+}
+
+void setLocalIp(const WebRtcInterface& exchanger, const std::string& localIp) {
+    return const_cast<WebRtcInterface &>(exchanger).setLocalIp(localIp);
 }
 
 void WebRtcPluginManager::setListener(Listener cb) {

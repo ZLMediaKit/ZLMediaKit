@@ -44,7 +44,9 @@ public:
     void onRecv(const toolkit::Buffer::Ptr &) override;
     void onError(const toolkit::SockException &err) override;
     void onManager() override;
-    static std::string urlDecode(const std::string &str);
+    [[deprecated]] static std::string urlDecode(const std::string &str);
+    static std::string urlDecodePath(const std::string &str);
+    static std::string urlDecodeComponent(const std::string &str);
     void setTimeoutSec(size_t second);
     void setMaxReqSize(size_t max_req_size);
 
@@ -136,6 +138,8 @@ private:
     size_t _max_req_size = 0;
     //消耗的总流量
     uint64_t _total_bytes_usage = 0;
+    // http请求中的 Origin字段
+    std::string _origin;
     Parser _parser;
     toolkit::Ticker _ticker;
     TSMediaSource::RingType::RingReader::Ptr _ts_reader;
