@@ -25,6 +25,7 @@ public:
     static const std::string kStreamID;
     static const std::string kSSRC;
     static const std::string kOnlyTrack;
+    static const std::string kUdpRecvBuffer;
 
     RtpSession(const toolkit::Socket::Ptr &sock);
     ~RtpSession() override;

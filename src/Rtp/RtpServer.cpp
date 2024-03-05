@@ -174,7 +174,8 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_
     }
 
     //设置udp socket读缓存
-    SockUtil::setRecvBuf(rtp_socket->rawFD(), 4 * 1024 * 1024);
+    GET_CONFIG(int, udpRecvSocketBuffer, RtpProxy::kUdpRecvSocketBuffer);
+    SockUtil::setRecvBuf(rtp_socket->rawFD(), udpRecvSocketBuffer);
 
     TcpServer::Ptr tcp_server;
     _tcp_mode = tcp_mode;
@@ -223,6 +224,7 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_
         //单端口多线程接收多个流，根据ssrc区分流
         udp_server = std::make_shared<UdpServer>(rtp_socket->getPoller());
         (*udp_server)[RtpSession::kOnlyTrack] = only_track;
+        (*udp_server)[RtpSession::kUdpRecvBuffer] = udpRecvSocketBuffer;
         udp_server->start<RtpSession>(local_port, local_ip);
         rtp_socket = nullptr;
     }
