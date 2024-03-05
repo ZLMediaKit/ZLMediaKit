@@ -199,8 +199,8 @@ void RtpProcess::setStopCheckRtp(bool is_check){
     }
 }
 
-void RtpProcess::setOnlyAudio(bool only_audio){
-    _only_audio = only_audio;
+void RtpProcess::setOnlyTrack(OnlyTrack only_track) {
+    _only_track = only_track;
 }
 
 void RtpProcess::onDetach() {
@@ -259,8 +259,10 @@ void RtpProcess::emitOnPublish() {
                 if (!option.stream_replace.empty()) {
                     RtpSelector::Instance().addStreamReplace(strong_self->_media_info.stream, option.stream_replace);
                 }
-                if (strong_self->_only_audio) {
-                    strong_self->_muxer->setOnlyAudio();
+                switch (strong_self->_only_track) {
+                    case kOnlyAudio: strong_self->_muxer->setOnlyAudio(); break;
+                    case kOnlyVideo: strong_self->_muxer->enableAudio(false); break;
+                    default: break;
                 }
                 strong_self->_muxer->setMediaListener(strong_self);
                 strong_self->doCachedFunc();

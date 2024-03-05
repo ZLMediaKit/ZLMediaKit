@@ -1,11 +1,11 @@
 {
 	"info": {
-		"_postman_id": "08e3bc35-5318-4949-81bb-90d854706194",
+		"_postman_id": "08c77fc3-7670-428c-bde4-80c8cc9f389f",
 		"name": "ZLMediaKit",
 		"description": "媒体服务器",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "29185956",
-		"_collection_link": "https://lively-station-598157.postman.co/workspace/%E6%B5%81%E5%AA%92%E4%BD%93%E6%9C%8D%E5%8A%A1~1e119172-45b0-4ed6-b1fc-8a15d0e2d5f8/collection/29185956-08e3bc35-5318-4949-81bb-90d854706194?action=share&source=collection_link&creator=29185956"
+		"_collection_link": "https://lively-station-598157.postman.co/workspace/%E6%B5%81%E5%AA%92%E4%BD%93%E6%9C%8D%E5%8A%A1~1e119172-45b0-4ed6-b1fc-8a15d0e2d5f8/collection/29185956-08c77fc3-7670-428c-bde4-80c8cc9f389f?action=share&source=collection_link&creator=29185956"
 	},
 	"item": [
 		{
@@ -1470,9 +1470,9 @@
 							"disabled": true
 						},
 						{
-							"key": "only_audio",
+							"key": "only_track",
 							"value": "1",
-							"description": "是否为单音频track，用于语音对讲",
+							"description": "是否为单音频/单视频track，0：不设置，1：单音频，2：单视频",
 							"disabled": true
 						},
 						{
@@ -1523,9 +1523,9 @@
 							"description": "该端口绑定的流id\n"
 						},
 						{
-							"key": "only_audio",
+							"key": "only_track",
 							"value": "0",
-							"description": "是否为单音频track，用于语音对讲",
+							"description": "是否为单音频/单视频track，0：不设置，1：单音频，2：单视频",
 							"disabled": true
 						},
 						{

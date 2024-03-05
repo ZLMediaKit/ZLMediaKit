@@ -415,7 +415,7 @@ Value makeMediaSourceJson(MediaSource &media){
 }
 
 #if defined(ENABLE_RTPPROXY)
-uint16_t openRtpServer(uint16_t local_port, const string &stream_id, int tcp_mode, const string &local_ip, bool re_use_port, uint32_t ssrc, bool only_audio, bool multiplex) {
+uint16_t openRtpServer(uint16_t local_port, const string &stream_id, int tcp_mode, const string &local_ip, bool re_use_port, uint32_t ssrc, int only_track, bool multiplex) {
     lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
     if (s_rtpServerMap.find(stream_id) != s_rtpServerMap.end()) {
         //为了防止RtpProcess所有权限混乱的问题，不允许重复添加相同的stream_id
@@ -423,7 +423,7 @@ uint16_t openRtpServer(uint16_t local_port, const string &stream_id, int tcp_mod
     }
 
     RtpServer::Ptr server = std::make_shared<RtpServer>();
-    server->start(local_port, stream_id, (RtpServer::TcpMode)tcp_mode, local_ip.c_str(), re_use_port, ssrc, only_audio, multiplex);
+    server->start(local_port, stream_id, (RtpServer::TcpMode)tcp_mode, local_ip.c_str(), re_use_port, ssrc, only_track, multiplex);
     server->setOnDetach([stream_id]() {
         //设置rtp超时移除事件
         lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
@@ -1198,12 +1198,17 @@ void installWebApi() {
             //兼容老版本请求，新版本去除enable_tcp参数并新增tcp_mode参数
             tcp_mode = 1;
         }
+        auto only_track = allArgs["only_track"].as<int>();
+        if (allArgs["only_audio"].as<bool>()) {
+            // 兼容老版本请求，新版本去除only_audio参数并新增only_track参数
+            only_track = 1;
+        }
         std::string local_ip = "::";
         if (!allArgs["local_ip"].empty()) {
             local_ip = allArgs["local_ip"];
         }
         auto port = openRtpServer(allArgs["port"], stream_id, tcp_mode, local_ip, allArgs["re_use_port"].as<bool>(),
-                                  allArgs["ssrc"].as<uint32_t>(), allArgs["only_audio"].as<bool>());
+                                  allArgs["ssrc"].as<uint32_t>(), only_track);
         if (port == 0) {
             throw InvalidArgsException("该stream_id已存在");
         }
@@ -1220,11 +1225,16 @@ void installWebApi() {
           // 兼容老版本请求，新版本去除enable_tcp参数并新增tcp_mode参数
           tcp_mode = 1;
       }
+      auto only_track = allArgs["only_track"].as<int>();
+      if (allArgs["only_audio"].as<bool>()) {
+          // 兼容老版本请求，新版本去除only_audio参数并新增only_track参数
+          only_track = 1;
+      }
       std::string local_ip = "::";
       if (!allArgs["local_ip"].empty()) {
           local_ip = allArgs["local_ip"];
       }
-      auto port = openRtpServer(allArgs["port"], stream_id, tcp_mode, local_ip, true, 0, allArgs["only_audio"].as<bool>(),true);
+      auto port = openRtpServer(allArgs["port"], stream_id, tcp_mode, local_ip, true, 0, only_track,true);
       if (port == 0) {
           throw InvalidArgsException("该stream_id已存在");
       }
