@@ -259,11 +259,10 @@ void RtpProcess::emitOnPublish() {
                 if (!option.stream_replace.empty()) {
                     RtpSelector::Instance().addStreamReplace(strong_self->_media_info.stream, option.stream_replace);
                 }
-                if (strong_self->_only_track == kOnlyAudio ) {
-                    strong_self->_muxer->setOnlyAudio();
-                }
-                if (strong_self->_only_track == kOnlyVideo) {
-                    strong_self->_muxer->enableAudio(false);
+                switch (strong_self->_only_track) {
+                    case kOnlyAudio: strong_self->_muxer->setOnlyAudio(); break;
+                    case kOnlyVideo: strong_self->_muxer->enableAudio(false); break;
+                    default: break;
                 }
                 strong_self->_muxer->setMediaListener(strong_self);
                 strong_self->doCachedFunc();
