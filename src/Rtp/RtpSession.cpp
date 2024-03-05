@@ -24,6 +24,7 @@ namespace mediakit{
 const string RtpSession::kStreamID = "stream_id";
 const string RtpSession::kSSRC = "ssrc";
 const string RtpSession::kOnlyAudio = "only_audio";
+const string RtpSession::kUdpRecvBuffer = "udp_recv_socket_buffer";
 
 void RtpSession::attachServer(const Server &server) {
     setParams(const_cast<Server &>(server));
@@ -33,6 +34,12 @@ void RtpSession::setParams(mINI &ini) {
     _stream_id = ini[kStreamID];
     _ssrc = ini[kSSRC];
     _only_audio = ini[kOnlyAudio];
+    int udp_socket_buffer = ini[kUdpRecvBuffer];
+    if (_is_udp) {
+        // 设置udp socket读缓存
+        SockUtil::setRecvBuf(getSock()->rawFD(),
+            (udp_socket_buffer > 0) ? udp_socket_buffer : (4 * 1024 * 1024));
+    }
 }
 
 RtpSession::RtpSession(const Socket::Ptr &sock)
@@ -40,10 +47,6 @@ RtpSession::RtpSession(const Socket::Ptr &sock)
     socklen_t addr_len = sizeof(_addr);
     getpeername(sock->rawFD(), (struct sockaddr *)&_addr, &addr_len);
     _is_udp = sock->sockType() == SockNum::Sock_UDP;
-    if (_is_udp) {
-        // 设置udp socket读缓存
-        SockUtil::setRecvBuf(getSock()->rawFD(), 4 * 1024 * 1024);
-    }
 }
 
 RtpSession::~RtpSession() = default;

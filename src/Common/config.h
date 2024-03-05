@@ -400,6 +400,8 @@ extern const std::string kGopCache;
 //国标发送g711 rtp 打包时，每个包的语音时长是多少，默认是100 ms，范围为20~180ms (gb28181-2016，c.2.4规定)，
 //最好为20 的倍数，程序自动向20的倍数取整
 extern const std::string kRtpG711DurMs;
+// udp recv socket buffer size
+extern const std::string kUdpRecvSocketBuffer;
 } // namespace RtpProxy
 
 /**
