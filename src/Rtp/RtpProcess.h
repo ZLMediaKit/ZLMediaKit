@@ -58,10 +58,10 @@ public:
     void setStopCheckRtp(bool is_check=false);
 
     /**
-     * 设置为单track，单音频时可以加快媒体注册速度
+     * 设置为单track，单音频/单视频时可以加快媒体注册速度
      * 请在inputRtp前调用此方法，否则可能会是空操作
      */
-    void setOnlyAudio(bool only_audio);
+    void setOnlyTrack(int only_track);
 
     /**
      * flush输出缓存
@@ -93,7 +93,7 @@ private:
     void doCachedFunc();
 
 private:
-    bool _only_audio = false;
+    int _only_track = 0;
     std::string _auth_err;
     uint64_t _dts = 0;
     uint64_t _total_bytes = 0;

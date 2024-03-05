@@ -23,7 +23,7 @@ namespace mediakit{
 
 const string RtpSession::kStreamID = "stream_id";
 const string RtpSession::kSSRC = "ssrc";
-const string RtpSession::kOnlyAudio = "only_audio";
+const string RtpSession::kOnlyTrack = "only_track";
 
 void RtpSession::attachServer(const Server &server) {
     setParams(const_cast<Server &>(server));
@@ -32,7 +32,7 @@ void RtpSession::attachServer(const Server &server) {
 void RtpSession::setParams(mINI &ini) {
     _stream_id = ini[kStreamID];
     _ssrc = ini[kSSRC];
-    _only_audio = ini[kOnlyAudio];
+    _only_track = ini[kOnlyTrack];
 }
 
 RtpSession::RtpSession(const Socket::Ptr &sock)
@@ -122,7 +122,7 @@ void RtpSession::onRtpPacket(const char *data, size_t len) {
             _delay_close = true;
             return;
         }
-        _process->setOnlyAudio(_only_audio);
+        _process->setOnlyTrack(_only_track);
         _process->setDelegate(static_pointer_cast<RtpSession>(shared_from_this()));
     }
     try {
