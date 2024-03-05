@@ -122,7 +122,7 @@ void RtpSession::onRtpPacket(const char *data, size_t len) {
             _delay_close = true;
             return;
         }
-        _process->setOnlyTrack(_only_track);
+        _process->setOnlyTrack((RtpProcess::OnlyTrack)_only_track);
         _process->setDelegate(static_pointer_cast<RtpSession>(shared_from_this()));
     }
     try {

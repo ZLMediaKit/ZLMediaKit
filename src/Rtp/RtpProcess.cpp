@@ -199,7 +199,7 @@ void RtpProcess::setStopCheckRtp(bool is_check){
     }
 }
 
-void RtpProcess::setOnlyTrack(int only_track) {
+void RtpProcess::setOnlyTrack(OnlyTrack only_track) {
     _only_track = only_track;
 }
 
@@ -259,7 +259,12 @@ void RtpProcess::emitOnPublish() {
                 if (!option.stream_replace.empty()) {
                     RtpSelector::Instance().addStreamReplace(strong_self->_media_info.stream, option.stream_replace);
                 }
-                strong_self->_muxer->setOnlyTrack((MediaSink::OnlyTrack)strong_self->_only_track);
+                if (strong_self->_only_track == kOnlyAudio ) {
+                    strong_self->_muxer->setOnlyAudio();
+                }
+                if (strong_self->_only_track == kOnlyVideo) {
+                    strong_self->_muxer->enableAudio(false);
+                }
                 strong_self->_muxer->setMediaListener(strong_self);
                 strong_self->doCachedFunc();
                 InfoP(strong_self) << "允许RTP推流";

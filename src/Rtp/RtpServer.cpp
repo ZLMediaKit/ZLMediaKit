@@ -61,7 +61,7 @@ public:
     void onRecvRtp(const Socket::Ptr &sock, const Buffer::Ptr &buf, struct sockaddr *addr) {
         if (!_process) {
             _process = RtpSelector::Instance().getProcess(_stream_id, true);
-            _process->setOnlyTrack(_only_track);
+            _process->setOnlyTrack((RtpProcess::OnlyTrack)_only_track);
             _process->setOnDetach(std::move(_on_detach));
             cancelDelayTask();
         }

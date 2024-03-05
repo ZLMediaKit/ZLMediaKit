@@ -19,7 +19,7 @@ using namespace std;
 namespace mediakit{
 
 bool MediaSink::addTrack(const Track::Ptr &track_in) {
-    if (_only_track==kOnlyAudio && track_in->getTrackType() != TrackAudio) {
+    if (_only_audio && track_in->getTrackType() != TrackAudio) {
         InfoL << "Only audio enabled, track ignored: " << track_in->getCodecName();
         return false;
     }
@@ -45,7 +45,6 @@ bool MediaSink::addTrack(const Track::Ptr &track_in) {
     }
     _ticker.resetTime();
     _audio_add = track->getTrackType() == TrackAudio ? true : _audio_add;
-    _video_add = track->getTrackType() == TrackVideo ? true : _video_add;
     _track_ready_callback[index] = [this, track]() { onTrackReady(track); };
 
     track->addDelegate([this](const Frame::Ptr &frame) {
@@ -69,7 +68,6 @@ bool MediaSink::addTrack(const Track::Ptr &track_in) {
 
 void MediaSink::resetTracks() {
     _audio_add = false;
-    _video_add = false;
     _have_video = false;
     _all_track_ready = false;
     _mute_audio_maker = nullptr;
@@ -122,13 +120,8 @@ void MediaSink::checkTrackIfReady() {
             return;
         }
 
-        if (_only_track==kOnlyAudio && _audio_add) {
+        if (_only_audio && _audio_add) {
             // 只开启音频
-            emitAllTrackReady();
-            return;
-        }
-        if (_only_track == kOnlyVideo && _video_add) {
-            // 只开启视频
             emitAllTrackReady();
             return;
         }
@@ -140,7 +133,7 @@ void MediaSink::checkTrackIfReady() {
         }
 
         GET_CONFIG(uint32_t, kMaxAddTrackMS, General::kWaitAddTrackMS);
-        if (_track_map.size() == 1 && _ticker.elapsedTime() > kMaxAddTrackMS) {
+        if (_track_map.size() == 1 && (_ticker.elapsedTime() > kMaxAddTrackMS || !_enable_audio)) {
             // 如果只有一个Track，那么在该Track添加后，我们最多还等待若干时间(可能后面还会添加Track)
             emitAllTrackReady();
             return;
@@ -292,19 +285,12 @@ bool MediaSink::isAllTrackReady() const {
 
 void MediaSink::enableAudio(bool flag) {
     _enable_audio = flag;
-    if(!flag){
-        _only_track= kOnlyVideo;
-    }
 }
 
-void MediaSink::setOnlyTrack(OnlyTrack only_track) {
-    _only_track = only_track;
-    if (only_track == kOnlyAudio) {
-        _enable_audio = true;
-        _add_mute_audio = false;
-    } else if (only_track == kOnlyVideo) {
-        _enable_audio = false;
-    }
+void MediaSink::setOnlyAudio() {
+    _only_audio = true;
+    _enable_audio = true;
+    _add_mute_audio = false;
 }
 
 void MediaSink::enableMuteAudio(bool flag) {

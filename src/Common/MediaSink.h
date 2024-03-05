@@ -66,7 +66,6 @@ private:
 class MediaSink : public MediaSinkInterface, public TrackSource{
 public:
     using Ptr = std::shared_ptr<MediaSink>;
-    enum OnlyTrack { kAll = 0, kOnlyAudio = 1, kOnlyVideo = 2 };
     /**
      * 输入frame
      * @param frame
@@ -115,9 +114,9 @@ public:
     void enableAudio(bool flag);
 
     /**
-     * 设置单音频/单视频
+     * 设置单音频
      */
-    void setOnlyTrack(OnlyTrack only_track);
+    void setOnlyAudio();
 
     /**
      * 设置是否开启添加静音音频
@@ -166,10 +165,9 @@ private:
 
 private:
     bool _audio_add = false;
-    bool _video_add = false;
     bool _have_video = false;
     bool _enable_audio = true;
-    OnlyTrack _only_track = kAll;
+    bool _only_audio = false;
     bool _add_mute_audio = true;
     bool _all_track_ready = false;
     size_t _max_track_size = 2;
