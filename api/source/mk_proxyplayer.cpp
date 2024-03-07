@@ -10,6 +10,7 @@
 
 #include "mk_proxyplayer.h"
 #include "Player/PlayerProxy.h"
+#include "mk_util.h"
 
 using namespace toolkit;
 using namespace mediakit;
@@ -22,6 +23,14 @@ API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create(const char *vhost, co
     PlayerProxy::Ptr *obj(new PlayerProxy::Ptr(new PlayerProxy(vhost, app, stream, option)));
     return (mk_proxy_player) obj;
 }
+
+API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create2(const char *vhost, const char *app, const char *stream, mk_ini ini) {
+    assert(vhost && app && stream);
+    ProtocolOption option(*((mINI *)ini));
+    PlayerProxy::Ptr *obj(new PlayerProxy::Ptr(new PlayerProxy(vhost, app, stream, option)));
+    return (mk_proxy_player)obj;
+}
+
 
 API_EXPORT void API_CALL mk_proxy_player_release(mk_proxy_player ctx) {
     assert(ctx);

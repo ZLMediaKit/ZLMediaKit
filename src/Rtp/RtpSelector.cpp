@@ -23,6 +23,7 @@ INSTANCE_IMP(RtpSelector);
 void RtpSelector::clear(){
     lock_guard<decltype(_mtx_map)> lck(_mtx_map);
     _map_rtp_process.clear();
+    _map_stream_replace.clear();
 }
 
 bool RtpSelector::getSSRC(const char *data, size_t data_len, uint32_t &ssrc){
@@ -36,17 +37,23 @@ bool RtpSelector::getSSRC(const char *data, size_t data_len, uint32_t &ssrc){
 
 RtpProcess::Ptr RtpSelector::getProcess(const string &stream_id,bool makeNew) {
     lock_guard<decltype(_mtx_map)> lck(_mtx_map);
-    auto it = _map_rtp_process.find(stream_id);
+    string stream_id_origin = stream_id;
+    auto it_replace = _map_stream_replace.find(stream_id);
+    if (it_replace != _map_stream_replace.end()) {
+        stream_id_origin = it_replace->second;
+    }
+
+    auto it = _map_rtp_process.find(stream_id_origin);
     if (it == _map_rtp_process.end() && !makeNew) {
         return nullptr;
     }
     if (it != _map_rtp_process.end() && makeNew) {
         //已经被其他线程持有了，不得再被持有，否则会存在线程安全的问题
-        throw ProcessExisted(StrPrinter << "RtpProcess(" << stream_id << ") already existed");
+        throw ProcessExisted(StrPrinter << "RtpProcess(" << stream_id_origin << ") already existed");
     }
-    RtpProcessHelper::Ptr &ref = _map_rtp_process[stream_id];
+    RtpProcessHelper::Ptr &ref = _map_rtp_process[stream_id_origin];
     if (!ref) {
-        ref = std::make_shared<RtpProcessHelper>(stream_id, shared_from_this());
+        ref = std::make_shared<RtpProcessHelper>(stream_id_origin, shared_from_this());
         ref->attachEvent();
         createTimer();
     }
@@ -81,8 +88,23 @@ void RtpSelector::delProcess(const string &stream_id,const RtpProcess *ptr) {
         }
         process = it->second->getProcess();
         _map_rtp_process.erase(it);
+        delStreamReplace(stream_id);
     }
     process->onDetach();
+}
+
+void RtpSelector::addStreamReplace(const string &stream_id, const std::string &stream_replace) {
+    lock_guard<decltype(_mtx_map)> lck(_mtx_map);
+    _map_stream_replace[stream_replace] = stream_id;
+}
+
+void RtpSelector::delStreamReplace(const string &stream_id) {
+    for (auto it = _map_stream_replace.begin(); it != _map_stream_replace.end(); ++it) {
+        if (it->second == stream_id) {
+            _map_stream_replace.erase(it);
+            break;
+        }
+    }
 }
 
 void RtpSelector::onManager() {
@@ -96,6 +118,7 @@ void RtpSelector::onManager() {
             }
             WarnL << "RtpProcess timeout:" << it->first;
             clear_list.emplace_back(it->second->getProcess());
+            delStreamReplace(it->first);
             it = _map_rtp_process.erase(it);
         }
     }

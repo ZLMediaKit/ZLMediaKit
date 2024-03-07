@@ -28,10 +28,6 @@
 #include "HttpClient.h"
 #include "Common/macros.h"
 
-#ifndef _WIN32
-#define ENABLE_MMAP
-#endif
-
 using namespace std;
 using namespace toolkit;
 
@@ -57,11 +53,24 @@ Buffer::Ptr HttpStringBody::readData(size_t size) {
 }
 
 //////////////////////////////////////////////////////////////////
-
-#ifdef ENABLE_MMAP
-
 static mutex s_mtx;
 static unordered_map<string /*file_path*/, std::tuple<char */*ptr*/, int64_t /*size*/, weak_ptr<char> /*mmap*/ > > s_shared_mmap;
+
+#if defined(_WIN32)
+static void mmap_close(HANDLE _hfile, HANDLE _hmapping, void *_addr) {
+    if (_addr) {
+        ::UnmapViewOfFile(_addr);
+    }
+
+    if (_hmapping) {
+        ::CloseHandle(_hmapping);
+    }
+
+    if (_hfile != INVALID_HANDLE_VALUE) {
+        ::CloseHandle(_hfile);
+    }
+}
+#endif
 
 //删除mmap记录
 static void delSharedMmap(const string &file_path, char *ptr) {
@@ -97,23 +106,66 @@ static std::shared_ptr<char> getSharedMmap(const string &file_path, int64_t &fil
         file_size = -1;
         return nullptr;
     }
+
+
+#if defined(_WIN32)
+    auto fd = _fileno(fp.get());
+#else
     //获取文件大小
     file_size = File::fileSize(fp.get());
+    auto fd = fileno(fp.get());
+#endif
 
-    int fd = fileno(fp.get());
     if (fd < 0) {
         WarnL << "fileno failed:" << get_uv_errmsg(false);
         return nullptr;
     }
+#ifndef _WIN32
     auto ptr = (char *)mmap(NULL, file_size, PROT_READ, MAP_SHARED, fd, 0);
     if (ptr == MAP_FAILED) {
         WarnL << "mmap " << file_path << " failed:" << get_uv_errmsg(false);
         return nullptr;
     }
+
+
     std::shared_ptr<char> ret(ptr, [file_size, fp, file_path](char *ptr) {
         munmap(ptr, file_size);
         delSharedMmap(file_path, ptr);
     });
+
+#else
+    auto hfile = ::CreateFileA(file_path.data(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+    if (hfile == INVALID_HANDLE_VALUE) {
+        WarnL << "CreateFileA() " << file_path << " failed:";
+        return nullptr;
+    }
+
+     file_size = ::GetFileSize(hfile, NULL);
+
+    auto hmapping = ::CreateFileMapping(hfile, NULL, PAGE_READONLY, 0, 0, NULL);
+
+    if (hmapping == NULL) {
+        mmap_close(hfile, NULL, NULL);
+        WarnL << "CreateFileMapping() " << file_path << " failed:";
+        return nullptr;
+    }
+
+    auto addr_ = ::MapViewOfFile(hmapping, FILE_MAP_READ, 0, 0, 0);
+
+    if (addr_ == nullptr) {
+        mmap_close(hfile, hmapping, addr_);
+		WarnL << "MapViewOfFile() " << file_path << " failed:";
+        return nullptr;
+    }
+
+    std::shared_ptr<char> ret((char *)(addr_), [hfile, hmapping, file_path](char *addr_) {
+        mmap_close(hfile, hmapping, addr_);
+        delSharedMmap(file_path, addr_);
+    });
+
+#endif
+
 
 #if 0
     if (file_size < 10 * 1024 * 1024 && file_path.rfind(".ts") != string::npos) {
@@ -131,14 +183,12 @@ static std::shared_ptr<char> getSharedMmap(const string &file_path, int64_t &fil
     }
     return ret;
 }
-#endif
 
 HttpFileBody::HttpFileBody(const string &file_path, bool use_mmap) {
-#ifdef ENABLE_MMAP
     if (use_mmap ) {
-        _map_addr = getSharedMmap(file_path, _read_to);
+        _map_addr = getSharedMmap(file_path, _read_to);       
     }
-#endif
+
     if (!_map_addr && _read_to != -1) {
         //mmap失败(且不是由于文件不存在导致的)或未执行mmap时，才进入fread逻辑分支
         _fp.reset(fopen(file_path.data(), "rb"), [](FILE *fp) {

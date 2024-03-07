@@ -42,12 +42,12 @@ public:
         }
     }
 
-    void setRtpServerInfo(uint16_t local_port,RtpServer::TcpMode mode,bool re_use_port,uint32_t ssrc, bool only_audio) {
+    void setRtpServerInfo(uint16_t local_port, RtpServer::TcpMode mode, bool re_use_port, uint32_t ssrc, int only_track) {
         _local_port = local_port;
         _tcp_mode = mode;
         _re_use_port = re_use_port;
         _ssrc = ssrc;
-        _only_audio = only_audio;
+        _only_track = only_track;
     }
 
     void setOnDetach(function<void()> cb) {
@@ -61,7 +61,7 @@ public:
     void onRecvRtp(const Socket::Ptr &sock, const Buffer::Ptr &buf, struct sockaddr *addr) {
         if (!_process) {
             _process = RtpSelector::Instance().getProcess(_stream_id, true);
-            _process->setOnlyAudio(_only_audio);
+            _process->setOnlyTrack((RtpProcess::OnlyTrack)_only_track);
             _process->setOnDetach(std::move(_on_detach));
             cancelDelayTask();
         }
@@ -142,7 +142,7 @@ private:
 
 private:
     bool _re_use_port = false;
-    bool _only_audio = false;
+    int _only_track = 0;
     uint16_t _local_port = 0;
     uint32_t _ssrc = 0;
     RtpServer::TcpMode _tcp_mode = RtpServer::NONE;
@@ -156,7 +156,7 @@ private:
     EventPoller::DelayTask::Ptr _delay_task;
 };
 
-void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_mode, const char *local_ip, bool re_use_port, uint32_t ssrc, bool only_audio, bool multiplex) {
+void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_mode, const char *local_ip, bool re_use_port, uint32_t ssrc, int only_track, bool multiplex) {
     //创建udp服务器
     Socket::Ptr rtp_socket = Socket::createSocket(nullptr, true);
     Socket::Ptr rtcp_socket = Socket::createSocket(nullptr, true);
@@ -174,7 +174,8 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_
     }
 
     //设置udp socket读缓存
-    SockUtil::setRecvBuf(rtp_socket->rawFD(), 4 * 1024 * 1024);
+    GET_CONFIG(int, udpRecvSocketBuffer, RtpProxy::kUdpRecvSocketBuffer);
+    SockUtil::setRecvBuf(rtp_socket->rawFD(), udpRecvSocketBuffer);
 
     TcpServer::Ptr tcp_server;
     _tcp_mode = tcp_mode;
@@ -183,7 +184,7 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_
         tcp_server = std::make_shared<TcpServer>(rtp_socket->getPoller());
         (*tcp_server)[RtpSession::kStreamID] = stream_id;
         (*tcp_server)[RtpSession::kSSRC] = ssrc;
-        (*tcp_server)[RtpSession::kOnlyAudio] = only_audio;
+        (*tcp_server)[RtpSession::kOnlyTrack] = only_track;
         if (tcp_mode == PASSIVE) {
             tcp_server->start<RtpSession>(local_port, local_ip);
         } else if (stream_id.empty()) {
@@ -200,7 +201,7 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_
         //指定了流id，那么一个端口一个流(不管是否包含多个ssrc的多个流，绑定rtp源后，会筛选掉ip端口不匹配的流)
         helper = std::make_shared<RtcpHelper>(std::move(rtcp_socket), stream_id);
         helper->startRtcp();
-        helper->setRtpServerInfo(local_port, tcp_mode, re_use_port, ssrc, only_audio);
+        helper->setRtpServerInfo(local_port, tcp_mode, re_use_port, ssrc, only_track);
         bool bind_peer_addr = false;
         auto ssrc_ptr = std::make_shared<uint32_t>(ssrc);
         _ssrc = ssrc_ptr;
@@ -222,7 +223,8 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_
     } else {
         //单端口多线程接收多个流，根据ssrc区分流
         udp_server = std::make_shared<UdpServer>(rtp_socket->getPoller());
-        (*udp_server)[RtpSession::kOnlyAudio] = only_audio;
+        (*udp_server)[RtpSession::kOnlyTrack] = only_track;
+        (*udp_server)[RtpSession::kUdpRecvBuffer] = udpRecvSocketBuffer;
         udp_server->start<RtpSession>(local_port, local_ip);
         rtp_socket = nullptr;
     }

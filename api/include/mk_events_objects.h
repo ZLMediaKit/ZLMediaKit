@@ -352,6 +352,20 @@ API_EXPORT mk_auth_invoker API_CALL mk_auth_invoker_clone(const mk_auth_invoker 
  */
 API_EXPORT void API_CALL mk_auth_invoker_clone_release(const mk_auth_invoker ctx);
 
+///////////////////////////////////////////WebRtcTransport/////////////////////////////////////////////
+//WebRtcTransport对象的C映射
+typedef struct mk_rtc_transport_t *mk_rtc_transport;
+
+/**
+ * 发送rtc数据通道
+ * @param ctx 数据通道对象
+ * @param streamId 流id
+ * @param ppid 协议id
+ * @param msg 数据
+ * @param len 数据长度
+ */
+API_EXPORT void API_CALL mk_rtc_send_datachannel(const mk_rtc_transport ctx, uint16_t streamId, uint32_t ppid, const char* msg, size_t len);
+
 #ifdef __cplusplus
 }
 #endif
