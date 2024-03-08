@@ -1339,10 +1339,10 @@ void installWebApi() {
         if (!src) {
             throw ApiRetException("can not find the source stream", API::NotFound);
         }
-
+        auto type = allArgs["type"].as<int>();
         if (!allArgs["use_ps"].empty()) {
             // 兼容之前的use_ps参数
-            allArgs["type"] = allArgs["use_ps"].as<int>();
+            type = allArgs["use_ps"].as<int>();
         }
 
         MediaSourceEvent::SendRtpArgs args;
@@ -1351,12 +1351,12 @@ void installWebApi() {
         args.is_udp = false;
         args.src_port = allArgs["src_port"];
         args.pt = allArgs["pt"].empty() ? 96 : allArgs["pt"].as<int>();
-        args.type = (MediaSourceEvent::SendRtpArgs::Type)(allArgs["type"].as<int>());
+        args.type = (MediaSourceEvent::SendRtpArgs::Type)type;
         args.only_audio = allArgs["only_audio"].as<bool>();
         args.recv_stream_id = allArgs["recv_stream_id"];
         //tcp被动服务器等待链接超时时间
         args.tcp_passive_close_delay_ms = allArgs["close_delay_ms"];
-        TraceL << "startSendRtpPassive, pt " << int(args.pt) << " rtp type " << args.type << " audio " <<  args.only_audio;
+        TraceL << "startSendRtpPassive, pt " << int(args.pt) << " rtp type " << type << " audio " <<  args.only_audio;
 
         src->getOwnerPoller()->async([=]() mutable {
             src->startSendRtp(args, [val, headerOut, invoker](uint16_t local_port, const SockException &ex) mutable {
