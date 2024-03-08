@@ -72,7 +72,7 @@ void HlsMakerImp::clearCache(bool immediately, bool eof) {
         std::list<std::string> lst;
         lst.emplace_back(_path_hls);
         lst.emplace_back(_path_hls_delay);
-        if (!_path_init.empty()) {
+        if (!_path_init.empty() && eof) {
             lst.emplace_back(_path_init);
         }
         for (auto &pr : _segment_file_paths) {
