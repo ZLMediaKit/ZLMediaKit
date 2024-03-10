@@ -31,7 +31,8 @@ void MP4Muxer::openMP4(const string &file) {
 
 MP4FileIO::Writer MP4Muxer::createWriter() {
     GET_CONFIG(bool, mp4FastStart, Record::kFastStart);
-    return _mp4_file->createWriter(mp4FastStart ? MOV_FLAG_FASTSTART : 0, false);
+    GET_CONFIG(bool, recordEnableFmp4, Record::kEnableFmp4);
+    return _mp4_file->createWriter(mp4FastStart ? MOV_FLAG_FASTSTART : 0, recordEnableFmp4);
 }
 
 void MP4Muxer::closeMP4() {
