@@ -305,8 +305,11 @@ public:
     mutable std::recursive_mutex _mtx;
 
     void clear() {
-        std::lock_guard<std::recursive_mutex> lck(_mtx);
-        _map.clear();
+        decltype(_map) copy;
+        {
+            std::lock_guard<std::recursive_mutex> lck(_mtx);
+            copy.swap(_map);
+        }
     }
 
     size_t erase(const std::string &key) {
