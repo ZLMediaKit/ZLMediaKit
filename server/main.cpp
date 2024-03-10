@@ -392,8 +392,8 @@ int start_main(int argc,char *argv[]) {
 #endif//defined(ENABLE_WEBRTC)
 
 #if defined(ENABLE_SRT)
-        // srt udp服务器
-        if(srtPort) { srtSrv->start<SRT::SrtSession>(srtPort); }
+            // srt udp服务器
+            if (srtPort) { srtSrv->start<SRT::SrtSession>(srtPort); }
 #endif//defined(ENABLE_SRT)
 
         } catch (std::exception &ex) {

@@ -33,12 +33,11 @@ static TcpServer::Ptr shell_server;
 
 #ifdef ENABLE_RTPPROXY
 #include "Rtp/RtpServer.h"
-static std::shared_ptr<RtpServer> rtpServer;
+static RtpServer::Ptr rtpServer;
 #endif
 
 #ifdef ENABLE_WEBRTC
 #include "../webrtc/WebRtcSession.h"
-#include "../webrtc/WebRtcTransport.h"
 static UdpServer::Ptr rtcServer_udp;
 static TcpServer::Ptr rtcServer_tcp;
 #endif
