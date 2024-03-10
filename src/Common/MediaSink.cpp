@@ -133,7 +133,7 @@ void MediaSink::checkTrackIfReady() {
         }
 
         GET_CONFIG(uint32_t, kMaxAddTrackMS, General::kWaitAddTrackMS);
-        if (_track_map.size() == 1 && _ticker.elapsedTime() > kMaxAddTrackMS) {
+        if (_track_map.size() == 1 && (_ticker.elapsedTime() > kMaxAddTrackMS || !_enable_audio)) {
             // 如果只有一个Track，那么在该Track添加后，我们最多还等待若干时间(可能后面还会添加Track)
             emitAllTrackReady();
             return;
