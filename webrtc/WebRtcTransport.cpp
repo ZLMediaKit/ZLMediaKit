@@ -31,7 +31,6 @@
 #define RTP_CNAME "zlmediakit-rtp"
 #define RTP_LABEL "zlmediakit-label"
 #define RTP_MSLABEL "zlmediakit-mslabel"
-#define RTP_MSID RTP_MSLABEL " " RTP_LABEL
 
 using namespace std;
 
@@ -707,9 +706,9 @@ void WebRtcTransportImp::onCheckAnswer(RtcSession &sdp) {
         // 发送的ssrc我们随便定义，因为在发送rtp时会修改为此值
         ssrc.ssrc = m.type + RTP_SSRC_OFFSET;
         ssrc.cname = RTP_CNAME;
-        ssrc.label = RTP_LABEL;
+        ssrc.label = std::string(RTP_LABEL) + '-' + m.mid;
         ssrc.mslabel = RTP_MSLABEL;
-        ssrc.msid = RTP_MSID;
+        ssrc.msid = ssrc.mslabel + ' ' + ssrc.label;
 
         if (m.getRelatedRtxPlan(m.plan[0].pt)) {
             // rtx ssrc

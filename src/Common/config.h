@@ -354,6 +354,8 @@ extern const std::string kFileBufSize;
 extern const std::string kFastStart;
 // mp4文件是否重头循环读取
 extern const std::string kFileRepeat;
+// mp4录制文件是否采用fmp4格式
+extern const std::string kEnableFmp4;
 } // namespace Record
 
 ////////////HLS相关配置///////////
