@@ -115,17 +115,10 @@
       document.getElementsByName("method").forEach((el,idx) => {
         el.checked = el.value === type;
         el.onclick = function(e) {
-          let url = new URL(document.getElementById('streamUrl').value);
+          const url = new URL(document.getElementById('streamUrl').value);
           url.searchParams.set("type",el.value);
           document.getElementById('streamUrl').value = url.toString();
-          
-          if(el.value == "play"){
-            recvOnly = true;
-          }else if(el.value == "echo"){ 
-            recvOnly = false;
-          }else{
-            recvOnly = false;
-          }
+          recvOnly = 'play' === el.value;
         };
       });
 
@@ -144,6 +137,25 @@
         let res = elr.options[elr.selectedIndex].text.match(/\d+/g);
         let h = parseInt(res.pop());
         let w = parseInt(res.pop());
+
+        const url = new URL(document.getElementById('streamUrl').value);
+        const newUrl = new URL(window.location.href);
+        let count = 0;
+        if (url.searchParams.has('app')) {
+            newUrl.searchParams.set('app', url.searchParams.get('app'));
+            count++;
+        }
+        if (url.searchParams.has('stream')) {
+            newUrl.searchParams.set('stream', url.searchParams.get('stream'));
+            count++;
+        }
+        if (url.searchParams.has('type')) {
+            newUrl.searchParams.set('type', url.searchParams.get('type'));
+            count++;
+        }
+        if (count > 0) {
+            window.history.pushState(null, null, newUrl);
+        }
 
         player = new ZLMRTCClient.Endpoint(
                 {
