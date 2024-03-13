@@ -741,8 +741,7 @@ namespace RTC
 
         if (!IsRunning())
         {
-            MS_ERROR("cannot process data while not running");
-
+            MS_WARN_TAG(nullptr,"cannot process data while not running");
             return;
         }
 
