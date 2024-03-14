@@ -1,11 +1,10 @@
 {
 	"info": {
-		"_postman_id": "08c77fc3-7670-428c-bde4-80c8cc9f389f",
+		"_postman_id": "8b3cdc62-3e18-4700-9ddd-dc9f58ebce83",
 		"name": "ZLMediaKit",
 		"description": "媒体服务器",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "29185956",
-		"_collection_link": "https://lively-station-598157.postman.co/workspace/%E6%B5%81%E5%AA%92%E4%BD%93%E6%9C%8D%E5%8A%A1~1e119172-45b0-4ed6-b1fc-8a15d0e2d5f8/collection/29185956-08c77fc3-7670-428c-bde4-80c8cc9f389f?action=share&source=collection_link&creator=29185956"
+		"_exporter_id": "26338564"
 	},
 	"item": [
 		{
@@ -22,6 +21,72 @@
 						"index",
 						"api",
 						"getApiList"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "关闭多屏拼接(stack/stop)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/getApiList?secret={{ZLMediaKit_secret}}&id=stack_test",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"getApiList"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)"
+						},
+						{
+							"key": "id",
+							"value": "stack_test"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "添加多屏拼接(stack/start)",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"gapv\": 0.002,\r\n    \"gaph\": 0.001,\r\n    \"width\": 1920,\r\n    \"url\": [\r\n        [\r\n            \"rtsp://kkem.me/live/test3\",\r\n            \"rtsp://kkem.me/live/cy1\",\r\n            \"rtsp://kkem.me/live/cy1\",\r\n            \"rtsp://kkem.me/live/cy2\"\r\n        ],\r\n        [\r\n            \"rtsp://kkem.me/live/cy1\",\r\n            \"rtsp://kkem.me/live/cy5\",\r\n            \"rtsp://kkem.me/live/cy3\",\r\n            \"rtsp://kkem.me/live/cy4\"\r\n        ],\r\n        [\r\n            \"rtsp://kkem.me/live/cy5\",\r\n            \"rtsp://kkem.me/live/cy6\",\r\n            \"rtsp://kkem.me/live/cy7\",\r\n            \"rtsp://kkem.me/live/cy8\"\r\n        ],\r\n        [\r\n            \"rtsp://kkem.me/live/cy9\",\r\n            \"rtsp://kkem.me/live/cy10\",\r\n            \"rtsp://kkem.me/live/cy11\",\r\n            \"rtsp://kkem.me/live/cy12\"\r\n        ]\r\n    ],\r\n    \"id\": \"89\",\r\n    \"row\": 4,\r\n    \"col\": 4,\r\n    \"height\": 1080,\r\n    \"span\": [\r\n        [\r\n            [\r\n                0,\r\n                0\r\n            ],\r\n            [\r\n                1,\r\n                1\r\n            ]\r\n        ],\r\n        [\r\n            [\r\n                3,\r\n                0\r\n            ],\r\n            [\r\n                3,\r\n                1\r\n            ]\r\n        ],\r\n        [\r\n            [\r\n                2,\r\n                3\r\n            ],\r\n            [\r\n                3,\r\n                3\r\n            ]\r\n        ]\r\n    ]\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/stack/start?secret={{ZLMediaKit_secret}}",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"stack",
+						"start"
 					],
 					"query": [
 						{
