@@ -1879,7 +1879,7 @@ void installWebApi() {
         std::set<std::string> ret;
         auto vec = toolkit::split(str, ";");
         for (auto &item : vec) {
-            auto root = File::absolutePath(item, "", true);
+            auto root = File::absolutePath("", item, true);
             ret.emplace(std::move(root));
         }
         return ret;
