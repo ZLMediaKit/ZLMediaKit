@@ -117,11 +117,13 @@ bool MP4Recorder::inputFrame(const Frame::Ptr &frame) {
     if (!(_have_video && frame->getTrackType() == TrackAudio)) {
         //如果有视频且输入的是音频，那么应该忽略切片逻辑
         if (_last_dts == 0 || _last_dts > frame->dts()) {
-            //极少情况下dts时间戳可能回退
-            _last_dts = frame->dts();
+            //b帧情况下dts时间戳可能回退
+            _last_dts = MAX(frame->dts(), _last_dts);
         }
-
-        auto duration = frame->dts() - _last_dts;
+        auto duration = 5; // 默认至少一帧5ms
+        if (frame->dts() > 0 && frame->dts() > _last_dts) {
+            duration = MAX(duration, frame->dts() - _last_dts);
+        }
         if (!_muxer || ((duration > _max_second * 1000) && (!_have_video || (_have_video && frame->keyFrame())))) {
             //成立条件
             // 1、_muxer为空
