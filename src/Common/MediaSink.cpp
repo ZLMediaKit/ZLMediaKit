@@ -187,6 +187,8 @@ void MediaSink::emitAllTrackReady() {
             pr.second.for_each([&](const Frame::Ptr &frame) { MediaSink::inputFrame(frame); });
         }
         _frame_unread.clear();
+    } else {
+        throw toolkit::SockException(toolkit::Err_shutdown, "no vaild track data");
     }
 }
 
