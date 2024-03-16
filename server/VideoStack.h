@@ -1,4 +1,5 @@
 #pragma once
+#if defined(ENABLE_X264) && defined(ENABLE_FFMPEG)
 #include "Codec/Transcode.h"
 #include "Common/Device.h"
 #include "Player/MediaPlayer.h"
@@ -39,7 +40,7 @@ struct Param {
     int width = 0;
     int height = 0;
     AVPixelFormat pixfmt = AV_PIX_FMT_YUV420P;
-    std::string id{};
+    std::string id {};
 
     // runtime
     std::weak_ptr<Channel> weak_chn;
@@ -203,3 +204,4 @@ class VideoStackManager {
 
     std::unordered_map<std::string, RefWrapper<StackPlayer::Ptr>::Ptr> _playerMap;
 };
+#endif

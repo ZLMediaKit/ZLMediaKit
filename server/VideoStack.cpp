@@ -1,3 +1,4 @@
+#if defined(ENABLE_X264) && defined(ENABLE_FFMPEG)
 #include "VideoStack.h"
 #include "Codec/Transcode.h"
 #include "Common/Device.h"
@@ -168,7 +169,7 @@ void StackPlayer::play()
         if (videoTrack) {
             //TODO:添加使用显卡还是cpu解码的判断逻辑
             //auto decoder = std::make_shared<FFmpegDecoder>(videoTrack, 1, std::vector<std::string>{ "hevc_cuvid", "h264_cuvid"});
-            auto decoder = std::make_shared<mediakit::FFmpegDecoder>(videoTrack, 0, std::vector<std::string>{ "h264", "hevc" });
+            auto decoder = std::make_shared<mediakit::FFmpegDecoder>(videoTrack, 0, std::vector<std::string> { "h264", "hevc" });
 
             decoder->setOnDecode([weakSelf](const mediakit::FFmpegFrame::Ptr& frame) mutable {
                 auto self = weakSelf.lock();
@@ -231,14 +232,15 @@ void StackPlayer::rePlay(const std::string& url)
     _failedCount++;
     auto delay = MAX(2 * 1000, MIN(_failedCount * 3 * 1000, 60 * 1000)); //步进延迟 重试间隔
     std::weak_ptr<StackPlayer> weakSelf = shared_from_this();
-    _timer = std::make_shared<toolkit::Timer>(delay / 1000.0f, [weakSelf, url]() {
-        auto self = weakSelf.lock();
-        if (!self) {
-        }
-        WarnL << "replay [" << self->_failedCount << "]:" << url;
-        self->_player->play(url);
-        return false;
-    },
+    _timer = std::make_shared<toolkit::Timer>(
+        delay / 1000.0f, [weakSelf, url]() {
+            auto self = weakSelf.lock();
+            if (!self) {
+            }
+            WarnL << "replay [" << self->_failedCount << "]:" << url;
+            self->_player->play(url);
+            return false;
+        },
         nullptr);
 }
 
@@ -259,7 +261,7 @@ VideoStack::VideoStack(const std::string& id, int width, int height, AVPixelForm
 
     av_frame_get_buffer(_buffer->get(), 32);
 
-    _dev = std::make_shared<mediakit::DevChannel>(mediakit::MediaTuple{ DEFAULT_VHOST, "live", _id });
+    _dev = std::make_shared<mediakit::DevChannel>(mediakit::MediaTuple { DEFAULT_VHOST, "live", _id });
 
     mediakit::VideoInfo info;
     info.codecId = mediakit::CodecH264;
@@ -585,3 +587,4 @@ StackPlayer::Ptr VideoStackManager::createPlayer(const std::string& id)
 
     return player;
 }
+#endif
