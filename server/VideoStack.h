@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #if defined(ENABLE_X264) && defined(ENABLE_FFMPEG)
 #include "Codec/Transcode.h"
 #include "Common/Device.h"
