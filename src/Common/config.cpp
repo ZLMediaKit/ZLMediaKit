@@ -164,6 +164,9 @@ namespace Http {
 #define HTTP_FIELD "http."
 const string kSendBufSize = HTTP_FIELD "sendBufSize";
 const string kMaxReqSize = HTTP_FIELD "maxReqSize";
+const string kMaxReqHeaderNumber = HTTP_FIELD "maxReqHeaderNumber";
+const string kMaxReqHeaderSize = HTTP_FIELD "maxReqHeaderSize";
+const string kMaxReqBodySize = HTTP_FIELD "maxReqBodySize";
 const string kKeepAliveSecond = HTTP_FIELD "keepAliveSecond";
 const string kCharSet = HTTP_FIELD "charSet";
 const string kRootPath = HTTP_FIELD "rootPath";

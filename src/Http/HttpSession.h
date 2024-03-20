@@ -49,6 +49,9 @@ public:
     static std::string urlDecodeComponent(const std::string &str);
     void setTimeoutSec(size_t second);
     void setMaxReqSize(size_t max_req_size);
+    void setMaxReqHeaderNumber(size_t max_req_header_number);
+    void setMaxReqHeaderSize(size_t max_req_header_size);
+    void setMaxReqBodySize(size_t max_req_body_size);
 
 protected:
     //FlvMuxer override
@@ -57,8 +60,9 @@ protected:
     std::shared_ptr<FlvMuxer> getSharedPtr() override;
 
     //HttpRequestSplitter override
-    ssize_t onRecvHeader(const char *data,size_t len) override;
-    void onRecvContent(const char *data,size_t len) override;
+    ssize_t onRecvHeader(const char *data, size_t len) override;
+    void onRecvContent(const char *data, size_t len) override;
+    void onCheckHeader(const char *data, size_t len) override;
 
     /**
      * 重载之用于处理不定长度的content
@@ -126,6 +130,9 @@ private:
     //设置socket标志
     void setSocketFlags();
 
+    ssize_t onSearchHeaderNumber(const char *data, size_t len);
+    void onCheckHeader(size_t len, size_t number);
+
 protected:
     MediaInfo _media_info;
 
@@ -136,6 +143,9 @@ private:
     size_t _keep_alive_sec = 0;
     //最大http请求字节大小
     size_t _max_req_size = 0;
+    size_t _max_req_header_number = 0;
+    size_t _max_req_header_size = 0;
+    size_t _max_req_body_size = 0;
     //消耗的总流量
     uint64_t _total_bytes_usage = 0;
     // http请求中的 Origin字段

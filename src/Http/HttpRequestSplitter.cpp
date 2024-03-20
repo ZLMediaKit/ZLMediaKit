@@ -65,6 +65,10 @@ void HttpRequestSplitter::input(const char *data,size_t len) {
         _content_len = onRecvHeader(header_ptr, header_size);
     }
 
+    if (_content_len == 0 && _remain_data_size > 0) {
+        onCheckHeader(ptr,_remain_data_size);
+    }
+
     if(_remain_data_size <= 0){
         //没有剩余数据，清空缓存
         _remain_data.clear();

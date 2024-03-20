@@ -254,6 +254,12 @@ namespace Http {
 extern const std::string kSendBufSize;
 // http 最大请求字节数
 extern const std::string kMaxReqSize;
+// header最大请求个数
+extern const std::string kMaxReqHeaderNumber;
+// header最大请求字节数
+extern const std::string kMaxReqHeaderSize;
+// body最大请求字节数
+extern const std::string kMaxReqBodySize;
 // http keep-alive秒数
 extern const std::string kKeepAliveSecond;
 // http 字符编码

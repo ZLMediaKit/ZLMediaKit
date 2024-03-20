@@ -26,6 +26,9 @@ namespace mediakit {
 HttpSession::HttpSession(const Socket::Ptr &pSock) : Session(pSock) {
     //设置默认参数
     setMaxReqSize(0);
+    setMaxReqHeaderNumber(0);
+    setMaxReqHeaderSize(0);
+    setMaxReqBodySize(0);
     setTimeoutSec(0);
 }
 
@@ -66,6 +69,8 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
     _parser.parse(header, len);
     CHECK(_parser.url()[0] == '/');
     _origin = _parser["Origin"];
+
+    onCheckHeader(len, _parser.getHeader().size());
 
     urlDecode(_parser);
     auto &cmd = _parser.method();
@@ -140,9 +145,24 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
 }
 
 void HttpSession::onRecvContent(const char *data, size_t len) {
+    if (_max_req_body_size > 0 && len > _max_req_body_size) {
+        WarnL << "Http body size is too huge: " << len << " > " << _max_req_body_size
+                << ", please set " << Http::kMaxReqBodySize << " in config.ini file.";
+        reset();
+        throw std::out_of_range("Http body size is too huge: " + to_string(len));  
+    }
+
     if (_on_recv_body && !_on_recv_body(data, len)) {
         _on_recv_body = nullptr;
     }
+}
+
+void HttpSession::onCheckHeader(const char *header, size_t len) {
+    size_t number = 0;
+    if (_max_req_header_number > 0) {
+        number = onSearchHeaderNumber(header, len);
+    }
+    onCheckHeader(len, number);
 }
 
 void HttpSession::onRecv(const Buffer::Ptr &pBuf) {
@@ -180,6 +200,30 @@ void HttpSession::setMaxReqSize(size_t max_req_size) {
     }
     _max_req_size = max_req_size;
     setMaxCacheSize(max_req_size);
+}
+
+void HttpSession::setMaxReqHeaderNumber(size_t max_req_header_number) {
+    if (!max_req_header_number) {
+        GET_CONFIG(size_t, s_max_req_header_number, Http::kMaxReqHeaderNumber);
+        max_req_header_number = s_max_req_header_number;
+    }
+    _max_req_header_number = max_req_header_number;
+}
+
+void HttpSession::setMaxReqHeaderSize(size_t max_req_header_size) {
+    if (!max_req_header_size) {
+        GET_CONFIG(size_t, s_max_req_header_size, Http::kMaxReqHeaderSize);
+        max_req_header_size = s_max_req_header_size;
+    }
+    _max_req_header_size = max_req_header_size;
+}
+
+void HttpSession::setMaxReqBodySize(size_t max_req_body_size) {
+    if (!max_req_body_size) {
+        GET_CONFIG(size_t, s_max_req_body_size, Http::kMaxReqBodySize);
+        max_req_body_size = s_max_req_body_size;
+    }
+    _max_req_body_size = max_req_body_size;
 }
 
 void HttpSession::onManager() {
@@ -832,6 +876,34 @@ void HttpSession::onDetach() {
 
 std::shared_ptr<FlvMuxer> HttpSession::getSharedPtr() {
     return dynamic_pointer_cast<FlvMuxer>(shared_from_this());
+}
+
+ssize_t HttpSession::onSearchHeaderNumber(const char *data, size_t len) {
+    ssize_t number = 0;
+    const char *ptr = data;
+    const char *pos = nullptr;
+    while (pos = strstr(ptr, "\r\n")) {
+        number++;
+        ptr = pos + 2;
+    }
+    return number;
+}
+
+void HttpSession::onCheckHeader(size_t len, size_t number)
+{
+    if (_max_req_header_size > 0 && len > _max_req_header_size) {
+        WarnL << "Http header size is too huge: " << len << " > " << _max_req_header_size
+                << ", please set " << Http::kMaxReqHeaderSize << " in config.ini file.";
+        reset();
+        throw std::out_of_range("http header size is invalid: " + to_string(len));
+        
+    }
+    if (_max_req_header_number > 0 && number > _max_req_header_number) {
+        WarnL << "Http header number is too huge: " << len << " > " << _max_req_header_number
+                << ", please set " << Http::kMaxReqHeaderNumber << " in config.ini file.";
+        reset();
+        throw std::out_of_range("http header size is invalid: " + to_string(len));
+    }
 }
 
 } /* namespace mediakit */

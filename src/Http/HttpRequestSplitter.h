@@ -68,7 +68,7 @@ protected:
      * @param data content分片或全部数据
      * @param len 数据长度
      */
-    virtual void onRecvContent(const char *data,size_t len) {};
+    virtual void onRecvContent(const char *data, size_t len) {};
 
     /**
      * 判断数据中是否有包尾
@@ -77,6 +77,13 @@ protected:
      * @return nullptr代表未找到包位，否则返回包尾指针
      */
     virtual const char *onSearchPacketTail(const char *data, size_t len);
+
+    /**
+     * 判断请求头是否有效
+     * @param data 请求头数据
+     * @param len 请求头长度
+     */
+    virtual void onCheckHeader(const char *data, size_t len) {};
 
     /**
      * 设置content len
