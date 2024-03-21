@@ -171,7 +171,7 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
                                                    sender.getMediaTuple().stream.c_str(), ssrc.c_str(), ex.getErrCode(), ex.what());
             }
         });
-
+#ifdef ENABLE_WEBRTC
         NoticeCenter::Instance().addListener(&s_tag, Broadcast::kBroadcastRtcSctpConnecting,[](BroadcastRtcSctpConnectArgs){
             if (s_events.on_mk_rtc_sctp_connecting) {
                 s_events.on_mk_rtc_sctp_connecting((mk_rtc_transport)&sender);
@@ -207,6 +207,7 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
                 s_events.on_mk_rtc_sctp_received((mk_rtc_transport)&sender, streamId, ppid, msg, len);
             }
         });
+#endif
     });
 
 }
