@@ -14,7 +14,10 @@
 #include "Http/HttpSession.h"
 #include "Rtsp/RtspSession.h"
 #include "Record/MP4Recorder.h"
+
+#ifdef ENABLE_WEBRTC
 #include "webrtc/WebRtcTransport.h"
+#endif
 
 using namespace toolkit;
 using namespace mediakit;
