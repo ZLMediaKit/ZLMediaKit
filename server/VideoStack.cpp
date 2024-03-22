@@ -180,7 +180,7 @@ void StackPlayer::play()
                 self->onFrame(frame);
             });
 
-            videoTrack->addDelegate((std::function<bool(const mediakit::Frame::Ptr&)>)[decoder](const mediakit::Frame::Ptr& frame) {
+            videoTrack->addDelegate([decoder](const mediakit::Frame::Ptr& frame) {
                 return decoder->inputFrame(frame, false, true);
             });
         }
@@ -467,8 +467,8 @@ Params VideoStackManager::parseParams(const Json::Value& json,
         float gaph = json["gaph"].asFloat(); //水平间距
 
         //单个间距
-        int gaphPix = static_cast<int>(std::round(width * gaph));
-        int gapvPix = static_cast<int>(std::round(height * gapv));
+        int gaphPix = static_cast<int>(round(width * gaph));
+        int gapvPix = static_cast<int>(round(height * gapv));
 
         // 根据间距计算格子宽高
         int gridWidth = cols > 1 ? (width - gaphPix * (cols - 1)) / cols : width;
