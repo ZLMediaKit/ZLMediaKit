@@ -584,8 +584,10 @@ void addStreamProxy(const string &vhost, const string &app, const string &stream
     //添加拉流代理
     auto player = s_player_proxy.make(key, vhost, app, stream, option, retry_count);
 
-    // 先透传参数
-    player->mINI::operator=(args);
+    // 先透传拷贝参数
+    for (auto &pr : args) {
+        (*player)[pr.first] = pr.second;
+    }
 
     //指定RTP over TCP(播放rtsp时有效)
     (*player)[Client::kRtpType] = rtp_type;
