@@ -294,8 +294,8 @@ void RtspUrl::setup(bool is_ssl, const string &url, const string &user, const st
     splitUrl(ip, ip, port);
 
     _url = std::move(url);
-    _user = strCoding::UrlDecodeComponent(std::move(user));
-    _passwd = strCoding::UrlDecodeComponent(std::move(passwd));
+    _user = strCoding::UrlDecode(std::move(user));
+    _passwd = strCoding::UrlDecode(std::move(passwd));
     _host = std::move(ip);
     _port = port;
     _is_ssl = is_ssl;

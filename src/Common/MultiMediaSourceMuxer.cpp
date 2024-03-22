@@ -44,6 +44,7 @@ public:
     }
 
     void resetTimer(const EventPoller::Ptr &poller) {
+        std::lock_guard<std::recursive_mutex> lck(_mtx);
         std::weak_ptr<FramePacedSender> weak_self = shared_from_this();
         _timer = std::make_shared<Timer>(_paced_sender_ms / 1000.0f, [weak_self]() {
             if (auto strong_self = weak_self.lock()) {
@@ -55,6 +56,7 @@ public:
     }
 
     bool inputFrame(const Frame::Ptr &frame) override {
+        std::lock_guard<std::recursive_mutex> lck(_mtx);
         if (!_timer) {
             setCurrentStamp(frame->dts());
             resetTimer(EventPoller::getCurrentPoller());
@@ -66,6 +68,7 @@ public:
 
 private:
     void onTick() {
+        std::lock_guard<std::recursive_mutex> lck(_mtx);
         auto dst = _cache.empty() ? 0 : _cache.back().first;
         while (!_cache.empty()) {
             auto &front = _cache.front();
@@ -110,6 +113,7 @@ private:
     OnFrame _cb;
     Ticker _ticker;
     Timer::Ptr _timer;
+    std::recursive_mutex _mtx;
     std::list<std::pair<uint64_t, Frame::Ptr>> _cache;
 };
 
@@ -597,15 +601,17 @@ void MultiMediaSourceMuxer::resetTracks() {
     }
 }
 
-bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame) {
+bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
+    auto frame = frame_in;
     if (_option.modify_stamp != ProtocolOption::kModifyStampOff) {
         // 时间戳不采用原始的绝对时间戳
-        const_cast<Frame::Ptr&>(frame) = std::make_shared<FrameStamp>(frame, _stamps[frame->getIndex()], _option.modify_stamp);
+        frame = std::make_shared<FrameStamp>(frame, _stamps[frame->getIndex()], _option.modify_stamp);
     }
     return _paced_sender ? _paced_sender->inputFrame(frame) : onTrackFrame_l(frame);
 }
 
-bool MultiMediaSourceMuxer::onTrackFrame_l(const Frame::Ptr &frame) {
+bool MultiMediaSourceMuxer::onTrackFrame_l(const Frame::Ptr &frame_in) {
+    auto frame = frame_in;
     bool ret = false;
     if (_rtmp) {
         ret = _rtmp->inputFrame(frame) ? true : ret;
@@ -633,7 +639,7 @@ bool MultiMediaSourceMuxer::onTrackFrame_l(const Frame::Ptr &frame) {
     }
     if (_ring) {
         // 此场景由于直接转发，可能存在切换线程引起的数据被缓存在管道，所以需要CacheAbleFrame
-        const_cast<Frame::Ptr &>(frame) = Frame::getCacheAbleFrame(frame);
+        frame = Frame::getCacheAbleFrame(frame);
         if (frame->getTrackType() == TrackVideo) {
             // 视频时，遇到第一帧配置帧或关键帧则标记为gop开始处
             auto video_key_pos = frame->keyFrame() || frame->configFrame();
