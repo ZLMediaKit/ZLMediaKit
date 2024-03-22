@@ -163,28 +163,14 @@ void RtmpPusher::send_connect() {
 }
 
 void RtmpPusher::send_createStream() {
-    // Workaround : 兼容较旧的 FMS3.0
-    {
-        {
-            AMFValue obj(_stream_id);
-            sendInvoke("releaseStream", obj);
-        }
-        {
-            AMFValue obj(_stream_id);
-            sendInvoke("FCPublish", obj);
-        }
-    }
-    {
-        AMFValue obj(AMF_NULL);
-        sendInvoke("createStream", obj);
-        addOnResultCB([this](AMFDecoder &dec) {
-            //TraceL << "createStream result";
-            dec.load<AMFValue>();
-            _stream_index = dec.load<int>();
-            send_publish();
-        });
-    }
-
+    AMFValue obj(AMF_NULL);
+    sendInvoke("createStream", obj);
+    addOnResultCB([this](AMFDecoder &dec) {
+        //TraceL << "createStream result";
+        dec.load<AMFValue>();
+        _stream_index = dec.load<int>();
+        send_publish();
+    });
 }
 
 #define RTMP_STREAM_LIVE    "live"

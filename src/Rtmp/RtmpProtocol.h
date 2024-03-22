@@ -11,7 +11,6 @@
 #ifndef SRC_RTMP_RTMPPROTOCOL_H_
 #define SRC_RTMP_RTMPPROTOCOL_H_
 
-#include <cstdint>
 #include <memory>
 #include <string>
 #include <functional>
@@ -88,9 +87,6 @@ protected:
 private:
     bool _data_started = false;
     int _now_chunk_id = 0;
-    uint32_t _last_stream_index = 0;
-    size_t _last_body_size = 0;
-    uint8_t _last_type_id = 0;
     ////////////ChunkSize////////////
     size_t _chunk_size_in = DEFAULT_CHUNK_LEN;
     size_t _chunk_size_out = DEFAULT_CHUNK_LEN;
