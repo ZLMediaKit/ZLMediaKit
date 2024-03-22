@@ -14,14 +14,6 @@
 using namespace std;
 using namespace toolkit;
 
-#define CHECK_RET(...)                                                         \
-    try {                                                                      \
-        CHECK(__VA_ARGS__);                                                    \
-    } catch (AssertFailedException & ex) {                                     \
-        WarnL << ex.what();                                                    \
-        return;                                                                \
-    }
-
 namespace mediakit {
 
 void H264RtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt) {
