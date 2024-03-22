@@ -626,23 +626,12 @@ const char* RtmpProtocol::handle_rtmp(const char *data, size_t len) {
             case 12:
                 chunk_data.is_abs_stamp = true;
                 chunk_data.stream_index = load_le32(header->stream_index);
-                _last_stream_index = chunk_data.stream_index;
             case 8:
                 chunk_data.body_size = load_be24(header->body_size);
                 chunk_data.type_id = header->type_id;
-                _last_body_size = chunk_data.body_size;
-                _last_type_id = chunk_data.type_id;
             case 4:
                 chunk_data.ts_field = load_be24(header->time_stamp);
         }
-        switch (header->fmt) {
-            case 2:
-                chunk_data.type_id = _last_type_id;
-                chunk_data.body_size = _last_body_size;
-            case 1:
-                chunk_data.stream_index = _last_stream_index;
-        }
-
         auto time_stamp = chunk_data.ts_field;
         if (chunk_data.ts_field == 0xFFFFFF) {
             if (len < header_len + offset + 4) {
