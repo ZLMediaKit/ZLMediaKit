@@ -29,7 +29,13 @@ public:
         getRtmpRing()->setDelegate(_media_src);
     }
 
-    ~RtmpMediaSourceMuxer() override { RtmpMuxer::flush(); }
+    ~RtmpMediaSourceMuxer() override {
+        try {
+            RtmpMuxer::flush();
+        } catch (std::exception &ex) {
+            WarnL << ex.what();
+        }
+    }
 
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
         setDelegate(listener);
