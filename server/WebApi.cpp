@@ -1937,28 +1937,23 @@ void installWebApi() {
     NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastStreamNoneReader, [](BroadcastStreamNoneReaderArgs) {
         auto id = sender.getMediaTuple().stream;
         VideoStackManager::Instance().stopVideoStack(id);
-        InfoL << "VideoStack: " << id <<" stop";
     });
 
     api_regist("/index/api/stack/start", [](API_ARGS_JSON_ASYNC) {
         CHECK_SECRET();
         auto ret = VideoStackManager::Instance().startVideoStack(allArgs.getArgs());
-        if (!ret) {
-            invoker(200, headerOut, "success");
-        } else {
-            invoker(200, headerOut, "failed");
-        }
+        val["code"] = ret;
+        val["msg"] = ret ? "failed" : "success";
+        invoker(200, headerOut, val.toStyledString());
     });
 
     api_regist("/index/api/stack/stop", [](API_ARGS_MAP_ASYNC) {
         CHECK_SECRET();
         CHECK_ARGS("id");
         auto ret = VideoStackManager::Instance().stopVideoStack(allArgs["id"]);
-        if (!ret) {
-            invoker(200, headerOut, "success");
-        } else {
-            invoker(200, headerOut, "failed");
-        }
+        val["code"] = ret;
+        val["msg"] = ret ? "failed" : "success";
+        invoker(200, headerOut, val.toStyledString());
     });
 #endif
 }
