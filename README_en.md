@@ -516,6 +516,11 @@ Thanks to all those who have supported this project in various ways, including b
 [sandro-qiang](https://github.com/sandro-qiang)
 [Paul Philippov](https://github.com/themactep)
 [张传峰](https://github.com/zhang-chuanfeng)
+[lidaofu-hub](https://github.com/lidaofu-hub)
+[huangcaichun](https://github.com/huangcaichun)
+[jamesZHANG500](https://github.com/jamesZHANG500)
+[weidelong](https://github.com/wdl1697454803)
+[小强先生](https://github.com/linshangqiang)
 
 Also thank to JetBrains for their support for open source project, we developed and debugged zlmediakit with CLion:
 
