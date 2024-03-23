@@ -378,6 +378,12 @@ void WebRtcTransport::setRemoteDtlsFingerprint(const RtcSession &remote) {
 }
 
 void WebRtcTransport::onRtcConfigure(RtcConfigure &configure) const {
+    SdpAttrFingerprint fingerprint;
+    fingerprint.algorithm = _offer_sdp->media[0].fingerprint.algorithm;
+    fingerprint.hash = getFingerprint(fingerprint.algorithm, _dtls_transport);
+    configure.setDefaultSetting(
+            _ice_server->GetUsernameFragment(), _ice_server->GetPassword(), RtpDirection::sendrecv, fingerprint);
+
     // 开启remb后关闭twcc，因为开启twcc后remb无效
     GET_CONFIG(size_t, remb_bit_rate, Rtc::kRembBitRate);
     configure.enableTWCC(!remb_bit_rate);
@@ -407,12 +413,7 @@ std::string WebRtcTransport::getAnswerSdp(const string &offer) {
         setRemoteDtlsFingerprint(*_offer_sdp);
 
         //// sdp 配置 ////
-        SdpAttrFingerprint fingerprint;
-        fingerprint.algorithm = _offer_sdp->media[0].fingerprint.algorithm;
-        fingerprint.hash = getFingerprint(fingerprint.algorithm, _dtls_transport);
         RtcConfigure configure;
-        configure.setDefaultSetting(
-            _ice_server->GetUsernameFragment(), _ice_server->GetPassword(), RtpDirection::sendrecv, fingerprint);
         onRtcConfigure(configure);
 
         //// 生成answer sdp ////
@@ -431,10 +432,6 @@ static bool isDtls(char *buf) {
     return ((*buf > 19) && (*buf < 64));
 }
 
-static string getPeerAddress(RTC::TransportTuple *tuple) {
-    return tuple->get_peer_ip();
-}
-
 void WebRtcTransport::inputSockData(char *buf, int len, RTC::TransportTuple *tuple) {
     if (RTC::StunPacket::IsStun((const uint8_t *)buf, len)) {
         std::unique_ptr<RTC::StunPacket> packet(RTC::StunPacket::Parse((const uint8_t *)buf, len));
@@ -451,7 +448,7 @@ void WebRtcTransport::inputSockData(char *buf, int len, RTC::TransportTuple *tup
     }
     if (isRtp(buf, len)) {
         if (!_srtp_session_recv) {
-            WarnL << "received rtp packet when dtls not completed from:" << getPeerAddress(tuple);
+            WarnL << "received rtp packet when dtls not completed from:" << tuple->get_peer_ip();
             return;
         }
         if (_srtp_session_recv->DecryptSrtp((uint8_t *)buf, &len)) {
@@ -461,7 +458,7 @@ void WebRtcTransport::inputSockData(char *buf, int len, RTC::TransportTuple *tup
     }
     if (isRtcp(buf, len)) {
         if (!_srtp_session_recv) {
-            WarnL << "received rtcp packet when dtls not completed from:" << getPeerAddress(tuple);
+            WarnL << "received rtcp packet when dtls not completed from:" << tuple->get_peer_ip();
             return;
         }
         if (_srtp_session_recv->DecryptSrtcp((uint8_t *)buf, &len)) {
@@ -1278,21 +1275,14 @@ void WebRtcPluginManager::registerPlugin(const string &type, Plugin cb) {
     _map_creator[type] = std::move(cb);
 }
 
-std::string exchangeSdp(const WebRtcInterface &exchanger, const std::string& offer) {
-    return const_cast<WebRtcInterface &>(exchanger).getAnswerSdp(offer);
-}
-
-void setLocalIp(const WebRtcInterface& exchanger, const std::string& localIp) {
-    return const_cast<WebRtcInterface &>(exchanger).setLocalIp(localIp);
-}
 
 void WebRtcPluginManager::setListener(Listener cb) {
     lock_guard<mutex> lck(_mtx_creator);
     _listener = std::move(cb);
 }
 
-void WebRtcPluginManager::getAnswerSdp(Session &sender, const string &type, const WebRtcArgs &args, const onCreateRtc &cb_in) {
-    onCreateRtc cb;
+void WebRtcPluginManager::negotiateSdp(Session &sender, const string &type, const WebRtcArgs &args, const onCreateWebRtc &cb_in) {
+    onCreateWebRtc cb;
     lock_guard<mutex> lck(_mtx_creator);
     if (_listener) {
         auto listener = _listener;
@@ -1308,17 +1298,17 @@ void WebRtcPluginManager::getAnswerSdp(Session &sender, const string &type, cons
 
     auto it = _map_creator.find(type);
     if (it == _map_creator.end()) {
-        cb(WebRtcException(SockException(Err_other, "the type can not supported")));
+        cb_in(WebRtcException(SockException(Err_other, "the type can not supported")));
         return;
     }
     it->second(sender, args, cb);
 }
 
-void echo_plugin(Session &sender, const WebRtcArgs &args, const WebRtcPluginManager::onCreateRtc &cb) {
+void echo_plugin(Session &sender, const WebRtcArgs &args, const onCreateWebRtc &cb) {
     cb(*WebRtcEchoTest::create(EventPollerPool::Instance().getPoller()));
 }
 
-void push_plugin(Session &sender, const WebRtcArgs &args, const WebRtcPluginManager::onCreateRtc &cb) {
+void push_plugin(Session &sender, const WebRtcArgs &args, const onCreateWebRtc &cb) {
     MediaInfo info(args["url"]);
     bool preferred_tcp = args["preferred_tcp"];
 
@@ -1374,7 +1364,7 @@ void push_plugin(Session &sender, const WebRtcArgs &args, const WebRtcPluginMana
     }
 }
 
-void play_plugin(Session &sender, const WebRtcArgs &args, const WebRtcPluginManager::onCreateRtc &cb) {
+void play_plugin(Session &sender, const WebRtcArgs &args, const onCreateWebRtc &cb) {
     MediaInfo info(args["url"]);
     bool preferred_tcp = args["preferred_tcp"];
 
@@ -1408,6 +1398,23 @@ void play_plugin(Session &sender, const WebRtcArgs &args, const WebRtcPluginMana
     }
 }
 
+bool isVaildIP(const std::string& ip) {
+    int a,b,c,d;
+    return sscanf(ip.c_str(),"%d.%d.%d.%d", &a, &b, &c, &d) == 4;
+}
+
+static void set_local_ip(const WebRtcArgs &args, const WebRtcInterface &rtc) {
+    std::string host = args["Host"];
+    if (!host.empty()) {
+        std::string localIp = host.substr(0, host.find(':'));
+
+        if (!isVaildIP(localIp) || localIp == "127.0.0.1") {
+            localIp = "";
+        }
+        const_cast<WebRtcInterface &>(rtc).setLocalIp(std::move(localIp));
+    }
+}
+
 static void set_webrtc_cands(const WebRtcArgs &args, const WebRtcInterface &rtc) {
     vector<SdpAttrCandidate> cands;
     {
@@ -1434,14 +1441,15 @@ static void set_webrtc_cands(const WebRtcArgs &args, const WebRtcInterface &rtc)
     }
 }
 
+void setWebRtcArgs(const WebRtcArgs &args, const WebRtcInterface &rtc) {
+    set_local_ip(args, rtc);
+    set_webrtc_cands(args, rtc);
+}
+
 static onceToken s_rtc_auto_register([]() {
     WebRtcPluginManager::Instance().registerPlugin("echo", echo_plugin);
     WebRtcPluginManager::Instance().registerPlugin("push", push_plugin);
     WebRtcPluginManager::Instance().registerPlugin("play", play_plugin);
-
-    WebRtcPluginManager::Instance().setListener([](Session &sender, const std::string &type, const WebRtcArgs &args, const WebRtcInterface &rtc) {
-        set_webrtc_cands(args, rtc);
-    });
 });
 
 }// namespace mediakit

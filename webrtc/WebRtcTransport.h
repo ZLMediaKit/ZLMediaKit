@@ -35,6 +35,8 @@ extern const std::string kTcpPort;
 extern const std::string kTimeOutSec;
 }//namespace RTC
 
+class WebRtcArgs;
+
 class WebRtcInterface {
 public:
     virtual ~WebRtcInterface() = default;
@@ -45,9 +47,7 @@ public:
     virtual void setLocalIp(const std::string &localIp) {}
 };
 
-std::string exchangeSdp(const WebRtcInterface &exchanger, const std::string& offer);
-
-void setLocalIp(const WebRtcInterface &exchanger, const std::string &localIp);
+void setWebRtcArgs(const WebRtcArgs &args, const WebRtcInterface &rtc);
 
 class WebRtcException : public WebRtcInterface {
 public:
@@ -88,7 +88,7 @@ public:
      * @param offer offer sdp
      * @return answer sdp
      */
-    std::string getAnswerSdp(const std::string &offer) override;
+    std::string getAnswerSdp(const std::string &offer) override final;
 
     /**
      * 获取对象唯一id
@@ -273,7 +273,7 @@ protected:
     void onCreate() override;
     void onDestory() override;
     void onShutdown(const SockException &ex) override;
-    virtual void onRecvRtp(MediaTrack &track, const std::string &rid, RtpPacket::Ptr rtp) = 0;
+    virtual void onRecvRtp(MediaTrack &track, const std::string &rid, RtpPacket::Ptr rtp) {}
     void updateTicker();
     float getLossRate(TrackType type);
     void onRtcpBye() override;
@@ -337,17 +337,17 @@ public:
     virtual variant operator[](const std::string &key) const = 0;
 };
 
+using onCreateWebRtc = std::function<void(const WebRtcInterface &rtc)>;
 class WebRtcPluginManager {
 public:
-    using onCreateRtc = std::function<void(const WebRtcInterface &rtc)>;
-    using Plugin = std::function<void(Session &sender, const WebRtcArgs &args, const onCreateRtc &cb)>;
+    using Plugin = std::function<void(Session &sender, const WebRtcArgs &args, const onCreateWebRtc &cb)>;
     using Listener = std::function<void(Session &sender, const std::string &type, const WebRtcArgs &args, const WebRtcInterface &rtc)>;
 
     static WebRtcPluginManager &Instance();
 
     void registerPlugin(const std::string &type, Plugin cb);
-    void getAnswerSdp(Session &sender, const std::string &type, const WebRtcArgs &args, const onCreateRtc &cb);
     void setListener(Listener cb);
+    void negotiateSdp(Session &sender, const std::string &type, const WebRtcArgs &args, const onCreateWebRtc &cb);
 
 private:
     WebRtcPluginManager() = default;

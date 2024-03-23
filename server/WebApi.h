@@ -115,72 +115,41 @@ std::string getValue(const mediakit::Parser &parser, Args &args, const First &fi
 
 template<typename Args>
 class HttpAllArgs {
+    mediakit::Parser* _parser = nullptr;
+    Args* _args = nullptr;
 public:
-    HttpAllArgs(const mediakit::Parser &parser, Args &args) {
-        _get_args = [&args]() {
-            return (void *) &args;
-        };
-        _get_parser = [&parser]() -> const mediakit::Parser & {
-            return parser;
-        };
-        _get_value = [](HttpAllArgs &that, const std::string &key) {
-            return getValue(that.getParser(), that.getArgs(), key);
-        };
-        _clone = [&](HttpAllArgs &that) {
-            that._get_args = [args]() {
-                return (void *) &args;
-            };
-            that._get_parser = [parser]() -> const mediakit::Parser & {
-                return parser;
-            };
-            that._get_value = [](HttpAllArgs &that, const std::string &key) {
-                return getValue(that.getParser(), that.getArgs(), key);
-            };
-            that._cache_able = true;
-        };
-    }
+    const mediakit::Parser& parser;
+    Args& args;
 
-    HttpAllArgs(const HttpAllArgs &that) {
-        if (that._cache_able) {
-            _get_args = that._get_args;
-            _get_parser = that._get_parser;
-            _get_value = that._get_value;
-            _cache_able = true;
-        } else {
-            that._clone(*this);
+    HttpAllArgs(const mediakit::Parser &p, Args &a): parser(p), args(a) {}
+
+    HttpAllArgs(const HttpAllArgs &that): _parser(new mediakit::Parser(that.parser)),
+                                          _args(new Args(that.args)),
+                                          parser(*_parser), args(*_args) {}
+    ~HttpAllArgs() {
+        if (_parser) {
+            delete _parser;
+        }
+        if (_args) {
+            delete _args;
         }
     }
 
     template<typename Key>
     toolkit::variant operator[](const Key &key) const {
-        return (toolkit::variant)_get_value(*(HttpAllArgs*)this, key);
+        return (toolkit::variant)getValue(parser, args, key);
     }
-
-    const mediakit::Parser &getParser() const {
-        return _get_parser();
-    }
-
-    Args &getArgs() {
-        return *((Args *) _get_args());
-    }
-
-    const Args &getArgs() const {
-        return *((Args *) _get_args());
-    }
-
-private:
-    bool _cache_able = false;
-    std::function<void *() > _get_args;
-    std::function<const mediakit::Parser &() > _get_parser;
-    std::function<std::string(HttpAllArgs &that, const std::string &key)> _get_value;
-    std::function<void(HttpAllArgs &that) > _clone;
 };
 
-#define API_ARGS_MAP toolkit::SockInfo &sender, mediakit::HttpSession::KeyValue &headerOut, const HttpAllArgs<ApiArgsType> &allArgs, Json::Value &val
+using ArgsMap = HttpAllArgs<ApiArgsType>;
+using ArgsJson = HttpAllArgs<Json::Value>;
+using ArgsString = HttpAllArgs<std::string>;
+
+#define API_ARGS_MAP toolkit::SockInfo &sender, mediakit::HttpSession::KeyValue &headerOut, const ArgsMap &allArgs, Json::Value &val
 #define API_ARGS_MAP_ASYNC API_ARGS_MAP, const mediakit::HttpSession::HttpResponseInvoker &invoker
-#define API_ARGS_JSON toolkit::SockInfo &sender, mediakit::HttpSession::KeyValue &headerOut, const HttpAllArgs<Json::Value> &allArgs, Json::Value &val
+#define API_ARGS_JSON toolkit::SockInfo &sender, mediakit::HttpSession::KeyValue &headerOut, const ArgsJson &allArgs, Json::Value &val
 #define API_ARGS_JSON_ASYNC API_ARGS_JSON, const mediakit::HttpSession::HttpResponseInvoker &invoker
-#define API_ARGS_STRING toolkit::SockInfo &sender, mediakit::HttpSession::KeyValue &headerOut, const HttpAllArgs<std::string> &allArgs, Json::Value &val
+#define API_ARGS_STRING toolkit::SockInfo &sender, mediakit::HttpSession::KeyValue &headerOut, const ArgsString &allArgs, Json::Value &val
 #define API_ARGS_STRING_ASYNC API_ARGS_STRING, const mediakit::HttpSession::HttpResponseInvoker &invoker
 #define API_ARGS_VALUE sender, headerOut, allArgs, val
 
