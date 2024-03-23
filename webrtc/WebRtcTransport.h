@@ -35,8 +35,6 @@ extern const std::string kTcpPort;
 extern const std::string kTimeOutSec;
 }//namespace RTC
 
-class WebRtcArgs;
-
 class WebRtcInterface {
 public:
     virtual ~WebRtcInterface() = default;
