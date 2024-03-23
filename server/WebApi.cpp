@@ -1770,7 +1770,7 @@ void installWebApi() {
 
         auto &session = static_cast<Session&>(sender);
         auto args = std::make_shared<WebRtcArgsImp>(allArgs, sender.getIdentifier());
-        WebRtcPluginManager::Instance().negotiateSdp(session, type, *args, [invoker, val, offer, headerOut, args](const WebRtcInterface &exchanger) mutable {
+        WebRtcPluginManager::Instance().negotiateSdp(session, type, *args, [invoker, val, offer, headerOut](const WebRtcInterface &exchanger) mutable {
             auto &handler = const_cast<WebRtcInterface &>(exchanger);
             try {
                 val["sdp"] = handler.getAnswerSdp(offer);
@@ -1793,7 +1793,7 @@ void installWebApi() {
         auto &session = static_cast<Session&>(sender);
         auto location = std::string(session.overSsl() ? "https://" : "http://") + allArgs["host"] + delete_webrtc_url;
         auto args = std::make_shared<WebRtcArgsImp>(allArgs, sender.getIdentifier());
-        WebRtcPluginManager::Instance().negotiateSdp(session, type, *args, [invoker, offer, headerOut, location, args](const WebRtcInterface &exchanger) mutable {
+        WebRtcPluginManager::Instance().negotiateSdp(session, type, *args, [invoker, offer, headerOut, location](const WebRtcInterface &exchanger) mutable {
             auto &handler = const_cast<WebRtcInterface &>(exchanger);
             try {
                 // 设置返回类型
