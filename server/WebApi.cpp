@@ -1771,13 +1771,7 @@ void installWebApi() {
         auto &session = static_cast<Session&>(sender);
         auto args = std::make_shared<WebRtcArgsImp>(allArgs, sender.getIdentifier());
         WebRtcPluginManager::Instance().negotiateSdp(session, type, *args, [invoker, val, offer, headerOut, args](const WebRtcInterface &exchanger) mutable {
-            //设置返回类型
-            headerOut["Content-Type"] = HttpFileManager::getContentType(".json");
-            //设置跨域
-            headerOut["Access-Control-Allow-Origin"] = "*";
-
-            setWebRtcArgs(*args, exchanger);
-            auto& handler = const_cast<WebRtcInterface &>(exchanger);
+            auto &handler = const_cast<WebRtcInterface &>(exchanger);
             try {
                 val["sdp"] = handler.getAnswerSdp(offer);
                 val["id"] = exchanger.getIdentifier();
@@ -1800,10 +1794,7 @@ void installWebApi() {
         auto location = std::string(session.overSsl() ? "https://" : "http://") + allArgs["host"] + delete_webrtc_url;
         auto args = std::make_shared<WebRtcArgsImp>(allArgs, sender.getIdentifier());
         WebRtcPluginManager::Instance().negotiateSdp(session, type, *args, [invoker, offer, headerOut, location, args](const WebRtcInterface &exchanger) mutable {
-            // 设置跨域
-            headerOut["Access-Control-Allow-Origin"] = "*";
-            setWebRtcArgs(*args, exchanger);
-            auto& handler = const_cast<WebRtcInterface &>(exchanger);
+            auto &handler = const_cast<WebRtcInterface &>(exchanger);
             try {
                 // 设置返回类型
                 headerOut["Content-Type"] = "application/sdp";

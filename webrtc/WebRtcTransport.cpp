@@ -530,8 +530,7 @@ void WebRtcTransportImp::OnDtlsTransportApplicationDataReceived(const RTC::DtlsT
 #endif
 }
 
-WebRtcTransportImp::WebRtcTransportImp(const EventPoller::Ptr &poller,bool preferred_tcp)
-    : WebRtcTransport(poller), _preferred_tcp(preferred_tcp) {
+WebRtcTransportImp::WebRtcTransportImp(const EventPoller::Ptr &poller) : WebRtcTransport(poller) {
     InfoL << getIdentifier();
 }
 
@@ -671,7 +670,7 @@ void WebRtcTransportImp::onCheckAnswer(RtcSession &sdp) {
     });
     for (auto &m : sdp.media) {
         m.addr.reset();
-        m.addr.address = extern_ips.empty() ? _localIp.empty() ? SockUtil::get_local_ip() : _localIp : extern_ips[0];
+        m.addr.address = extern_ips.empty() ? _local_ip.empty() ? SockUtil::get_local_ip() : _local_ip : extern_ips[0];
         m.rtcp_addr.reset();
         m.rtcp_addr.address = m.addr.address;
 
@@ -766,7 +765,7 @@ void WebRtcTransportImp::onRtcConfigure(RtcConfigure &configure) const {
         return ret;
     });
     if (extern_ips.empty()) {
-        std::string local_ip = _localIp.empty() ? SockUtil::get_local_ip() : _localIp;
+        std::string local_ip = _local_ip.empty() ? SockUtil::get_local_ip() : _local_ip;
         if (local_udp_port) { configure.addCandidate(*makeIceCandidate(local_ip, local_udp_port, 120, "udp")); }
         if (local_tcp_port) { configure.addCandidate(*makeIceCandidate(local_ip, local_tcp_port, _preferred_tcp ? 125 : 115, "tcp")); }
     } else {
@@ -780,12 +779,16 @@ void WebRtcTransportImp::onRtcConfigure(RtcConfigure &configure) const {
     }
 }
 
-void WebRtcTransportImp::setIceCandidate(vector<SdpAttrCandidate> cands) {
-    _cands = std::move(cands);
+void WebRtcTransportImp::setPreferredTcp(bool flag) {
+    _preferred_tcp = flag;
 }
 
-void WebRtcTransportImp::setLocalIp(const std::string &localIp) {
-    _localIp = localIp;
+void WebRtcTransportImp::setLocalIp(std::string local_ip) {
+    _local_ip = std::move(local_ip);
+}
+
+void WebRtcTransportImp::setIceCandidate(vector<SdpAttrCandidate> cands) {
+    _cands = std::move(cands);
 }
 
 ///////////////////////////////////////////////////////////////////
@@ -1310,9 +1313,7 @@ void echo_plugin(Session &sender, const WebRtcArgs &args, const onCreateWebRtc &
 
 void push_plugin(Session &sender, const WebRtcArgs &args, const onCreateWebRtc &cb) {
     MediaInfo info(args["url"]);
-    bool preferred_tcp = args["preferred_tcp"];
-
-    Broadcast::PublishAuthInvoker invoker = [cb, info, preferred_tcp](const string &err, const ProtocolOption &option) mutable {
+    Broadcast::PublishAuthInvoker invoker = [cb, info](const string &err, const ProtocolOption &option) mutable {
         if (!err.empty()) {
             cb(WebRtcException(SockException(Err_other, err)));
             return;
@@ -1351,7 +1352,7 @@ void push_plugin(Session &sender, const WebRtcArgs &args, const onCreateWebRtc &
             push_src_ownership = push_src->getOwnership();
             push_src->setProtocolOption(option);
         }
-        auto rtc = WebRtcPusher::create(EventPollerPool::Instance().getPoller(), push_src, push_src_ownership, info, option, preferred_tcp);
+        auto rtc = WebRtcPusher::create(EventPollerPool::Instance().getPoller(), push_src, push_src_ownership, info, option);
         push_src->setListener(rtc);
         cb(*rtc);
     };
@@ -1366,10 +1367,8 @@ void push_plugin(Session &sender, const WebRtcArgs &args, const onCreateWebRtc &
 
 void play_plugin(Session &sender, const WebRtcArgs &args, const onCreateWebRtc &cb) {
     MediaInfo info(args["url"]);
-    bool preferred_tcp = args["preferred_tcp"];
-
     auto session_ptr = static_pointer_cast<Session>(sender.shared_from_this());
-    Broadcast::AuthInvoker invoker = [cb, info, session_ptr, preferred_tcp](const string &err) mutable {
+    Broadcast::AuthInvoker invoker = [cb, info, session_ptr](const string &err) mutable {
         if (!err.empty()) {
             cb(WebRtcException(SockException(Err_other, err)));
             return;
@@ -1385,7 +1384,7 @@ void play_plugin(Session &sender, const WebRtcArgs &args, const onCreateWebRtc &
             }
             // 还原成rtc，目的是为了hook时识别哪种播放协议
             info.schema = "rtc";
-            auto rtc = WebRtcPlayer::create(EventPollerPool::Instance().getPoller(), src, info, preferred_tcp);
+            auto rtc = WebRtcPlayer::create(EventPollerPool::Instance().getPoller(), src, info);
             cb(*rtc);
         });
     };
@@ -1398,58 +1397,64 @@ void play_plugin(Session &sender, const WebRtcArgs &args, const onCreateWebRtc &
     }
 }
 
-bool isVaildIP(const std::string& ip) {
-    int a,b,c,d;
-    return sscanf(ip.c_str(),"%d.%d.%d.%d", &a, &b, &c, &d) == 4;
-}
-
-static void set_local_ip(const WebRtcArgs &args, const WebRtcInterface &rtc) {
-    std::string host = args["Host"];
-    if (!host.empty()) {
-        std::string localIp = host.substr(0, host.find(':'));
-
-        if (!isVaildIP(localIp) || localIp == "127.0.0.1") {
-            localIp = "";
-        }
-        const_cast<WebRtcInterface &>(rtc).setLocalIp(std::move(localIp));
-    }
-}
-
-static void set_webrtc_cands(const WebRtcArgs &args, const WebRtcInterface &rtc) {
-    vector<SdpAttrCandidate> cands;
+static void setWebRtcArgs(const WebRtcArgs &args, WebRtcInterface &rtc) {
     {
-        auto cand_str = trim(args["cand_udp"]);
-        auto ip_port = toolkit::split(cand_str, ":");
-        if (ip_port.size() == 2) {
+        static auto is_vaild_ip = [](const std::string &ip) -> bool {
+            int a, b, c, d;
+            return sscanf(ip.c_str(), "%d.%d.%d.%d", &a, &b, &c, &d) == 4;
+        };
+        std::string host = args["Host"];
+        if (!host.empty()) {
+            auto local_ip = host.substr(0, host.find(':'));
+            if (!is_vaild_ip(local_ip) || local_ip == "127.0.0.1") {
+                local_ip = "";
+            }
+            rtc.setLocalIp(std::move(local_ip));
+        }
+    }
+
+    bool preferred_tcp = args["preferred_tcp"];
+    {
+        rtc.setPreferredTcp(preferred_tcp);
+    }
+
+    {
+        vector<SdpAttrCandidate> cands;
+        {
+            auto cand_str = trim(args["cand_udp"]);
+            auto ip_port = toolkit::split(cand_str, ":");
+            if (ip_port.size() == 2) {
+                // udp优先
+                auto ice_cand = makeIceCandidate(ip_port[0], atoi(ip_port[1].data()), preferred_tcp ? 100 : 120, "udp");
+                cands.emplace_back(std::move(*ice_cand));
+            }
+        }
+        {
+            auto cand_str = trim(args["cand_tcp"]);
+            auto ip_port = toolkit::split(cand_str, ":");
+            if (ip_port.size() == 2) {
+                // tcp模式
+                auto ice_cand = makeIceCandidate(ip_port[0], atoi(ip_port[1].data()), preferred_tcp ? 120 : 100, "tcp");
+                cands.emplace_back(std::move(*ice_cand));
+            }
+        }
+        if (!cands.empty()) {
             // udp优先
-            auto ice_cand = makeIceCandidate(ip_port[0], atoi(ip_port[1].data()), 120, "udp");
-            cands.emplace_back(std::move(*ice_cand));
+            rtc.setIceCandidate(std::move(cands));
         }
     }
-    {
-        auto cand_str = trim(args["cand_tcp"]);
-        auto ip_port = toolkit::split(cand_str, ":");
-        if (ip_port.size() == 2) {
-            // tcp模式
-            auto ice_cand = makeIceCandidate(ip_port[0], atoi(ip_port[1].data()), 100, "tcp");
-            cands.emplace_back(std::move(*ice_cand));
-        }
-    }
-    if (!cands.empty()) {
-        // udp优先
-        const_cast<WebRtcInterface &>(rtc).setIceCandidate(std::move(cands));
-    }
-}
-
-void setWebRtcArgs(const WebRtcArgs &args, const WebRtcInterface &rtc) {
-    set_local_ip(args, rtc);
-    set_webrtc_cands(args, rtc);
 }
 
 static onceToken s_rtc_auto_register([]() {
+#if !defined (NDEBUG)
+    // debug模式才开启echo插件
     WebRtcPluginManager::Instance().registerPlugin("echo", echo_plugin);
+#endif
     WebRtcPluginManager::Instance().registerPlugin("push", push_plugin);
     WebRtcPluginManager::Instance().registerPlugin("play", play_plugin);
+    WebRtcPluginManager::Instance().setListener([](Session &sender, const std::string &type, const WebRtcArgs &args, const WebRtcInterface &rtc) {
+        setWebRtcArgs(args, const_cast<WebRtcInterface&>(rtc));
+    });
 });
 
 }// namespace mediakit
