@@ -62,15 +62,16 @@ void Channel::addParam(const std::weak_ptr<Param>& p)
 void Channel::onFrame(const mediakit::FFmpegFrame::Ptr& frame)
 {
     std::weak_ptr<Channel> weakSelf = shared_from_this();
-    // toolkit::WorkThreadPool::Instance().getFirstPoller()->async([weakSelf, frame]() {
-    auto self = weakSelf.lock();
-    if (!self) {
-        return;
-    }
-    self->_tmp = self->_sws->inputFrame(frame);
+    _poller = _poller ? _poller : toolkit::WorkThreadPool::Instance().getPoller();
+    _poller->async([weakSelf, frame]() {
+        auto self = weakSelf.lock();
+        if (!self) {
+            return;
+        }
+        self->_tmp = self->_sws->inputFrame(frame);
 
-    self->forEachParam([self](const Param::Ptr& p) { self->fillBuffer(p); });
-    // });
+        self->forEachParam([self](const Param::Ptr& p) { self->fillBuffer(p); });
+    });
 }
 
 void Channel::forEachParam(const std::function<void(const Param::Ptr&)>& func)
@@ -440,6 +441,7 @@ int VideoStackManager::stopVideoStack(const std::string& id)
     auto it = _stackMap.find(id);
     if (it != _stackMap.end()) {
         _stackMap.erase(it);
+        InfoL << "VideoStack stop: " << id;
         return 0;
     }
     return -1;

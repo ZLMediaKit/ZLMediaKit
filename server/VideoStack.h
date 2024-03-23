@@ -80,6 +80,7 @@ class Channel : public std::enable_shared_from_this<Channel> {
     std::vector<std::weak_ptr<Param>> _params;
 
     mediakit::FFmpegSws::Ptr _sws;
+    toolkit::EventPoller::Ptr _poller;
 };
 
 class StackPlayer : public std::enable_shared_from_this<StackPlayer> {
