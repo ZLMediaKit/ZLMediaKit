@@ -65,17 +65,17 @@ void HttpRequestSplitter::input(const char *data,size_t len) {
         _content_len = onRecvHeader(header_ptr, header_size);
     }
 
-    if(_remain_data_size <= 0){
-        //没有剩余数据，清空缓存
-        _remain_data.clear();
-        return;
-    }
-
     /*
      * 恢复末尾字节
      * 移动到这来，目的是防止HttpRequestSplitter::reset()导致内存失效
      */
     tail_ref = tail_tmp;
+
+    if(_remain_data_size <= 0){
+        //没有剩余数据，清空缓存
+        _remain_data.clear();
+        return;
+    }
 
     if(_content_len == 0){
         //尚未找到http头，缓存定位到剩余数据部分
