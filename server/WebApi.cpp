@@ -59,7 +59,7 @@
 #endif
 
 #if defined(ENABLE_VERSION)
-#include "version.h"
+#include "ZLMVersion.h"
 #endif
 
 #if defined(ENABLE_X264) && defined (ENABLE_FFMPEG)
