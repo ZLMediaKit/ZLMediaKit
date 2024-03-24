@@ -38,7 +38,7 @@
 #endif
 
 #if defined(ENABLE_VERSION)
-#include "version.h"
+#include "ZLMVersion.h"
 #endif
 
 #if !defined(_WIN32)
