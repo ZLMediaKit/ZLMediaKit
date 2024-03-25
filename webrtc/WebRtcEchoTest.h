@@ -27,7 +27,6 @@ protected:
     void onRtp(const char *buf, size_t len, uint64_t stamp_ms) override;
     void onRtcp(const char *buf, size_t len) override;
 
-    void onRecvRtp(MediaTrack &track, const std::string &rid, RtpPacket::Ptr rtp) override {};
     void onBeforeEncryptRtp(const char *buf, int &len, void *ctx) override {};
     void onBeforeEncryptRtcp(const char *buf, int &len, void *ctx) override {};
 

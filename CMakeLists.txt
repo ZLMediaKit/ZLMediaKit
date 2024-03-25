@@ -141,8 +141,8 @@ if(GIT_FOUND)
 endif()
 
 configure_file(
-  ${CMAKE_CURRENT_SOURCE_DIR}/version.h.ini
-  ${CMAKE_CURRENT_BINARY_DIR}/version.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/ZLMVersion.h.ini
+  ${CMAKE_CURRENT_BINARY_DIR}/ZLMVersion.h
   @ONLY)
 
 message(STATUS "Git version is ${BRANCH_NAME} ${COMMIT_HASH}/${COMMIT_TIME} ${BUILD_TIME}")

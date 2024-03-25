@@ -53,22 +53,6 @@ char HexStrToBin(const char *str) {
     return (high << 4) | low;
 }
 
-string strCoding::UrlEncode(const string &str) {
-    string out;
-    size_t len = str.size();
-    for (size_t i = 0; i < len; ++i) {
-        char ch = str[i];
-        if (isalnum((uint8_t) ch)) {
-            out.push_back(ch);
-        } else {
-            char buf[4];
-            sprintf(buf, "%%%X%X", (uint8_t) ch >> 4, (uint8_t) ch & 0x0F);
-            out.append(buf);
-        }
-    }
-    return out;
-}
-
 string strCoding::UrlEncodePath(const string &str) {
     const char *dont_escape = "!#&'*+:=?@/._-$,;~()";
     string out;
@@ -101,32 +85,6 @@ string strCoding::UrlEncodeComponent(const string &str) {
         }
     }
     return out;
-}
-
-string strCoding::UrlDecode(const string &str) {
-    string output;
-    size_t i = 0, len = str.length();
-    while (i < len) {
-        if (str[i] == '%') {
-            if (i + 3 > len) {
-                // %后面必须还有两个字节才会反转义
-                output.append(str, i, len - i);
-                break;
-            }
-            char ch = HexStrToBin(&(str[i + 1]));
-            if (ch == -1) {
-                // %后面两个字节不是16进制字符串，转义失败；直接拼接3个原始字符
-                output.append(str, i, 3);
-            } else {
-                output += ch;
-            }
-            i += 3;
-        } else {
-            output += str[i];
-            ++i;
-        }
-    }
-    return output;
 }
 
 string strCoding::UrlDecodePath(const string &str) {
@@ -184,27 +142,6 @@ std::string strCoding::UrlDecodeComponent(const std::string &str) {
     }
     return output;
 }
-
-#if 0
-#include "Util/onceToken.h"
-static toolkit::onceToken token([]() {
-    auto str0 = strCoding::UrlDecode(
-        "rtsp%3A%2F%2Fadmin%3AJm13317934%25jm%40111.47.84.69%3A554%2FStreaming%2FChannels%2F101%3Ftransportmode%3Dunicast%26amp%3Bprofile%3DProfile_1");
-    auto str1 = strCoding::UrlDecode("%j1"); // 测试%后面两个字节不是16进制字符串
-    auto str2 = strCoding::UrlDecode("%a"); // 测试%后面字节数不够
-    auto str3 = strCoding::UrlDecode("%"); // 测试只有%
-    auto str4 = strCoding::UrlDecode("%%%"); // 测试多个%
-    auto str5 = strCoding::UrlDecode("%%%%40"); // 测试多个非法%后恢复正常解析
-    auto str6 = strCoding::UrlDecode("Jm13317934%jm"); // 测试多个非法%后恢复正常解析
-    cout << str0 << endl;
-    cout << str1 << endl;
-    cout << str2 << endl;
-    cout << str3 << endl;
-    cout << str4 << endl;
-    cout << str5 << endl;
-    cout << str6 << endl;
-});
-#endif
 
 ///////////////////////////////windows专用///////////////////////////////////
 #if defined(_WIN32)
