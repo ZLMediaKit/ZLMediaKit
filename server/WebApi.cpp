@@ -1918,7 +1918,7 @@ void installWebApi() {
 
     api_regist("/index/api/stack/start", [](API_ARGS_JSON_ASYNC) {
         CHECK_SECRET();
-        auto ret = VideoStackManager::Instance().startVideoStack(allArgs.getArgs());
+        auto ret = VideoStackManager::Instance().startVideoStack(allArgs.args());
         val["code"] = ret;
         val["msg"] = ret ? "failed" : "success";
         invoker(200, headerOut, val.toStyledString());
