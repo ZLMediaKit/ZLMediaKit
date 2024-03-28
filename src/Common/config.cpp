@@ -58,6 +58,12 @@ const string kBroadcastStreamNoneReader = "kBroadcastStreamNoneReader";
 const string kBroadcastHttpBeforeAccess = "kBroadcastHttpBeforeAccess";
 const string kBroadcastSendRtpStopped = "kBroadcastSendRtpStopped";
 const string kBroadcastRtpServerTimeout = "kBroadcastRtpServerTimeout";
+const string kBroadcastRtcSctpConnecting = "kBroadcastRtcSctpConnecting";
+const string kBroadcastRtcSctpConnected = "kBroadcastRtcSctpConnected";
+const string kBroadcastRtcSctpFailed = "kBroadcastRtcSctpFailed";
+const string kBroadcastRtcSctpClosed = "kBroadcastRtcSctpClosed";
+const string kBroadcastRtcSctpSend = "kBroadcastRtcSctpSend";
+const string kBroadcastRtcSctpReceived = "kBroadcastRtcSctpReceived";
 
 } // namespace Broadcast
 
@@ -291,6 +297,7 @@ const string kSampleMS = RECORD_FIELD "sampleMS";
 const string kFileBufSize = RECORD_FIELD "fileBufSize";
 const string kFastStart = RECORD_FIELD "fastStart";
 const string kFileRepeat = RECORD_FIELD "fileRepeat";
+const string kEnableFmp4 = RECORD_FIELD "enableFmp4";
 
 static onceToken token([]() {
     mINI::Instance()[kAppName] = "record";
@@ -298,6 +305,7 @@ static onceToken token([]() {
     mINI::Instance()[kFileBufSize] = 64 * 1024;
     mINI::Instance()[kFastStart] = false;
     mINI::Instance()[kFileRepeat] = false;
+    mINI::Instance()[kEnableFmp4] = false;
 });
 } // namespace Record
 
@@ -338,6 +346,8 @@ const string kH265PT = RTP_PROXY_FIELD "h265_pt";
 const string kPSPT = RTP_PROXY_FIELD "ps_pt";
 const string kOpusPT = RTP_PROXY_FIELD "opus_pt";
 const string kGopCache = RTP_PROXY_FIELD "gop_cache";
+const string kRtpG711DurMs = RTP_PROXY_FIELD "rtp_g711_dur_ms";
+const string kUdpRecvSocketBuffer = RTP_PROXY_FIELD "udp_recv_socket_buffer";
 
 static onceToken token([]() {
     mINI::Instance()[kDumpDir] = "";
@@ -348,6 +358,8 @@ static onceToken token([]() {
     mINI::Instance()[kPSPT] = 96;
     mINI::Instance()[kOpusPT] = 100;
     mINI::Instance()[kGopCache] = 1;
+    mINI::Instance()[kRtpG711DurMs] = 100;
+    mINI::Instance()[kUdpRecvSocketBuffer] = 4 * 1024 * 1024;
 });
 } // namespace RtpProxy
 

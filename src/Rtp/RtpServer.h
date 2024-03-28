@@ -44,7 +44,7 @@ public:
      * @param multiplex 多路复用
      */
     void start(uint16_t local_port, const std::string &stream_id = "", TcpMode tcp_mode = PASSIVE,
-               const char *local_ip = "::", bool re_use_port = true, uint32_t ssrc = 0, bool only_audio = false, bool multiplex = false);
+               const char *local_ip = "::", bool re_use_port = true, uint32_t ssrc = 0, int only_track = 0, bool multiplex = false);
 
     /**
      * 连接到tcp服务(tcp主动模式)
@@ -81,7 +81,7 @@ protected:
     std::shared_ptr<RtcpHelper> _rtcp_helper;
     std::function<void()> _on_cleanup;
 
-    bool _only_audio = false;
+    int _only_track = 0;
     //用于tcp主动模式
     TcpMode _tcp_mode = NONE;
 };

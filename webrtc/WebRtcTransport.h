@@ -42,12 +42,9 @@ public:
     virtual const std::string& getIdentifier() const = 0;
     virtual const std::string& deleteRandStr() const { static std::string s_null; return s_null; }
     virtual void setIceCandidate(std::vector<SdpAttrCandidate> cands) {}
-    virtual void setLocalIp(const std::string &localIp) {}
+    virtual void setLocalIp(std::string localIp) {}
+    virtual void setPreferredTcp(bool flag) {}
 };
-
-std::string exchangeSdp(const WebRtcInterface &exchanger, const std::string& offer);
-
-void setLocalIp(const WebRtcInterface &exchanger, const std::string &localIp);
 
 class WebRtcException : public WebRtcInterface {
 public:
@@ -88,7 +85,7 @@ public:
      * @param offer offer sdp
      * @return answer sdp
      */
-    std::string getAnswerSdp(const std::string &offer) override;
+    std::string getAnswerSdp(const std::string &offer) override final;
 
     /**
      * 获取对象唯一id
@@ -252,14 +249,16 @@ public:
     void onSendRtp(const RtpPacket::Ptr &rtp, bool flush, bool rtx = false);
 
     void createRtpChannel(const std::string &rid, uint32_t ssrc, MediaTrack &track);
-    void setIceCandidate(std::vector<SdpAttrCandidate> cands) override;
     void removeTuple(RTC::TransportTuple* tuple);
     void safeShutdown(const SockException &ex);
 
-    void setLocalIp(const std::string &localIp) override;
+    void setPreferredTcp(bool flag) override;
+    void setLocalIp(std::string local_ip) override;
+    void setIceCandidate(std::vector<SdpAttrCandidate> cands) override;
+
 protected:
     void OnIceServerSelectedTuple(const RTC::IceServer *iceServer, RTC::TransportTuple *tuple) override;
-    WebRtcTransportImp(const EventPoller::Ptr &poller,bool preferred_tcp = false);
+    WebRtcTransportImp(const EventPoller::Ptr &poller);
     void OnDtlsTransportApplicationDataReceived(const RTC::DtlsTransport *dtlsTransport, const uint8_t *data, size_t len) override;
     void onStartWebRTC() override;
     void onSendSockData(Buffer::Ptr buf, bool flush = true, RTC::TransportTuple *tuple = nullptr) override;
@@ -273,7 +272,7 @@ protected:
     void onCreate() override;
     void onDestory() override;
     void onShutdown(const SockException &ex) override;
-    virtual void onRecvRtp(MediaTrack &track, const std::string &rid, RtpPacket::Ptr rtp) = 0;
+    virtual void onRecvRtp(MediaTrack &track, const std::string &rid, RtpPacket::Ptr rtp) {}
     void updateTicker();
     float getLossRate(TrackType type);
     void onRtcpBye() override;
@@ -289,7 +288,7 @@ private:
     void onCheckAnswer(RtcSession &sdp);
 
 private:
-    bool _preferred_tcp;
+    bool _preferred_tcp = false;
     uint16_t _rtx_seq[2] = {0, 0};
     //用掉的总流量
     uint64_t _bytes_usage = 0;
@@ -310,8 +309,8 @@ private:
     //根据接收rtp的pt获取相关信息
     std::unordered_map<uint8_t/*pt*/, std::unique_ptr<WrappedMediaTrack>> _pt_to_track;
     std::vector<SdpAttrCandidate> _cands;
-    //源访问的hostip
-    std::string _localIp;
+    //http访问时的host ip
+    std::string _local_ip;
 };
 
 class WebRtcTransportManager {
@@ -333,21 +332,20 @@ private:
 class WebRtcArgs : public std::enable_shared_from_this<WebRtcArgs> {
 public:
     virtual ~WebRtcArgs() = default;
-
     virtual variant operator[](const std::string &key) const = 0;
 };
 
+using onCreateWebRtc = std::function<void(const WebRtcInterface &rtc)>;
 class WebRtcPluginManager {
 public:
-    using onCreateRtc = std::function<void(const WebRtcInterface &rtc)>;
-    using Plugin = std::function<void(Session &sender, const WebRtcArgs &args, const onCreateRtc &cb)>;
+    using Plugin = std::function<void(Session &sender, const WebRtcArgs &args, const onCreateWebRtc &cb)>;
     using Listener = std::function<void(Session &sender, const std::string &type, const WebRtcArgs &args, const WebRtcInterface &rtc)>;
 
     static WebRtcPluginManager &Instance();
 
     void registerPlugin(const std::string &type, Plugin cb);
-    void getAnswerSdp(Session &sender, const std::string &type, const WebRtcArgs &args, const onCreateRtc &cb);
     void setListener(Listener cb);
+    void negotiateSdp(Session &sender, const std::string &type, const WebRtcArgs &args, const onCreateWebRtc &cb);
 
 private:
     WebRtcPluginManager() = default;

@@ -141,8 +141,8 @@ if(GIT_FOUND)
 endif()
 
 configure_file(
-  ${CMAKE_CURRENT_SOURCE_DIR}/version.h.ini
-  ${CMAKE_CURRENT_BINARY_DIR}/version.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/ZLMVersion.h.ini
+  ${CMAKE_CURRENT_BINARY_DIR}/ZLMVersion.h
   @ONLY)
 
 message(STATUS "Git version is ${BRANCH_NAME} ${COMMIT_HASH}/${COMMIT_TIME} ${BUILD_TIME}")
@@ -532,3 +532,9 @@ endif ()
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/www" DESTINATION ${EXECUTABLE_OUTPUT_PATH})
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/conf/config.ini" DESTINATION ${EXECUTABLE_OUTPUT_PATH})
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/default.pem" DESTINATION ${EXECUTABLE_OUTPUT_PATH})
+
+# 拷贝VideoStack 无视频流时默认填充的背景图片
+# Copy the default background image used by VideoStack when there is no video stream
+if (ENABLE_FFMPEG AND ENABLE_X264)
+  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/conf/novideo.yuv" DESTINATION ${EXECUTABLE_OUTPUT_PATH})
+endif ()

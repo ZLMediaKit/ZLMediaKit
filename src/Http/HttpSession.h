@@ -44,7 +44,6 @@ public:
     void onRecv(const toolkit::Buffer::Ptr &) override;
     void onError(const toolkit::SockException &err) override;
     void onManager() override;
-    [[deprecated]] static std::string urlDecode(const std::string &str);
     static std::string urlDecodePath(const std::string &str);
     static std::string urlDecodeComponent(const std::string &str);
     void setTimeoutSec(size_t second);
