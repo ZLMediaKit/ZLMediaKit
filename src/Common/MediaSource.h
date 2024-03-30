@@ -299,7 +299,6 @@ public:
     std::string full_url;
     std::string schema;
     std::string host;
-    std::string param_strs;
 };
 
 bool equalMediaTuple(const MediaTuple& a, const MediaTuple& b);
