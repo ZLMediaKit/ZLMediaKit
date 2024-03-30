@@ -389,6 +389,7 @@ void dumpMediaTuple(const MediaTuple &tuple, Json::Value& item) {
     item[VHOST_KEY] = tuple.vhost;
     item["app"] = tuple.app;
     item["stream"] = tuple.stream;
+    item["params"] = tuple.params;
 }
 
 Value makeMediaSourceJson(MediaSource &media){
