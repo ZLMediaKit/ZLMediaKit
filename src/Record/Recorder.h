@@ -22,6 +22,7 @@ struct MediaTuple {
     std::string vhost;
     std::string app;
     std::string stream;
+    std::string params;
     std::string shortUrl() const {
         return vhost + '/' + app + '/' + stream;
     }

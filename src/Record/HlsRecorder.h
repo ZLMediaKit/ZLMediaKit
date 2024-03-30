@@ -34,7 +34,7 @@ public:
     }
 
     void setMediaSource(const MediaTuple& tuple) {
-        _hls->setMediaSource(tuple.vhost, tuple.app, tuple.stream);
+        _hls->setMediaSource(tuple);
     }
 
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener) {

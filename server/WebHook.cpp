@@ -225,7 +225,7 @@ static ArgsType make_json(const MediaInfo &args) {
     ArgsType body;
     body["schema"] = args.schema;
     dumpMediaTuple(args, body);
-    body["params"] = args.param_strs;
+    body["params"] = args.params;
     return body;
 }
 
@@ -286,7 +286,7 @@ static string getPullUrl(const string &origin_fmt, const MediaInfo &info) {
         return "";
     }
     // 告知源站这是来自边沿站的拉流请求，如果未找到流请立即返回拉流失败
-    return string(url) + '?' + kEdgeServerParam + '&' + VHOST_KEY + '=' + info.vhost + '&' + info.param_strs;
+    return string(url) + '?' + kEdgeServerParam + '&' + VHOST_KEY + '=' + info.vhost + '&' + info.params;
 }
 
 static void pullStreamFromOrigin(const vector<string> &urls, size_t index, size_t failed_cnt, const MediaInfo &args, const function<void()> &closePlayer) {
@@ -498,7 +498,7 @@ void installWebHook() {
             return;
         }
 
-        if (start_with(args.param_strs, kEdgeServerParam)) {
+        if (start_with(args.params, kEdgeServerParam)) {
             // 源站收到来自边沿站的溯源请求，流不存在时立即返回拉流失败
             closePlayer();
             return;

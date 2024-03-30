@@ -26,7 +26,7 @@ class MP4Recorder final : public MediaSinkInterface {
 public:
     using Ptr = std::shared_ptr<MP4Recorder>;
 
-    MP4Recorder(const std::string &path, const std::string &vhost, const std::string &app, const std::string &stream_id, size_t max_second);
+    MP4Recorder(const MediaTuple &tuple, const std::string &path, size_t max_second);
     ~MP4Recorder() override;
 
     /**

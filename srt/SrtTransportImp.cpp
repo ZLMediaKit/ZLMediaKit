@@ -63,8 +63,8 @@ void SrtTransportImp::onHandShakeFinished(std::string &streamid, struct sockaddr
         return;
     }
 
-    auto params = Parser::parseArgs(_media_info.param_strs);
-    if (params["m"] == "publish") {
+    auto kv = Parser::parseArgs(_media_info.params);
+    if (kv["m"] == "publish") {
         _is_pusher = true;
         _decoder = DecoderImp::createDecoder(DecoderImp::decoder_ts, this);
         emitOnPublish();
@@ -98,10 +98,10 @@ bool SrtTransportImp::parseStreamid(std::string &streamid) {
             app = tmps[0];
             stream_name = tmps[1];
         } else {
-            if (_media_info.param_strs.empty()) {
-                _media_info.param_strs = it.first + "=" + it.second;
+            if (_media_info.params.empty()) {
+                _media_info.params = it.first + "=" + it.second;
             } else {
-                _media_info.param_strs += "&" + it.first + "=" + it.second;
+                _media_info.params += "&" + it.first + "=" + it.second;
             }
         }
     }
@@ -118,7 +118,7 @@ bool SrtTransportImp::parseStreamid(std::string &streamid) {
     _media_info.app = app;
     _media_info.stream = stream_name;
 
-    TraceL << " mediainfo=" << _media_info.shortUrl() << " params=" << _media_info.param_strs;
+    TraceL << " mediainfo=" << _media_info.shortUrl() << " params=" << _media_info.params;
 
     return true;
 }

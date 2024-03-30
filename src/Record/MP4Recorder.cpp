@@ -22,12 +22,10 @@ using namespace toolkit;
 
 namespace mediakit {
 
-MP4Recorder::MP4Recorder(const string &path, const string &vhost, const string &app, const string &stream_id, size_t max_second) {
+MP4Recorder::MP4Recorder(const MediaTuple &tuple, const string &path, size_t max_second) {
     _folder_path = path;
     /////record 业务逻辑//////
-    _info.app = app;
-    _info.stream = stream_id;
-    _info.vhost = vhost;
+    static_cast<MediaTuple &>(_info) = tuple;
     _info.folder = path;
     GET_CONFIG(uint32_t, s_max_second, Protocol::kMP4MaxSecond);
     _max_second = max_second ? max_second : s_max_second;
