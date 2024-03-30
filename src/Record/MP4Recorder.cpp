@@ -118,7 +118,7 @@ bool MP4Recorder::inputFrame(const Frame::Ptr &frame) {
             //b帧情况下dts时间戳可能回退
             _last_dts = MAX(frame->dts(), _last_dts);
         }
-        auto duration = 5; // 默认至少一帧5ms
+        auto duration = 5u; // 默认至少一帧5ms
         if (frame->dts() > 0 && frame->dts() > _last_dts) {
             duration = MAX(duration, frame->dts() - _last_dts);
         }
