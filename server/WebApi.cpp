@@ -1564,7 +1564,7 @@ void installWebApi() {
     api_regist("/index/api/deleteRecordDirectory", [](API_ARGS_MAP) {
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream", "period");
-        auto tuple = MediaTuple{allArgs["vhost"], allArgs["app"], allArgs["stream"]};
+        auto tuple = MediaTuple{allArgs["vhost"], allArgs["app"], allArgs["stream"], ""};
         auto record_path = Recorder::getRecordPath(Recorder::type_mp4, tuple, allArgs["customized_path"]);
         auto period = allArgs["period"];
         record_path = record_path + period + "/";
@@ -1603,7 +1603,7 @@ void installWebApi() {
     api_regist("/index/api/getMP4RecordFile", [](API_ARGS_MAP){
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream");
-        auto tuple = MediaTuple{allArgs["vhost"], allArgs["app"], allArgs["stream"]};
+        auto tuple = MediaTuple{allArgs["vhost"], allArgs["app"], allArgs["stream"], ""};
         auto record_path = Recorder::getRecordPath(Recorder::type_mp4, tuple, allArgs["customized_path"]);
         auto period = allArgs["period"];
 

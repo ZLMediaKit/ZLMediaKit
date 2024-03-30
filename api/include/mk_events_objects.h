@@ -142,11 +142,11 @@ API_EXPORT void API_CALL mk_media_source_find(const char *schema,
                                               void *user_data,
                                               on_mk_media_source_find_cb cb);
 
-API_EXPORT const mk_media_source API_CALL mk_media_source_find2(const char *schema,
-                                                                const char *vhost,
-                                                                const char *app,
-                                                                const char *stream,
-                                                                int from_mp4);
+API_EXPORT mk_media_source API_CALL mk_media_source_find2(const char *schema,
+                                                          const char *vhost,
+                                                          const char *app,
+                                                          const char *stream,
+                                                          int from_mp4);
 //MediaSource::for_each_media()
 API_EXPORT void API_CALL mk_media_source_for_each(void *user_data, on_mk_media_source_find_cb cb, const char *schema,
                                                   const char *vhost, const char *app, const char *stream);

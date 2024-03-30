@@ -191,7 +191,7 @@ if(UNIX)
   set(COMPILE_OPTIONS_DEFAULT
     "-fPIC"
     "-Wall;-Wextra"
-    "-Wno-unused-function;-Wno-unused-parameter;-Wno-unused-variable"
+    "-Wno-unused-function;-Wno-unused-parameter;-Wno-unused-variable;-Wno-deprecated-declarations"
     "-Wno-error=extra;-Wno-error=missing-field-initializers;-Wno-error=type-limits")
 
   if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")

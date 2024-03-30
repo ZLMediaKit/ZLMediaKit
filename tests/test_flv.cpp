@@ -27,7 +27,7 @@ using namespace mediakit;
 class FlvSplitterImp : public FlvSplitter {
 public:
     FlvSplitterImp() {
-        _src = std::make_shared<RtmpMediaSourceImp>(MediaTuple{DEFAULT_VHOST, "live", "test"});
+        _src = std::make_shared<RtmpMediaSourceImp>(MediaTuple{DEFAULT_VHOST, "live", "test", ""});
     }
     ~FlvSplitterImp()  override = default;
 

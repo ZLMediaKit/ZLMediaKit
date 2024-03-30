@@ -113,7 +113,7 @@ ProtocolOption::ProtocolOption() {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 struct MediaSourceNull : public MediaSource {
-    MediaSourceNull() : MediaSource("schema", MediaTuple{"vhost", "app", "stream"}) {};
+    MediaSourceNull() : MediaSource("schema", MediaTuple{"vhost", "app", "stream", ""}) {};
     int readerCount() override { return 0; }
 };
 
