@@ -182,7 +182,7 @@ API_EXPORT const char* API_CALL mk_media_source_get_vhost(const mk_media_source 
 }
 API_EXPORT const char* API_CALL mk_media_source_get_app(const mk_media_source ctx){
     assert(ctx);
-    MediaSource  *src = (MediaSource *)ctx;
+    MediaSource *src = (MediaSource *)ctx;
     return src->getMediaTuple().app.c_str();
 }
 API_EXPORT const char* API_CALL mk_media_source_get_stream(const mk_media_source ctx){
