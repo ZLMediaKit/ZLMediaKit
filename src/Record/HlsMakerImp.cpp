@@ -195,10 +195,8 @@ std::shared_ptr<FILE> HlsMakerImp::makeFile(const string &file, bool setbuf) {
     return ret;
 }
 
-void HlsMakerImp::setMediaSource(const string &vhost, const string &app, const string &stream_id) {
-    _info.app = app;
-    _info.stream = stream_id;
-    _info.vhost = vhost;
+void HlsMakerImp::setMediaSource(const MediaTuple& tuple) {
+    static_cast<MediaTuple &>(_info) = tuple;
     _media_src = std::make_shared<HlsMediaSource>(isFmp4() ? HLS_FMP4_SCHEMA : HLS_SCHEMA, _info);
 }
 

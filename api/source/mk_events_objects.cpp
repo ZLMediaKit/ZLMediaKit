@@ -130,7 +130,7 @@ API_EXPORT const char* API_CALL mk_parser_get_content(const mk_parser ctx, size_
 API_EXPORT const char* API_CALL mk_media_info_get_params(const mk_media_info ctx){
     assert(ctx);
     MediaInfo *info = (MediaInfo *)ctx;
-    return info->param_strs.c_str();
+    return info->params.c_str();
 }
 
 API_EXPORT const char* API_CALL mk_media_info_get_schema(const mk_media_info ctx){
@@ -278,11 +278,11 @@ API_EXPORT void API_CALL mk_media_source_find(const char *schema,
     cb(user_data, (mk_media_source)src.get());
 }
 
-API_EXPORT const mk_media_source API_CALL mk_media_source_find2(const char *schema,
-                                                                const char *vhost,
-                                                                const char *app,
-                                                                const char *stream,
-                                                                int from_mp4) {
+API_EXPORT mk_media_source API_CALL mk_media_source_find2(const char *schema,
+                                                          const char *vhost,
+                                                          const char *app,
+                                                          const char *stream,
+                                                          int from_mp4) {
     assert(schema && vhost && app && stream);
     auto src = MediaSource::find(schema, vhost, app, stream, from_mp4);
     return (mk_media_source)src.get();

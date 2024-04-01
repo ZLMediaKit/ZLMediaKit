@@ -38,7 +38,7 @@ MP4Reader::MP4Reader(const std::string &vhost, const std::string &app, const std
 
 void MP4Reader::setup(const std::string &vhost, const std::string &app, const std::string &stream_id, const std::string &file_path, const ProtocolOption &option, toolkit::EventPoller::Ptr poller) {
     //读写文件建议放在后台线程
-    auto tuple =  MediaTuple{vhost, app, stream_id};
+    auto tuple =  MediaTuple{vhost, app, stream_id, ""};
     _poller = poller ? std::move(poller) : WorkThreadPool::Instance().getPoller();
     _file_path = file_path;
     if (_file_path.empty()) {

@@ -113,7 +113,7 @@ ProtocolOption::ProtocolOption() {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 struct MediaSourceNull : public MediaSource {
-    MediaSourceNull() : MediaSource("schema", MediaTuple{"vhost", "app", "stream"}) {};
+    MediaSourceNull() : MediaSource("schema", MediaTuple{"vhost", "app", "stream", ""}) {};
     int readerCount() override { return 0; }
 };
 
@@ -583,7 +583,7 @@ void MediaInfo::parse(const std::string &url_in){
     auto url = url_in;
     auto pos = url.find("?");
     if (pos != string::npos) {
-        param_strs = url.substr(pos + 1);
+        params = url.substr(pos + 1);
         url.erase(pos);
     }
 
@@ -616,9 +616,10 @@ void MediaInfo::parse(const std::string &url_in){
         stream = stream_id;
     }
 
-    auto params = Parser::parseArgs(param_strs);
-    if (params.find(VHOST_KEY) != params.end()) {
-        vhost = params[VHOST_KEY];
+    auto kv = Parser::parseArgs(params);
+    auto it = kv.find(VHOST_KEY);
+    if (it != kv.end()) {
+        vhost = it->second;
     }
 
     GET_CONFIG(bool, enableVhost, General::kEnableVhost);
