@@ -182,7 +182,7 @@ API_EXPORT const char* API_CALL mk_media_source_get_vhost(const mk_media_source 
 }
 API_EXPORT const char* API_CALL mk_media_source_get_app(const mk_media_source ctx){
     assert(ctx);
-    MediaSource *src = (MediaSource *)ctx;
+    MediaSource  *src = (MediaSource *)ctx;
     return src->getMediaTuple().app.c_str();
 }
 API_EXPORT const char* API_CALL mk_media_source_get_stream(const mk_media_source ctx){
@@ -226,6 +226,30 @@ API_EXPORT int API_CALL mk_media_source_broadcast_msg(const mk_media_source ctx,
     Buffer::Ptr buffer = std::make_shared<BufferLikeString>(std::string(msg, len));
     any.set(std::move(buffer));
     return src->broadcastMessage(any);
+}
+
+API_EXPORT const char* API_CALL mk_media_source_get_origin_url(const mk_media_source ctx) {
+    assert(ctx);
+    MediaSource *src = (MediaSource *)ctx;
+    return _strdup(src->getOriginUrl().c_str());
+}
+
+API_EXPORT  int API_CALL mk_media_source_get_origin_type(const mk_media_source ctx) {
+    assert(ctx);
+    MediaSource *src = (MediaSource *)ctx;
+    return static_cast<int>(src->getOriginType());
+}
+
+API_EXPORT uint64_t API_CALL mk_media_source_get_create_stamp(const mk_media_source ctx) {
+    assert(ctx);
+    MediaSource *src = (MediaSource *)ctx;
+    return src->getCreateStamp();
+}
+
+API_EXPORT int API_CALL mk_media_source_is_recording(const mk_media_source ctx,int type) {
+    assert(ctx);
+    MediaSource *src = (MediaSource *)ctx;
+    return src->isRecording((Recorder::type)type);
 }
 
 API_EXPORT int API_CALL mk_media_source_close(const mk_media_source ctx,int force){
