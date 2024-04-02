@@ -25,10 +25,6 @@
 using namespace toolkit;
 using namespace mediakit;
 
-#ifndef _WIN32
-#define _strdup strdup
-#endif
-
 ///////////////////////////////////////////RecordInfo/////////////////////////////////////////////
 API_EXPORT uint64_t API_CALL mk_mp4_info_get_start_time(const mk_mp4_info ctx){
     assert(ctx);
