@@ -302,6 +302,8 @@ void RtspUrl::setup(bool is_ssl, const string &url, const string &user, const st
 }
 
 static void inline checkHost(std::string &host) {
+     if (host.size() == 0)
+        return;
     if (host.back() == ']' && host.front() == '[') {
         // ipv6去除方括号
         host.pop_back();
