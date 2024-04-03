@@ -203,7 +203,8 @@ protected:
                     }
                     //分片缓存太大，需要清空
                 }
-
+                if (!_session)
+                    break;
                 //最后一个包
                 if (_payload_cache.empty()) {
                     //这个包是唯一个分片
