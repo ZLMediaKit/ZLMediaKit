@@ -20,25 +20,25 @@ class MP4Demuxer : public TrackSource {
 public:
     using Ptr = std::shared_ptr<MP4Demuxer>;
 
-    ~MP4Demuxer() override;
+    virtual ~MP4Demuxer() override;
 
     /**
      * 打开文件
      * @param file mp4文件路径
      */
-    void openMP4(const std::string &file);
+    virtual void openMP4(const std::string &file);
 
     /**
      * @brief 关闭 mp4 文件
      */
-    void closeMP4();
+    virtual void closeMP4();
 
     /**
      * 移动时间轴至某处
      * @param stamp_ms 预期的时间轴位置，单位毫秒
      * @return 时间轴位置
      */
-    int64_t seekTo(int64_t stamp_ms);
+    virtual int64_t seekTo(int64_t stamp_ms);
 
     /**
      * 读取一帧数据
@@ -46,20 +46,22 @@ public:
      * @param eof 是否文件读取完毕
      * @return 帧数据,可能为空
      */
-    Frame::Ptr readFrame(bool &keyFrame, bool &eof);
+    virtual Frame::Ptr readFrame(bool &keyFrame, bool &eof);
 
     /**
      * 获取所有Track信息
      * @param trackReady 是否要求track为就绪状态
      * @return 所有Track
      */
-    std::vector<Track::Ptr> getTracks(bool trackReady) const override;
+    virtual std::vector<Track::Ptr> getTracks(bool trackReady) const override;
 
     /**
      * 获取文件长度
      * @return 文件长度，单位毫秒
      */
-    uint64_t getDurationMS() const;
+    virtual uint64_t getDurationMS() const;
+
+    virtual void setOnTrack(const std::function<void(Track::Ptr &track)> &callback) { _on_track_callback = callback; }
 
 private:
     int getAllTracks();
@@ -73,6 +75,7 @@ private:
     uint64_t _duration_ms = 0;
     std::unordered_map<int, Track::Ptr> _tracks;
     toolkit::ResourcePool<toolkit::BufferRaw> _buffer_pool;
+    std::function<void(Track::Ptr &track)> _on_track_callback;
 };
 
 

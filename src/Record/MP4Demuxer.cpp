@@ -63,6 +63,8 @@ void MP4Demuxer::onVideoTrack(uint32_t track, uint8_t object, int width, int hei
     }
     video->setIndex(track);
     _tracks.emplace(track, video);
+	if (_on_track_callback)
+        _on_track_callback(video);
     if (extra && bytes) {
         video->setExtraData((uint8_t *)extra, bytes);
     }
@@ -75,6 +77,8 @@ void MP4Demuxer::onAudioTrack(uint32_t track, uint8_t object, int channel_count,
     }
     audio->setIndex(track);
     _tracks.emplace(track, audio);
+	if (_on_track_callback)
+		_on_track_callback(audio);
     if (extra && bytes) {
         audio->setExtraData((uint8_t *)extra, bytes);
     }
@@ -100,7 +104,10 @@ struct Context {
 Frame::Ptr MP4Demuxer::readFrame(bool &keyFrame, bool &eof) {
     keyFrame = false;
     eof = false;
-
+    if (!_mov_reader) {
+        eof = true;
+        return nullptr;
+    }
     static mov_reader_onread2 mov_onalloc = [](void *param, uint32_t track_id, size_t bytes, int64_t pts, int64_t dts, int flags) -> void * {
         Context *ctx = (Context *) param;
         ctx->pts = pts;
