@@ -22,10 +22,10 @@ public:
     static std::string UrlEncodeComponent(const std::string &str); // url参数 utf8编码
     static std::string UrlDecodePath(const std::string &str); //url路径 utf8解码
     static std::string UrlDecodeComponent(const std::string &str); // url参数 utf8解码
-#if defined(_WIN32)
+
     static std::string UTF8ToGB2312(const std::string &str);//utf_8转为gb2312
     static std::string GB2312ToUTF8(const std::string &str); //gb2312 转utf_8
-#endif//defined(_WIN32)
+
 private:
     strCoding(void);
     virtual ~strCoding(void);

@@ -153,23 +153,95 @@ void Gb2312ToUnicode(wchar_t* pOut, const char *gbBuffer)
 {
     MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, gbBuffer, 2, pOut, 1);
 }
+#else
+#include <iconv.h>
+// 将 GB2312 编码的字符串转换为 UTF-8 编码
+char *gb2312_to_utf8(const char *gb2312_string) {
+    size_t in_len = strlen(gb2312_string);
+    size_t out_len = in_len * 4; // UTF-8 最多需要 4 倍空间
+
+    iconv_t cd = iconv_open("UTF-8", "GBK");//GBK 是在 GB2312 的基础上进行扩展的字符集，包含了 GB2312 中的所有字符
+    if (cd == (iconv_t)-1) {
+        perror("iconv_open");
+        return NULL;
+    }
+
+    char *inbuf = (char *)gb2312_string;
+    char *outbuf = (char *)malloc(out_len + 1); // 分配足够的空间来存储转换后的字符串
+    if (outbuf == NULL) {
+        perror("malloc");
+        iconv_close(cd);
+        return NULL;
+    }
+    memset(outbuf, 0, out_len + 1);
+
+    char *inptr = inbuf;
+    char *outptr = outbuf;
+
+    if (iconv(cd, &inptr, &in_len, &outptr, &out_len) == (size_t)-1) {
+        perror("iconv");
+        free(outbuf);
+        iconv_close(cd);
+        return NULL;
+    }
+
+    iconv_close(cd);
+
+    return outbuf;
+}
+
+// 跨平台的 UTF-8 转 GB2312 编码
+char *utf8_to_gb2312(const char *utf8_string) {
+    char *result = NULL;
+    // 非 Windows 平台使用 iconv 函数进行编码转换
+    size_t in_len = strlen(utf8_string);
+    size_t out_len = in_len * 4; // GB2312 最多需要 4 倍空间
+
+    iconv_t cd = iconv_open("GBK", "UTF-8");
+    if (cd == (iconv_t)-1) {
+        perror("iconv_open");
+        return NULL;
+    }
+
+    char *inbuf = (char *)utf8_string;
+    char *outbuf = (char *)malloc(out_len + 1); // 分配足够的空间来存储转换后的字符串
+    if (outbuf == NULL) {
+        perror("malloc");
+        iconv_close(cd);
+        return NULL;
+    }
+    memset(outbuf, 0, out_len + 1);
+
+    char *inptr = inbuf;
+    char *outptr = outbuf;
+
+    if (iconv(cd, &inptr, &in_len, &outptr, &out_len) == (size_t)-1) {
+        perror("iconv");
+        free(outbuf);
+        iconv_close(cd);
+        return NULL;
+    }
+
+    iconv_close(cd);
+
+    result = outbuf;
+    return result;
+}
+#endif//defined(_WIN32)
 
 string strCoding::UTF8ToGB2312(const string &str) {
+#ifdef WIN32
     auto len = str.size();
     auto pText = str.data();
-    char Ctemp[4] = {0};
+    char Ctemp[4] = { 0 };
     char *pOut = new char[len + 1];
     memset(pOut, 0, len + 1);
 
     int i = 0, j = 0;
-    while (i < len)
-    {
-        if (pText[i] >= 0)
-        {
+    while (i < len) {
+        if (pText[i] >= 0) {
             pOut[j++] = pText[i++];
-        }
-        else
-        {
+        } else {
             wchar_t Wtemp;
             UTF8ToUnicode(&Wtemp, pText + i);
             UnicodeToGB2312(Ctemp, Wtemp);
@@ -182,25 +254,31 @@ string strCoding::UTF8ToGB2312(const string &str) {
     string ret = pOut;
     delete[] pOut;
     return ret;
+#else
+    char *gb2312_string = utf8_to_gb2312(str.c_str());
+    if (gb2312_string == NULL) {
+        return "";
+    }
+    string result(gb2312_string);
+    free(gb2312_string);
+    return result;
+#endif
 }
 
 string strCoding::GB2312ToUTF8(const string &str) {
+#ifdef WIN32
     auto len = str.size();
     auto pText = str.data();
     char buf[4] = { 0 };
     auto nLength = len * 3;
-    char* pOut = new char[nLength];
+    char *pOut = new char[nLength];
     memset(pOut, 0, nLength);
     size_t i = 0, j = 0;
-    while (i < len)
-    {
-        //如果是英文直接复制就可以   
-        if (*(pText + i) >= 0)
-        {
+    while (i < len) {
+        // 如果是英文直接复制就可以
+        if (*(pText + i) >= 0) {
             pOut[j++] = pText[i++];
-        }
-        else
-        {
+        } else {
             wchar_t pbuffer;
             Gb2312ToUnicode(&pbuffer, pText + i);
             UnicodeToUTF8(buf, &pbuffer);
@@ -210,11 +288,19 @@ string strCoding::GB2312ToUTF8(const string &str) {
             j += 3;
             i += 2;
         }
-    }   
+    }
     string ret = pOut;
     delete[] pOut;
     return ret;
+#else
+    char *utf8_string = gb2312_to_utf8(str.c_str());
+    if (utf8_string == NULL) {
+        return "";
+    }
+    string result(utf8_string);
+    free(utf8_string);
+    return result;
+#endif
 }
-#endif//defined(_WIN32)
 
 } /* namespace mediakit */
