@@ -426,9 +426,8 @@ void RtspPlayer::sendPause(int type, uint32_t seekMS) {
     // 开启或暂停rtsp
     switch (type) {
         case type_pause: sendRtspRequest("PAUSE", _control_url, {}); break;
-        case type_play:
-            // sendRtspRequest("PLAY", _content_base);
-            // break;
+        case type_play: sendRtspRequest("PLAY", _control_url);
+            break;
         case type_seek:
             sendRtspRequest("PLAY", _control_url, { "Range", StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << seekMS / 1000.0 << "-" });
             break;
@@ -440,7 +439,7 @@ void RtspPlayer::sendPause(int type, uint32_t seekMS) {
 }
 
 void RtspPlayer::pause(bool bPause) {
-    sendPause(bPause ? type_pause : type_seek, getProgressMilliSecond());
+    sendPause(bPause ? type_pause : type_play, getProgressMilliSecond());
 }
 
 void RtspPlayer::speed(float speed) {
