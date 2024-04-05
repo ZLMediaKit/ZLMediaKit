@@ -24,6 +24,10 @@
 #    define API_CALL
 #endif
 
+#ifndef _WIN32
+#define _strdup strdup
+#endif
+
 #if defined(_WIN32) && defined(_MSC_VER)
 #    if !defined(GENERATE_EXPORT)
 #        if defined(MediaKitApi_EXPORTS)

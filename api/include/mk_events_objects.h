@@ -103,6 +103,16 @@ API_EXPORT int API_CALL mk_media_source_get_track_count(const mk_media_source ct
 API_EXPORT mk_track API_CALL mk_media_source_get_track(const mk_media_source ctx, int index);
 // MediaSource::broadcastMessage
 API_EXPORT int API_CALL mk_media_source_broadcast_msg(const mk_media_source ctx, const char *msg, size_t len);
+// MediaSource::getOriginUrl()
+API_EXPORT const char* API_CALL mk_media_source_get_origin_url(const mk_media_source ctx);
+// MediaSource::getOriginType()
+API_EXPORT int API_CALL mk_media_source_get_origin_type(const mk_media_source ctx);
+// MediaSource::getCreateStamp()
+API_EXPORT uint64_t API_CALL mk_media_source_get_create_stamp(const mk_media_source ctx);
+// MediaSource::isRecording()  0:hls,1:MP4
+API_EXPORT int API_CALL mk_media_source_is_recording(const mk_media_source ctx, int type);
+
+
 
 /**
  * 直播源在ZLMediaKit中被称作为MediaSource，
