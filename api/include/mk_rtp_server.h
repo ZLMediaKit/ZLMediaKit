@@ -20,10 +20,11 @@ typedef struct mk_rtp_server_t *mk_rtp_server;
  * 创建GB28181 RTP 服务器
  * @param port 监听端口，0则为随机
  * @param tcp_mode tcp模式(0: 不监听端口 1: 监听端口 2: 主动连接到服务端)
+ * @param app_name 该端口绑定的app名称，为""使用默认配置 rtp
  * @param stream_id 该端口绑定的流id
  * @return
  */
-API_EXPORT mk_rtp_server API_CALL mk_rtp_server_create(uint16_t port, int tcp_mode, const char *stream_id);
+API_EXPORT mk_rtp_server API_CALL mk_rtp_server_create(uint16_t port, int tcp_mode, const char *app_name, const char *stream_id);
 
 /**
  * TCP 主动模式时连接到服务器是否成功的回调

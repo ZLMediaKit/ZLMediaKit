@@ -262,6 +262,7 @@ const string kAudioMtuSize = RTP_FIELD "audioMtuSize";
 const string kRtpMaxSize = RTP_FIELD "rtpMaxSize";
 const string kLowLatency = RTP_FIELD "lowLatency";
 const string kH264StapA = RTP_FIELD "h264_stap_a";
+const string kRtpAppName = RTP_FIELD "rtpAppName";
 
 static onceToken token([]() {
     mINI::Instance()[kVideoMtuSize] = 1400;
@@ -269,6 +270,7 @@ static onceToken token([]() {
     mINI::Instance()[kRtpMaxSize] = 10;
     mINI::Instance()[kLowLatency] = 0;
     mINI::Instance()[kH264StapA] = 1;
+    mINI::Instance()[kRtpAppName] = "rtp";
 });
 } // namespace Rtp
 

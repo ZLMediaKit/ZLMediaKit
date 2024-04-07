@@ -16,9 +16,9 @@ using namespace toolkit;
 #include "Rtp/RtpServer.h"
 using namespace mediakit;
 
-API_EXPORT mk_rtp_server API_CALL mk_rtp_server_create(uint16_t port, int tcp_mode, const char *stream_id) {
+API_EXPORT mk_rtp_server API_CALL mk_rtp_server_create(uint16_t port, int tcp_mode, const char *app_name, const char *stream_id) {
     RtpServer::Ptr *server = new RtpServer::Ptr(new RtpServer);
-    (*server)->start(port, stream_id, (RtpServer::TcpMode)tcp_mode);
+    (*server)->start(port, app_name, stream_id, (RtpServer::TcpMode)tcp_mode);
     return (mk_rtp_server)server;
 }
 

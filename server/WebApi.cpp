@@ -469,14 +469,14 @@ Value makeMediaSourceJson(MediaSource &media){
 }
 
 #if defined(ENABLE_RTPPROXY)
-uint16_t openRtpServer(uint16_t local_port, const string &stream_id, int tcp_mode, const string &local_ip, bool re_use_port, uint32_t ssrc, int only_track, bool multiplex) {
+uint16_t openRtpServer(uint16_t local_port, const string &app_name, const string &stream_id, int tcp_mode, const string &local_ip, bool re_use_port, uint32_t ssrc, int only_track, bool multiplex) {
     if (s_rtp_server.find(stream_id)) {
         //为了防止RtpProcess所有权限混乱的问题，不允许重复添加相同的stream_id
         return 0;
     }
 
     auto server = s_rtp_server.makeWithAction(stream_id, [&](RtpServer::Ptr server) {
-        server->start(local_port, stream_id, (RtpServer::TcpMode)tcp_mode, local_ip.c_str(), re_use_port, ssrc, only_track, multiplex);
+        server->start(local_port, app_name, stream_id, (RtpServer::TcpMode)tcp_mode, local_ip.c_str(), re_use_port, ssrc, only_track, multiplex);
     });
     server->setOnDetach([stream_id]() {
         //设置rtp超时移除事件
@@ -1192,7 +1192,7 @@ void installWebApi() {
         CHECK_SECRET();
         CHECK_ARGS("stream_id");
 
-        auto process = RtpSelector::Instance().getProcess(allArgs["stream_id"], false);
+        auto process = RtpSelector::Instance().getProcess(allArgs["app_name"], allArgs["stream_id"], false);
         if (!process) {
             val["exist"] = false;
             return;
@@ -1204,6 +1204,7 @@ void installWebApi() {
     api_regist("/index/api/openRtpServer",[](API_ARGS_MAP){
         CHECK_SECRET();
         CHECK_ARGS("port", "stream_id");
+        auto app_name = allArgs["app_name"]; // 默认rtp
         auto stream_id = allArgs["stream_id"];
         auto tcp_mode = allArgs["tcp_mode"].as<int>();
         if (allArgs["enable_tcp"].as<int>() && !tcp_mode) {
@@ -1219,7 +1220,8 @@ void installWebApi() {
         if (!allArgs["local_ip"].empty()) {
             local_ip = allArgs["local_ip"];
         }
-        auto port = openRtpServer(allArgs["port"], stream_id, tcp_mode, local_ip, allArgs["re_use_port"].as<bool>(),
+        auto port = openRtpServer(
+            allArgs["port"], app_name, stream_id, tcp_mode, local_ip, allArgs["re_use_port"].as<bool>(),
                                   allArgs["ssrc"].as<uint32_t>(), only_track);
         if (port == 0) {
             throw InvalidArgsException("该stream_id已存在");
@@ -1231,6 +1233,7 @@ void installWebApi() {
       api_regist("/index/api/openRtpServerMultiplex", [](API_ARGS_MAP) {
       CHECK_SECRET();
       CHECK_ARGS("port", "stream_id");
+      auto app_name = allArgs["app_name"];
       auto stream_id = allArgs["stream_id"];
       auto tcp_mode = allArgs["tcp_mode"].as<int>();
       if (allArgs["enable_tcp"].as<int>() && !tcp_mode) {
@@ -1246,7 +1249,7 @@ void installWebApi() {
       if (!allArgs["local_ip"].empty()) {
           local_ip = allArgs["local_ip"];
       }
-      auto port = openRtpServer(allArgs["port"], stream_id, tcp_mode, local_ip, true, 0, only_track,true);
+      auto port = openRtpServer(allArgs["port"], app_name, stream_id, tcp_mode, local_ip, true, 0, only_track, true);
       if (port == 0) {
           throw InvalidArgsException("该stream_id已存在");
       }
@@ -1303,6 +1306,7 @@ void installWebApi() {
             Value obj;
             obj["stream_id"] = pr.first;
             obj["port"] = pr.second->getPort();
+            obj["app_name"] = pr.second->getAppName();
             val["data"].append(obj);
         }
     });
@@ -1411,7 +1415,7 @@ void installWebApi() {
         CHECK_SECRET();
         CHECK_ARGS("stream_id");
         //只是暂停流的检查，流媒体服务器做为流负载服务，收流就转发，RTSP/RTMP有自己暂停协议
-        auto rtp_process = RtpSelector::Instance().getProcess(allArgs["stream_id"], false);
+        auto rtp_process = RtpSelector::Instance().getProcess(allArgs["app"], allArgs["stream_id"], false);
         if (rtp_process) {
             rtp_process->setStopCheckRtp(true);
         } else {
@@ -1422,7 +1426,7 @@ void installWebApi() {
     api_regist("/index/api/resumeRtpCheck", [](API_ARGS_MAP) {
         CHECK_SECRET();
         CHECK_ARGS("stream_id");
-        auto rtp_process = RtpSelector::Instance().getProcess(allArgs["stream_id"], false);
+        auto rtp_process = RtpSelector::Instance().getProcess(allArgs["app"], allArgs["stream_id"], false);
         if (rtp_process) {
             rtp_process->setStopCheckRtp(false);
         } else {
