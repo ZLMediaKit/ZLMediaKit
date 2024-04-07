@@ -21,6 +21,7 @@ using namespace toolkit;
 
 namespace mediakit{
 
+const string RtpSession::kAppName = "app_name";
 const string RtpSession::kStreamID = "stream_id";
 const string RtpSession::kSSRC = "ssrc";
 const string RtpSession::kOnlyTrack = "only_track";
@@ -31,6 +32,7 @@ void RtpSession::attachServer(const Server &server) {
 }
 
 void RtpSession::setParams(mINI &ini) {
+    _app_name = ini[kAppName];
     _stream_id = ini[kStreamID];
     _ssrc = ini[kSSRC];
     _only_track = ini[kOnlyTrack];
@@ -114,7 +116,7 @@ void RtpSession::onRtpPacket(const char *data, size_t len) {
             _stream_id = printSSRC(_ssrc);
         }
         try {
-            _process = RtpSelector::Instance().getProcess(_stream_id, true);
+            _process = RtpSelector::Instance().getProcess(_app_name, _stream_id, true);
         } catch (RtpSelector::ProcessExisted &ex) {
             if (!_is_udp) {
                 // tcp情况下立即断开连接

@@ -43,7 +43,8 @@ public:
      * @param ssrc 指定的ssrc
      * @param multiplex 多路复用
      */
-    void start(uint16_t local_port, const std::string &stream_id = "", TcpMode tcp_mode = PASSIVE,
+    void start(
+        uint16_t local_port, const std::string &app_name = "", const std::string &stream_id = "", TcpMode tcp_mode = PASSIVE,
                const char *local_ip = "::", bool re_use_port = true, uint32_t ssrc = 0, int only_track = 0, bool multiplex = false);
 
     /**
@@ -58,6 +59,16 @@ public:
      * 获取绑定的本地端口
      */
     uint16_t getPort();
+
+    /**
+     * 获取绑定的app名称
+     */
+    std::string getAppName();
+
+    /**
+     * 获取绑定的stream id
+     */
+    std::string getStreamId();
 
     /**
      * 设置RtpProcess onDetach事件回调

@@ -30,8 +30,9 @@ class RtcpHelper: public std::enable_shared_from_this<RtcpHelper> {
 public:
     using Ptr = std::shared_ptr<RtcpHelper>;
 
-    RtcpHelper(Socket::Ptr rtcp_sock, std::string stream_id) {
+    RtcpHelper(Socket::Ptr rtcp_sock, std::string app_name, std::string stream_id) {
         _rtcp_sock = std::move(rtcp_sock);
+        _app_name = app_name;
         _stream_id = std::move(stream_id);
     }
 
@@ -60,7 +61,7 @@ public:
 
     void onRecvRtp(const Socket::Ptr &sock, const Buffer::Ptr &buf, struct sockaddr *addr) {
         if (!_process) {
-            _process = RtpSelector::Instance().getProcess(_stream_id, true);
+            _process = RtpSelector::Instance().getProcess(_app_name, _stream_id, true);
             _process->setOnlyTrack((RtpProcess::OnlyTrack)_only_track);
             _process->setOnDetach(std::move(_on_detach));
             cancelDelayTask();
@@ -96,7 +97,7 @@ public:
         GET_CONFIG(uint64_t, timeoutSec, RtpProxy::kTimeoutSec);
         _delay_task = _rtcp_sock->getPoller()->doDelayTask(timeoutSec * 1000, [weak_self]() {
             if (auto strong_self = weak_self.lock()) {
-                auto process = RtpSelector::Instance().getProcess(strong_self->_stream_id, false);
+                auto process = RtpSelector::Instance().getProcess(strong_self->_app_name, strong_self->_stream_id, false);
                 if (!process && strong_self->_on_detach) {
                     strong_self->_on_detach();
                 }
@@ -118,6 +119,10 @@ public:
             _delay_task = nullptr;
         }
     }
+
+    string getAppName() { return _app_name; }
+
+    string getStreamId() { return _stream_id; }
 
 private:
     void sendRtcp(uint32_t rtp_ssrc, struct sockaddr *addr) {
@@ -150,13 +155,14 @@ private:
     Ticker _ticker;
     Socket::Ptr _rtcp_sock;
     RtpProcess::Ptr _process;
+    std::string _app_name;
     std::string _stream_id;
     function<void()> _on_detach;
     std::shared_ptr<struct sockaddr_storage> _rtcp_addr;
     EventPoller::DelayTask::Ptr _delay_task;
 };
 
-void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_mode, const char *local_ip, bool re_use_port, uint32_t ssrc, int only_track, bool multiplex) {
+void RtpServer::start(uint16_t local_port, const string &app_name, const string &stream_id, TcpMode tcp_mode, const char *local_ip, bool re_use_port, uint32_t ssrc, int only_track, bool multiplex) {
     //创建udp服务器
     Socket::Ptr rtp_socket = Socket::createSocket(nullptr, true);
     Socket::Ptr rtcp_socket = Socket::createSocket(nullptr, true);
@@ -199,7 +205,7 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_
     //增加了多路复用判断，如果多路复用为true，就走else逻辑，同时保留了原来stream_id为空走else逻辑
     if (!stream_id.empty() && !multiplex) {
         //指定了流id，那么一个端口一个流(不管是否包含多个ssrc的多个流，绑定rtp源后，会筛选掉ip端口不匹配的流)
-        helper = std::make_shared<RtcpHelper>(std::move(rtcp_socket), stream_id);
+        helper = std::make_shared<RtcpHelper>(std::move(rtcp_socket), app_name, stream_id);
         helper->startRtcp();
         helper->setRtpServerInfo(local_port, tcp_mode, re_use_port, ssrc, only_track);
         bool bind_peer_addr = false;
@@ -250,6 +256,14 @@ void RtpServer::setOnDetach(function<void()> cb) {
 
 uint16_t RtpServer::getPort() {
     return _udp_server ? _udp_server->getPort() : _rtp_socket->get_local_port();
+}
+
+std::string RtpServer::getAppName() {
+    return _rtcp_helper ? _rtcp_helper->getAppName() : "";
+}
+
+std::string RtpServer::getStreamId() {
+    return _rtcp_helper ? _rtcp_helper->getStreamId() : "";
 }
 
 void RtpServer::connectToServer(const std::string &url, uint16_t port, const function<void(const SockException &ex)> &cb) {

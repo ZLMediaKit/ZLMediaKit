@@ -42,7 +42,7 @@ static bool loadFile(const char *path, const EventPoller::Ptr &poller) {
     memset(&addr, 0, sizeof(addr));
     addr.ss_family = AF_INET;
     auto sock = Socket::createSocket(poller);
-    auto process = RtpSelector::Instance().getProcess("test", true);
+    auto process = RtpSelector::Instance().getProcess("", "test", true);
 
     uint64_t stamp_last = 0;
     auto total_size = std::make_shared<size_t>(0);

@@ -24,7 +24,7 @@ class RtpSelector;
 class RtpProcessHelper : public MediaSourceEvent , public std::enable_shared_from_this<RtpProcessHelper> {
 public:
     using Ptr = std::shared_ptr<RtpProcessHelper>;
-    RtpProcessHelper(const std::string &stream_id, const std::weak_ptr<RtpSelector > &parent);
+    RtpProcessHelper(const std::string &app_name, const std::string &stream_id, const std::weak_ptr<RtpSelector> &parent);
     ~RtpProcessHelper();
     void attachEvent();
     RtpProcess::Ptr & getProcess();
@@ -34,6 +34,7 @@ protected:
     bool close(MediaSource &sender) override;
 
 private:
+    std::string _app_name;
     std::string _stream_id;
     RtpProcess::Ptr _process;
     std::weak_ptr<RtpSelector> _parent;
@@ -57,11 +58,12 @@ public:
 
     /**
      * 获取一个rtp处理器
+     * @param app_name app名称 为""使用默认配置 rtp
      * @param stream_id 流id
      * @param makeNew 不存在时是否新建, 该参数为true时，必须确保之前未创建同名对象
      * @return rtp处理器
      */
-    RtpProcess::Ptr getProcess(const std::string &stream_id, bool makeNew);
+    RtpProcess::Ptr getProcess(const std::string &app_name, const std::string &stream_id, bool makeNew);
 
     /**
      * 删除rtp处理器

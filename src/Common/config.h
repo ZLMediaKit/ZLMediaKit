@@ -330,6 +330,8 @@ extern const std::string kRtpMaxSize;
 extern const std::string kLowLatency;
 //H264 rtp打包模式是否采用stap-a模式(为了在老版本浏览器上兼容webrtc)还是采用Single NAL unit packet per H.264 模式
 extern const std::string kH264StapA;
+// rtp server app名称，默认 rtp
+extern const std::string kRtpAppName;
 } // namespace Rtp
 
 ////////////组播配置///////////
