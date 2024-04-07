@@ -474,6 +474,7 @@ endif()
 ##############################################################################
 
 # for version.h
+update_cached_list(ZLM_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 # for assert.h
