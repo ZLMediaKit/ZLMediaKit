@@ -68,7 +68,7 @@ void on_push_shutdown(void *user_data, int err_code, const char *err_msg) {
 void API_CALL on_regist(void *user_data, mk_media_source sender, int regist) {
     Context *ptr = (Context *)user_data;
     const char *schema = mk_media_source_get_schema(sender);
-    if (strcasestr(ptr->url, schema) != ptr->url) {
+    if (strstr(ptr->url, schema) != ptr->url) {
         // 协议匹配失败
         return;
     }
