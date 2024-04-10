@@ -1315,7 +1315,7 @@ void installWebApi() {
         if (!src) {
             throw ApiRetException("can not find the source stream", API::NotFound);
         }
-        auto type = allArgs["type"].as<int>();
+        auto type = allArgs["type"].empty() ? (int)MediaSourceEvent::SendRtpArgs::kRtpPS : allArgs["type"].as<int>();
         if (!allArgs["use_ps"].empty()) {
             // 兼容之前的use_ps参数
             type = allArgs["use_ps"].as<int>();
@@ -1355,7 +1355,7 @@ void installWebApi() {
         if (!src) {
             throw ApiRetException("can not find the source stream", API::NotFound);
         }
-        auto type = allArgs["type"].as<int>();
+        auto type = allArgs["type"].empty() ? (int)MediaSourceEvent::SendRtpArgs::kRtpPS : allArgs["type"].as<int>();
         if (!allArgs["use_ps"].empty()) {
             // 兼容之前的use_ps参数
             type = allArgs["use_ps"].as<int>();
