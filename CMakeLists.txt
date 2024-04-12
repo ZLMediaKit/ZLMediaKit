@@ -58,7 +58,7 @@ option(ENABLE_WEBRTC "Enable WebRTC" ON)
 option(ENABLE_X264 "Enable x264" OFF)
 option(ENABLE_WEPOLL "Enable wepoll" ON)
 option(ENABLE_VIDEOSTACK "Enable video stack" OFF)
-option(DISABLE_REPORT "Disable report to report.zlmediakit.com" off)
+option(DISABLE_REPORT "Disable report to report.zlmediakit.com" OFF)
 option(USE_SOLUTION_FOLDERS "Enable solution dir supported" ON)
 ##############################################################################
 # 设置socket默认缓冲区大小为256k.如果设置为0则不设置socket的默认缓冲区大小,使用系统内核默认值(设置为0仅对linux有效)
