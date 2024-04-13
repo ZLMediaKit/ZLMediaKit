@@ -52,9 +52,7 @@ char HexStrToBin(const char *str) {
     }
     return (high << 4) | low;
 }
-
-string strCoding::UrlEncodePath(const string &str) {
-    const char *dont_escape = "!#&'*+:=?@/._-$,;~()";
+static string UrlEncodeCommon(const string &str,const char* dont_escape){
     string out;
     size_t len = str.size();
     for (size_t i = 0; i < len; ++i) {
@@ -69,26 +67,7 @@ string strCoding::UrlEncodePath(const string &str) {
     }
     return out;
 }
-
-string strCoding::UrlEncodeComponent(const string &str) {
-    const char *dont_escape = "!'()*-._~";
-    string out;
-    size_t len = str.size();
-    for (size_t i = 0; i < len; ++i) {
-        char ch = str[i];
-        if (isalnum((uint8_t) ch) || strchr(dont_escape, (uint8_t) ch) != NULL) {
-            out.push_back(ch);
-        } else {
-            char buf[4];
-            snprintf(buf, 4, "%%%X%X", (uint8_t) ch >> 4, (uint8_t) ch & 0x0F);
-            out.append(buf);
-        }
-    }
-    return out;
-}
-
-string strCoding::UrlDecodePath(const string &str) {
-    const char *dont_unescape = "#$&+,/:;=?@";
+static string UrlDecodeCommon(const string &str,const char* dont_unescape){
     string output;
     size_t i = 0, len = str.length();
     while (i < len) {
@@ -112,6 +91,36 @@ string strCoding::UrlDecodePath(const string &str) {
         }
     }
     return output;
+}
+
+string strCoding::UrlEncodePath(const string &str) {
+    const char *dont_escape = "!#&'*+:=?@/._-$,;~()";
+    return UrlEncodeCommon(str,dont_escape);
+}
+
+string strCoding::UrlEncodeComponent(const string &str) {
+    const char *dont_escape = "!'()*-._~";
+    return UrlEncodeCommon(str,dont_escape);
+}
+
+std::string strCoding::UrlEncodeUserOrPass(const std::string &str) {
+    // from rfc https://datatracker.ietf.org/doc/html/rfc3986
+    // §2.3 Unreserved characters (mark)
+    //'-', '_', '.', '~'  
+    //  §2.2 Reserved characters (reserved)
+    // '$', '&', '+', ',', '/', ':', ';', '=', '?', '@', 
+    // §3.2.1
+    // The RFC allows ';', ':', '&', '=', '+', '$', and ',' in
+    // userinfo, so we must escape only '@', '/', and '?'.
+    // The parsing of userinfo treats ':' as special so we must escape
+    // that too.
+    const char *dont_escape = "$&+,;=-._~";
+    return UrlEncodeCommon(str,dont_escape);
+}
+
+string strCoding::UrlDecodePath(const string &str) {
+    const char *dont_unescape = "#$&+,/:;=?@";
+    return UrlDecodeCommon(str,dont_unescape);
 }
 
 std::string strCoding::UrlDecodeComponent(const std::string &str) {
@@ -143,6 +152,11 @@ std::string strCoding::UrlDecodeComponent(const std::string &str) {
     return output;
 }
 
+
+std::string strCoding::UrlDecodeUserOrPass(const std::string &str) {
+    const char *dont_unescape = "";
+    return UrlDecodeCommon(str,dont_unescape);
+}
 ///////////////////////////////windows专用///////////////////////////////////
 #if defined(_WIN32)
 void UnicodeToGB2312(char* pOut, wchar_t uData)
