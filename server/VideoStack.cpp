@@ -1,4 +1,4 @@
-﻿#if defined(ENABLE_X264) && defined(ENABLE_FFMPEG)
+﻿#if defined(ENABLE_VIDEOSTACK) && defined(ENABLE_X264) && defined(ENABLE_FFMPEG)
 #include "VideoStack.h"
 #include "Codec/Transcode.h"
 #include "Common/Device.h"
