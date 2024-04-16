@@ -19,7 +19,7 @@
 #include "Common/PacketCache.h"
 #include "Util/RingBuffer.h"
 
-#define RTP_GOP_SIZE 512
+#define RTP_GOP_SIZE 1024
 
 namespace mediakit {
 
