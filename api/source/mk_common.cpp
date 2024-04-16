@@ -304,10 +304,10 @@ API_EXPORT void API_CALL mk_webrtc_get_answer_sdp2(void *user_data, on_user_data
     std::string offer_str = offer;
     std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
     auto args = std::make_shared<WebRtcArgsUrl>(url);
-    WebRtcPluginManager::Instance().getAnswerSdp(*session, type, *args,
-                                                 [offer_str, session, ptr, cb](const WebRtcInterface &exchanger) mutable {
+    WebRtcPluginManager::Instance().negotiateSdp(*session, type, *args, [offer_str, session, ptr, cb](const WebRtcInterface &exchanger) mutable {
+        auto &handler = const_cast<WebRtcInterface &>(exchanger);
         try {
-            auto sdp_answer = exchangeSdp(exchanger, offer_str);
+            auto sdp_answer = handler.getAnswerSdp(offer_str);
             cb(ptr.get(), sdp_answer.data(), nullptr);
         } catch (std::exception &ex) {
             cb(ptr.get(), nullptr, ex.what());

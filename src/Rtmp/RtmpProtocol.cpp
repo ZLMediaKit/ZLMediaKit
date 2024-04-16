@@ -165,14 +165,7 @@ void RtmpProtocol::sendResponse(int type, const string &str) {
 
 void RtmpProtocol::sendInvoke(const string &cmd, const AMFValue &val) {
     AMFEncoder enc;
-    if (val.type() == AMFType::AMF_OBJECT || val.type() == AMFType::AMF_NULL)
-    {
-        enc << cmd << ++_send_req_id << val;
-    }
-    else
-    {
-        enc << cmd << ++_send_req_id << AMFValue() << val;
-    }
+    enc << cmd << ++_send_req_id << val;
     sendRequest(MSG_CMD, enc.data());
 }
 
@@ -632,6 +625,7 @@ const char* RtmpProtocol::handle_rtmp(const char *data, size_t len) {
             case 4:
                 chunk_data.ts_field = load_be24(header->time_stamp);
         }
+
         auto time_stamp = chunk_data.ts_field;
         if (chunk_data.ts_field == 0xFFFFFF) {
             if (len < header_len + offset + 4) {

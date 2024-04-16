@@ -1,4 +1,4 @@
-﻿#if defined(ENABLE_X264) && defined(ENABLE_FFMPEG)
+﻿#if defined(ENABLE_VIDEOSTACK) && defined(ENABLE_X264) && defined(ENABLE_FFMPEG)
 #include "VideoStack.h"
 #include "Codec/Transcode.h"
 #include "Common/Device.h"
@@ -62,15 +62,16 @@ void Channel::addParam(const std::weak_ptr<Param>& p)
 void Channel::onFrame(const mediakit::FFmpegFrame::Ptr& frame)
 {
     std::weak_ptr<Channel> weakSelf = shared_from_this();
-    // toolkit::WorkThreadPool::Instance().getFirstPoller()->async([weakSelf, frame]() {
-    auto self = weakSelf.lock();
-    if (!self) {
-        return;
-    }
-    self->_tmp = self->_sws->inputFrame(frame);
+    _poller = _poller ? _poller : toolkit::WorkThreadPool::Instance().getPoller();
+    _poller->async([weakSelf, frame]() {
+        auto self = weakSelf.lock();
+        if (!self) {
+            return;
+        }
+        self->_tmp = self->_sws->inputFrame(frame);
 
-    self->forEachParam([self](const Param::Ptr& p) { self->fillBuffer(p); });
-    // });
+        self->forEachParam([self](const Param::Ptr& p) { self->fillBuffer(p); });
+    });
 }
 
 void Channel::forEachParam(const std::function<void(const Param::Ptr&)>& func)
@@ -180,7 +181,7 @@ void StackPlayer::play()
                 self->onFrame(frame);
             });
 
-            videoTrack->addDelegate((std::function<bool(const mediakit::Frame::Ptr&)>)[decoder](const mediakit::Frame::Ptr& frame) {
+            videoTrack->addDelegate([decoder](const mediakit::Frame::Ptr& frame) {
                 return decoder->inputFrame(frame, false, true);
             });
         }
@@ -440,6 +441,7 @@ int VideoStackManager::stopVideoStack(const std::string& id)
     auto it = _stackMap.find(id);
     if (it != _stackMap.end()) {
         _stackMap.erase(it);
+        InfoL << "VideoStack stop: " << id;
         return 0;
     }
     return -1;
@@ -467,8 +469,8 @@ Params VideoStackManager::parseParams(const Json::Value& json,
         float gaph = json["gaph"].asFloat(); //水平间距
 
         //单个间距
-        int gaphPix = static_cast<int>(std::round(width * gaph));
-        int gapvPix = static_cast<int>(std::round(height * gapv));
+        int gaphPix = static_cast<int>(round(width * gaph));
+        int gapvPix = static_cast<int>(round(height * gapv));
 
         // 根据间距计算格子宽高
         int gridWidth = cols > 1 ? (width - gaphPix * (cols - 1)) / cols : width;

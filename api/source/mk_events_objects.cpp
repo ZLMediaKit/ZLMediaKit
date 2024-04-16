@@ -17,7 +17,10 @@
 
 #include "Http/HttpClient.h"
 #include "Rtsp/RtspSession.h"
+
+#ifdef ENABLE_WEBRTC
 #include "webrtc/WebRtcTransport.h"
+#endif
 
 using namespace toolkit;
 using namespace mediakit;
@@ -127,7 +130,7 @@ API_EXPORT const char* API_CALL mk_parser_get_content(const mk_parser ctx, size_
 API_EXPORT const char* API_CALL mk_media_info_get_params(const mk_media_info ctx){
     assert(ctx);
     MediaInfo *info = (MediaInfo *)ctx;
-    return info->param_strs.c_str();
+    return info->params.c_str();
 }
 
 API_EXPORT const char* API_CALL mk_media_info_get_schema(const mk_media_info ctx){
@@ -225,6 +228,30 @@ API_EXPORT int API_CALL mk_media_source_broadcast_msg(const mk_media_source ctx,
     return src->broadcastMessage(any);
 }
 
+API_EXPORT const char* API_CALL mk_media_source_get_origin_url(const mk_media_source ctx) {
+    assert(ctx);
+    MediaSource *src = (MediaSource *)ctx;
+    return _strdup(src->getOriginUrl().c_str());
+}
+
+API_EXPORT  int API_CALL mk_media_source_get_origin_type(const mk_media_source ctx) {
+    assert(ctx);
+    MediaSource *src = (MediaSource *)ctx;
+    return static_cast<int>(src->getOriginType());
+}
+
+API_EXPORT uint64_t API_CALL mk_media_source_get_create_stamp(const mk_media_source ctx) {
+    assert(ctx);
+    MediaSource *src = (MediaSource *)ctx;
+    return src->getCreateStamp();
+}
+
+API_EXPORT int API_CALL mk_media_source_is_recording(const mk_media_source ctx,int type) {
+    assert(ctx);
+    MediaSource *src = (MediaSource *)ctx;
+    return src->isRecording((Recorder::type)type);
+}
+
 API_EXPORT int API_CALL mk_media_source_close(const mk_media_source ctx,int force){
     assert(ctx);
     MediaSource *src = (MediaSource *)ctx;
@@ -275,11 +302,11 @@ API_EXPORT void API_CALL mk_media_source_find(const char *schema,
     cb(user_data, (mk_media_source)src.get());
 }
 
-API_EXPORT const mk_media_source API_CALL mk_media_source_find2(const char *schema,
-                                                                const char *vhost,
-                                                                const char *app,
-                                                                const char *stream,
-                                                                int from_mp4) {
+API_EXPORT mk_media_source API_CALL mk_media_source_find2(const char *schema,
+                                                          const char *vhost,
+                                                          const char *app,
+                                                          const char *stream,
+                                                          int from_mp4) {
     assert(schema && vhost && app && stream);
     auto src = MediaSource::find(schema, vhost, app, stream, from_mp4);
     return (mk_media_source)src.get();

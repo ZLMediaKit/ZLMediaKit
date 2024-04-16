@@ -358,6 +358,11 @@ bash build_docker_images.sh
 [sandro-qiang](https://github.com/sandro-qiang)
 [Paul Philippov](https://github.com/themactep)
 [张传峰](https://github.com/zhang-chuanfeng)
+[lidaofu-hub](https://github.com/lidaofu-hub)
+[huangcaichun](https://github.com/huangcaichun)
+[jamesZHANG500](https://github.com/jamesZHANG500)
+[weidelong](https://github.com/wdl1697454803)
+[小强先生](https://github.com/linshangqiang)
 
 同时感谢JetBrains对开源项目的支持，本项目使用CLion开发与调试：
 

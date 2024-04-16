@@ -683,18 +683,6 @@ void HttpSession::sendResponse(int code,
     AsyncSender::onSocketFlushed(data);
 }
 
-string HttpSession::urlDecode(const string &str) {
-    auto ret = strCoding::UrlDecode(str);
-#ifdef _WIN32
-    GET_CONFIG(string, charSet, Http::kCharSet);
-    bool isGb2312 = !strcasecmp(charSet.data(), "gb2312");
-    if (isGb2312) {
-        ret = strCoding::UTF8ToGB2312(ret);
-    }
-#endif // _WIN32
-    return ret;
-}
-
 string HttpSession::urlDecodePath(const string &str) {
     auto ret = strCoding::UrlDecodePath(str);
 #ifdef _WIN32

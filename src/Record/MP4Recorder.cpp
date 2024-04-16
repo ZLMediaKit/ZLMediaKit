@@ -22,12 +22,10 @@ using namespace toolkit;
 
 namespace mediakit {
 
-MP4Recorder::MP4Recorder(const string &path, const string &vhost, const string &app, const string &stream_id, size_t max_second) {
+MP4Recorder::MP4Recorder(const MediaTuple &tuple, const string &path, size_t max_second) {
     _folder_path = path;
     /////record 业务逻辑//////
-    _info.app = app;
-    _info.stream = stream_id;
-    _info.vhost = vhost;
+    static_cast<MediaTuple &>(_info) = tuple;
     _info.folder = path;
     GET_CONFIG(uint32_t, s_max_second, Protocol::kMP4MaxSecond);
     _max_second = max_second ? max_second : s_max_second;
@@ -120,7 +118,7 @@ bool MP4Recorder::inputFrame(const Frame::Ptr &frame) {
             //b帧情况下dts时间戳可能回退
             _last_dts = MAX(frame->dts(), _last_dts);
         }
-        auto duration = 5; // 默认至少一帧5ms
+        auto duration = 5u; // 默认至少一帧5ms
         if (frame->dts() > 0 && frame->dts() > _last_dts) {
             duration = MAX(duration, frame->dts() - _last_dts);
         }
