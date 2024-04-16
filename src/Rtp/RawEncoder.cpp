@@ -31,7 +31,7 @@ RawEncoderImp::~RawEncoderImp() {
 bool RawEncoderImp::addTrack(const Track::Ptr &track) {
     if (_send_audio && track->getTrackType() == TrackType::TrackAudio && !_rtp_encoder) { // audio
         _rtp_encoder = createRtpEncoder(track);
-        auto ring = std::make_shared<RtpRing::RingType>();
+        auto ring = std::make_shared<RtpRing::RingType>(4096);
         ring->setDelegate(std::make_shared<RingDelegateHelper>([this](RtpPacket::Ptr rtp, bool is_key) { onRTP(std::move(rtp), true); }));
         _rtp_encoder->setRtpRing(std::move(ring));
         if (track->getCodecId() == CodecG711A || track->getCodecId() == CodecG711U) {
@@ -45,7 +45,7 @@ bool RawEncoderImp::addTrack(const Track::Ptr &track) {
 
     if (!_send_audio && track->getTrackType() == TrackType::TrackVideo && !_rtp_encoder) {
         _rtp_encoder = createRtpEncoder(track);
-        auto ring = std::make_shared<RtpRing::RingType>();
+        auto ring = std::make_shared<RtpRing::RingType>(4096);
         ring->setDelegate(std::make_shared<RingDelegateHelper>([this](RtpPacket::Ptr rtp, bool is_key) { onRTP(std::move(rtp), is_key); }));
         _rtp_encoder->setRtpRing(std::move(ring));
         return true;
