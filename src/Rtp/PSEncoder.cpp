@@ -31,7 +31,7 @@ PSEncoderImp::PSEncoderImp(uint32_t ssrc, uint8_t payload_type, bool ps_or_ts) :
         }
     }
     _rtp_encoder->setRtpInfo(ssrc, video_mtu, 90000, payload_type);
-    auto ring = std::make_shared<RtpRing::RingType>(4096);
+    auto ring = std::make_shared<RtpRing::RingType>();
     ring->setDelegate(std::make_shared<RingDelegateHelper>([this](RtpPacket::Ptr rtp, bool is_key) { onRTP(std::move(rtp), is_key); }));
     _rtp_encoder->setRtpRing(std::move(ring));
     InfoL << this << " " << ssrc;

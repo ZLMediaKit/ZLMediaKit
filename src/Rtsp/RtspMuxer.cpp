@@ -46,8 +46,8 @@ RtspMuxer::RtspMuxer(const TitleSdp::Ptr &title) {
         _live = title->getDuration() == 0;
         _sdp = title->getSdp();
     }
-    _rtpRing = std::make_shared<RtpRing::RingType>(4096);
-    _rtpInterceptor = std::make_shared<RtpRing::RingType>(4096);
+    _rtpRing = std::make_shared<RtpRing::RingType>();
+    _rtpInterceptor = std::make_shared<RtpRing::RingType>();
     _rtpInterceptor->setDelegate(std::make_shared<RingDelegateHelper>([this](RtpPacket::Ptr in, bool is_key) {
         onRtp(std::move(in), is_key);
     }));
