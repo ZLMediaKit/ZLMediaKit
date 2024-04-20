@@ -66,7 +66,8 @@ void HttpClient::sendRequest(const string &url) {
     _http_persistent = true;
     if (_body && _body->remainSize()) {
         _header.emplace("Content-Length", to_string(_body->remainSize()));
-        _header.emplace("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+        GET_CONFIG(string, charSet, Http::kCharSet);
+        _header.emplace("Content-Type", "application/x-www-form-urlencoded; charset=" + charSet);
     }
 
     bool host_changed = (_last_host != host + ":" + to_string(port)) || (_is_https != is_https);

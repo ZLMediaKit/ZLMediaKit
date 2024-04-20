@@ -204,7 +204,7 @@ elseif(WIN32)
   if (MSVC)
     set(COMPILE_OPTIONS_DEFAULT
             # TODO: /wd4819 应该是不会生效
-            "/wd4566;/wd4819"
+            "/wd4566;/wd4819;/utf-8"
             # warning C4530: C++ exception handler used, but unwind semantics are not enabled.
             "/EHsc")
     # disable Windows logo

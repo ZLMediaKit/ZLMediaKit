@@ -181,12 +181,7 @@ static onceToken token([]() {
     mINI::Instance()[kKeepAliveSecond] = 15;
     mINI::Instance()[kDirMenu] = true;
     mINI::Instance()[kVirtualPath] = "";
-
-#if defined(_WIN32)
-    mINI::Instance()[kCharSet] = "gb2312";
-#else
     mINI::Instance()[kCharSet] = "utf-8";
-#endif
 
     mINI::Instance()[kRootPath] = "./www";
     mINI::Instance()[kNotFound] = StrPrinter << "<html>"

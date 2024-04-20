@@ -208,7 +208,7 @@ static ApiArgsType getAllArgs(const Parser &parser) {
     if (parser["Content-Type"].find("application/x-www-form-urlencoded") == 0) {
         auto contentArgs = parser.parseArgs(parser.content());
         for (auto &pr : contentArgs) {
-            allArgs[pr.first] = HttpSession::urlDecodeComponent(pr.second);
+            allArgs[pr.first] = strCoding::UrlDecodeComponent(pr.second);
         }
     } else if (parser["Content-Type"].find("application/json") == 0) {
         try {
