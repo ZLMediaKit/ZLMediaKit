@@ -28,7 +28,7 @@ void HlsMaker::makeIndexFile(bool include_delay, bool eof) {
     GET_CONFIG(uint32_t, segDelay, Hls::kSegmentDelay);
     GET_CONFIG(uint32_t, segRetain, Hls::kSegmentRetain);
     std::deque<std::tuple<int, std::string>> temp(_seg_dur_list);
-    if (!include_delay) {
+    if (!include_delay && _seg_number) {
         while (temp.size() > _seg_number) {
             temp.pop_front();
         }
