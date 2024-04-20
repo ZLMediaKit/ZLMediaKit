@@ -204,7 +204,8 @@ static unordered_map<string/*ext*/, RtpExtType/*id*/> s_url_to_type = {RTP_EXT_M
 RtpExtType RtpExt::getExtType(const string &url) {
     auto it = s_url_to_type.find(url);
     if (it == s_url_to_type.end()) {
-        throw std::invalid_argument(string("未识别的rtp ext url类型:") + url);
+        WarnL << "unknown rtp ext url type: " << url;
+        return RtpExtType::padding;
     }
     return it->second;
 }
