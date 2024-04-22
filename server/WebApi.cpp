@@ -208,7 +208,7 @@ static ApiArgsType getAllArgs(const Parser &parser) {
     if (parser["Content-Type"].find("application/x-www-form-urlencoded") == 0) {
         auto contentArgs = parser.parseArgs(parser.content());
         for (auto &pr : contentArgs) {
-            allArgs[pr.first] = HttpSession::urlDecodeComponent(pr.second);
+            allArgs[pr.first] = strCoding::UrlDecodeComponent(pr.second);
         }
     } else if (parser["Content-Type"].find("application/json") == 0) {
         try {
@@ -1344,6 +1344,26 @@ void installWebApi() {
                 val["local_port"] = local_port;
                 invoker(200, headerOut, val.toStyledString());
             });
+        });
+    });
+
+    api_regist("/index/api/listRtpSender",[](API_ARGS_MAP_ASYNC){
+        CHECK_SECRET();
+        CHECK_ARGS("vhost", "app", "stream");
+
+        auto src = MediaSource::find(allArgs["vhost"], allArgs["app"], allArgs["stream"]);
+        if (!src) {
+            throw ApiRetException("can not find the source stream", API::NotFound);
+        }
+
+        auto muxer = src->getMuxer();
+        CHECK(muxer, "get muxer from media source failed");
+
+        src->getOwnerPoller()->async([=]() mutable {
+            muxer->forEachRtpSender([&](const std::string &ssrc) mutable {
+                val["data"].append(ssrc);
+            });
+            invoker(200, headerOut, val.toStyledString());
         });
     });
 

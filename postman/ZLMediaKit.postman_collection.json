@@ -2045,6 +2045,47 @@
 			"response": []
 		},
 		{
+			"name": "获取rtp发送列表(listRtpSender)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/listRtpSender?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=live&stream=test",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"listRtpSender"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "live",
+							"description": "应用名，例如 live"
+						},
+						{
+							"key": "stream",
+							"value": "test",
+							"description": "流id，例如 obs"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "获取版本信息(version)",
 			"request": {
 				"method": "GET",
