@@ -222,7 +222,7 @@ bash build_docker_images.sh
  - 请关注微信公众号获取最新消息推送：
  <img src=https://user-images.githubusercontent.com/11495632/232451702-4c50bc72-84d8-4c94-af2b-57290088ba7a.png width=15% />
  
- - 也可以自愿有偿加入知识星球咨询和获取资料：
+ - 也可以自愿有偿加入知识星球咨询、获取资料以及加入微信技术群：
  <img src= https://user-images.githubusercontent.com/11495632/231946329-aa8517b0-3cf5-49cf-8c75-a93ed58cb9d2.png width=30% />
   
 
