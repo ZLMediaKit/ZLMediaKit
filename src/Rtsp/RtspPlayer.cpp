@@ -210,7 +210,8 @@ void RtspPlayer::handleResDESCRIBE(const Parser &parser) {
     if (play_track != TrackInvalid) {
         auto track = sdpParser.getTrack(play_track);
         _sdp_track.emplace_back(track);
-        sdp = track->toString();
+        auto title_track = sdpParser.getTrack(TrackTitle);
+        sdp = (title_track ? title_track->toString() : "") + track->toString();
     } else {
         _sdp_track = sdpParser.getAvailableTrack();
         sdp = sdpParser.toString();
