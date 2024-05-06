@@ -528,7 +528,7 @@ API_EXPORT void API_CALL mk_auth_invoker_clone_release(const mk_auth_invoker ctx
 }
 
 ///////////////////////////////////////////WebRtcTransport/////////////////////////////////////////////
-API_EXPORT void API_CALL mk_rtc_sendDatachannel(const mk_rtc_transport ctx, uint16_t streamId, uint32_t ppid, const char *msg, size_t len) {
+API_EXPORT void API_CALL mk_rtc_send_datachannel(const mk_rtc_transport ctx, uint16_t streamId, uint32_t ppid, const char *msg, size_t len) {
 #ifdef ENABLE_WEBRTC
     assert(ctx && msg);
     WebRtcTransport *transport = (WebRtcTransport *)ctx;
