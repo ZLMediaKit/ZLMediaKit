@@ -363,6 +363,7 @@ bash build_docker_images.sh
 [jamesZHANG500](https://github.com/jamesZHANG500)
 [weidelong](https://github.com/wdl1697454803)
 [小强先生](https://github.com/linshangqiang)
+[李之阳](https://github.com/leo94666)
 
 同时感谢JetBrains对开源项目的支持，本项目使用CLion开发与调试：
 
