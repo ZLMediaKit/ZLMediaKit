@@ -222,7 +222,7 @@ bash build_docker_images.sh
  - 请关注微信公众号获取最新消息推送：
  <img src=https://user-images.githubusercontent.com/11495632/232451702-4c50bc72-84d8-4c94-af2b-57290088ba7a.png width=15% />
  
- - 也可以自愿有偿加入知识星球咨询和获取资料：
+ - 也可以自愿有偿加入知识星球咨询、获取资料以及加入微信技术群：
  <img src= https://user-images.githubusercontent.com/11495632/231946329-aa8517b0-3cf5-49cf-8c75-a93ed58cb9d2.png width=30% />
   
 
@@ -352,6 +352,17 @@ bash build_docker_images.sh
 [zjx94](https://github.com/zjx94)
 [LeiZhi.Mai ](https://github.com/blueskiner)
 [JiaHao](https://github.com/nashiracn)
+[chdahuzi](https://github.com/chdahuzi)
+[snysmtx](https://github.com/snysmtx)
+[SetoKaiba](https://github.com/SetoKaiba)
+[sandro-qiang](https://github.com/sandro-qiang)
+[Paul Philippov](https://github.com/themactep)
+[张传峰](https://github.com/zhang-chuanfeng)
+[lidaofu-hub](https://github.com/lidaofu-hub)
+[huangcaichun](https://github.com/huangcaichun)
+[jamesZHANG500](https://github.com/jamesZHANG500)
+[weidelong](https://github.com/wdl1697454803)
+[小强先生](https://github.com/linshangqiang)
 
 同时感谢JetBrains对开源项目的支持，本项目使用CLion开发与调试：
 

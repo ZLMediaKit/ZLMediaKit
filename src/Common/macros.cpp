@@ -14,7 +14,7 @@
 using namespace toolkit;
 
 #if defined(ENABLE_VERSION)
-#include "version.h"
+#include "ZLMVersion.h"
 #endif
 
 extern "C" {

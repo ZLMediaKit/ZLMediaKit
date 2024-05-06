@@ -21,10 +21,6 @@ using namespace std;
 using namespace toolkit;
 using namespace mediakit;
 
-#ifndef _WIN32
-#define _strdup strdup
-#endif
-
 API_EXPORT void API_CALL mk_free(void *ptr) {
     free(ptr);
 }

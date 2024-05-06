@@ -20,8 +20,7 @@ class WebRtcPusher : public WebRtcTransportImp, public MediaSourceEvent {
 public:
     using Ptr = std::shared_ptr<WebRtcPusher>;
     static Ptr create(const EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src,
-                      const std::shared_ptr<void> &ownership, const MediaInfo &info, const ProtocolOption &option, bool preferred_tcp = false);
-
+                      const std::shared_ptr<void> &ownership, const MediaInfo &info, const ProtocolOption &option);
 
 protected:
     ///////WebRtcTransportImp override///////
@@ -53,7 +52,7 @@ protected:
 
 private:
     WebRtcPusher(const EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src,
-                 const std::shared_ptr<void> &ownership, const MediaInfo &info, const ProtocolOption &option, bool preferred_tcp);
+                 const std::shared_ptr<void> &ownership, const MediaInfo &info, const ProtocolOption &option);
 
 private:
     bool _simulcast = false;

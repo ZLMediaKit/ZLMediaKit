@@ -103,6 +103,16 @@ API_EXPORT int API_CALL mk_media_source_get_track_count(const mk_media_source ct
 API_EXPORT mk_track API_CALL mk_media_source_get_track(const mk_media_source ctx, int index);
 // MediaSource::broadcastMessage
 API_EXPORT int API_CALL mk_media_source_broadcast_msg(const mk_media_source ctx, const char *msg, size_t len);
+// MediaSource::getOriginUrl()
+API_EXPORT const char* API_CALL mk_media_source_get_origin_url(const mk_media_source ctx);
+// MediaSource::getOriginType()
+API_EXPORT int API_CALL mk_media_source_get_origin_type(const mk_media_source ctx);
+// MediaSource::getCreateStamp()
+API_EXPORT uint64_t API_CALL mk_media_source_get_create_stamp(const mk_media_source ctx);
+// MediaSource::isRecording()  0:hls,1:MP4
+API_EXPORT int API_CALL mk_media_source_is_recording(const mk_media_source ctx, int type);
+
+
 
 /**
  * 直播源在ZLMediaKit中被称作为MediaSource，
@@ -142,11 +152,11 @@ API_EXPORT void API_CALL mk_media_source_find(const char *schema,
                                               void *user_data,
                                               on_mk_media_source_find_cb cb);
 
-API_EXPORT const mk_media_source API_CALL mk_media_source_find2(const char *schema,
-                                                                const char *vhost,
-                                                                const char *app,
-                                                                const char *stream,
-                                                                int from_mp4);
+API_EXPORT mk_media_source API_CALL mk_media_source_find2(const char *schema,
+                                                          const char *vhost,
+                                                          const char *app,
+                                                          const char *stream,
+                                                          int from_mp4);
 //MediaSource::for_each_media()
 API_EXPORT void API_CALL mk_media_source_for_each(void *user_data, on_mk_media_source_find_cb cb, const char *schema,
                                                   const char *vhost, const char *app, const char *stream);
@@ -351,6 +361,20 @@ API_EXPORT mk_auth_invoker API_CALL mk_auth_invoker_clone(const mk_auth_invoker 
  * 销毁堆上的克隆对象
  */
 API_EXPORT void API_CALL mk_auth_invoker_clone_release(const mk_auth_invoker ctx);
+
+///////////////////////////////////////////WebRtcTransport/////////////////////////////////////////////
+//WebRtcTransport对象的C映射
+typedef struct mk_rtc_transport_t *mk_rtc_transport;
+
+/**
+ * 发送rtc数据通道
+ * @param ctx 数据通道对象
+ * @param streamId 流id
+ * @param ppid 协议id
+ * @param msg 数据
+ * @param len 数据长度
+ */
+API_EXPORT void API_CALL mk_rtc_send_datachannel(const mk_rtc_transport ctx, uint16_t streamId, uint32_t ppid, const char* msg, size_t len);
 
 #ifdef __cplusplus
 }

@@ -37,6 +37,7 @@ bool MediaSink::addTrack(const Track::Ptr &track_in) {
     }
     // 克隆Track，只拷贝其数据，不拷贝其数据转发关系
     auto track = track_in->clone();
+    CHECK(track, "Clone track failed: ", track_in->getCodecName());
     auto index = track->getIndex();
     if (!_track_map.emplace(index, std::make_pair(track, false)).second) {
         WarnL << "Already add a same track: " << track->getIndex() << ", codec: " << track->getCodecName();
@@ -132,7 +133,7 @@ void MediaSink::checkTrackIfReady() {
         }
 
         GET_CONFIG(uint32_t, kMaxAddTrackMS, General::kWaitAddTrackMS);
-        if (_track_map.size() == 1 && _ticker.elapsedTime() > kMaxAddTrackMS) {
+        if (_track_map.size() == 1 && (_ticker.elapsedTime() > kMaxAddTrackMS || !_enable_audio)) {
             // 如果只有一个Track，那么在该Track添加后，我们最多还等待若干时间(可能后面还会添加Track)
             emitAllTrackReady();
             return;
@@ -186,6 +187,8 @@ void MediaSink::emitAllTrackReady() {
             pr.second.for_each([&](const Frame::Ptr &frame) { MediaSink::inputFrame(frame); });
         }
         _frame_unread.clear();
+    } else {
+        throw toolkit::SockException(toolkit::Err_shutdown, "no vaild track data");
     }
 }
 

@@ -129,8 +129,8 @@ public:
         _fps = fps;
     }
 
-    int getVideoHeight() const override { return _width; }
-    int getVideoWidth() const override { return _height; }
+    int getVideoWidth() const override { return _width; }
+    int getVideoHeight() const override { return _height; }
     float getVideoFps() const override { return _fps; }
     bool ready() const override { return true; }
 

@@ -27,11 +27,8 @@ public:
 
     /**
      * 设置媒体信息
-     * @param vhost 虚拟主机
-     * @param app 应用名
-     * @param stream_id 流id
      */
-    void setMediaSource(const std::string &vhost, const std::string &app, const std::string &stream_id);
+    void setMediaSource(const MediaTuple& tuple);
 
     /**
      * 获取MediaSource
@@ -49,7 +46,7 @@ protected:
     void onDelSegment(uint64_t index) override;
     void onWriteInitSegment(const char *data, size_t len) override;
     void onWriteSegment(const char *data, size_t len) override;
-    void onWriteHls(const std::string &data) override;
+    void onWriteHls(const std::string &data, bool include_delay) override;
     void onFlushLastSegment(uint64_t duration_ms) override;
 
 private:
@@ -60,6 +57,7 @@ private:
     int _buf_size;
     std::string _params;
     std::string _path_hls;
+    std::string _path_hls_delay;
     std::string _path_init;
     std::string _path_prefix;
     RecordInfo _info;

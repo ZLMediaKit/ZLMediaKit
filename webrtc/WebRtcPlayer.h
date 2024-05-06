@@ -19,7 +19,7 @@ namespace mediakit {
 class WebRtcPlayer : public WebRtcTransportImp {
 public:
     using Ptr = std::shared_ptr<WebRtcPlayer>;
-    static Ptr create(const EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src, const MediaInfo &info, bool preferred_tcp = false);
+    static Ptr create(const EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src, const MediaInfo &info);
     MediaInfo getMediaInfo() { return _media_info; }
 
 protected:
@@ -27,10 +27,9 @@ protected:
     void onStartWebRTC() override;
     void onDestory() override;
     void onRtcConfigure(RtcConfigure &configure) const override;
-    void onRecvRtp(MediaTrack &track, const std::string &rid, RtpPacket::Ptr rtp) override {};
 
 private:
-    WebRtcPlayer(const EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src, const MediaInfo &info, bool preferred_tcp);
+    WebRtcPlayer(const EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src, const MediaInfo &info);
 
 private:
     //媒体相关元数据

@@ -352,12 +352,20 @@ public:
     }
 
     void makeSockPair(std::pair<Socket::Ptr, Socket::Ptr> &pair, const string &local_ip, bool re_use_port, bool is_udp) {
-        auto &sock0 = pair.first;
-        auto &sock1 = pair.second;
         auto sock_pair = getPortPair();
         if (!sock_pair) {
             throw runtime_error("none reserved port in pool");
         }
+        makeSockPair_l(sock_pair, pair, local_ip, re_use_port, is_udp);
+
+        // 确保udp和tcp模式都能打开
+        auto new_pair = std::make_pair(Socket::createSocket(), Socket::createSocket());
+        makeSockPair_l(sock_pair, new_pair, local_ip, re_use_port, !is_udp);
+    }
+
+    void makeSockPair_l(const std::shared_ptr<uint16_t> &sock_pair, std::pair<Socket::Ptr, Socket::Ptr> &pair, const string &local_ip, bool re_use_port, bool is_udp) {
+        auto &sock0 = pair.first;
+        auto &sock1 = pair.second;
         if (is_udp) {
             if (!sock0->bindUdpSock(2 * *sock_pair, local_ip.data(), re_use_port)) {
                 // 分配端口失败

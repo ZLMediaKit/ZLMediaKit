@@ -92,10 +92,11 @@ public:
 
     class SendRtpArgs {
     public:
+        enum Type { kRtpRAW = 0, kRtpPS = 1, kRtpTS = 2 };
         // 是否采用udp方式发送rtp
         bool is_udp = true;
-        // rtp采用ps还是es方式
-        bool use_ps = true;
+        // rtp类型
+        Type type = kRtpPS;
         //发送es流时指定是否只发送纯音频流
         bool only_audio = false;
         //tcp被动方式
@@ -134,6 +135,15 @@ public:
 private:
     toolkit::Timer::Ptr _async_close_timer;
 };
+
+
+template <typename MAP, typename KEY, typename TYPE>
+static void getArgsValue(const MAP &allArgs, const KEY &key, TYPE &value) {
+    auto val = ((MAP &)allArgs)[key];
+    if (!val.empty()) {
+        value = (TYPE)val;
+    }
+}
 
 class ProtocolOption {
 public:
@@ -242,15 +252,6 @@ public:
         GET_OPT_VALUE(stream_replace);
         GET_OPT_VALUE(max_track);
     }
-
-private:
-    template <typename MAP, typename KEY, typename TYPE>
-    static void getArgsValue(const MAP &allArgs, const KEY &key, TYPE &value) {
-        auto val = ((MAP &)allArgs)[key];
-        if (!val.empty()) {
-            value = (TYPE)val;
-        }
-    }
 };
 
 //该对象用于拦截感兴趣的MediaSourceEvent事件
@@ -298,7 +299,6 @@ public:
     std::string full_url;
     std::string schema;
     std::string host;
-    std::string param_strs;
 };
 
 bool equalMediaTuple(const MediaTuple& a, const MediaTuple& b);

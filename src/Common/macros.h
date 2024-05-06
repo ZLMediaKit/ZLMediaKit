@@ -36,6 +36,16 @@
 #define CHECK(exp, ...) ::mediakit::Assert_ThrowCpp(!(exp), #exp, __FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__)
 #endif // CHECK
 
+#ifndef CHECK_RET
+#define CHECK_RET(...)                                                         \
+    try {                                                                      \
+        CHECK(__VA_ARGS__);                                                    \
+    } catch (AssertFailedException & ex) {                                     \
+        WarnL << ex.what();                                                    \
+        return;                                                                \
+    }
+#endif
+
 #ifndef MAX
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #endif // MAX
