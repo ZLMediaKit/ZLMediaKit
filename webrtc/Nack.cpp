@@ -9,24 +9,39 @@
  */
 
 #include "Nack.h"
+#include "Common/config.h"
 
 using namespace std;
 using namespace toolkit;
 
 namespace mediakit {
 
-static constexpr uint32_t kMaxNackMS = 5 * 1000;
-static constexpr uint32_t kRtpCacheCheckInterval = 100;
+// RTC配置项目
+namespace Rtc {
+#define RTC_FIELD "rtc."
+// Nack缓存包最早时间间隔
+const string kMaxNackMS = RTC_FIELD "maxNackMS";
+// Nack包检查间隔(包数量)
+const string kRtpCacheCheckInterval = RTC_FIELD "rtpCacheCheckInterval";
+
+static onceToken token([]() {
+    mINI::Instance()[kMaxNackMS] = 5 * 1000;
+    mINI::Instance()[kRtpCacheCheckInterval] = 100;
+});
+
+} // namespace Rtc
 
 void NackList::pushBack(RtpPacket::Ptr rtp) {
     auto seq = rtp->getSeq();
     _nack_cache_seq.emplace_back(seq);
     _nack_cache_pkt.emplace(seq, std::move(rtp));
-    if (++_cache_ms_check < kRtpCacheCheckInterval) {
+    GET_CONFIG(uint32_t, rtpcache_checkinterval, Rtc::kRtpCacheCheckInterval);
+    if (++_cache_ms_check < rtpcache_checkinterval) {
         return;
     }
     _cache_ms_check = 0;
-    while (getCacheMS() >= kMaxNackMS) {
+    GET_CONFIG(uint32_t, maxnackms, Rtc::kMaxNackMS);
+    while (getCacheMS() >= maxnackms) {
         // 需要清除部分nack缓存
         popFront();
     }
