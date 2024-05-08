@@ -42,6 +42,31 @@ API_EXPORT const char* API_CALL mk_mp4_info_get_app(const mk_mp4_info ctx);
 // 虚拟主机
 API_EXPORT const char* API_CALL mk_mp4_info_get_stream(const mk_mp4_info ctx);
 
+///////////////////////////////////////////TSInfo/////////////////////////////////////////////
+// TSInfo对象的C映射
+typedef struct mk_ts_info_t *mk_ts_info;
+// GMT 标准时间，单位秒
+API_EXPORT uint64_t API_CALL mk_ts_info_get_start_time(const mk_ts_info ctx);
+// 录像长度，单位秒
+API_EXPORT float API_CALL mk_ts_info_get_time_len(const mk_ts_info ctx);
+// 文件大小，单位 BYTE
+API_EXPORT size_t API_CALL mk_ts_info_get_file_size(const mk_ts_info ctx);
+// 文件路径
+API_EXPORT const char *API_CALL mk_ts_info_get_file_path(const mk_ts_info ctx);
+// 文件名称
+API_EXPORT const char *API_CALL mk_ts_info_get_file_name(const mk_ts_info ctx);
+// 文件夹路径
+API_EXPORT const char *API_CALL mk_ts_info_get_folder(const mk_ts_info ctx);
+// 播放路径
+API_EXPORT const char *API_CALL mk_ts_info_get_url(const mk_ts_info ctx);
+// 应用名称
+API_EXPORT const char *API_CALL mk_ts_info_get_vhost(const mk_ts_info ctx);
+// 流 ID
+API_EXPORT const char *API_CALL mk_ts_info_get_app(const mk_ts_info ctx);
+// 虚拟主机
+API_EXPORT const char *API_CALL mk_ts_info_get_stream(const mk_ts_info ctx);
+
+
 ///////////////////////////////////////////Parser/////////////////////////////////////////////
 //Parser对象的C映射
 typedef struct mk_parser_t *mk_parser;

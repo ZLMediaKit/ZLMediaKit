@@ -134,6 +134,11 @@ typedef struct {
      */
     void (API_CALL *on_mk_record_mp4)(const mk_mp4_info mp4);
 
+     /**
+     * 录制ts分片文件成功后广播
+     */
+    void(API_CALL *on_mk_record_ts)(const mk_ts_info ts);
+
     /**
      * shell登录鉴权
      */

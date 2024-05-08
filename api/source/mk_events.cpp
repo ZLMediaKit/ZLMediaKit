@@ -46,6 +46,12 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
             }
         });
 
+        NoticeCenter::Instance().addListener(&s_tag, Broadcast::kBroadcastRecordTs, [](BroadcastRecordTsArgs) {
+            if (s_events.on_mk_record_ts) {
+                s_events.on_mk_record_ts((mk_ts_info)&info);
+            }
+        });
+
         NoticeCenter::Instance().addListener(&s_tag,Broadcast::kBroadcastHttpRequest,[](BroadcastHttpRequestArgs){
             if(s_events.on_mk_http_request){
                 int consumed_int = consumed;
