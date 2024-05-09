@@ -289,6 +289,8 @@ static inline void addHttpListener(){
             it->second(parser, invoker, sender);
         } catch (ApiRetException &ex) {
             responseApi(ex.code(), ex.what(), invoker);
+            auto helper = static_cast<SocketHelper &>(sender).shared_from_this();
+            helper->getPoller()->async([helper, ex]() { helper->shutdown(SockException(Err_shutdown, ex.what())); }, false);
         }
 #ifdef ENABLE_MYSQL
         catch(SqlException &ex){
