@@ -132,12 +132,12 @@ typedef struct {
     /**
      * 录制mp4分片文件成功后广播
      */
-    void (API_CALL *on_mk_record_mp4)(const mk_mp4_info mp4);
+    void(API_CALL *on_mk_record_mp4)(const mk_record_info mp4);
 
      /**
      * 录制ts分片文件成功后广播
      */
-    void(API_CALL *on_mk_record_ts)(const mk_ts_info ts);
+    void(API_CALL *on_mk_record_ts)(const mk_record_info ts);
 
     /**
      * shell登录鉴权
