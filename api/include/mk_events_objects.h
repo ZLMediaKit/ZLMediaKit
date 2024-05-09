@@ -42,6 +42,18 @@ API_EXPORT const char *API_CALL mk_record_info_get_app(const mk_record_info ctx)
 // 虚拟主机
 API_EXPORT const char *API_CALL mk_record_info_get_stream(const mk_record_info ctx);
 
+//// 下面宏保障用户代码兼容性, 二进制abi不兼容，用户需要重新编译链接 /////
+#define mk_mp4_info mk_record_info
+#define mk_mp4_info_get_start_time mk_record_info_get_start_time
+#define mk_mp4_info_get_time_len mk_record_info_get_time_len
+#define mk_mp4_info_get_file_size mk_record_info_get_file_size
+#define mk_mp4_info_get_file_path mk_record_info_get_file_path
+#define mk_mp4_info_get_file_name mk_record_info_get_file_name
+#define mk_mp4_info_get_folder mk_record_info_get_folder
+#define mk_mp4_info_get_url mk_record_info_get_url
+#define mk_mp4_info_get_vhost mk_record_info_get_vhost
+#define mk_mp4_info_get_app mk_record_info_get_app
+#define mk_mp4_info_get_stream mk_record_info_get_stream
 
 ///////////////////////////////////////////Parser/////////////////////////////////////////////
 //Parser对象的C映射
