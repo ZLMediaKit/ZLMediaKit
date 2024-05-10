@@ -387,7 +387,7 @@ void API_CALL on_mk_rtsp_auth(const mk_media_info url_info,
 /**
  * 录制mp4分片文件成功后广播
  */
-void API_CALL on_mk_record_mp4(const mk_mp4_info mp4) {
+void API_CALL on_mk_record_mp4(const mk_record_info mp4) {
     log_printf(LOG_LEV,
                "\nstart_time: %d\n"
                "time_len: %d\n"
@@ -399,16 +399,16 @@ void API_CALL on_mk_record_mp4(const mk_mp4_info mp4) {
                "vhost: %s\n"
                "app: %s\n"
                "stream: %s\n",
-               mk_mp4_info_get_start_time(mp4),
-               mk_mp4_info_get_time_len(mp4),
-               mk_mp4_info_get_file_size(mp4),
-               mk_mp4_info_get_file_path(mp4),
-               mk_mp4_info_get_file_name(mp4),
-               mk_mp4_info_get_folder(mp4),
-               mk_mp4_info_get_url(mp4),
-               mk_mp4_info_get_vhost(mp4),
-               mk_mp4_info_get_app(mp4),
-               mk_mp4_info_get_stream(mp4));
+               mk_record_info_get_start_time(mp4),
+               mk_record_info_get_time_len(mp4),
+               mk_record_info_get_file_size(mp4),
+               mk_record_info_get_file_path(mp4),
+               mk_record_info_get_file_name(mp4),
+               mk_record_info_get_folder(mp4),
+               mk_record_info_get_url(mp4),
+               mk_record_info_get_vhost(mp4),
+               mk_record_info_get_app(mp4),
+               mk_record_info_get_stream(mp4));
 }
 
 /**
