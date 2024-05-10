@@ -18,29 +18,42 @@
 extern "C" {
 #endif
 
-///////////////////////////////////////////MP4Info/////////////////////////////////////////////
-//MP4Info对象的C映射
-typedef struct mk_mp4_info_t *mk_mp4_info;
+///////////////////////////////////////////RecordInfo/////////////////////////////////////////////
+//RecordInfo对象的C映射
+typedef struct mk_record_info_t *mk_record_info;
 // GMT 标准时间，单位秒
-API_EXPORT uint64_t API_CALL mk_mp4_info_get_start_time(const mk_mp4_info ctx);
+API_EXPORT uint64_t API_CALL mk_record_info_get_start_time(const mk_record_info ctx);
 // 录像长度，单位秒
-API_EXPORT float API_CALL mk_mp4_info_get_time_len(const mk_mp4_info ctx);
+API_EXPORT float API_CALL mk_record_info_get_time_len(const mk_record_info ctx);
 // 文件大小，单位 BYTE
-API_EXPORT size_t API_CALL mk_mp4_info_get_file_size(const mk_mp4_info ctx);
+API_EXPORT size_t API_CALL mk_record_info_get_file_size(const mk_record_info ctx);
 // 文件路径
-API_EXPORT const char* API_CALL mk_mp4_info_get_file_path(const mk_mp4_info ctx);
+API_EXPORT const char *API_CALL mk_record_info_get_file_path(const mk_record_info ctx);
 // 文件名称
-API_EXPORT const char* API_CALL mk_mp4_info_get_file_name(const mk_mp4_info ctx);
+API_EXPORT const char *API_CALL mk_record_info_get_file_name(const mk_record_info ctx);
 // 文件夹路径
-API_EXPORT const char* API_CALL mk_mp4_info_get_folder(const mk_mp4_info ctx);
+API_EXPORT const char *API_CALL mk_record_info_get_folder(const mk_record_info ctx);
 // 播放路径
-API_EXPORT const char* API_CALL mk_mp4_info_get_url(const mk_mp4_info ctx);
+API_EXPORT const char *API_CALL mk_record_info_get_url(const mk_record_info ctx);
 // 应用名称
-API_EXPORT const char* API_CALL mk_mp4_info_get_vhost(const mk_mp4_info ctx);
+API_EXPORT const char *API_CALL mk_record_info_get_vhost(const mk_record_info ctx);
 // 流 ID
-API_EXPORT const char* API_CALL mk_mp4_info_get_app(const mk_mp4_info ctx);
+API_EXPORT const char *API_CALL mk_record_info_get_app(const mk_record_info ctx);
 // 虚拟主机
-API_EXPORT const char* API_CALL mk_mp4_info_get_stream(const mk_mp4_info ctx);
+API_EXPORT const char *API_CALL mk_record_info_get_stream(const mk_record_info ctx);
+
+//// 下面宏保障用户代码兼容性, 二进制abi不兼容，用户需要重新编译链接 /////
+#define mk_mp4_info mk_record_info
+#define mk_mp4_info_get_start_time mk_record_info_get_start_time
+#define mk_mp4_info_get_time_len mk_record_info_get_time_len
+#define mk_mp4_info_get_file_size mk_record_info_get_file_size
+#define mk_mp4_info_get_file_path mk_record_info_get_file_path
+#define mk_mp4_info_get_file_name mk_record_info_get_file_name
+#define mk_mp4_info_get_folder mk_record_info_get_folder
+#define mk_mp4_info_get_url mk_record_info_get_url
+#define mk_mp4_info_get_vhost mk_record_info_get_vhost
+#define mk_mp4_info_get_app mk_record_info_get_app
+#define mk_mp4_info_get_stream mk_record_info_get_stream
 
 ///////////////////////////////////////////Parser/////////////////////////////////////////////
 //Parser对象的C映射
