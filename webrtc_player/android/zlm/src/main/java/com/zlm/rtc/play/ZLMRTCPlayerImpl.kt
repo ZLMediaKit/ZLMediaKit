@@ -24,15 +24,21 @@ class ZLMRTCPlayerImpl : ZLMRTCPlayer(), PeerConnectionClient.PeerConnectionEven
 
     private var context: Context? = null
 
+    private var surfaceViewRenderer: SurfaceViewRenderer? = null
+
+    private val eglBase = EglBase.create()
+
     private val peerConnectionClient: PeerConnectionClient? by lazy {
+
+
         PeerConnectionClient(
-            context, EglBase.create(),
+            context, eglBase,
             PeerConnectionClient.PeerConnectionParameters(
+                false,
                 true,
                 false,
-                false,
-                1080,
-                960,
+                1280,
+                720,
                 0,
                 0,
                 "VP8",
@@ -78,7 +84,7 @@ class ZLMRTCPlayerImpl : ZLMRTCPlayer(), PeerConnectionClient.PeerConnectionEven
 
         // Front facing camera not found, try something else
         for (deviceName in deviceNames) {
-            if (!enumerator.isFrontFacing(deviceName)) {
+            if (enumerator.isFrontFacing(deviceName)) {
                 val videoCapturer: VideoCapturer? = enumerator.createCapturer(deviceName, null)
                 if (videoCapturer != null) {
                     return videoCapturer
@@ -98,12 +104,15 @@ class ZLMRTCPlayerImpl : ZLMRTCPlayer(), PeerConnectionClient.PeerConnectionEven
 
         return null
     }
+
     override fun bind(context: Context, surface: SurfaceViewRenderer, localPreview: Boolean) {
         this.context = context
-        peerConnectionClient?.setAudioEnabled(true)
+        this.surfaceViewRenderer = surface
+        this.surfaceViewRenderer?.init(eglBase.eglBaseContext,null)
+        this.peerConnectionClient?.setAudioEnabled(true)
         peerConnectionClient?.createPeerConnectionFactory(PeerConnectionFactory.Options())
-        peerConnectionClient?.createPeerConnection(createVideoCapture(context), BigInteger.ZERO)
-        peerConnectionClient?.createOffer((BigInteger.ZERO))
+        peerConnectionClient?.createPeerConnection(createVideoCapture(context), BigInteger.ONE)
+        peerConnectionClient?.createOffer((BigInteger.ONE))
 
 
     }
@@ -157,7 +166,10 @@ class ZLMRTCPlayerImpl : ZLMRTCPlayer(), PeerConnectionClient.PeerConnectionEven
         if (code == 0) {
             logger("handleId: " + doPost)
             val sdp = result.getString("sdp")
-            peerConnectionClient?.setRemoteDescription(handleId,SessionDescription(SessionDescription.Type.ANSWER,sdp))
+            peerConnectionClient?.setRemoteDescription(
+                handleId,
+                SessionDescription(SessionDescription.Type.ANSWER, sdp)
+            )
         } else {
             val msg = result.getString("msg")
             logger("handleId: " + msg)
@@ -199,10 +211,13 @@ class ZLMRTCPlayerImpl : ZLMRTCPlayer(), PeerConnectionClient.PeerConnectionEven
     }
 
     override fun onLocalRender(handleId: BigInteger?) {
-
+        logger("onLocalRender: " + handleId)
+        //peerConnectionClient?.setVideoRender(handleId, surfaceViewRenderer)
     }
 
     override fun onRemoteRender(handleId: BigInteger?) {
+        logger("onRemoteRender: " + handleId)
+        peerConnectionClient?.setVideoRender(handleId, surfaceViewRenderer)
 
     }
 
