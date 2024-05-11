@@ -8,6 +8,11 @@ class NativeLib {
      */
     external fun stringFromJNI(): String
 
+    external fun exchangeSessionDescription(description:String): String
+
+    external fun makeUrl(app:String,streamId:String): String
+
+
     companion object {
         // Used to load the 'rtc' library on application startup.
         init {

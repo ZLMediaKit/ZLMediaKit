@@ -28,12 +28,13 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.AndroidWebRTC"
+        tools:overrideLibrary="com.zlm.rtc"
         android:usesCleartextTraffic="true"
-
-
+        android:name=".App"
         tools:targetApi="31">
         <activity
             android:name=".MainActivity"
+            android:screenOrientation="portrait"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -43,7 +44,8 @@
         </activity>
         <activity android:name=".PlayDemoActivity"
             android:screenOrientation="portrait"/>
-        <activity android:name=".PlayerDemoActivity" />
+        <activity android:name=".PlayerDemoActivity"
+            android:screenOrientation="portrait"/>
     </application>
 
 </manifest>

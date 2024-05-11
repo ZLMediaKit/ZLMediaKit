@@ -10,10 +10,12 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+
     }
 
     fun toPlayActivity(view: View) {
-        startActivity(Intent(this, PlayDemoActivity::class.java))
+        startActivity(Intent(this, PlayerDemoActivity::class.java))
     }
 
     fun toPushActivity(view: View) {

@@ -14,6 +14,9 @@ abstract class ZLMRTCPlayer {
     }
 
 
+
+
+
     constructor()
 
     public abstract fun bind(context: Context,surface: SurfaceViewRenderer, localPreview:Boolean)

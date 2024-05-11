@@ -14,7 +14,7 @@ project("rtc")
 
 
 add_library(ZLToolKit IMPORTED STATIC)
-set_target_properties(tools PROPERTIES
+set_target_properties(ZLToolKit PROPERTIES
         IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/../../../libs/${CMAKE_ANDROID_ARCH_ABI}/libZLToolKit.a"
         INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/include"
         )
