@@ -417,6 +417,9 @@ extern const std::string kNetAdapter;
 // 设置rtp传输类型，可选项有0(tcp，默认)、1(udp)、2(组播)
 // 设置方法:player[PlayerBase::kRtpType] = 0/1/2;
 extern const std::string kRtpType;
+// rtsp播放器发送信令心跳还是rtcp心跳，可选项有0(同时发)、1(rtcp心跳)、2(信令心跳)
+// 设置方法:player[PlayerBase::kRtspBeatType] = 0/1/2;
+extern const std::string kRtspBeatType;
 // rtsp认证用户名
 extern const std::string kRtspUser;
 // rtsp认证用用户密码，可以是明文也可以是md5,md5密码生成方式 md5(username:realm:password)
