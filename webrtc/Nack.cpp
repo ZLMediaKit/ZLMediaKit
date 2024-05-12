@@ -19,17 +19,17 @@ namespace mediakit {
 // RTC配置项目
 namespace Rtc {
 #define RTC_FIELD "rtc."
-//~ 发送端
+//~ nack接收端
 // Nack缓存包最早时间间隔
 const string kMaxNackMS = RTC_FIELD "maxNackMS";
 // Nack包检查间隔(包数量)
 const string kRtpCacheCheckInterval = RTC_FIELD "rtpCacheCheckInterval";
-//~ 接收端
+//~ nack发送端
 //最大保留的rtp丢包状态个数
 const string kNackMaxSize = RTC_FIELD "nackMaxSize";
 // rtp丢包状态最长保留时间
 const string kNackMaxMS = RTC_FIELD "nackMaxMS";
-// nack最多请求重传10次
+// nack最多请求重传次数
 const string kNackMaxCount = RTC_FIELD "nackMaxCount";
 // nack重传频率，rtt的倍数
 const string kNackIntervalRatio = RTC_FIELD "nackIntervalRatio";
