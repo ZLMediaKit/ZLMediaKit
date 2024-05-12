@@ -41,18 +41,6 @@ class NackContext {
 public:
     using Ptr = std::shared_ptr<NackContext>;
     using onNack = std::function<void(const FCI_NACK &nack)>;
-    //最大保留的rtp丢包状态个数
-    static constexpr auto kNackMaxSize = 2048;
-    // rtp丢包状态最长保留时间
-    static constexpr auto kNackMaxMS = 3 * 1000;
-    // nack最多请求重传10次
-    static constexpr auto kNackMaxCount = 15;
-    // nack重传频率，rtt的倍数
-    static constexpr auto kNackIntervalRatio = 1.0f;
-    // nack包中rtp个数，减小此值可以让nack包响应更灵敏
-    static constexpr auto kNackRtpSize = 8;
-
-    static_assert(kNackRtpSize >=0 && kNackRtpSize <= FCI_NACK::kBitSize, "NackContext::kNackRtpSize must between 0 and 16");
 
     NackContext();
 
