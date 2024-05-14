@@ -39,11 +39,11 @@ class ZLMRTCPlayerImpl : ZLMRTCPlayer(), PeerConnectionClient.PeerConnectionEven
                 false,
                 1280,
                 720,
+                15,
                 0,
-                0,
-                "VP8",
+                "H264",
                 true,
-                false,
+                true,
                 0,
                 "OPUS",
                 false,
@@ -133,6 +133,12 @@ class ZLMRTCPlayerImpl : ZLMRTCPlayer(), PeerConnectionClient.PeerConnectionEven
     }
 
     override fun pause() {
+
+    }
+
+    override fun destroy() {
+
+        peerConnectionClient?.close()
 
     }
 

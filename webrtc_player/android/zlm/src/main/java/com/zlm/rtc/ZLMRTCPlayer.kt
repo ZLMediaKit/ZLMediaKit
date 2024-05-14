@@ -34,6 +34,10 @@ abstract class ZLMRTCPlayer {
 
     public abstract fun pause()
 
+
+    public abstract fun destroy()
+
+
     public abstract fun resume()
 
     public abstract fun capture(listener: (bitmap: Bitmap) -> Unit)

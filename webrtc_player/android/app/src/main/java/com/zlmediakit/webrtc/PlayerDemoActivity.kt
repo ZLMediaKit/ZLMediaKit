@@ -17,8 +17,14 @@ class PlayerDemoActivity:AppCompatActivity() {
 
 
         Handler().postDelayed({
-           ZLMRTCPlayer.shareInstance().play("live","test")
+           ZLMRTCPlayer.shareInstance().play("live","li")
         },1000)
 
+    }
+
+
+    override fun onDestroy() {
+        super.onDestroy()
+        ZLMRTCPlayer.shareInstance().destroy()
     }
 }

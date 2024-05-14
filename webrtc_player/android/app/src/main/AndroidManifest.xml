@@ -30,6 +30,7 @@
         android:theme="@style/Theme.AndroidWebRTC"
         tools:overrideLibrary="com.zlm.rtc"
         android:usesCleartextTraffic="true"
+        android:hardwareAccelerated="true"
         android:name=".App"
         tools:targetApi="31">
         <activity
