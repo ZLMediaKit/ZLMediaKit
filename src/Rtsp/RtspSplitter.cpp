@@ -10,8 +10,9 @@
 
 #include <cstdlib>
 #include "RtspSplitter.h"
-#include "Util/logger.h"
 #include "Util/util.h"
+#include "Util/logger.h"
+#include "Common/macros.h"
 
 using namespace std;
 using namespace toolkit;
@@ -64,7 +65,18 @@ ssize_t RtspSplitter::onRecvHeader(const char *data, size_t len) {
     if (len == 4 && !memcmp(data, "\r\n\r\n", 4)) {
         return 0;
     }
-    _parser.parse(data, len);
+    try {
+        _parser.parse(data, len);
+    } catch (mediakit::AssertFailedException &ex){
+        if (!_enableRecvRtp) {
+            // 还在握手中，直接中断握手
+            throw;
+        }
+        // 握手已经结束，如果rtsp server存在发送缓存溢出的bug，那么rtsp信令可能跟rtp混在一起
+        // 这种情况下，rtsp信令解析异常不中断链接，只丢弃这个包
+        WarnL << ex.what();
+        return 0;
+    }
     auto ret = getContentLength(_parser);
     if (ret == 0) {
         onWholeRtspPacket(_parser);
