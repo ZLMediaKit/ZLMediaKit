@@ -1590,12 +1590,14 @@ void installWebApi() {
         auto record_path = Recorder::getRecordPath(Recorder::type_mp4, tuple, allArgs["customized_path"]);
         auto period = allArgs["period"];
         record_path = record_path + period + "/";
+
+        bool recording = false;
         auto name = allArgs["name"];
         if (!name.empty()) {
+            // 删除指定文件
             record_path += name;
-        }
-        bool recording = false;
-        {
+        } else {
+            // 删除文件夹，先判断该流是否正在录制中
             auto src = MediaSource::find(allArgs["vhost"], allArgs["app"], allArgs["stream"]);
             if (src && src->isRecording(Recorder::type_mp4)) {
                 recording = true;
