@@ -1,4 +1,4 @@
-# MIT License
+﻿# MIT License
 #
 # Copyright (c) 2016-2022 The ZLMediaKit project authors. All Rights Reserved.
 #
@@ -201,8 +201,10 @@ if(UNIX)
     set(COMPILE_OPTIONS_DEFAULT ${COMPILE_OPTIONS_DEFAULT} "-g0")
   endif()
 elseif(WIN32)
-  if (MSVC)
-    set(COMPILE_OPTIONS_DEFAULT
+  if (MSVC)            
+    add_compile_options("/utf-8")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:__cplusplus")	
+	set(COMPILE_OPTIONS_DEFAULT
             # TODO: /wd4819 应该是不会生效
             "/wd4566;/wd4819;/utf-8"
             # warning C4530: C++ exception handler used, but unwind semantics are not enabled.
