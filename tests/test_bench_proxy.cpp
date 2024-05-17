@@ -136,7 +136,7 @@ int main(int argc, char *argv[]) {
         option.enable_fmp4 = false;
         option.enable_hls = false;
         option.enable_mp4 = false;
-		option.enable_hls_fmp4 = false;
+	option.enable_hls_fmp4 = false;
 		
         for (auto i = 0; i < proxy_count; ++i) {
             auto stream = to_string(i);
