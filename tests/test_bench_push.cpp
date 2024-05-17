@@ -145,8 +145,8 @@ int main(int argc, char *argv[]) {
     ProtocolOption option;
     option.enable_hls = false;
     option.enable_mp4 = false;
-	option.enable_fmp4 = false;
-	option.enable_hls_fmp4 = false;
+    option.enable_fmp4 = false;
+    option.enable_hls_fmp4 = false;
 
     //添加拉流代理
     auto proxy = std::make_shared<PlayerProxy>(DEFAULT_VHOST, "app", "test", option);
