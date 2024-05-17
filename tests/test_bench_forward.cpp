@@ -222,7 +222,7 @@ int main(int argc, char *argv[]) {
         option.enable_fmp4 = false;
         option.enable_hls = false;
         option.enable_mp4 = false;
-		option.enable_hls_fmp4 = false;
+	option.enable_hls_fmp4 = false;
 		
         option.modify_stamp = (int)ProtocolOption::kModifyStampRelative;
         //添加拉流代理	
