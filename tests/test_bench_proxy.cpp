@@ -133,6 +133,7 @@ int main(int argc, char *argv[]) {
 
         map<string, PlayerProxy::Ptr> proxyMap;
         ProtocolOption option;
+        option.enable_fmp4 = false;
         option.enable_hls = false;
         option.enable_mp4 = false;
         for (auto i = 0; i < proxy_count; ++i) {

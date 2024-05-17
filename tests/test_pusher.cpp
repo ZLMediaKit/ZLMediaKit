@@ -77,8 +77,10 @@ int domain(const string &playUrl, const string &pushUrl) {
     MediaInfo info(pushUrl);
 
     ProtocolOption option;
+    option.enable_fmp4 = false;
     option.enable_hls = false;
     option.enable_mp4 = false;
+
     PlayerProxy::Ptr player(new PlayerProxy(DEFAULT_VHOST, "app", "stream", option, -1, poller));
     //可以指定rtsp拉流方式，支持tcp和udp方式，默认tcp
 //    (*player)[Client::kRtpType] = Rtsp::RTP_UDP;
