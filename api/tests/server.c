@@ -189,6 +189,14 @@ static void on_mk_webrtc_get_answer_sdp_func(void *user_data, const char *answer
         free((void *)answer);
     }
 }
+
+void API_CALL on_get_statistic_cb(void *user_data, mk_ini ini) {
+    const char *response_header[] = { NULL };
+    char *str = mk_ini_dump_string(ini);
+    mk_http_response_invoker_do_string(user_data, 200, response_header, str);
+    mk_free(str);
+}
+
 /**
  * 收到http api请求广播(包括GET/POST)
  * @param parser http请求内容对象
@@ -247,6 +255,9 @@ void API_CALL on_mk_http_request(const mk_parser parser,
 
         mk_webrtc_get_answer_sdp(mk_http_response_invoker_clone(invoker), on_mk_webrtc_get_answer_sdp_func,
                                  mk_parser_get_url_param(parser, "type"), mk_parser_get_content(parser, NULL), rtc_url);
+    } else if (strcmp(url, "/index/api/getStatistic") == 0) {
+        //拦截api: /index/api/webrtc
+        mk_get_statistic(on_get_statistic_cb, mk_http_response_invoker_clone(invoker), (on_user_data_free) mk_http_response_invoker_clone_release);
     } else {
         *consumed = 0;
         return;
