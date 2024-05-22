@@ -126,7 +126,7 @@ extern const std::string kBroadcastRtcSctpReceived;
 
 // 观看人数变化广播
 extern const std::string kBroadcastPlayerCountChanged;
-#define BroadcastPlayerCountChangedArgs const MediaTuple& args, int count
+#define BroadcastPlayerCountChangedArgs const MediaTuple& args, const int& count
 
 #define ReloadConfigTag ((void *)(0xFF))
 #define RELOAD_KEY(arg, key)                                                                                           \
@@ -200,6 +200,8 @@ extern const std::string kWaitTrackReadyMS;
 extern const std::string kWaitAddTrackMS;
 // 如果track未就绪，我们先缓存帧数据，但是有最大个数限制(100帧时大约4秒)，防止内存溢出
 extern const std::string kUnreadyFrameCache;
+// 是否启用观看人数变化事件广播，置1则启用，置0则关闭
+extern const std::string kEnablePlayerCountChangeEvent;
 } // namespace General
 
 namespace Protocol {
