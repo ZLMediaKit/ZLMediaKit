@@ -83,7 +83,7 @@ const string kEnableFFmpegLog = GENERAL_FIELD "enable_ffmpeg_log";
 const string kWaitTrackReadyMS = GENERAL_FIELD "wait_track_ready_ms";
 const string kWaitAddTrackMS = GENERAL_FIELD "wait_add_track_ms";
 const string kUnreadyFrameCache = GENERAL_FIELD "unready_frame_cache";
-const string kEnablePlayerCountChangeEvent = GENERAL_FIELD "enablePlayerCountChangeEvent";
+const string kBroadcastPlayerCountChanged = GENERAL_FIELD "broadcast_player_count_changed";
 
 static onceToken token([]() {
     mINI::Instance()[kFlowThreshold] = 1024;
@@ -98,7 +98,7 @@ static onceToken token([]() {
     mINI::Instance()[kWaitTrackReadyMS] = 10000;
     mINI::Instance()[kWaitAddTrackMS] = 3000;
     mINI::Instance()[kUnreadyFrameCache] = 100;
-    mINI::Instance()[kEnablePlayerCountChangeEvent] = 0;
+    mINI::Instance()[kBroadcastPlayerCountChanged] = 0;
 });
 
 } // namespace General

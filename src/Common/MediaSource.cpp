@@ -652,7 +652,7 @@ MediaSource::Ptr MediaSource::createFromMP4(const string &schema, const string &
 /////////////////////////////////////MediaSourceEvent//////////////////////////////////////
 
 void MediaSourceEvent::onReaderChanged(MediaSource &sender, int size){
-    GET_CONFIG(int, enable, General::kEnablePlayerCountChangeEvent);
+    GET_CONFIG(bool, enable, General::kBroadcastPlayerCountChanged);
     if (enable) {
         NOTICE_EMIT(BroadcastPlayerCountChangedArgs, Broadcast::kBroadcastPlayerCountChanged, sender.getMediaTuple(), sender.totalReaderCount());
     }
