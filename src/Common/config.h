@@ -124,6 +124,10 @@ extern const std::string kBroadcastRtcSctpSend;
 extern const std::string kBroadcastRtcSctpReceived;
 #define BroadcastRtcSctpReceivedArgs WebRtcTransport& sender, uint16_t &streamId, uint32_t &ppid, const uint8_t *&msg, size_t &len
 
+// 观看人数变化广播
+extern const std::string kBroadcastPlayerCountChanged;
+#define BroadcastPlayerCountChangedArgs const MediaTuple& args, int count
+
 #define ReloadConfigTag ((void *)(0xFF))
 #define RELOAD_KEY(arg, key)                                                                                           \
     do {                                                                                                               \

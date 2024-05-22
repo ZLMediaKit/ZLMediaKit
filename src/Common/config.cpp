@@ -64,6 +64,7 @@ const string kBroadcastRtcSctpFailed = "kBroadcastRtcSctpFailed";
 const string kBroadcastRtcSctpClosed = "kBroadcastRtcSctpClosed";
 const string kBroadcastRtcSctpSend = "kBroadcastRtcSctpSend";
 const string kBroadcastRtcSctpReceived = "kBroadcastRtcSctpReceived";
+const string kBroadcastPlayerCountChanged = "kBroadcastPlayerCountChanged";
 
 } // namespace Broadcast
 
