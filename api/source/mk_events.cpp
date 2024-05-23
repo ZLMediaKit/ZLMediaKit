@@ -14,7 +14,10 @@
 #include "Http/HttpSession.h"
 #include "Rtsp/RtspSession.h"
 #include "Record/MP4Recorder.h"
+
+#ifdef ENABLE_WEBRTC
 #include "webrtc/WebRtcTransport.h"
+#endif
 
 using namespace toolkit;
 using namespace mediakit;
@@ -39,7 +42,13 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
 
         NoticeCenter::Instance().addListener(&s_tag,Broadcast::kBroadcastRecordMP4,[](BroadcastRecordMP4Args){
             if(s_events.on_mk_record_mp4){
-                s_events.on_mk_record_mp4((mk_mp4_info)&info);
+                s_events.on_mk_record_mp4((mk_record_info)&info);
+            }
+        });
+
+        NoticeCenter::Instance().addListener(&s_tag, Broadcast::kBroadcastRecordTs, [](BroadcastRecordTsArgs) {
+            if (s_events.on_mk_record_ts) {
+                s_events.on_mk_record_ts((mk_record_info)&info);
             }
         });
 
@@ -168,7 +177,7 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
                                                    sender.getMediaTuple().stream.c_str(), ssrc.c_str(), ex.getErrCode(), ex.what());
             }
         });
-
+#ifdef ENABLE_WEBRTC
         NoticeCenter::Instance().addListener(&s_tag, Broadcast::kBroadcastRtcSctpConnecting,[](BroadcastRtcSctpConnectArgs){
             if (s_events.on_mk_rtc_sctp_connecting) {
                 s_events.on_mk_rtc_sctp_connecting((mk_rtc_transport)&sender);
@@ -204,6 +213,7 @@ API_EXPORT void API_CALL mk_events_listen(const mk_events *events){
                 s_events.on_mk_rtc_sctp_received((mk_rtc_transport)&sender, streamId, ppid, msg, len);
             }
         });
+#endif
     });
 
 }

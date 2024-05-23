@@ -27,11 +27,8 @@ public:
 
     /**
      * 设置媒体信息
-     * @param vhost 虚拟主机
-     * @param app 应用名
-     * @param stream_id 流id
      */
-    void setMediaSource(const std::string &vhost, const std::string &app, const std::string &stream_id);
+    void setMediaSource(const MediaTuple& tuple);
 
     /**
      * 获取MediaSource

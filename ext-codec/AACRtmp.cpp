@@ -17,7 +17,7 @@ using namespace toolkit;
 namespace mediakit {
 
 void AACRtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt) {
-    CHECK(pkt->size() > 2);
+    CHECK_RET(pkt->size() > 2);
     if (pkt->isConfigFrame()) {
         getTrack()->setExtraData((uint8_t *)pkt->data() + 2, pkt->size() - 2);
         return;

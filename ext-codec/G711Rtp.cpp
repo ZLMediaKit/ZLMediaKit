@@ -46,7 +46,7 @@ bool G711RtpEncoder::inputFrame(const Frame::Ptr &frame) {
         const size_t rtp_size = max_size;
         n++;
         stamp += _pkt_dur_ms;
-        RtpCodec::inputRtp(getRtpInfo().makeRtp(TrackAudio, ptr, rtp_size, mark, stamp), true);
+        RtpCodec::inputRtp(getRtpInfo().makeRtp(TrackAudio, ptr, rtp_size, mark, stamp), false);
         ptr += rtp_size;
         remain_size -= rtp_size;
     }

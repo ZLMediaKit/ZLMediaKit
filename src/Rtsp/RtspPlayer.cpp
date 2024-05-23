@@ -28,6 +28,7 @@ using namespace std;
 namespace mediakit {
 
 enum PlayType { type_play = 0, type_pause, type_seek, type_speed };
+enum class BeatType : uint32_t { both = 0, rtcp, cmd  };
 
 RtspPlayer::RtspPlayer(const EventPoller::Ptr &poller)
     : TcpClient(poller) {}
@@ -85,6 +86,8 @@ void RtspPlayer::play(const string &strUrl) {
 
     _play_url = url._url;
     _rtp_type = (Rtsp::eRtpType)(int)(*this)[Client::kRtpType];
+    _beat_type = (*this)[Client::kRtspBeatType].as<int>();
+    _beat_interval_ms = (*this)[Client::kBeatIntervalMS].as<int>();
     DebugL << url._url << " " << (url._user.size() ? url._user : "null") << " " << (url._passwd.size() ? url._passwd : "null") << " " << _rtp_type;
 
     weak_ptr<RtspPlayer> weakSelf = static_pointer_cast<RtspPlayer>(shared_from_this());
@@ -210,7 +213,8 @@ void RtspPlayer::handleResDESCRIBE(const Parser &parser) {
     if (play_track != TrackInvalid) {
         auto track = sdpParser.getTrack(play_track);
         _sdp_track.emplace_back(track);
-        sdp = track->toString();
+        auto title_track = sdpParser.getTrack(TrackTitle);
+        sdp = (title_track ? title_track->toString() : "") + track->toString();
     } else {
         _sdp_track = sdpParser.getAvailableTrack();
         sdp = sdpParser.toString();
@@ -641,23 +645,28 @@ void RtspPlayer::onBeforeRtpSorted(const RtpPacket::Ptr &rtp, int track_idx) {
     rtcp_ctx->onRtp(rtp->getSeq(), rtp->getStamp(), rtp->ntp_stamp, rtp->sample_rate, rtp->size() - RtpPacket::kRtpTcpHeaderSize);
 
     auto &ticker = _rtcp_send_ticker[track_idx];
-    if (ticker.elapsedTime() < 3 * 1000) {
-        // 时间未到
+    if (ticker.elapsedTime() < _beat_interval_ms) {
+        // 心跳时间未到
         return;
     }
-    auto &rtcp_flag = _send_rtcp[track_idx];
 
-    // 每3秒发送一次心跳，rtcp与rtsp信令轮流心跳，该特性用于兼容issue:642
-    // 有些rtsp服务器需要rtcp保活，有些需要发送信令保活
+    // 有些rtsp服务器需要rtcp保活，有些需要发送信令保活; rtcp与rtsp信令轮流心跳，该特性用于兼容issue:#642
+    auto &rtcp_flag = _send_rtcp[track_idx];
+    ticker.resetTime();
+
+    switch ((BeatType)_beat_type) {
+        case BeatType::cmd: rtcp_flag = false; break;
+        case BeatType::rtcp: rtcp_flag = true; break;
+        case BeatType::both:
+        default: rtcp_flag = !rtcp_flag; break;
+    }
 
     // 发送信令保活
     if (!rtcp_flag) {
         if (track_idx == 0) {
+            // 两个track无需同时触发发送信令保活
             sendKeepAlive();
         }
-        ticker.resetTime();
-        // 下次发送rtcp保活
-        rtcp_flag = true;
         return;
     }
 
@@ -679,9 +688,6 @@ void RtspPlayer::onBeforeRtpSorted(const RtpPacket::Ptr &rtp, int track_idx) {
     rtcp_sdes->chunks.ssrc = htonl(ssrc);
     send_rtcp(this, track_idx, std::move(rtcp));
     send_rtcp(this, track_idx, RtcpHeader::toBuffer(rtcp_sdes));
-    ticker.resetTime();
-    // 下次发送信令保活
-    rtcp_flag = false;
 }
 
 void RtspPlayer::onPlayResult_l(const SockException &ex, bool handshake_done) {

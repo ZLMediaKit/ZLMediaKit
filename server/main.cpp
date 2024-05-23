@@ -38,7 +38,7 @@
 #endif
 
 #if defined(ENABLE_VERSION)
-#include "version.h"
+#include "ZLMVersion.h"
 #endif
 
 #if !defined(_WIN32)
@@ -258,6 +258,15 @@ int start_main(int argc,char *argv[]) {
         //加载配置文件，如果配置文件不存在就创建一个
         loadIniConfig(g_ini_file.data());
 
+        auto &secret = mINI::Instance()[API::kSecret];
+        if (secret == "035c73f7-bb6b-4889-a715-d9eb2d1925cc" || secret.empty()) {
+            // 使用默认secret被禁止启动
+            secret = makeRandStr(32, true);
+            mINI::Instance().dumpFile(g_ini_file);
+            WarnL << "The " << API::kSecret << " is invalid, modified it to: " << secret
+                  << ", saved config file: " << g_ini_file;
+        }
+
         if (!File::is_dir(ssl_file)) {
             // 不是文件夹，加载证书，证书包含公钥和私钥
             SSL_Initor::Instance().loadCertificate(ssl_file.data());
@@ -352,14 +361,6 @@ int start_main(int argc,char *argv[]) {
         InfoL << "已启动http hook 接口";
 
         try {
-            auto &secret = mINI::Instance()[API::kSecret];
-            if (secret == "035c73f7-bb6b-4889-a715-d9eb2d1925cc" || secret.empty()) {
-                // 使用默认secret被禁止启动
-                secret = makeRandStr(32, true);
-                mINI::Instance().dumpFile(g_ini_file);
-                WarnL << "The " << API::kSecret << " is invalid, modified it to: " << secret
-                      << ", saved config file: " << g_ini_file;
-            }
             //rtsp服务器，端口默认554
             if (rtspPort) { rtspSrv->start<RtspSession>(rtspPort); }
             //rtsps服务器，端口默认322

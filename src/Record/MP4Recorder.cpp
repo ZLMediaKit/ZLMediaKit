@@ -22,12 +22,10 @@ using namespace toolkit;
 
 namespace mediakit {
 
-MP4Recorder::MP4Recorder(const string &path, const string &vhost, const string &app, const string &stream_id, size_t max_second) {
+MP4Recorder::MP4Recorder(const MediaTuple &tuple, const string &path, size_t max_second) {
     _folder_path = path;
     /////record 业务逻辑//////
-    _info.app = app;
-    _info.stream = stream_id;
-    _info.vhost = vhost;
+    static_cast<MediaTuple &>(_info) = tuple;
     _info.folder = path;
     GET_CONFIG(uint32_t, s_max_second, Protocol::kMP4MaxSecond);
     _max_second = max_second ? max_second : s_max_second;
@@ -117,11 +115,13 @@ bool MP4Recorder::inputFrame(const Frame::Ptr &frame) {
     if (!(_have_video && frame->getTrackType() == TrackAudio)) {
         //如果有视频且输入的是音频，那么应该忽略切片逻辑
         if (_last_dts == 0 || _last_dts > frame->dts()) {
-            //极少情况下dts时间戳可能回退
-            _last_dts = frame->dts();
+            //b帧情况下dts时间戳可能回退
+            _last_dts = MAX(frame->dts(), _last_dts);
         }
-
-        auto duration = frame->dts() - _last_dts;
+        auto duration = 5u; // 默认至少一帧5ms
+        if (frame->dts() > 0 && frame->dts() > _last_dts) {
+            duration = MAX(duration, frame->dts() - _last_dts);
+        }
         if (!_muxer || ((duration > _max_second * 1000) && (!_have_video || (_have_video && frame->keyFrame())))) {
             //成立条件
             // 1、_muxer为空

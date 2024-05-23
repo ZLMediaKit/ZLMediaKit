@@ -30,7 +30,7 @@ struct StrCaseCompare {
 
 class StrCaseMap : public std::multimap<std::string, std::string, StrCaseCompare> {
 public:
-    using Super = multimap<std::string, std::string, StrCaseCompare>;
+    using Super = std::multimap<std::string, std::string, StrCaseCompare>;
 
     std::string &operator[](const std::string &k) {
         auto it = find(k);

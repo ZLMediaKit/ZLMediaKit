@@ -114,6 +114,11 @@ private:
     //轮流发送rtcp与GET_PARAMETER保活
     bool _send_rtcp[2] = {true, true};
 
+    // 心跳类型
+    uint32_t _beat_type = 0;
+    // 心跳保护间隔
+    uint32_t _beat_interval_ms = 0;
+
     std::string _play_url;
     std::vector<SdpTrack::Ptr> _sdp_track;
     std::function<void(const Parser&)> _on_response;
