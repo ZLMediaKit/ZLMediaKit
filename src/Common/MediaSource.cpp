@@ -652,6 +652,10 @@ MediaSource::Ptr MediaSource::createFromMP4(const string &schema, const string &
 /////////////////////////////////////MediaSourceEvent//////////////////////////////////////
 
 void MediaSourceEvent::onReaderChanged(MediaSource &sender, int size){
+    GET_CONFIG(bool, enable, General::kBroadcastPlayerCountChanged);
+    if (enable) {
+        NOTICE_EMIT(BroadcastPlayerCountChangedArgs, Broadcast::kBroadcastPlayerCountChanged, sender.getMediaTuple(), sender.totalReaderCount());
+    }
     if (size || sender.totalReaderCount()) {
         //还有人观看该视频，不触发关闭事件
         _async_close_timer = nullptr;
