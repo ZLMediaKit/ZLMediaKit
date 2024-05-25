@@ -20,14 +20,14 @@ assignees: ''
  * https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax
  -->
 
-### 现象描述
+## 现象描述
 
 <!--
  在使用什么功能产生的问题? 其异常表现是什么?
  如: 在测试 WebRTC 功能时, 使用 Chrome 浏览器访问 ZLMediait 自带网页播放 FFmpeg 以 RTSP 协议推送的图像有卡顿/花屏.
  -->
 
-### 如何复现?
+## 如何复现?
 
 <!--
   明确的复现步骤对快速解决问题极有帮助.
@@ -37,7 +37,7 @@ assignees: ''
     1. 期望 ..., 结果 ...
   -->
 
-### 相关日志或截图
+## 相关日志或截图
 
 <!--
   由于日志通长较长, 建议将日志信息填写到下面的 "日志内容..."
@@ -50,11 +50,14 @@ assignees: ''
 <details>
 <summary>展开查看详细日志</summary>
 <pre>
-日志内容...
+
+```
+#详细日志粘在这里!
+```
 </pre>
 </details>
 
-### 配置
+## 配置
 
 <!--
   部分常见问题是由于配置错误导致的, 建议仔细阅读配置文件中的注释信息
@@ -65,11 +68,14 @@ assignees: ''
 <details>
 <summary>展开查看详细配置</summary>
 <pre>
-配置内容...
+
+```ini
+#config.ini内容粘在这里!
+```
 </pre>
 </details>
 
-### 各种环境信息
+## 各种环境信息
 
 <!--
   请填写相关环境信息, 详细的环境信息有助于快速复现定位问题.
@@ -82,4 +88,8 @@ assignees: ''
 * **代码提交记录/git commit hash**:
 * **操作系统及版本**:
 * **硬件信息**:
+* **crash backtrace**:
+```
+#崩溃信息backtrace粘贴至此
+```
 * **其他需要补充的信息**:
