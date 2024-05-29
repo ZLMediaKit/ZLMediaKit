@@ -19,6 +19,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun toPushActivity(view: View) {
+        startActivity(Intent(this, PusherDemoActivity::class.java))
 
     }
 

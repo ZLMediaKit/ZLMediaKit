@@ -10,8 +10,9 @@ class NativeLib {
 
     external fun exchangeSessionDescription(description:String): String
 
-    external fun makeUrl(app:String,streamId:String): String
+    external fun makePlayUrl(app:String,streamId:String): String
 
+    external fun makePushUrl(app:String,streamId:String): String
 
     companion object {
         // Used to load the 'rtc' library on application startup.

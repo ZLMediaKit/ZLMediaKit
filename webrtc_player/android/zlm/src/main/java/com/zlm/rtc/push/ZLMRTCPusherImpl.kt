@@ -1,12 +1,11 @@
-package com.zlm.rtc.play
+package com.zlm.rtc.push
 
 import android.content.Context
 import android.graphics.Bitmap
 import android.media.AudioManager
-import android.os.Handler
 import android.util.Log
 import com.zlm.rtc.NativeLib
-import com.zlm.rtc.ZLMRTCPlayer
+import com.zlm.rtc.ZLMRTCPusher
 import com.zlm.rtc.client.HttpClient
 import com.zlm.rtc.client.PeerConnectionClient
 import org.json.JSONObject
@@ -20,33 +19,53 @@ import org.webrtc.SessionDescription
 import org.webrtc.StatsReport
 import org.webrtc.SurfaceViewRenderer
 import org.webrtc.VideoCapturer
-import java.io.File
 import java.math.BigInteger
 import kotlin.random.Random
 
-class ZLMRTCPlayerImpl(val context: Context) : ZLMRTCPlayer(),
+class ZLMRTCPusherImpl(val context:Context) :ZLMRTCPusher(),
     PeerConnectionClient.PeerConnectionEvents {
 
-    private var surfaceViewRenderer: SurfaceViewRenderer? = null
+
+    private var peerConnectionClient: PeerConnectionClient? = null
 
     private var eglBase: EglBase? = null
 
     private var defaultFps = 24
 
+    private var surfaceViewRenderer: SurfaceViewRenderer? = null
 
-    private var peerConnectionClient: PeerConnectionClient? = null
-
-
-    private var localHandleId = BigInteger.valueOf(Random(1024).nextLong())
-
-    private var audioManager: AudioManager? = null
+    private var localHandleId = BigInteger.valueOf(Random(2048).nextLong())
 
     private var app: String = ""
     private var streamId: String = ""
 
-
-    private fun logger(msg: String) {
-        Log.i("ZLMRTCPlayerImpl", msg)
+    private fun initPeerConnectionClient(): PeerConnectionClient {
+        eglBase = EglBase.create()
+        return PeerConnectionClient(
+            context, eglBase,
+            PeerConnectionClient.PeerConnectionParameters(
+                true,
+                false,
+                false,
+                1280,
+                720,
+                defaultFps,
+                1024 * 1000 * 2,
+                "H264",
+                true,
+                true,
+                0,
+                "OPUS",
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false, false, false, null
+            ), this
+        )
     }
 
     private fun createVideoCapture(context: Context?): VideoCapturer? {
@@ -57,6 +76,7 @@ class ZLMRTCPlayerImpl(val context: Context) : ZLMRTCPlayer(),
         }
         return videoCapturer
     }
+
 
     /**
      * 创建相机媒体流
@@ -87,59 +107,24 @@ class ZLMRTCPlayerImpl(val context: Context) : ZLMRTCPlayer(),
         return null
     }
 
-    private fun initPeerConnectionClient(): PeerConnectionClient {
-        eglBase = EglBase.create()
-        return PeerConnectionClient(
-            context, eglBase,
-            PeerConnectionClient.PeerConnectionParameters(
-                false,
-                false,
-                false,
-                1280,
-                720,
-                defaultFps,
-                1024 * 1000 * 2,
-                "H264",
-                true,
-                true,
-                0,
-                "OPUS",
-                false,
-                false,
-                false,
-                false,
-                false,
-                false,
-                false,
-                false, false, false, null
-            ), this
-        )
+    private fun logger(msg: String) {
+        Log.i("ZLMRTCPusherImpl", msg)
     }
 
-    override fun bind(surface: SurfaceViewRenderer, localPreview: Boolean) {
-        this.surfaceViewRenderer = surface
-        audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        audioManager?.isSpeakerphoneOn = false
-    }
 
-    override fun play(app: String, streamId: String) {
+
+    override fun push(app: String, streamId: String) {
         this.app = app
         this.streamId = streamId
         if (peerConnectionClient == null) peerConnectionClient = initPeerConnectionClient()
         surfaceViewRenderer?.init(eglBase?.eglBaseContext, null)
         peerConnectionClient?.setAudioEnabled(true)
+        peerConnectionClient?.setVideoEnabled(true)
         peerConnectionClient?.createPeerConnectionFactory(PeerConnectionFactory.Options())
         peerConnectionClient?.createPeerConnection(createVideoCapture(context), localHandleId)
         peerConnectionClient?.createOffer(localHandleId)
     }
 
-    override fun setSpeakerphoneOn(on: Boolean) {
-        audioManager?.isSpeakerphoneOn = on
-    }
-
-    override fun setLocalMute(on: Boolean) {
-        audioManager?.isSpeakerphoneOn = on
-    }
 
     override fun stop() {
         surfaceViewRenderer?.clearImage()
@@ -149,35 +134,8 @@ class ZLMRTCPlayerImpl(val context: Context) : ZLMRTCPlayer(),
         peerConnectionClient = null
     }
 
-    override fun pause() {
-        surfaceViewRenderer?.pauseVideo()
-    }
-
-
-    override fun resume() {
-        surfaceViewRenderer?.setFpsReduction(defaultFps.toFloat())
-
-    }
-
-    override fun capture(listener: (bitmap: Bitmap) -> Unit) {
-        surfaceViewRenderer?.addFrameListener({
-            listener.invoke(it)
-        }, 1f)
-    }
-
-    override fun record(duration: Long, result: (path: String) -> Unit) {
-
-        val savePath = context.cacheDir.absoluteFile.absolutePath + File.separator + System.currentTimeMillis() + ".mp4"
-        peerConnectionClient?.setRecordEnable(true,savePath)
-        Handler().postDelayed({
-            peerConnectionClient?.setRecordEnable(false, savePath)
-        }, duration)
-    }
-
-
     override fun onLocalDescription(handleId: BigInteger?, sdp: SessionDescription?) {
-
-        val url = NativeLib().makePlayUrl(app, streamId)
+        val url = NativeLib().makePushUrl(app, streamId)
         logger("handleId: $url")
         logger("handleId: " + sdp?.description)
         val doPost = HttpClient.doPost(
@@ -235,19 +193,13 @@ class ZLMRTCPlayerImpl(val context: Context) : ZLMRTCPlayer(),
     }
 
     override fun onLocalRender(handleId: BigInteger?) {
-        logger("onLocalRender: " + handleId)
-        //peerConnectionClient?.setVideoRender(handleId, surfaceViewRenderer)
-//        if (handleId == localHandleId) {
-//            peerConnectionClient?.setVideoRender(handleId, surfaceViewRenderer)
-//        }
-    }
-
-    override fun onRemoteRender(handleId: BigInteger?) {
-        logger("onRemoteRender: " + handleId)
         if (handleId == localHandleId) {
             peerConnectionClient?.setVideoRender(handleId, surfaceViewRenderer)
         }
     }
 
+    override fun onRemoteRender(handleId: BigInteger?) {
+
+    }
 
 }

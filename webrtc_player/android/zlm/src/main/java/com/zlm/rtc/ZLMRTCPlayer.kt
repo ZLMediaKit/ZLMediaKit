@@ -7,11 +7,11 @@ import org.webrtc.SurfaceViewRenderer
 
 abstract class ZLMRTCPlayer {
 
-    companion object {
-        fun shareInstance(): ZLMRTCPlayer {
-            return ZLMRTCPlayerImpl()
-        }
-    }
+//    companion object {
+//        fun shareInstance(): ZLMRTCPlayer {
+//            return ZLMRTCPlayerImpl(this)
+//        }
+//    }
 
 
 
@@ -19,7 +19,7 @@ abstract class ZLMRTCPlayer {
 
     constructor()
 
-    public abstract fun bind(context: Context,surface: SurfaceViewRenderer, localPreview:Boolean)
+    public abstract fun bind(surface: SurfaceViewRenderer, localPreview:Boolean)
 
 
     //拉流接口
@@ -35,14 +35,12 @@ abstract class ZLMRTCPlayer {
     public abstract fun pause()
 
 
-    public abstract fun destroy()
-
 
     public abstract fun resume()
 
     public abstract fun capture(listener: (bitmap: Bitmap) -> Unit)
 
-    public abstract fun record(record_duration: Long, result: (path: String) -> Unit)
+    public abstract fun record(duration: Long, result: (path: String) -> Unit)
 
 
     //推流接口

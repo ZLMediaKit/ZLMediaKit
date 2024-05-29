@@ -47,6 +47,8 @@
             android:screenOrientation="portrait"/>
         <activity android:name=".PlayerDemoActivity"
             android:screenOrientation="portrait"/>
+        <activity android:name=".PusherDemoActivity"
+            android:screenOrientation="portrait"/>
     </application>
 
 </manifest>

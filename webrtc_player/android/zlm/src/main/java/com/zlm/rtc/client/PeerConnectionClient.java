@@ -190,8 +190,10 @@ public class PeerConnectionClient {
     private RtcEventLog rtcEventLog;
     // Implements the WebRtcAudioRecordSamplesReadyCallback interface and writes
     // recorded audio samples to an output file.
-    @Nullable
-    private RecordedAudioToFileController saveRecordedAudioToFile = null;
+//    @Nullable
+//    private RecordedAudioToFileController saveRecordedAudioToFile = null;
+
+    private VideoFileRecorder saveVideoFileRecorder = null;
 
 
     /**
@@ -489,7 +491,7 @@ public class PeerConnectionClient {
             WebRtcAudioUtils.setWebRtcBasedNoiseSuppressor(false);
         }
 
-        WebRtcAudioRecord.setOnAudioSamplesReady(saveRecordedAudioToFile);
+        WebRtcAudioRecord.setOnAudioSamplesReady(saveVideoFileRecorder);
 
         // Set audio record error callbacks.
         WebRtcAudioRecord.setErrorCallback(new WebRtcAudioRecordErrorCallback() {
@@ -589,7 +591,7 @@ public class PeerConnectionClient {
         };
 
         return JavaAudioDeviceModule.builder(appContext)
-                .setSamplesReadyCallback(saveRecordedAudioToFile)
+                .setSamplesReadyCallback(saveVideoFileRecorder)
                 .setUseHardwareAcousticEchoCanceler(!peerConnectionParameters.disableBuiltInAEC)
                 .setUseHardwareNoiseSuppressor(!peerConnectionParameters.disableBuiltInNS)
                 .setAudioRecordErrorCallback(audioRecordErrorCallback)
@@ -688,10 +690,9 @@ public class PeerConnectionClient {
             }
         }
 
-        if (saveRecordedAudioToFile != null) {
-            if (saveRecordedAudioToFile.start()) {
-                Log.d(TAG, "Recording input audio to file is activated");
-            }
+        if (saveVideoFileRecorder == null) {
+            saveVideoFileRecorder = new VideoFileRecorder();
+
         }
         Log.d(TAG, "Peer connection created.");
 
@@ -868,6 +869,23 @@ public class PeerConnectionClient {
             }
             if (remoteVideoTrack != null) {
                 remoteVideoTrack.setEnabled(renderVideo);
+            }
+        });
+    }
+
+    public void setRecordEnable(final boolean enable, String savePath) {
+        executor.execute(() -> {
+            if (saveVideoFileRecorder != null) {
+                if (enable) {
+                    try {
+                        saveVideoFileRecorder.start(savePath, rootEglBase.getEglBaseContext(), false);
+                    } catch (IOException e) {
+                        //throw new RuntimeException(e);
+                    }
+                } else {
+                    saveVideoFileRecorder.release();
+                }
+
             }
         });
     }
@@ -1362,7 +1380,11 @@ public class PeerConnectionClient {
                         remoteVideoTrack.setEnabled(true);
                         connection.videoTrack = remoteVideoTrack;
                         connection.videoTrack.addSink(videoSinkMap.get(connection.handleId));
+                        if (saveVideoFileRecorder != null) {
+                            connection.videoTrack.addSink(saveVideoFileRecorder);
+                        }
                         events.onRemoteRender(connection.handleId);
+
                     }
                 }
             });
@@ -1453,10 +1475,6 @@ public class PeerConnectionClient {
                 if (peerConnection != null && !isError) {
                     Log.d(TAG, "Set local SDP from " + sdp.type);
                     peerConnection.setLocalDescription(sdpObserver, sdp);
-
-//                    MediaStream localMediaStream = factory.createLocalMediaStream("ARDAMS");
-//                    localMediaStream.addTrack(localAudioTrack);
-//                    peerConnection.addStream(localMediaStream);
                 }
             });
         }
