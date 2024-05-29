@@ -16,7 +16,7 @@ using namespace toolkit;
 using namespace mediakit;
 
 API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create(const char *vhost, const char *app, const char *stream, int hls_enabled, int mp4_enabled) {
-    mk_proxy_player_create1(vhost, app, stream, hls_enabled, mp4_enabled,-1);
+   return mk_proxy_player_create1(vhost, app, stream, hls_enabled, mp4_enabled,-1);
 }
 
 API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create1(const char *vhost, const char *app, const char *stream, int hls_enabled, int mp4_enabled, int retry_count) {
@@ -29,7 +29,7 @@ API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create1(const char *vhost, c
 }
 
 API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create2(const char *vhost, const char *app, const char *stream, mk_ini ini) {
-    mk_proxy_player_create3(vhost, app, stream, ini, -1);
+    return mk_proxy_player_create3(vhost, app, stream, ini, -1);
 }
 
 
