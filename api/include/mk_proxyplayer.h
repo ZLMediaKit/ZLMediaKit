@@ -44,8 +44,7 @@ API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create(const char *vhost, co
  * @param retry_count 重试次数，当<0无限次重试
  * @return 对象指针
  */
-API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create1(
-    const char *vhost, const char *app, const char *stream, int hls_enabled, int mp4_enabled, int retry_count);
+API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create1(const char *vhost, const char *app, const char *stream, int hls_enabled, int mp4_enabled, int retry_count);
 
 /**
  * 创建一个代理播放器
@@ -67,8 +66,7 @@ API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create2(const char *vhost, c
  * @param retry_count 重试次数，当<0无限次重试
  * @return 对象指针
  */
-API_EXPORT mk_proxy_player API_CALL
-mk_proxy_player_create3(const char *vhost, const char *app, const char *stream, mk_ini option, int retry_count);
+API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create3(const char *vhost, const char *app, const char *stream, mk_ini option, int retry_count);
 
 
 /**
