@@ -14,6 +14,8 @@ class NativeLib {
 
     external fun makePushUrl(app:String,streamId:String): String
 
+    external fun makeEchoUrl(app:String,streamId:String): String
+
     companion object {
         // Used to load the 'rtc' library on application startup.
         init {
