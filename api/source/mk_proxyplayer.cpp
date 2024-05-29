@@ -24,6 +24,15 @@ API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create(const char *vhost, co
     return (mk_proxy_player) obj;
 }
 
+API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create1(const char *vhost, const char *app, const char *stream, int hls_enabled, int mp4_enabled, int retry_count) {
+    assert(vhost && app && stream);
+    ProtocolOption option;
+    option.enable_hls = hls_enabled;
+    option.enable_mp4 = mp4_enabled;
+    PlayerProxy::Ptr *obj(new PlayerProxy::Ptr(new PlayerProxy(vhost, app, stream, option, retry_count)));
+    return (mk_proxy_player)obj;
+}
+
 API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create2(const char *vhost, const char *app, const char *stream, mk_ini ini) {
     assert(vhost && app && stream);
     ProtocolOption option(*((mINI *)ini));
@@ -31,6 +40,13 @@ API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create2(const char *vhost, c
     return (mk_proxy_player)obj;
 }
 
+
+API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create3(const char *vhost, const char *app, const char *stream, mk_ini ini, int retry_count) {
+    assert(vhost && app && stream);
+    ProtocolOption option(*((mINI *)ini));
+    PlayerProxy::Ptr *obj(new PlayerProxy::Ptr(new PlayerProxy(vhost, app, stream, option, retry_count)));
+    return (mk_proxy_player)obj;
+}
 
 API_EXPORT void API_CALL mk_proxy_player_release(mk_proxy_player ctx) {
     assert(ctx);
