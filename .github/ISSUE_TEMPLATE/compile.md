@@ -20,7 +20,7 @@ assignees: ''
  * https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax
  -->
 
-### 相关日志及环境信息
+## 相关日志及环境信息
 
 <!--
   由于编译日志通长较长, 建议将日志信息填写到下面 `````` block 内，或者上传日志文件
@@ -41,7 +41,7 @@ assignees: ''
 
 编译目录下的 `CMakeCache.txt` 文件内容，请直接上传为附件。
 
-### 各种环境信息
+## 各种环境信息
 
 <!--
   请填写相关环境信息, 详细的环境信息有助于快速复现定位问题.

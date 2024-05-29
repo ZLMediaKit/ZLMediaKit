@@ -1766,7 +1766,7 @@ void installWebApi() {
             , _session_id(std::move(session_id)) {}
         ~WebRtcArgsImp() override = default;
 
-        variant operator[](const string &key) const override {
+        toolkit::variant operator[](const string &key) const override {
             if (key == "url") {
                 return getUrl();
             }

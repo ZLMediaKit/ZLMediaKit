@@ -22,11 +22,12 @@
 #include <map>
 #include <iostream>
 
-#include "Common/JemallocUtil.h"
-#include "Common/macros.h"
 #include "System.h"
+#include "Util/util.h"
 #include "Util/logger.h"
 #include "Util/uv_errno.h"
+#include "Common/macros.h"
+#include "Common/JemallocUtil.h"
 
 using namespace std;
 using namespace toolkit;
@@ -66,6 +67,16 @@ static void save_jemalloc_stats() {
     out.flush();
 }
 
+static std::string get_func_symbol(const std::string &symbol) {
+    size_t pos1 = symbol.find("(");
+    if (pos1 == string::npos) {
+        return "";
+    }
+    size_t pos2 = symbol.find("+", pos1);
+    auto ret = symbol.substr(pos1 + 1, pos2 - pos1 - 1);
+    return ret;
+}
+
 static void sig_crash(int sig) {
     signal(sig, SIG_DFL);
     void *array[MAX_STACK_FRAMES];
@@ -78,6 +89,10 @@ static void sig_crash(int sig) {
         std::string symbol(strings[i]);
         ref.emplace_back(symbol);
 #if defined(__linux) || defined(__linux__)
+        auto func_symbol = get_func_symbol(symbol);
+        if (!func_symbol.empty()) {
+            ref.emplace_back(toolkit::demangle(func_symbol.data()));
+        }
         static auto addr2line = [](const string &address) {
             string cmd = StrPrinter << "addr2line -C -f -e " << exePath() << " " << address;
             return System::execute(cmd);
