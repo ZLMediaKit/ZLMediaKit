@@ -8,7 +8,12 @@ abstract class ZLMRTCPusher {
 
     public abstract fun bind(surface: SurfaceViewRenderer, localPreview: Boolean)
 
-    abstract fun push(app: String, streamId: String, mode: PushMode = PushMode.CAMERA)
+    abstract fun push(
+        app: String,
+        streamId: String,
+        mode: PushMode = PushMode.CAMERA,
+        inputFile: String = ""
+    )
 
     abstract fun stop()
 

@@ -62,7 +62,18 @@ class PusherDemoActivity : AppCompatActivity() {
     }
 
     fun onPushFile(view: View) {
-
+        PermissionX.init(this)
+            .permissions(Manifest.permission.WRITE_EXTERNAL_STORAGE,Manifest.permission.READ_EXTERNAL_STORAGE)
+            .request { allGranted, grantedList, deniedList ->
+                if (allGranted) {
+                    pusher.push(
+                        tv_app.text.toString(),
+                        tv_stream_id.text.toString(),
+                        PushMode.FILE,
+                        ""
+                    )
+                }
+            }
     }
 
     override fun onDestroy() {

@@ -18,6 +18,7 @@ import org.webrtc.Camera1Enumerator
 import org.webrtc.Camera2Enumerator
 import org.webrtc.CameraEnumerator
 import org.webrtc.EglBase
+import org.webrtc.FileVideoCapturer
 import org.webrtc.IceCandidate
 import org.webrtc.PeerConnectionFactory
 import org.webrtc.ScreenCapturerAndroid
@@ -35,8 +36,6 @@ class ZLMRTCPusherImpl(val context: FragmentActivity) : ZLMRTCPusher(),
     private var peerConnectionClient: PeerConnectionClient? = null
 
     private var eglBase: EglBase? = null
-
-    private var defaultFps = 24
 
     private var surfaceViewRenderer: SurfaceViewRenderer? = null
 
@@ -140,7 +139,7 @@ class ZLMRTCPusherImpl(val context: FragmentActivity) : ZLMRTCPusher(),
     }
 
 
-    override fun push(app: String, streamId: String, mode: PushMode) {
+    override fun push(app: String, streamId: String, mode: PushMode, inputFile: String) {
         this.app = app
         this.streamId = streamId
         if (peerConnectionClient == null) peerConnectionClient = initPeerConnectionClient()
@@ -174,10 +173,9 @@ class ZLMRTCPusherImpl(val context: FragmentActivity) : ZLMRTCPusher(),
             }
 
         } else {
-
+            peerConnectionClient?.createPeerConnection(FileVideoCapturer(inputFile), localHandleId)
+            peerConnectionClient?.createOffer(localHandleId)
         }
-
-
     }
 
     override fun stop() {

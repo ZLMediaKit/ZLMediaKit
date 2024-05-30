@@ -16,6 +16,7 @@ import org.webrtc.CameraEnumerator
 import org.webrtc.EglBase
 import org.webrtc.IceCandidate
 import org.webrtc.PeerConnectionFactory
+import org.webrtc.RendererCommon
 import org.webrtc.SessionDescription
 import org.webrtc.StatsReport
 import org.webrtc.SurfaceViewRenderer
@@ -98,12 +99,12 @@ class ZLMRTCPlayerImpl(val context: Context) : ZLMRTCPlayer(),
                 1280,
                 720,
                 defaultFps,
-                1024 * 1000 * 2,
+                1024 * 1024 * 2,
                 "H264",
                 true,
-                true,
+                false,
                 0,
-                "OPUS",
+                "opus",
                 false,
                 false,
                 false,
@@ -116,29 +117,38 @@ class ZLMRTCPlayerImpl(val context: Context) : ZLMRTCPlayer(),
         )
     }
 
-    override fun bind(surface: SurfaceViewRenderer, localPreview: Boolean) {
+    override fun bind(surface: SurfaceViewRenderer) {
         this.surfaceViewRenderer = surface
         audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        audioManager?.isSpeakerphoneOn = false
+        audioManager?.isSpeakerphoneOn = true
     }
 
     override fun play(app: String, streamId: String) {
         this.app = app
         this.streamId = streamId
         if (peerConnectionClient == null) peerConnectionClient = initPeerConnectionClient()
-        surfaceViewRenderer?.init(eglBase?.eglBaseContext, null)
+        surfaceViewRenderer?.init(eglBase?.eglBaseContext, object : RendererCommon.RendererEvents {
+            override fun onFirstFrameRendered() {
+
+            }
+
+            override fun onFrameResolutionChanged(
+                videoWidth: Int,
+                videoHeight: Int,
+                rotation: Int
+            ) {
+
+            }
+        })
         peerConnectionClient?.setAudioEnabled(true)
         peerConnectionClient?.createPeerConnectionFactory(PeerConnectionFactory.Options())
         peerConnectionClient?.createPeerConnection(createVideoCapture(context), localHandleId)
         peerConnectionClient?.createOffer(localHandleId)
     }
 
-    override fun setSpeakerphoneOn(on: Boolean) {
-        audioManager?.isSpeakerphoneOn = on
-    }
 
-    override fun setLocalMute(on: Boolean) {
-        audioManager?.isSpeakerphoneOn = on
+    override fun setVolume() {
+        audioManager?.isSpeakerphoneOn = true
     }
 
     override fun stop() {
@@ -167,8 +177,9 @@ class ZLMRTCPlayerImpl(val context: Context) : ZLMRTCPlayer(),
 
     override fun record(duration: Long, result: (path: String) -> Unit) {
 
-        val savePath = context.cacheDir.absoluteFile.absolutePath + File.separator + System.currentTimeMillis() + ".mp4"
-        peerConnectionClient?.setRecordEnable(true,savePath)
+        val savePath =
+            context.cacheDir.absoluteFile.absolutePath + File.separator + System.currentTimeMillis() + ".mp4"
+        peerConnectionClient?.setRecordEnable(true, savePath)
         Handler().postDelayed({
             peerConnectionClient?.setRecordEnable(false, savePath)
         }, duration)

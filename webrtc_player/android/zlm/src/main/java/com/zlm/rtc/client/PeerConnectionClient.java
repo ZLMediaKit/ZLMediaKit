@@ -693,8 +693,6 @@ public class PeerConnectionClient {
         if (saveVideoFileRecorder == null) {
             saveVideoFileRecorder = new VideoFileRecorder();
         }
-//        peerConnection.addTransceiver(MediaStreamTrack.MediaType.MEDIA_TYPE_AUDIO,new RtpTransceiver.RtpTransceiverInit(RtpTransceiver.RtpTransceiverDirection.SEND_RECV));
-//        peerConnection.addTransceiver(MediaStreamTrack.MediaType.MEDIA_TYPE_VIDEO,new RtpTransceiver.RtpTransceiverInit(RtpTransceiver.RtpTransceiverDirection.SEND_RECV));
 
         Log.d(TAG, "Peer connection created.");
 
@@ -720,7 +718,7 @@ public class PeerConnectionClient {
         rtcConfig.keyType = PeerConnection.KeyType.ECDSA;
         // Enable DTLS for normal calls and disable for loopback calls.
         rtcConfig.activeResetSrtpParams = true;//!peerConnectionParameters.loopback;
-        rtcConfig.sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN;
+        rtcConfig.sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN;            //修改模式 PlanB无法使用仅接收音视频的配置
 
         PCObserver pcObserver = new PCObserver();
         SDPObserver sdpObserver = new SDPObserver();
@@ -1376,7 +1374,8 @@ public class PeerConnectionClient {
                     if (peerConnection == null || isError) {
                         return;
                     }
-                    Log.d(TAG, "==onAddStream tracks size:" + stream.videoTracks.size());
+                    Log.d(TAG, "==onAddStream video tracks size:" + stream.videoTracks.size());
+                    Log.d(TAG, "==onAddStream audio tracks size:" + stream.audioTracks.size());
                     if (stream.videoTracks.size() == 1) {
                         remoteVideoTrack = stream.videoTracks.get(0);
                         remoteVideoTrack.setEnabled(true);
@@ -1386,7 +1385,6 @@ public class PeerConnectionClient {
                             connection.videoTrack.addSink(saveVideoFileRecorder);
                         }
                         events.onRemoteRender(connection.handleId);
-
                     }
                 }
             });
