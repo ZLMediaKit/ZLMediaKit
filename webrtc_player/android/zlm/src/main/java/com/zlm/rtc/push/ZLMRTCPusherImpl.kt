@@ -1,11 +1,16 @@
 package com.zlm.rtc.push
 
+import android.app.Activity
 import android.content.Context
-import android.graphics.Bitmap
-import android.media.AudioManager
+import android.content.Intent
+import android.media.projection.MediaProjection
+import android.media.projection.MediaProjectionManager
 import android.util.Log
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
 import com.zlm.rtc.NativeLib
 import com.zlm.rtc.ZLMRTCPusher
+import com.zlm.rtc.base.ActivityLauncher
 import com.zlm.rtc.client.HttpClient
 import com.zlm.rtc.client.PeerConnectionClient
 import org.json.JSONObject
@@ -15,6 +20,7 @@ import org.webrtc.CameraEnumerator
 import org.webrtc.EglBase
 import org.webrtc.IceCandidate
 import org.webrtc.PeerConnectionFactory
+import org.webrtc.ScreenCapturerAndroid
 import org.webrtc.SessionDescription
 import org.webrtc.StatsReport
 import org.webrtc.SurfaceViewRenderer
@@ -22,7 +28,7 @@ import org.webrtc.VideoCapturer
 import java.math.BigInteger
 import kotlin.random.Random
 
-class ZLMRTCPusherImpl(val context:Context) :ZLMRTCPusher(),
+class ZLMRTCPusherImpl(val context: FragmentActivity) : ZLMRTCPusher(),
     PeerConnectionClient.PeerConnectionEvents {
 
 
@@ -39,6 +45,10 @@ class ZLMRTCPusherImpl(val context:Context) :ZLMRTCPusher(),
     private var app: String = ""
     private var streamId: String = ""
 
+
+    private val CAPTURE_PERMISSION_REQUEST_CODE = 1
+
+
     private fun initPeerConnectionClient(): PeerConnectionClient {
         eglBase = EglBase.create()
         return PeerConnectionClient(
@@ -47,19 +57,19 @@ class ZLMRTCPusherImpl(val context:Context) :ZLMRTCPusher(),
                 true,
                 false,
                 false,
-                1280,
-                720,
-                defaultFps,
-                1024 * 1000 * 2,
-                "H264",
+                0,
+                0,
+                0,
+                0,
+                "VP8",
                 true,
-                true,
+                false,
                 0,
                 "OPUS",
+                true,
                 false,
                 false,
-                false,
-                false,
+                true,
                 false,
                 false,
                 false,
@@ -74,6 +84,18 @@ class ZLMRTCPusherImpl(val context:Context) :ZLMRTCPusher(),
         } else {
             createCameraCapture(Camera1Enumerator(true))
         }
+
+        return videoCapturer
+    }
+
+
+    private fun createScreenCapture(context: Context?): VideoCapturer? {
+        val videoCapturer: VideoCapturer? = if (Camera2Enumerator.isSupported(context)) {
+            createCameraCapture(Camera2Enumerator(context))
+        } else {
+            createCameraCapture(Camera1Enumerator(true))
+        }
+
         return videoCapturer
     }
 
@@ -113,7 +135,12 @@ class ZLMRTCPusherImpl(val context:Context) :ZLMRTCPusher(),
 
 
 
-    override fun push(app: String, streamId: String) {
+    override fun bind(surface: SurfaceViewRenderer, localPreview: Boolean) {
+        this.surfaceViewRenderer = surface
+    }
+
+
+    override fun push(app: String, streamId: String, mode: PushMode) {
         this.app = app
         this.streamId = streamId
         if (peerConnectionClient == null) peerConnectionClient = initPeerConnectionClient()
@@ -121,10 +148,41 @@ class ZLMRTCPusherImpl(val context:Context) :ZLMRTCPusher(),
         peerConnectionClient?.setAudioEnabled(true)
         peerConnectionClient?.setVideoEnabled(true)
         peerConnectionClient?.createPeerConnectionFactory(PeerConnectionFactory.Options())
-        peerConnectionClient?.createPeerConnection(createVideoCapture(context), localHandleId)
-        peerConnectionClient?.createOffer(localHandleId)
-    }
 
+        if (mode == PushMode.CAMERA) {
+            peerConnectionClient?.createPeerConnection(createVideoCapture(context), localHandleId)
+            peerConnectionClient?.createOffer(localHandleId)
+
+        } else if (mode == PushMode.SCREEN) {
+
+            val mediaProjectionManager = context.getSystemService(
+                Context.MEDIA_PROJECTION_SERVICE
+            ) as MediaProjectionManager
+
+            ActivityLauncher.init(context).startActivityForResult(
+                mediaProjectionManager.createScreenCaptureIntent()
+            ) { resultCode, data ->
+                if (resultCode == Activity.RESULT_OK) {
+
+                    ContextCompat.startForegroundService(context, Intent(context, ScreenShareService::class.java))
+
+                    val screenCapturerAndroid =
+                        ScreenCapturerAndroid(data, object : MediaProjection.Callback() {
+
+                        })
+
+                    peerConnectionClient?.createPeerConnection(screenCapturerAndroid, localHandleId)
+                    peerConnectionClient?.createOffer(localHandleId)
+
+                }
+            }
+
+        } else {
+
+        }
+
+
+    }
 
     override fun stop() {
         surfaceViewRenderer?.clearImage()
@@ -144,6 +202,7 @@ class ZLMRTCPusherImpl(val context:Context) :ZLMRTCPusher(),
             mutableMapOf()
         )
         val result = JSONObject(doPost)
+        logger(result.toString())
         val code = result.getInt("code")
         if (code == 0) {
             logger("handleId: $doPost")
@@ -155,11 +214,12 @@ class ZLMRTCPusherImpl(val context:Context) :ZLMRTCPusher(),
         } else {
             val msg = result.getString("msg")
             logger("handleId: $msg")
+            peerConnectionClient?.setAudioEnabled(false)
+            peerConnectionClient?.setVideoEnabled(false)
         }
     }
 
     override fun onIceCandidate(handleId: BigInteger?, candidate: IceCandidate?) {
-
     }
 
     override fun onIceCandidatesRemoved(

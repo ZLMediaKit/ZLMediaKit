@@ -50,5 +50,7 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 
     implementation project(':zlm')
+    implementation 'com.guolindev.permissionx:permissionx:1.7.1'
+
 
 }

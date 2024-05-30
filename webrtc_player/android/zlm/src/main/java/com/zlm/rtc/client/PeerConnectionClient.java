@@ -636,7 +636,7 @@ public class PeerConnectionClient {
         // Create SDP constraints.
         sdpMediaConstraints = new MediaConstraints();
         sdpMediaConstraints.mandatory.add(
-                new MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"));
+                new MediaConstraints.KeyValuePair("OfferToReceiveAudio", Boolean.toString(true)));
         sdpMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair(
                 "OfferToReceiveVideo", Boolean.toString(true)));//这里
     }
@@ -692,8 +692,10 @@ public class PeerConnectionClient {
 
         if (saveVideoFileRecorder == null) {
             saveVideoFileRecorder = new VideoFileRecorder();
-
         }
+//        peerConnection.addTransceiver(MediaStreamTrack.MediaType.MEDIA_TYPE_AUDIO,new RtpTransceiver.RtpTransceiverInit(RtpTransceiver.RtpTransceiverDirection.SEND_RECV));
+//        peerConnection.addTransceiver(MediaStreamTrack.MediaType.MEDIA_TYPE_VIDEO,new RtpTransceiver.RtpTransceiverInit(RtpTransceiver.RtpTransceiverDirection.SEND_RECV));
+
         Log.d(TAG, "Peer connection created.");
 
     }

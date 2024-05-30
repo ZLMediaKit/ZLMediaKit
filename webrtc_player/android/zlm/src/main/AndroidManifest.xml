@@ -12,5 +12,12 @@
     <uses-permission android:name="android.permission.CAPTURE_VIDEO_OUTPUT"/>
     <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
 
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
 
+    <application>
+        <service android:name="com.zlm.rtc.push.ScreenShareService"
+            android:enabled="true"
+            android:exported="true"
+            android:foregroundServiceType="mediaProjection"/>
+    </application>
 </manifest>
