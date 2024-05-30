@@ -32,6 +32,7 @@ typedef struct mk_proxy_player_t *mk_proxy_player;
  */
 API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create(const char *vhost, const char *app, const char *stream, int hls_enabled, int mp4_enabled);
 
+
 /**
  * 创建一个代理播放器
  * @param vhost 虚拟主机名，一般为__defaultVhost__
@@ -41,6 +42,32 @@ API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create(const char *vhost, co
  * @return 对象指针
  */
 API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create2(const char *vhost, const char *app, const char *stream, mk_ini option);
+
+
+/**
+ * 创建一个代理播放器
+ * @param vhost 虚拟主机名，一般为__defaultVhost__
+ * @param app 应用名
+ * @param stream 流名
+ * @param rtp_type rtsp播放方式:RTP_TCP = 0, RTP_UDP = 1, RTP_MULTICAST = 2
+ * @param hls_enabled 是否生成hls
+ * @param mp4_enabled 是否生成mp4
+ * @param retry_count 重试次数，当<0无限次重试
+ * @return 对象指针
+ */
+API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create3(const char *vhost, const char *app, const char *stream, int hls_enabled, int mp4_enabled, int retry_count);
+
+
+/**
+ * 创建一个代理播放器
+ * @param vhost 虚拟主机名，一般为__defaultVhost__
+ * @param app 应用名
+ * @param stream 流名
+ * @param option ProtocolOption相关配置
+ * @param retry_count 重试次数，当<0无限次重试
+ * @return 对象指针
+ */
+API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create4(const char *vhost, const char *app, const char *stream, mk_ini option, int retry_count);
 
 
 /**
