@@ -83,7 +83,7 @@ API_EXPORT void API_CALL mk_stop_all_server(){
     stopAllTcpServer();
 }
 
-API_EXPORT void API_CALL mk_env_init1(int thread_num,
+API_EXPORT void API_CALL mk_env_init2(int thread_num,
                                       int log_level,
                                       int log_mask,
                                       const char *log_file_path,
