@@ -163,17 +163,13 @@ class ZLMRTCPusherImpl(val context: FragmentActivity) : ZLMRTCPusher(),
                 mediaProjectionManager.createScreenCaptureIntent()
             ) { resultCode, data ->
                 if (resultCode == Activity.RESULT_OK) {
-
                     ContextCompat.startForegroundService(context, Intent(context, ScreenShareService::class.java))
-
                     val screenCapturerAndroid =
                         ScreenCapturerAndroid(data, object : MediaProjection.Callback() {
 
                         })
-
                     peerConnectionClient?.createPeerConnection(screenCapturerAndroid, localHandleId)
                     peerConnectionClient?.createOffer(localHandleId)
-
                 }
             }
 
