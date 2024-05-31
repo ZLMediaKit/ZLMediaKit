@@ -51,6 +51,9 @@ extern "C" {
 //输出日志到回调函数(mk_events::on_mk_log)
 #define LOG_CALLBACK    (1 << 2)
 
+//向下兼容
+#define mk_env_init1 mk_env_init2
+
 //回调user_data回调函数
 typedef void(API_CALL *on_user_data_free)(void *user_data);
 
@@ -104,7 +107,7 @@ API_EXPORT void API_CALL mk_stop_all_server();
  * @param ssl ssl证书内容或路径，可以为NULL
  * @param ssl_pwd 证书密码，可以为NULL
  */
-API_EXPORT void API_CALL mk_env_init1(int thread_num,
+API_EXPORT void API_CALL mk_env_init2(int thread_num,
                                       int log_level,
                                       int log_mask,
                                       const char *log_file_path,
