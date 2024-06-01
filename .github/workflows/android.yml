@@ -23,3 +23,35 @@ jobs:
 
     - name: 编译
       run: cd Android && ./gradlew build
+
+    - name: 设置环境变量
+      run: |
+        echo "BRANCH=$(echo ${GITHUB_REF#refs/heads/} | tr -s "/\?%*:|\"<>" "_")" >> $GITHUB_ENV  
+        echo "BRANCH2=$(echo ${GITHUB_REF#refs/heads/} )" >> $GITHUB_ENV    
+        echo "DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
+
+    - name: 打包二进制
+      id: upload
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ github.workflow }}_${{ env.BRANCH }}_${{ env.DATE }}
+        path: Android/app/build/outputs/apk/debug/*
+        if-no-files-found: error
+        retention-days: 1
+
+    - name: issue评论
+      if: github.event_name != 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          github.rest.issues.createComment({
+            issue_number: 483,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '- 下载地址: [${{ github.workflow }}_${{ env.BRANCH }}_${{ env.DATE }}](${{ steps.upload.outputs.artifact-url }})\n'
+              + '- 分支: ${{ env.BRANCH2 }}\n' 
+              + '- git hash: ${{ github.sha }} \n' 
+              + '- 编译日期: ${{ env.DATE }}\n' 
+              + '- 打包ci名: ${{ github.workflow }}\n' 
+          })

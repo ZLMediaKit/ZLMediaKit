@@ -25,12 +25,40 @@ jobs:
         path: 3rdpart/libsrtp
 
     - name: 编译 SRTP
-      run: cd 3rdpart/libsrtp && ./configure --enable-openssl && make -j4 && sudo make install
+      run: cd 3rdpart/libsrtp && ./configure --enable-openssl && make -j $(nproc) && sudo make install
 
     - name: 编译
-      run: mkdir -p linux_build && cd linux_build && cmake .. -DENABLE_WEBRTC=true -DENABLE_FFMPEG=true && make -j $(nproc)
+      run: mkdir -p linux_build && cd linux_build && cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_FFMPEG=true && make -j $(nproc)
 
-    - name: 运行MediaServer
-      run: pwd && cd release/linux/Debug && sudo ./MediaServer -d &
+    - name: 设置环境变量
+      run: |
+        echo "BRANCH=$(echo ${GITHUB_REF#refs/heads/} | tr -s "/\?%*:|\"<>" "_")" >> $GITHUB_ENV  
+        echo "BRANCH2=$(echo ${GITHUB_REF#refs/heads/} )" >> $GITHUB_ENV    
+        echo "DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
 
-      
+    - name: 打包二进制
+      id: upload
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ github.workflow }}_${{ env.BRANCH }}_${{ env.DATE }}
+        path: release/*
+        if-no-files-found: error
+        retention-days: 1
+
+    - name: issue评论
+      if: github.event_name != 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          github.rest.issues.createComment({
+            issue_number: 483,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '- 下载地址: [${{ github.workflow }}_${{ env.BRANCH }}_${{ env.DATE }}](${{ steps.upload.outputs.artifact-url }})\n'
+              + '- 分支: ${{ env.BRANCH2 }}\n' 
+              + '- git hash: ${{ github.sha }} \n' 
+              + '- 编译日期: ${{ env.DATE }}\n' 
+              + '- 打包ci名: ${{ github.workflow }}\n' 
+              + '- 说明: 本二进制在ubuntu-20.04(x64)上编译，请确保您的机器系统不低于此版本，并提前`sudo apt-get install -y libssl-dev libsdl-dev libavcodec-dev libavutil-dev libswscale-dev libresample-dev libusrsctp-dev`安装依赖项\n' 
+          })
