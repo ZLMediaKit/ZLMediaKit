@@ -323,6 +323,11 @@ public:
         return _map.erase(key);
     }
 
+    size_t size() { 
+        std::lock_guard<std::recursive_mutex> lck(_mtx);
+        return _map.size();
+    }
+
     Pointer find(const std::string &key) const {
         std::lock_guard<std::recursive_mutex> lck(_mtx);
         auto it = _map.find(key);
