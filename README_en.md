@@ -324,6 +324,10 @@ git submodule update --init
 	});
 	
 	```
+
+## Binary file download
+zlmediakit uses github action to continuously integrate automatic compilation package and upload the compilation output package. Please download the latest sdk library file and executable file at [issue list] (https://github.com/ZLMediaKit/ZLMediaKit/issues/483).
+
 ## Docker Image
 
 You can download the pre-compiled image from Docker Hub and start it:
