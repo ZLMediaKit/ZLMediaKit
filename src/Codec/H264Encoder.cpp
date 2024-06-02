@@ -321,6 +321,8 @@ int H264Encoder::inputData(char *yuv[3], int linesize[3], int64_t cts, H264Frame
         _aFrames[i].iType = pNal.i_type;
         _aFrames[i].iLength = pNal.i_payload;
         _aFrames[i].pucData = pNal.p_payload;
+        _aFrames[i].dts = _pPicOut->i_dts;
+        _aFrames[i].pts = _pPicOut->i_pts;
     }
     *out_frame = _aFrames;
     return iNal;
