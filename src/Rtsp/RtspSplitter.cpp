@@ -13,6 +13,7 @@
 #include "Util/util.h"
 #include "Util/logger.h"
 #include "Common/macros.h"
+#include "Rtsp/RtpReceiver.h"
 
 using namespace std;
 using namespace toolkit;
@@ -59,7 +60,11 @@ const char *RtspSplitter::onSearchPacketTail_l(const char *data, size_t len) {
 
 ssize_t RtspSplitter::onRecvHeader(const char *data, size_t len) {
     if (_isRtpPacket) {
-        onRtpPacket(data, len);
+        try {
+            onRtpPacket(data, len);
+        } catch (RtpTrack::BadRtpException &ex) {
+            WarnL << ex.what();
+        }
         return 0;
     }
     if (len == 4 && !memcmp(data, "\r\n\r\n", 4)) {
