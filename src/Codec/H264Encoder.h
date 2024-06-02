@@ -27,6 +27,9 @@ public:
         int iType;
         int iLength;
         uint8_t *pucData;
+
+        int64_t dts;
+        int64_t pts;
     } H264Frame;
 
     H264Encoder();
