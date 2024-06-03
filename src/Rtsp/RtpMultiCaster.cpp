@@ -145,7 +145,7 @@ RtpMultiCaster::RtpMultiCaster(SocketHelper &helper, const string &local_ip, con
     });
 
     string strKey = StrPrinter << local_ip << " " << vhost << " " << app << " " << stream << endl;
-    _rtp_reader->setDetachCB([this]() {
+    _rtp_reader->setDetachCB([this, strKey]() {
         {
             lock_guard<recursive_mutex> lck(g_mtx);
             auto it = g_multi_caster_map.find(strKey);
