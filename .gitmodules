@@ -7,6 +7,12 @@
 [submodule "3rdpart/jsoncpp"]
 	path = 3rdpart/jsoncpp
 	url = https://gitee.com/mirrors/jsoncpp.git
+[submodule "3rdpart/openssl"]
+	path = 3rdpart/openssl
+	url = https://gitee.com/varlet_mirror/openssl-1.1.1k.git
 [submodule "www/webassist"]
 	path = www/webassist
 	url = https://gitee.com/victor1002/zlm_webassist
+[submodule "3rdpart/libsrtp"]
+	path = 3rdpart/libsrtp
+	url = https://github.com/cisco/libsrtp.git

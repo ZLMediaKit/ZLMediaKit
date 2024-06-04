@@ -319,6 +319,7 @@ int start_main(int argc,char *argv[]) {
 #endif//defined(ENABLE_RTPPROXY)
 
 #if defined(ENABLE_WEBRTC)
+        InfoL << "已启动webrtc";
         auto rtcSrv_tcp = std::make_shared<TcpServer>();
         //webrtc udp服务器
         auto rtcSrv_udp = std::make_shared<UdpServer>();

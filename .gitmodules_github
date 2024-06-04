@@ -7,6 +7,9 @@
 [submodule "3rdpart/jsoncpp"]
     path = 3rdpart/jsoncpp
     url = https://github.com/open-source-parsers/jsoncpp.git
+[submodule "3rdpart/openssl"]
+	path = 3rdpart/openssl
+	url = https://gitee.com/varlet_mirror/openssl-1.1.1k.git
 [submodule "www/webassist"]
 	path = www/webassist
 	url = https://github.com/1002victor/zlm_webassist
