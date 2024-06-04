@@ -4,36 +4,38 @@
 
 ## 项目特点
 
-  - 低延迟
-  - [X]支持[ZLMediakit](https://github.com/ZLMediaKit/ZLMediaKit)流媒体
-  - [ ]支持[SRS](https://github.com/ossrs/srs)
-  - [ ]支持[Janus](https://github.com/meetecho/janus-gateway)
+- :white_check_mark:低延迟(200~500ms)
+- :white_check_mark:支持[ZLMediakit](https://github.com/ZLMediaKit/ZLMediaKit)流媒体
+- :black_square_button:支持[SRS](https://github.com/ossrs/srs)
+- :black_square_button:支持[Janus](https://github.com/meetecho/janus-gateway)
 
-<center class="half">
+如果您需要支持SRS或者Janus，请寻找下方联系我！
+
+<p align="center">
     <img src="doc/home.jpg" width="240"/>&nbsp;&nbsp;&nbsp;
     <img src="doc/player.jpg" width="240"/>&nbsp;&nbsp;&nbsp;
     <img src="doc/pusher.jpg" width="240"/>
-</center>
+</p>
 
 ## 延迟情况
 
 - **网页端推流，Android端播放**
 
-<center class="half">
+<p align="center">
     <img src="doc/delay_play1.jpg" width="240"/>&nbsp;&nbsp;&nbsp;
     <img src="doc/delay_play2.jpg" width="240"/>&nbsp;&nbsp;&nbsp;
     <img src="doc/delay_play3.jpg" width="240"/>
-</center>
+</p>
 
 三次延迟分别为：490ms、526ms、560ms
 
 - **Android端推屏幕流，网页端播放**
 
-<center class="half">
+<p align="center">
     <img src="doc/delay_push1.jpg" width="240"/>&nbsp;&nbsp;&nbsp;
     <img src="doc/delay_push2.jpg" width="240"/>&nbsp;&nbsp;&nbsp;
     <img src="doc/delay_push3.jpg" width="240"/>
-</center>
+</p>
 
 三次延迟分别为：440ms、430ms、387ms
 
@@ -67,7 +69,7 @@
 
   录制
 - setOnErrorListener(listener: (code: Int, msg: String) -> Unit)
-  
+
   设置播放器错误监听回调
 - setOnStatusListener(listener: (status: Status) -> Unit)
 
@@ -84,7 +86,7 @@
   推流，支持Camera、Screen、File
 
 - stop()
-  
+
   停止推流
 
 - setOnErrorListener(listener: (code: Int, msg: String) -> Unit)
@@ -92,7 +94,7 @@
   设置播放器错误监听回调
 
 ## 联系作者
-如果您需要深度二次开发，并支持其他流媒体服务，可以找我哦！
+如果您需要深度二次开发，深度优化延迟，并支持其他流媒体服务，可以找我哦！
 [李之阳](https://github.com/leo94666)
 
 ## 特别感谢
