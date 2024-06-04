@@ -5,16 +5,28 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <org.webrtc.SurfaceViewRenderer
-        android:id="@+id/surface_view_renderer"
-        android:layout_width="wrap_content"
+    <com.rtc.core.RTCSurfaceView
+        android:id="@+id/surface_view_render"
+        android:layout_width="match_parent"
         android:layout_height="240dp" />
+
+    <androidx.appcompat.widget.AppCompatTextView
+        android:id="@+id/tv_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textSize="12sp"
+        android:textColor="@android:color/holo_red_light"
+        android:layout_alignParentRight="true"
+        android:layout_margin="6dp"
+        android:background="@color/black"
+        />
 
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@id/surface_view_renderer"
+        android:layout_below="@id/surface_view_render"
         android:orientation="vertical">
 
         <LinearLayout
@@ -41,7 +53,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_below="@id/surface_view_renderer">
+            android:layout_below="@id/surface_view_render">
 
             <androidx.appcompat.widget.AppCompatTextView
                 android:layout_width="0dp"
@@ -56,7 +68,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="4"
-                android:text="li"
+                android:text="test"
                 android:gravity="center"/>
         </LinearLayout>
 

@@ -8,6 +8,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:onClick="toPlayActivity"
+
         android:text="播放" />
 
     <androidx.appcompat.widget.AppCompatButton
@@ -16,12 +17,6 @@
         android:onClick="toPushActivity"
         android:text="推流" />
 
-    <androidx.appcompat.widget.AppCompatButton
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:onClick="toDataChannelActivity"
-        android:text="DataChannel"
-        android:textAllCaps="false" />
 
 
 </androidx.appcompat.widget.LinearLayoutCompat>

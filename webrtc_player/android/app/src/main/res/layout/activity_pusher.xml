@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <org.webrtc.SurfaceViewRenderer
-        android:id="@+id/surface_view_renderer"
+    <com.rtc.core.RTCSurfaceView
+        android:id="@+id/surface_view_render"
         android:layout_width="match_parent"
         android:layout_height="240dp" />
 
@@ -13,8 +13,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintTop_toBottomOf="@id/surface_view_renderer"
-        >
+        android:layout_below="@id/surface_view_render"
+        app:layout_constraintTop_toBottomOf="@id/surface_view_render">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -40,7 +40,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_below="@id/surface_view_renderer">
+            android:layout_below="@id/surface_view_render">
 
             <androidx.appcompat.widget.AppCompatTextView
                 android:layout_width="0dp"
@@ -55,7 +55,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="4"
-                android:text="li"
+                android:text="test"
                 android:gravity="center"/>
         </LinearLayout>
 
@@ -82,5 +82,14 @@
             android:textAllCaps="false"
             android:onClick="onPushFile"/>
 
+
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Stop Push"
+            android:textAllCaps="false"
+            android:onClick="onStopPush"/>
+
     </androidx.appcompat.widget.LinearLayoutCompat>
-</androidx.constraintlayout.widget.ConstraintLayout>
+</RelativeLayout>

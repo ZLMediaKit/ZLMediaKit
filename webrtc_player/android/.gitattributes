@@ -1,2 +1,0 @@
-zlm/libs/arm64-v8a/libZLToolKit.a filter=lfs diff=lfs merge=lfs -text
-zlm/libs/armeabi-v7a/libZLToolKit.a filter=lfs diff=lfs merge=lfs -text
