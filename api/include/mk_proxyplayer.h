@@ -98,7 +98,9 @@ API_EXPORT void API_CALL mk_proxy_player_play(mk_proxy_player ctx, const char *u
  * 如果你不调用mk_proxy_player_release函数，那么MediaSource.close()操作将无效
  * @param user_data 用户数据指针，通过mk_proxy_player_set_on_close函数设置
  */
-typedef void(API_CALL *on_mk_proxy_player_close)(void *user_data, int err, const char *what, int sys_err);
+typedef void(API_CALL *on_mk_proxy_player_cb)(void *user_data, int err, const char *what, int sys_err);
+// 保持兼容
+#define on_mk_proxy_player_close on_mk_proxy_player_cb
 
 /**
  * 监听MediaSource.close()事件
@@ -108,8 +110,17 @@ typedef void(API_CALL *on_mk_proxy_player_close)(void *user_data, int err, const
  * @param cb 回调指针
  * @param user_data 用户数据指针
  */
-API_EXPORT void API_CALL mk_proxy_player_set_on_close(mk_proxy_player ctx, on_mk_proxy_player_close cb, void *user_data);
-API_EXPORT void API_CALL mk_proxy_player_set_on_close2(mk_proxy_player ctx, on_mk_proxy_player_close cb, void *user_data, on_user_data_free user_data_free);
+API_EXPORT void API_CALL mk_proxy_player_set_on_close(mk_proxy_player ctx, on_mk_proxy_player_cb cb, void *user_data);
+API_EXPORT void API_CALL mk_proxy_player_set_on_close2(mk_proxy_player ctx, on_mk_proxy_player_cb cb, void *user_data, on_user_data_free user_data_free);
+
+/**
+ * 设置代理第一次播放结果回调，如果第一次播放失败，可以认作是启动失败
+ * @param ctx 对象指针
+ * @param cb 回调指针
+ * @param user_data 用户数据指针
+ * @param user_data_free 用户数据释放回调
+ */
+API_EXPORT void API_CALL mk_proxy_player_set_on_play_result(mk_proxy_player ctx, on_mk_proxy_player_cb cb, void *user_data, on_user_data_free user_data_free);
 
 /**
  * 获取总的观看人数

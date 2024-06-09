@@ -84,6 +84,20 @@ API_EXPORT void API_CALL mk_proxy_player_set_on_close2(mk_proxy_player ctx, on_m
     });
 }
 
+API_EXPORT void API_CALL mk_proxy_player_set_on_play_result(mk_proxy_player ctx, on_mk_proxy_player_close cb, void *user_data, on_user_data_free user_data_free) {
+    assert(ctx);
+    PlayerProxy::Ptr &obj = *((PlayerProxy::Ptr *)ctx);
+    std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
+    obj->getPoller()->async([obj, cb, ptr]() {
+        // 切换线程再操作
+        obj->setPlayCallbackOnce([cb, ptr](const SockException &ex) {
+            if (cb) {
+                cb(ptr.get(), ex.getErrCode(), ex.what(), ex.getCustomCode());
+            }
+        });
+    });
+}
+
 API_EXPORT int API_CALL mk_proxy_player_total_reader_count(mk_proxy_player ctx){
     assert(ctx);
     PlayerProxy::Ptr &obj = *((PlayerProxy::Ptr *) ctx);
