@@ -15,8 +15,8 @@ var ZLMRTCClient = (function (exports) {
 	  CAPTURE_STREAM_FAILED: 'CAPTURE_STREAM_FAILED'
 	};
 
-	const VERSION$1 = '1.0.1';
-	const BUILD_DATE = 'Mon Mar 27 2023 19:11:59 GMT+0800 (China Standard Time)';
+	const VERSION$1 = '1.0.2';
+	const BUILD_DATE = 'Mon Jun 03 2024 23:12:40 GMT+0800 (China Standard Time)';
 
 	// Copyright (C) <2018> Intel Corporation
 	//
@@ -8024,7 +8024,6 @@ var ZLMRTCClient = (function (exports) {
 	    }
 	    */
 	  }
-
 	  _onIceCandidate(event) {
 	    if (event.candidate) {
 	      log(this.TAG, 'Remote ICE candidate: \n ' + event.candidate.candidate);
@@ -8169,6 +8168,7 @@ var ZLMRTCClient = (function (exports) {
 	      let videoConstraints = new VideoTrackConstraints(VideoSourceInfo.CAMERA);
 	      videoConstraints.resolution = new Resolution(quickScan[i].width, quickScan[i].height);
 	      MediaStreamFactory.createMediaStream(new StreamConstraints(false, videoConstraints)).then(stream => {
+	        stream.getVideoTracks().forEach(track => track.stop());
 	        resolutions.push(quickScan[i]);
 	        ok++;
 	        if (ok + err == quickScan.length) {
@@ -8191,6 +8191,7 @@ var ZLMRTCClient = (function (exports) {
 	    let videoConstraints = new VideoTrackConstraints(VideoSourceInfo.CAMERA);
 	    videoConstraints.resolution = new Resolution(w, h);
 	    MediaStreamFactory.createMediaStream(new StreamConstraints(false, videoConstraints)).then(stream => {
+	      stream.getVideoTracks().forEach(track => track.stop());
 	      resolve();
 	    }).catch(e => {
 	      reject(e);
