@@ -144,7 +144,16 @@ RtpMultiCaster::RtpMultiCaster(SocketHelper &helper, const string &local_ip, con
         });
     });
 
-    _rtp_reader->setDetachCB([this]() {
+    string strKey = StrPrinter << local_ip << " " << vhost << " " << app << " " << stream << endl;
+    _rtp_reader->setDetachCB([this, strKey]() {
+        {
+            lock_guard<recursive_mutex> lck(g_mtx);
+            auto it = g_multi_caster_map.find(strKey);
+            if (it != g_multi_caster_map.end()) {
+                g_multi_caster_map.erase(it);
+            }
+        }
+
         unordered_map<void *, onDetach> _detach_map_copy;
         {
             lock_guard<recursive_mutex> lck(_mtx);
