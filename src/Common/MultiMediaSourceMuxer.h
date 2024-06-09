@@ -127,7 +127,7 @@ public:
     /**
      * 获取本对象
      */
-    std::shared_ptr<MultiMediaSourceMuxer> getMuxer(MediaSource &sender) override;
+    std::shared_ptr<MultiMediaSourceMuxer> getMuxer(MediaSource &sender) const override;
 
     const ProtocolOption &getOption() const;
     const MediaTuple &getMediaTuple() const;

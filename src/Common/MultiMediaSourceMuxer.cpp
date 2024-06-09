@@ -466,8 +466,8 @@ EventPoller::Ptr MultiMediaSourceMuxer::getOwnerPoller(MediaSource &sender) {
     }
 }
 
-std::shared_ptr<MultiMediaSourceMuxer> MultiMediaSourceMuxer::getMuxer(MediaSource &sender) {
-    return shared_from_this();
+std::shared_ptr<MultiMediaSourceMuxer> MultiMediaSourceMuxer::getMuxer(MediaSource &sender) const {
+    return const_cast<MultiMediaSourceMuxer*>(this)->shared_from_this();
 }
 
 bool MultiMediaSourceMuxer::onTrackReady(const Track::Ptr &track) {

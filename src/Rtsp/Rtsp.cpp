@@ -470,6 +470,15 @@ string printSSRC(uint32_t ui32Ssrc) {
     return tmp;
 }
 
+bool getSSRC(const char *data, size_t data_len, uint32_t &ssrc) {
+    if (data_len < 12) {
+        return false;
+    }
+    uint32_t *ssrc_ptr = (uint32_t *)(data + 8);
+    ssrc = ntohl(*ssrc_ptr);
+    return true;
+}
+
 bool isRtp(const char *buf, size_t size) {
     if (size < 2) {
         return false;
