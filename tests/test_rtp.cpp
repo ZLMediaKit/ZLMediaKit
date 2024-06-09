@@ -17,7 +17,7 @@
 #include "Rtsp/RtspSession.h"
 #include "Rtmp/RtmpSession.h"
 #include "Http/HttpSession.h"
-#include "Rtp/RtpSelector.h"
+#include "Rtp/RtpProcess.h"
 
 using namespace std;
 using namespace toolkit;
@@ -42,7 +42,7 @@ static bool loadFile(const char *path, const EventPoller::Ptr &poller) {
     memset(&addr, 0, sizeof(addr));
     addr.ss_family = AF_INET;
     auto sock = Socket::createSocket(poller);
-    auto process = RtpSelector::Instance().getProcess("test", true);
+    auto process = RtpProcess::createProcess("test");
 
     uint64_t stamp_last = 0;
     auto total_size = std::make_shared<size_t>(0);
@@ -89,7 +89,6 @@ static bool loadFile(const char *path, const EventPoller::Ptr &poller) {
         auto ret = do_read();
         if (!ret) {
             WarnL << *total_size / 1024 << "KB";
-            RtpSelector::Instance().delProcess("test", process.get());
         }
         return ret;
     });

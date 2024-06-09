@@ -45,7 +45,7 @@
 #include "Http/HttpRequester.h"
 #include "Player/PlayerProxy.h"
 #include "Pusher/PusherProxy.h"
-#include "Rtp/RtpSelector.h"
+#include "Rtp/RtpProcess.h"
 #include "Record/MP4Reader.h"
 
 #if defined(ENABLE_RTPPROXY)
@@ -485,7 +485,7 @@ uint16_t openRtpServer(uint16_t local_port, const string &stream_id, int tcp_mod
     auto server = s_rtp_server.makeWithAction(stream_id, [&](RtpServer::Ptr server) {
         server->start(local_port, stream_id, (RtpServer::TcpMode)tcp_mode, local_ip.c_str(), re_use_port, ssrc, only_track, multiplex);
     });
-    server->setOnDetach([stream_id]() {
+    server->setOnDetach([stream_id](const SockException &ex) {
         //设置rtp超时移除事件
         s_rtp_server.erase(stream_id);
     });
@@ -1198,8 +1198,8 @@ void installWebApi() {
     api_regist("/index/api/getRtpInfo",[](API_ARGS_MAP){
         CHECK_SECRET();
         CHECK_ARGS("stream_id");
-
-        auto process = RtpSelector::Instance().getProcess(allArgs["stream_id"], false);
+        auto src = MediaSource::find(DEFAULT_VHOST, kRtpAppName, allArgs["stream_id"]);
+        auto process = src ? src->getRtpProcess() : nullptr;
         if (!process) {
             val["exist"] = false;
             return;
@@ -1438,9 +1438,10 @@ void installWebApi() {
         CHECK_SECRET();
         CHECK_ARGS("stream_id");
         //只是暂停流的检查，流媒体服务器做为流负载服务，收流就转发，RTSP/RTMP有自己暂停协议
-        auto rtp_process = RtpSelector::Instance().getProcess(allArgs["stream_id"], false);
-        if (rtp_process) {
-            rtp_process->setStopCheckRtp(true);
+        auto src = MediaSource::find(DEFAULT_VHOST, kRtpAppName, allArgs["stream_id"]);
+        auto process = src ? src->getRtpProcess() : nullptr;
+        if (process) {
+            process->setStopCheckRtp(true);
         } else {
             val["code"] = API::NotFound;
         }
@@ -1449,9 +1450,10 @@ void installWebApi() {
     api_regist("/index/api/resumeRtpCheck", [](API_ARGS_MAP) {
         CHECK_SECRET();
         CHECK_ARGS("stream_id");
-        auto rtp_process = RtpSelector::Instance().getProcess(allArgs["stream_id"], false);
-        if (rtp_process) {
-            rtp_process->setStopCheckRtp(false);
+        auto src = MediaSource::find(DEFAULT_VHOST, kRtpAppName, allArgs["stream_id"]);
+        auto process = src ? src->getRtpProcess() : nullptr;
+        if (process) {
+            process->setStopCheckRtp(false);
         } else {
             val["code"] = API::NotFound;
         }

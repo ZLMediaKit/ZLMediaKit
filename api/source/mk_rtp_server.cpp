@@ -56,7 +56,7 @@ API_EXPORT void API_CALL mk_rtp_server_set_on_detach2(mk_rtp_server ctx, on_mk_r
     RtpServer::Ptr *server = (RtpServer::Ptr *) ctx;
     if (cb) {
         std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
-        (*server)->setOnDetach([cb, ptr]() {
+        (*server)->setOnDetach([cb, ptr](const SockException &ex) {
             cb(ptr.get());
         });
     } else {

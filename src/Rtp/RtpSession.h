@@ -20,7 +20,7 @@
 
 namespace mediakit{
 
-class RtpSession : public toolkit::Session, public RtpSplitter, public MediaSourceEvent {
+class RtpSession : public toolkit::Session, public RtpSplitter {
 public:
     static const std::string kStreamID;
     static const std::string kSSRC;
@@ -34,10 +34,9 @@ public:
     void onManager() override;
     void setParams(toolkit::mINI &ini);
     void attachServer(const toolkit::Server &server) override;
+    void setRtpProcess(RtpProcess::Ptr process);
 
 protected:
-    // 通知其停止推流
-    bool close(MediaSource &sender) override;
     // 收到rtp回调
     void onRtpPacket(const char *data, size_t len) override;
     // RtpSplitter override
@@ -48,10 +47,10 @@ protected:
     const char *searchByPsHeaderFlag(const char *data, size_t len);
 
 private:
-    bool _delay_close = false;
     bool _is_udp = false;
     bool _search_rtp = false;
     bool _search_rtp_finished = false;
+    bool _emit_detach = false;
     int _only_track = 0;
     uint32_t _ssrc = 0;
     toolkit::Ticker _ticker;
