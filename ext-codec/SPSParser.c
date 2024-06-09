@@ -306,13 +306,12 @@ static int getBits(void *pvHandle, int iN)
     uint8_t u8Nbyte;
     uint8_t u8Shift;
     uint32_t u32Result = 0;
-    int iRet = 0;
+    uint32_t iRet = 0;
     int iResoLen = 0;
 
     if(NULL == ptPtr)
     {
         RPT(RPT_ERR, "NULL pointer");
-        iRet = -1;
         goto exit;
     }
 
@@ -324,7 +323,6 @@ static int getBits(void *pvHandle, int iN)
     iResoLen = getBitsLeft(ptPtr);
     if(iResoLen < iN)
     {
-        iRet = -1;
         goto exit;
     }
 
