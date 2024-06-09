@@ -45,10 +45,10 @@ jobs:
           name: ${{ github.workflow }}_${{ env.BRANCH }}_${{ env.DATE }}
           path: release/*
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 90
 
       - name: issue评论
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && github.ref != 'refs/heads/feature/test'
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
