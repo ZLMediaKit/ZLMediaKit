@@ -191,6 +191,7 @@ bash build_docker_images.sh
    - [jessibuca](https://github.com/langhuihui/jessibuca) 基于wasm支持H265的播放器
    - [wsPlayer](https://github.com/v354412101/wsPlayer) 基于MSE的websocket-fmp4播放器
    - [BXC_gb28181Player](https://github.com/any12345com/BXC_gb28181Player) C++开发的支持国标GB28181协议的视频流播放器
+   - [RTCPlayer](https://github.com/leo94666/RTCPlayer) 一个基于Android客户端的的RTC播放器
 
 - WEB管理网站
    - [zlm_webassist](https://github.com/1002victor/zlm_webassist) 本项目配套的前后端分离web管理项目
@@ -366,6 +367,7 @@ bash build_docker_images.sh
 [jamesZHANG500](https://github.com/jamesZHANG500)
 [weidelong](https://github.com/wdl1697454803)
 [小强先生](https://github.com/linshangqiang)
+[李之阳](https://github.com/leo94666)
 
 同时感谢JetBrains对开源项目的支持，本项目使用CLion开发与调试：
 

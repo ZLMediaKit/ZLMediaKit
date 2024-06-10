@@ -373,6 +373,8 @@ bash build_docker_images.sh
   - [WebSocket-fmp4 player based on MSE](https://github.com/v354412101/wsPlayer) 
   - [Domestic webrtc sdk(metaRTC)](https://github.com/metartc/metaRTC)
   - [GB28181 player implemented in C++](https://github.com/any12345com/BXC_gb28181Player)
+  - [Android RTCPlayer](https://github.com/leo94666/RTCPlayer)
+
 
 ## License
 
@@ -525,6 +527,7 @@ Thanks to all those who have supported this project in various ways, including b
 [jamesZHANG500](https://github.com/jamesZHANG500)
 [weidelong](https://github.com/wdl1697454803)
 [小强先生](https://github.com/linshangqiang)
+[李之阳](https://github.com/leo94666)
 
 Also thank to JetBrains for their support for open source project, we developed and debugged zlmediakit with CLion:
 
