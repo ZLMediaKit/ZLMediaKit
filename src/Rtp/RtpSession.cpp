@@ -73,7 +73,7 @@ void RtpSession::onManager() {
 }
 
 void RtpSession::setRtpProcess(RtpProcess::Ptr process) {
-    _emit_detach = true;
+    _emit_detach = (bool)process;
     _process = std::move(process);
 }
 

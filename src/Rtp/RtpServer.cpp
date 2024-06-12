@@ -143,27 +143,6 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_
     GET_CONFIG(int, udpRecvSocketBuffer, RtpProxy::kUdpRecvSocketBuffer);
     SockUtil::setRecvBuf(rtp_socket->rawFD(), udpRecvSocketBuffer);
 
-    TcpServer::Ptr tcp_server;
-    _tcp_mode = tcp_mode;
-    if (tcp_mode == PASSIVE || tcp_mode == ACTIVE) {
-        //创建tcp服务器
-        tcp_server = std::make_shared<TcpServer>(rtp_socket->getPoller());
-        (*tcp_server)[RtpSession::kStreamID] = stream_id;
-        (*tcp_server)[RtpSession::kSSRC] = ssrc;
-        (*tcp_server)[RtpSession::kOnlyTrack] = only_track;
-        if (tcp_mode == PASSIVE) {
-            weak_ptr<RtpServer> weak_self = shared_from_this();
-            tcp_server->start<RtpSession>(local_port, local_ip, 1024, [weak_self](std::shared_ptr<RtpSession> &session) {
-                if (auto strong_self = weak_self.lock()) {
-                    session->setRtpProcess(strong_self->_rtcp_helper->getProcess());
-                }
-            });
-        } else if (stream_id.empty()) {
-            // tcp主动模式时只能一个端口一个流，必须指定流id; 创建TcpServer对象也仅用于传参
-            throw std::runtime_error(StrPrinter << "tcp主动模式时必需指定流id");
-        }
-    }
-
     //创建udp服务器
     UdpServer::Ptr udp_server;
     RtcpHelper::Ptr helper;
@@ -193,11 +172,30 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_
         });
     } else {
         //单端口多线程接收多个流，根据ssrc区分流
-        udp_server = std::make_shared<UdpServer>(rtp_socket->getPoller());
+        udp_server = std::make_shared<UdpServer>();
         (*udp_server)[RtpSession::kOnlyTrack] = only_track;
         (*udp_server)[RtpSession::kUdpRecvBuffer] = udpRecvSocketBuffer;
         udp_server->start<RtpSession>(local_port, local_ip);
         rtp_socket = nullptr;
+    }
+
+    TcpServer::Ptr tcp_server;
+    if (tcp_mode == PASSIVE || tcp_mode == ACTIVE) {
+        //创建tcp服务器
+        tcp_server = std::make_shared<TcpServer>();
+        (*tcp_server)[RtpSession::kStreamID] = stream_id;
+        (*tcp_server)[RtpSession::kSSRC] = ssrc;
+        (*tcp_server)[RtpSession::kOnlyTrack] = only_track;
+        if (tcp_mode == PASSIVE) {
+            weak_ptr<RtpServer> weak_self = shared_from_this();
+            auto processor = helper ? helper->getProcess() : nullptr;
+            tcp_server->start<RtpSession>(local_port, local_ip, 1024, [weak_self, processor](std::shared_ptr<RtpSession> &session) {
+                session->setRtpProcess(processor);
+            });
+        } else if (stream_id.empty()) {
+            // tcp主动模式时只能一个端口一个流，必须指定流id; 创建TcpServer对象也仅用于传参
+            throw std::runtime_error(StrPrinter << "tcp主动模式时必需指定流id");
+        }
     }
 
     _on_cleanup = [rtp_socket, stream_id]() {
@@ -211,6 +209,7 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_
     _udp_server = udp_server;
     _rtp_socket = rtp_socket;
     _rtcp_helper = helper;
+    _tcp_mode = tcp_mode;
 }
 
 void RtpServer::setOnDetach(RtpProcess::onDetachCB cb) {
