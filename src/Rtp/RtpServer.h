@@ -62,7 +62,7 @@ public:
     /**
      * 设置RtpProcess onDetach事件回调
      */
-    void setOnDetach(std::function<void()> cb);
+    void setOnDetach(RtpProcess::onDetachCB cb);
 
     /**
      * 更新ssrc

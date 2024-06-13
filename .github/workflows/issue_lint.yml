@@ -1,0 +1,51 @@
+name: issue_lint
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  issue_lint:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs').promises;
+            
+            const getTitles = (str) => (
+              [...str.matchAll(/^## (.*)/gm)].map((m) => m[0])
+            );
+            
+            const titles = getTitles(context.payload.issue.body);
+            
+            for (let file of await fs.readdir('.github/ISSUE_TEMPLATE')) {
+              if (!file.endsWith('.md')) {
+                continue;
+              }
+            
+              const template = await fs.readFile(`.github/ISSUE_TEMPLATE/${file}`, 'utf-8');
+              const templateTitles = getTitles(template);
+            
+              if (templateTitles.every((title) => titles.includes(title))) {
+                process.exit(0);
+              }
+            }
+            
+            await github.rest.issues.createComment({
+              owner: context.issue.owner,
+              repo: context.issue.repo,
+              issue_number: context.issue.number,
+              body: '此issue由于不符合模板规范已经自动关闭，请重新按照模板规范确保包含模板中所有章节标题再提交\n',
+            });
+            
+            await github.rest.issues.update({
+              owner: context.issue.owner,
+              repo: context.issue.repo,
+              issue_number: context.issue.number,
+              state: 'closed',
+            });

@@ -132,7 +132,12 @@ typedef struct {
     /**
      * 录制mp4分片文件成功后广播
      */
-    void (API_CALL *on_mk_record_mp4)(const mk_mp4_info mp4);
+    void (API_CALL *on_mk_record_mp4)(const mk_record_info mp4);
+
+     /**
+     * 录制ts分片文件成功后广播
+     */
+    void (API_CALL *on_mk_record_ts)(const mk_record_info ts);
 
     /**
      * shell登录鉴权
@@ -175,16 +180,16 @@ typedef struct {
      * @param err 错误代码
      * @param msg 错误提示
      */
-    void(API_CALL *on_mk_media_send_rtp_stop)(const char *vhost, const char *app, const char *stream, const char *ssrc, int err, const char *msg);
+    void (API_CALL *on_mk_media_send_rtp_stop)(const char *vhost, const char *app, const char *stream, const char *ssrc, int err, const char *msg);
 
     /**
      * rtc sctp连接中/完成/失败/关闭回调
      * @param rtc_transport 数据通道对象
      */
-    void(API_CALL *on_mk_rtc_sctp_connecting)(mk_rtc_transport rtc_transport);
-    void(API_CALL *on_mk_rtc_sctp_connected)(mk_rtc_transport rtc_transport);
-    void(API_CALL *on_mk_rtc_sctp_failed)(mk_rtc_transport rtc_transport);
-    void(API_CALL *on_mk_rtc_sctp_closed)(mk_rtc_transport rtc_transport);
+    void (API_CALL *on_mk_rtc_sctp_connecting)(mk_rtc_transport rtc_transport);
+    void (API_CALL *on_mk_rtc_sctp_connected)(mk_rtc_transport rtc_transport);
+    void (API_CALL *on_mk_rtc_sctp_failed)(mk_rtc_transport rtc_transport);
+    void (API_CALL *on_mk_rtc_sctp_closed)(mk_rtc_transport rtc_transport);
 
     /**
      * rtc数据通道发送数据回调
@@ -192,7 +197,7 @@ typedef struct {
      * @param msg 数据
      * @param len 数据长度
      */
-    void(API_CALL *on_mk_rtc_sctp_send)(mk_rtc_transport rtc_transport, const uint8_t *msg, size_t len);
+    void (API_CALL *on_mk_rtc_sctp_send)(mk_rtc_transport rtc_transport, const uint8_t *msg, size_t len);
 
     /**
      * rtc数据通道接收数据回调
@@ -202,7 +207,7 @@ typedef struct {
      * @param msg 数据
      * @param len 数据长度
      */
-    void(API_CALL *on_mk_rtc_sctp_received)(mk_rtc_transport rtc_transport, uint16_t streamId, uint32_t ppid, const uint8_t *msg, size_t len);
+    void (API_CALL *on_mk_rtc_sctp_received)(mk_rtc_transport rtc_transport, uint16_t streamId, uint32_t ppid, const uint8_t *msg, size_t len);
 
 } mk_events;
 

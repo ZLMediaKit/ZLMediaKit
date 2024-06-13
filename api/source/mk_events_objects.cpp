@@ -26,61 +26,61 @@ using namespace toolkit;
 using namespace mediakit;
 
 ///////////////////////////////////////////RecordInfo/////////////////////////////////////////////
-API_EXPORT uint64_t API_CALL mk_mp4_info_get_start_time(const mk_mp4_info ctx){
+API_EXPORT uint64_t API_CALL mk_record_info_get_start_time(const mk_record_info ctx) {
     assert(ctx);
     RecordInfo *info = (RecordInfo *)ctx;
     return info->start_time;
 }
 
-API_EXPORT float API_CALL mk_mp4_info_get_time_len(const mk_mp4_info ctx){
+API_EXPORT float API_CALL mk_record_info_get_time_len(const mk_record_info ctx) {
     assert(ctx);
     RecordInfo *info = (RecordInfo *)ctx;
     return info->time_len;
 }
 
-API_EXPORT size_t API_CALL mk_mp4_info_get_file_size(const mk_mp4_info ctx){
+API_EXPORT size_t API_CALL mk_record_info_get_file_size(const mk_record_info ctx) {
     assert(ctx);
     RecordInfo *info = (RecordInfo *)ctx;
     return info->file_size;
 }
 
-API_EXPORT const char* API_CALL mk_mp4_info_get_file_path(const mk_mp4_info ctx){
+API_EXPORT const char *API_CALL mk_record_info_get_file_path(const mk_record_info ctx) {
     assert(ctx);
     RecordInfo *info = (RecordInfo *)ctx;
     return info->file_path.c_str();
 }
 
-API_EXPORT const char* API_CALL mk_mp4_info_get_file_name(const mk_mp4_info ctx){
+API_EXPORT const char *API_CALL mk_record_info_get_file_name(const mk_record_info ctx) {
     assert(ctx);
     RecordInfo *info = (RecordInfo *)ctx;
     return info->file_name.c_str();
 }
 
-API_EXPORT const char* API_CALL mk_mp4_info_get_folder(const mk_mp4_info ctx){
+API_EXPORT const char *API_CALL mk_record_info_get_folder(const mk_record_info ctx) {
     assert(ctx);
     RecordInfo *info = (RecordInfo *)ctx;
     return info->folder.c_str();
 }
 
-API_EXPORT const char* API_CALL mk_mp4_info_get_url(const mk_mp4_info ctx){
+API_EXPORT const char *API_CALL mk_record_info_get_url(const mk_record_info ctx) {
     assert(ctx);
     RecordInfo *info = (RecordInfo *)ctx;
     return info->url.c_str();
 }
 
-API_EXPORT const char* API_CALL mk_mp4_info_get_vhost(const mk_mp4_info ctx){
+API_EXPORT const char *API_CALL mk_record_info_get_vhost(const mk_record_info ctx) {
     assert(ctx);
     RecordInfo *info = (RecordInfo *)ctx;
     return info->vhost.c_str();
 }
 
-API_EXPORT const char* API_CALL mk_mp4_info_get_app(const mk_mp4_info ctx){
+API_EXPORT const char *API_CALL mk_record_info_get_app(const mk_record_info ctx) {
     assert(ctx);
     RecordInfo *info = (RecordInfo *)ctx;
     return info->app.c_str();
 }
 
-API_EXPORT const char* API_CALL mk_mp4_info_get_stream(const mk_mp4_info ctx){
+API_EXPORT const char *API_CALL mk_record_info_get_stream(const mk_record_info ctx) {
     assert(ctx);
     RecordInfo *info = (RecordInfo *)ctx;
     return info->stream.c_str();
@@ -528,7 +528,7 @@ API_EXPORT void API_CALL mk_auth_invoker_clone_release(const mk_auth_invoker ctx
 }
 
 ///////////////////////////////////////////WebRtcTransport/////////////////////////////////////////////
-API_EXPORT void API_CALL mk_rtc_sendDatachannel(const mk_rtc_transport ctx, uint16_t streamId, uint32_t ppid, const char *msg, size_t len) {
+API_EXPORT void API_CALL mk_rtc_send_datachannel(const mk_rtc_transport ctx, uint16_t streamId, uint32_t ppid, const char *msg, size_t len) {
 #ifdef ENABLE_WEBRTC
     assert(ctx && msg);
     WebRtcTransport *transport = (WebRtcTransport *)ctx;

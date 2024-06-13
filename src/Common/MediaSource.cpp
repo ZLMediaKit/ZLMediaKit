@@ -271,9 +271,14 @@ toolkit::EventPoller::Ptr MediaSource::getOwnerPoller() {
     throw std::runtime_error(toolkit::demangle(typeid(*this).name()) + "::getOwnerPoller failed: " + getUrl());
 }
 
-std::shared_ptr<MultiMediaSourceMuxer> MediaSource::getMuxer() {
+std::shared_ptr<MultiMediaSourceMuxer> MediaSource::getMuxer() const {
     auto listener = _listener.lock();
-    return listener ? listener->getMuxer(*this) : nullptr;
+    return listener ? listener->getMuxer(const_cast<MediaSource&>(*this)) : nullptr;
+}
+
+std::shared_ptr<RtpProcess> MediaSource::getRtpProcess() const {
+    auto listener = _listener.lock();
+    return listener ? listener->getRtpProcess(const_cast<MediaSource&>(*this)) : nullptr;
 }
 
 void MediaSource::onReaderChanged(int size) {
@@ -652,6 +657,10 @@ MediaSource::Ptr MediaSource::createFromMP4(const string &schema, const string &
 /////////////////////////////////////MediaSourceEvent//////////////////////////////////////
 
 void MediaSourceEvent::onReaderChanged(MediaSource &sender, int size){
+    GET_CONFIG(bool, enable, General::kBroadcastPlayerCountChanged);
+    if (enable) {
+        NOTICE_EMIT(BroadcastPlayerCountChangedArgs, Broadcast::kBroadcastPlayerCountChanged, sender.getMediaTuple(), sender.totalReaderCount());
+    }
     if (size || sender.totalReaderCount()) {
         //还有人观看该视频，不触发关闭事件
         _async_close_timer = nullptr;
@@ -799,9 +808,14 @@ toolkit::EventPoller::Ptr MediaSourceEventInterceptor::getOwnerPoller(MediaSourc
     throw std::runtime_error(toolkit::demangle(typeid(*this).name()) + "::getOwnerPoller failed");
 }
 
-std::shared_ptr<MultiMediaSourceMuxer> MediaSourceEventInterceptor::getMuxer(MediaSource &sender) {
+std::shared_ptr<MultiMediaSourceMuxer> MediaSourceEventInterceptor::getMuxer(MediaSource &sender) const {
     auto listener = _listener.lock();
     return listener ? listener->getMuxer(sender) : nullptr;
+}
+
+std::shared_ptr<RtpProcess> MediaSourceEventInterceptor::getRtpProcess(MediaSource &sender) const {
+    auto listener = _listener.lock();
+    return listener ? listener->getRtpProcess(sender) : nullptr;
 }
 
 bool MediaSourceEventInterceptor::setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path, size_t max_second) {

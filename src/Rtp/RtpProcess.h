@@ -18,11 +18,14 @@
 
 namespace mediakit {
 
-class RtpProcess final : public RtcpContextForRecv, public toolkit::SockInfo, public MediaSinkInterface, public MediaSourceEventInterceptor, public std::enable_shared_from_this<RtpProcess>{
+static constexpr char kRtpAppName[] = "rtp";
+
+class RtpProcess final : public RtcpContextForRecv, public toolkit::SockInfo, public MediaSinkInterface, public MediaSourceEvent, public std::enable_shared_from_this<RtpProcess>{
 public:
     using Ptr = std::shared_ptr<RtpProcess>;
-    friend class RtpProcessHelper;
-    RtpProcess(const std::string &stream_id);
+    using onDetachCB = std::function<void(const toolkit::SockException &ex)>;
+
+    static Ptr createProcess(std::string stream_id);
     ~RtpProcess();
     enum OnlyTrack { kAll = 0, kOnlyAudio = 1, kOnlyVideo = 2 };
 
@@ -38,20 +41,16 @@ public:
      */
     bool inputRtp(bool is_udp, const toolkit::Socket::Ptr &sock, const char *data, size_t len, const struct sockaddr *addr , uint64_t *dts_out = nullptr);
 
-    /**
-     * 是否超时，用于超时移除对象
-     */
-    bool alive();
 
     /**
      * 超时时被RtpSelector移除时触发
      */
-    void onDetach();
+    void onDetach(const toolkit::SockException &ex);
 
     /**
      * 设置onDetach事件回调
      */
-    void setOnDetach(std::function<void()> cb);
+    void setOnDetach(onDetachCB cb);
 
     /**
      * 设置onDetach事件回调,false检查RTP超时，true停止
@@ -88,10 +87,17 @@ protected:
     std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
     toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;
     float getLossRate(MediaSource &sender, TrackType type) override;
+    Ptr getRtpProcess(mediakit::MediaSource &sender) const override;
+    bool close(mediakit::MediaSource &sender) override;
 
 private:
+    RtpProcess(std::string stream_id);
+
     void emitOnPublish();
     void doCachedFunc();
+    bool alive();
+    void onManager();
+    void createTimer();
 
 private:
     OnlyTrack _only_track = kAll;
@@ -102,12 +108,13 @@ private:
     toolkit::Socket::Ptr _sock;
     MediaInfo _media_info;
     toolkit::Ticker _last_frame_time;
-    std::function<void()> _on_detach;
+    onDetachCB _on_detach;
     std::shared_ptr<FILE> _save_file_rtp;
     std::shared_ptr<FILE> _save_file_video;
     ProcessInterface::Ptr _process;
     MultiMediaSourceMuxer::Ptr _muxer;
     std::atomic_bool _stop_rtp_check{false};
+    toolkit::Timer::Ptr _timer;
     toolkit::Ticker _last_check_alive;
     std::recursive_mutex _func_mtx;
     std::deque<std::function<void()> > _cached_func;

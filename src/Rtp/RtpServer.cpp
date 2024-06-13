@@ -11,7 +11,7 @@
 #if defined(ENABLE_RTPPROXY)
 #include "Util/uv_errno.h"
 #include "RtpServer.h"
-#include "RtpSelector.h"
+#include "RtpProcess.h"
 #include "Rtcp/RtcpContext.h"
 #include "Common/config.h"
 
@@ -35,38 +35,34 @@ public:
         _stream_id = std::move(stream_id);
     }
 
-    ~RtcpHelper() {
-        if (_process) {
-            // 删除rtp处理器
-            RtpSelector::Instance().delProcess(_stream_id, _process.get());
-        }
-    }
-
     void setRtpServerInfo(uint16_t local_port, RtpServer::TcpMode mode, bool re_use_port, uint32_t ssrc, int only_track) {
-        _local_port = local_port;
-        _tcp_mode = mode;
-        _re_use_port = re_use_port;
         _ssrc = ssrc;
-        _only_track = only_track;
+        _process = RtpProcess::createProcess(_stream_id);
+        _process->setOnlyTrack((RtpProcess::OnlyTrack)only_track);
+
+        _timeout_cb = [=]() mutable {
+            NOTICE_EMIT(BroadcastRtpServerTimeoutArgs, Broadcast::kBroadcastRtpServerTimeout, local_port, _stream_id, (int)mode, re_use_port, ssrc);
+        };
+
+        weak_ptr<RtcpHelper> weak_self = shared_from_this();
+        _process->setOnDetach([weak_self](const SockException &ex) {
+            if (auto strong_self = weak_self.lock()) {
+                if (strong_self->_on_detach) {
+                    strong_self->_on_detach(ex);
+                }
+                if (ex.getErrCode() == Err_timeout) {
+                    strong_self->_timeout_cb();
+                }
+            }
+        });
     }
 
-    void setOnDetach(function<void()> cb) {
-        if (_process) {
-            _process->setOnDetach(std::move(cb));
-        } else {
-            _on_detach = std::move(cb);
-        }
-    }
+    void setOnDetach(RtpProcess::onDetachCB cb) { _on_detach = std::move(cb); }
+
+    RtpProcess::Ptr getProcess() const { return _process; }
 
     void onRecvRtp(const Socket::Ptr &sock, const Buffer::Ptr &buf, struct sockaddr *addr) {
-        if (!_process) {
-            _process = RtpSelector::Instance().getProcess(_stream_id, true);
-            _process->setOnlyTrack((RtpProcess::OnlyTrack)_only_track);
-            _process->setOnDetach(std::move(_on_detach));
-            cancelDelayTask();
-        }
         _process->inputRtp(true, sock, buf->data(), buf->size(), addr);
-
         // 统计rtp接受情况，用于发送rr包
         auto header = (RtpHeader *)buf->data();
         sendRtcp(ntohl(header->ssrc), addr);
@@ -92,37 +88,12 @@ public:
             // 收到sr rtcp后驱动返回rr rtcp
             strong_self->sendRtcp(strong_self->_ssrc, (struct sockaddr *)(strong_self->_rtcp_addr.get()));
         });
-
-        GET_CONFIG(uint64_t, timeoutSec, RtpProxy::kTimeoutSec);
-        _delay_task = _rtcp_sock->getPoller()->doDelayTask(timeoutSec * 1000, [weak_self]() {
-            if (auto strong_self = weak_self.lock()) {
-                auto process = RtpSelector::Instance().getProcess(strong_self->_stream_id, false);
-                if (!process && strong_self->_on_detach) {
-                    strong_self->_on_detach();
-                }
-                if(process && strong_self->_on_detach){// tcp 链接防止断开不删除rtpServer
-                    process->setOnDetach(std::move(strong_self->_on_detach));
-                }
-                if (!process) { // process 未创建，触发rtp server 超时事件
-                    NOTICE_EMIT(BroadcastRtpServerTimeoutArgs, Broadcast::kBroadcastRtpServerTimeout, strong_self->_local_port, strong_self->_stream_id,
-                                (int)strong_self->_tcp_mode, strong_self->_re_use_port, strong_self->_ssrc);
-                }
-            }
-            return 0;
-        });
-    }
-
-    void cancelDelayTask() {
-        if (_delay_task) {
-            _delay_task->cancel();
-            _delay_task = nullptr;
-        }
     }
 
 private:
     void sendRtcp(uint32_t rtp_ssrc, struct sockaddr *addr) {
         // 每5秒发送一次rtcp
-        if (_ticker.elapsedTime() < 5000 || !_process) {
+        if (_ticker.elapsedTime() < 5000) {
             return;
         }
         _ticker.resetTime();
@@ -141,19 +112,14 @@ private:
     }
 
 private:
-    bool _re_use_port = false;
-    int _only_track = 0;
-    uint16_t _local_port = 0;
     uint32_t _ssrc = 0;
-    RtpServer::TcpMode _tcp_mode = RtpServer::NONE;
-
+    std::function<void()> _timeout_cb;
     Ticker _ticker;
     Socket::Ptr _rtcp_sock;
     RtpProcess::Ptr _process;
     std::string _stream_id;
-    function<void()> _on_detach;
+    RtpProcess::onDetachCB _on_detach;
     std::shared_ptr<struct sockaddr_storage> _rtcp_addr;
-    EventPoller::DelayTask::Ptr _delay_task;
 };
 
 void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_mode, const char *local_ip, bool re_use_port, uint32_t ssrc, int only_track, bool multiplex) {
@@ -176,22 +142,6 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_
     //设置udp socket读缓存
     GET_CONFIG(int, udpRecvSocketBuffer, RtpProxy::kUdpRecvSocketBuffer);
     SockUtil::setRecvBuf(rtp_socket->rawFD(), udpRecvSocketBuffer);
-
-    TcpServer::Ptr tcp_server;
-    _tcp_mode = tcp_mode;
-    if (tcp_mode == PASSIVE || tcp_mode == ACTIVE) {
-        //创建tcp服务器
-        tcp_server = std::make_shared<TcpServer>(rtp_socket->getPoller());
-        (*tcp_server)[RtpSession::kStreamID] = stream_id;
-        (*tcp_server)[RtpSession::kSSRC] = ssrc;
-        (*tcp_server)[RtpSession::kOnlyTrack] = only_track;
-        if (tcp_mode == PASSIVE) {
-            tcp_server->start<RtpSession>(local_port, local_ip);
-        } else if (stream_id.empty()) {
-            // tcp主动模式时只能一个端口一个流，必须指定流id; 创建TcpServer对象也仅用于传参
-            throw std::runtime_error(StrPrinter << "tcp主动模式时必需指定流id");
-        }
-    }
 
     //创建udp服务器
     UdpServer::Ptr udp_server;
@@ -222,11 +172,30 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_
         });
     } else {
         //单端口多线程接收多个流，根据ssrc区分流
-        udp_server = std::make_shared<UdpServer>(rtp_socket->getPoller());
+        udp_server = std::make_shared<UdpServer>();
         (*udp_server)[RtpSession::kOnlyTrack] = only_track;
         (*udp_server)[RtpSession::kUdpRecvBuffer] = udpRecvSocketBuffer;
         udp_server->start<RtpSession>(local_port, local_ip);
         rtp_socket = nullptr;
+    }
+
+    TcpServer::Ptr tcp_server;
+    if (tcp_mode == PASSIVE || tcp_mode == ACTIVE) {
+        //创建tcp服务器
+        tcp_server = std::make_shared<TcpServer>();
+        (*tcp_server)[RtpSession::kStreamID] = stream_id;
+        (*tcp_server)[RtpSession::kSSRC] = ssrc;
+        (*tcp_server)[RtpSession::kOnlyTrack] = only_track;
+        if (tcp_mode == PASSIVE) {
+            weak_ptr<RtpServer> weak_self = shared_from_this();
+            auto processor = helper ? helper->getProcess() : nullptr;
+            tcp_server->start<RtpSession>(local_port, local_ip, 1024, [weak_self, processor](std::shared_ptr<RtpSession> &session) {
+                session->setRtpProcess(processor);
+            });
+        } else if (stream_id.empty()) {
+            // tcp主动模式时只能一个端口一个流，必须指定流id; 创建TcpServer对象也仅用于传参
+            throw std::runtime_error(StrPrinter << "tcp主动模式时必需指定流id");
+        }
     }
 
     _on_cleanup = [rtp_socket, stream_id]() {
@@ -240,9 +209,10 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_
     _udp_server = udp_server;
     _rtp_socket = rtp_socket;
     _rtcp_helper = helper;
+    _tcp_mode = tcp_mode;
 }
 
-void RtpServer::setOnDetach(function<void()> cb) {
+void RtpServer::setOnDetach(RtpProcess::onDetachCB cb) {
     if (_rtcp_helper) {
         _rtcp_helper->setOnDetach(std::move(cb));
     }
@@ -277,6 +247,7 @@ void RtpServer::connectToServer(const std::string &url, uint16_t port, const fun
 
 void RtpServer::onConnect() {
     auto rtp_session = std::make_shared<RtpSession>(_rtp_socket);
+    rtp_session->setRtpProcess(_rtcp_helper->getProcess());
     rtp_session->attachServer(*_tcp_server);
     _rtp_socket->setOnRead([rtp_session](const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len) {
         rtp_session->onRecv(buf);

@@ -124,6 +124,10 @@ extern const std::string kBroadcastRtcSctpSend;
 extern const std::string kBroadcastRtcSctpReceived;
 #define BroadcastRtcSctpReceivedArgs WebRtcTransport& sender, uint16_t &streamId, uint32_t &ppid, const uint8_t *&msg, size_t &len
 
+// 观看人数变化广播
+extern const std::string kBroadcastPlayerCountChanged;
+#define BroadcastPlayerCountChangedArgs const MediaTuple& args, const int& count
+
 #define ReloadConfigTag ((void *)(0xFF))
 #define RELOAD_KEY(arg, key)                                                                                           \
     do {                                                                                                               \
@@ -196,6 +200,8 @@ extern const std::string kWaitTrackReadyMS;
 extern const std::string kWaitAddTrackMS;
 // 如果track未就绪，我们先缓存帧数据，但是有最大个数限制(100帧时大约4秒)，防止内存溢出
 extern const std::string kUnreadyFrameCache;
+// 是否启用观看人数变化事件广播，置1则启用，置0则关闭
+extern const std::string kBroadcastPlayerCountChanged;
 } // namespace General
 
 namespace Protocol {
@@ -417,6 +423,9 @@ extern const std::string kNetAdapter;
 // 设置rtp传输类型，可选项有0(tcp，默认)、1(udp)、2(组播)
 // 设置方法:player[PlayerBase::kRtpType] = 0/1/2;
 extern const std::string kRtpType;
+// rtsp播放器发送信令心跳还是rtcp心跳，可选项有0(同时发)、1(rtcp心跳)、2(信令心跳)
+// 设置方法:player[PlayerBase::kRtspBeatType] = 0/1/2;
+extern const std::string kRtspBeatType;
 // rtsp认证用户名
 extern const std::string kRtspUser;
 // rtsp认证用用户密码，可以是明文也可以是md5,md5密码生成方式 md5(username:realm:password)

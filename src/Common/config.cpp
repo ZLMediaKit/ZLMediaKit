@@ -64,6 +64,7 @@ const string kBroadcastRtcSctpFailed = "kBroadcastRtcSctpFailed";
 const string kBroadcastRtcSctpClosed = "kBroadcastRtcSctpClosed";
 const string kBroadcastRtcSctpSend = "kBroadcastRtcSctpSend";
 const string kBroadcastRtcSctpReceived = "kBroadcastRtcSctpReceived";
+const string kBroadcastPlayerCountChanged = "kBroadcastPlayerCountChanged";
 
 } // namespace Broadcast
 
@@ -82,6 +83,7 @@ const string kEnableFFmpegLog = GENERAL_FIELD "enable_ffmpeg_log";
 const string kWaitTrackReadyMS = GENERAL_FIELD "wait_track_ready_ms";
 const string kWaitAddTrackMS = GENERAL_FIELD "wait_add_track_ms";
 const string kUnreadyFrameCache = GENERAL_FIELD "unready_frame_cache";
+const string kBroadcastPlayerCountChanged = GENERAL_FIELD "broadcast_player_count_changed";
 
 static onceToken token([]() {
     mINI::Instance()[kFlowThreshold] = 1024;
@@ -96,6 +98,7 @@ static onceToken token([]() {
     mINI::Instance()[kWaitTrackReadyMS] = 10000;
     mINI::Instance()[kWaitAddTrackMS] = 3000;
     mINI::Instance()[kUnreadyFrameCache] = 100;
+    mINI::Instance()[kBroadcastPlayerCountChanged] = 0;
 });
 
 } // namespace General
@@ -361,6 +364,7 @@ static onceToken token([]() {
 namespace Client {
 const string kNetAdapter = "net_adapter";
 const string kRtpType = "rtp_type";
+const string kRtspBeatType = "rtsp_beat_type";
 const string kRtspUser = "rtsp_user";
 const string kRtspPwd = "rtsp_pwd";
 const string kRtspPwdIsMD5 = "rtsp_pwd_md5";
