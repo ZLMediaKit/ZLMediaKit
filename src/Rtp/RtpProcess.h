@@ -20,7 +20,7 @@ namespace mediakit {
 
 static constexpr char kRtpAppName[] = "rtp";
 
-class RtpProcess final : public RtcpContextForRecv, public toolkit::SockInfo, public MediaSinkInterface, public MediaSourceEventInterceptor, public std::enable_shared_from_this<RtpProcess>{
+class RtpProcess final : public RtcpContextForRecv, public toolkit::SockInfo, public MediaSinkInterface, public MediaSourceEvent, public std::enable_shared_from_this<RtpProcess>{
 public:
     using Ptr = std::shared_ptr<RtpProcess>;
     using onDetachCB = std::function<void(const toolkit::SockException &ex)>;
