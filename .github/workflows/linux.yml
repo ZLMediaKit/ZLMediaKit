@@ -21,33 +21,57 @@ jobs:
         ref: v2.3.0
         path: 3rdpart/libsrtp
 
+    - name: 下载 openssl
+      uses: actions/checkout@v2
+      with:
+        repository: openssl/openssl
+        fetch-depth: 1
+        ref: OpenSSL_1_1_1
+        path: 3rdpart/openssl
+
+    - name: 下载 usrsctp
+      uses: actions/checkout@v2
+      with:
+        repository: sctplab/usrsctp
+        fetch-depth: 1
+        ref: 0.9.5.0
+        path: 3rdpart/usrsctp
+
     - name: 启动 Docker 容器, 在Docker 容器中执行脚本
       run: |
         docker pull centos:7 
         docker run -v $(pwd):/root -w /root --rm centos:7 sh -c "
           set -x
-          yum install -y git wget gcc gcc-c++ make unzip ffmpeg-devel libavutil-devel libswscale-devel libresample-devel usrsctp-devel
+          yum install -y git wget gcc gcc-c++ make
+        
+          mkdir -p /root/install
           
-          wget https://github.com/openssl/openssl/archive/refs/heads/OpenSSL_1_1_1-stable.zip
-          unzip OpenSSL_1_1_1-stable.zip
-          cd openssl-OpenSSL_1_1_1-stable
-          ./config no-shared --prefix=/root/release
+          cd 3rdpart/openssl
+          ./config no-shared --prefix=/root/install
           make -j $(nproc)
           make install
-          cd ..
-        
-          wget https://github.com/Kitware/CMake/releases/download/v3.29.5/cmake-3.29.5.tar.gz
-          tar -xvf cmake-3.29.5.tar.gz
-          cd cmake-3.29.5
-          OPENSSL_ROOT_DIR=/root/release ./configure
-          make -j $(nproc)
-          make install
-          cd ..
-        
-          cd 3rdpart/libsrtp && ./configure --enable-openssl  --with-openssl-dir=/root/release && make -j $(nproc) && make install
           cd ../../
         
-          mkdir -p linux_build && cd linux_build && cmake .. -DOPENSSL_ROOT_DIR=/root/release -DCMAKE_BUILD_TYPE=Release -DENABLE_FFMPEG=true && make -j $(nproc)
+          wget https://github.com/Kitware/CMake/releases/download/v3.29.5/cmake-3.29.5.tar.gz
+          tar -xf cmake-3.29.5.tar.gz
+          cd cmake-3.29.5
+          OPENSSL_ROOT_DIR=/root/install ./configure
+          make -j $(nproc)
+          make install
+          cd ..
+        
+          cd 3rdpart/usrsctp
+          mkdir build
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_POSITION_INDEPENDENT_CODE=ON ..
+          make -j $(nproc)
+          make install
+          cd ../../../
+        
+          cd 3rdpart/libsrtp && ./configure --enable-openssl  --with-openssl-dir=/root/install && make -j $(nproc) && make install
+          cd ../../
+        
+          mkdir -p linux_build && cd linux_build && cmake .. -DOPENSSL_ROOT_DIR=/root/install -DCMAKE_BUILD_TYPE=Release && make -j $(nproc)
         "
 
     - name: 设置环境变量
@@ -79,6 +103,8 @@ jobs:
               + '- 分支: ${{ env.BRANCH2 }}\n' 
               + '- git hash: ${{ github.sha }} \n' 
               + '- 编译日期: ${{ env.DATE }}\n' 
-              + '- 打包ci名: ${{ github.workflow }}\n' 
-              + '- 说明: 本二进制在centos7(x64)上编译，请确保您的机器系统不低于此版本，并提前`sudo yum check-update && sudo yum install -y openssl-devel ffmpeg-devel libavutil-devel libswscale-devel libresample-devel usrsctp-devel`安装依赖项\n' 
+              + '- 编译记录: [${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\n'
+              + '- 打包ci名: ${{ github.workflow }}\n'
+              + '- 开启特性: openssl/webrtc/datachannel\n'
+              + '- 说明: 本二进制在centos7(x64)上编译，请确保您的机器系统不低于此版本\n' 
           })

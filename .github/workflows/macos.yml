@@ -20,7 +20,7 @@ jobs:
         vcpkgTriplet: arm64-osx
         # 2024.06.01
         vcpkgGitCommitId: '47364fbc300756f64f7876b549d9422d5f3ec0d3'
-        vcpkgArguments: 'openssl libsrtp[openssl]'
+        vcpkgArguments: 'openssl libsrtp[openssl] usrsctp'
 
     - name: 编译
       uses: lukka/run-cmake@v3
@@ -59,6 +59,8 @@ jobs:
               + '- 分支: ${{ env.BRANCH2 }}\n' 
               + '- git hash: ${{ github.sha }} \n' 
               + '- 编译日期: ${{ env.DATE }}\n' 
+              + '- 编译记录: [${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\n'
               + '- 打包ci名: ${{ github.workflow }}\n' 
+              + '- 开启特性: openssl/webrtc/datachannel\n'
               + '- 说明: 此二进制为arm64版本\n' 
           })
