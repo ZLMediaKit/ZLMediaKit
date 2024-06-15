@@ -206,13 +206,7 @@ API_EXPORT int API_CALL mk_track_video_gop_interval_ms(mk_track track) {
     assert(track);
     auto video = dynamic_pointer_cast<VideoTrack>((*((Track::Ptr *)track)));
     if (video) {
-        int gop_size = video->getVideoGopSize();
-        int gop_interval_ms = video->getVideoGopInterval();
-        float fps = video->getVideoFps();
-        if (fps <= 1 && gop_interval_ms) {
-            fps = gop_size * 1000.0 / gop_interval_ms;
-        }
-        return gop_interval_ms;
+        return video->getVideoGopInterval();
     }
     WarnL << "not video track";
     return 0;

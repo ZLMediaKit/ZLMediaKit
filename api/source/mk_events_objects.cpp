@@ -222,8 +222,7 @@ API_EXPORT float API_CALL mk_media_source_get_track_loss(const mk_media_source c
     assert(ctx);
     MediaSource *src = (MediaSource *)ctx;
     // rtp推流只有一个统计器，但是可能有多个track，如果短时间多次获取间隔丢包率，第二次会获取为-1
-    float loss = src->getLossRate((*((Track::Ptr *)track))->getTrackType());
-    return loss;
+    return src->getLossRate((*((Track::Ptr *)track))->getTrackType());
 }
 
 API_EXPORT int API_CALL mk_media_source_broadcast_msg(const mk_media_source ctx, const char *msg, size_t len) {

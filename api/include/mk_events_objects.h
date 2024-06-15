@@ -122,7 +122,7 @@ API_EXPORT int API_CALL mk_media_source_broadcast_msg(const mk_media_source ctx,
 API_EXPORT const char* API_CALL mk_media_source_get_origin_url(const mk_media_source ctx);
 // MediaSource::getOriginType()
 API_EXPORT int API_CALL mk_media_source_get_origin_type(const mk_media_source ctx);
-// MediaSource::getOriginTypeStr()
+// MediaSource::getOriginTypeStr(), 使用后请用mk_free释放返回值
 API_EXPORT const char *API_CALL mk_media_source_get_origin_type_str(const mk_media_source ctx);
 // MediaSource::getCreateStamp()
 API_EXPORT uint64_t API_CALL mk_media_source_get_create_stamp(const mk_media_source ctx);

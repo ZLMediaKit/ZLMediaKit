@@ -74,7 +74,7 @@ API_EXPORT const char* API_CALL mk_track_codec_name(mk_track track);
 API_EXPORT int API_CALL mk_track_bit_rate(mk_track track);
 
 /**
- * 获取轨道是否准备好
+ * 获取轨道是否已就绪，1: 已就绪，0：未就绪
  */
 API_EXPORT int API_CALL mk_track_ready(mk_track track);
 
@@ -84,7 +84,7 @@ API_EXPORT int API_CALL mk_track_ready(mk_track track);
 API_EXPORT uint64_t API_CALL mk_track_frames(mk_track track);
 
 /**
- * 获取时间
+ * 获取时间，单位毫秒
  */
 API_EXPORT uint64_t API_CALL mk_track_duration(mk_track track);
 
