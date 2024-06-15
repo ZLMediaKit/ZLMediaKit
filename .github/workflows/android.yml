@@ -53,5 +53,7 @@ jobs:
               + '- 分支: ${{ env.BRANCH2 }}\n' 
               + '- git hash: ${{ github.sha }} \n' 
               + '- 编译日期: ${{ env.DATE }}\n' 
+              + '- 编译记录: [${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\n'
+              + '- 开启特性: 未开启openssl/webrtc/datachannel等功能\n'
               + '- 打包ci名: ${{ github.workflow }}\n' 
           })
