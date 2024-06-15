@@ -218,6 +218,13 @@ API_EXPORT mk_track API_CALL mk_media_source_get_track(const mk_media_source ctx
     return (mk_track) new Track::Ptr(std::move(tracks[index]));
 }
 
+API_EXPORT float API_CALL mk_media_source_get_track_loss(const mk_media_source ctx, const mk_track track) {
+    assert(ctx);
+    MediaSource *src = (MediaSource *)ctx;
+    // rtp推流只有一个统计器，但是可能有多个track，如果短时间多次获取间隔丢包率，第二次会获取为-1
+    return src->getLossRate((*((Track::Ptr *)track))->getTrackType());
+}
+
 API_EXPORT int API_CALL mk_media_source_broadcast_msg(const mk_media_source ctx, const char *msg, size_t len) {
     assert(ctx && msg && len);
     MediaSource *src = (MediaSource *)ctx;
@@ -240,6 +247,12 @@ API_EXPORT  int API_CALL mk_media_source_get_origin_type(const mk_media_source c
     return static_cast<int>(src->getOriginType());
 }
 
+API_EXPORT const char* API_CALL mk_media_source_get_origin_type_str(const mk_media_source ctx) {
+    assert(ctx);
+    MediaSource *src = (MediaSource *)ctx;
+    return _strdup(getOriginTypeString(src->getOriginType()).c_str());
+}
+
 API_EXPORT uint64_t API_CALL mk_media_source_get_create_stamp(const mk_media_source ctx) {
     assert(ctx);
     MediaSource *src = (MediaSource *)ctx;
@@ -251,6 +264,19 @@ API_EXPORT int API_CALL mk_media_source_is_recording(const mk_media_source ctx,i
     MediaSource *src = (MediaSource *)ctx;
     return src->isRecording((Recorder::type)type);
 }
+
+API_EXPORT int API_CALL mk_media_source_get_bytes_speed(const mk_media_source ctx) {
+    assert(ctx);
+    MediaSource *src = (MediaSource *)ctx;
+    return src->getBytesSpeed();
+}
+
+API_EXPORT uint64_t API_CALL mk_media_source_get_alive_second(const mk_media_source ctx) {
+    assert(ctx);
+    MediaSource *src = (MediaSource *)ctx;
+    return src->getAliveSecond();
+}
+
 
 API_EXPORT int API_CALL mk_media_source_close(const mk_media_source ctx,int force){
     assert(ctx);

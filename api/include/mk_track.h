@@ -74,6 +74,21 @@ API_EXPORT const char* API_CALL mk_track_codec_name(mk_track track);
 API_EXPORT int API_CALL mk_track_bit_rate(mk_track track);
 
 /**
+ * 获取轨道是否已就绪，1: 已就绪，0：未就绪
+ */
+API_EXPORT int API_CALL mk_track_ready(mk_track track);
+
+/**
+ * 获取累计帧数
+ */
+API_EXPORT uint64_t API_CALL mk_track_frames(mk_track track);
+
+/**
+ * 获取时间，单位毫秒
+ */
+API_EXPORT uint64_t API_CALL mk_track_duration(mk_track track);
+
+/**
  * 监听frame输出事件
  * @param track track对象
  * @param cb frame输出回调
@@ -113,6 +128,21 @@ API_EXPORT int API_CALL mk_track_video_height(mk_track track);
  * 获取视频帧率
  */
 API_EXPORT int API_CALL mk_track_video_fps(mk_track track);
+
+/**
+ * 获取视频累计关键帧数
+ */
+API_EXPORT uint64_t API_CALL mk_track_video_key_frames(mk_track track);
+
+/**
+ * 获取视频GOP关键帧间隔
+ */
+API_EXPORT int API_CALL mk_track_video_gop_size(mk_track track);
+
+/**
+ * 获取视频累计关键帧间隔(毫秒)
+ */
+API_EXPORT int API_CALL mk_track_video_gop_interval_ms(mk_track track);
 
 /**
  * 获取音频采样率

@@ -109,6 +109,21 @@ API_EXPORT int API_CALL mk_track_bit_rate(mk_track track) {
     return (*((Track::Ptr *) track))->getBitRate();
 }
 
+API_EXPORT int API_CALL mk_track_ready(mk_track track) {
+    assert(track);
+    return (*((Track::Ptr *)track))->ready();
+}
+
+API_EXPORT uint64_t API_CALL mk_track_frames(mk_track track) {
+    assert(track);
+    return (*((Track::Ptr *)track))->getFrames();
+}
+
+API_EXPORT uint64_t API_CALL mk_track_duration(mk_track track) {
+    assert(track);
+    return (*((Track::Ptr *)track))->getDuration();
+}
+
 API_EXPORT void *API_CALL mk_track_add_delegate(mk_track track, on_mk_frame_out cb, void *user_data) {
     return mk_track_add_delegate2(track, cb, user_data, nullptr);
 }
@@ -162,6 +177,36 @@ API_EXPORT int API_CALL mk_track_video_fps(mk_track track) {
     auto video = dynamic_pointer_cast<VideoTrack>((*((Track::Ptr *) track)));
     if (video) {
         return video->getVideoFps();
+    }
+    WarnL << "not video track";
+    return 0;
+}
+
+API_EXPORT uint64_t API_CALL mk_track_video_key_frames(mk_track track) {
+    assert(track);
+    auto video = dynamic_pointer_cast<VideoTrack>((*((Track::Ptr *)track)));
+    if (video) {
+        return video->getVideoFps();
+    }
+    WarnL << "not video track";
+    return 0;
+}
+
+API_EXPORT int API_CALL mk_track_video_gop_size(mk_track track) {
+    assert(track);
+    auto video = dynamic_pointer_cast<VideoTrack>((*((Track::Ptr *)track)));
+    if (video) {
+        return video->getVideoGopSize();
+    }
+    WarnL << "not video track";
+    return 0;
+}
+
+API_EXPORT int API_CALL mk_track_video_gop_interval_ms(mk_track track) {
+    assert(track);
+    auto video = dynamic_pointer_cast<VideoTrack>((*((Track::Ptr *)track)));
+    if (video) {
+        return video->getVideoGopInterval();
     }
     WarnL << "not video track";
     return 0;
