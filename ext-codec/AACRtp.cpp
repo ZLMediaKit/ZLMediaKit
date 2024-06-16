@@ -103,7 +103,7 @@ bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
         ptr += len;
         au_header_ptr += 2;
 
-        if (_frame->size() == (size_t)size) {
+        if (_frame->size() >= (size_t)size) {
             // 设置当前audio unit时间戳
             _frame->_dts = _last_dts + i * dts_inc;
             flushData();
