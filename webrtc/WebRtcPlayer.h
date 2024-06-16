@@ -31,11 +31,17 @@ protected:
 private:
     WebRtcPlayer(const EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src, const MediaInfo &info);
 
+    void sendConfigFrames(uint32_t before_seq, uint32_t sample_rate, uint32_t timestamp, uint64_t ntp_timestamp);
+
 private:
     //媒体相关元数据
     MediaInfo _media_info;
     //播放的rtsp源
     std::weak_ptr<RtspMediaSource> _play_src;
+
+    // rtp 直接转发情况下通常会缺少 sps/pps, 在转发 rtp 前, 先发送一次相关帧信息, 部分情况下是可以播放的
+    bool _send_config_frames_once { false };
+
     //播放rtsp源的reader对象
     RtspMediaSource::RingType::RingReader::Ptr _reader;
 };
