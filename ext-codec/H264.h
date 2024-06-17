@@ -115,6 +115,7 @@ public:
     toolkit::Buffer::Ptr getExtraData() const override;
     void setExtraData(const uint8_t *data, size_t size) override;
     bool update() override;
+    std::vector<Frame::Ptr> getConfigFrames() const override { return _config_frames; }
 
 private:
     Sdp::Ptr getSdp(uint8_t payload_type) const override;
@@ -129,7 +130,20 @@ private:
     float _fps = 0;
     std::string _sps;
     std::string _pps;
+    std::vector<Frame::Ptr> _config_frames;
 };
 
+template <typename FrameType>
+Frame::Ptr createConfigFrame(const std::string &data, uint64_t dts = 0, int index = 0) {
+    auto frame = FrameType::create();
+    frame->_prefix_size = 4;
+    frame->_buffer.assign("\x00\x00\x00\x01", 4);
+    frame->_buffer.append(data);
+    frame->_dts = dts;
+    frame->setIndex(index);
+    return frame;
+}
+
 }//namespace mediakit
+
 #endif //ZLMEDIAKIT_H264_H

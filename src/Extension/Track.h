@@ -109,6 +109,11 @@ public:
      * 返回视频fps
      */
     virtual float getVideoFps() const { return 0; }
+
+    /**
+     * 返回相关 sps/pps 等
+     */
+    virtual std::vector<Frame::Ptr> getConfigFrames() const { return std::vector<Frame::Ptr>{}; }
 };
 
 class VideoTrackImp : public VideoTrack {
