@@ -1979,6 +1979,7 @@ void installWebApi() {
 
 	api_regist("/index/api/stack/stop", [](API_ARGS_MAP_ASYNC) {
 		CHECK_SECRET();
+		CHECK_ARGS("id");
 		auto ret = VideoStackManager::Instance().stopVideoStack(allArgs["id"]);
 		val["code"] = ret;
         val["msg"] = ret ? "failed" : "success";
