@@ -183,9 +183,9 @@ void H265Track::setExtraData(const uint8_t *data, size_t bytes) {
 
 bool H265Track::update() {
     _config_frames = std::vector<Frame::Ptr>{
-        createConfigFrame<H265Frame>(_vps),
-        createConfigFrame<H265Frame>(_sps),
-        createConfigFrame<H265Frame>(_pps)
+        createConfigFrame<H265Frame>(_vps, 0, getIndex()),
+        createConfigFrame<H265Frame>(_sps, 0, getIndex()),
+        createConfigFrame<H265Frame>(_pps, 0, getIndex())
     };
     return getHEVCInfo(_vps, _sps, _width, _height, _fps);
 }
@@ -199,13 +199,13 @@ void H265Track::insertConfigFrame(const Frame::Ptr &frame) {
         return;
     }
     if (!_vps.empty()) {
-        VideoTrack::inputFrame(createConfigFrame<H265Frame>(_vps));
+        VideoTrack::inputFrame(createConfigFrame<H265Frame>(_vps, frame->dts(), frame->getIndex()));
     }
     if (!_sps.empty()) {
-        VideoTrack::inputFrame(createConfigFrame<H265Frame>(_sps));
+        VideoTrack::inputFrame(createConfigFrame<H265Frame>(_sps, frame->dts(), frame->getIndex()));
     }
     if (!_pps.empty()) {
-        VideoTrack::inputFrame(createConfigFrame<H265Frame>(_pps));
+        VideoTrack::inputFrame(createConfigFrame<H265Frame>(_pps, frame->dts(), frame->getIndex()));
     }
 }
 
