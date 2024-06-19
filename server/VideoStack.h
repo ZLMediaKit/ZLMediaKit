@@ -7,184 +7,184 @@
 #include <mutex>
 template<typename T> class RefWrapper {
 public:
-	using Ptr = std::shared_ptr<RefWrapper<T>>;
+    using Ptr = std::shared_ptr<RefWrapper<T>>;
 
-	template<typename... Args>
-	explicit RefWrapper(Args&&... args) : _rc(0), _entity(std::forward<Args>(args)...) {}
+    template<typename... Args>
+    explicit RefWrapper(Args&&... args) : _rc(0), _entity(std::forward<Args>(args)...) {}
 
-	T acquire() {
-		++_rc;
-		return _entity;
-	}
+    T acquire() {
+        ++_rc;
+        return _entity;
+    }
 
-	bool dispose() { return --_rc <= 0; }
+    bool dispose() { return --_rc <= 0; }
 
 private:
-	std::atomic<int> _rc;
-	T _entity;
+    std::atomic<int> _rc;
+    T _entity;
 };
 
 class Channel;
 
 struct Param {
-	using Ptr = std::shared_ptr<Param>;
+    using Ptr = std::shared_ptr<Param>;
 
-	int posX = 0;
-	int posY = 0;
-	int width = 0;
-	int height = 0;
-	AVPixelFormat pixfmt = AV_PIX_FMT_YUV420P;
-	std::string id{};
+    int posX = 0;
+    int posY = 0;
+    int width = 0;
+    int height = 0;
+    AVPixelFormat pixfmt = AV_PIX_FMT_YUV420P;
+    std::string id{};
 
-	// runtime
-	std::weak_ptr<Channel> weak_chn;
-	std::weak_ptr<mediakit::FFmpegFrame> weak_buf;
+    // runtime
+    std::weak_ptr<Channel> weak_chn;
+    std::weak_ptr<mediakit::FFmpegFrame> weak_buf;
 
-	~Param();
+    ~Param();
 };
 
 using Params = std::shared_ptr<std::vector<Param::Ptr>>;
 
 class Channel : public std::enable_shared_from_this<Channel> {
 public:
-	using Ptr = std::shared_ptr<Channel>;
+    using Ptr = std::shared_ptr<Channel>;
 
-	Channel(const std::string& id, int width, int height, AVPixelFormat pixfmt);
+    Channel(const std::string& id, int width, int height, AVPixelFormat pixfmt);
 
-	void addParam(const std::weak_ptr<Param>& p);
+    void addParam(const std::weak_ptr<Param>& p);
 
-	void onFrame(const mediakit::FFmpegFrame::Ptr& frame);
+    void onFrame(const mediakit::FFmpegFrame::Ptr& frame);
 
-	void fillBuffer(const Param::Ptr& p);
+    void fillBuffer(const Param::Ptr& p);
 
 protected:
-	void forEachParam(const std::function<void(const Param::Ptr&)>& func);
+    void forEachParam(const std::function<void(const Param::Ptr&)>& func);
 
-	void copyData(const mediakit::FFmpegFrame::Ptr& buf, const Param::Ptr& p);
+    void copyData(const mediakit::FFmpegFrame::Ptr& buf, const Param::Ptr& p);
 
 private:
-	std::string _id;
-	int _width;
-	int _height;
-	AVPixelFormat _pixfmt;
+    std::string _id;
+    int _width;
+    int _height;
+    AVPixelFormat _pixfmt;
 
-	mediakit::FFmpegFrame::Ptr _tmp;
+    mediakit::FFmpegFrame::Ptr _tmp;
 
-	std::recursive_mutex _mx;
-	std::vector<std::weak_ptr<Param>> _params;
+    std::recursive_mutex _mx;
+    std::vector<std::weak_ptr<Param>> _params;
 
-	mediakit::FFmpegSws::Ptr _sws;
-	toolkit::EventPoller::Ptr _poller;
+    mediakit::FFmpegSws::Ptr _sws;
+    toolkit::EventPoller::Ptr _poller;
 };
 
 class StackPlayer : public std::enable_shared_from_this<StackPlayer> {
 public:
-	using Ptr = std::shared_ptr<StackPlayer>;
+    using Ptr = std::shared_ptr<StackPlayer>;
 
-	StackPlayer(const std::string& url) : _url(url) {}
+    StackPlayer(const std::string& url) : _url(url) {}
 
-	void addChannel(const std::weak_ptr<Channel>& chn);
+    void addChannel(const std::weak_ptr<Channel>& chn);
 
-	void play();
+    void play();
 
-	void onFrame(const mediakit::FFmpegFrame::Ptr& frame);
+    void onFrame(const mediakit::FFmpegFrame::Ptr& frame);
 
-	void onDisconnect();
+    void onDisconnect();
 
 protected:
-	void rePlay(const std::string& url);
+    void rePlay(const std::string& url);
 
 private:
-	std::string _url;
-	mediakit::MediaPlayer::Ptr _player;
+    std::string _url;
+    mediakit::MediaPlayer::Ptr _player;
 
-	//用于断线重连
-	toolkit::Timer::Ptr _timer;
-	int _failedCount = 0;
+    // 用于断线重连
+    toolkit::Timer::Ptr _timer;
+    int _failedCount = 0;
 
-	std::recursive_mutex _mx;
-	std::vector<std::weak_ptr<Channel>> _channels;
+    std::recursive_mutex _mx;
+    std::vector<std::weak_ptr<Channel>> _channels;
 };
 
 class VideoStack {
 public:
-	using Ptr = std::shared_ptr<VideoStack>;
+    using Ptr = std::shared_ptr<VideoStack>;
 
-	VideoStack(const std::string& url, int width = 1920, int height = 1080,
-			   AVPixelFormat pixfmt = AV_PIX_FMT_YUV420P, float fps = 25.0,
-			   int bitRate = 2 * 1024 * 1024);
+    VideoStack(const std::string& url, int width = 1920, int height = 1080,
+               AVPixelFormat pixfmt = AV_PIX_FMT_YUV420P, float fps = 25.0,
+               int bitRate = 2 * 1024 * 1024);
 
-	~VideoStack();
+    ~VideoStack();
 
-	void setParam(const Params& params);
+    void setParam(const Params& params);
 
-	void start();
+    void start();
 
 protected:
-	void initBgColor();
+    void initBgColor();
 
 public:
-	Params _params;
+    Params _params;
 
-	mediakit::FFmpegFrame::Ptr _buffer;
+    mediakit::FFmpegFrame::Ptr _buffer;
 
 private:
-	std::string _id;
-	int _width;
-	int _height;
-	AVPixelFormat _pixfmt;
-	float _fps;
-	int _bitRate;
+    std::string _id;
+    int _width;
+    int _height;
+    AVPixelFormat _pixfmt;
+    float _fps;
+    int _bitRate;
 
-	mediakit::DevChannel::Ptr _dev;
+    mediakit::DevChannel::Ptr _dev;
 
-	bool _isExit;
+    bool _isExit;
 
-	std::thread _thread;
+    std::thread _thread;
 };
 
 class VideoStackManager {
 public:
-	//创建拼接流
-	int startVideoStack(const Json::Value& json);
+    // 创建拼接流
+    int startVideoStack(const Json::Value& json);
 
-	//停止拼接流
-	int stopVideoStack(const std::string& id);
+    // 停止拼接流
+    int stopVideoStack(const std::string& id);
 
-	//可以在不断流的情况下，修改拼接流的配置(实现切换拼接屏内容)
-	int resetVideoStack(const Json::Value& json);
+    // 可以在不断流的情况下，修改拼接流的配置(实现切换拼接屏内容)
+    int resetVideoStack(const Json::Value& json);
 
 public:
-	static VideoStackManager& Instance();
+    static VideoStackManager& Instance();
 
-	Channel::Ptr getChannel(const std::string& id, int width, int height, AVPixelFormat pixfmt);
+    Channel::Ptr getChannel(const std::string& id, int width, int height, AVPixelFormat pixfmt);
 
-	void unrefChannel(const std::string& id, int width, int height, AVPixelFormat pixfmt);
+    void unrefChannel(const std::string& id, int width, int height, AVPixelFormat pixfmt);
 
-	bool loadBgImg(const std::string& path);
+    bool loadBgImg(const std::string& path);
 
-	void clear();
+    void clear();
 
-	mediakit::FFmpegFrame::Ptr getBgImg();
-
-protected:
-	Params parseParams(const Json::Value& json, std::string& id, int& width, int& height);
+    mediakit::FFmpegFrame::Ptr getBgImg();
 
 protected:
-	Channel::Ptr createChannel(const std::string& id, int width, int height, AVPixelFormat pixfmt);
+    Params parseParams(const Json::Value& json, std::string& id, int& width, int& height);
 
-	StackPlayer::Ptr createPlayer(const std::string& id);
+protected:
+    Channel::Ptr createChannel(const std::string& id, int width, int height, AVPixelFormat pixfmt);
+
+    StackPlayer::Ptr createPlayer(const std::string& id);
 
 private:
-	mediakit::FFmpegFrame::Ptr _bgImg;
+    mediakit::FFmpegFrame::Ptr _bgImg;
 
 private:
-	std::recursive_mutex _mx;
+    std::recursive_mutex _mx;
 
-	std::unordered_map<std::string, VideoStack::Ptr> _stackMap;
+    std::unordered_map<std::string, VideoStack::Ptr> _stackMap;
 
-	std::unordered_map<std::string, RefWrapper<Channel::Ptr>::Ptr> _channelMap;
-
-	std::unordered_map<std::string, RefWrapper<StackPlayer::Ptr>::Ptr> _playerMap;
+    std::unordered_map<std::string, RefWrapper<Channel::Ptr>::Ptr> _channelMap;
+    
+    std::unordered_map<std::string, RefWrapper<StackPlayer::Ptr>::Ptr> _playerMap;
 };
 #endif

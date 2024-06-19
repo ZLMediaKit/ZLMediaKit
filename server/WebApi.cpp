@@ -1949,42 +1949,42 @@ void installWebApi() {
         VideoStackManager::Instance().stopVideoStack(id);
     });
 
-	api_regist("/index/api/stack/start", [](API_ARGS_JSON_ASYNC) {
-		CHECK_SECRET();
-		int ret = 0;
-		try {
-			ret = VideoStackManager::Instance().startVideoStack(allArgs.args);
-			val["code"] = ret;
-			val["msg"] = ret ? "failed" : "success";
-		} catch (const std::exception& e) {
-			val["code"] = -1;
-			val["msg"] = e.what();
-		}
-		invoker(200, headerOut, val.toStyledString());
-	});
+    api_regist("/index/api/stack/start", [](API_ARGS_JSON_ASYNC) {
+        CHECK_SECRET();
+        int ret = 0;
+        try {
+            ret = VideoStackManager::Instance().startVideoStack(allArgs.args);
+            val["code"] = ret;
+            val["msg"] = ret ? "failed" : "success";
+        } catch (const std::exception &e) {
+            val["code"] = -1;
+            val["msg"] = e.what();
+        }
+        invoker(200, headerOut, val.toStyledString());
+    });
 
-	api_regist("/index/api/stack/reset", [](API_ARGS_JSON_ASYNC) {
-		CHECK_SECRET();
-		int ret = 0;
-		try {
-			auto ret = VideoStackManager::Instance().resetVideoStack(allArgs.args);
-			val["code"] = ret;
-			val["msg"] = ret ? "failed" : "success";
-		} catch (const std::exception& e) {
-			val["code"] = -1;
-			val["msg"] = e.what();
-		}
-		invoker(200, headerOut, val.toStyledString());
-	});
+    api_regist("/index/api/stack/reset", [](API_ARGS_JSON_ASYNC) {
+        CHECK_SECRET();
+        int ret = 0;
+        try {
+            auto ret = VideoStackManager::Instance().resetVideoStack(allArgs.args);
+            val["code"] = ret;
+            val["msg"] = ret ? "failed" : "success";
+        } catch (const std::exception &e) {
+            val["code"] = -1;
+            val["msg"] = e.what();
+        }
+        invoker(200, headerOut, val.toStyledString());
+    });
 
-	api_regist("/index/api/stack/stop", [](API_ARGS_MAP_ASYNC) {
-		CHECK_SECRET();
-		CHECK_ARGS("id");
-		auto ret = VideoStackManager::Instance().stopVideoStack(allArgs["id"]);
-		val["code"] = ret;
+    api_regist("/index/api/stack/stop", [](API_ARGS_MAP_ASYNC) {
+        CHECK_SECRET();
+        CHECK_ARGS("id");
+        auto ret = VideoStackManager::Instance().stopVideoStack(allArgs["id"]);
+        val["code"] = ret;
         val["msg"] = ret ? "failed" : "success";
         invoker(200, headerOut, val.toStyledString());
-	});
+    });
 #endif
 }
 
@@ -1996,8 +1996,8 @@ void unInstallWebApi(){
     s_rtp_server.clear();
 #endif
 #if defined(ENABLE_VIDEOSTACK) && defined(ENABLE_FFMPEG) && defined(ENABLE_X264)
-	VideoStackManager::Instance().clear();
+    VideoStackManager::Instance().clear();
 #endif
 
-	NoticeCenter::Instance().delListener(&web_api_tag);
+    NoticeCenter::Instance().delListener(&web_api_tag);
 }
