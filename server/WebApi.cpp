@@ -8,6 +8,7 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
+#include <exception>
 #include <sys/stat.h>
 #include <math.h>
 #include <signal.h>
@@ -1950,9 +1951,29 @@ void installWebApi() {
 
     api_regist("/index/api/stack/start", [](API_ARGS_JSON_ASYNC) {
         CHECK_SECRET();
-        auto ret = VideoStackManager::Instance().startVideoStack(allArgs.args);
-        val["code"] = ret;
-        val["msg"] = ret ? "failed" : "success";
+        int ret = 0;
+        try {
+            ret = VideoStackManager::Instance().startVideoStack(allArgs.args);
+            val["code"] = ret;
+            val["msg"] = ret ? "failed" : "success";
+        } catch (const std::exception &e) {
+            val["code"] = -1;
+            val["msg"] = e.what();
+        }
+        invoker(200, headerOut, val.toStyledString());
+    });
+
+    api_regist("/index/api/stack/reset", [](API_ARGS_JSON_ASYNC) {
+        CHECK_SECRET();
+        int ret = 0;
+        try {
+            auto ret = VideoStackManager::Instance().resetVideoStack(allArgs.args);
+            val["code"] = ret;
+            val["msg"] = ret ? "failed" : "success";
+        } catch (const std::exception &e) {
+            val["code"] = -1;
+            val["msg"] = e.what();
+        }
         invoker(200, headerOut, val.toStyledString());
     });
 
@@ -1973,6 +1994,9 @@ void unInstallWebApi(){
     s_pusher_proxy.clear();
 #if defined(ENABLE_RTPPROXY)
     s_rtp_server.clear();
+#endif
+#if defined(ENABLE_VIDEOSTACK) && defined(ENABLE_FFMPEG) && defined(ENABLE_X264)
+    VideoStackManager::Instance().clear();
 #endif
 
     NoticeCenter::Instance().delListener(&web_api_tag);
