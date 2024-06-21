@@ -13,6 +13,7 @@
 #include "Util/base64.h"
 #include "Network/sockutil.h"
 #include "Common/config.h"
+#include "Nack.h"
 #include "RtpExt.h"
 #include "Rtcp/Rtcp.h"
 #include "Rtcp/RtcpFCI.h"
@@ -57,9 +58,6 @@ const string kMinBitrate = RTC_FIELD "min_bitrate";
 // 数据通道设置
 const string kDataChannelEcho = RTC_FIELD "datachannel_echo";
 
-// rtp丢包状态最长保留时间
-const string kNackMaxMS = RTC_FIELD "nackMaxMS";
-
 static onceToken token([]() {
     mINI::Instance()[kTimeOutSec] = 15;
     mINI::Instance()[kExternIP] = "";
@@ -72,8 +70,6 @@ static onceToken token([]() {
     mINI::Instance()[kMinBitrate] = 0;
 
     mINI::Instance()[kDataChannelEcho] = true;
-
-    mINI::Instance()[kNackMaxMS] = 3 * 1000;
 });
 
 } // namespace RTC
@@ -806,7 +802,8 @@ public:
         setOnSorted(std::move(cb));
         //设置jitter buffer参数
         GET_CONFIG(uint32_t, nack_maxms, Rtc::kNackMaxMS);
-        RtpTrackImp::setParams(1024, nack_maxms, 512);
+        GET_CONFIG(uint32_t, nack_max_rtp, Rtc::kNackMaxSize);
+        RtpTrackImp::setParams(nack_max_rtp, nack_maxms, nack_max_rtp / 2);
         _nack_ctx.setOnNack([this](const FCI_NACK &nack) { onNack(nack); });
     }
 
