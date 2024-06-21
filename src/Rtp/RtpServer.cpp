@@ -124,8 +124,9 @@ private:
 
 void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_mode, const char *local_ip, bool re_use_port, uint32_t ssrc, int only_track, bool multiplex) {
     //创建udp服务器
-    Socket::Ptr rtp_socket = Socket::createSocket(nullptr, true);
-    Socket::Ptr rtcp_socket = Socket::createSocket(nullptr, true);
+    auto poller = EventPollerPool::Instance().getPoller();
+    Socket::Ptr rtp_socket = Socket::createSocket(poller, true);
+    Socket::Ptr rtcp_socket = Socket::createSocket(poller, true);
     if (local_port == 0) {
         //随机端口，rtp端口采用偶数
         auto pair = std::make_pair(rtp_socket, rtcp_socket);
@@ -181,14 +182,14 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_
 
     TcpServer::Ptr tcp_server;
     if (tcp_mode == PASSIVE || tcp_mode == ACTIVE) {
-        //创建tcp服务器
-        tcp_server = std::make_shared<TcpServer>();
+        auto processor = helper ? helper->getProcess() : nullptr;
+        // 如果共享同一个processor对象，那么tcp server深圳为单线程模式确保线程安全
+        tcp_server = std::make_shared<TcpServer>(processor ? poller : nullptr);
         (*tcp_server)[RtpSession::kStreamID] = stream_id;
         (*tcp_server)[RtpSession::kSSRC] = ssrc;
         (*tcp_server)[RtpSession::kOnlyTrack] = only_track;
         if (tcp_mode == PASSIVE) {
             weak_ptr<RtpServer> weak_self = shared_from_this();
-            auto processor = helper ? helper->getProcess() : nullptr;
             tcp_server->start<RtpSession>(local_port, local_ip, 1024, [weak_self, processor](std::shared_ptr<RtpSession> &session) {
                 session->setRtpProcess(processor);
             });
