@@ -235,11 +235,15 @@ void H264Track::setExtraData(const uint8_t *data, size_t bytes) {
 }
 
 bool H264Track::update() {
-    _config_frames = std::vector<Frame::Ptr>{
-        createConfigFrame<H264Frame>(_sps, 0, getIndex()),
-        createConfigFrame<H264Frame>(_pps, 0, getIndex())
-    };
     return getAVCInfo(_sps, _width, _height, _fps);
+}
+
+std::vector<Frame::Ptr> H264Track::getConfigFrames() const {
+    if (!ready()) {
+        return {};
+    }
+    return { createConfigFrame<H264Frame>(_sps, 0, getIndex()),
+             createConfigFrame<H264Frame>(_pps, 0, getIndex()) };
 }
 
 Track::Ptr H264Track::clone() const {

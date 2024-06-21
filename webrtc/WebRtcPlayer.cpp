@@ -129,7 +129,12 @@ void WebRtcPlayer::sendConfigFrames(uint32_t before_seq, uint32_t sample_rate, u
     if (!play_src) {
         return;
     }
-    auto video_track = std::dynamic_pointer_cast<mediakit::VideoTrack>(play_src->getTrack(mediakit::TrackVideo));
+    SdpParser parser(play_src->getSdp());
+    auto video_sdp = parser.getTrack(TrackVideo);
+    if (!video_sdp) {
+        return;
+    }
+    auto video_track = dynamic_pointer_cast<VideoTrack>(Factory::getTrackBySdp(video_sdp));
     if (!video_track) {
         return;
     }
@@ -146,9 +151,8 @@ void WebRtcPlayer::sendConfigFrames(uint32_t before_seq, uint32_t sample_rate, u
     encoder->setRtpInfo(0, video_mtu, sample_rate, 0, 0, 0);
 
     auto seq = before_seq - frames.size();
-    for (const auto &frame : video_track->getConfigFrames()) {
-        auto rtp = encoder->getRtpInfo().makeRtp(
-            TrackVideo, frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize(), false, 0);
+    for (const auto &frame : frames) {
+        auto rtp = encoder->getRtpInfo().makeRtp(TrackVideo, frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize(), false, 0);
         auto header = rtp->getHeader();
         header->seq = htons(seq++);
         header->stamp = htonl(timestamp);
