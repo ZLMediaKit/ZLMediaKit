@@ -35,7 +35,6 @@
         </div>
 
         <div style="float: right; width: 70%">
-
             <p>
                 <label for="streamUrl">url:</label>
                 <input type="text" style="co; width:70%" id='streamUrl' value="http://192.168.1.101/index/api/webrtc?app=live&stream=xiong&type=play">
@@ -96,7 +95,6 @@
               </select>
             </p>
 
-
             <p>
               <label for="audioDevice">audiodevice:</label>
               <select id="audioDevice">
@@ -109,10 +107,6 @@
             </p>
             <button onclick="switchVideo()">切换视频(switch video)</button>
             <button onclick="switchAudio()">切换音频(switch  audio)</button>
-            
-
-        <div>11111</div>
-            
         </div>
     </div>
 
@@ -206,8 +200,17 @@
         let elv = document.getElementById("videoDevice");
         let ela = document.getElementById("audioDevice");
 
-        let vdevid = JSON.parse(elv.options[elv.selectedIndex].value).deviceId
-        let adevid = JSON.parse(ela.options[ela.selectedIndex].value).deviceId
+        let vdevid = ''
+        let adevid = ''
+
+        if (!recvOnly) {
+            if (elv.selectedIndex !== -1) {
+                vdevid = JSON.parse(elv.options[elv.selectedIndex].value).deviceId
+            }
+            if (ela.selectedIndex !== -1) {
+                adevid = JSON.parse(ela.options[ela.selectedIndex].value).deviceId
+            }
+        }
 
         player = new ZLMRTCClient.Endpoint(
                 {
