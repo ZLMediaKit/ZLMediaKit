@@ -3,17 +3,25 @@
   <head>
     <title>ZLM RTC demo</title>
     <script src="./ZLMRTCClient.js"></script>
+    <style>
+      video {
+        width: 40vw;
+        max-height: 50vh;
+        height: 22.5vw; /* 默认和宽:高为 16:9 */
+        object-fit: contain;
+        background-color: grey;
+      }
+    </style>
   </head>
     
   <body>
-
     <div style="text-align: center;">
         <div>
-          <video id='video' controls autoplay style="text-align:left;width:40%;">
+          <video id='video' controls autoplay>
             Your browser is too old which doesn't support HTML5 video.
           </video>
 
-          <video id='selfVideo' controls autoplay style="text-align:right;width:40%;">
+          <video id='selfVideo' controls autoplay>
             Your browser is too old which doesn't support HTML5 video.
           </video>
         </div>
