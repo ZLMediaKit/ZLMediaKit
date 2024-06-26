@@ -3,17 +3,25 @@
   <head>
     <title>ZLM RTC demo</title>
     <script src="./ZLMRTCClient.js"></script>
+    <style>
+      video {
+        width: 40vw;
+        max-height: 50vh;
+        height: 22.5vw; /* 默认和宽:高为 16:9 */
+        object-fit: contain;
+        background-color: grey;
+      }
+    </style>
   </head>
     
   <body>
-
     <div style="text-align: center;">
         <div>
-          <video id='video' controls autoplay style="text-align:left;">
+          <video id='video' controls autoplay>
             Your browser is too old which doesn't support HTML5 video.
           </video>
 
-          <video id='selfVideo' controls autoplay style="text-align:right;">
+          <video id='selfVideo' controls autoplay>
             Your browser is too old which doesn't support HTML5 video.
           </video>
         </div>
@@ -27,7 +35,6 @@
         </div>
 
         <div style="float: right; width: 70%">
-
             <p>
                 <label for="streamUrl">url:</label>
                 <input type="text" style="co; width:70%" id='streamUrl' value="http://192.168.1.101/index/api/webrtc?app=live&stream=xiong&type=play">
@@ -81,10 +88,25 @@
             </p>
             <button onclick="send()">发送(send by datachannel)</button>
             <button onclick="close()">关闭(close datachannel)</button>
-            
 
-           
-            
+            <p>
+              <label for="videoDevice">videodevice:</label>
+              <select id="videoDevice">
+              </select>
+            </p>
+
+            <p>
+              <label for="audioDevice">audiodevice:</label>
+              <select id="audioDevice">
+              </select>
+            </p>
+
+            <p>
+              <label for="switchDevice">switchDevice:</label>
+              <input type="checkbox" id='switchDevice' checked="checked">
+            </p>
+            <button onclick="switchVideo()">切换视频(switch video)</button>
+            <button onclick="switchAudio()">切换音频(switch  audio)</button>
         </div>
     </div>
 
@@ -132,6 +154,24 @@
           document.getElementById("resolution").add(opt,null);
       });
 
+      ZLMRTCClient.GetAllMediaDevice().then(devices=>{
+        devices.forEach(device=>{
+          opt = document.createElement('option');
+          opt.text = device.label + ":"+device.deviceId
+          opt.value = JSON.stringify(device)
+          if(device.kind == 'videoinput'){
+            document.getElementById("videoDevice").add(opt,null)
+          }else if(device.kind == 'audioinput'){
+            document.getElementById("audioDevice").add(opt,null)
+          }else if(device.kind == 'audiooutput'){
+            // useless
+            //console.error('not support device')
+          }
+        })
+      }).catch(e=>{
+        console.error(e);
+      })
+
       function start_play(){
         let elr = document.getElementById("resolution");
         let res = elr.options[elr.selectedIndex].text.match(/\d+/g);
@@ -157,6 +197,21 @@
             window.history.pushState(null, null, newUrl);
         }
 
+        let elv = document.getElementById("videoDevice");
+        let ela = document.getElementById("audioDevice");
+
+        let vdevid = ''
+        let adevid = ''
+
+        if (!recvOnly) {
+            if (elv.selectedIndex !== -1) {
+                vdevid = JSON.parse(elv.options[elv.selectedIndex].value).deviceId
+            }
+            if (ela.selectedIndex !== -1) {
+                adevid = JSON.parse(ela.options[ela.selectedIndex].value).deviceId
+            }
+        }
+
         player = new ZLMRTCClient.Endpoint(
                 {
                     element: document.getElementById('video'),// video 标签
@@ -169,6 +224,8 @@
                     recvOnly:recvOnly,
                     resolution:{w,h},
                     usedatachannel:document.getElementById('datachannel').checked,
+                    videoId:vdevid, // 不填选择默认的
+                    audioId:adevid, // 不填选择默认的
                 }
             );
     
@@ -343,6 +400,39 @@
       setInterval(() => {
        // get_media_list();
       }, 5000);
+
+      function switchVideo(){
+        if(player){
+          // first arg bool false mean switch to screen video , second ignore
+          // true mean switch to video , second is camera deviceid
+          let elv = document.getElementById("videoDevice");
+          let vdevid = JSON.parse(elv.options[elv.selectedIndex].value).deviceId
+          player.switchVideo(document.getElementById('switchDevice').checked,vdevid).then(()=>{
+            // switch video successful
+
+          }).catch(e=>{
+            // switch video failed 
+            console.error(e);
+          })
+        }
+
+      }
+
+      function switchAudio(){
+        if(player){
+          // first arg bool false mean switch to screen audio , second ignore
+          // true mean switch to mic , second is mic deviceid
+          let ela = document.getElementById("audioDevice");
+          let adevid = JSON.parse(ela.options[ela.selectedIndex].value).deviceId
+          player.switcAudio(document.getElementById('switchDevice').checked,adevid).then(()=>{
+            // switch audio successful
+            
+          }).catch(e=>{
+            // switch audio failed 
+            console.error(e);
+          })
+        }
+      }
 
     </script>
     

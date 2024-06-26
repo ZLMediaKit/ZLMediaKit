@@ -142,7 +142,7 @@ public:
     toolkit::Buffer::Ptr getExtraData() const override;
     void setExtraData(const uint8_t *data, size_t size) override;
     bool update() override;
-    std::vector<Frame::Ptr> getConfigFrames() const override { return _config_frames; }
+    std::vector<Frame::Ptr> getConfigFrames() const override;
 
 private:
     Sdp::Ptr getSdp(uint8_t payload_type) const override;
@@ -158,7 +158,6 @@ private:
     std::string _vps;
     std::string _sps;
     std::string _pps;
-    std::vector<Frame::Ptr> _config_frames;
 };
 
 }//namespace mediakit
