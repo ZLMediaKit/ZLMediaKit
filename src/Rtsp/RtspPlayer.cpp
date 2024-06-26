@@ -388,7 +388,7 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int track_idx) {
     }
     // 所有setup命令发送完毕
     // 发送play命令
-    if (_speed==1.0f) {
+    if (_speed==0.0f) {
         sendPause(type_play, 0);
     } else {
         sendPause(type_speed, 0);

@@ -121,7 +121,7 @@ private:
 
     std::string _play_url;
     // rtsp开始倍速
-    float _speed= 1.0f;
+    float _speed= 0.0f;
     std::vector<SdpTrack::Ptr> _sdp_track;
     std::function<void(const Parser&)> _on_response;
     //RTP端口,trackid idx 为数组下标
