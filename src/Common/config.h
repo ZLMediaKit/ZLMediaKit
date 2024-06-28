@@ -447,6 +447,8 @@ extern const std::string kWaitTrackReady;
 extern const std::string kPlayTrack;
 //设置代理url，目前只支持http协议
 extern const std::string kProxyUrl;
+//设置开始rtsp倍速播放
+extern const std::string kRtspSpeed;
 } // namespace Client
 } // namespace mediakit
 

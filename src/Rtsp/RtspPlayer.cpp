@@ -88,6 +88,7 @@ void RtspPlayer::play(const string &strUrl) {
     _rtp_type = (Rtsp::eRtpType)(int)(*this)[Client::kRtpType];
     _beat_type = (*this)[Client::kRtspBeatType].as<int>();
     _beat_interval_ms = (*this)[Client::kBeatIntervalMS].as<int>();
+    _speed = (*this)[Client::kRtspSpeed].as<float>();
     DebugL << url._url << " " << (url._user.size() ? url._user : "null") << " " << (url._passwd.size() ? url._passwd : "null") << " " << _rtp_type;
 
     weak_ptr<RtspPlayer> weakSelf = static_pointer_cast<RtspPlayer>(shared_from_this());
@@ -387,7 +388,12 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int track_idx) {
     }
     // 所有setup命令发送完毕
     // 发送play命令
-    sendPause(type_play, 0);
+    if (_speed==0.0f) {
+        sendPause(type_play, 0);
+    } else {
+        sendPause(type_speed, 0);
+    }
+   
 }
 
 void RtspPlayer::sendDescribe() {
@@ -435,6 +441,9 @@ void RtspPlayer::sendPause(int type, uint32_t seekMS) {
             // break;
         case type_seek:
             sendRtspRequest("PLAY", _control_url, { "Range", StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << seekMS / 1000.0 << "-" });
+            break;
+        case type_speed:
+            speed(_speed);
             break;
         default:
             WarnL << "unknown type : " << type;
