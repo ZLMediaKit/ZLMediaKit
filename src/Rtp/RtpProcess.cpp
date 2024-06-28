@@ -18,8 +18,8 @@ using namespace std;
 using namespace toolkit;
 
 //在创建_muxer对象前(也就是推流鉴权成功前)，需要先缓存frame，这样可以防止丢包，提高体验
-//但是同时需要控制缓冲长度，防止内存溢出。200帧数据，大概有10秒数据，应该足矣等待鉴权hook返回
-static constexpr size_t kMaxCachedFrame = 200;
+//但是同时需要控制缓冲长度，防止内存溢出。最多缓存10秒数据，应该足矣等待鉴权hook返回
+static constexpr size_t kMaxCachedFrameMS = 10 * 1000;
 
 namespace mediakit {
 
@@ -112,6 +112,7 @@ bool RtpProcess::inputRtp(bool is_udp, const Socket::Ptr &sock, const char *data
         _addr.reset(new sockaddr_storage(*((sockaddr_storage *)addr)));
         if (first) {
             emitOnPublish();
+            _cache_ticker.resetTime();
         }
     }
 
@@ -152,8 +153,8 @@ bool RtpProcess::inputFrame(const Frame::Ptr &frame) {
         _last_frame_time.resetTime();
         return _muxer->inputFrame(frame);
     }
-    if (_cached_func.size() > kMaxCachedFrame) {
-        WarnL << "cached frame of track(" << frame->getCodecName() << ") is too much, now dropped, please check your on_publish hook url in config.ini file";
+    if (_cache_ticker.elapsedTime() > kMaxCachedFrameMS) {
+        WarnL << "Cached frame of stream(" << _media_info.stream << ") is too much, your on_publish hook responded too late!";
         return false;
     }
     auto frame_cached = Frame::getCacheAbleFrame(frame);

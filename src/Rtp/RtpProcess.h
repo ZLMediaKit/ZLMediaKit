@@ -117,6 +117,7 @@ private:
     toolkit::Timer::Ptr _timer;
     toolkit::Ticker _last_check_alive;
     std::recursive_mutex _func_mtx;
+    toolkit::Ticker _cache_ticker;
     std::deque<std::function<void()> > _cached_func;
 };
 
