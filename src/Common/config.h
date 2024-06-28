@@ -205,6 +205,7 @@ extern const std::string kBroadcastPlayerCountChanged;
 } // namespace General
 
 namespace Protocol {
+static constexpr char kFieldName[] = "protocol.";
 //时间戳修复这一路流标志位
 extern const std::string kModifyStamp;
 //转协议是否开启音频

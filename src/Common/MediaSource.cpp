@@ -55,59 +55,13 @@ string getOriginTypeString(MediaOriginType type){
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ProtocolOption::ProtocolOption() {
-    GET_CONFIG(int, s_modify_stamp, Protocol::kModifyStamp);
-    GET_CONFIG(bool, s_enabel_audio, Protocol::kEnableAudio);
-    GET_CONFIG(bool, s_add_mute_audio, Protocol::kAddMuteAudio);
-    GET_CONFIG(bool, s_auto_close, Protocol::kAutoClose);
-    GET_CONFIG(uint32_t, s_continue_push_ms, Protocol::kContinuePushMS);
-    GET_CONFIG(uint32_t, s_paced_sender_ms, Protocol::kPacedSenderMS);
-
-    GET_CONFIG(bool, s_enable_hls, Protocol::kEnableHls);
-    GET_CONFIG(bool, s_enable_hls_fmp4, Protocol::kEnableHlsFmp4);
-    GET_CONFIG(bool, s_enable_mp4, Protocol::kEnableMP4);
-    GET_CONFIG(bool, s_enable_rtsp, Protocol::kEnableRtsp);
-    GET_CONFIG(bool, s_enable_rtmp, Protocol::kEnableRtmp);
-    GET_CONFIG(bool, s_enable_ts, Protocol::kEnableTS);
-    GET_CONFIG(bool, s_enable_fmp4, Protocol::kEnableFMP4);
-
-    GET_CONFIG(bool, s_hls_demand, Protocol::kHlsDemand);
-    GET_CONFIG(bool, s_rtsp_demand, Protocol::kRtspDemand);
-    GET_CONFIG(bool, s_rtmp_demand, Protocol::kRtmpDemand);
-    GET_CONFIG(bool, s_ts_demand, Protocol::kTSDemand);
-    GET_CONFIG(bool, s_fmp4_demand, Protocol::kFMP4Demand);
-
-    GET_CONFIG(bool, s_mp4_as_player, Protocol::kMP4AsPlayer);
-    GET_CONFIG(uint32_t, s_mp4_max_second, Protocol::kMP4MaxSecond);
-    GET_CONFIG(string, s_mp4_save_path, Protocol::kMP4SavePath);
-
-    GET_CONFIG(string, s_hls_save_path, Protocol::kHlsSavePath);
-
-    modify_stamp = s_modify_stamp;
-    enable_audio = s_enabel_audio;
-    add_mute_audio = s_add_mute_audio;
-    auto_close = s_auto_close;
-    continue_push_ms = s_continue_push_ms;
-    paced_sender_ms = s_paced_sender_ms;
-
-    enable_hls = s_enable_hls;
-    enable_hls_fmp4 = s_enable_hls_fmp4;
-    enable_mp4 = s_enable_mp4;
-    enable_rtsp = s_enable_rtsp;
-    enable_rtmp = s_enable_rtmp;
-    enable_ts = s_enable_ts;
-    enable_fmp4 = s_enable_fmp4;
-
-    hls_demand = s_hls_demand;
-    rtsp_demand = s_rtsp_demand;
-    rtmp_demand = s_rtmp_demand;
-    ts_demand = s_ts_demand;
-    fmp4_demand = s_fmp4_demand;
-
-    mp4_as_player = s_mp4_as_player;
-    mp4_max_second = s_mp4_max_second;
-    mp4_save_path = s_mp4_save_path;
-
-    hls_save_path = s_hls_save_path;
+    mINI ini;
+    auto &config = mINI::Instance();
+    static auto sz = strlen(Protocol::kFieldName);
+    for (auto it = config.lower_bound(Protocol::kFieldName); it != config.end() && start_with(it->first, Protocol::kFieldName); ++it) {
+        ini.emplace(it->first.substr(sz), it->second);
+    }
+    load(ini);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
