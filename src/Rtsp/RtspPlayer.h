@@ -120,6 +120,8 @@ private:
     uint32_t _beat_interval_ms = 0;
 
     std::string _play_url;
+    // rtsp开始倍速
+    float _speed= 0.0f;
     std::vector<SdpTrack::Ptr> _sdp_track;
     std::function<void(const Parser&)> _on_response;
     //RTP端口,trackid idx 为数组下标
