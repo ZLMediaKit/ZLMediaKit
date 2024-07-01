@@ -102,6 +102,16 @@ bool GB28181Process::inputRtp(bool, const char *data, size_t data_len) {
                 _rtp_decoder[pt] = Factory::getRtpDecoderByCodecId(track->getCodecId());
                 break;
             }
+            case Rtsp::PT_L16_Mono: {
+                //L16
+                ref = std::make_shared<RtpReceiverImp>(16000, [this](RtpPacket::Ptr rtp) { onRtpSorted(std::move(rtp)); });
+                auto track = Factory::getTrackByCodecId(CodecL16, 16000, 1, 16);
+                CHECK(track);
+                track->setIndex(pt);
+                _interface->addTrack(track);
+                _rtp_decoder[pt] = Factory::getRtpDecoderByCodecId(track->getCodecId());
+                break;
+            }
             default: {
                 if (pt == opus_pt) {
                     // opus负载
