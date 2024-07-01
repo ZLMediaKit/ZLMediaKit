@@ -257,17 +257,19 @@ void RtspPlayer::sendSetup(unsigned int track_idx) {
     switch (_rtp_type) {
         case Rtsp::RTP_TCP: {
             sendRtspRequest(
-                "SETUP", control_url, { "Transport", StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track->_type * 2 << "-" << track->_type * 2 + 1 });
+                "SETUP", control_url,
+                { "Transport", StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track->_type * 2 << "-" << track->_type * 2 + 1 << ";mode=play" });
         } break;
         case Rtsp::RTP_MULTICAST: {
-            sendRtspRequest("SETUP", control_url, { "Transport", "RTP/AVP;multicast" });
+            sendRtspRequest("SETUP", control_url, { "Transport", "RTP/AVP;multicast;mode=play" });
         } break;
         case Rtsp::RTP_UDP: {
             createUdpSockIfNecessary(track_idx);
             sendRtspRequest(
                 "SETUP", control_url,
                 { "Transport",
-                  StrPrinter << "RTP/AVP;unicast;client_port=" << _rtp_sock[track_idx]->get_local_port() << "-" << _rtcp_sock[track_idx]->get_local_port() });
+                  StrPrinter << "RTP/AVP;unicast;client_port=" << _rtp_sock[track_idx]->get_local_port() << "-" << _rtcp_sock[track_idx]->get_local_port()
+                             << ";mode=play" });
         } break;
         default: break;
     }
