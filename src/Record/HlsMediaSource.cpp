@@ -87,7 +87,11 @@ void HlsMediaSource::setIndexFile(std::string index_file)
             strongSelf->onReaderChanged(size);
         };
         _ring = std::make_shared<RingType>(0, std::move(lam));
+    }
+    if (!_registered && !_clear_cache) {
+        //在清空缓存期间不进行注册，否则可能播放中的ts文件会被清空
         regist();
+        _registered = true;
     }
 
     //赋值m3u8索引文件内容
