@@ -11,6 +11,7 @@
 #include <signal.h>
 #include <string.h>
 #include <stdio.h>
+#include <time.h>
 #ifdef _WIN32
 #include "windows.h"
 #else
@@ -24,11 +25,26 @@ static void s_on_exit(int sig) {
 }
 
 static void on_h264_frame(void *user_data, mk_h264_splitter splitter, const char *data, int size) {
-#ifdef _WIN32
-    Sleep(40);
-#else
-    usleep(40 * 1000);
-#endif
+    static time_t start_time = time(NULL); // 定义一个静态起始时间点
+    static int frame_count = 0; // 定义并初始化帧计数器
+    const int frame_interval_ms = 40; // 每帧间隔40ms
+
+    // 计算当前帧的目标发送时间
+    time_t target_time = start_time + frame_count * frame_interval_ms / 1000;
+    time_t now = time(NULL);
+
+    // 如果当前时间早于目标时间，则等待
+    if (now < target_time) {
+        #ifdef _WIN32
+            Sleep(target_time - now);
+        #else
+            usleep((target_time - now) * 1000);
+        #endif
+    }
+
+    // 更新帧计数器
+    frame_count++;
+
     static int dts = 0;
     mk_frame frame = mk_frame_create(MKCodecH264, dts, dts, data, size, NULL, NULL);
     dts += 40;
