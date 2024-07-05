@@ -125,6 +125,13 @@ API_EXPORT const char* API_CALL mk_parser_get_content(const mk_parser ctx, size_
     }
     return parser->content().c_str();
 }
+API_EXPORT void API_CALL mk_parser_headers_for_each(const mk_parser ctx, on_mk_parser_header_cb cb, void *user_data){
+    assert(ctx && cb);
+    Parser *parser = (Parser *)ctx;
+    for (auto it = parser->getHeader().begin(); it != parser->getHeader().end(); ++it) {
+        cb(user_data, it->first.c_str(), it->second.c_str());
+    }
+}
 
 ///////////////////////////////////////////MediaInfo/////////////////////////////////////////////
 API_EXPORT const char* API_CALL mk_media_info_get_params(const mk_media_info ctx){
