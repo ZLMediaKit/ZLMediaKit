@@ -44,7 +44,13 @@ public:
      */
     RtspMediaSource(const MediaTuple& tuple, int ring_size = RTP_GOP_SIZE): MediaSource(RTSP_SCHEMA, tuple), _ring_size(ring_size) {}
 
-    ~RtspMediaSource() override { flush(); }
+    ~RtspMediaSource() override {
+        try {
+            flush();
+        } catch (std::exception &ex) {
+            WarnL << ex.what();
+        }
+    }
 
     /**
      * 获取媒体源的环形缓冲
