@@ -41,7 +41,32 @@ jobs:
       run: |
         docker pull centos:7 
         docker run -v $(pwd):/root -w /root --rm centos:7 sh -c "
+          #!/bin/bash
           set -x
+      
+          # Backup original CentOS-Base.repo file
+          cp /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.backup
+      
+          # Define new repository configuration
+          cat <<EOF > /etc/yum.repos.d/CentOS-Base.repo
+        [base]
+        name=CentOS-7 - Base - mirrors.aliyun.com
+        baseurl=http://mirrors.aliyun.com/centos/7/os/x86_64/
+        gpgcheck=1
+        gpgkey=http://mirrors.aliyun.com/centos/RPM-GPG-KEY-CentOS-7
+      
+        [updates]
+        name=CentOS-7 - Updates - mirrors.aliyun.com
+        baseurl=http://mirrors.aliyun.com/centos/7/updates/x86_64/
+        gpgcheck=1
+        gpgkey=http://mirrors.aliyun.com/centos/RPM-GPG-KEY-CentOS-7
+        EOF
+      
+          # Clean yum cache and recreate it
+          yum clean all
+          yum makecache
+      
+          echo \"CentOS 7 软件源已成功切换\"
           yum install -y git wget gcc gcc-c++ make
         
           mkdir -p /root/install
