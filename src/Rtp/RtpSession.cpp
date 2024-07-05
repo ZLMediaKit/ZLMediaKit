@@ -21,6 +21,8 @@ using namespace toolkit;
 
 namespace mediakit{
 
+const string RtpSession::kVhost = "vhost";
+const string RtpSession::kApp = "app";
 const string RtpSession::kStreamID = "stream_id";
 const string RtpSession::kSSRC = "ssrc";
 const string RtpSession::kOnlyTrack = "only_track";
@@ -31,7 +33,9 @@ void RtpSession::attachServer(const Server &server) {
 }
 
 void RtpSession::setParams(mINI &ini) {
-    _stream_id = ini[kStreamID];
+    _tuple.vhost = ini[kVhost];
+    _tuple.app = ini[kApp];
+    _tuple.stream = ini[kStreamID];
     _ssrc = ini[kSSRC];
     _only_track = ini[kOnlyTrack];
     int udp_socket_buffer = ini[kUdpRecvBuffer];
@@ -63,7 +67,7 @@ void RtpSession::onError(const SockException &err) {
     if (_emit_detach) {
         _process->onDetach(err);
     }
-    WarnP(this) << _stream_id << " " << err;
+    WarnP(this) << _tuple.shortUrl() << " " << err;
 }
 
 void RtpSession::onManager() {
@@ -107,12 +111,12 @@ void RtpSession::onRtpPacket(const char *data, size_t len) {
     }
 
     // 未指定流id就使用ssrc为流id
-    if (_stream_id.empty()) {
-        _stream_id = printSSRC(_ssrc);
+    if (_tuple.stream.empty()) {
+        _tuple.stream = printSSRC(_ssrc);
     }
 
     if (!_process) {
-        _process = RtpProcess::createProcess(_stream_id);
+        _process = RtpProcess::createProcess(_tuple);
         _process->setOnlyTrack((RtpProcess::OnlyTrack)_only_track);
         weak_ptr<RtpSession>  weak_self = static_pointer_cast<RtpSession>(shared_from_this());
         _process->setOnDetach([weak_self](const SockException &ex) {

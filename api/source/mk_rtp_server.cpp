@@ -18,7 +18,13 @@ using namespace mediakit;
 
 API_EXPORT mk_rtp_server API_CALL mk_rtp_server_create(uint16_t port, int tcp_mode, const char *stream_id) {
     RtpServer::Ptr *server = new RtpServer::Ptr(new RtpServer);
-    (*server)->start(port, stream_id, (RtpServer::TcpMode)tcp_mode);
+    (*server)->start(port, MediaTuple { DEFAULT_VHOST, kRtpAppName, stream_id, "" }, (RtpServer::TcpMode)tcp_mode);
+    return (mk_rtp_server)server;
+}
+
+API_EXPORT mk_rtp_server API_CALL mk_rtp_server_create2(uint16_t port, int tcp_mode, const char *vhost, const char *app, const char *stream_id) {
+    RtpServer::Ptr *server = new RtpServer::Ptr(new RtpServer);
+    (*server)->start(port, MediaTuple { vhost, app, stream_id, "" }, (RtpServer::TcpMode)tcp_mode);
     return (mk_rtp_server)server;
 }
 
@@ -67,6 +73,11 @@ API_EXPORT void API_CALL mk_rtp_server_set_on_detach2(mk_rtp_server ctx, on_mk_r
 #else
 
 API_EXPORT mk_rtp_server API_CALL mk_rtp_server_create(uint16_t port, int enable_tcp, const char *stream_id) {
+    WarnL << "请打开ENABLE_RTPPROXY后再编译";
+    return nullptr;
+}
+
+API_EXPORT mk_rtp_server API_CALL mk_rtp_server_create2(uint16_t port, int tcp_mode, const char *vhost, const char *app, const char *stream_id) {
     WarnL << "请打开ENABLE_RTPPROXY后再编译";
     return nullptr;
 }
