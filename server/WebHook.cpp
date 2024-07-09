@@ -682,7 +682,9 @@ void installWebHook() {
 
         ArgsType body;
         body["local_port"] = local_port;
-        body["stream_id"] = stream_id;
+        body[VHOST_KEY] = tuple.vhost;
+        body["app"] = tuple.app;
+        body["stream_id"] = tuple.stream;
         body["tcp_mode"] = tcp_mode;
         body["re_use_port"] = re_use_port;
         body["ssrc"] = ssrc;

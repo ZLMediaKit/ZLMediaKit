@@ -23,17 +23,14 @@ static constexpr size_t kMaxCachedFrameMS = 10 * 1000;
 
 namespace mediakit {
 
-RtpProcess::Ptr RtpProcess::createProcess(std::string stream_id) {
-     RtpProcess::Ptr ret(new RtpProcess(std::move(stream_id)));
-     ret->createTimer();
-     return ret;
+RtpProcess::Ptr RtpProcess::createProcess(const MediaTuple &tuple) {
+    RtpProcess::Ptr ret(new RtpProcess(tuple));
+    ret->createTimer();
+    return ret;
 }
 
-RtpProcess::RtpProcess(string stream_id) {
-    _media_info.schema = kRtpAppName;
-    _media_info.vhost = DEFAULT_VHOST;
-    _media_info.app = kRtpAppName;
-    _media_info.stream = std::move(stream_id);
+RtpProcess::RtpProcess(const MediaTuple &tuple) {
+    static_cast<MediaTuple &>(_media_info) = tuple;
 
     GET_CONFIG(string, dump_dir, RtpProxy::kDumpDir);
     {

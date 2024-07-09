@@ -30,18 +30,18 @@ class RtcpHelper: public std::enable_shared_from_this<RtcpHelper> {
 public:
     using Ptr = std::shared_ptr<RtcpHelper>;
 
-    RtcpHelper(Socket::Ptr rtcp_sock, std::string stream_id) {
+    RtcpHelper(Socket::Ptr rtcp_sock, MediaTuple tuple) {
         _rtcp_sock = std::move(rtcp_sock);
-        _stream_id = std::move(stream_id);
+        _tuple = std::move(tuple);
     }
 
     void setRtpServerInfo(uint16_t local_port, RtpServer::TcpMode mode, bool re_use_port, uint32_t ssrc, int only_track) {
         _ssrc = ssrc;
-        _process = RtpProcess::createProcess(_stream_id);
+        _process = RtpProcess::createProcess(_tuple);
         _process->setOnlyTrack((RtpProcess::OnlyTrack)only_track);
 
         _timeout_cb = [=]() mutable {
-            NOTICE_EMIT(BroadcastRtpServerTimeoutArgs, Broadcast::kBroadcastRtpServerTimeout, local_port, _stream_id, (int)mode, re_use_port, ssrc);
+            NOTICE_EMIT(BroadcastRtpServerTimeoutArgs, Broadcast::kBroadcastRtpServerTimeout, local_port, _tuple, (int)mode, re_use_port, ssrc);
         };
 
         weak_ptr<RtcpHelper> weak_self = shared_from_this();
@@ -117,12 +117,12 @@ private:
     Ticker _ticker;
     Socket::Ptr _rtcp_sock;
     RtpProcess::Ptr _process;
-    std::string _stream_id;
+    MediaTuple _tuple;
     RtpProcess::onDetachCB _on_detach;
     std::shared_ptr<struct sockaddr_storage> _rtcp_addr;
 };
 
-void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_mode, const char *local_ip, bool re_use_port, uint32_t ssrc, int only_track, bool multiplex) {
+void RtpServer::start(uint16_t local_port, const MediaTuple &tuple, TcpMode tcp_mode, const char *local_ip, bool re_use_port, uint32_t ssrc, int only_track, bool multiplex) {
     //创建udp服务器
     auto poller = EventPollerPool::Instance().getPoller();
     Socket::Ptr rtp_socket = Socket::createSocket(poller, true);
@@ -148,9 +148,9 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_
     UdpServer::Ptr udp_server;
     RtcpHelper::Ptr helper;
     //增加了多路复用判断，如果多路复用为true，就走else逻辑，同时保留了原来stream_id为空走else逻辑
-    if (!stream_id.empty() && !multiplex) {
+    if (!tuple.stream.empty() && !multiplex) {
         //指定了流id，那么一个端口一个流(不管是否包含多个ssrc的多个流，绑定rtp源后，会筛选掉ip端口不匹配的流)
-        helper = std::make_shared<RtcpHelper>(std::move(rtcp_socket), stream_id);
+        helper = std::make_shared<RtcpHelper>(std::move(rtcp_socket), tuple);
         helper->startRtcp();
         helper->setRtpServerInfo(local_port, tcp_mode, re_use_port, ssrc, only_track);
         bool bind_peer_addr = false;
@@ -185,7 +185,9 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_
         auto processor = helper ? helper->getProcess() : nullptr;
         // 如果共享同一个processor对象，那么tcp server深圳为单线程模式确保线程安全
         tcp_server = std::make_shared<TcpServer>(processor ? poller : nullptr);
-        (*tcp_server)[RtpSession::kStreamID] = stream_id;
+        (*tcp_server)[RtpSession::kVhost] = tuple.vhost;
+        (*tcp_server)[RtpSession::kApp] = tuple.app;
+        (*tcp_server)[RtpSession::kStreamID] = tuple.stream;
         (*tcp_server)[RtpSession::kSSRC] = ssrc;
         (*tcp_server)[RtpSession::kOnlyTrack] = only_track;
         if (tcp_mode == PASSIVE) {
@@ -193,13 +195,13 @@ void RtpServer::start(uint16_t local_port, const string &stream_id, TcpMode tcp_
             tcp_server->start<RtpSession>(local_port, local_ip, 1024, [weak_self, processor](std::shared_ptr<RtpSession> &session) {
                 session->setRtpProcess(processor);
             });
-        } else if (stream_id.empty()) {
+        } else if (tuple.stream.empty()) {
             // tcp主动模式时只能一个端口一个流，必须指定流id; 创建TcpServer对象也仅用于传参
             throw std::runtime_error(StrPrinter << "tcp主动模式时必需指定流id");
         }
     }
 
-    _on_cleanup = [rtp_socket, stream_id]() {
+    _on_cleanup = [rtp_socket]() {
         if (rtp_socket) {
             //去除循环引用
             rtp_socket->setOnRead(nullptr);
