@@ -1949,6 +1949,7 @@ void installWebApi() {
     });
 #endif
 
+#if ENABLE_MP4
     api_regist("/index/api/loadMP4File", [](API_ARGS_MAP) {
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream", "file_path");
@@ -1967,6 +1968,7 @@ void installWebApi() {
         // sample_ms设置为0，从配置文件加载；file_repeat可以指定，如果配置文件也指定循环解复用，那么强制开启
         reader->startReadMP4(0, true, allArgs["file_repeat"]);
     });
+#endif
 
     GET_CONFIG_FUNC(std::set<std::string>, download_roots, API::kDownloadRoot, [](const string &str) -> std::set<std::string> {
         std::set<std::string> ret;
