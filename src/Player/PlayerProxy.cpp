@@ -1,16 +1,15 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #include "PlayerProxy.h"
 #include "Common/config.h"
-#include "Extension/AAC.h"
 #include "Rtmp/RtmpMediaSource.h"
 #include "Rtmp/RtmpPlayer.h"
 #include "Rtsp/RtspMediaSource.h"
@@ -97,7 +96,16 @@ void PlayerProxy::setTranslationInfo()
     }
 }
 
+static int getMaxTrackSize(const std::string &url) {
+    if (url.find(".m3u8") != std::string::npos || url.find(".ts") != std::string::npos) {
+        // hls和ts协议才开放多track支持
+        return 16;
+    }
+    return 2;
+}
+
 void PlayerProxy::play(const string &strUrlTmp) {
+    _option.max_track = getMaxTrackSize(strUrlTmp);
     weak_ptr<PlayerProxy> weakSelf = shared_from_this();
     std::shared_ptr<int> piFailedCnt(new int(0)); // 连续播放失败次数
     setOnPlayResult([weakSelf, strUrlTmp, piFailedCnt](const SockException &err) {
@@ -191,8 +199,11 @@ void PlayerProxy::setDirectProxy() {
             mediaSource = std::make_shared<RtspMediaSource>(_tuple);
         }
     } else if (dynamic_pointer_cast<RtmpPlayer>(_delegate)) {
-        // rtmp拉流,rtmp强制直接代理
-        mediaSource = std::make_shared<RtmpMediaSource>(_tuple);
+        // rtmp拉流
+        GET_CONFIG(bool, directProxy, Rtmp::kDirectProxy);
+        if (directProxy) {
+            mediaSource = std::make_shared<RtmpMediaSource>(_tuple);
+        }
     }
     if (mediaSource) {
         setMediaSource(mediaSource);

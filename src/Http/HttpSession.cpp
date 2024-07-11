@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -24,11 +24,10 @@ using namespace toolkit;
 namespace mediakit {
 
 HttpSession::HttpSession(const Socket::Ptr &pSock) : Session(pSock) {
-    GET_CONFIG(uint32_t, keep_alive_sec, Http::kKeepAliveSecond);
-    pSock->setSendTimeOutSecond(keep_alive_sec);
+    //设置默认参数
+    setMaxReqSize(0);
+    setTimeoutSec(0);
 }
-
-HttpSession::~HttpSession() = default;
 
 void HttpSession::onHttpRequest_HEAD() {
     // 暂时全部返回200 OK，因为HTTP GET存在按需生成流的操作，所以不能按照HTTP GET的流程返回
@@ -66,6 +65,7 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
 
     _parser.parse(header, len);
     CHECK(_parser.url()[0] == '/');
+    _origin = _parser["Origin"];
 
     urlDecode(_parser);
     auto &cmd = _parser.method();
@@ -99,11 +99,10 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
         return _on_recv_body ? -1 : 0;
     }
 
-    GET_CONFIG(size_t, maxReqSize, Http::kMaxReqSize);
-    if (content_len > maxReqSize) {
+    if (content_len > _max_req_size) {
         //// 不定长body或超大body ////
         if (content_len != SIZE_MAX) {
-            WarnL << "Http body size is too huge: " << content_len << " > " << maxReqSize
+            WarnL << "Http body size is too huge: " << content_len << " > " << _max_req_size
                   << ", please set " << Http::kMaxReqSize << " in config.ini file.";
         }
 
@@ -126,29 +125,18 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
     }
 
     //// body size明确指定且小于最大值的情况 ////
-    auto body = std::make_shared<std::string>();
-    // 预留一定的内存buffer，防止频繁的内存拷贝
-    body->reserve(content_len);
-
-    _on_recv_body = [this, body, content_len, it](const char *data, size_t len) mutable {
-        body->append(data, len);
-        if (body->size() < content_len) {
-            // 未收满数据
-            return true;
-        }
-
+    _on_recv_body = [this, it](const char *data, size_t len) mutable {
         // 收集body完毕
-        _parser.setContent(std::move(*body));
+        _parser.setContent(std::string(data, len));
         (this->*(it->second))();
         _parser.clear();
 
-        // 后续是header
-        setContentLen(0);
+        // _on_recv_body置空
         return false;
     };
 
-    // 声明后续都是body；Http body在本对象缓冲，不通过HttpRequestSplitter保存
-    return -1;
+    // 声明body长度，通过HttpRequestSplitter缓存然后一次性回调到_on_recv_body
+    return content_len;
 }
 
 void HttpSession::onRecvContent(const char *data, size_t len) {
@@ -176,11 +164,27 @@ void HttpSession::onError(const SockException &err) {
     }
 }
 
-void HttpSession::onManager() {
-    GET_CONFIG(uint32_t, keepAliveSec, Http::kKeepAliveSecond);
+void HttpSession::setTimeoutSec(size_t keep_alive_sec) {
+    if (!keep_alive_sec) {
+        GET_CONFIG(size_t, s_keep_alive_sec, Http::kKeepAliveSecond);
+        keep_alive_sec = s_keep_alive_sec;
+    }
+    _keep_alive_sec = keep_alive_sec;
+    getSock()->setSendTimeOutSecond(keep_alive_sec);
+}
 
-    if (_ticker.elapsedTime() > keepAliveSec * 1000) {
-        // 1分钟超时
+void HttpSession::setMaxReqSize(size_t max_req_size) {
+    if (!max_req_size) {
+        GET_CONFIG(size_t, s_max_req_size, Http::kMaxReqSize);
+        max_req_size = s_max_req_size;
+    }
+    _max_req_size = max_req_size;
+    setMaxCacheSize(max_req_size);
+}
+
+void HttpSession::onManager() {
+    if (_ticker.elapsedTime() > _keep_alive_sec * 1000) {
+        //http超时
         shutdown(SockException(Err_timeout, "session timeout"));
     }
 }
@@ -509,7 +513,6 @@ public:
         _body = body;
         _close_when_complete = close_when_complete;
     }
-    ~AsyncSenderData() = default;
 
 private:
     std::weak_ptr<HttpSession> _session;
@@ -604,8 +607,8 @@ void HttpSession::sendResponse(int code,
     headerOut.emplace("Connection", bClose ? "close" : "keep-alive");
 
     GET_CONFIG(bool, allow_cross_domains, Http::kAllowCrossDomains);
-    if (allow_cross_domains) {
-        headerOut.emplace("Access-Control-Allow-Origin", "*");
+    if (allow_cross_domains && !_origin.empty()) {
+        headerOut.emplace("Access-Control-Allow-Origin", _origin);
         headerOut.emplace("Access-Control-Allow-Credentials", "true");
     }
 
@@ -680,22 +683,10 @@ void HttpSession::sendResponse(int code,
     AsyncSender::onSocketFlushed(data);
 }
 
-string HttpSession::urlDecode(const string &str) {
-    auto ret = strCoding::UrlDecode(str);
-#ifdef _WIN32
-    GET_CONFIG(string, charSet, Http::kCharSet);
-    bool isGb2312 = !strcasecmp(charSet.data(), "gb2312");
-    if (isGb2312) {
-        ret = strCoding::UTF8ToGB2312(ret);
-    }
-#endif // _WIN32
-    return ret;
-}
-
 void HttpSession::urlDecode(Parser &parser) {
-    parser.setUrl(urlDecode(parser.url()));
+    parser.setUrl(strCoding::UrlDecodePath(parser.url()));
     for (auto &pr : _parser.getUrlArgs()) {
-        const_cast<string &>(pr.second) = urlDecode(pr.second);
+        const_cast<string &>(pr.second) = strCoding::UrlDecodeComponent(pr.second);
     }
 }
 

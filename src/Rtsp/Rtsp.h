@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -166,6 +166,8 @@ public:
     // ntp时间戳
     uint64_t ntp_stamp;
 
+    int track_index;
+
     static Ptr create();
 
 private:
@@ -232,7 +234,6 @@ public:
 
     SdpParser() = default;
     SdpParser(const std::string &sdp) { load(sdp); }
-    ~SdpParser() = default;
 
     void load(const std::string &sdp);
     bool available() const;
@@ -248,7 +249,7 @@ private:
 /**
  * rtsp sdp基类
  */
-class Sdp : public CodecInfo {
+class Sdp {
 public:
     using Ptr = std::shared_ptr<Sdp>;
 
@@ -303,8 +304,6 @@ public:
 
     std::string getSdp() const override { return _printer; }
 
-    CodecId getCodecId() const override { return CodecInvalid; }
-
     float getDuration() const { return _dur_sec; }
 
 private:
@@ -318,6 +317,7 @@ toolkit::Buffer::Ptr makeRtpOverTcpPrefix(uint16_t size, uint8_t interleaved);
 void makeSockPair(std::pair<toolkit::Socket::Ptr, toolkit::Socket::Ptr> &pair, const std::string &local_ip, bool re_use_port = false, bool is_udp = true);
 // 十六进制方式打印ssrc
 std::string printSSRC(uint32_t ui32Ssrc);
+bool getSSRC(const char *data, size_t data_len, uint32_t &ssrc);
 
 bool isRtp(const char *buf, size_t size);
 bool isRtcp(const char *buf, size_t size);

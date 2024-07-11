@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -56,13 +56,18 @@ void HttpClient::sendRequest(const string &url) {
     splitUrl(host, host, port);
     _header.emplace("Host", host_header);
     _header.emplace("User-Agent", kServerName);
-    _header.emplace("Connection", "keep-alive");
     _header.emplace("Accept", "*/*");
     _header.emplace("Accept-Language", "zh-CN,zh;q=0.8");
-
+    if (_http_persistent) {
+        _header.emplace("Connection", "keep-alive");
+    } else {
+        _header.emplace("Connection", "close");
+    }
+    _http_persistent = true;
     if (_body && _body->remainSize()) {
         _header.emplace("Content-Length", to_string(_body->remainSize()));
-        _header.emplace("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+        GET_CONFIG(string, charSet, Http::kCharSet);
+        _header.emplace("Content-Type", "application/x-www-form-urlencoded; charset=" + charSet);
     }
 
     bool host_changed = (_last_host != host + ":" + to_string(port)) || (_is_https != is_https);
@@ -78,15 +83,16 @@ void HttpClient::sendRequest(const string &url) {
         printer.pop_back();
         _header.emplace("Cookie", printer);
     }
-    if (isUsedProxy()) {
-        startConnect(_proxy_host, _proxy_port, _wait_header_ms / 1000.0f);
-    } else {
-        if (!alive() || host_changed) {
-            startConnect(host, port, _wait_header_ms / 1000.0f);
+    if (!alive() || host_changed || !_http_persistent) {
+        if (isUsedProxy()) {
+            _proxy_connected = false;
+            startConnect(_proxy_host, _proxy_port, _wait_header_ms / 1000.0f);
         } else {
-            SockException ex;
-            onConnect_l(ex);
+            startConnect(host, port, _wait_header_ms / 1000.0f);
         }
+    } else {
+        SockException ex;
+        onConnect_l(ex);
     }
 }
 
@@ -188,6 +194,17 @@ void HttpClient::onRecv(const Buffer::Ptr &pBuf) {
 }
 
 void HttpClient::onError(const SockException &ex) {
+    if (ex.getErrCode() == Err_reset && _allow_resend_request && _http_persistent && _recved_body_size == 0 && !_header_recved) {
+        // 连接被重置，可能是服务器主动断开了连接, 或者服务器内核参数或防火墙的持久连接空闲时间超时或不一致.
+        // 如果是持久化连接，那么我们可以通过重连来解决这个问题
+        // The connection was reset, possibly because the server actively disconnected the connection,
+        // or the persistent connection idle time of the server kernel parameters or firewall timed out or inconsistent.
+        // If it is a persistent connection, then we can solve this problem by reconnecting
+        WarnL << "http persistent connect reset, try reconnect";
+        _http_persistent = false;
+        sendRequest(_url);
+        return;
+    }
     onResponseCompleted_l(ex);
 }
 
@@ -219,7 +236,7 @@ ssize_t HttpClient::onRecvHeader(const char *data, size_t len) {
                 _total_body_size = _recved_body_size;
                 if (_recved_body_size > 0) {
                     onResponseCompleted_l(SockException(Err_success, "success"));
-                }else{
+                } else {
                     onResponseCompleted_l(SockException(Err_other, "no body"));
                 }
             }
@@ -436,4 +453,7 @@ bool HttpClient::checkProxyConnected(const char *data, size_t len) {
     return _proxy_connected;
 }
 
+void HttpClient::setAllowResendRequest(bool allow) {
+    _allow_resend_request = allow;
+}
 } /* namespace mediakit */

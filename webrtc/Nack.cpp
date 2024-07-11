@@ -1,32 +1,64 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #include "Nack.h"
+#include "Common/config.h"
 
 using namespace std;
 using namespace toolkit;
 
 namespace mediakit {
 
-static constexpr uint32_t kMaxNackMS = 5 * 1000;
-static constexpr uint32_t kRtpCacheCheckInterval = 100;
+// RTC配置项目
+namespace Rtc {
+#define RTC_FIELD "rtc."
+//~ nack接收端
+// Nack缓存包最早时间间隔
+const string kMaxNackMS = RTC_FIELD "maxNackMS";
+// Nack包检查间隔(包数量)
+const string kRtpCacheCheckInterval = RTC_FIELD "rtpCacheCheckInterval";
+//~ nack发送端
+//最大保留的rtp丢包状态个数
+const string kNackMaxSize = RTC_FIELD "nackMaxSize";
+// rtp丢包状态最长保留时间
+const string kNackMaxMS = RTC_FIELD "nackMaxMS";
+// nack最多请求重传次数
+const string kNackMaxCount = RTC_FIELD "nackMaxCount";
+// nack重传频率，rtt的倍数
+const string kNackIntervalRatio = RTC_FIELD "nackIntervalRatio";
+// nack包中rtp个数，减小此值可以让nack包响应更灵敏
+const string kNackRtpSize = RTC_FIELD "nackRtpSize";
+
+static onceToken token([]() {
+    mINI::Instance()[kMaxNackMS] = 5 * 1000;
+    mINI::Instance()[kRtpCacheCheckInterval] = 100;
+    mINI::Instance()[kNackMaxSize] = 2048;
+    mINI::Instance()[kNackMaxMS] = 3 * 1000;
+    mINI::Instance()[kNackMaxCount] = 15;
+    mINI::Instance()[kNackIntervalRatio] = 1.0f;
+    mINI::Instance()[kNackRtpSize] = 8;
+});
+
+} // namespace Rtc
 
 void NackList::pushBack(RtpPacket::Ptr rtp) {
     auto seq = rtp->getSeq();
     _nack_cache_seq.emplace_back(seq);
     _nack_cache_pkt.emplace(seq, std::move(rtp));
-    if (++_cache_ms_check < kRtpCacheCheckInterval) {
+    GET_CONFIG(uint32_t, rtpcache_checkinterval, Rtc::kRtpCacheCheckInterval);
+    if (++_cache_ms_check < rtpcache_checkinterval) {
         return;
     }
     _cache_ms_check = 0;
-    while (getCacheMS() >= kMaxNackMS) {
+    GET_CONFIG(uint32_t, maxnackms, Rtc::kMaxNackMS);
+    while (getCacheMS() >= maxnackms) {
         // 需要清除部分nack缓存
         popFront();
     }
@@ -148,10 +180,13 @@ void NackContext::makeNack(uint16_t max_seq, bool flush) {
     eraseFrontSeq();
     // 最多生成5个nack包，防止seq大幅跳跃导致一直循环
     auto max_nack = 5u;
+    GET_CONFIG(uint32_t, nack_rtpsize, Rtc::kNackRtpSize);
+    // kNackRtpSize must between 0 and 16
+    nack_rtpsize = std::min<uint32_t>(nack_rtpsize, FCI_NACK::kBitSize);
     while (_nack_seq != max_seq && max_nack--) {
         // 一次不能发送超过16+1个rtp的状态
         uint16_t nack_rtp_count = std::min<uint16_t>(FCI_NACK::kBitSize, max_seq - (uint16_t)(_nack_seq + 1));
-        if (!flush && nack_rtp_count < kNackRtpSize) {
+        if (!flush && nack_rtp_count < nack_rtpsize) {
             // 非flush状态下，seq个数不足以发送一次nack
             break;
         }
@@ -206,7 +241,9 @@ void NackContext::clearNackStatus(uint16_t seq) {
     _nack_send_status.erase(it);
 
     // 限定rtt在合理有效范围内
-    _rtt = max<int>(10, min<int>(rtt, kNackMaxMS / kNackMaxCount));
+    GET_CONFIG(uint32_t, nack_maxms, Rtc::kNackMaxMS);
+    GET_CONFIG(uint32_t, nack_maxcount, Rtc::kNackMaxCount);
+    _rtt = max<int>(10, min<int>(rtt, nack_maxms / nack_maxcount));
 }
 
 void NackContext::recordNack(const FCI_NACK &nack) {
@@ -222,7 +259,8 @@ void NackContext::recordNack(const FCI_NACK &nack) {
         ++i;
     }
     // 记录太多了，移除一部分早期的记录
-    while (_nack_send_status.size() > kNackMaxSize) {
+    GET_CONFIG(uint32_t, nack_maxsize, Rtc::kNackMaxSize);
+    while (_nack_send_status.size() > nack_maxsize) {
         _nack_send_status.erase(_nack_send_status.begin());
     }
 }
@@ -230,13 +268,16 @@ void NackContext::recordNack(const FCI_NACK &nack) {
 uint64_t NackContext::reSendNack() {
     set<uint16_t> nack_rtp;
     auto now = getCurrentMillisecond();
+    GET_CONFIG(uint32_t, nack_maxms, Rtc::kNackMaxMS);
+    GET_CONFIG(uint32_t, nack_maxcount, Rtc::kNackMaxCount);
+    GET_CONFIG(float, nack_intervalratio, Rtc::kNackIntervalRatio);
     for (auto it = _nack_send_status.begin(); it != _nack_send_status.end();) {
-        if (now - it->second.first_stamp > kNackMaxMS) {
+        if (now - it->second.first_stamp > nack_maxms) {
             // 该rtp丢失太久了，不再要求重传
             it = _nack_send_status.erase(it);
             continue;
         }
-        if (now - it->second.update_stamp < kNackIntervalRatio * _rtt) {
+        if (now - it->second.update_stamp < nack_intervalratio * _rtt) {
             // 距离上次nack不足2倍的rtt，不用再发送nack
             ++it;
             continue;
@@ -245,7 +286,7 @@ uint64_t NackContext::reSendNack() {
         nack_rtp.emplace(it->first);
         // 更新nack发送时间戳
         it->second.update_stamp = now;
-        if (++(it->second.nack_count) == kNackMaxCount) {
+        if (++(it->second.nack_count) == nack_maxcount) {
             // nack次数太多，移除之
             it = _nack_send_status.erase(it);
             continue;

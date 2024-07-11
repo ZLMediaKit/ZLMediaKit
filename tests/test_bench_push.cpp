@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -20,7 +20,7 @@
 #include "Thread/WorkThreadPool.h"
 #include "Pusher/MediaPusher.h"
 #include "Player/PlayerProxy.h"
-
+#include "Record/MP4Reader.h"
 using namespace std;
 using namespace toolkit;
 using namespace mediakit;
@@ -52,7 +52,7 @@ public:
                              Option::ArgRequired,/*该选项后面必须跟值*/
                              nullptr,/*该选项默认值*/
                              true,/*该选项是否必须赋值，如果没有默认值且为ArgRequired时用户必须提供该参数否则将抛异常*/
-                             "拉流url,支持rtsp/rtmp/hls",/*该选项说明文字*/
+                             "拉流url,支持rtsp/rtmp/hls/mp4文件",/*该选项说明文字*/
                              nullptr);
 
         (*_parser) << Option('o',/*该选项简称，如果是\x00则说明无简称*/
@@ -92,18 +92,16 @@ public:
                              Option::ArgRequired,/*该选项后面必须跟值*/
                              to_string((int) (Rtsp::RTP_TCP)).data(),/*该选项默认值*/
                              true,/*该选项是否必须赋值，如果没有默认值且为ArgRequired时用户必须提供该参数否则将抛异常*/
-                             "rtsp拉流和推流方式,支持tcp/udp:0/1",/*该选项说明文字*/
-                             nullptr);
+                            "rtsp拉流和推流方式,支持tcp/udp:0/1", /*该选项说明文字*/
+                            nullptr);
     }
 
     ~CMD_main() override {}
 
-    const char *description() const override {
-        return "主程序命令参数";
-    }
+    const char *description() const override { return "主程序命令参数"; }
 };
 
-//此程序用于推流性能测试
+// 此程序用于推流性能测试
 int main(int argc, char *argv[]) {
     CMD_main cmd_main;
     try {
@@ -116,7 +114,7 @@ int main(int argc, char *argv[]) {
     }
 
     int threads = cmd_main["threads"];
-    LogLevel logLevel = (LogLevel) cmd_main["level"].as<int>();
+    LogLevel logLevel = (LogLevel)cmd_main["level"].as<int>();
     logLevel = MIN(MAX(logLevel, LTrace), LError);
     auto in_url = cmd_main["in"];
     auto out_url = cmd_main["out"];
@@ -129,6 +127,8 @@ int main(int argc, char *argv[]) {
         cout << "推流协议只支持rtsp或rtmp！" << endl;
         return -1;
     }
+    const std::string app = "app";
+    const std::string stream = "test";
 
     //设置日志
     Logger::Instance().add(std::make_shared<ConsoleChannel>("ConsoleChannel", logLevel));
@@ -145,28 +145,45 @@ int main(int argc, char *argv[]) {
     ProtocolOption option;
     option.enable_hls = false;
     option.enable_mp4 = false;
+    MediaSource::Ptr src = nullptr;
+    PlayerProxy::Ptr proxy = nullptr;;
 
-    //添加拉流代理
-    auto proxy = std::make_shared<PlayerProxy>(DEFAULT_VHOST, "app", "test", option);
-    //rtsp拉流代理方式
-    (*proxy)[Client::kRtpType] = rtp_type;
-    //开始拉流代理
-    proxy->play(in_url);
+    if (end_with(in_url, ".mp4")) {
+        // create MediaSource from mp4file
+        auto reader = std::make_shared<MP4Reader>(DEFAULT_VHOST, app, stream, in_url);
+        //mp4 repeat
+        reader->startReadMP4(0, true, true);
+        src = MediaSource::find(schema, DEFAULT_VHOST, app, stream, false);
+        if (!src) {
+            // mp4文件不存在
+            WarnL << "no such file or directory: " << in_url;
+            return -1;
+        }
+    } else {
+        //添加拉流代理
+        proxy = std::make_shared<PlayerProxy>(DEFAULT_VHOST, app, stream, option);
+        //rtsp拉流代理方式
+        (*proxy)[Client::kRtpType] = rtp_type;
+        //开始拉流代理
+        proxy->play(in_url);
 
-    auto get_src = [schema]() {
-        return MediaSource::find(schema, DEFAULT_VHOST, "app", "test", false);
+    }
+
+    auto get_src = [schema,app,stream]() {
+        return MediaSource::find(schema, DEFAULT_VHOST, app, stream, false);
     };
 
     //推流器map
     recursive_mutex mtx;
     unordered_map<void *, MediaPusher::Ptr> pusher_map;
 
+
     auto add_pusher = [&](const MediaSource::Ptr &src, const string &rand_str, size_t index) {
         auto pusher = std::make_shared<MediaPusher>(src);
         auto tag = pusher.get();
         pusher->setOnCreateSocket([](const EventPoller::Ptr &poller) {
             //socket关闭互斥锁，提高性能
-            return std::make_shared<Socket>(poller, false);
+            return Socket::createSocket(poller, false);
         });
         //设置推流失败监听
         pusher->setOnPublished([&mtx, &pusher_map, tag](const SockException &ex) {

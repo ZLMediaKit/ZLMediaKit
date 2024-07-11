@@ -24,6 +24,32 @@ SrtTransportImp::~SrtTransportImp() {
     }
 }
 
+
+SrtTransport::Ptr querySrtTransport(uint8_t *data, size_t size, const EventPoller::Ptr& poller) {
+    if (DataPacket::isDataPacket(data, size)) {
+        uint32_t socket_id = DataPacket::getSocketID(data, size);
+        return SrtTransportManager::Instance().getItem(socket_id);
+    }
+
+    if (HandshakePacket::isHandshakePacket(data, size)) {
+        auto type = HandshakePacket::getHandshakeType(data, size);
+        if (type == HandshakePacket::HS_TYPE_INDUCTION) {
+            // 握手第一阶段
+            return poller ? std::make_shared<SrtTransportImp>(poller) : nullptr;
+        }
+
+        if (type == HandshakePacket::HS_TYPE_CONCLUSION) {
+            // 握手第二阶段
+            uint32_t sync_cookie = HandshakePacket::getSynCookie(data, size);
+            return SrtTransportManager::Instance().getHandshakeItem(sync_cookie);
+        }
+    }
+
+    uint32_t socket_id = ControlPacket::getSocketID(data, size);
+    return SrtTransportManager::Instance().getItem(socket_id);
+}
+
+
 void SrtTransportImp::onHandShakeFinished(std::string &streamid, struct sockaddr_storage *addr) {
     SrtTransport::onHandShakeFinished(streamid,addr);
     // TODO parse stream id like this zlmediakit.com/live/test?token=1213444&type=push
@@ -37,8 +63,8 @@ void SrtTransportImp::onHandShakeFinished(std::string &streamid, struct sockaddr
         return;
     }
 
-    auto params = Parser::parseArgs(_media_info.param_strs);
-    if (params["m"] == "publish") {
+    auto kv = Parser::parseArgs(_media_info.params);
+    if (kv["m"] == "publish") {
         _is_pusher = true;
         _decoder = DecoderImp::createDecoder(DecoderImp::decoder_ts, this);
         emitOnPublish();
@@ -54,7 +80,7 @@ bool SrtTransportImp::parseStreamid(std::string &streamid) {
     if (!toolkit::start_with(streamid, "#!::")) {
         return false;
     }
-    _media_info.schema = SRT_SCHEMA;
+    _media_info.schema = "srt";
 
     std::string real_streamid = streamid.substr(4);
     std::string vhost, app, stream_name;
@@ -72,10 +98,10 @@ bool SrtTransportImp::parseStreamid(std::string &streamid) {
             app = tmps[0];
             stream_name = tmps[1];
         } else {
-            if (_media_info.param_strs.empty()) {
-                _media_info.param_strs = it.first + "=" + it.second;
+            if (_media_info.params.empty()) {
+                _media_info.params = it.first + "=" + it.second;
             } else {
-                _media_info.param_strs += "&" + it.first + "=" + it.second;
+                _media_info.params += "&" + it.first + "=" + it.second;
             }
         }
     }
@@ -92,7 +118,7 @@ bool SrtTransportImp::parseStreamid(std::string &streamid) {
     _media_info.app = app;
     _media_info.stream = stream_name;
 
-    TraceL << " mediainfo=" << _media_info.shortUrl() << " params=" << _media_info.param_strs;
+    TraceL << " mediainfo=" << _media_info.shortUrl() << " params=" << _media_info.params;
 
     return true;
 }
@@ -287,18 +313,7 @@ std::string SrtTransportImp::getIdentifier() const {
 
 bool SrtTransportImp::inputFrame(const Frame::Ptr &frame) {
     if (_muxer) {
-        //TraceL<<"before type "<<frame->getCodecName()<<" dts "<<frame->dts()<<" pts "<<frame->pts();
-        auto frame_tmp = std::make_shared<FrameStamp>(frame, _type_to_stamp[frame->getTrackType()],false);
-        if(_type_to_stamp.size()>1){
-            // 有音视频，检查是否时间戳是否差距过大
-            auto diff = _type_to_stamp[TrackType::TrackVideo].getRelativeStamp() - _type_to_stamp[TrackType::TrackAudio].getRelativeStamp();
-            if(std::abs(diff) > 5000){
-                // 超过5s，应该同步 TODO
-                WarnL << _media_info.full_url <<" video or audio not sync : "<<diff;
-            }
-        }
-        //TraceL<<"after type "<<frame_tmp->getCodecName()<<" dts "<<frame_tmp->dts()<<" pts "<<frame_tmp->pts();
-        return _muxer->inputFrame(frame_tmp);
+        return _muxer->inputFrame(frame);
     }
     if (_cached_func.size() > 200) {
         WarnL << "cached frame of track(" << frame->getCodecName() << ") is too much, now dropped";
@@ -306,17 +321,11 @@ bool SrtTransportImp::inputFrame(const Frame::Ptr &frame) {
     }
     auto frame_cached = Frame::getCacheAbleFrame(frame);
     lock_guard<recursive_mutex> lck(_func_mtx);
-    _cached_func.emplace_back([this, frame_cached]() { 
-        //TraceL<<"before type "<<frame_cached->getCodecName()<<" dts "<<frame_cached->dts()<<" pts "<<frame_cached->pts();
-        auto frame_tmp = std::make_shared<FrameStamp>(frame_cached, _type_to_stamp[frame_cached->getTrackType()],false);
-        //TraceL<<"after type "<<frame_tmp->getCodecName()<<" dts "<<frame_tmp->dts()<<" pts "<<frame_tmp->pts();
-        _muxer->inputFrame(frame_tmp);
-    });
+    _cached_func.emplace_back([this, frame_cached]() { _muxer->inputFrame(frame_cached); });
     return true;
 }
 
 bool SrtTransportImp::addTrack(const Track::Ptr &track) {
-    _type_to_stamp.emplace(track->getTrackType(),Stamp());
     if (_muxer) {
         return _muxer->addTrack(track);
     }
@@ -332,9 +341,6 @@ void SrtTransportImp::addTrackCompleted() {
     } else {
         lock_guard<recursive_mutex> lck(_func_mtx);
         _cached_func.emplace_back([this]() { _muxer->addTrackCompleted(); });
-    }
-    if(_type_to_stamp.size() >1){
-        _type_to_stamp[TrackType::TrackAudio].syncTo(_type_to_stamp[TrackType::TrackVideo]);
     }
 }
 

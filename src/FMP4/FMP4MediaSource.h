@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -26,7 +26,6 @@ public:
 
     template<typename ...ARGS>
     FMP4Packet(ARGS && ...args) : toolkit::BufferString(std::forward<ARGS>(args)...) {};
-    ~FMP4Packet() override = default;
 
 public:
     uint64_t time_stamp = 0;
@@ -42,7 +41,13 @@ public:
     FMP4MediaSource(const MediaTuple& tuple,
                     int ring_size = FMP4_GOP_SIZE) : MediaSource(FMP4_SCHEMA, tuple), _ring_size(ring_size) {}
 
-    ~FMP4MediaSource() override { flush(); }
+    ~FMP4MediaSource() override {
+        try {
+            flush();
+        } catch (std::exception &ex) {
+            WarnL << ex.what();
+        }
+    }
 
     /**
      * 获取媒体源的环形缓冲

@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -352,12 +352,20 @@ public:
     }
 
     void makeSockPair(std::pair<Socket::Ptr, Socket::Ptr> &pair, const string &local_ip, bool re_use_port, bool is_udp) {
-        auto &sock0 = pair.first;
-        auto &sock1 = pair.second;
         auto sock_pair = getPortPair();
         if (!sock_pair) {
             throw runtime_error("none reserved port in pool");
         }
+        makeSockPair_l(sock_pair, pair, local_ip, re_use_port, is_udp);
+
+        // 确保udp和tcp模式都能打开
+        auto new_pair = std::make_pair(Socket::createSocket(), Socket::createSocket());
+        makeSockPair_l(sock_pair, new_pair, local_ip, re_use_port, !is_udp);
+    }
+
+    void makeSockPair_l(const std::shared_ptr<uint16_t> &sock_pair, std::pair<Socket::Ptr, Socket::Ptr> &pair, const string &local_ip, bool re_use_port, bool is_udp) {
+        auto &sock0 = pair.first;
+        auto &sock1 = pair.second;
         if (is_udp) {
             if (!sock0->bindUdpSock(2 * *sock_pair, local_ip.data(), re_use_port)) {
                 // 分配端口失败
@@ -460,6 +468,15 @@ string printSSRC(uint32_t ui32Ssrc) {
         sprintf(tmp + 2 * i, "%02X", pSsrc[i]);
     }
     return tmp;
+}
+
+bool getSSRC(const char *data, size_t data_len, uint32_t &ssrc) {
+    if (data_len < 12) {
+        return false;
+    }
+    uint32_t *ssrc_ptr = (uint32_t *)(data + 8);
+    ssrc = ntohl(*ssrc_ptr);
+    return true;
 }
 
 bool isRtp(const char *buf, size_t size) {

@@ -1,17 +1,19 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #include <cstdlib>
 #include "RtspSplitter.h"
-#include "Util/logger.h"
 #include "Util/util.h"
+#include "Util/logger.h"
+#include "Common/macros.h"
+#include "Rtsp/RtpReceiver.h"
 
 using namespace std;
 using namespace toolkit;
@@ -57,13 +59,31 @@ const char *RtspSplitter::onSearchPacketTail_l(const char *data, size_t len) {
 }
 
 ssize_t RtspSplitter::onRecvHeader(const char *data, size_t len) {
-    if(_isRtpPacket){
-        onRtpPacket(data,len);
+    if (_isRtpPacket) {
+        try {
+            onRtpPacket(data, len);
+        } catch (RtpTrack::BadRtpException &ex) {
+            WarnL << ex.what();
+        }
         return 0;
     }
-    _parser.parse(data, len);
+    if (len == 4 && !memcmp(data, "\r\n\r\n", 4)) {
+        return 0;
+    }
+    try {
+        _parser.parse(data, len);
+    } catch (mediakit::AssertFailedException &ex){
+        if (!_enableRecvRtp) {
+            // 还在握手中，直接中断握手
+            throw;
+        }
+        // 握手已经结束，如果rtsp server存在发送缓存溢出的bug，那么rtsp信令可能跟rtp混在一起
+        // 这种情况下，rtsp信令解析异常不中断链接，只丢弃这个包
+        WarnL << ex.what();
+        return 0;
+    }
     auto ret = getContentLength(_parser);
-    if(ret == 0){
+    if (ret == 0) {
         onWholeRtspPacket(_parser);
         _parser.clear();
     }

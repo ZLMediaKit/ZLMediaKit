@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -128,6 +128,15 @@ API_EXPORT char *API_CALL mk_ini_dump_string(mk_ini ini);
  * @param file 配置文件路径
  */
 API_EXPORT void API_CALL mk_ini_dump_file(mk_ini ini, const char *file);
+///////////////////////////////////////////统计/////////////////////////////////////////////
+
+typedef void(API_CALL *on_mk_get_statistic_cb)(void *user_data, mk_ini ini);
+
+/**
+ * 获取内存数据统计
+ * @param ini 存放统计结果
+ */
+API_EXPORT void API_CALL mk_get_statistic(on_mk_get_statistic_cb cb, void *user_data, on_user_data_free free_cb);
 
 ///////////////////////////////////////////日志/////////////////////////////////////////////
 

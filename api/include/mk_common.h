@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -22,6 +22,10 @@
 #    define API_CALL __cdecl
 #else
 #    define API_CALL
+#endif
+
+#ifndef _WIN32
+#define _strdup strdup
 #endif
 
 #if defined(_WIN32) && defined(_MSC_VER)
@@ -46,6 +50,9 @@ extern "C" {
 #define LOG_FILE        (1 << 1)
 //输出日志到回调函数(mk_events::on_mk_log)
 #define LOG_CALLBACK    (1 << 2)
+
+//向下兼容
+#define mk_env_init1 mk_env_init2
 
 //回调user_data回调函数
 typedef void(API_CALL *on_user_data_free)(void *user_data);
@@ -100,7 +107,7 @@ API_EXPORT void API_CALL mk_stop_all_server();
  * @param ssl ssl证书内容或路径，可以为NULL
  * @param ssl_pwd 证书密码，可以为NULL
  */
-API_EXPORT void API_CALL mk_env_init1(int thread_num,
+API_EXPORT void API_CALL mk_env_init2(int thread_num,
                                       int log_level,
                                       int log_mask,
                                       const char *log_file_path,

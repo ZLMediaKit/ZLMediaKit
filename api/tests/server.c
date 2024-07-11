@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -189,6 +189,14 @@ static void on_mk_webrtc_get_answer_sdp_func(void *user_data, const char *answer
         free((void *)answer);
     }
 }
+
+void API_CALL on_get_statistic_cb(void *user_data, mk_ini ini) {
+    const char *response_header[] = { NULL };
+    char *str = mk_ini_dump_string(ini);
+    mk_http_response_invoker_do_string(user_data, 200, response_header, str);
+    mk_free(str);
+}
+
 /**
  * 收到http api请求广播(包括GET/POST)
  * @param parser http请求内容对象
@@ -247,6 +255,9 @@ void API_CALL on_mk_http_request(const mk_parser parser,
 
         mk_webrtc_get_answer_sdp(mk_http_response_invoker_clone(invoker), on_mk_webrtc_get_answer_sdp_func,
                                  mk_parser_get_url_param(parser, "type"), mk_parser_get_content(parser, NULL), rtc_url);
+    } else if (strcmp(url, "/index/api/getStatistic") == 0) {
+        //拦截api: /index/api/webrtc
+        mk_get_statistic(on_get_statistic_cb, mk_http_response_invoker_clone(invoker), (on_user_data_free) mk_http_response_invoker_clone_release);
     } else {
         *consumed = 0;
         return;
@@ -387,7 +398,7 @@ void API_CALL on_mk_rtsp_auth(const mk_media_info url_info,
 /**
  * 录制mp4分片文件成功后广播
  */
-void API_CALL on_mk_record_mp4(const mk_mp4_info mp4) {
+void API_CALL on_mk_record_mp4(const mk_record_info mp4) {
     log_printf(LOG_LEV,
                "\nstart_time: %d\n"
                "time_len: %d\n"
@@ -399,16 +410,16 @@ void API_CALL on_mk_record_mp4(const mk_mp4_info mp4) {
                "vhost: %s\n"
                "app: %s\n"
                "stream: %s\n",
-               mk_mp4_info_get_start_time(mp4),
-               mk_mp4_info_get_time_len(mp4),
-               mk_mp4_info_get_file_size(mp4),
-               mk_mp4_info_get_file_path(mp4),
-               mk_mp4_info_get_file_name(mp4),
-               mk_mp4_info_get_folder(mp4),
-               mk_mp4_info_get_url(mp4),
-               mk_mp4_info_get_vhost(mp4),
-               mk_mp4_info_get_app(mp4),
-               mk_mp4_info_get_stream(mp4));
+               mk_record_info_get_start_time(mp4),
+               mk_record_info_get_time_len(mp4),
+               mk_record_info_get_file_size(mp4),
+               mk_record_info_get_file_path(mp4),
+               mk_record_info_get_file_name(mp4),
+               mk_record_info_get_folder(mp4),
+               mk_record_info_get_url(mp4),
+               mk_record_info_get_vhost(mp4),
+               mk_record_info_get_app(mp4),
+               mk_record_info_get_stream(mp4));
 }
 
 /**

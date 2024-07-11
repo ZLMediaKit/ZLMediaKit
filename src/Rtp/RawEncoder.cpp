@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -13,6 +13,7 @@
 #include "RawEncoder.h"
 #include "Extension/Factory.h"
 #include "Rtsp/RtspMuxer.h"
+#include "Common//config.h"
 
 using namespace toolkit;
 
@@ -30,17 +31,23 @@ RawEncoderImp::~RawEncoderImp() {
 bool RawEncoderImp::addTrack(const Track::Ptr &track) {
     if (_send_audio && track->getTrackType() == TrackType::TrackAudio && !_rtp_encoder) { // audio
         _rtp_encoder = createRtpEncoder(track);
-        _rtp_encoder->setRtpRing(std::make_shared<RtpRing::RingType>());
-        _rtp_encoder->getRtpRing()->setDelegate(std::make_shared<RingDelegateHelper>(
-            [this](RtpPacket::Ptr rtp, bool is_key) { onRTP(std::move(rtp), true); }));
+        auto ring = std::make_shared<RtpRing::RingType>();
+        ring->setDelegate(std::make_shared<RingDelegateHelper>([this](RtpPacket::Ptr rtp, bool is_key) { onRTP(std::move(rtp), true); }));
+        _rtp_encoder->setRtpRing(std::move(ring));
+        if (track->getCodecId() == CodecG711A || track->getCodecId() == CodecG711U) {
+            GET_CONFIG(uint32_t, dur_ms, RtpProxy::kRtpG711DurMs);
+            Any param;
+            param.set<uint32_t>(dur_ms);
+            _rtp_encoder->setOpt(RtpCodec::RTP_ENCODER_PKT_DUR_MS, param);
+        }
         return true;
     }
 
     if (!_send_audio && track->getTrackType() == TrackType::TrackVideo && !_rtp_encoder) {
         _rtp_encoder = createRtpEncoder(track);
-        _rtp_encoder->setRtpRing(std::make_shared<RtpRing::RingType>());
-        _rtp_encoder->getRtpRing()->setDelegate(std::make_shared<RingDelegateHelper>(
-            [this](RtpPacket::Ptr rtp, bool is_key) { onRTP(std::move(rtp), is_key); }));
+        auto ring = std::make_shared<RtpRing::RingType>();
+        ring->setDelegate(std::make_shared<RingDelegateHelper>([this](RtpPacket::Ptr rtp, bool is_key) { onRTP(std::move(rtp), is_key); }));
+        _rtp_encoder->setRtpRing(std::move(ring));
         return true;
     }
     return true;
@@ -62,11 +69,17 @@ bool RawEncoderImp::inputFrame(const Frame::Ptr &frame) {
 }
 
 RtpCodec::Ptr RawEncoderImp::createRtpEncoder(const Track::Ptr &track) {
-    uint32_t sample_rate = 90000;
+    GET_CONFIG(uint32_t, audio_mtu, Rtp::kAudioMtuSize);
+    GET_CONFIG(uint32_t, video_mtu, Rtp::kVideoMtuSize);
+    auto sample_rate = 90000u;
+    auto mtu = video_mtu;
     if (track->getTrackType() == TrackType::TrackAudio) {
+        mtu = audio_mtu;
         sample_rate = std::static_pointer_cast<AudioTrack>(track)->getAudioSampleRate();
     }
-    return Factory::getRtpEncoderByCodecId(track->getCodecId(), sample_rate, _payload_type, _ssrc);
+    auto ret = Factory::getRtpEncoderByCodecId(track->getCodecId(), _payload_type);
+    ret->setRtpInfo(_ssrc, mtu, sample_rate, _payload_type);
+    return ret;
 }
 
 } // namespace mediakit

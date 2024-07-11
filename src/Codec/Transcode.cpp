@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -15,7 +15,6 @@
 #include "Util/File.h"
 #include "Util/uv_errno.h"
 #include "Transcode.h"
-#include "Extension/AAC.h"
 #include "Common/config.h"
 #define MAX_DELAY_SECOND 3
 
@@ -245,8 +244,8 @@ AVFrame *FFmpegFrame::get() const {
 
 void FFmpegFrame::fillPicture(AVPixelFormat target_format, int target_width, int target_height) {
     assert(_data == nullptr);
-    _data = new char[av_image_get_buffer_size(target_format, target_width, target_height, 1)];
-    av_image_fill_arrays(_frame->data, _frame->linesize, (uint8_t *) _data,  target_format, target_width, target_height,1);
+    _data = new char[av_image_get_buffer_size(target_format, target_width, target_height, 32)];
+    av_image_fill_arrays(_frame->data, _frame->linesize, (uint8_t *) _data,  target_format, target_width, target_height, 32);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -674,7 +673,7 @@ FFmpegFrame::Ptr FFmpegSws::inputFrame(const FFmpegFrame::Ptr &frame, int &ret, 
         auto out = std::make_shared<FFmpegFrame>();
         if (!out->get()->data[0]) {
             if (data) {
-                av_image_fill_arrays(out->get()->data, out->get()->linesize, data, _target_format, target_width, target_height, 1);
+                av_image_fill_arrays(out->get()->data, out->get()->linesize, data, _target_format, target_width, target_height, 32);
             } else {
                 out->fillPicture(_target_format, target_width, target_height);
             }

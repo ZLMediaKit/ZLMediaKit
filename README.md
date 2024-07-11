@@ -36,6 +36,7 @@
 - 极致体验，[独家特性](https://github.com/ZLMediaKit/ZLMediaKit/wiki/ZLMediakit%E7%8B%AC%E5%AE%B6%E7%89%B9%E6%80%A7%E4%BB%8B%E7%BB%8D)
 - [谁在使用zlmediakit?](https://github.com/ZLMediaKit/ZLMediaKit/issues/511)
 - 全面支持ipv6网络
+- 支持多轨道模式(一个流中多个视频/音频)
 
 ## 项目定位
 
@@ -76,16 +77,19 @@
   - 通过cookie追踪技术，可以模拟HLS播放为长连接，可以实现HLS按需拉流、播放统计等业务
   - 支持HLS播发器，支持拉流HLS转rtsp/rtmp/mp4
   - 支持H264/H265/AAC/G711/OPUS编码
+  - 支持多轨道模式
   
 - TS
   - 支持http[s]-ts直播
   - 支持ws[s]-ts直播
   - 支持H264/H265/AAC/G711/OPUS编码
+  - 支持多轨道模式
   
 - fMP4
   - 支持http[s]-fmp4直播
   - 支持ws[s]-fmp4直播
   - 支持H264/H265/AAC/G711/OPUS/MJPEG编码
+  - 支持多轨道模式
 
 - HTTP[S]与WebSocket
   - 服务器支持`目录索引生成`,`文件下载`,`表单提交请求`
@@ -104,11 +108,13 @@
   - 支持es/ps rtp转推
   - 支持GB28181主动拉流模式
   - 支持双向语音对讲
+  - 支持多轨道模式
 
 - MP4点播与录制
   - 支持录制为FLV/HLS/MP4
   - RTSP/RTMP/HTTP-FLV/WS-FLV支持MP4文件点播，支持seek
   - 支持H264/H265/AAC/G711/OPUS编码
+  - 支持多轨道模式
   
 - WebRTC
   - 支持WebRTC推流，支持转其他协议
@@ -153,12 +159,15 @@
  - 2、作为独立的流媒体服务器使用，不想做c/c++开发的，可以参考 [restful api](https://github.com/ZLMediaKit/ZLMediaKit/wiki/MediaServer支持的HTTP-API) 和 [web hook](https://github.com/ZLMediaKit/ZLMediaKit/wiki/MediaServer支持的HTTP-HOOK-API ).
  - 3、如果想做c/c++开发，添加业务逻辑增加功能，可以参考这里的[测试程序](https://github.com/ZLMediaKit/ZLMediaKit/tree/master/tests).
 
+## 二进制文件下载
+zlmediakit采用 github action 持续集成自动编译打包上传编译产出包，请在[issue列表](https://github.com/ZLMediaKit/ZLMediaKit/issues/483)下载最新sdk库文件以及可执行文件。
+
 ## Docker 镜像
 
 你可以从Docker Hub下载已经编译好的镜像并启动它：
 
 ```bash
-#此镜像为github持续集成自动编译推送，跟代码(master分支)保持最新状态
+#此镜像为github action 持续集成自动编译推送，跟代码(master分支)保持最新状态
 docker run -id -p 1935:1935 -p 8080:80 -p 8443:443 -p 8554:554 -p 10000:10000 -p 10000:10000/udp -p 8000:8000/udp -p 9000:9000/udp zlmediakit/zlmediakit:master
 ```
 
@@ -182,12 +191,15 @@ bash build_docker_images.sh
    - [jessibuca](https://github.com/langhuihui/jessibuca) 基于wasm支持H265的播放器
    - [wsPlayer](https://github.com/v354412101/wsPlayer) 基于MSE的websocket-fmp4播放器
    - [BXC_gb28181Player](https://github.com/any12345com/BXC_gb28181Player) C++开发的支持国标GB28181协议的视频流播放器
+   - [RTCPlayer](https://github.com/leo94666/RTCPlayer) 一个基于Android客户端的的RTC播放器
 
 - WEB管理网站
    - [zlm_webassist](https://github.com/1002victor/zlm_webassist) 本项目配套的前后端分离web管理项目
    - [AKStreamNVR](https://github.com/langmansh/AKStreamNVR) 前后端分离web项目,支持webrtc播放
    
  - SDK
+   - [spring-boot-starter](https://github.com/lunasaw/zlm-spring-boot-starter) 本项目hook和rest接口starter
+   - [java sdk](https://github.com/lidaofu-hub/j_zlm_sdk) 本项目c sdk完整java包装库
    - [c# sdk](https://github.com/malegend/ZLMediaKit.Autogen) 本项目c sdk完整c#包装库
    - [metaRTC](https://github.com/metartc/metaRTC) 全国产纯c webrtc sdk
    
@@ -214,7 +226,7 @@ bash build_docker_images.sh
  - 请关注微信公众号获取最新消息推送：
  <img src=https://user-images.githubusercontent.com/11495632/232451702-4c50bc72-84d8-4c94-af2b-57290088ba7a.png width=15% />
  
- - 也可以自愿有偿加入知识星球咨询和获取资料：
+ - 也可以自愿有偿加入知识星球咨询、获取资料以及加入微信技术群：
  <img src= https://user-images.githubusercontent.com/11495632/231946329-aa8517b0-3cf5-49cf-8c75-a93ed58cb9d2.png width=30% />
   
 
@@ -334,6 +346,28 @@ bash build_docker_images.sh
 [ArmstrongCN](https://github.com/ArmstrongCN)
 [leibnewton](https://github.com/leibnewton)
 [1002victor](https://github.com/1002victor)
+[Grin](https://github.com/xyyangkun)
+[xbpeng121](https://github.com/xbpeng121)
+[lvchenyun](https://github.com/lvchenyun)
+[Fummowo](https://github.com/Fummowo)
+[Jovial Young ](https://github.com/JHYoung1034)
+[yujitai](https://github.com/yujitai)
+[KisChang](https://github.com/kisChang)
+[zjx94](https://github.com/zjx94)
+[LeiZhi.Mai ](https://github.com/blueskiner)
+[JiaHao](https://github.com/nashiracn)
+[chdahuzi](https://github.com/chdahuzi)
+[snysmtx](https://github.com/snysmtx)
+[SetoKaiba](https://github.com/SetoKaiba)
+[sandro-qiang](https://github.com/sandro-qiang)
+[Paul Philippov](https://github.com/themactep)
+[张传峰](https://github.com/zhang-chuanfeng)
+[lidaofu-hub](https://github.com/lidaofu-hub)
+[huangcaichun](https://github.com/huangcaichun)
+[jamesZHANG500](https://github.com/jamesZHANG500)
+[weidelong](https://github.com/wdl1697454803)
+[小强先生](https://github.com/linshangqiang)
+[李之阳](https://github.com/leo94666)
 
 同时感谢JetBrains对开源项目的支持，本项目使用CLion开发与调试：
 

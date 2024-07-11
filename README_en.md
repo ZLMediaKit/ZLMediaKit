@@ -157,7 +157,7 @@ It is recommended to compile on Ubuntu or macOS. Compiling on Windows is cumbers
 
 - **You must use Git to clone the complete code. Do not download the source code by downloading the ZIP package. Otherwise, the submodule code will not be downloaded by default. You can do it like this:**
 ```
-git clone https://github.com/xia-chu/ZLMediaKit.git
+git clone https://github.com/ZLMediaKit/ZLMediaKit.git
 cd ZLMediaKit
 git submodule update --init
 ```
@@ -279,12 +279,12 @@ git submodule update --init
             return;
         }
 
-        auto viedoTrack = strongPlayer->getTrack(TrackVideo);
-        if (!viedoTrack) {
+        auto videoTrack = strongPlayer->getTrack(TrackVideo);
+        if (!videoTrack) {
             WarnL << "No video Track!";
             return;
         }
-        viedoTrack->addDelegate([](const Frame::Ptr &frame) {
+        videoTrack->addDelegate([](const Frame::Ptr &frame) {
             //please decode video here
         });
     });
@@ -324,6 +324,10 @@ git submodule update --init
 	});
 	
 	```
+
+## Binary file download
+zlmediakit uses github action to continuously integrate automatic compilation package and upload the compilation output package. Please download the latest sdk library file and executable file at [issue list] (https://github.com/ZLMediaKit/ZLMediaKit/issues/483).
+
 ## Docker Image
 
 You can download the pre-compiled image from Docker Hub and start it:
@@ -357,6 +361,8 @@ bash build_docker_images.sh
   - [Hikvision ehome server implemented in Go](https://github.com/tsingeye/FreeEhome)
 
 - Client
+  - [Http Api and hook in zlm-spring-boot-starter](https://github.com/lunasaw/zlm-spring-boot-starter)
+  - [Complete java wrapper library for c sdk](https://github.com/lidaofu-hub/j_zlm_sdk)
   - [Complete C# wrapper library for c sdk](https://github.com/malegend/ZLMediaKit.Autogen) 
   - [Push client implemented based on C SDK](https://github.com/hctym1995/ZLM_ApiDemo)
   - [Http API and Hook in C#](https://github.com/chengxiaosheng/ZLMediaKit.HttpApi)
@@ -367,6 +373,8 @@ bash build_docker_images.sh
   - [WebSocket-fmp4 player based on MSE](https://github.com/v354412101/wsPlayer) 
   - [Domestic webrtc sdk(metaRTC)](https://github.com/metartc/metaRTC)
   - [GB28181 player implemented in C++](https://github.com/any12345com/BXC_gb28181Player)
+  - [Android RTCPlayer](https://github.com/leo94666/RTCPlayer)
+
 
 ## License
 
@@ -498,6 +506,28 @@ Thanks to all those who have supported this project in various ways, including b
 [ArmstrongCN](https://github.com/ArmstrongCN)
 [leibnewton](https://github.com/leibnewton)
 [1002victor](https://github.com/1002victor)
+[Grin](https://github.com/xyyangkun)
+[xbpeng121](https://github.com/xbpeng121)
+[lvchenyun](https://github.com/lvchenyun)
+[Fummowo](https://github.com/Fummowo)
+[Jovial Young ](https://github.com/JHYoung1034)
+[yujitai](https://github.com/yujitai)
+[KisChang](https://github.com/kisChang)
+[zjx94](https://github.com/zjx94)
+[LeiZhi.Mai ](https://github.com/blueskiner)
+[JiaHao](https://github.com/nashiracn)
+[chdahuzi](https://github.com/chdahuzi)
+[snysmtx](https://github.com/snysmtx)
+[SetoKaiba](https://github.com/SetoKaiba)
+[sandro-qiang](https://github.com/sandro-qiang)
+[Paul Philippov](https://github.com/themactep)
+[张传峰](https://github.com/zhang-chuanfeng)
+[lidaofu-hub](https://github.com/lidaofu-hub)
+[huangcaichun](https://github.com/huangcaichun)
+[jamesZHANG500](https://github.com/jamesZHANG500)
+[weidelong](https://github.com/wdl1697454803)
+[小强先生](https://github.com/linshangqiang)
+[李之阳](https://github.com/leo94666)
 
 Also thank to JetBrains for their support for open source project, we developed and debugged zlmediakit with CLion:
 

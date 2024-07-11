@@ -1,26 +1,22 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
-#include <sys/stat.h>
-#if !defined(_WIN32)
-#include <dirent.h>
-#endif //!defined(_WIN32)
 #include <iomanip>
-#include "HttpFileManager.h"
 #include "Util/File.h"
-#include "HttpConst.h"
-#include "HttpSession.h"
-#include "Record/HlsMediaSource.h"
 #include "Common/Parser.h"
 #include "Common/config.h"
 #include "Common/strCoding.h"
+#include "Record/HlsMediaSource.h"
+#include "HttpConst.h"
+#include "HttpSession.h"
+#include "HttpFileManager.h"
 
 using namespace std;
 using namespace toolkit;
@@ -30,8 +26,8 @@ namespace mediakit {
 // hls的播放cookie缓存时间默认60秒，
 // 每次访问一次该cookie，那么将重新刷新cookie有效期
 // 假如播放器在60秒内都未访问该cookie，那么将重新触发hls播放鉴权
-static int kHlsCookieSecond = 60;
-static int kFindSrcIntervalSecond = 3;
+static size_t kHlsCookieSecond = 60;
+static size_t kFindSrcIntervalSecond = 3;
 static const string kCookieName = "ZL_COOKIE";
 static const string kHlsSuffix = "/hls.m3u8";
 static const string kHlsFMP4Suffix = "/hls.fmp4.m3u8";
@@ -158,23 +154,29 @@ bool HttpFileManager::isIPAllowed(const std::string &ip) {
     return false;
 }
 
-static string searchIndexFile(const string &dir){
-    DIR *pDir;
-    dirent *pDirent;
-    if ((pDir = opendir(dir.data())) == NULL) {
-        return "";
+static std::string fileName(const string &dir, const string &path) {
+    auto ret = path.substr(dir.size());
+    if (ret.front() == '/') {
+        ret.erase(0, 1);
     }
-    set<string> setFile;
-    while ((pDirent = readdir(pDir)) != NULL) {
-        static set<const char *, StrCaseCompare> indexSet = {"index.html", "index.htm"};
-        if (indexSet.find(pDirent->d_name) != indexSet.end()) {
-            string ret = pDirent->d_name;
-            closedir(pDir);
-            return ret;
+    return ret;
+}
+
+static string searchIndexFile(const string &dir) {
+    std::string ret;
+    static set<std::string, StrCaseCompare> indexSet = { "index.html", "index.htm" };
+    File::scanDir(dir, [&](const string &path, bool is_dir) {
+        if (is_dir) {
+            return true;
         }
-    }
-    closedir(pDir);
-    return "";
+        auto name = fileName(dir, path);
+        if (indexSet.find(name) == indexSet.end()) {
+            return true;
+        }
+        ret = std::move(name);
+        return false;
+    });
+    return ret;
 }
 
 static bool makeFolderMenu(const string &httpPath, const string &strFullPath, string &strRet) {
@@ -192,16 +194,16 @@ static bool makeFolderMenu(const string &httpPath, const string &strFullPath, st
         last_dir_name = split(strPathPrefix, "/").back();
     }
 
-    if (!File::is_dir(strPathPrefix.data())) {
+    if (!File::is_dir(strPathPrefix)) {
         return false;
     }
     stringstream ss;
     ss << "<html>\r\n"
           "<head>\r\n"
-          "<title>文件索引</title>\r\n"
+          "<title>File Index</title>\r\n"
           "</head>\r\n"
           "<body>\r\n"
-          "<h1>文件索引:";
+          "<h1>Index of ";
 
     ss << httpPath;
     ss << "</h1>\r\n";
@@ -209,7 +211,7 @@ static bool makeFolderMenu(const string &httpPath, const string &strFullPath, st
         ss << "<li><a href=\"";
         ss << "/";
         ss << "\">";
-        ss << "根目录";
+        ss << "root";
         ss << "</a></li>\r\n";
 
         ss << "<li><a href=\"";
@@ -219,38 +221,29 @@ static bool makeFolderMenu(const string &httpPath, const string &strFullPath, st
             ss << "../";
         }
         ss << "\">";
-        ss << "上级目录";
+        ss << "../";
         ss << "</a></li>\r\n";
     }
 
-    DIR *pDir;
-    dirent *pDirent;
-    if ((pDir = opendir(strPathPrefix.data())) == NULL) {
-        return false;
-    }
     multimap<string/*url name*/, std::pair<string/*note name*/, string/*file path*/> > file_map;
-    while ((pDirent = readdir(pDir)) != NULL) {
-        if (File::is_special_dir(pDirent->d_name)) {
-            continue;
-        }
-        if (pDirent->d_name[0] == '.') {
-            continue;
-        }
-        file_map.emplace(strCoding::UrlEncode(pDirent->d_name), std::make_pair(pDirent->d_name, strPathPrefix + "/" + pDirent->d_name));
-    }
+    File::scanDir(strPathPrefix, [&](const std::string &path, bool isDir) {
+        auto name = fileName(strPathPrefix, path);
+        file_map.emplace(strCoding::UrlEncodePath(name), std::make_pair(name, path));
+        return true;
+    });
     //如果是root目录，添加虚拟目录
     if (httpPath == "/") {
         GET_CONFIG_FUNC(StrCaseMap, virtualPathMap, Http::kVirtualPath, [](const string &str) {
             return Parser::parseArgs(str, ";", ",");
         });
         for (auto &pr : virtualPathMap) {
-            file_map.emplace(pr.first, std::make_pair(string("虚拟目录:") + pr.first, File::absolutePath("", pr.second)));
+            file_map.emplace(pr.first, std::make_pair(string("virtual path: ") + pr.first, File::absolutePath("", pr.second)));
         }
     }
     int i = 0;
     for (auto &pr :file_map) {
         auto &strAbsolutePath = pr.second.second;
-        bool isDir = File::is_dir(strAbsolutePath.data());
+        bool isDir = File::is_dir(strAbsolutePath);
         ss << "<li><span>" << i++ << "</span>\t";
         ss << "<a href=\"";
         //路径链接地址
@@ -271,7 +264,7 @@ static bool makeFolderMenu(const string &httpPath, const string &strFullPath, st
             continue;
         }
         //是文件
-        auto fileSize = File::fileSize(strAbsolutePath.data());
+        auto fileSize = File::fileSize(strAbsolutePath);
         if (fileSize < 1024) {
             ss << " (" << fileSize << "B)" << endl;
         } else if (fileSize < 1024 * 1024) {
@@ -283,7 +276,6 @@ static bool makeFolderMenu(const string &httpPath, const string &strFullPath, st
         }
         ss << "</a></li>\r\n";
     }
-    closedir(pDir);
     ss << "<ul>\r\n";
     ss << "</ul>\r\n</body></html>";
     ss.str().swap(strRet);
@@ -308,8 +300,6 @@ static bool emitHlsPlayed(const Parser &parser, const MediaInfo &media_info, con
 class SockInfoImp : public SockInfo{
 public:
     using Ptr = std::shared_ptr<SockInfoImp>;
-    SockInfoImp() = default;
-    ~SockInfoImp() override = default;
 
     string get_local_ip() override {
         return _local_ip;
@@ -467,7 +457,7 @@ static string pathCat(const string &a, const string &b){
  */
 static void accessFile(Session &sender, const Parser &parser, const MediaInfo &media_info, const string &file_path, const HttpFileManager::invoker &cb) {
     bool is_hls = end_with(file_path, kHlsSuffix) || end_with(file_path, kHlsFMP4Suffix);
-    if (!is_hls && !File::fileExist(file_path.data())) {
+    if (!is_hls && !File::fileExist(file_path)) {
         //文件不存在且不是hls,那么直接返回404
         sendNotFound(cb);
         return;
@@ -584,12 +574,13 @@ static string getFilePath(const Parser &parser,const MediaInfo &media_info, Sess
         return Parser::parseArgs(str, ";", ",");
     });
 
-    string url, path;
+    string url, path, virtual_app;
     auto it = virtualPathMap.find(media_info.app);
     if (it != virtualPathMap.end()) {
         //访问的是virtualPath
         path = it->second;
         url = parser.url().substr(1 + media_info.app.size());
+        virtual_app = media_info.app + "/";
     } else {
         //访问的是rootPath
         path = rootPath;
@@ -608,7 +599,7 @@ static string getFilePath(const Parser &parser,const MediaInfo &media_info, Sess
         throw std::runtime_error("Attempting to access files outside of the http root directory");
     }
     // 替换url，防止返回的目录索引网页被注入非法内容
-    const_cast<Parser&>(parser).setUrl("/" + ret.substr(http_root.size()));
+    const_cast<Parser&>(parser).setUrl("/" + virtual_app + ret.substr(http_root.size()));
     NOTICE_EMIT(BroadcastHttpBeforeAccessArgs, Broadcast::kBroadcastHttpBeforeAccess, parser, ret, sender);
     return ret;
 }
@@ -620,7 +611,7 @@ static string getFilePath(const Parser &parser,const MediaInfo &media_info, Sess
  * @param cb 回调对象
  */
 void HttpFileManager::onAccessPath(Session &sender, Parser &parser, const HttpFileManager::invoker &cb) {
-    auto fullUrl = string(HTTP_SCHEMA) + "://" + parser["Host"] + parser.fullUrl();
+    auto fullUrl = "http://" + parser["Host"] + parser.fullUrl();
     MediaInfo media_info(fullUrl);
     auto file_path = getFilePath(parser, media_info, sender);
     if (file_path.size() == 0) {
@@ -628,12 +619,12 @@ void HttpFileManager::onAccessPath(Session &sender, Parser &parser, const HttpFi
         return;
     }
     //访问的是文件夹
-    if (File::is_dir(file_path.data())) {
+    if (File::is_dir(file_path)) {
         auto indexFile = searchIndexFile(file_path);
         if (!indexFile.empty()) {
             // 发现该文件夹下有index文件
             file_path = pathCat(file_path, indexFile);
-            if (!File::is_dir(file_path.data())) {
+            if (!File::is_dir(file_path)) {
                 // 不是文件夹
                 parser.setUrl(pathCat(parser.url(), indexFile));
                 accessFile(sender, parser, media_info, file_path, cb);
@@ -712,18 +703,21 @@ void HttpResponseInvokerImp::responseFile(const StrCaseMap &requestHeader,
     }
 
     //file是文件路径
+    GET_CONFIG(string, charSet, Http::kCharSet);
     StrCaseMap &httpHeader = const_cast<StrCaseMap &>(responseHeader);
     auto fileBody = std::make_shared<HttpFileBody>(file, use_mmap);
     if (fileBody->remainSize() < 0) {
         //打开文件失败
         GET_CONFIG(string, notFound, Http::kNotFound);
-        GET_CONFIG(string, charSet, Http::kCharSet);
 
         auto strContentType = StrPrinter << "text/html; charset=" << charSet << endl;
         httpHeader["Content-Type"] = strContentType;
         (*this)(404, httpHeader, notFound);
         return;
     }
+
+    // 尝试添加Content-Type
+    httpHeader.emplace("Content-Type", HttpConst::getHttpContentType(file.data()) + "; charset=" + charSet);
 
     auto &strRange = const_cast<StrCaseMap &>(requestHeader)["Range"];
     int code = 200;

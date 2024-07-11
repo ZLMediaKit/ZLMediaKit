@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -36,6 +36,16 @@
 #define CHECK(exp, ...) ::mediakit::Assert_ThrowCpp(!(exp), #exp, __FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__)
 #endif // CHECK
 
+#ifndef CHECK_RET
+#define CHECK_RET(...)                                                         \
+    try {                                                                      \
+        CHECK(__VA_ARGS__);                                                    \
+    } catch (AssertFailedException & ex) {                                     \
+        WarnL << ex.what();                                                    \
+        return;                                                                \
+    }
+#endif
+
 #ifndef MAX
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #endif // MAX
@@ -51,16 +61,14 @@
     }
 #endif // CLEAR_ARR
 
-#define VHOST_KEY "vhost"
-#define HTTP_SCHEMA "http"
 #define RTSP_SCHEMA "rtsp"
-#define RTC_SCHEMA "rtc"
 #define RTMP_SCHEMA "rtmp"
-#define HLS_SCHEMA "hls"
 #define TS_SCHEMA "ts"
 #define FMP4_SCHEMA "fmp4"
+#define HLS_SCHEMA "hls"
 #define HLS_FMP4_SCHEMA "hls.fmp4"
-#define SRT_SCHEMA "srt"
+
+#define VHOST_KEY "vhost"
 #define DEFAULT_VHOST "__defaultVhost__"
 
 #ifdef __cplusplus
@@ -77,7 +85,6 @@ class AssertFailedException : public std::runtime_error {
 public:
     template<typename ...T>
     AssertFailedException(T && ...args) : std::runtime_error(std::forward<T>(args)...) {}
-    ~AssertFailedException() override = default;
 };
 
 extern const char kServerName[];

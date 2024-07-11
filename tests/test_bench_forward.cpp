@@ -1,9 +1,9 @@
 ﻿/*	
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.	
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *	
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).	
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *	
- * Use of this source code is governed by MIT license that can be found in the	
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors	
  * may be found in the AUTHORS file in the root of the source tree.	
  */
@@ -138,7 +138,7 @@ int main(int argc, char *argv[]) {
 
     auto parse_urls = [&]() {
         // 获取输入源列表	
-        auto inputs = ::split(toolkit::File::loadFile(in_urls.c_str()), "\n");
+        auto inputs = ::split(toolkit::File::loadFile(in_urls), "\n");
         for(auto &url : inputs){
             if(url.empty() || url.find("://") == std::string::npos) {
                 continue;
@@ -147,7 +147,7 @@ int main(int argc, char *argv[]) {
             input_urls.emplace_back(input_url);
         }
         // 获取输出源列表	
-        auto outputs = ::split(toolkit::File::loadFile(out_urls.c_str()), "\n");
+        auto outputs = ::split(toolkit::File::loadFile(out_urls), "\n");
         for(auto &url : outputs){
             if(url.empty() || url.find("://") == std::string::npos){
                 continue;
@@ -180,7 +180,7 @@ int main(int argc, char *argv[]) {
         auto pusher = std::make_shared<MediaPusher>(src);
         pusher->setOnCreateSocket([](const EventPoller::Ptr &poller) {
             //socket关闭互斥锁，提高性能	
-            return std::make_shared<Socket>(poller, false);
+            return Socket::createSocket(poller, false);
         });
         //设置推流失败监听	
         pusher->setOnPublished([&mtx, &pusher_map, index](const SockException &ex) {

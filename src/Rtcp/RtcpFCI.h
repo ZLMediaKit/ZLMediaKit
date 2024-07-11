@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -14,6 +14,7 @@
 #include "Rtcp.h"
 
 namespace mediakit {
+#pragma pack(push, 1)
 
 /////////////////////////////////////////// PSFB ////////////////////////////////////////////////////
 
@@ -375,6 +376,6 @@ private:
     // feedback packet count,反馈包号,本包是第几个transport-cc包，每次加1                          |
     uint8_t fb_pkt_count;
 };
-
+#pragma pack(pop)
 } // namespace mediakit
 #endif // ZLMEDIAKIT_RTCPFCI_H

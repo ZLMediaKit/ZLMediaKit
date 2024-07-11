@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -20,10 +20,6 @@ class MP4Demuxer : public TrackSource {
 public:
     using Ptr = std::shared_ptr<MP4Demuxer>;
 
-    /**
-     * 创建mp4解复用器
-     */
-    MP4Demuxer();
     ~MP4Demuxer() override;
 
     /**
@@ -75,7 +71,7 @@ private:
     MP4FileDisk::Ptr _mp4_file;
     MP4FileDisk::Reader _mov_reader;
     uint64_t _duration_ms = 0;
-    std::map<int, Track::Ptr> _track_to_codec;
+    std::unordered_map<int, Track::Ptr> _tracks;
     toolkit::ResourcePool<toolkit::BufferRaw> _buffer_pool;
 };
 

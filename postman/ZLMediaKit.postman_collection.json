@@ -1,10 +1,10 @@
 {
 	"info": {
-		"_postman_id": "509e5f6b-728c-4d5f-b3e8-521d76b2cc7a",
+		"_postman_id": "8b3cdc62-3e18-4700-9ddd-dc9f58ebce83",
 		"name": "ZLMediaKit",
 		"description": "媒体服务器",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "29185956"
+		"_exporter_id": "26338564"
 	},
 	"item": [
 		{
@@ -21,6 +21,72 @@
 						"index",
 						"api",
 						"getApiList"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "关闭多屏拼接(stack/stop)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/getApiList?secret={{ZLMediaKit_secret}}&id=stack_test",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"getApiList"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)"
+						},
+						{
+							"key": "id",
+							"value": "stack_test"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "添加多屏拼接(stack/start)",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"gapv\": 0.002,\r\n    \"gaph\": 0.001,\r\n    \"width\": 1920,\r\n    \"url\": [\r\n        [\r\n            \"rtsp://kkem.me/live/test3\",\r\n            \"rtsp://kkem.me/live/cy1\",\r\n            \"rtsp://kkem.me/live/cy1\",\r\n            \"rtsp://kkem.me/live/cy2\"\r\n        ],\r\n        [\r\n            \"rtsp://kkem.me/live/cy1\",\r\n            \"rtsp://kkem.me/live/cy5\",\r\n            \"rtsp://kkem.me/live/cy3\",\r\n            \"rtsp://kkem.me/live/cy4\"\r\n        ],\r\n        [\r\n            \"rtsp://kkem.me/live/cy5\",\r\n            \"rtsp://kkem.me/live/cy6\",\r\n            \"rtsp://kkem.me/live/cy7\",\r\n            \"rtsp://kkem.me/live/cy8\"\r\n        ],\r\n        [\r\n            \"rtsp://kkem.me/live/cy9\",\r\n            \"rtsp://kkem.me/live/cy10\",\r\n            \"rtsp://kkem.me/live/cy11\",\r\n            \"rtsp://kkem.me/live/cy12\"\r\n        ]\r\n    ],\r\n    \"id\": \"89\",\r\n    \"row\": 4,\r\n    \"col\": 4,\r\n    \"height\": 1080,\r\n    \"span\": [\r\n        [\r\n            [\r\n                0,\r\n                0\r\n            ],\r\n            [\r\n                1,\r\n                1\r\n            ]\r\n        ],\r\n        [\r\n            [\r\n                3,\r\n                0\r\n            ],\r\n            [\r\n                3,\r\n                1\r\n            ]\r\n        ],\r\n        [\r\n            [\r\n                2,\r\n                3\r\n            ],\r\n            [\r\n                3,\r\n                3\r\n            ]\r\n        ]\r\n    ]\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/stack/start?secret={{ZLMediaKit_secret}}",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"stack",
+						"start"
 					],
 					"query": [
 						{
@@ -1216,7 +1282,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{ZLMediaKit_URL}}/index/api/seekRecordStamp?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=live&stream=obs&stamp",
+					"raw": "{{ZLMediaKit_URL}}/index/api/seekRecordStamp?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=live&stream=obs&stamp=1000",
 					"host": [
 						"{{ZLMediaKit_URL}}"
 					],
@@ -1411,6 +1477,16 @@
 							"description": "api操作密钥(配置文件配置)"
 						},
 						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "rtp",
+							"description": "应用名，例如 rtp"
+						},
+						{
 							"key": "stream_id",
 							"value": "test",
 							"description": "流id"
@@ -1452,6 +1528,16 @@
 							"description": "tcp模式，0时为不启用tcp监听，1时为启用tcp监听，2时为tcp主动连接模式"
 						},
 						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "rtp",
+							"description": "应用名，例如 rtp"
+						},
+						{
 							"key": "stream_id",
 							"value": "test",
 							"description": "该端口绑定的流id\n"
@@ -1469,9 +1555,15 @@
 							"disabled": true
 						},
 						{
-							"key": "only_audio",
+							"key": "only_track",
 							"value": "1",
-							"description": "是否为单音频track，用于语音对讲",
+							"description": "是否为单音频/单视频track，0：不设置，1：单音频，2：单视频",
+							"disabled": true
+						},
+						{
+							"key": "local_ip",
+							"value": "::",
+							"description": "指定创建RTP的本地ip，ipv4可填”0.0.0.0“，ipv6可填”::“，一般保持默认",
 							"disabled": true
 						}
 					]
@@ -1485,14 +1577,14 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{ZLMediaKit_URL}}/index/api/openRtpServer?secret={{ZLMediaKit_secret}}&port=0&tcp_mode=1&stream_id=test",
+					"raw": "{{ZLMediaKit_URL}}/index/api/openRtpServerMultiplex?secret={{ZLMediaKit_secret}}&port=0&tcp_mode=1&stream_id=test",
 					"host": [
 						"{{ZLMediaKit_URL}}"
 					],
 					"path": [
 						"index",
 						"api",
-						"openRtpServer"
+						"openRtpServerMultiplex"
 					],
 					"query": [
 						{
@@ -1511,14 +1603,30 @@
 							"description": "tcp模式，0时为不启用tcp监听，1时为启用tcp监听"
 						},
 						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "rtp",
+							"description": "应用名，例如 rtp"
+						},
+						{
 							"key": "stream_id",
 							"value": "test",
 							"description": "该端口绑定的流id\n"
 						},
 						{
-							"key": "only_audio",
+							"key": "only_track",
 							"value": "0",
-							"description": "是否为单音频track，用于语音对讲",
+							"description": "是否为单音频/单视频track，0：不设置，1：单音频，2：单视频",
+							"disabled": true
+						},
+						{
+							"key": "local_ip",
+							"value": "::",
+							"description": "指定创建RTP的本地ip，ipv4可填”0.0.0.0“，ipv6可填”::“，一般保持默认",
 							"disabled": true
 						}
 					]
@@ -1558,6 +1666,16 @@
 							"description": "tcp主动模式时服务端端口"
 						},
 						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "rtp",
+							"description": "应用名，例如 rtp"
+						},
+						{
 							"key": "stream_id",
 							"value": "test",
 							"description": "OpenRtpServer时绑定的流id\n"
@@ -1589,6 +1707,16 @@
 							"description": "api操作密钥(配置文件配置)"
 						},
 						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "rtp",
+							"description": "应用名，例如 rtp"
+						},
+						{
 							"key": "stream_id",
 							"value": "test",
 							"description": "该端口绑定的流id"
@@ -1618,6 +1746,16 @@
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
 							"description": "api操作密钥(配置文件配置)"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "rtp",
+							"description": "应用名，例如 rtp"
 						},
 						{
 							"key": "stream_id",
@@ -1656,6 +1794,16 @@
 							"description": "api操作密钥(配置文件配置)"
 						},
 						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "rtp",
+							"description": "应用名，例如 rtp"
+						},
+						{
 							"key": "stream_id",
 							"value": "test",
 							"description": "该端口绑定的流id"
@@ -1685,6 +1833,16 @@
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
 							"description": "api操作密钥(配置文件配置)"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "rtp",
+							"description": "应用名，例如 rtp"
 						},
 						{
 							"key": "stream_id",
@@ -1967,6 +2125,47 @@
 			"response": []
 		},
 		{
+			"name": "获取rtp发送列表(listRtpSender)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/listRtpSender?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=live&stream=test",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"listRtpSender"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "live",
+							"description": "应用名，例如 live"
+						},
+						{
+							"key": "stream",
+							"value": "test",
+							"description": "流id，例如 obs"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "获取版本信息(version)",
 			"request": {
 				"method": "GET",
@@ -2178,6 +2377,38 @@
 							"key": "auto_close",
 							"value": "",
 							"description": "无人观看时，是否直接关闭(而不是通过on_none_reader hook返回close)；强制开启，此参数不生效",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "下载文件(downloadFile)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/downloadFile?file_path=/path/to/file.ext",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"downloadFile"
+					],
+					"query": [
+						{
+							"key": "file_path",
+							"value": "/path/to/file.ext",
+							"description": "文件绝对路径，根据文件名生成Content-Type；该接口将触发on_http_access hook"
+						},
+						{
+							"key": "save_name",
+							"value": "test",
+							"description": "浏览器下载文件后保存文件名；可选参数",
 							"disabled": true
 						}
 					]

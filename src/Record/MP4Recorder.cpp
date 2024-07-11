@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -22,12 +22,10 @@ using namespace toolkit;
 
 namespace mediakit {
 
-MP4Recorder::MP4Recorder(const string &path, const string &vhost, const string &app, const string &stream_id, size_t max_second) {
+MP4Recorder::MP4Recorder(const MediaTuple &tuple, const string &path, size_t max_second) {
     _folder_path = path;
     /////record 业务逻辑//////
-    _info.app = app;
-    _info.stream = stream_id;
-    _info.vhost = vhost;
+    static_cast<MediaTuple &>(_info) = tuple;
     _info.folder = path;
     GET_CONFIG(uint32_t, s_max_second, Protocol::kMP4MaxSecond);
     _max_second = max_second ? max_second : s_max_second;
@@ -85,10 +83,10 @@ void MP4Recorder::asyncClose() {
         TraceL << "Closed tmp mp4 file: " << full_path_tmp;
         if (!full_path_tmp.empty()) {
             // 获取文件大小
-            info.file_size = File::fileSize(full_path_tmp.data());
+            info.file_size = File::fileSize(full_path_tmp);
             if (info.file_size < 1024) {
                 // 录像文件太小，删除之
-                File::delete_file(full_path_tmp.data());
+                File::delete_file(full_path_tmp);
                 return;
             }
             // 临时文件名改成正式文件名，防止mp4未完成时被访问
@@ -117,11 +115,13 @@ bool MP4Recorder::inputFrame(const Frame::Ptr &frame) {
     if (!(_have_video && frame->getTrackType() == TrackAudio)) {
         //如果有视频且输入的是音频，那么应该忽略切片逻辑
         if (_last_dts == 0 || _last_dts > frame->dts()) {
-            //极少情况下dts时间戳可能回退
-            _last_dts = frame->dts();
+            //b帧情况下dts时间戳可能回退
+            _last_dts = MAX(frame->dts(), _last_dts);
         }
-
-        auto duration = frame->dts() - _last_dts;
+        auto duration = 5u; // 默认至少一帧5ms
+        if (frame->dts() > 0 && frame->dts() > _last_dts) {
+            duration = MAX(duration, frame->dts() - _last_dts);
+        }
         if (!_muxer || ((duration > _max_second * 1000) && (!_have_video || (_have_video && frame->keyFrame())))) {
             //成立条件
             // 1、_muxer为空

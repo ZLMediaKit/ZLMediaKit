@@ -1,26 +1,43 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #include "mk_proxyplayer.h"
 #include "Player/PlayerProxy.h"
+#include "mk_util.h"
 
 using namespace toolkit;
 using namespace mediakit;
 
 API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create(const char *vhost, const char *app, const char *stream, int hls_enabled, int mp4_enabled) {
+   return mk_proxy_player_create3(vhost, app, stream, hls_enabled, mp4_enabled,-1);
+}
+
+API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create2(const char *vhost, const char *app, const char *stream, mk_ini ini) {
+    return mk_proxy_player_create4(vhost, app, stream, ini, -1);
+}
+
+API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create3(const char *vhost, const char *app, const char *stream, int hls_enabled, int mp4_enabled, int retry_count) {
     assert(vhost && app && stream);
     ProtocolOption option;
     option.enable_hls = hls_enabled;
     option.enable_mp4 = mp4_enabled;
-    PlayerProxy::Ptr *obj(new PlayerProxy::Ptr(new PlayerProxy(vhost, app, stream, option)));
-    return (mk_proxy_player) obj;
+    PlayerProxy::Ptr *obj(new PlayerProxy::Ptr(new PlayerProxy(vhost, app, stream, option, retry_count)));
+    return (mk_proxy_player)obj;
+}
+
+
+API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create4(const char *vhost, const char *app, const char *stream, mk_ini ini, int retry_count) {
+    assert(vhost && app && stream);
+    ProtocolOption option(*((mINI *)ini));
+    PlayerProxy::Ptr *obj(new PlayerProxy::Ptr(new PlayerProxy(vhost, app, stream, option, retry_count)));
+    return (mk_proxy_player)obj;
 }
 
 API_EXPORT void API_CALL mk_proxy_player_release(mk_proxy_player ctx) {
@@ -60,6 +77,20 @@ API_EXPORT void API_CALL mk_proxy_player_set_on_close2(mk_proxy_player ctx, on_m
     obj->getPoller()->async([obj, cb, ptr]() {
         // 切换线程再操作
         obj->setOnClose([cb, ptr](const SockException &ex) {
+            if (cb) {
+                cb(ptr.get(), ex.getErrCode(), ex.what(), ex.getCustomCode());
+            }
+        });
+    });
+}
+
+API_EXPORT void API_CALL mk_proxy_player_set_on_play_result(mk_proxy_player ctx, on_mk_proxy_player_close cb, void *user_data, on_user_data_free user_data_free) {
+    assert(ctx);
+    PlayerProxy::Ptr &obj = *((PlayerProxy::Ptr *)ctx);
+    std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
+    obj->getPoller()->async([obj, cb, ptr]() {
+        // 切换线程再操作
+        obj->setPlayCallbackOnce([cb, ptr](const SockException &ex) {
             if (cb) {
                 cb(ptr.get(), ex.getErrCode(), ex.what(), ex.getCustomCode());
             }

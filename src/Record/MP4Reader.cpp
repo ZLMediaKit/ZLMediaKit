@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -20,24 +20,26 @@ using namespace toolkit;
 
 namespace mediakit {
 
-MP4Reader::MP4Reader(const std::string &vhost, const std::string &app, const std::string &stream_id, const string &file_path) {
+MP4Reader::MP4Reader(const std::string &vhost, const std::string &app, const std::string &stream_id, const string &file_path,
+                     toolkit::EventPoller::Ptr poller) {
     ProtocolOption option;
     // 读取mp4文件并流化时，不重复生成mp4/hls文件
     option.enable_mp4 = false;
     option.enable_hls = false;
     option.enable_hls_fmp4 = false;
-
-    setup(vhost, app, stream_id, file_path, option);
+    // mp4支持多track
+    option.max_track = 16;
+    setup(vhost, app, stream_id, file_path, option, std::move(poller));
 }
 
-MP4Reader::MP4Reader(const std::string &vhost, const std::string &app, const std::string &stream_id, const string &file_path, const ProtocolOption &option) {
-    setup(vhost, app, stream_id, file_path, option);
+MP4Reader::MP4Reader(const std::string &vhost, const std::string &app, const std::string &stream_id, const string &file_path, const ProtocolOption &option, toolkit::EventPoller::Ptr poller) {
+    setup(vhost, app, stream_id, file_path, option, std::move(poller));
 }
 
-void MP4Reader::setup(const std::string &vhost, const std::string &app, const std::string &stream_id, const std::string &file_path, const ProtocolOption &option) {
+void MP4Reader::setup(const std::string &vhost, const std::string &app, const std::string &stream_id, const std::string &file_path, const ProtocolOption &option, toolkit::EventPoller::Ptr poller) {
     //读写文件建议放在后台线程
-    auto tuple =  MediaTuple{vhost, app, stream_id};
-    _poller = WorkThreadPool::Instance().getPoller();
+    auto tuple =  MediaTuple{vhost, app, stream_id, ""};
+    _poller = poller ? std::move(poller) : WorkThreadPool::Instance().getPoller();
     _file_path = file_path;
     if (_file_path.empty()) {
         GET_CONFIG(string, recordPath, Protocol::kMP4SavePath);
@@ -122,6 +124,7 @@ void MP4Reader::stopReadMP4() {
 
 void MP4Reader::startReadMP4(uint64_t sample_ms, bool ref_self, bool file_repeat) {
     GET_CONFIG(uint32_t, sampleMS, Record::kSampleMS);
+    setCurrentStamp(0);
     auto strong_self = shared_from_this();
     if (_muxer) {
         //一直读到所有track就绪为止

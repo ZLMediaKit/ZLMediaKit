@@ -1,19 +1,25 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
 #include "Frame.h"
-#include "H264.h"
-#include "H265.h"
 #include "Common/Parser.h"
 #include "Common/Stamp.h"
 #include "Common/MediaSource.h"
+
+#if defined(ENABLE_MP4)
+#include "mov-format.h"
+#endif
+
+#if defined(ENABLE_HLS) || defined(ENABLE_RTPPROXY)
+#include "mpeg-proto.h"
+#endif
 
 using namespace std;
 using namespace toolkit;
@@ -34,6 +40,7 @@ Frame::Ptr Frame::getCacheAbleFrame(const Frame::Ptr &frame){
 
 FrameStamp::FrameStamp(Frame::Ptr frame, Stamp &stamp, int modify_stamp)
 {
+    setIndex(frame->getIndex());
     _frame = std::move(frame);
     // kModifyStampSystem时采用系统时间戳，kModifyStampRelative采用相对时间戳
     stamp.revise(_frame->dts(), _frame->pts(), _dts, _pts, modify_stamp == ProtocolOption::kModifyStampSystem);
@@ -41,24 +48,80 @@ FrameStamp::FrameStamp(Frame::Ptr frame, Stamp &stamp, int modify_stamp)
 
 TrackType getTrackType(CodecId codecId) {
     switch (codecId) {
-#define XX(name, type, value, str, mpeg_id) case name : return type;
+#define XX(name, type, value, str, mpeg_id, mp4_id) case name : return type;
         CODEC_MAP(XX)
 #undef XX
         default : return TrackInvalid;
     }
 }
 
+#if defined(ENABLE_MP4)
+int getMovIdByCodec(CodecId codecId) {
+    switch (codecId) {
+#define XX(name, type, value, str, mpeg_id, mp4_id) case name : return mp4_id;
+        CODEC_MAP(XX)
+#undef XX
+        default : return MOV_OBJECT_NONE;
+    }
+}
+
+CodecId getCodecByMovId(int object_id) {
+    if (object_id == MOV_OBJECT_NONE) {
+        return CodecInvalid;
+    }
+
+#define XX(name, type, value, str, mpeg_id, mp4_id) { mp4_id, name },
+    static map<int, CodecId> s_map = { CODEC_MAP(XX) };
+#undef XX
+    auto it = s_map.find(object_id);
+    if (it == s_map.end()) {
+        WarnL << "Unsupported mov: " << object_id;
+        return CodecInvalid;
+    }
+    return it->second;
+}
+#endif
+
+#if defined(ENABLE_HLS) || defined(ENABLE_RTPPROXY)
+int getMpegIdByCodec(CodecId codec) {
+    switch (codec) {
+#define XX(name, type, value, str, mpeg_id, mp4_id) case name : return mpeg_id;
+        CODEC_MAP(XX)
+#undef XX
+        default : return PSI_STREAM_RESERVED;
+    }
+}
+
+CodecId getCodecByMpegId(int mpeg_id) {
+    if (mpeg_id == PSI_STREAM_RESERVED || mpeg_id == 0xBD) {
+        // 海康的 PS 流中会有0xBD 的包
+        return CodecInvalid;
+    }
+
+#define XX(name, type, value, str, mpeg_id, mp4_id) { mpeg_id, name },
+    static map<int, CodecId> s_map = { CODEC_MAP(XX) };
+#undef XX
+    auto it = s_map.find(mpeg_id);
+    if (it == s_map.end()) {
+        WarnL << "Unsupported mpeg: " << mpeg_id;
+        return CodecInvalid;
+    }
+    return it->second;
+}
+
+#endif
+
 const char *getCodecName(CodecId codec) {
     switch (codec) {
-#define XX(name, type, value, str, mpeg_id) case name : return str;
+#define XX(name, type, value, str, mpeg_id, mp4_id) case name : return str;
         CODEC_MAP(XX)
 #undef XX
         default : return "invalid";
     }
 }
 
-#define XX(name, type, value, str, mpeg_id) {str, name},
-static map<string, CodecId, StrCaseCompare> codec_map = {CODEC_MAP(XX)};
+#define XX(name, type, value, str, mpeg_id, mp4_id) {str, name},
+static map<string, CodecId, StrCaseCompare> codec_map = { CODEC_MAP(XX) };
 #undef XX
 
 CodecId getCodecId(const string &str){
@@ -92,6 +155,10 @@ const char *CodecInfo::getCodecName() const {
 
 TrackType CodecInfo::getTrackType() const {
     return mediakit::getTrackType(getCodecId());
+}
+
+std::string CodecInfo::getTrackTypeStr() const {
+    return getTrackString(getTrackType());
 }
 
 static size_t constexpr kMaxFrameCacheSize = 100;
@@ -165,7 +232,19 @@ void FrameMerger::doMerge(BufferLikeString &merged, const Frame::Ptr &frame) con
     }
 }
 
+static bool isNeedMerge(CodecId codec){
+    switch (codec) {
+        case CodecH264:
+        case CodecH265: return true;
+        default: return false;
+    }
+}
+
 bool FrameMerger::inputFrame(const Frame::Ptr &frame, onOutput cb, BufferLikeString *buffer) {
+    if (frame && !isNeedMerge(frame->getCodecId())) {
+        cb(frame->dts(), frame->pts(), frame, true);
+        return true;
+    }
     if (willFlush(frame)) {
         Frame::Ptr back = _frame_cache.back();
         Buffer::Ptr merged_frame = back;
@@ -232,8 +311,6 @@ public:
      * inputFrame后触发onWriteFrame回调
      */
     FrameWriterInterfaceHelper(onWriteFrame cb) { _callback = std::move(cb); }
-
-    virtual ~FrameWriterInterfaceHelper() = default;
 
     /**
      * 写入帧数据

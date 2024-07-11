@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -20,19 +20,19 @@ namespace mediakit {
 
 namespace Rtc {
 #define RTC_FIELD "rtc."
-const string kPreferredCodecA = RTC_FIELD"preferredCodecA";
-const string kPreferredCodecV = RTC_FIELD"preferredCodecV";
+const string kPreferredCodecA = RTC_FIELD "preferredCodecA";
+const string kPreferredCodecV = RTC_FIELD "preferredCodecV";
 static onceToken token([]() {
-    mINI::Instance()[kPreferredCodecA] = "PCMU,PCMA,opus,mpeg4-generic";
+    mINI::Instance()[kPreferredCodecA] = "PCMA,PCMU,opus,mpeg4-generic";
     mINI::Instance()[kPreferredCodecV] = "H264,H265,AV1,VP9,VP8";
 });
-}
+} // namespace Rtc
 
 using onCreateSdpItem = function<SdpItem::Ptr(const string &key, const string &value)>;
 static map<string, onCreateSdpItem, StrCaseCompare> sdpItemCreator;
 
 template <typename Item>
-void registerSdpItem(){
+void registerSdpItem() {
     onCreateSdpItem func = [](const string &key, const string &value) {
         auto ret = std::make_shared<Item>();
         ret->parse(value);
@@ -47,52 +47,50 @@ public:
     virtual RtpDirection getDirection() const = 0;
 };
 
-class SdpDirectionSendonly : public SdpItem, public DirectionInterface{
+class SdpDirectionSendonly : public SdpItem, public DirectionInterface {
 public:
-    const char* getKey() const override { return getRtpDirectionString(getDirection());}
-    RtpDirection getDirection() const override {return RtpDirection::sendonly;}
+    const char *getKey() const override { return getRtpDirectionString(getDirection()); }
+    RtpDirection getDirection() const override { return RtpDirection::sendonly; }
 };
 
-class SdpDirectionRecvonly : public SdpItem, public DirectionInterface{
+class SdpDirectionRecvonly : public SdpItem, public DirectionInterface {
 public:
-    const char* getKey() const override { return getRtpDirectionString(getDirection());}
-    RtpDirection getDirection() const override {return RtpDirection::recvonly;}
+    const char *getKey() const override { return getRtpDirectionString(getDirection()); }
+    RtpDirection getDirection() const override { return RtpDirection::recvonly; }
 };
 
-class SdpDirectionSendrecv : public SdpItem, public DirectionInterface{
+class SdpDirectionSendrecv : public SdpItem, public DirectionInterface {
 public:
-    const char* getKey() const override { return getRtpDirectionString(getDirection());}
-    RtpDirection getDirection() const override {return RtpDirection::sendrecv;}
+    const char *getKey() const override { return getRtpDirectionString(getDirection()); }
+    RtpDirection getDirection() const override { return RtpDirection::sendrecv; }
 };
 
-class SdpDirectionInactive : public SdpItem, public DirectionInterface{
+class SdpDirectionInactive : public SdpItem, public DirectionInterface {
 public:
-    const char* getKey() const override { return getRtpDirectionString(getDirection());}
-    RtpDirection getDirection() const override {return RtpDirection::inactive;}
+    const char *getKey() const override { return getRtpDirectionString(getDirection()); }
+    RtpDirection getDirection() const override { return RtpDirection::inactive; }
 };
 
-class DirectionInterfaceImp : public SdpItem, public DirectionInterface{
+class DirectionInterfaceImp : public SdpItem, public DirectionInterface {
 public:
-    DirectionInterfaceImp(RtpDirection direct){
-        direction = direct;
-    }
-    const char* getKey() const override { return getRtpDirectionString(getDirection());}
-    RtpDirection getDirection() const override {return direction;}
+    DirectionInterfaceImp(RtpDirection direct) { direction = direct; }
+    const char *getKey() const override { return getRtpDirectionString(getDirection()); }
+    RtpDirection getDirection() const override { return direction; }
 
 private:
     RtpDirection direction;
 };
 
-static bool registerAllItem(){
-    registerSdpItem<SdpString<'v'> >();
-    registerSdpItem<SdpString<'s'> >();
-    registerSdpItem<SdpString<'i'> >();
-    registerSdpItem<SdpString<'u'> >();
-    registerSdpItem<SdpString<'e'> >();
-    registerSdpItem<SdpString<'p'> >();
-    registerSdpItem<SdpString<'z'> >();
-    registerSdpItem<SdpString<'k'> >();
-    registerSdpItem<SdpString<'r'> >();
+static bool registerAllItem() {
+    registerSdpItem<SdpString<'v'>>();
+    registerSdpItem<SdpString<'s'>>();
+    registerSdpItem<SdpString<'i'>>();
+    registerSdpItem<SdpString<'u'>>();
+    registerSdpItem<SdpString<'e'>>();
+    registerSdpItem<SdpString<'p'>>();
+    registerSdpItem<SdpString<'z'>>();
+    registerSdpItem<SdpString<'k'>>();
+    registerSdpItem<SdpString<'r'>>();
     registerSdpItem<SdpTime>();
     registerSdpItem<SdpOrigin>();
     registerSdpItem<SdpConnection>();
@@ -138,11 +136,11 @@ DtlsRole getDtlsRole(const string &str) {
     return it == dtls_role_map.end() ? DtlsRole::invalid : it->second;
 }
 
-const char* getDtlsRoleString(DtlsRole role){
+const char *getDtlsRoleString(DtlsRole role) {
     switch (role) {
-        case DtlsRole::active : return "active";
-        case DtlsRole::passive : return "passive";
-        case DtlsRole::actpass : return "actpass";
+        case DtlsRole::active: return "active";
+        case DtlsRole::passive: return "passive";
+        case DtlsRole::actpass: return "actpass";
         default: return "invalid";
     }
 }
@@ -159,12 +157,12 @@ RtpDirection getRtpDirection(const string &str) {
     return it == direction_map.end() ? RtpDirection::invalid : it->second;
 }
 
-const char* getRtpDirectionString(RtpDirection val){
+const char *getRtpDirectionString(RtpDirection val) {
     switch (val) {
-        case RtpDirection::sendonly : return "sendonly";
-        case RtpDirection::recvonly : return "recvonly";
-        case RtpDirection::sendrecv : return "sendrecv";
-        case RtpDirection::inactive : return "inactive";
+        case RtpDirection::sendonly: return "sendonly";
+        case RtpDirection::recvonly: return "recvonly";
+        case RtpDirection::sendrecv: return "sendrecv";
+        case RtpDirection::inactive: return "inactive";
         default: return "invalid";
     }
 }
@@ -179,7 +177,7 @@ string RtcSdpBase::toString() const {
     return std::move(printer);
 }
 
-RtpDirection RtcSdpBase::getDirection() const{
+RtpDirection RtcSdpBase::getDirection() const {
     for (auto &item : items) {
         auto attr = dynamic_pointer_cast<SdpAttr>(item);
         if (attr) {
@@ -200,7 +198,7 @@ SdpItem::Ptr RtcSdpBase::getItem(char key_c, const char *attr_key) const {
                 return item;
             }
             auto attr = dynamic_pointer_cast<SdpAttr>(item);
-            if (attr && !strcasecmp(attr->detail->getKey() , attr_key)) {
+            if (attr && !strcasecmp(attr->detail->getKey(), attr_key)) {
                 return attr->detail;
             }
         }
@@ -225,7 +223,7 @@ string RtcSessionSdp::getSessionInfo() const {
     return getStringItem('i');
 }
 
-SdpTime RtcSessionSdp::getSessionTime() const{
+SdpTime RtcSessionSdp::getSessionTime() const {
     return getItemClass<SdpTime>('t');
 }
 
@@ -267,16 +265,23 @@ void RtcSessionSdp::parse(const string &str) {
     static auto flag = registerAllItem();
     RtcSdpBase *media = nullptr;
     auto lines = split(str, "\n");
-    for(auto &line : lines){
+    std::set<std::string> line_set;
+    for (auto &line : lines) {
         trim(line);
-        if(line.size() < 3 || line[1] != '='){
+        if (line.size() < 3 || line[1] != '=') {
             continue;
         }
+
+        if (!line_set.emplace(line).second) {
+            continue;
+        }
+
         auto key = line.substr(0, 1);
         auto value = line.substr(2);
         if (!strcasecmp(key.data(), "m")) {
             medias.emplace_back(RtcSdpBase());
             media = &medias.back();
+            line_set.clear();
         }
 
         SdpItem::Ptr item;
@@ -415,7 +420,7 @@ string SdpAttr::toString() const {
     return SdpItem::toString();
 }
 
-void SdpAttrGroup::parse(const string &str)  {
+void SdpAttrGroup::parse(const string &str) {
     auto vec = split(str, " ");
     CHECK_SDP(vec.size() >= 2);
     type = vec[0];
@@ -423,7 +428,7 @@ void SdpAttrGroup::parse(const string &str)  {
     mids = std::move(vec);
 }
 
-string SdpAttrGroup::toString() const  {
+string SdpAttrGroup::toString() const {
     if (value.empty()) {
         value = type;
         for (auto mid : mids) {
@@ -434,14 +439,14 @@ string SdpAttrGroup::toString() const  {
     return SdpItem::toString();
 }
 
-void SdpAttrMsidSemantic::parse(const string &str)  {
+void SdpAttrMsidSemantic::parse(const string &str) {
     auto vec = split(str, " ");
     CHECK_SDP(vec.size() >= 1);
     msid = vec[0];
     token = vec.size() > 1 ? vec[1] : "";
 }
 
-string SdpAttrMsidSemantic::toString() const  {
+string SdpAttrMsidSemantic::toString() const {
     if (value.empty()) {
         if (token.empty()) {
             value = string(" ") + msid;
@@ -452,7 +457,7 @@ string SdpAttrMsidSemantic::toString() const  {
     return SdpItem::toString();
 }
 
-void SdpAttrRtcp::parse(const string &str)  {
+void SdpAttrRtcp::parse(const string &str) {
     auto vec = split(str, " ");
     CHECK_SDP(vec.size() == 4);
     port = atoi(vec[0].data());
@@ -461,14 +466,14 @@ void SdpAttrRtcp::parse(const string &str)  {
     address = vec[3];
 }
 
-string SdpAttrRtcp::toString() const  {
+string SdpAttrRtcp::toString() const {
     if (value.empty()) {
         value = to_string(port) + " " + nettype + " " + addrtype + " " + address;
     }
     return SdpItem::toString();
 }
 
-void SdpAttrIceOption::parse(const string &str){
+void SdpAttrIceOption::parse(const string &str) {
     auto vec = split(str, " ");
     for (auto &v : vec) {
         if (!strcasecmp(v.data(), "trickle")) {
@@ -482,7 +487,7 @@ void SdpAttrIceOption::parse(const string &str){
     }
 }
 
-string SdpAttrIceOption::toString() const{
+string SdpAttrIceOption::toString() const {
     if (value.empty()) {
         if (trickle && renomination) {
             value = "trickle renomination";
@@ -495,35 +500,35 @@ string SdpAttrIceOption::toString() const{
     return value;
 }
 
-void SdpAttrFingerprint::parse(const string &str)  {
+void SdpAttrFingerprint::parse(const string &str) {
     auto vec = split(str, " ");
     CHECK_SDP(vec.size() == 2);
     algorithm = vec[0];
     hash = vec[1];
 }
 
-string SdpAttrFingerprint::toString() const  {
+string SdpAttrFingerprint::toString() const {
     if (value.empty()) {
         value = algorithm + " " + hash;
     }
     return SdpItem::toString();
 }
 
-void SdpAttrSetup::parse(const string &str)  {
+void SdpAttrSetup::parse(const string &str) {
     role = getDtlsRole(str);
     CHECK_SDP(role != DtlsRole::invalid);
 }
 
-string SdpAttrSetup::toString() const  {
+string SdpAttrSetup::toString() const {
     if (value.empty()) {
         value = getDtlsRoleString(role);
     }
     return SdpItem::toString();
 }
 
-void SdpAttrExtmap::parse(const string &str)  {
-    char buf[128] = {0};
-    char direction_buf[32] = {0};
+void SdpAttrExtmap::parse(const string &str) {
+    char buf[128] = { 0 };
+    char direction_buf[32] = { 0 };
     if (sscanf(str.data(), "%" SCNd8 "/%31[^ ] %127s", &id, direction_buf, buf) != 3) {
         CHECK_SDP(sscanf(str.data(), "%" SCNd8 " %127s", &id, buf) == 2);
         direction = RtpDirection::sendrecv;
@@ -533,30 +538,30 @@ void SdpAttrExtmap::parse(const string &str)  {
     ext = buf;
 }
 
-string SdpAttrExtmap::toString() const  {
+string SdpAttrExtmap::toString() const {
     if (value.empty()) {
-        if(direction == RtpDirection::invalid || direction == RtpDirection::sendrecv){
+        if (direction == RtpDirection::invalid || direction == RtpDirection::sendrecv) {
             value = to_string((int)id) + " " + ext;
         } else {
-            value = to_string((int)id) + "/" + getRtpDirectionString(direction) +  " " + ext;
+            value = to_string((int)id) + "/" + getRtpDirectionString(direction) + " " + ext;
         }
     }
     return SdpItem::toString();
 }
 
-void SdpAttrRtpMap::parse(const string &str)  {
-    char buf[32] = {0};
+void SdpAttrRtpMap::parse(const string &str) {
+    char buf[32] = { 0 };
     if (sscanf(str.data(), "%" SCNu8 " %31[^/]/%" SCNd32 "/%" SCNd32, &pt, buf, &sample_rate, &channel) != 4) {
         CHECK_SDP(sscanf(str.data(), "%" SCNu8 " %31[^/]/%" SCNd32, &pt, buf, &sample_rate) == 3);
         if (getTrackType(getCodecId(buf)) == TrackAudio) {
-            //未指定通道数时，且为音频时，那么通道数默认为1
+            // 未指定通道数时，且为音频时，那么通道数默认为1
             channel = 1;
         }
     }
     codec = buf;
 }
 
-string SdpAttrRtpMap::toString() const  {
+string SdpAttrRtpMap::toString() const {
     if (value.empty()) {
         value = to_string((int)pt) + " " + codec + "/" + to_string(sample_rate);
         if (channel) {
@@ -567,21 +572,21 @@ string SdpAttrRtpMap::toString() const  {
     return SdpItem::toString();
 }
 
-void SdpAttrRtcpFb::parse(const string &str_in)  {
+void SdpAttrRtcpFb::parse(const string &str_in) {
     auto str = str_in + "\n";
-    char rtcp_type_buf[32] = {0};
+    char rtcp_type_buf[32] = { 0 };
     CHECK_SDP(sscanf(str.data(), "%" SCNu8 " %31[^\n]", &pt, rtcp_type_buf) == 2);
     rtcp_type = rtcp_type_buf;
 }
 
-string SdpAttrRtcpFb::toString() const  {
+string SdpAttrRtcpFb::toString() const {
     if (value.empty()) {
         value = to_string((int)pt) + " " + rtcp_type;
     }
     return SdpItem::toString();
 }
 
-void SdpAttrFmtp::parse(const string &str)  {
+void SdpAttrFmtp::parse(const string &str) {
     auto pos = str.find(' ');
     CHECK_SDP(pos != string::npos);
     pt = atoi(str.substr(0, pos).data());
@@ -589,31 +594,31 @@ void SdpAttrFmtp::parse(const string &str)  {
     for (auto &item : vec) {
         trim(item);
         auto pos = item.find('=');
-        if(pos == string::npos){
+        if (pos == string::npos) {
             fmtp.emplace(std::make_pair(item, ""));
-        }  else {
+        } else {
             fmtp.emplace(std::make_pair(item.substr(0, pos), item.substr(pos + 1)));
         }
     }
     CHECK_SDP(!fmtp.empty());
 }
 
-string SdpAttrFmtp::toString() const  {
+string SdpAttrFmtp::toString() const {
     if (value.empty()) {
         value = to_string((int)pt);
         int i = 0;
         for (auto &pr : fmtp) {
-            value += (i++  ? ';' : ' ');
+            value += (i++ ? ';' : ' ');
             value += pr.first + "=" + pr.second;
         }
     }
     return SdpItem::toString();
 }
 
-void SdpAttrSSRC::parse(const string &str_in)  {
+void SdpAttrSSRC::parse(const string &str_in) {
     auto str = str_in + '\n';
-    char attr_buf[32] = {0};
-    char attr_val_buf[128] = {0};
+    char attr_buf[32] = { 0 };
+    char attr_val_buf[128] = { 0 };
     if (3 == sscanf(str.data(), "%" SCNu32 " %31[^:]:%127[^\n]", &ssrc, attr_buf, attr_val_buf)) {
         attribute = attr_buf;
         attribute_value = attr_val_buf;
@@ -624,7 +629,7 @@ void SdpAttrSSRC::parse(const string &str_in)  {
     }
 }
 
-string SdpAttrSSRC::toString() const  {
+string SdpAttrSSRC::toString() const {
     if (value.empty()) {
         value = to_string(ssrc) + ' ';
         value += attribute;
@@ -643,14 +648,14 @@ void SdpAttrSSRCGroup::parse(const string &str) {
     CHECK(isFID() || isSIM());
     vec.erase(vec.begin());
     for (auto ssrc : vec) {
-        ssrcs.emplace_back((uint32_t) atoll(ssrc.data()));
+        ssrcs.emplace_back((uint32_t)atoll(ssrc.data()));
     }
 }
 
-string SdpAttrSSRCGroup::toString() const  {
+string SdpAttrSSRCGroup::toString() const {
     if (value.empty()) {
         value = type;
-        //最少要求2个ssrc
+        // 最少要求2个ssrc
         CHECK(ssrcs.size() >= 2);
         for (auto &ssrc : ssrcs) {
             value += ' ';
@@ -660,13 +665,13 @@ string SdpAttrSSRCGroup::toString() const  {
     return SdpItem::toString();
 }
 
-void SdpAttrSctpMap::parse(const string &str)  {
-    char subtypes_buf[64] = {0};
+void SdpAttrSctpMap::parse(const string &str) {
+    char subtypes_buf[64] = { 0 };
     CHECK_SDP(3 == sscanf(str.data(), "%" SCNu16 " %63[^ ] %" SCNd32, &port, subtypes_buf, &streams));
     subtypes = subtypes_buf;
 }
 
-string SdpAttrSctpMap::toString() const  {
+string SdpAttrSctpMap::toString() const {
     if (value.empty()) {
         value = to_string(port);
         value += ' ';
@@ -677,11 +682,11 @@ string SdpAttrSctpMap::toString() const  {
     return SdpItem::toString();
 }
 
-void SdpAttrCandidate::parse(const string &str)  {
-    char foundation_buf[40] = {0};
-    char transport_buf[16] = {0};
-    char address_buf[64] = {0};
-    char type_buf[16] = {0};
+void SdpAttrCandidate::parse(const string &str) {
+    char foundation_buf[40] = { 0 };
+    char transport_buf[16] = { 0 };
+    char address_buf[64] = { 0 };
+    char type_buf[16] = { 0 };
 
     // https://datatracker.ietf.org/doc/html/rfc5245#section-15.1
     CHECK_SDP(sscanf(str.data(), "%32[^ ] %" SCNu32 " %15[^ ] %" SCNu32 " %63[^ ] %" SCNu16 " typ %15[^ ]",
@@ -708,10 +713,9 @@ void SdpAttrCandidate::parse(const string &str)  {
     }
 }
 
-string SdpAttrCandidate::toString() const  {
+string SdpAttrCandidate::toString() const {
     if (value.empty()) {
-        value = foundation + " " + to_string(component) + " " + transport + " " + to_string(priority) +
-                " " + address + " " + to_string(port) + " typ " + type;
+        value = foundation + " " + to_string(component) + " " + transport + " " + to_string(priority) + " " + address + " " + to_string(port) + " typ " + type;
         for (auto &pr : arr) {
             value += ' ';
             value += pr.first;
@@ -723,10 +727,10 @@ string SdpAttrCandidate::toString() const  {
 }
 
 void SdpAttrSimulcast::parse(const string &str) {
-    //https://www.meetecho.com/blog/simulcast-janus-ssrc/
-    //a=simulcast:send/recv q;h;f
-    //a=simulcast:send/recv [rid=]q;h;f
-    //a=simulcast: recv h;m;l
+    // https://www.meetecho.com/blog/simulcast-janus-ssrc/
+    // a=simulcast:send/recv q;h;f
+    // a=simulcast:send/recv [rid=]q;h;f
+    // a=simulcast: recv h;m;l
     //
     auto vec = split(str, " ");
     CHECK_SDP(vec.size() == 2);
@@ -838,12 +842,12 @@ void RtcSession::loadFrom(const string &str) {
         for (auto &group : ssrc_groups) {
             if (group.isFID()) {
                 have_rtx_ssrc = true;
-                //ssrc-group:FID字段必须包含rtp/rtx的ssrc
+                // ssrc-group:FID字段必须包含rtp/rtx的ssrc
                 CHECK(group.ssrcs.size() == 2);
-                //根据rtp ssrc找到对象
+                // 根据rtp ssrc找到对象
                 auto it = rtc_ssrc_map.find(group.ssrcs[0]);
                 CHECK(it != rtc_ssrc_map.end());
-                //设置rtx ssrc
+                // 设置rtx ssrc
                 it->second.rtx_ssrc = group.ssrcs[1];
                 rtc_media.rtp_rtx_ssrc.emplace_back(it->second);
             } else if (group.isSIM()) {
@@ -853,7 +857,7 @@ void RtcSession::loadFrom(const string &str) {
         }
 
         if (!have_rtx_ssrc) {
-            //按照sdp顺序依次添加ssrc
+            // 按照sdp顺序依次添加ssrc
             for (auto &attr : ssrc_attr) {
                 if (attr.attribute == "cname") {
                     rtc_media.rtp_rtx_ssrc.emplace_back(rtc_ssrc_map[attr.ssrc]);
@@ -876,56 +880,56 @@ void RtcSession::loadFrom(const string &str) {
                 CHECK(rid.direction == simulcast.direction);
                 CHECK(rid_map.find(rid.rid) != rid_map.end());
             }
-            //simulcast最少要求2种方案
+            // simulcast最少要求2种方案
             CHECK(simulcast.rids.size() >= 2);
             rtc_media.rtp_rids = simulcast.rids;
         }
 
         if (ssrc_group_sim) {
-            //指定了a=ssrc-group:SIM
+            // 指定了a=ssrc-group:SIM
             for (auto ssrc : ssrc_group_sim->ssrcs) {
                 auto it = rtc_ssrc_map.find(ssrc);
                 CHECK(it != rtc_ssrc_map.end());
                 rtc_media.rtp_ssrc_sim.emplace_back(it->second);
             }
         } else if (!rtc_media.rtp_rids.empty()) {
-            //未指定a=ssrc-group:SIM, 但是指定了a=simulcast, 那么只能根据ssrc顺序来对应rid顺序
+            // 未指定a=ssrc-group:SIM, 但是指定了a=simulcast, 那么只能根据ssrc顺序来对应rid顺序
             rtc_media.rtp_ssrc_sim = rtc_media.rtp_rtx_ssrc;
         }
 
         if (!rtc_media.supportSimulcast()) {
-            //不支持simulcast的情况下，最多一组ssrc
+            // 不支持simulcast的情况下，最多一组ssrc
             CHECK(rtc_media.rtp_rtx_ssrc.size() <= 1);
         } else {
-            //simulcast的情况下，要么没有指定ssrc，要么指定的ssrc个数与rid个数一致
-            //CHECK(rtc_media.rtp_ssrc_sim.empty() || rtc_media.rtp_ssrc_sim.size() == rtc_media.rtp_rids.size());
+            // simulcast的情况下，要么没有指定ssrc，要么指定的ssrc个数与rid个数一致
+            // CHECK(rtc_media.rtp_ssrc_sim.empty() || rtc_media.rtp_ssrc_sim.size() == rtc_media.rtp_rids.size());
         }
 
         auto rtpmap_arr = media.getAllItem<SdpAttrRtpMap>('a', "rtpmap");
         auto rtcpfb_arr = media.getAllItem<SdpAttrRtcpFb>('a', "rtcp-fb");
         auto fmtp_aar = media.getAllItem<SdpAttrFmtp>('a', "fmtp");
-        //方便根据pt查找rtpmap,一个pt必有一条
+        // 方便根据pt查找rtpmap,一个pt必有一条
         map<uint8_t, SdpAttrRtpMap &> rtpmap_map;
-        //方便根据pt查找rtcp-fb,一个pt可能有多条或0条
+        // 方便根据pt查找rtcp-fb,一个pt可能有多条或0条
         multimap<uint8_t, SdpAttrRtcpFb &> rtcpfb_map;
-        //方便根据pt查找fmtp，一个pt最多一条
+        // 方便根据pt查找fmtp，一个pt最多一条
         map<uint8_t, SdpAttrFmtp &> fmtp_map;
 
         for (auto &rtpmap : rtpmap_arr) {
-            //添加失败，有多条
+            // 添加失败，有多条
             CHECK(rtpmap_map.emplace(rtpmap.pt, rtpmap).second, "该pt存在多条a=rtpmap:", (int)rtpmap.pt);
         }
         for (auto &rtpfb : rtcpfb_arr) {
             rtcpfb_map.emplace(rtpfb.pt, rtpfb);
         }
         for (auto &fmtp : fmtp_aar) {
-            //添加失败，有多条
+            // 添加失败，有多条
             CHECK(fmtp_map.emplace(fmtp.pt, fmtp).second, "该pt存在多条a=fmtp:", (int)fmtp.pt);
         }
         for (auto &item : mline.fmts) {
             auto pt = atoi(item.c_str());
             CHECK(pt < 0xFF, "invalid payload type: ", item);
-            //遍历所有编码方案的pt
+            // 遍历所有编码方案的pt
             rtc_media.plan.emplace_back();
             auto &plan = rtc_media.plan.back();
             auto rtpmap_it = rtpmap_map.find(pt);
@@ -945,8 +949,7 @@ void RtcSession::loadFrom(const string &str) {
             if (fmtp_it != fmtp_map.end()) {
                 plan.fmtp = fmtp_it->second.fmtp;
             }
-            for (auto rtpfb_it = rtcpfb_map.find(pt);
-                 rtpfb_it != rtcpfb_map.end() && rtpfb_it->second.pt == pt; ++rtpfb_it) {
+            for (auto rtpfb_it = rtcpfb_map.find(pt); rtpfb_it != rtcpfb_map.end() && rtpfb_it->second.pt == pt; ++rtpfb_it) {
                 plan.rtcp_fb.emplace(rtpfb_it->second.rtcp_type);
             }
         }
@@ -964,7 +967,7 @@ void RtcSdpBase::toRtsp() {
             case 'i':
             case 't':
             case 'c':
-            case 'b':{
+            case 'b': {
                 ++it;
                 break;
             }
@@ -979,8 +982,7 @@ void RtcSdpBase::toRtsp() {
             case 'a': {
                 auto attr = dynamic_pointer_cast<SdpAttr>(*it);
                 CHECK(attr);
-                if (!strcasecmp(attr->detail->getKey(), "rtpmap")
-                    || !strcasecmp(attr->detail->getKey(), "fmtp")) {
+                if (!strcasecmp(attr->detail->getKey(), "rtpmap") || !strcasecmp(attr->detail->getKey(), "fmtp")) {
                     ++it;
                     break;
                 }
@@ -993,7 +995,7 @@ void RtcSdpBase::toRtsp() {
     }
 }
 
-string RtcSession::toRtspSdp() const{
+string RtcSession::toRtspSdp() const {
     RtcSession copy = *this;
     copy.media.clear();
     for (auto &m : media) {
@@ -1049,17 +1051,17 @@ void addSdpAttrSSRC(const RtcSSRC &rtp_ssrc, RtcSdpBase &media, uint32_t ssrc_nu
     }
 }
 
-RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
+RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const {
     RtcSessionSdp::Ptr ret = std::make_shared<RtcSessionSdp>();
     auto &sdp = *ret;
-    sdp.addItem(std::make_shared<SdpString<'v'> >(to_string(version)));
+    sdp.addItem(std::make_shared<SdpString<'v'>>(to_string(version)));
     sdp.addItem(std::make_shared<SdpOrigin>(origin));
-    sdp.addItem(std::make_shared<SdpString<'s'> >(session_name));
+    sdp.addItem(std::make_shared<SdpString<'s'>>(session_name));
     if (!session_info.empty()) {
-        sdp.addItem(std::make_shared<SdpString<'i'> >(session_info));
+        sdp.addItem(std::make_shared<SdpString<'i'>>(session_info));
     }
     sdp.addItem(std::make_shared<SdpTime>(time));
-    if(connection.empty()){
+    if (connection.empty()) {
         sdp.addItem(std::make_shared<SdpConnection>(connection));
     }
     sdp.addAttr(std::make_shared<SdpAttrGroup>(group));
@@ -1117,21 +1119,21 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
             sdp_media.addAttr(std::make_shared<SdpCommon>("rtcp-rsize"));
         }
 
-        if(m.type != TrackApplication) {
+        if (m.type != TrackApplication) {
             for (auto &p : m.plan) {
                 auto rtp_map = std::make_shared<SdpAttrRtpMap>();
                 rtp_map->pt = p.pt;
                 rtp_map->codec = p.codec;
                 rtp_map->sample_rate = p.sample_rate;
                 rtp_map->channel = p.channel;
-                //添加a=rtpmap
+                // 添加a=rtpmap
                 sdp_media.addAttr(std::move(rtp_map));
 
-                for (auto &fb :  p.rtcp_fb) {
+                for (auto &fb : p.rtcp_fb) {
                     auto rtcp_fb = std::make_shared<SdpAttrRtcpFb>();
                     rtcp_fb->pt = p.pt;
                     rtcp_fb->rtcp_type = fb;
-                    //添加a=rtcp-fb
+                    // 添加a=rtcp-fb
                     sdp_media.addAttr(std::move(rtcp_fb));
                 }
 
@@ -1139,13 +1141,13 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
                     auto fmtp = std::make_shared<SdpAttrFmtp>();
                     fmtp->pt = p.pt;
                     fmtp->fmtp = p.fmtp;
-                    //添加a=fmtp
+                    // 添加a=fmtp
                     sdp_media.addAttr(std::move(fmtp));
                 }
             }
 
             {
-                //添加a=msid字段
+                // 添加a=msid字段
                 if (!m.rtp_rtx_ssrc.empty()) {
                     if (!m.rtp_rtx_ssrc[0].msid.empty()) {
                         auto msid = std::make_shared<SdpAttrMsid>();
@@ -1157,14 +1159,14 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
 
             {
                 for (auto &ssrc : m.rtp_rtx_ssrc) {
-                    //添加a=ssrc字段
+                    // 添加a=ssrc字段
                     CHECK(!ssrc.empty());
                     addSdpAttrSSRC(ssrc, sdp_media, ssrc.ssrc);
                     if (ssrc.rtx_ssrc) {
                         addSdpAttrSSRC(ssrc, sdp_media, ssrc.rtx_ssrc);
 
-                        //生成a=ssrc-group:FID字段
-                        //有rtx ssrc
+                        // 生成a=ssrc-group:FID字段
+                        // 有rtx ssrc
                         auto group = std::make_shared<SdpAttrSSRCGroup>();
                         group->type = "FID";
                         group->ssrcs.emplace_back(ssrc.ssrc);
@@ -1176,12 +1178,12 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
 
             {
                 if (m.rtp_ssrc_sim.size() >= 2) {
-                    //simulcast 要求 2~3路
+                    // simulcast 要求 2~3路
                     auto group = std::make_shared<SdpAttrSSRCGroup>();
                     for (auto &ssrc : m.rtp_ssrc_sim) {
                         group->ssrcs.emplace_back(ssrc.ssrc);
                     }
-                    //添加a=ssrc-group:SIM字段
+                    // 添加a=ssrc-group:SIM字段
                     group->type = "SIM";
                     sdp_media.addAttr(std::move(group));
                 }
@@ -1214,17 +1216,17 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
             }
         }
     }
-    if(ice_lite)
+    if (ice_lite) {
         sdp.addAttr(std::make_shared<SdpCommon>("ice-lite"));
-    
+    }
     return ret;
 }
 
-string RtcSession::toString() const{
+string RtcSession::toString() const {
     return toRtcSessionSdp()->toString();
 }
 
-string RtcCodecPlan::getFmtp(const char *key) const{
+string RtcCodecPlan::getFmtp(const char *key) const {
     for (auto &item : fmtp) {
         if (strcasecmp(item.first.data(), key) == 0) {
             return item.second;
@@ -1233,7 +1235,7 @@ string RtcCodecPlan::getFmtp(const char *key) const{
     return "";
 }
 
-const RtcCodecPlan *RtcMedia::getPlan(uint8_t pt) const{
+const RtcCodecPlan *RtcMedia::getPlan(uint8_t pt) const {
     for (auto &item : plan) {
         if (item.pt == pt) {
             return &item;
@@ -1242,7 +1244,7 @@ const RtcCodecPlan *RtcMedia::getPlan(uint8_t pt) const{
     return nullptr;
 }
 
-const RtcCodecPlan *RtcMedia::getPlan(const char *codec) const{
+const RtcCodecPlan *RtcMedia::getPlan(const char *codec) const {
     for (auto &item : plan) {
         if (strcasecmp(item.codec.data(), codec) == 0) {
             return &item;
@@ -1251,7 +1253,7 @@ const RtcCodecPlan *RtcMedia::getPlan(const char *codec) const{
     return nullptr;
 }
 
-const RtcCodecPlan *RtcMedia::getRelatedRtxPlan(uint8_t pt) const{
+const RtcCodecPlan *RtcMedia::getRelatedRtxPlan(uint8_t pt) const {
     for (auto &item : plan) {
         if (strcasecmp(item.codec.data(), "rtx") == 0) {
             auto apt = atoi(item.getFmtp("apt").data());
@@ -1287,7 +1289,7 @@ bool RtcMedia::supportSimulcast() const {
     return false;
 }
 
-void RtcMedia::checkValid() const{
+void RtcMedia::checkValid() const {
     CHECK(type != TrackInvalid);
     CHECK(!mid.empty());
     CHECK(!proto.empty());
@@ -1297,7 +1299,7 @@ void RtcMedia::checkValid() const{
 
     bool send_rtp = (direction == RtpDirection::sendonly || direction == RtpDirection::sendrecv);
     if (!supportSimulcast()) {
-        //非simulcast时，检查有没有指定rtp ssrc
+        // 非simulcast时，检查有没有指定rtp ssrc
         CHECK(!rtp_rtx_ssrc.empty() || !send_rtp);
     }
 
@@ -1311,7 +1313,7 @@ void RtcMedia::checkValid() const{
 #endif
 }
 
-void RtcSession::checkValid() const{
+void RtcSession::checkValid() const {
     CHECK(version == 0);
     CHECK(!origin.empty());
     CHECK(!session_name.empty());
@@ -1330,15 +1332,15 @@ void RtcSession::checkValid() const{
             case RtpDirection::sendrecv:
             case RtpDirection::sendonly:
             case RtpDirection::recvonly: have_active_media = true; break;
-            default : break;
+            default: break;
         }
     }
     CHECK(have_active_media, "必须确保最少有一个活跃的track");
 }
 
-const RtcMedia *RtcSession::getMedia(TrackType type) const{
-    for(auto &m : media){
-        if(m.type == type){
+const RtcMedia *RtcSession::getMedia(TrackType type) const {
+    for (auto &m : media) {
+        if (m.type == type) {
             return &m;
         }
     }
@@ -1370,7 +1372,7 @@ bool RtcSession::isOnlyDatachannel() const {
 string const SdpConst::kTWCCRtcpFb = "transport-cc";
 string const SdpConst::kRembRtcpFb = "goog-remb";
 
-void RtcConfigure::RtcTrackConfigure::enableTWCC(bool enable){
+void RtcConfigure::RtcTrackConfigure::enableTWCC(bool enable) {
     if (!enable) {
         rtcp_fb.erase(SdpConst::kTWCCRtcpFb);
         extmap.erase(RtpExtType::transport_cc);
@@ -1380,7 +1382,7 @@ void RtcConfigure::RtcTrackConfigure::enableTWCC(bool enable){
     }
 }
 
-void RtcConfigure::RtcTrackConfigure::enableREMB(bool enable){
+void RtcConfigure::RtcTrackConfigure::enableREMB(bool enable) {
     if (!enable) {
         rtcp_fb.erase(SdpConst::kRembRtcpFb);
         extmap.erase(RtpExtType::abs_send_time);
@@ -1390,7 +1392,7 @@ void RtcConfigure::RtcTrackConfigure::enableREMB(bool enable){
     }
 }
 
-static vector<CodecId> toCodecArray(const string &str){
+static vector<CodecId> toCodecArray(const string &str) {
     vector<CodecId> ret;
     auto vec = split(str, ",");
     for (auto &s : vec) {
@@ -1402,7 +1404,7 @@ static vector<CodecId> toCodecArray(const string &str){
     return ret;
 }
 
-void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
+void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type) {
     rtcp_mux = true;
     rtcp_rsize = false;
     group_bundle = true;
@@ -1414,47 +1416,43 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
     ice_renomination = false;
     switch (type) {
         case TrackAudio: {
-            //此处调整偏好的编码格式优先级
+            // 此处调整偏好的编码格式优先级
             GET_CONFIG_FUNC(vector<CodecId>, s_preferred_codec, Rtc::kPreferredCodecA, toCodecArray);
             CHECK(!s_preferred_codec.empty(), "rtc音频偏好codec不能为空");
             preferred_codec = s_preferred_codec;
 
-            rtcp_fb = {SdpConst::kTWCCRtcpFb, SdpConst::kRembRtcpFb};
-            extmap = {
-                    {RtpExtType::ssrc_audio_level,            RtpDirection::sendrecv},
-                    {RtpExtType::csrc_audio_level,            RtpDirection::sendrecv},
-                    {RtpExtType::abs_send_time,               RtpDirection::sendrecv},
-                    {RtpExtType::transport_cc,                RtpDirection::sendrecv},
-                    //rtx重传rtp时，忽略sdes_mid类型的rtp ext,实测发现Firefox在接收rtx时，如果存在sdes_mid的ext,将导致无法播放
-                    //{RtpExtType::sdes_mid,RtpDirection::sendrecv},
-                    {RtpExtType::sdes_rtp_stream_id,          RtpDirection::sendrecv},
-                    {RtpExtType::sdes_repaired_rtp_stream_id, RtpDirection::sendrecv}
-            };
+            rtcp_fb = { SdpConst::kTWCCRtcpFb, SdpConst::kRembRtcpFb };
+            extmap = { { RtpExtType::ssrc_audio_level, RtpDirection::sendrecv },
+                       { RtpExtType::csrc_audio_level, RtpDirection::sendrecv },
+                       { RtpExtType::abs_send_time, RtpDirection::sendrecv },
+                       { RtpExtType::transport_cc, RtpDirection::sendrecv },
+                       // rtx重传rtp时，忽略sdes_mid类型的rtp ext,实测发现Firefox在接收rtx时，如果存在sdes_mid的ext,将导致无法播放
+                       //{RtpExtType::sdes_mid,RtpDirection::sendrecv},
+                       { RtpExtType::sdes_rtp_stream_id, RtpDirection::sendrecv },
+                       { RtpExtType::sdes_repaired_rtp_stream_id, RtpDirection::sendrecv } };
             break;
         }
         case TrackVideo: {
-            //此处调整偏好的编码格式优先级
+            // 此处调整偏好的编码格式优先级
             GET_CONFIG_FUNC(vector<CodecId>, s_preferred_codec, Rtc::kPreferredCodecV, toCodecArray);
             CHECK(!s_preferred_codec.empty(), "rtc视频偏好codec不能为空");
             preferred_codec = s_preferred_codec;
 
-            rtcp_fb = {SdpConst::kTWCCRtcpFb, SdpConst::kRembRtcpFb, "nack", "ccm fir", "nack pli"};
-            extmap = {
-                    {RtpExtType::abs_send_time,               RtpDirection::sendrecv},
-                    {RtpExtType::transport_cc,                RtpDirection::sendrecv},
-                    //rtx重传rtp时，忽略sdes_mid类型的rtp ext,实测发现Firefox在接收rtx时，如果存在sdes_mid的ext,将导致无法播放
-                    //{RtpExtType::sdes_mid,RtpDirection::sendrecv},
-                    {RtpExtType::sdes_rtp_stream_id,          RtpDirection::sendrecv},
-                    {RtpExtType::sdes_repaired_rtp_stream_id, RtpDirection::sendrecv},
-                    {RtpExtType::video_timing,                RtpDirection::sendrecv},
-                    {RtpExtType::color_space,                 RtpDirection::sendrecv},
-                    {RtpExtType::video_content_type,          RtpDirection::sendrecv},
-                    {RtpExtType::playout_delay,               RtpDirection::sendrecv},
-                    //手机端推webrtc 会带有旋转角度，rtc协议能正常播放 其他协议拉流画面旋转
-                    //{RtpExtType::video_orientation,           RtpDirection::sendrecv},
-                    {RtpExtType::toffset,                     RtpDirection::sendrecv},
-                    {RtpExtType::framemarking,                RtpDirection::sendrecv}
-            };
+            rtcp_fb = { SdpConst::kTWCCRtcpFb, SdpConst::kRembRtcpFb, "nack", "ccm fir", "nack pli" };
+            extmap = { { RtpExtType::abs_send_time, RtpDirection::sendrecv },
+                       { RtpExtType::transport_cc, RtpDirection::sendrecv },
+                       // rtx重传rtp时，忽略sdes_mid类型的rtp ext,实测发现Firefox在接收rtx时，如果存在sdes_mid的ext,将导致无法播放
+                       //{RtpExtType::sdes_mid,RtpDirection::sendrecv},
+                       { RtpExtType::sdes_rtp_stream_id, RtpDirection::sendrecv },
+                       { RtpExtType::sdes_repaired_rtp_stream_id, RtpDirection::sendrecv },
+                       { RtpExtType::video_timing, RtpDirection::sendrecv },
+                       { RtpExtType::color_space, RtpDirection::sendrecv },
+                       { RtpExtType::video_content_type, RtpDirection::sendrecv },
+                       { RtpExtType::playout_delay, RtpDirection::sendrecv },
+                       // 手机端推webrtc 会带有旋转角度，rtc协议能正常播放 其他协议拉流画面旋转
+                       //{RtpExtType::video_orientation,           RtpDirection::sendrecv},
+                       { RtpExtType::toffset, RtpDirection::sendrecv },
+                       { RtpExtType::framemarking, RtpDirection::sendrecv } };
             break;
         }
         case TrackApplication: {
@@ -1464,8 +1462,7 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type){
     }
 }
 
-void RtcConfigure::setDefaultSetting(string ice_ufrag, string ice_pwd, RtpDirection direction,
-                                     const SdpAttrFingerprint &fingerprint) {
+void RtcConfigure::setDefaultSetting(string ice_ufrag, string ice_pwd, RtpDirection direction, const SdpAttrFingerprint &fingerprint) {
     video.setDefaultSetting(TrackVideo);
     audio.setDefaultSetting(TrackAudio);
     application.setDefaultSetting(TrackApplication);
@@ -1505,7 +1502,7 @@ void RtcConfigure::addCandidate(const SdpAttrCandidate &candidate, TrackType typ
     }
 }
 
-void RtcConfigure::enableTWCC(bool enable, TrackType type){
+void RtcConfigure::enableTWCC(bool enable, TrackType type) {
     switch (type) {
         case TrackAudio: {
             audio.enableTWCC(enable);
@@ -1523,7 +1520,7 @@ void RtcConfigure::enableTWCC(bool enable, TrackType type){
     }
 }
 
-void RtcConfigure::enableREMB(bool enable, TrackType type){
+void RtcConfigure::enableREMB(bool enable, TrackType type) {
     switch (type) {
         case TrackAudio: {
             audio.enableREMB(enable);
@@ -1552,10 +1549,10 @@ shared_ptr<RtcSession> RtcConfigure::createAnswer(const RtcSession &offer) const
         matchMedia(ret, m);
     }
 
-    //设置音视频端口复用
+    // 设置音视频端口复用
     if (!offer.group.mids.empty()) {
         for (auto &m : ret->media) {
-            //The remote end has rejected (port 0) the m-section, so it should not be putting its mid in the group attribute.
+            // The remote end has rejected (port 0) the m-section, so it should not be putting its mid in the group attribute.
             if (m.port) {
                 ret->group.mids.emplace_back(m.mid);
             }
@@ -1564,32 +1561,32 @@ shared_ptr<RtcSession> RtcConfigure::createAnswer(const RtcSession &offer) const
     return ret;
 }
 
-static RtpDirection matchDirection(RtpDirection offer_direction, RtpDirection supported){
+static RtpDirection matchDirection(RtpDirection offer_direction, RtpDirection supported) {
     switch (offer_direction) {
-        case RtpDirection::sendonly : {
+        case RtpDirection::sendonly: {
             if (supported != RtpDirection::recvonly && supported != RtpDirection::sendrecv) {
-                //我们不支持接收
+                // 我们不支持接收
                 return RtpDirection::inactive;
             }
             return RtpDirection::recvonly;
         }
 
-        case RtpDirection::recvonly : {
+        case RtpDirection::recvonly: {
             if (supported != RtpDirection::sendonly && supported != RtpDirection::sendrecv) {
-                //我们不支持发送
+                // 我们不支持发送
                 return RtpDirection::inactive;
             }
             return RtpDirection::sendonly;
         }
 
-        //对方支持发送接收，那么最终能力根据配置来决定
-        case RtpDirection::sendrecv : return  (supported == RtpDirection::invalid ? RtpDirection::inactive : supported);
-        case RtpDirection::inactive : return RtpDirection::inactive;
+        // 对方支持发送接收，那么最终能力根据配置来决定
+        case RtpDirection::sendrecv: return (supported == RtpDirection::invalid ? RtpDirection::inactive : supported);
+        case RtpDirection::inactive: return RtpDirection::inactive;
         default: return RtpDirection::invalid;
     }
 }
 
-static DtlsRole mathDtlsRole(DtlsRole role){
+static DtlsRole mathDtlsRole(DtlsRole role) {
     switch (role) {
         case DtlsRole::actpass:
         case DtlsRole::active: return DtlsRole::passive;
@@ -1598,7 +1595,7 @@ static DtlsRole mathDtlsRole(DtlsRole role){
     }
 }
 
-void RtcConfigure::matchMedia(const std::shared_ptr<RtcSession> &ret,const RtcMedia &offer_media) const {
+void RtcConfigure::matchMedia(const std::shared_ptr<RtcSession> &ret, const RtcMedia &offer_media) const {
     bool check_profile = true;
     bool check_codec = true;
     const RtcTrackConfigure *cfg_ptr = nullptr;
@@ -1636,20 +1633,20 @@ RETRY:
         }
         const RtcCodecPlan *selected_plan = nullptr;
         for (auto &plan : offer_media.plan) {
-            //先检查编码格式是否为偏好
+            // 先检查编码格式是否为偏好
             if (check_codec && getCodecId(plan.codec) != codec) {
                 continue;
             }
-            //命中偏好的编码格式,然后检查规格
+            // 命中偏好的编码格式,然后检查规格
             if (check_profile && !onCheckCodecProfile(plan, codec)) {
                 continue;
             }
-            //找到中意的codec
+            // 找到中意的codec
             selected_plan = &plan;
             break;
         }
         if (!selected_plan) {
-            //offer中该媒体的所有的codec都不支持
+            // offer中该媒体的所有的codec都不支持
             continue;
         }
         RtcMedia answer_media;
@@ -1675,24 +1672,23 @@ RETRY:
 
         answer_media.role = mathDtlsRole(offer_media.role);
 
-        //如果codec匹配失败，那么禁用该track
-        answer_media.direction = check_codec ? matchDirection(offer_media.direction, configure.direction)
-                                             : RtpDirection::inactive;
+        // 如果codec匹配失败，那么禁用该track
+        answer_media.direction = check_codec ? matchDirection(offer_media.direction, configure.direction) : RtpDirection::inactive;
         if (answer_media.direction == RtpDirection::invalid) {
             continue;
         }
         if (answer_media.direction == RtpDirection::sendrecv) {
-            //如果是收发双向，那么我们拷贝offer sdp的ssrc，确保ssrc一致
+            // 如果是收发双向，那么我们拷贝offer sdp的ssrc，确保ssrc一致
             answer_media.rtp_rtx_ssrc = offer_media.rtp_rtx_ssrc;
         }
 
-        //添加媒体plan
+        // 添加媒体plan
         answer_media.plan.emplace_back(*selected_plan);
         onSelectPlan(answer_media.plan.back(), codec);
 
-        set<uint8_t> pt_selected = {selected_plan->pt};
+        set<uint8_t> pt_selected = { selected_plan->pt };
 
-        //添加rtx,red,ulpfec plan
+        // 添加rtx,red,ulpfec plan
         if (configure.support_red || configure.support_rtx || configure.support_ulpfec) {
             for (auto &plan : offer_media.plan) {
                 if (!strcasecmp(plan.codec.data(), "rtx")) {
@@ -1719,7 +1715,7 @@ RETRY:
             }
         }
 
-        //对方和我方都支持的扩展，那么我们才支持
+        // 对方和我方都支持的扩展，那么我们才支持
         for (auto &ext : offer_media.extmap) {
             auto it = configure.extmap.find(RtpExt::getExtType(ext.ext));
             if (it != configure.extmap.end()) {
@@ -1736,10 +1732,10 @@ RETRY:
 
         auto &rtcp_fb_ref = answer_media.plan[0].rtcp_fb;
         rtcp_fb_ref.clear();
-        //对方和我方都支持的rtcpfb，那么我们才支持
+        // 对方和我方都支持的rtcpfb，那么我们才支持
         for (auto &fp : selected_plan->rtcp_fb) {
             if (configure.rtcp_fb.find(fp) != configure.rtcp_fb.end()) {
-                //对方该rtcp被我们支持
+                // 对方该rtcp被我们支持
                 rtcp_fb_ref.emplace(fp);
             }
         }
@@ -1757,19 +1753,19 @@ RETRY:
     }
 
     if (check_profile) {
-        //如果是由于检查profile导致匹配失败，那么重试一次，且不检查profile
+        // 如果是由于检查profile导致匹配失败，那么重试一次，且不检查profile
         check_profile = false;
         goto RETRY;
     }
 
     if (check_codec) {
-        //如果是由于检查codec导致匹配失败，那么重试一次，且不检查codec
+        // 如果是由于检查codec导致匹配失败，那么重试一次，且不检查codec
         check_codec = false;
         goto RETRY;
     }
 }
 
-void RtcConfigure::setPlayRtspInfo(const string &sdp){
+void RtcConfigure::setPlayRtspInfo(const string &sdp) {
     RtcSession session;
     video.direction = RtpDirection::inactive;
     audio.direction = RtpDirection::inactive;
@@ -1777,15 +1773,15 @@ void RtcConfigure::setPlayRtspInfo(const string &sdp){
     session.loadFrom(sdp);
     for (auto &m : session.media) {
         switch (m.type) {
-            case TrackVideo : {
+            case TrackVideo: {
                 video.direction = RtpDirection::sendonly;
                 _rtsp_video_plan = std::make_shared<RtcCodecPlan>(m.plan[0]);
                 video.preferred_codec.clear();
                 video.preferred_codec.emplace_back(getCodecId(_rtsp_video_plan->codec));
                 break;
             }
-            case TrackAudio : {
-                 audio.direction = RtpDirection::sendonly;
+            case TrackAudio: {
+                audio.direction = RtpDirection::sendonly;
                 _rtsp_audio_plan = std::make_shared<RtcCodecPlan>(m.plan[0]);
                 audio.preferred_codec.clear();
                 audio.preferred_codec.emplace_back(getCodecId(_rtsp_audio_plan->codec));
@@ -1796,21 +1792,21 @@ void RtcConfigure::setPlayRtspInfo(const string &sdp){
     }
 }
 
-static const string kProfile{"profile-level-id"};
-static const string kMode{"packetization-mode"};
+static const string kProfile { "profile-level-id" };
+static const string kMode { "packetization-mode" };
 
 bool RtcConfigure::onCheckCodecProfile(const RtcCodecPlan &plan, CodecId codec) const {
     if (_rtsp_audio_plan && codec == getCodecId(_rtsp_audio_plan->codec)) {
         if (plan.sample_rate != _rtsp_audio_plan->sample_rate || plan.channel != _rtsp_audio_plan->channel) {
-            //音频采样率和通道数必须相同
+            // 音频采样率和通道数必须相同
             return false;
         }
         return true;
     }
     if (_rtsp_video_plan && codec == CodecH264 && getCodecId(_rtsp_video_plan->codec) == CodecH264) {
-        //h264时，profile-level-id
+        // h264时，profile-level-id
         if (strcasecmp(_rtsp_video_plan->fmtp[kProfile].data(), const_cast<RtcCodecPlan &>(plan).fmtp[kProfile].data())) {
-            //profile-level-id 不匹配
+            // profile-level-id 不匹配
             return false;
         }
         return true;

@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -23,7 +23,6 @@ class RtpCache : protected PacketCache<toolkit::Buffer> {
 public:
     using onFlushed = std::function<void(std::shared_ptr<toolkit::List<toolkit::Buffer::Ptr> >)>;
     RtpCache(onFlushed cb);
-    ~RtpCache() override = default;
 
 protected:
     /**
@@ -41,8 +40,9 @@ private:
 
 class RtpCachePS : public RtpCache, public PSEncoderImp {
 public:
-    RtpCachePS(onFlushed cb, uint32_t ssrc, uint8_t payload_type = 96) : RtpCache(std::move(cb)), PSEncoderImp(ssrc, payload_type) {};
-    ~RtpCachePS() override = default;
+    RtpCachePS(onFlushed cb, uint32_t ssrc, uint8_t payload_type = 96, bool ps_or_ts = true) :
+        RtpCache(std::move(cb)), PSEncoderImp(ssrc, ps_or_ts ? payload_type : Rtsp::PT_MP2T, ps_or_ts) {};
+
     void flush() override;
 
 protected:
@@ -52,13 +52,13 @@ protected:
 class RtpCacheRaw : public RtpCache, public RawEncoderImp {
 public:
     RtpCacheRaw(onFlushed cb, uint32_t ssrc, uint8_t payload_type = 96, bool send_audio = true) : RtpCache(std::move(cb)), RawEncoderImp(ssrc, payload_type, send_audio) {};
-    ~RtpCacheRaw() override = default;
     void flush() override;
 
 protected:
     void onRTP(toolkit::Buffer::Ptr rtp, bool is_key = false) override;
 };
 
-}//namespace mediakit
+} //namespace mediakit
+
 #endif//ENABLE_RTPPROXY
 #endif //ZLMEDIAKIT_RTPCACHE_H
