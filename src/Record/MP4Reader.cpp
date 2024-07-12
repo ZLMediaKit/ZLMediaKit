@@ -20,7 +20,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-MP4Reader::MP4Reader(const std::string &vhost, const std::string &app, const std::string &stream_id, const string &file_path,
+MP4Reader::MP4Reader(const MediaTuple &tuple, const string &file_path,
                      toolkit::EventPoller::Ptr poller) {
     ProtocolOption option;
     // 读取mp4文件并流化时，不重复生成mp4/hls文件
@@ -29,16 +29,15 @@ MP4Reader::MP4Reader(const std::string &vhost, const std::string &app, const std
     option.enable_hls_fmp4 = false;
     // mp4支持多track
     option.max_track = 16;
-    setup(vhost, app, stream_id, file_path, option, std::move(poller));
+    setup(tuple, file_path, option, std::move(poller));
 }
 
-MP4Reader::MP4Reader(const std::string &vhost, const std::string &app, const std::string &stream_id, const string &file_path, const ProtocolOption &option, toolkit::EventPoller::Ptr poller) {
-    setup(vhost, app, stream_id, file_path, option, std::move(poller));
+MP4Reader::MP4Reader(const MediaTuple &tuple, const string &file_path, const ProtocolOption &option, toolkit::EventPoller::Ptr poller) {
+    setup(tuple, file_path, option, std::move(poller));
 }
 
-void MP4Reader::setup(const std::string &vhost, const std::string &app, const std::string &stream_id, const std::string &file_path, const ProtocolOption &option, toolkit::EventPoller::Ptr poller) {
+void MP4Reader::setup(const MediaTuple &tuple, const std::string &file_path, const ProtocolOption &option, toolkit::EventPoller::Ptr poller) {
     //读写文件建议放在后台线程
-    auto tuple =  MediaTuple{vhost, app, stream_id, ""};
     _poller = poller ? std::move(poller) : WorkThreadPool::Instance().getPoller();
     _file_path = file_path;
     if (_file_path.empty()) {

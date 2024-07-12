@@ -595,7 +595,8 @@ MediaSource::Ptr MediaSource::createFromMP4(const string &schema, const string &
     }
 #ifdef ENABLE_MP4
     try {
-        auto reader = std::make_shared<MP4Reader>(vhost, app, stream, file_path);
+        MediaTuple tuple = {vhost, app, stream, ""};
+        auto reader = std::make_shared<MP4Reader>(tuple, file_path);
         reader->startReadMP4();
         return MediaSource::find(schema, vhost, app, stream);
     } catch (std::exception &ex) {
