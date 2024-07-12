@@ -20,6 +20,28 @@
 
 namespace mediakit {
 
+// RTC配置项目
+namespace Rtc {
+
+//~ nack接收端(rtp发送端)
+// Nack缓存包最早时间间隔
+extern const std::string kMaxNackMS;
+// Nack包检查间隔(包数量)
+extern const std::string kRtpCacheCheckInterval;
+
+//~ nack发送端(rtp接收端)
+// 最大保留的rtp丢包状态个数
+extern const std::string kNackMaxSize;
+// rtp丢包状态最长保留时间
+extern const std::string kNackMaxMS;
+// nack最多请求重传次数
+extern const std::string kNackMaxCount;
+// nack重传频率，rtt的倍数
+extern const std::string kNackIntervalRatio;
+// nack包中rtp个数，减小此值可以让nack包响应更灵敏
+extern const std::string kNackRtpSize;
+} // namespace Rtc
+
 class NackList {
 public:
     void pushBack(RtpPacket::Ptr rtp);

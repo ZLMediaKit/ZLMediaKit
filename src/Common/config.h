@@ -107,7 +107,7 @@ extern const std::string kBroadcastReloadConfig;
 
 // rtp server 超时
 extern const std::string kBroadcastRtpServerTimeout;
-#define BroadcastRtpServerTimeoutArgs uint16_t &local_port, const string &stream_id,int &tcp_mode, bool &re_use_port, uint32_t &ssrc
+#define BroadcastRtpServerTimeoutArgs uint16_t &local_port, const MediaTuple &tuple, int &tcp_mode, bool &re_use_port, uint32_t &ssrc
 
 // rtc transport sctp 连接状态
 extern const std::string kBroadcastRtcSctpConnecting;
@@ -205,6 +205,7 @@ extern const std::string kBroadcastPlayerCountChanged;
 } // namespace General
 
 namespace Protocol {
+static constexpr char kFieldName[] = "protocol.";
 //时间戳修复这一路流标志位
 extern const std::string kModifyStamp;
 //转协议是否开启音频
@@ -447,6 +448,8 @@ extern const std::string kWaitTrackReady;
 extern const std::string kPlayTrack;
 //设置代理url，目前只支持http协议
 extern const std::string kProxyUrl;
+//设置开始rtsp倍速播放
+extern const std::string kRtspSpeed;
 } // namespace Client
 } // namespace mediakit
 

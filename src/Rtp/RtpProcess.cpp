@@ -11,26 +11,26 @@
 #if defined(ENABLE_RTPPROXY)
 #include "GB28181Process.h"
 #include "RtpProcess.h"
-#include "RtpSelector.h"
-#include "Http/HttpTSPlayer.h"
 #include "Util/File.h"
 #include "Common/config.h"
 
 using namespace std;
 using namespace toolkit;
 
-static constexpr char kRtpAppName[] = "rtp";
 //在创建_muxer对象前(也就是推流鉴权成功前)，需要先缓存frame，这样可以防止丢包，提高体验
-//但是同时需要控制缓冲长度，防止内存溢出。200帧数据，大概有10秒数据，应该足矣等待鉴权hook返回
-static constexpr size_t kMaxCachedFrame = 200;
+//但是同时需要控制缓冲长度，防止内存溢出。最多缓存10秒数据，应该足矣等待鉴权hook返回
+static constexpr size_t kMaxCachedFrameMS = 10 * 1000;
 
 namespace mediakit {
 
-RtpProcess::RtpProcess(const string &stream_id) {
-    _media_info.schema = kRtpAppName;
-    _media_info.vhost = DEFAULT_VHOST;
-    _media_info.app = kRtpAppName;
-    _media_info.stream = stream_id;
+RtpProcess::Ptr RtpProcess::createProcess(const MediaTuple &tuple) {
+    RtpProcess::Ptr ret(new RtpProcess(tuple));
+    ret->createTimer();
+    return ret;
+}
+
+RtpProcess::RtpProcess(const MediaTuple &tuple) {
+    static_cast<MediaTuple &>(_media_info) = tuple;
 
     GET_CONFIG(string, dump_dir, RtpProxy::kDumpDir);
     {
@@ -75,6 +75,25 @@ RtpProcess::~RtpProcess() {
     }
 }
 
+void RtpProcess::onManager() {
+    if (!alive()) {
+        onDetach(SockException(Err_timeout, "RtpProcess timeout"));
+    }
+}
+
+void RtpProcess::createTimer() {
+    //创建超时管理定时器
+    weak_ptr<RtpProcess> weakSelf = shared_from_this();
+    _timer = std::make_shared<Timer>(3.0f, [weakSelf] {
+        auto strongSelf = weakSelf.lock();
+        if (!strongSelf) {
+            return false;
+        }
+        strongSelf->onManager();
+        return true;
+    }, EventPollerPool::Instance().getPoller());
+}
+
 bool RtpProcess::inputRtp(bool is_udp, const Socket::Ptr &sock, const char *data, size_t len, const struct sockaddr *addr, uint64_t *dts_out) {
     if (!isRtp(data, len)) {
         WarnP(this) << "Not rtp packet";
@@ -90,6 +109,7 @@ bool RtpProcess::inputRtp(bool is_udp, const Socket::Ptr &sock, const char *data
         _addr.reset(new sockaddr_storage(*((sockaddr_storage *)addr)));
         if (first) {
             emitOnPublish();
+            _cache_ticker.resetTime();
         }
     }
 
@@ -130,8 +150,8 @@ bool RtpProcess::inputFrame(const Frame::Ptr &frame) {
         _last_frame_time.resetTime();
         return _muxer->inputFrame(frame);
     }
-    if (_cached_func.size() > kMaxCachedFrame) {
-        WarnL << "cached frame of track(" << frame->getCodecName() << ") is too much, now dropped, please check your on_publish hook url in config.ini file";
+    if (_cache_ticker.elapsedTime() > kMaxCachedFrameMS) {
+        WarnL << "Cached frame of stream(" << _media_info.stream << ") is too much, your on_publish hook responded too late!";
         return false;
     }
     auto frame_cached = Frame::getCacheAbleFrame(frame);
@@ -203,13 +223,14 @@ void RtpProcess::setOnlyTrack(OnlyTrack only_track) {
     _only_track = only_track;
 }
 
-void RtpProcess::onDetach() {
+void RtpProcess::onDetach(const SockException &ex) {
     if (_on_detach) {
-        _on_detach();
+        WarnL << ex << ", stream_id: " << getIdentifier();
+        _on_detach(ex);
     }
 }
 
-void RtpProcess::setOnDetach(function<void()> cb) {
+void RtpProcess::setOnDetach(onDetachCB cb) {
     _on_detach = std::move(cb);
 }
 
@@ -256,9 +277,6 @@ void RtpProcess::emitOnPublish() {
             }
             if (err.empty()) {
                 strong_self->_muxer = std::make_shared<MultiMediaSourceMuxer>(strong_self->_media_info, 0.0f, option);
-                if (!option.stream_replace.empty()) {
-                    RtpSelector::Instance().addStreamReplace(strong_self->_media_info.stream, option.stream_replace);
-                }
                 switch (strong_self->_only_track) {
                     case kOnlyAudio: strong_self->_muxer->setOnlyAudio(); break;
                     case kOnlyVideo: strong_self->_muxer->enableAudio(false); break;
@@ -292,6 +310,15 @@ string RtpProcess::getOriginUrl(MediaSource &sender) const {
 
 std::shared_ptr<SockInfo> RtpProcess::getOriginSock(MediaSource &sender) const {
     return const_cast<RtpProcess *>(this)->shared_from_this();
+}
+
+RtpProcess::Ptr RtpProcess::getRtpProcess(mediakit::MediaSource &sender) const {
+    return const_cast<RtpProcess *>(this)->shared_from_this();
+}
+
+bool RtpProcess::close(mediakit::MediaSource &sender) {
+    onDetach(SockException(Err_shutdown, "close media"));
+    return true;
 }
 
 toolkit::EventPoller::Ptr RtpProcess::getOwnerPoller(MediaSource &sender) {

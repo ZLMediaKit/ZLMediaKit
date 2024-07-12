@@ -317,6 +317,7 @@ toolkit::Buffer::Ptr makeRtpOverTcpPrefix(uint16_t size, uint8_t interleaved);
 void makeSockPair(std::pair<toolkit::Socket::Ptr, toolkit::Socket::Ptr> &pair, const std::string &local_ip, bool re_use_port = false, bool is_udp = true);
 // 十六进制方式打印ssrc
 std::string printSSRC(uint32_t ui32Ssrc);
+bool getSSRC(const char *data, size_t data_len, uint32_t &ssrc);
 
 bool isRtp(const char *buf, size_t size);
 bool isRtcp(const char *buf, size_t size);

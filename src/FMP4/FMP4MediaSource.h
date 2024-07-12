@@ -41,7 +41,13 @@ public:
     FMP4MediaSource(const MediaTuple& tuple,
                     int ring_size = FMP4_GOP_SIZE) : MediaSource(FMP4_SCHEMA, tuple), _ring_size(ring_size) {}
 
-    ~FMP4MediaSource() override { flush(); }
+    ~FMP4MediaSource() override {
+        try {
+            flush();
+        } catch (std::exception &ex) {
+            WarnL << ex.what();
+        }
+    }
 
     /**
      * 获取媒体源的环形缓冲

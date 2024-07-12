@@ -66,7 +66,7 @@ H265Track::H265Track(const string &vps,const string &sps, const string &pps,int 
     _vps = vps.substr(vps_prefix_len);
     _sps = sps.substr(sps_prefix_len);
     _pps = pps.substr(pps_prefix_len);
-    update();
+    H265Track::update();
 }
 
 CodecId H265Track::getCodecId() const {
@@ -185,6 +185,15 @@ bool H265Track::update() {
     return getHEVCInfo(_vps, _sps, _width, _height, _fps);
 }
 
+std::vector<Frame::Ptr> H265Track::getConfigFrames() const {
+    if (!ready()) {
+        return {};
+    }
+    return { createConfigFrame<H265Frame>(_vps, 0, getIndex()),
+             createConfigFrame<H265Frame>(_sps, 0, getIndex()),
+             createConfigFrame<H265Frame>(_pps, 0, getIndex()) };
+}
+
 Track::Ptr H265Track::clone() const {
     return std::make_shared<H265Track>(*this);
 }
@@ -194,32 +203,13 @@ void H265Track::insertConfigFrame(const Frame::Ptr &frame) {
         return;
     }
     if (!_vps.empty()) {
-        auto vpsFrame = FrameImp::create<H265Frame>();
-        vpsFrame->_prefix_size = 4;
-        vpsFrame->_buffer.assign("\x00\x00\x00\x01", 4);
-        vpsFrame->_buffer.append(_vps);
-        vpsFrame->_dts = frame->dts();
-        vpsFrame->setIndex(frame->getIndex());
-        VideoTrack::inputFrame(vpsFrame);
+        VideoTrack::inputFrame(createConfigFrame<H265Frame>(_vps, frame->dts(), frame->getIndex()));
     }
     if (!_sps.empty()) {
-        auto spsFrame = FrameImp::create<H265Frame>();
-        spsFrame->_prefix_size = 4;
-        spsFrame->_buffer.assign("\x00\x00\x00\x01", 4);
-        spsFrame->_buffer.append(_sps);
-        spsFrame->_dts = frame->dts();
-        spsFrame->setIndex(frame->getIndex());
-        VideoTrack::inputFrame(spsFrame);
+        VideoTrack::inputFrame(createConfigFrame<H265Frame>(_sps, frame->dts(), frame->getIndex()));
     }
-
     if (!_pps.empty()) {
-        auto ppsFrame = FrameImp::create<H265Frame>();
-        ppsFrame->_prefix_size = 4;
-        ppsFrame->_buffer.assign("\x00\x00\x00\x01", 4);
-        ppsFrame->_buffer.append(_pps);
-        ppsFrame->_dts = frame->dts();
-        ppsFrame->setIndex(frame->getIndex());
-        VideoTrack::inputFrame(ppsFrame);
+        VideoTrack::inputFrame(createConfigFrame<H265Frame>(_pps, frame->dts(), frame->getIndex()));
     }
 }
 

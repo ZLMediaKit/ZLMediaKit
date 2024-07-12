@@ -15,6 +15,7 @@
 #include <atomic>
 #include <memory>
 #include <functional>
+#include "Util/mini.h"
 #include "Network/Socket.h"
 #include "Extension/Track.h"
 #include "Record/Recorder.h"
@@ -41,6 +42,7 @@ enum class MediaOriginType : uint8_t {
 std::string getOriginTypeString(MediaOriginType type);
 
 class MediaSource;
+class RtpProcess;
 class MultiMediaSourceMuxer;
 class MediaSourceEvent {
 public:
@@ -88,7 +90,9 @@ public:
     // 获取所有track相关信息
     virtual std::vector<Track::Ptr> getMediaTracks(MediaSource &sender, bool trackReady = true) const { return std::vector<Track::Ptr>(); };
     // 获取MultiMediaSourceMuxer对象
-    virtual std::shared_ptr<MultiMediaSourceMuxer> getMuxer(MediaSource &sender) { return nullptr; }
+    virtual std::shared_ptr<MultiMediaSourceMuxer> getMuxer(MediaSource &sender) const { return nullptr; }
+    // 获取RtpProcess对象
+    virtual std::shared_ptr<RtpProcess> getRtpProcess(MediaSource &sender) const { return nullptr; }
 
     class SendRtpArgs {
     public:
@@ -142,6 +146,14 @@ static void getArgsValue(const MAP &allArgs, const KEY &key, TYPE &value) {
     auto val = ((MAP &)allArgs)[key];
     if (!val.empty()) {
         value = (TYPE)val;
+    }
+}
+
+template <typename KEY, typename TYPE>
+static void getArgsValue(const toolkit::mINI &allArgs, const KEY &key, TYPE &value) {
+    auto it = allArgs.find(key);
+    if (it != allArgs.end()) {
+        value = (TYPE)it->second;
     }
 }
 
@@ -278,7 +290,8 @@ public:
     bool stopSendRtp(MediaSource &sender, const std::string &ssrc) override;
     float getLossRate(MediaSource &sender, TrackType type) override;
     toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;
-    std::shared_ptr<MultiMediaSourceMuxer> getMuxer(MediaSource &sender) override;
+    std::shared_ptr<MultiMediaSourceMuxer> getMuxer(MediaSource &sender) const override;
+    std::shared_ptr<RtpProcess> getRtpProcess(MediaSource &sender) const override;
 
 private:
     std::weak_ptr<MediaSourceEvent> _listener;
@@ -395,7 +408,9 @@ public:
     // 获取所在线程
     toolkit::EventPoller::Ptr getOwnerPoller();
     // 获取MultiMediaSourceMuxer对象
-    std::shared_ptr<MultiMediaSourceMuxer> getMuxer();
+    std::shared_ptr<MultiMediaSourceMuxer> getMuxer() const;
+    // 获取RtpProcess对象
+    std::shared_ptr<RtpProcess> getRtpProcess() const;
 
     ////////////////static方法，查找或生成MediaSource////////////////
 

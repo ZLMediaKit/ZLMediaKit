@@ -383,7 +383,7 @@ namespace RTC
         });
         // Set ciphers.
         ret = SSL_CTX_set_cipher_list(
-          sslCtx, "DEFAULT:!NULL:!aNULL:!SHA256:!SHA384:!aECDH:!AESGCM+AES256:!aPSK");
+          sslCtx, "DEFAULT:!NULL:!aNULL:!SHA256:!SHA384:!aECDH:!AESGCM+AES256:!aPSK:!RC4");
 
         if (ret == 0)
         {

@@ -26,7 +26,13 @@ public:
         _media_src = std::make_shared<FMP4MediaSource>(tuple);
     }
 
-    ~FMP4MediaSourceMuxer() override { MP4MuxerMemory::flush(); };
+    ~FMP4MediaSourceMuxer() override {
+        try {
+            MP4MuxerMemory::flush();
+        } catch (std::exception &ex) {
+            WarnL << ex.what();
+        }
+    }
 
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
         setDelegate(listener);

@@ -39,7 +39,7 @@ bool DevChannel::inputYUV(char *yuv[3], int linesize[3], uint64_t cts) {
         int frames = _pH264Enc->inputData(yuv, linesize, cts, &out_frames);
         bool ret = false;
         for (int i = 0; i < frames; i++) {
-            ret = inputH264((char *) out_frames[i].pucData, out_frames[i].iLength, cts) ? true : ret;
+            ret = inputH264((char *) out_frames[i].pucData, out_frames[i].iLength, out_frames[i].dts, out_frames[i].pts) ? true : ret;
         }
         return ret;
     }

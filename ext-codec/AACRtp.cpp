@@ -55,62 +55,61 @@ void AACRtpDecoder::obtainFrame() {
 bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
     auto payload_size = rtp->getPayloadSize();
     if (payload_size <= 0) {
-        //无实际负载
+        // 无实际负载
         return false;
     }
 
     auto stamp = rtp->getStampMS();
-    //rtp数据开始部分
+    // rtp数据开始部分
     auto ptr = rtp->getPayload();
-    //rtp数据末尾
+    // rtp数据末尾
     auto end = ptr + payload_size;
-    //首2字节表示Au-Header的个数，单位bit，所以除以16得到Au-Header个数
+    // 首2字节表示Au-Header的个数，单位bit，所以除以16得到Au-Header个数
     auto au_header_count = ((ptr[0] << 8) | ptr[1]) >> 4;
     if (!au_header_count) {
-        //问题issue: https://github.com/ZLMediaKit/ZLMediaKit/issues/1869
+        // 问题issue: https://github.com/ZLMediaKit/ZLMediaKit/issues/1869
         WarnL << "invalid aac rtp au_header_count";
         return false;
     }
-    //记录au_header起始指针
+    // 记录au_header起始指针
     auto au_header_ptr = ptr + 2;
-    ptr = au_header_ptr +  au_header_count * 2;
+    ptr = au_header_ptr + au_header_count * 2;
 
     if (end < ptr) {
-        //数据不够
+        // 数据不够
         return false;
     }
 
     if (!_last_dts) {
-        //记录第一个时间戳
+        // 记录第一个时间戳
         _last_dts = stamp;
     }
 
-    //每个audio unit时间戳增量
+    // 每个audio unit时间戳增量
     auto dts_inc = (stamp - _last_dts) / au_header_count;
-    if (dts_inc < 0 && dts_inc > 100) {
-        //时间戳增量异常，忽略
+    if (dts_inc < 0 || dts_inc > 100) {
+        // 时间戳增量异常，忽略
         dts_inc = 0;
     }
 
-    for (int i = 0; i < au_header_count; ++i) {
+    for (auto i = 0u; i < (size_t)au_header_count; ++i) {
         // 之后的2字节是AU_HEADER,其中高13位表示一帧AAC负载的字节长度，低3位无用
-        uint16_t size = ((au_header_ptr[0] << 8) | au_header_ptr[1]) >> 3;
-        if (ptr + size > end) {
-            //数据不够
+        auto size = ((au_header_ptr[0] << 8) | au_header_ptr[1]) >> 3;
+        auto len = std::min<int>(size, end - ptr);
+        if (len <= 0) {
             break;
         }
+        _frame->_buffer.append((char *)ptr, len);
+        ptr += len;
+        au_header_ptr += 2;
 
-        if (size) {
-            //设置aac数据
-            _frame->_buffer.assign((char *) ptr, size);
-            //设置当前audio unit时间戳
+        if (_frame->size() >= (size_t)size) {
+            // 设置当前audio unit时间戳
             _frame->_dts = _last_dts + i * dts_inc;
-            ptr += size;
-            au_header_ptr += 2;
             flushData();
         }
     }
-    //记录上次时间戳
+    // 记录上次时间戳
     _last_dts = stamp;
     return false;
 }

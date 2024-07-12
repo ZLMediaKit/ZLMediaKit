@@ -87,10 +87,9 @@ DecoderImp::DecoderImp(const Decoder::Ptr &decoder, MediaSinkInterface *sink){
 void DecoderImp::onStream(int stream, int codecid, const void *extra, size_t bytes, int finish) {
     // G711传统只支持 8000/1/16的规格，FFmpeg貌似做了扩展，但是这里不管它了
     auto track = Factory::getTrackByCodecId(getCodecByMpegId(codecid), 8000, 1, 16);
-    if (!track) {
-        return;
+    if (track) {
+        onTrack(stream, std::move(track));
     }
-    onTrack(stream, std::move(track));
     // 防止未获取视频track提前complete导致忽略后续视频的问题，用于兼容一些不太规范的ps流
     if (finish && _have_video) {
         _sink->addTrackCompleted();

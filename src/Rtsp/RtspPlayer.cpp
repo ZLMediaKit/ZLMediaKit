@@ -88,6 +88,7 @@ void RtspPlayer::play(const string &strUrl) {
     _rtp_type = (Rtsp::eRtpType)(int)(*this)[Client::kRtpType];
     _beat_type = (*this)[Client::kRtspBeatType].as<int>();
     _beat_interval_ms = (*this)[Client::kBeatIntervalMS].as<int>();
+    _speed = (*this)[Client::kRtspSpeed].as<float>();
     DebugL << url._url << " " << (url._user.size() ? url._user : "null") << " " << (url._passwd.size() ? url._passwd : "null") << " " << _rtp_type;
 
     weak_ptr<RtspPlayer> weakSelf = static_pointer_cast<RtspPlayer>(shared_from_this());
@@ -256,17 +257,19 @@ void RtspPlayer::sendSetup(unsigned int track_idx) {
     switch (_rtp_type) {
         case Rtsp::RTP_TCP: {
             sendRtspRequest(
-                "SETUP", control_url, { "Transport", StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track->_type * 2 << "-" << track->_type * 2 + 1 });
+                "SETUP", control_url,
+                { "Transport", StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track->_type * 2 << "-" << track->_type * 2 + 1 << ";mode=play" });
         } break;
         case Rtsp::RTP_MULTICAST: {
-            sendRtspRequest("SETUP", control_url, { "Transport", "RTP/AVP;multicast" });
+            sendRtspRequest("SETUP", control_url, { "Transport", "RTP/AVP;multicast;mode=play" });
         } break;
         case Rtsp::RTP_UDP: {
             createUdpSockIfNecessary(track_idx);
             sendRtspRequest(
                 "SETUP", control_url,
                 { "Transport",
-                  StrPrinter << "RTP/AVP;unicast;client_port=" << _rtp_sock[track_idx]->get_local_port() << "-" << _rtcp_sock[track_idx]->get_local_port() });
+                  StrPrinter << "RTP/AVP;unicast;client_port=" << _rtp_sock[track_idx]->get_local_port() << "-" << _rtcp_sock[track_idx]->get_local_port()
+                             << ";mode=play" });
         } break;
         default: break;
     }
@@ -387,7 +390,12 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int track_idx) {
     }
     // 所有setup命令发送完毕
     // 发送play命令
-    sendPause(type_play, 0);
+    if (_speed==0.0f) {
+        sendPause(type_play, 0);
+    } else {
+        sendPause(type_speed, 0);
+    }
+   
 }
 
 void RtspPlayer::sendDescribe() {
@@ -435,6 +443,9 @@ void RtspPlayer::sendPause(int type, uint32_t seekMS) {
             // break;
         case type_seek:
             sendRtspRequest("PLAY", _control_url, { "Range", StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << seekMS / 1000.0 << "-" });
+            break;
+        case type_speed:
+            speed(_speed);
             break;
         default:
             WarnL << "unknown type : " << type;

@@ -141,7 +141,9 @@ static std::shared_ptr<char> getSharedMmap(const string &file_path, int64_t &fil
         return nullptr;
     }
 
-     file_size = ::GetFileSize(hfile, NULL);
+     LARGE_INTEGER FileSize; 
+     GetFileSizeEx(hfile, &FileSize); //GetFileSize函数的拓展，可用于获取大于4G的文件大小
+     file_size = FileSize.QuadPart;
 
     auto hmapping = ::CreateFileMapping(hfile, NULL, PAGE_READONLY, 0, 0, NULL);
 

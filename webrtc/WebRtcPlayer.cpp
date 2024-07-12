@@ -9,7 +9,10 @@
  */
 
 #include "WebRtcPlayer.h"
+
 #include "Common/config.h"
+#include "Extension/Factory.h"
+#include "Util/base64.h"
 
 using namespace std;
 
@@ -32,6 +35,9 @@ WebRtcPlayer::WebRtcPlayer(const EventPoller::Ptr &poller,
     _media_info = info;
     _play_src = src;
     CHECK(src);
+
+    GET_CONFIG(bool, direct_proxy, Rtsp::kDirectProxy);
+    _send_config_frames_once = direct_proxy;
 }
 
 void WebRtcPlayer::onStartWebRTC() {
@@ -56,6 +62,13 @@ void WebRtcPlayer::onStartWebRTC() {
             if (!strong_self) {
                 return;
             }
+
+            if (strong_self->_send_config_frames_once && !pkt->empty()) {
+                const auto &first_rtp = pkt->front();
+                strong_self->sendConfigFrames(first_rtp->getSeq(), first_rtp->sample_rate, first_rtp->getStamp(), first_rtp->ntp_stamp);
+                strong_self->_send_config_frames_once = false;
+            }
+
             size_t i = 0;
             pkt->for_each([&](const RtpPacket::Ptr &rtp) {
                 //TraceL<<"send track type:"<<rtp->type<<" ts:"<<rtp->getStamp()<<" ntp:"<<rtp->ntp_stamp<<" size:"<<rtp->getPayloadSize()<<" i:"<<i;
@@ -109,6 +122,43 @@ void WebRtcPlayer::onRtcConfigure(RtcConfigure &configure) const {
     //这是播放
     configure.audio.direction = configure.video.direction = RtpDirection::sendonly;
     configure.setPlayRtspInfo(playSrc->getSdp());
+}
+
+void WebRtcPlayer::sendConfigFrames(uint32_t before_seq, uint32_t sample_rate, uint32_t timestamp, uint64_t ntp_timestamp) {
+    auto play_src = _play_src.lock();
+    if (!play_src) {
+        return;
+    }
+    SdpParser parser(play_src->getSdp());
+    auto video_sdp = parser.getTrack(TrackVideo);
+    if (!video_sdp) {
+        return;
+    }
+    auto video_track = dynamic_pointer_cast<VideoTrack>(Factory::getTrackBySdp(video_sdp));
+    if (!video_track) {
+        return;
+    }
+    auto frames = video_track->getConfigFrames();
+    if (frames.empty()) {
+        return;
+    }
+    auto encoder = mediakit::Factory::getRtpEncoderByCodecId(video_track->getCodecId(), 0);
+    if (!encoder) {
+        return;
+    }
+
+    GET_CONFIG(uint32_t, video_mtu, Rtp::kVideoMtuSize);
+    encoder->setRtpInfo(0, video_mtu, sample_rate, 0, 0, 0);
+
+    auto seq = before_seq - frames.size();
+    for (const auto &frame : frames) {
+        auto rtp = encoder->getRtpInfo().makeRtp(TrackVideo, frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize(), false, 0);
+        auto header = rtp->getHeader();
+        header->seq = htons(seq++);
+        header->stamp = htonl(timestamp);
+        rtp->ntp_stamp = ntp_timestamp;
+        onSendRtp(rtp, false);
+    }
 }
 
 }// namespace mediakit

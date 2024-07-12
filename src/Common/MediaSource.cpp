@@ -55,59 +55,13 @@ string getOriginTypeString(MediaOriginType type){
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ProtocolOption::ProtocolOption() {
-    GET_CONFIG(int, s_modify_stamp, Protocol::kModifyStamp);
-    GET_CONFIG(bool, s_enabel_audio, Protocol::kEnableAudio);
-    GET_CONFIG(bool, s_add_mute_audio, Protocol::kAddMuteAudio);
-    GET_CONFIG(bool, s_auto_close, Protocol::kAutoClose);
-    GET_CONFIG(uint32_t, s_continue_push_ms, Protocol::kContinuePushMS);
-    GET_CONFIG(uint32_t, s_paced_sender_ms, Protocol::kPacedSenderMS);
-
-    GET_CONFIG(bool, s_enable_hls, Protocol::kEnableHls);
-    GET_CONFIG(bool, s_enable_hls_fmp4, Protocol::kEnableHlsFmp4);
-    GET_CONFIG(bool, s_enable_mp4, Protocol::kEnableMP4);
-    GET_CONFIG(bool, s_enable_rtsp, Protocol::kEnableRtsp);
-    GET_CONFIG(bool, s_enable_rtmp, Protocol::kEnableRtmp);
-    GET_CONFIG(bool, s_enable_ts, Protocol::kEnableTS);
-    GET_CONFIG(bool, s_enable_fmp4, Protocol::kEnableFMP4);
-
-    GET_CONFIG(bool, s_hls_demand, Protocol::kHlsDemand);
-    GET_CONFIG(bool, s_rtsp_demand, Protocol::kRtspDemand);
-    GET_CONFIG(bool, s_rtmp_demand, Protocol::kRtmpDemand);
-    GET_CONFIG(bool, s_ts_demand, Protocol::kTSDemand);
-    GET_CONFIG(bool, s_fmp4_demand, Protocol::kFMP4Demand);
-
-    GET_CONFIG(bool, s_mp4_as_player, Protocol::kMP4AsPlayer);
-    GET_CONFIG(uint32_t, s_mp4_max_second, Protocol::kMP4MaxSecond);
-    GET_CONFIG(string, s_mp4_save_path, Protocol::kMP4SavePath);
-
-    GET_CONFIG(string, s_hls_save_path, Protocol::kHlsSavePath);
-
-    modify_stamp = s_modify_stamp;
-    enable_audio = s_enabel_audio;
-    add_mute_audio = s_add_mute_audio;
-    auto_close = s_auto_close;
-    continue_push_ms = s_continue_push_ms;
-    paced_sender_ms = s_paced_sender_ms;
-
-    enable_hls = s_enable_hls;
-    enable_hls_fmp4 = s_enable_hls_fmp4;
-    enable_mp4 = s_enable_mp4;
-    enable_rtsp = s_enable_rtsp;
-    enable_rtmp = s_enable_rtmp;
-    enable_ts = s_enable_ts;
-    enable_fmp4 = s_enable_fmp4;
-
-    hls_demand = s_hls_demand;
-    rtsp_demand = s_rtsp_demand;
-    rtmp_demand = s_rtmp_demand;
-    ts_demand = s_ts_demand;
-    fmp4_demand = s_fmp4_demand;
-
-    mp4_as_player = s_mp4_as_player;
-    mp4_max_second = s_mp4_max_second;
-    mp4_save_path = s_mp4_save_path;
-
-    hls_save_path = s_hls_save_path;
+    mINI ini;
+    auto &config = mINI::Instance();
+    static auto sz = strlen(Protocol::kFieldName);
+    for (auto it = config.lower_bound(Protocol::kFieldName); it != config.end() && start_with(it->first, Protocol::kFieldName); ++it) {
+        ini.emplace(it->first.substr(sz), it->second);
+    }
+    load(ini);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -271,9 +225,14 @@ toolkit::EventPoller::Ptr MediaSource::getOwnerPoller() {
     throw std::runtime_error(toolkit::demangle(typeid(*this).name()) + "::getOwnerPoller failed: " + getUrl());
 }
 
-std::shared_ptr<MultiMediaSourceMuxer> MediaSource::getMuxer() {
+std::shared_ptr<MultiMediaSourceMuxer> MediaSource::getMuxer() const {
     auto listener = _listener.lock();
-    return listener ? listener->getMuxer(*this) : nullptr;
+    return listener ? listener->getMuxer(const_cast<MediaSource&>(*this)) : nullptr;
+}
+
+std::shared_ptr<RtpProcess> MediaSource::getRtpProcess() const {
+    auto listener = _listener.lock();
+    return listener ? listener->getRtpProcess(const_cast<MediaSource&>(*this)) : nullptr;
 }
 
 void MediaSource::onReaderChanged(int size) {
@@ -706,7 +665,7 @@ string MediaSourceEvent::getOriginUrl(MediaSource &sender) const {
 MediaOriginType MediaSourceEventInterceptor::getOriginType(MediaSource &sender) const {
     auto listener = _listener.lock();
     if (!listener) {
-        return MediaOriginType::unknown;
+        return MediaSourceEvent::getOriginType(sender);
     }
     return listener->getOriginType(sender);
 }
@@ -726,7 +685,7 @@ string MediaSourceEventInterceptor::getOriginUrl(MediaSource &sender) const {
 std::shared_ptr<SockInfo> MediaSourceEventInterceptor::getOriginSock(MediaSource &sender) const {
     auto listener = _listener.lock();
     if (!listener) {
-        return nullptr;
+        return MediaSourceEvent::getOriginSock(sender);
     }
     return listener->getOriginSock(sender);
 }
@@ -734,7 +693,7 @@ std::shared_ptr<SockInfo> MediaSourceEventInterceptor::getOriginSock(MediaSource
 bool MediaSourceEventInterceptor::seekTo(MediaSource &sender, uint32_t stamp) {
     auto listener = _listener.lock();
     if (!listener) {
-        return false;
+        return MediaSourceEvent::seekTo(sender, stamp);
     }
     return listener->seekTo(sender, stamp);
 }
@@ -742,7 +701,7 @@ bool MediaSourceEventInterceptor::seekTo(MediaSource &sender, uint32_t stamp) {
 bool MediaSourceEventInterceptor::pause(MediaSource &sender, bool pause) {
     auto listener = _listener.lock();
     if (!listener) {
-        return false;
+        return MediaSourceEvent::pause(sender, pause);
     }
     return listener->pause(sender, pause);
 }
@@ -750,7 +709,7 @@ bool MediaSourceEventInterceptor::pause(MediaSource &sender, bool pause) {
 bool MediaSourceEventInterceptor::speed(MediaSource &sender, float speed) {
     auto listener = _listener.lock();
     if (!listener) {
-        return false;
+        return MediaSourceEvent::speed(sender, speed);
     }
     return listener->speed(sender, speed);
 }
@@ -758,7 +717,7 @@ bool MediaSourceEventInterceptor::speed(MediaSource &sender, float speed) {
 bool MediaSourceEventInterceptor::close(MediaSource &sender) {
     auto listener = _listener.lock();
     if (!listener) {
-        return false;
+        return MediaSourceEvent::close(sender);
     }
     return listener->close(sender);
 }
@@ -766,7 +725,7 @@ bool MediaSourceEventInterceptor::close(MediaSource &sender) {
 int MediaSourceEventInterceptor::totalReaderCount(MediaSource &sender) {
     auto listener = _listener.lock();
     if (!listener) {
-        return sender.readerCount();
+        return MediaSourceEvent::totalReaderCount(sender);
     }
     return listener->totalReaderCount(sender);
 }
@@ -774,44 +733,55 @@ int MediaSourceEventInterceptor::totalReaderCount(MediaSource &sender) {
 void MediaSourceEventInterceptor::onReaderChanged(MediaSource &sender, int size) {
     auto listener = _listener.lock();
     if (!listener) {
-        MediaSourceEvent::onReaderChanged(sender, size);
-    } else {
-        listener->onReaderChanged(sender, size);
+        return MediaSourceEvent::onReaderChanged(sender, size);
     }
+    listener->onReaderChanged(sender, size);
 }
 
 void MediaSourceEventInterceptor::onRegist(MediaSource &sender, bool regist) {
     auto listener = _listener.lock();
-    if (listener) {
-        listener->onRegist(sender, regist);
+    if (!listener) {
+        return MediaSourceEvent::onRegist(sender, regist);
     }
+    listener->onRegist(sender, regist);
 }
 
-float MediaSourceEventInterceptor::getLossRate(MediaSource &sender, TrackType type){
+float MediaSourceEventInterceptor::getLossRate(MediaSource &sender, TrackType type) {
     auto listener = _listener.lock();
-    if (listener) {
-        return listener->getLossRate(sender, type);
+    if (!listener) {
+        return MediaSourceEvent::getLossRate(sender, type);
     }
-    return -1; //异常返回-1
+    return listener->getLossRate(sender, type);
 }
 
 toolkit::EventPoller::Ptr MediaSourceEventInterceptor::getOwnerPoller(MediaSource &sender) {
     auto listener = _listener.lock();
-    if (listener) {
-        return listener->getOwnerPoller(sender);
+    if (!listener) {
+        return MediaSourceEvent::getOwnerPoller(sender);
     }
-    throw std::runtime_error(toolkit::demangle(typeid(*this).name()) + "::getOwnerPoller failed");
+    return listener->getOwnerPoller(sender);
 }
 
-std::shared_ptr<MultiMediaSourceMuxer> MediaSourceEventInterceptor::getMuxer(MediaSource &sender) {
+std::shared_ptr<MultiMediaSourceMuxer> MediaSourceEventInterceptor::getMuxer(MediaSource &sender) const {
     auto listener = _listener.lock();
-    return listener ? listener->getMuxer(sender) : nullptr;
+    if (!listener) {
+        return MediaSourceEvent::getMuxer(sender);
+    }
+    return listener->getMuxer(sender);
+}
+
+std::shared_ptr<RtpProcess> MediaSourceEventInterceptor::getRtpProcess(MediaSource &sender) const {
+    auto listener = _listener.lock();
+    if (!listener) {
+        return MediaSourceEvent::getRtpProcess(sender);
+    }
+    return listener->getRtpProcess(sender);
 }
 
 bool MediaSourceEventInterceptor::setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path, size_t max_second) {
     auto listener = _listener.lock();
     if (!listener) {
-        return false;
+        return MediaSourceEvent::setupRecord(sender, type, start, custom_path, max_second);
     }
     return listener->setupRecord(sender, type, start, custom_path, max_second);
 }
@@ -819,7 +789,7 @@ bool MediaSourceEventInterceptor::setupRecord(MediaSource &sender, Recorder::typ
 bool MediaSourceEventInterceptor::isRecording(MediaSource &sender, Recorder::type type) {
     auto listener = _listener.lock();
     if (!listener) {
-        return false;
+        return MediaSourceEvent::isRecording(sender, type);
     }
     return listener->isRecording(sender, type);
 }
@@ -827,26 +797,25 @@ bool MediaSourceEventInterceptor::isRecording(MediaSource &sender, Recorder::typ
 vector<Track::Ptr> MediaSourceEventInterceptor::getMediaTracks(MediaSource &sender, bool trackReady) const {
     auto listener = _listener.lock();
     if (!listener) {
-        return vector<Track::Ptr>();
+        return MediaSourceEvent::getMediaTracks(sender, trackReady);
     }
     return listener->getMediaTracks(sender, trackReady);
 }
 
 void MediaSourceEventInterceptor::startSendRtp(MediaSource &sender, const MediaSourceEvent::SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb) {
     auto listener = _listener.lock();
-    if (listener) {
-        listener->startSendRtp(sender, args, cb);
-    } else {
-        MediaSourceEvent::startSendRtp(sender, args, cb);
+    if (!listener) {
+        return MediaSourceEvent::startSendRtp(sender, args, cb);
     }
+    listener->startSendRtp(sender, args, cb);
 }
 
-bool MediaSourceEventInterceptor::stopSendRtp(MediaSource &sender, const string &ssrc){
+bool MediaSourceEventInterceptor::stopSendRtp(MediaSource &sender, const string &ssrc) {
     auto listener = _listener.lock();
-    if (listener) {
-        return listener->stopSendRtp(sender, ssrc);
+    if (!listener) {
+        return MediaSourceEvent::stopSendRtp(sender, ssrc);
     }
-    return false;
+    return listener->stopSendRtp(sender, ssrc);
 }
 
 void MediaSourceEventInterceptor::setDelegate(const std::weak_ptr<MediaSourceEvent> &listener) {
@@ -856,7 +825,7 @@ void MediaSourceEventInterceptor::setDelegate(const std::weak_ptr<MediaSourceEve
     _listener = listener;
 }
 
-std::shared_ptr<MediaSourceEvent> MediaSourceEventInterceptor::getDelegate() const{
+std::shared_ptr<MediaSourceEvent> MediaSourceEventInterceptor::getDelegate() const {
     return _listener.lock();
 }
 

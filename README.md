@@ -159,12 +159,15 @@
  - 2、作为独立的流媒体服务器使用，不想做c/c++开发的，可以参考 [restful api](https://github.com/ZLMediaKit/ZLMediaKit/wiki/MediaServer支持的HTTP-API) 和 [web hook](https://github.com/ZLMediaKit/ZLMediaKit/wiki/MediaServer支持的HTTP-HOOK-API ).
  - 3、如果想做c/c++开发，添加业务逻辑增加功能，可以参考这里的[测试程序](https://github.com/ZLMediaKit/ZLMediaKit/tree/master/tests).
 
+## 二进制文件下载
+zlmediakit采用 github action 持续集成自动编译打包上传编译产出包，请在[issue列表](https://github.com/ZLMediaKit/ZLMediaKit/issues/483)下载最新sdk库文件以及可执行文件。
+
 ## Docker 镜像
 
 你可以从Docker Hub下载已经编译好的镜像并启动它：
 
 ```bash
-#此镜像为github持续集成自动编译推送，跟代码(master分支)保持最新状态
+#此镜像为github action 持续集成自动编译推送，跟代码(master分支)保持最新状态
 docker run -id -p 1935:1935 -p 8080:80 -p 8443:443 -p 8554:554 -p 10000:10000 -p 10000:10000/udp -p 8000:8000/udp -p 9000:9000/udp zlmediakit/zlmediakit:master
 ```
 
@@ -188,6 +191,7 @@ bash build_docker_images.sh
    - [jessibuca](https://github.com/langhuihui/jessibuca) 基于wasm支持H265的播放器
    - [wsPlayer](https://github.com/v354412101/wsPlayer) 基于MSE的websocket-fmp4播放器
    - [BXC_gb28181Player](https://github.com/any12345com/BXC_gb28181Player) C++开发的支持国标GB28181协议的视频流播放器
+   - [RTCPlayer](https://github.com/leo94666/RTCPlayer) 一个基于Android客户端的的RTC播放器
 
 - WEB管理网站
    - [zlm_webassist](https://github.com/1002victor/zlm_webassist) 本项目配套的前后端分离web管理项目
@@ -363,6 +367,7 @@ bash build_docker_images.sh
 [jamesZHANG500](https://github.com/jamesZHANG500)
 [weidelong](https://github.com/wdl1697454803)
 [小强先生](https://github.com/linshangqiang)
+[李之阳](https://github.com/leo94666)
 
 同时感谢JetBrains对开源项目的支持，本项目使用CLion开发与调试：
 
