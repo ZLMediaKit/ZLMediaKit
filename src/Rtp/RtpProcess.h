@@ -25,7 +25,7 @@ public:
     using Ptr = std::shared_ptr<RtpProcess>;
     using onDetachCB = std::function<void(const toolkit::SockException &ex)>;
 
-    static Ptr createProcess(std::string stream_id);
+    static Ptr createProcess(const MediaTuple &tuple);
     ~RtpProcess();
     enum OnlyTrack { kAll = 0, kOnlyAudio = 1, kOnlyVideo = 2 };
 
@@ -91,7 +91,7 @@ protected:
     bool close(mediakit::MediaSource &sender) override;
 
 private:
-    RtpProcess(std::string stream_id);
+    RtpProcess(const MediaTuple &tuple);
 
     void emitOnPublish();
     void doCachedFunc();
@@ -117,6 +117,7 @@ private:
     toolkit::Timer::Ptr _timer;
     toolkit::Ticker _last_check_alive;
     std::recursive_mutex _func_mtx;
+    toolkit::Ticker _cache_ticker;
     std::deque<std::function<void()> > _cached_func;
 };
 

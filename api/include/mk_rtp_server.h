@@ -24,6 +24,7 @@ typedef struct mk_rtp_server_t *mk_rtp_server;
  * @return
  */
 API_EXPORT mk_rtp_server API_CALL mk_rtp_server_create(uint16_t port, int tcp_mode, const char *stream_id);
+API_EXPORT mk_rtp_server API_CALL mk_rtp_server_create2(uint16_t port, int tcp_mode, const char *vhost, const char *app, const char *stream_id);
 
 /**
  * TCP 主动模式时连接到服务器是否成功的回调

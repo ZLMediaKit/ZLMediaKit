@@ -40,7 +40,13 @@ public:
 
     TSMediaSource(const MediaTuple& tuple, int ring_size = TS_GOP_SIZE): MediaSource(TS_SCHEMA, tuple), _ring_size(ring_size) {}
 
-    ~TSMediaSource() override { flush(); }
+    ~TSMediaSource() override {
+        try {
+            flush();
+        } catch (std::exception &ex) {
+            WarnL << ex.what();
+        }
+    }
 
     /**
      * 获取媒体源的环形缓冲
