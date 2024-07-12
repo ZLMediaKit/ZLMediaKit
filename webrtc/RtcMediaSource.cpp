@@ -68,17 +68,11 @@ bool RtcMediaSourceMuxer::inputFrame(const Frame::Ptr &frame)
         switch (frame->getCodecId())
         {
         case CodecAAC:
-          if (frame->prefixSize()) {
-            std::string cfg = makeAacConfig((uint8_t *)(frame->data()), frame->prefixSize());
-            track = std::make_shared<AACTrack>(cfg);
-          }
-          else {
-            track = std::make_shared<AACTrack>(44100, 2);
-          }
+          track = Factory::getTrackByCodecId(CodecAAC, 44100, 2, 16);
           break;
         case CodecG711A:
         case CodecG711U:
-          track.reset(new G711Track(frame->getCodecId()));
+          track = Factory::getTrackByCodecId(frame->getCodecId());
           break;
         default:
           break;
@@ -116,7 +110,7 @@ bool RtcMediaSourceMuxer::addTrack(const Track::Ptr & track)
 {
   Track::Ptr newTrack = track;
   if (_option.audio_transcode && needTransToOpus(track->getCodecId())) {
-    newTrack = std::make_shared<OpusTrack>();
+    newTrack = Factory::getTrackByCodecId(CodecOpus);
     GET_CONFIG(int, bitrate, General::kOpusBitrate);
     newTrack->setBitRate(bitrate);
     _audio_dec.reset(new FFmpegDecoder(track));
@@ -149,7 +143,7 @@ bool RtcMediaSourceImp::addTrack(const Track::Ptr &track)
   if (_muxer) {
     Track::Ptr newTrack = track;
     if (_option.audio_transcode && needTransToAac(track->getCodecId())) {
-      newTrack.reset(new AACTrack(44100, 2));
+      newTrack = Factory::getTrackByCodecId(CodecAAC, 44100, std::dynamic_pointer_cast<AudioTrack>(track)->getAudioChannel(), 16);
       GET_CONFIG(int, bitrate, General::kAacBitrate);
       newTrack->setBitRate(bitrate);
       _audio_dec.reset(new FFmpegDecoder(track));

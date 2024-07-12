@@ -18,17 +18,16 @@
 #include <float.h>
 #include "Transcode.h"
 #include "Common/config.h"
-#include "Extension/Opus.h"
-#include "Extension/G711.h"
-#include "Extension/H264.h"
-#include "Extension/H265.h"
+#include "Extension/Factory.h"
 
+#define ADTS_HEADER_LEN 7
 #define MAX_DELAY_SECOND 3
 
 using namespace std;
 using namespace toolkit;
 
 namespace mediakit {
+extern int dumpAacConfig(const string &config, size_t length, uint8_t *out, size_t out_size);
 
 static string ffmpeg_err(int errnum) {
     char errbuf[AV_ERROR_MAX_STRING_SIZE];
@@ -1045,64 +1044,23 @@ void FFmpegEncoder::onEncode(AVPacket *packet) {
     // process frame
     if (!_cb)
         return;
-    switch (_codecId) {
-        case CodecH264: {
-            auto frame = FrameImp::create<H264Frame>();
-            frame->_dts = packet->dts;
-            frame->_pts = packet->pts;
-            frame->_buffer.assign((const char *)packet->data, packet->size);
-            frame->_prefix_size = prefixSize((const char *)packet->data, packet->size);
-            _cb(frame);
-            break;
+    if (_codecId == CodecAAC) {
+        auto frame = FrameImp::create<>();
+        frame->_codec_id = _codecId;
+        frame->_dts = packet->dts;
+        frame->_pts = packet->pts;
+        frame->_buffer.reserve(ADTS_HEADER_LEN + packet->size);
+        if (_context && _context->extradata && _context->extradata_size) {
+            uint8_t adts[ADTS_HEADER_LEN];
+            auto cfg = std::string((const char *)_context->extradata, _context->extradata_size);
+            dumpAacConfig(cfg, packet->size, adts, ADTS_HEADER_LEN);
+            frame->_prefix_size = ADTS_HEADER_LEN;
+            frame->_buffer.append((char*)adts, ADTS_HEADER_LEN);
         }
-        case CodecH265: {
-            auto frame = FrameImp::create<H265Frame>();
-            frame->_dts = packet->dts;
-            frame->_pts = packet->pts;
-            frame->_buffer.assign((const char *)packet->data, packet->size);
-            frame->_prefix_size = prefixSize((const char *)packet->data, packet->size);
-            _cb(frame);
-            break;
-        }
-        case CodecAAC: {
-            auto frame = FrameImp::create<>();
-            frame->_codec_id = _codecId;
-            frame->_dts = packet->dts;
-            frame->_pts = packet->pts;
-            frame->_buffer.reserve(ADTS_HEADER_LEN + packet->size);
-            if (_context && _context->extradata && _context->extradata_size) {
-                uint8_t adts[ADTS_HEADER_LEN];
-                auto cfg = std::string((const char *)_context->extradata, _context->extradata_size);
-                dumpAacConfig(cfg, packet->size, adts, ADTS_HEADER_LEN);
-                frame->_prefix_size = ADTS_HEADER_LEN;
-                frame->_buffer.append((char*)adts, ADTS_HEADER_LEN);
-            }
-            frame->_buffer.append((const char *)packet->data, packet->size);
-            _cb(frame);
-            break;
-        }
-        case CodecOpus:
-        case CodecG711A:
-        case CodecG711U: {
-            auto frame = FrameImp::create<>();
-            frame->_codec_id = _codecId;
-            frame->_dts = packet->dts;
-            frame->_pts = packet->pts;
-            frame->_buffer.assign((const char *)packet->data, packet->size);
-            _cb(frame);
-            break;
-        }
-        case CodecVP8:
-        case CodecVP9: {
-            auto frame = FrameImp::create<>();
-            frame->_codec_id = _codecId;
-            frame->_dts = packet->dts;
-            frame->_pts = packet->pts;
-            frame->_buffer.assign((const char *)packet->data, packet->size);
-            _cb(frame);
-            break;
-        }
-        default: break;
+        frame->_buffer.append((const char *)packet->data, packet->size);
+        _cb(frame);
+    } else {
+        _cb(Factory::getFrameFromPtr(_codecId, (const char*)packet->data, packet->size, packet->dts, packet->pts));
     }
 }
 

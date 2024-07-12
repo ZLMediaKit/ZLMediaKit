@@ -1,34 +1,35 @@
 #include "Codec/Transcode.h"
 #include "Record/MP4Demuxer.h"
 #include "Record/MP4Muxer.h"
-#include "Extension/AAC.h"
-#include "Extension/Opus.h"
-#include "Extension/G711.h"
 #include "Util/logger.h"
+
 using namespace mediakit;
 struct TransCtx {
     using Ptr = std::shared_ptr<TransCtx>;
     TransCtx(const char *prefix, CodecId codec) {
         char path[256];
-        Track::Ptr track;
+        int samplerate;
+        int channel = 1;
+        int bits = 16;
         switch (codec) {
         case CodecAAC:
-            track.reset(new AACTrack(44100, 1));
+            samplerate = 44100;
             sprintf(path, "%s_aac.mp4", prefix);
             break;
         case CodecOpus:
-            track.reset(new OpusTrack());
+            samplerate = 48000;
             sprintf(path, "%s_opus.mp4", prefix);
             break;
         case CodecG711A:
         case CodecG711U:
-            track.reset(new G711Track(codec, 8000, 1, 16));
+            samplerate = 8000;
             sprintf(path, "%s_711%c.mp4", prefix, codec == CodecG711A ? 'A' : 'U');
             break;
         default:
             return;
             break;
         }
+        Track::Ptr track = std::make_shared<AudioTrackImp>(codec, samplerate, channel, bits);
         file.reset(new MP4Muxer());
         file->openMP4(path);
         file->addTrack(track);
