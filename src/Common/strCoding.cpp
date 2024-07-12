@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -36,60 +36,127 @@ void UnicodeToUTF8(char *pOut, const wchar_t *pText) {
     return;
 }
 
-char CharToInt(char ch) {
-    if (ch >= '0' && ch <= '9')return (char) (ch - '0');
-    if (ch >= 'a' && ch <= 'f')return (char) (ch - 'a' + 10);
-    if (ch >= 'A' && ch <= 'F')return (char) (ch - 'A' + 10);
+char HexCharToBin(char ch) {
+    if (ch >= '0' && ch <= '9') return (char)(ch - '0');
+    if (ch >= 'a' && ch <= 'f') return (char)(ch - 'a' + 10);
+    if (ch >= 'A' && ch <= 'F') return (char)(ch - 'A' + 10);
     return -1;
 }
 
-char StrToBin(const char *str) {
-    char tempWord[2];
-    char chn;
-    tempWord[0] = CharToInt(str[0]); //make the B to 11 -- 00001011 
-    tempWord[1] = CharToInt(str[1]); //make the 0 to 0 -- 00000000 
-    chn = (tempWord[0] << 4) | tempWord[1]; //to change the BO to 10110000 
-    return chn;
+char HexStrToBin(const char *str) {
+    auto high = HexCharToBin(str[0]);
+    auto low = HexCharToBin(str[1]);
+    if (high == -1 || low == -1) {
+        // 无法把16进制字符串转换为二进制
+        return -1;
+    }
+    return (high << 4) | low;
 }
-
-string strCoding::UrlEncode(const string &str) {
+static string UrlEncodeCommon(const string &str,const char* dont_escape){
     string out;
     size_t len = str.size();
     for (size_t i = 0; i < len; ++i) {
         char ch = str[i];
-        if (isalnum((uint8_t) ch)) {
+        if (isalnum((uint8_t) ch) || strchr(dont_escape, (uint8_t) ch) != NULL) {
             out.push_back(ch);
         } else {
             char buf[4];
-            sprintf(buf, "%%%X%X", (uint8_t) ch >> 4, (uint8_t) ch & 0x0F);
+            snprintf(buf, 4, "%%%X%X", (uint8_t) ch >> 4, (uint8_t) ch & 0x0F);
             out.append(buf);
         }
     }
     return out;
 }
-
-string strCoding::UrlDecode(const string &str) {
+static string UrlDecodeCommon(const string &str,const char* dont_unescape){
     string output;
-    char tmp[2];
     size_t i = 0, len = str.length();
     while (i < len) {
         if (str[i] == '%') {
-            if (i > len - 3) {
-                //防止内存溢出
+            if (i + 3 > len) {
+                // %后面必须还有两个字节才会反转义
+                output.append(str, i, len - i);
                 break;
             }
-            tmp[0] = str[i + 1];
-            tmp[1] = str[i + 2];
-            output += StrToBin(tmp);
-            i = i + 3;
+            char ch = HexStrToBin(&(str[i + 1]));
+            if (ch == -1 || strchr(dont_unescape, (unsigned char)ch) != NULL) {
+                // %后面两个字节不是16进制字符串，转义失败；或者转义出来可能会造成url包含非path部分，比如#?，说明提交的是非法拼接的url；直接拼接3个原始字符
+                output.append(str, i, 3);
+            } else {
+                output += ch;
+            }
+            i += 3;
         } else {
             output += str[i];
-            i++;
+            ++i;
         }
     }
     return output;
 }
 
+string strCoding::UrlEncodePath(const string &str) {
+    const char *dont_escape = "!#&'*+:=?@/._-$,;~()";
+    return UrlEncodeCommon(str,dont_escape);
+}
+
+string strCoding::UrlEncodeComponent(const string &str) {
+    const char *dont_escape = "!'()*-._~";
+    return UrlEncodeCommon(str,dont_escape);
+}
+
+std::string strCoding::UrlEncodeUserOrPass(const std::string &str) {
+    // from rfc https://datatracker.ietf.org/doc/html/rfc3986
+    // §2.3 Unreserved characters (mark)
+    //'-', '_', '.', '~'  
+    //  §2.2 Reserved characters (reserved)
+    // '$', '&', '+', ',', '/', ':', ';', '=', '?', '@', 
+    // §3.2.1
+    // The RFC allows ';', ':', '&', '=', '+', '$', and ',' in
+    // userinfo, so we must escape only '@', '/', and '?'.
+    // The parsing of userinfo treats ':' as special so we must escape
+    // that too.
+    const char *dont_escape = "$&+,;=-._~";
+    return UrlEncodeCommon(str,dont_escape);
+}
+
+string strCoding::UrlDecodePath(const string &str) {
+    const char *dont_unescape = "#$&+,/:;=?@";
+    return UrlDecodeCommon(str,dont_unescape);
+}
+
+std::string strCoding::UrlDecodeComponent(const std::string &str) {
+    string output;
+    size_t i = 0, len = str.length();
+    while (i < len) {
+        if (str[i] == '%') {
+            if (i + 3 > len) {
+                // %后面必须还有两个字节才会反转义
+                output.append(str, i, len - i);
+                break;
+            }
+            char ch = HexStrToBin(&(str[i + 1]));
+            if (ch == -1) {
+                // %后面两个字节不是16进制字符串，转义失败；直接拼接3个原始字符
+                output.append(str, i, 3);
+            } else {
+                output += ch;
+            }
+            i += 3;
+        } else if (str[i] == '+') {
+            output += ' ';
+            ++i;
+        } else {
+            output += str[i];
+            ++i;
+        }
+    }
+    return output;
+}
+
+
+std::string strCoding::UrlDecodeUserOrPass(const std::string &str) {
+    const char *dont_unescape = "";
+    return UrlDecodeCommon(str,dont_unescape);
+}
 ///////////////////////////////windows专用///////////////////////////////////
 #if defined(_WIN32)
 void UnicodeToGB2312(char* pOut, wchar_t uData)

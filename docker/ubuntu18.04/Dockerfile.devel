@@ -33,7 +33,7 @@ RUN apt-get update && \
 RUN mkdir -p /opt/media
 
 WORKDIR /opt/media
-RUN git clone --depth=1 https://github.com/xia-chu/ZLMediaKit && \
+RUN git clone --depth=1 https://github.com/ZLMediaKit/ZLMediaKit && \
     cd ZLMediaKit && git submodule update --init --recursive && \
     mkdir -p build release/linux/Release/
 
@@ -42,4 +42,4 @@ RUN cmake -DCMAKE_BUILD_TYPE=Release .. && \
     make
 
 ENV PATH /opt/media/ZLMediaKit/release/linux/Release:$PATH
-CMD MediaServer
+CMD ["MediaServer"]

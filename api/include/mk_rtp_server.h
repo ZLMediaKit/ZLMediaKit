@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -24,6 +24,7 @@ typedef struct mk_rtp_server_t *mk_rtp_server;
  * @return
  */
 API_EXPORT mk_rtp_server API_CALL mk_rtp_server_create(uint16_t port, int tcp_mode, const char *stream_id);
+API_EXPORT mk_rtp_server API_CALL mk_rtp_server_create2(uint16_t port, int tcp_mode, const char *vhost, const char *app, const char *stream_id);
 
 /**
  * TCP 主动模式时连接到服务器是否成功的回调

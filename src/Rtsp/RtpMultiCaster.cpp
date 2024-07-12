@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -144,7 +144,16 @@ RtpMultiCaster::RtpMultiCaster(SocketHelper &helper, const string &local_ip, con
         });
     });
 
-    _rtp_reader->setDetachCB([this]() {
+    string strKey = StrPrinter << local_ip << " " << vhost << " " << app << " " << stream << endl;
+    _rtp_reader->setDetachCB([this, strKey]() {
+        {
+            lock_guard<recursive_mutex> lck(g_mtx);
+            auto it = g_multi_caster_map.find(strKey);
+            if (it != g_multi_caster_map.end()) {
+                g_multi_caster_map.erase(it);
+            }
+        }
+
         unordered_map<void *, onDetach> _detach_map_copy;
         {
             lock_guard<recursive_mutex> lck(_mtx);

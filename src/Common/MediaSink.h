@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -21,7 +21,6 @@ namespace mediakit{
 
 class TrackListener {
 public:
-    TrackListener() = default;
     virtual ~TrackListener() = default;
 
     /**
@@ -45,9 +44,6 @@ public:
 class MediaSinkInterface : public FrameWriterInterface, public TrackListener {
 public:
     using Ptr = std::shared_ptr<MediaSinkInterface>;
-
-    MediaSinkInterface() = default;
-    ~MediaSinkInterface() override = default;
 };
 
 /**
@@ -62,6 +58,7 @@ public:
     Frame::Ptr makeSlienceFrame(int64_t dts);
     CodecId getCodecId() const override { return _codec; }
 private:
+    int _track_index = -1;
     CodecId _codec;
     int _frame_ms = 0;
     uint64_t _audio_idx = 0;
@@ -74,9 +71,6 @@ private:
 class MediaSink : public MediaSinkInterface, public TrackSource{
 public:
     using Ptr = std::shared_ptr<MediaSink>;
-    MediaSink() = default;
-    ~MediaSink() override = default;
-
     /**
      * 输入frame
      * @param frame
@@ -98,7 +92,7 @@ public:
     void addTrackCompleted() override;
 
     /**
-     * 设置最大track数，取值范围1~2；该方法与addTrackCompleted类型；
+     * 设置最大track数，取值范围>=1；该方法与addTrackCompleted类型；
      * 在设置单track时，可以加快媒体注册速度
      */
     void setMaxTrackCount(size_t i);
@@ -115,7 +109,7 @@ public:
     std::vector<Track::Ptr> getTracks(bool trackReady = true) const override;
 
     /**
-     * 返回是否所有track已经准备完成
+     * 判断是否已经触发onAllTrackReady事件
      */
     bool isAllTrackReady() const;
 
@@ -178,25 +172,25 @@ private:
     bool addMuteAudioTrack();
 
 private:
+    bool _audio_add = false;
+    bool _have_video = false;
     bool _enable_audio = true;
     bool _only_audio = false;
     bool _add_mute_audio = true;
     bool _all_track_ready = false;
-    bool _have_video = false;
     size_t _max_track_size = 2;
-    std::unordered_map<int, std::pair<Track::Ptr, bool/*got frame*/> > _track_map;
-    std::unordered_map<int, toolkit::List<Frame::Ptr> > _frame_unread;
-    std::unordered_map<int, std::function<void()> > _track_ready_callback;
+
     toolkit::Ticker _ticker;
     MuteAudioMaker::Ptr _mute_audio_maker;
+
+    std::unordered_map<int, toolkit::List<Frame::Ptr> > _frame_unread;
+    std::unordered_map<int, std::function<void()> > _track_ready_callback;
+    std::unordered_map<int, std::pair<Track::Ptr, bool/*got frame*/> > _track_map;
 };
 
 
 class MediaSinkDelegate : public MediaSink {
 public:
-    MediaSinkDelegate() = default;
-    ~MediaSinkDelegate() override = default;
-
     /**
      * 设置track监听器
      */
@@ -213,9 +207,6 @@ private:
 
 class Demuxer : protected TrackListener, public TrackSource {
 public:
-    Demuxer() = default;
-    ~Demuxer() override = default;
-
     void setTrackListener(TrackListener *listener, bool wait_track_ready = false);
     std::vector<Track::Ptr> getTracks(bool trackReady = true) const override;
 

@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -56,8 +56,6 @@ RtspSession::RtspSession(const Socket::Ptr &sock) : Session(sock) {
     sock->setSendTimeOutSecond(keep_alive_sec);
 }
 
-RtspSession::~RtspSession() = default;
-
 void RtspSession::onError(const SockException &err) {
     bool is_player = !_push_src_ownership;
     uint64_t duration = _alive_ticker.createdTime() / 1000;
@@ -80,7 +78,7 @@ void RtspSession::onError(const SockException &err) {
     //流量统计事件广播
     GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
     if (_bytes_usage >= iFlowThreshold * 1024) {
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, _bytes_usage, duration, is_player, static_cast<SockInfo &>(*this));
+        NOTICE_EMIT(BroadcastFlowReportArgs, Broadcast::kBroadcastFlowReport, _media_info, _bytes_usage, duration, is_player, *this);
     }
 
     //如果是主动关闭的，那么不延迟注销
@@ -131,7 +129,9 @@ void RtspSession::onWholeRtspPacket(Parser &parser) {
     string method = parser.method(); //提取出请求命令字
     _cseq = atoi(parser["CSeq"].data());
     if (_content_base.empty() && method != "GET") {
-        _content_base = parser.url();
+        RtspUrl rtsp;
+        rtsp.parse(parser.url());
+        _content_base = rtsp._url;
         _media_info.parse(parser.fullUrl());
         _media_info.schema = RTSP_SCHEMA;
     }
@@ -294,7 +294,7 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
     };
 
     //rtsp推流需要鉴权
-    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish, MediaOriginType::rtsp_push, _media_info, invoker, static_cast<SockInfo &>(*this));
+    auto flag = NOTICE_EMIT(BroadcastMediaPublishArgs, Broadcast::kBroadcastMediaPublish, MediaOriginType::rtsp_push, _media_info, invoker, *this);
     if (!flag) {
         //该事件无人监听,默认不鉴权
         onRes("", ProtocolOption());
@@ -352,7 +352,7 @@ void RtspSession::emitOnPlay(){
     };
 
     //广播通用播放url鉴权事件
-    auto flag = _emit_on_play ? false : NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed, _media_info, invoker, static_cast<SockInfo &>(*this));
+    auto flag = _emit_on_play ? false : NOTICE_EMIT(BroadcastMediaPlayedArgs, Broadcast::kBroadcastMediaPlayed, _media_info, invoker, *this);
     if (!flag) {
         //该事件无人监听,默认不鉴权
         onRes("");
@@ -392,7 +392,7 @@ void RtspSession::handleReq_Describe(const Parser &parser) {
 
     if(_rtsp_realm.empty()){
         //广播是否需要rtsp专属认证事件
-        if (!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnGetRtspRealm, _media_info, invoker, static_cast<SockInfo &>(*this))) {
+        if (!NOTICE_EMIT(BroadcastOnGetRtspRealmArgs, Broadcast::kBroadcastOnGetRtspRealm, _media_info, invoker, *this)) {
             //无人监听此事件，说明无需认证
             invoker("");
         }
@@ -497,7 +497,7 @@ void RtspSession::onAuthBasic(const string &realm, const string &auth_base64) {
     };
 
     //此时必须提供明文密码
-    if (!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnRtspAuth, _media_info, realm, user, true, invoker, static_cast<SockInfo &>(*this))) {
+    if (!NOTICE_EMIT(BroadcastOnRtspAuthArgs, Broadcast::kBroadcastOnRtspAuth, _media_info, realm, user, true, invoker, *this)) {
         //表明该流需要认证却没监听请求密码事件，这一般是大意的程序所为，警告之
         WarnP(this) << "请监听kBroadcastOnRtspAuth事件！";
         //但是我们还是忽略认证以便完成播放
@@ -581,7 +581,7 @@ void RtspSession::onAuthDigest(const string &realm,const string &auth_md5){
     };
 
     //此时可以提供明文或md5加密的密码
-    if(!NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastOnRtspAuth, _media_info, realm, username, false, invoker, static_cast<SockInfo &>(*this))){
+    if(!NOTICE_EMIT(BroadcastOnRtspAuthArgs, Broadcast::kBroadcastOnRtspAuth, _media_info, realm, username, false, invoker, *this)){
         //表明该流需要认证却没监听请求密码事件，这一般是大意的程序所为，警告之
         WarnP(this) << "请监听kBroadcastOnRtspAuth事件！";
         //但是我们还是忽略认证以便完成播放
@@ -677,17 +677,17 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
 
     switch (_rtp_type) {
     case Rtsp::RTP_TCP: {
-        if(_push_src){
-            //rtsp推流时，interleaved由推流者决定
-            auto key_values =  Parser::parseArgs(parser["Transport"],";","=");
-            int interleaved_rtp = -1 , interleaved_rtcp = -1;
-            if(2 == sscanf(key_values["interleaved"].data(),"%d-%d",&interleaved_rtp,&interleaved_rtcp)){
+        if (_push_src) {
+            // rtsp推流时，interleaved由推流者决定
+            auto key_values = Parser::parseArgs(parser["Transport"], ";", "=");
+            int interleaved_rtp = -1, interleaved_rtcp = -1;
+            if (2 == sscanf(key_values["interleaved"].data(), "%d-%d", &interleaved_rtp, &interleaved_rtcp)) {
                 trackRef->_interleaved = interleaved_rtp;
-            }else{
+            } else {
                 throw SockException(Err_shutdown, "can not find interleaved when setup of rtp over tcp");
             }
-        }else{
-            //rtsp播放时，由于数据共享分发，所以interleaved必须由服务器决定
+        } else {
+            // rtsp播放时，由于数据共享分发，所以interleaved必须由服务器决定
             trackRef->_interleaved = 2 * trackRef->_type;
         }
         sendRtspResponse("200 OK",
@@ -857,7 +857,11 @@ void RtspSession::handleReq_Play(const Parser &parser) {
     if (!_play_reader && _rtp_type != Rtsp::RTP_MULTICAST) {
         weak_ptr<RtspSession> weak_self = static_pointer_cast<RtspSession>(shared_from_this());
         _play_reader = play_src->getRing()->attach(getPoller(), use_gop);
-        _play_reader->setGetInfoCB([weak_self]() { return weak_self.lock(); });
+        _play_reader->setGetInfoCB([weak_self]() {
+            Any ret;
+            ret.set(static_pointer_cast<SockInfo>(weak_self.lock()));
+            return ret;
+        });
         _play_reader->setDetachCB([weak_self]() {
             auto strong_self = weak_self.lock();
             if (!strong_self) {
@@ -1189,6 +1193,10 @@ void RtspSession::updateRtcpContext(const RtpPacket::Ptr &rtp){
     int track_index = getTrackIndexByTrackType(rtp->type);
     auto &rtcp_ctx = _rtcp_context[track_index];
     rtcp_ctx->onRtp(rtp->getSeq(), rtp->getStamp(), rtp->ntp_stamp, rtp->sample_rate, rtp->size() - RtpPacket::kRtpTcpHeaderSize);
+    if (!rtp->ntp_stamp && !rtp->getStamp()) {
+        // 忽略时间戳都为0的rtp
+        return;
+    }
 
     auto &ticker = _rtcp_send_tickers[track_index];
     //send rtcp every 5 second

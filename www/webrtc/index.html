@@ -3,17 +3,30 @@
   <head>
     <title>ZLM RTC demo</title>
     <script src="./ZLMRTCClient.js"></script>
+    <script src="https://unpkg.com/vconsole@latest/dist/vconsole.min.js"></script>
+    <script>
+      // VConsole will be exported to `window.VConsole` by default.
+      var vConsole = new window.VConsole();
+    </script>
+    <style>
+      video {
+        width: 40vw;
+        max-height: 50vh;
+        height: 22.5vw; /* 默认和宽:高为 16:9 */
+        object-fit: contain;
+        background-color: grey;
+      }
+    </style>
   </head>
     
   <body>
-
     <div style="text-align: center;">
         <div>
-          <video id='video' controls autoplay style="text-align:left;">
+          <video id='video' controls autoplay>
             Your browser is too old which doesn't support HTML5 video.
           </video>
 
-          <video id='selfVideo' controls autoplay style="text-align:right;">
+          <video id='selfVideo' controls autoplay>
             Your browser is too old which doesn't support HTML5 video.
           </video>
         </div>
@@ -27,7 +40,6 @@
         </div>
 
         <div style="float: right; width: 70%">
-
             <p>
                 <label for="streamUrl">url:</label>
                 <input type="text" style="co; width:70%" id='streamUrl' value="http://192.168.1.101/index/api/webrtc?app=live&stream=xiong&type=play">
@@ -81,20 +93,35 @@
             </p>
             <button onclick="send()">发送(send by datachannel)</button>
             <button onclick="close()">关闭(close datachannel)</button>
-            
 
-           
-            
+            <p>
+              <label for="videoDevice">videodevice:</label>
+              <select id="videoDevice">
+              </select>
+            </p>
+
+            <p>
+              <label for="audioDevice">audiodevice:</label>
+              <select id="audioDevice">
+              </select>
+            </p>
+
+            <p>
+              <label for="switchDevice">switchDevice:</label>
+              <input type="checkbox" id='switchDevice' checked="checked">
+            </p>
+            <button onclick="switchVideo()">切换视频(switch video)</button>
+            <button onclick="switchAudio()">切换音频(switch  audio)</button>
         </div>
     </div>
 
     <script>
-      var player = null
-      var recvOnly = true
-      var resArr = []
+      var player = null;
+      var recvOnly = true;
+      var resArr = [];
 
-      var ishttps = 'https:' == document.location.protocol ? true : false
-      var isLocal = "file:" == document.location.protocol ? true : false
+      var ishttps = 'https:' === document.location.protocol;
+      var isLocal = "file:" === document.location.protocol;
       
       const searchParams = new URL(document.location.href).searchParams;
       let type = searchParams.get('type');
@@ -105,27 +132,20 @@
       const apiPath = `/index/api/webrtc?app=${searchParams.get('app') ?? 'live'}&stream=${searchParams.get('stream') ?? 'test'}&type=${type}`;
 
       if(!ishttps && !isLocal){
-        alert('本demo需要在https的网站访问 ,如果你要推流的话(this demo must access in site of https if you want push stream)')
+        alert('本demo需要在https的网站访问, 如果你要推流的话(this demo must access in site of https if you want to push stream)');
       }
       
       const apiHost = isLocal ? "http://127.0.0.1" : `${document.location.protocol}//${window.location.host}`;
       var url = apiHost + apiPath;
 
-      document.getElementById('streamUrl').value = url
+      document.getElementById('streamUrl').value = url;
       document.getElementsByName("method").forEach((el,idx) => {
         el.checked = el.value === type;
         el.onclick = function(e) {
-          let url = new URL(document.getElementById('streamUrl').value);
+          const url = new URL(document.getElementById('streamUrl').value);
           url.searchParams.set("type",el.value);
-          document.getElementById('streamUrl').value = url.toString()
-          
-          if(el.value == "play"){
-            recvOnly = true;
-          }else if(el.value == "echo"){ 
-            recvOnly = false;
-          }else{
-            recvOnly = false;
-          }
+          document.getElementById('streamUrl').value = url.toString();
+          recvOnly = 'play' === el.value;
         };
       });
 
@@ -136,14 +156,66 @@
           if (1080*720 <= r.width * r.height && r.width * r.height <= 1280*720) {
               opt.selected = true;
           }
-          document.getElementById("resolution").add(opt,null)
+          document.getElementById("resolution").add(opt,null);
       });
+
+      ZLMRTCClient.GetAllMediaDevice().then(devices=>{
+        devices.forEach(device=>{
+          opt = document.createElement('option');
+          opt.text = device.label + ":"+device.deviceId
+          opt.value = JSON.stringify(device)
+          if(device.kind == 'videoinput'){
+            document.getElementById("videoDevice").add(opt,null)
+          }else if(device.kind == 'audioinput'){
+            document.getElementById("audioDevice").add(opt,null)
+          }else if(device.kind == 'audiooutput'){
+            // useless
+            //console.error('not support device')
+          }
+        })
+      }).catch(e=>{
+        console.error(e);
+      })
 
       function start_play(){
         let elr = document.getElementById("resolution");
         let res = elr.options[elr.selectedIndex].text.match(/\d+/g);
         let h = parseInt(res.pop());
         let w = parseInt(res.pop());
+
+        const url = new URL(document.getElementById('streamUrl').value);
+        const newUrl = new URL(window.location.href);
+        let count = 0;
+        if (url.searchParams.has('app')) {
+            newUrl.searchParams.set('app', url.searchParams.get('app'));
+            count++;
+        }
+        if (url.searchParams.has('stream')) {
+            newUrl.searchParams.set('stream', url.searchParams.get('stream'));
+            count++;
+        }
+        if (url.searchParams.has('type')) {
+            newUrl.searchParams.set('type', url.searchParams.get('type'));
+            count++;
+        }
+        if (count > 0) {
+            window.history.pushState(null, null, newUrl);
+        }
+
+        let elv = document.getElementById("videoDevice");
+        let ela = document.getElementById("audioDevice");
+
+        let vdevid = ''
+        let adevid = ''
+
+        if (!recvOnly) {
+            if (elv.selectedIndex !== -1) {
+                vdevid = JSON.parse(elv.options[elv.selectedIndex].value).deviceId
+            }
+            if (ela.selectedIndex !== -1) {
+                adevid = JSON.parse(ela.options[ela.selectedIndex].value).deviceId
+            }
+        }
 
         player = new ZLMRTCClient.Endpoint(
                 {
@@ -155,64 +227,69 @@
                     audioEnable:document.getElementById('audioEnable').checked,
                     videoEnable:document.getElementById('videoEnable').checked,
                     recvOnly:recvOnly,
-                    resolution:{w:w,h:h},
+                    resolution:{w,h},
                     usedatachannel:document.getElementById('datachannel').checked,
+                    videoId:vdevid, // 不填选择默认的
+                    audioId:adevid, // 不填选择默认的
                 }
             );
     
             player.on(ZLMRTCClient.Events.WEBRTC_ICE_CANDIDATE_ERROR,function(e)
-            {// ICE 协商出错
-                console.log('ICE 协商出错')
+            {
+              // ICE 协商出错
+              console.log('ICE 协商出错');
             });
     
             player.on(ZLMRTCClient.Events.WEBRTC_ON_REMOTE_STREAMS,function(e)
-            {//获取到了远端流，可以播放
-                console.log('播放成功',e.streams)
+            {
+              //获取到了远端流，可以播放
+              console.log('播放成功',e.streams);
             });
     
             player.on(ZLMRTCClient.Events.WEBRTC_OFFER_ANWSER_EXCHANGE_FAILED,function(e)
-            {// offer anwser 交换失败
-                console.log('offer anwser 交换失败',e)
-                stop();
+            {
+              // offer anwser 交换失败
+              console.log('offer anwser 交换失败',e);
+              stop();
             });
     
             player.on(ZLMRTCClient.Events.WEBRTC_ON_LOCAL_STREAM,function(s)
-            {// 获取到了本地流
-    
+            {
+              // 获取到了本地流 
               document.getElementById('selfVideo').srcObject=s;
               document.getElementById('selfVideo').muted = true;
-              
-                //console.log('offer anwser 交换失败',e)
+              //console.log('offer anwser 交换失败',e)
             });
 
             player.on(ZLMRTCClient.Events.CAPTURE_STREAM_FAILED,function(s)
-            {// 获取本地流失败
-    
-              console.log('获取本地流失败')
+            {
+              // 获取本地流失败
+              console.log('获取本地流失败');
             });
 
             player.on(ZLMRTCClient.Events.WEBRTC_ON_CONNECTION_STATE_CHANGE,function(state)
-            {// RTC 状态变化 ,详情参考 https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/connectionState
-              console.log('当前状态==>',state)
+            {
+              // RTC 状态变化 ,详情参考 https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/connectionState
+              console.log('当前状态==>',state);
             });
 
             player.on(ZLMRTCClient.Events.WEBRTC_ON_DATA_CHANNEL_OPEN,function(event)
             {
-              console.log('rtc datachannel 打开 :',event)
+              console.log('rtc datachannel 打开 :',event);
             });
 
             player.on(ZLMRTCClient.Events.WEBRTC_ON_DATA_CHANNEL_MSG,function(event)
             {
-              console.log('rtc datachannel 消息 :',event.data)
-              document.getElementById('msgrecv').value = event.data
+              console.log('rtc datachannel 消息 :',event.data);
+              document.getElementById('msgrecv').value = event.data;
             });
             player.on(ZLMRTCClient.Events.WEBRTC_ON_DATA_CHANNEL_ERR,function(event)
             {
-              console.log('rtc datachannel 错误 :',event)
+              console.log('rtc datachannel 错误 :',event);
             });
             player.on(ZLMRTCClient.Events.WEBRTC_ON_DATA_CHANNEL_CLOSE,function(event)
             {
-              console.log('rtc datachannel 关闭 :',event)
+              console.log('rtc datachannel 关闭 :',event);
             });
       }
 
@@ -227,12 +304,12 @@
         if(document.getElementById('useCamera').checked && !recvOnly)
         {
           ZLMRTCClient.isSupportResolution(w,h).then(e=>{
-            start_play()
+            start_play();
           }).catch(e=>{
-           alert("not support resolution")
+           alert("not support resolution");
           });
         }else{
-          start_play()
+          start_play();
         }
       }
 
@@ -257,16 +334,15 @@
       function send(){
         if(player){
           //send msg refernece https://developer.mozilla.org/en-US/docs/Web/API/RTCDataChannel/send
-          player.sendMsg(document.getElementById('msgsend').value)
+          player.sendMsg(document.getElementById('msgsend').value);
         }
       }
 
       function close(){
         if(player){
-          player.closeDataChannel()
+          player.closeDataChannel();
         }
       }
-
 
       function on_click_to_play(app, stream) {
         console.log(`on_click_to_play: ${app}/${stream}`);
@@ -274,12 +350,14 @@
         document.getElementById('streamUrl').value = url;
         start();
       }
+
       function clearStreamList() {
         let content = document.getElementById("olstreamlist");
           while (content.hasChildNodes()) {
             content.removeChild(content.firstChild);
           }
       }
+
       function fillStreamList(json) {
           clearStreamList();
           if (json.code != 0 || !json.data) {
@@ -308,6 +386,7 @@
             }
           }
       }
+
       async function getData(url) {
         const response = await fetch(url, {
             method: 'GET'
@@ -316,14 +395,49 @@
         //console.log(data);
         return data;
       }
+
       function get_media_list() {
         let url = document.location.protocol+"//"+window.location.host+"/index/api/getMediaList?secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc";
         let json = getData(url);
         json.then((json)=> fillStreamList(json));
       }
+      
       setInterval(() => {
        // get_media_list();
       }, 5000);
+
+      function switchVideo(){
+        if(player){
+          // first arg bool false mean switch to screen video , second ignore
+          // true mean switch to video , second is camera deviceid
+          let elv = document.getElementById("videoDevice");
+          let vdevid = JSON.parse(elv.options[elv.selectedIndex].value).deviceId
+          player.switchVideo(document.getElementById('switchDevice').checked,vdevid).then(()=>{
+            // switch video successful
+
+          }).catch(e=>{
+            // switch video failed 
+            console.error(e);
+          })
+        }
+
+      }
+
+      function switchAudio(){
+        if(player){
+          // first arg bool false mean switch to screen audio , second ignore
+          // true mean switch to mic , second is mic deviceid
+          let ela = document.getElementById("audioDevice");
+          let adevid = JSON.parse(ela.options[ela.selectedIndex].value).deviceId
+          player.switcAudio(document.getElementById('switchDevice').checked,adevid).then(()=>{
+            // switch audio successful
+            
+          }).catch(e=>{
+            // switch audio failed 
+            console.error(e);
+          })
+        }
+      }
 
     </script>
     

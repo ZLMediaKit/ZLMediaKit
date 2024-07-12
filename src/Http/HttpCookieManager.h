@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -85,14 +85,14 @@ public:
     /**
      * 设置附加数据
      */
-    void setAttach(std::shared_ptr<void> attach);
+    void setAttach(toolkit::Any attach);
 
     /*
      * 获取附加数据
      */
     template <class T>
     T& getAttach() {
-        return *static_cast<T *>(_attach.get());
+        return _attach.get<T>();
     }
 
 private:
@@ -104,7 +104,7 @@ private:
     std::string _cookie_uuid;
     uint64_t _max_elapsed;
     toolkit::Ticker _ticker;
-    std::shared_ptr<void> _attach;
+    toolkit::Any _attach;
     std::weak_ptr<HttpCookieManager> _manager;
 };
 
@@ -113,8 +113,6 @@ private:
  */
 class RandStrGenerator {
 public:
-    RandStrGenerator() = default;
-    ~RandStrGenerator() = default;
 
     /**
      * 获取不碰撞的随机字符串
@@ -163,7 +161,7 @@ public:
      */
     HttpServerCookie::Ptr addCookie(
         const std::string &cookie_name, const std::string &uid, uint64_t max_elapsed = COOKIE_DEFAULT_LIFE,
-        std::shared_ptr<void> attach = nullptr,
+        toolkit::Any = toolkit::Any{},
         int max_client = 1);
 
     /**

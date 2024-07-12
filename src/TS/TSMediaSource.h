@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -26,7 +26,6 @@ public:
 
     template<typename ...ARGS>
     TSPacket(ARGS && ...args) : BufferOffset<Buffer::Ptr>(std::forward<ARGS>(args)...) {};
-    ~TSPacket() override = default;
 
 public:
     uint64_t time_stamp = 0;
@@ -41,7 +40,13 @@ public:
 
     TSMediaSource(const MediaTuple& tuple, int ring_size = TS_GOP_SIZE): MediaSource(TS_SCHEMA, tuple), _ring_size(ring_size) {}
 
-    ~TSMediaSource() override { flush(); }
+    ~TSMediaSource() override {
+        try {
+            flush();
+        } catch (std::exception &ex) {
+            WarnL << ex.what();
+        }
+    }
 
     /**
      * 获取媒体源的环形缓冲
@@ -50,8 +55,8 @@ public:
         return _ring;
     }
 
-    void getPlayerList(const std::function<void(const std::list<std::shared_ptr<void>> &info_list)> &cb,
-                       const std::function<std::shared_ptr<void>(std::shared_ptr<void> &&info)> &on_change) override {
+    void getPlayerList(const std::function<void(const std::list<toolkit::Any> &info_list)> &cb,
+                       const std::function<toolkit::Any(toolkit::Any &&info)> &on_change) override {
         _ring->getInfoList(cb, on_change);
     }
 

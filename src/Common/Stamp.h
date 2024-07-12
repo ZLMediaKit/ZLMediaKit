@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -17,21 +17,29 @@
 
 namespace mediakit {
 
-class DeltaStamp{
+class DeltaStamp {
 public:
-    DeltaStamp() = default;
-    ~DeltaStamp() = default;
+    DeltaStamp();
+    virtual ~DeltaStamp() = default;
 
     /**
      * 计算时间戳增量
      * @param stamp 绝对时间戳
+     * @param enable_rollback 是否允许相当时间戳回退
      * @return 时间戳增量
      */
-    int64_t deltaStamp(int64_t stamp);
-    int64_t relativeStamp(int64_t stamp);
+    int64_t deltaStamp(int64_t stamp, bool enable_rollback = true);
+    int64_t relativeStamp(int64_t stamp, bool enable_rollback = true);
     int64_t relativeStamp();
 
-private:
+    // 设置最大允许回退或跳跃幅度
+    void setMaxDelta(size_t max_delta);
+
+protected:
+    virtual void needSync() {}
+
+protected:
+    int _max_delta;
     int64_t _last_stamp = 0;
     int64_t _relative_stamp = 0;
 };
@@ -40,9 +48,6 @@ private:
 //计算相对时间戳或者产生平滑时间戳
 class Stamp : public DeltaStamp{
 public:
-    Stamp() = default;
-    ~Stamp() = default;
-
     /**
      * 求取相对时间戳,同时实现了音视频同步、限制dts回退等功能
      * @param dts 输入dts，如果为0则根据系统时间戳生成
@@ -77,6 +82,11 @@ public:
      */
     void syncTo(Stamp &other);
 
+    /**
+     * 是否允许时间戳回退
+     */
+    void enableRollback(bool flag);
+
 private:
     //主要实现音视频时间戳同步功能
     void revise_l(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out,bool modifyStamp = false);
@@ -84,13 +94,18 @@ private:
     //主要实现获取相对时间戳功能
     void revise_l2(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_out,bool modifyStamp = false);
 
+    void needSync() override;
+
 private:
+    bool _playback = false;
+    bool _need_sync = false;
+    // 默认不允许时间戳回滚
+    bool _enable_rollback = false;
     int64_t _relative_stamp = 0;
     int64_t _last_dts_in = 0;
     int64_t _last_dts_out = 0;
     int64_t _last_pts_out = 0;
     toolkit::SmoothTicker _ticker;
-    bool _playback = false;
     Stamp *_sync_master = nullptr;
 };
 
@@ -98,8 +113,6 @@ private:
 //pts排序后就是dts
 class DtsGenerator{
 public:
-    DtsGenerator() = default;
-    ~DtsGenerator() = default;
     bool getDts(uint64_t pts, uint64_t &dts);
 
 private:
@@ -118,9 +131,6 @@ private:
 
 class NtpStamp {
 public:
-    NtpStamp() = default;
-    ~NtpStamp() = default;
-
     void setNtpStamp(uint32_t rtp_stamp, uint64_t ntp_stamp_ms);
     uint64_t getNtpStamp(uint32_t rtp_stamp, uint32_t sample_rate);
 

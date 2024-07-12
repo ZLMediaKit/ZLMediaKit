@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -53,7 +53,6 @@ public:
     ApiRetException(const char *str = "success" ,int code = API::Success):runtime_error(str){
         _code = code;
     }
-    ~ApiRetException() = default;
     int code(){ return _code; }
 private:
     int _code;
@@ -62,19 +61,16 @@ private:
 class AuthException : public ApiRetException {
 public:
     AuthException(const char *str):ApiRetException(str,API::AuthFailed){}
-    ~AuthException() = default;
 };
 
 class InvalidArgsException: public ApiRetException {
 public:
     InvalidArgsException(const char *str):ApiRetException(str,API::InvalidArgs){}
-    ~InvalidArgsException() = default;
 };
 
 class SuccessException: public ApiRetException {
 public:
     SuccessException():ApiRetException("success",API::Success){}
-    ~SuccessException() = default;
 };
 
 using ApiArgsType = std::map<std::string, std::string, mediakit::StrCaseCompare>;
@@ -119,74 +115,41 @@ std::string getValue(const mediakit::Parser &parser, Args &args, const First &fi
 
 template<typename Args>
 class HttpAllArgs {
+    mediakit::Parser* _parser = nullptr;
+    Args* _args = nullptr;
 public:
-    HttpAllArgs(const mediakit::Parser &parser, Args &args) {
-        _get_args = [&args]() {
-            return (void *) &args;
-        };
-        _get_parser = [&parser]() -> const mediakit::Parser & {
-            return parser;
-        };
-        _get_value = [](HttpAllArgs &that, const std::string &key) {
-            return getValue(that.getParser(), that.getArgs(), key);
-        };
-        _clone = [&](HttpAllArgs &that) {
-            that._get_args = [args]() {
-                return (void *) &args;
-            };
-            that._get_parser = [parser]() -> const mediakit::Parser & {
-                return parser;
-            };
-            that._get_value = [](HttpAllArgs &that, const std::string &key) {
-                return getValue(that.getParser(), that.getArgs(), key);
-            };
-            that._cache_able = true;
-        };
-    }
+    const mediakit::Parser& parser;
+    Args& args;
 
-    HttpAllArgs(const HttpAllArgs &that) {
-        if (that._cache_able) {
-            _get_args = that._get_args;
-            _get_parser = that._get_parser;
-            _get_value = that._get_value;
-            _cache_able = true;
-        } else {
-            that._clone(*this);
+    HttpAllArgs(const mediakit::Parser &p, Args &a): parser(p), args(a) {}
+
+    HttpAllArgs(const HttpAllArgs &that): _parser(new mediakit::Parser(that.parser)),
+                                          _args(new Args(that.args)),
+                                          parser(*_parser), args(*_args) {}
+    ~HttpAllArgs() {
+        if (_parser) {
+            delete _parser;
+        }
+        if (_args) {
+            delete _args;
         }
     }
 
-    ~HttpAllArgs() = default;
-
     template<typename Key>
     toolkit::variant operator[](const Key &key) const {
-        return (toolkit::variant)_get_value(*(HttpAllArgs*)this, key);
+        return (toolkit::variant)getValue(parser, args, key);
     }
-
-    const mediakit::Parser &getParser() const {
-        return _get_parser();
-    }
-
-    Args &getArgs() {
-        return *((Args *) _get_args());
-    }
-
-    const Args &getArgs() const {
-        return *((Args *) _get_args());
-    }
-
-private:
-    bool _cache_able = false;
-    std::function<void *() > _get_args;
-    std::function<const mediakit::Parser &() > _get_parser;
-    std::function<std::string(HttpAllArgs &that, const std::string &key)> _get_value;
-    std::function<void(HttpAllArgs &that) > _clone;
 };
 
-#define API_ARGS_MAP toolkit::SockInfo &sender, mediakit::HttpSession::KeyValue &headerOut, const HttpAllArgs<ApiArgsType> &allArgs, Json::Value &val
+using ArgsMap = HttpAllArgs<ApiArgsType>;
+using ArgsJson = HttpAllArgs<Json::Value>;
+using ArgsString = HttpAllArgs<std::string>;
+
+#define API_ARGS_MAP toolkit::SockInfo &sender, mediakit::HttpSession::KeyValue &headerOut, const ArgsMap &allArgs, Json::Value &val
 #define API_ARGS_MAP_ASYNC API_ARGS_MAP, const mediakit::HttpSession::HttpResponseInvoker &invoker
-#define API_ARGS_JSON toolkit::SockInfo &sender, mediakit::HttpSession::KeyValue &headerOut, const HttpAllArgs<Json::Value> &allArgs, Json::Value &val
+#define API_ARGS_JSON toolkit::SockInfo &sender, mediakit::HttpSession::KeyValue &headerOut, const ArgsJson &allArgs, Json::Value &val
 #define API_ARGS_JSON_ASYNC API_ARGS_JSON, const mediakit::HttpSession::HttpResponseInvoker &invoker
-#define API_ARGS_STRING toolkit::SockInfo &sender, mediakit::HttpSession::KeyValue &headerOut, const HttpAllArgs<std::string> &allArgs, Json::Value &val
+#define API_ARGS_STRING toolkit::SockInfo &sender, mediakit::HttpSession::KeyValue &headerOut, const ArgsString &allArgs, Json::Value &val
 #define API_ARGS_STRING_ASYNC API_ARGS_STRING, const mediakit::HttpSession::HttpResponseInvoker &invoker
 #define API_ARGS_VALUE sender, headerOut, allArgs, val
 
@@ -218,7 +181,7 @@ bool checkArgs(Args &args, const First &first, const KeyTypes &...keys) {
 //检查http url中或body中或http header参数是否为空的宏
 #define CHECK_ARGS(...)  \
     if(!checkArgs(allArgs,##__VA_ARGS__)){ \
-        throw InvalidArgsException("缺少必要参数:" #__VA_ARGS__); \
+        throw InvalidArgsException("Required parameter missed: " #__VA_ARGS__); \
     }
 
 // 检查http参数中是否附带secret密钥的宏，127.0.0.1的ip不检查密钥
@@ -231,7 +194,7 @@ bool checkArgs(Args &args, const First &first, const KeyTypes &...keys) {
         } \
         CHECK_ARGS("secret"); \
         if (api_secret != allArgs["secret"]) { \
-            throw AuthException("secret错误"); \
+            throw AuthException("Incorrect secret"); \
         } \
     } while(false);
 
@@ -239,14 +202,12 @@ void installWebApi();
 void unInstallWebApi();
 
 #if defined(ENABLE_RTPPROXY)
-uint16_t openRtpServer(uint16_t local_port, const std::string &stream_id, int tcp_mode, const std::string &local_ip, bool re_use_port, uint32_t ssrc, bool only_audio);
-void connectRtpServer(const std::string &stream_id, const std::string &dst_url, uint16_t dst_port, const std::function<void(const toolkit::SockException &ex)> &cb);
-bool closeRtpServer(const std::string &stream_id);
+uint16_t openRtpServer(uint16_t local_port, const mediakit::MediaTuple &tuple, int tcp_mode, const std::string &local_ip, bool re_use_port, uint32_t ssrc, int only_track, bool multiplex=false);
 #endif
 
 Json::Value makeMediaSourceJson(mediakit::MediaSource &media);
 void getStatisticJson(const std::function<void(Json::Value &val)> &cb);
 void addStreamProxy(const std::string &vhost, const std::string &app, const std::string &stream, const std::string &url, int retry_count,
-                    const mediakit::ProtocolOption &option, int rtp_type, float timeout_sec,
+                    const mediakit::ProtocolOption &option, int rtp_type, float timeout_sec, const toolkit::mINI &args,
                     const std::function<void(const toolkit::SockException &ex, const std::string &key)> &cb);
 #endif //ZLMEDIAKIT_WEBAPI_H

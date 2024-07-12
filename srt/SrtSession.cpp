@@ -16,41 +16,15 @@ SrtSession::SrtSession(const Socket::Ptr &sock)
     // TraceL<<"after addr len "<<addr_len<<" family "<<_peer_addr.ss_family;
 }
 
-SrtSession::~SrtSession() = default;
-
-EventPoller::Ptr SrtSession::queryPoller(const Buffer::Ptr &buffer) {
-    uint8_t *data = (uint8_t *)buffer->data();
-    size_t size = buffer->size();
-
-    if (DataPacket::isDataPacket(data, size)) {
-        uint32_t socket_id = DataPacket::getSocketID(data, size);
-        auto trans = SrtTransportManager::Instance().getItem(std::to_string(socket_id));
-        return trans ? trans->getPoller() : nullptr;
-    }
-
-    if (HandshakePacket::isHandshakePacket(data, size)) {
-        auto type = HandshakePacket::getHandshakeType(data, size);
-        if (type == HandshakePacket::HS_TYPE_INDUCTION) {
-            // 握手第一阶段
-            return nullptr;
-        } else if (type == HandshakePacket::HS_TYPE_CONCLUSION) {
-            // 握手第二阶段
-            uint32_t sync_cookie = HandshakePacket::getSynCookie(data, size);
-            auto trans = SrtTransportManager::Instance().getHandshakeItem(std::to_string(sync_cookie));
-            return trans ? trans->getPoller() : nullptr;
-        } else {
-            WarnL << " not reach there";
-        }
-    } else {
-        uint32_t socket_id = ControlPacket::getSocketID(data, size);
-        auto trans = SrtTransportManager::Instance().getItem(std::to_string(socket_id));
-        return trans ? trans->getPoller() : nullptr;
-    }
-    return nullptr;
-}
-
 void SrtSession::attachServer(const toolkit::Server &server) {
     SockUtil::setRecvBuf(getSock()->rawFD(), 1024 * 1024);
+}
+
+extern SrtTransport::Ptr querySrtTransport(uint8_t *data, size_t size, const EventPoller::Ptr& poller);
+
+EventPoller::Ptr SrtSession::queryPoller(const Buffer::Ptr &buffer) {
+    auto transport = querySrtTransport((uint8_t *)buffer->data(), buffer->size(), nullptr);
+    return transport ? transport->getPoller() : nullptr;
 }
 
 void SrtSession::onRecv(const Buffer::Ptr &buffer) {
@@ -60,45 +34,7 @@ void SrtSession::onRecv(const Buffer::Ptr &buffer) {
     if (_find_transport) {
         //只允许寻找一次transport
         _find_transport = false;
-
-        if (DataPacket::isDataPacket(data, size)) {
-            uint32_t socket_id = DataPacket::getSocketID(data, size);
-            auto trans = SrtTransportManager::Instance().getItem(std::to_string(socket_id));
-            if (trans) {
-                _transport = std::move(trans);
-            } else {
-                WarnL << " data packet not find transport ";
-            }
-        }
-
-        if (HandshakePacket::isHandshakePacket(data, size)) {
-            auto type = HandshakePacket::getHandshakeType(data, size);
-            if (type == HandshakePacket::HS_TYPE_INDUCTION) {
-                // 握手第一阶段
-                _transport = std::make_shared<SrtTransportImp>(getPoller());
-
-            } else if (type == HandshakePacket::HS_TYPE_CONCLUSION) {
-                // 握手第二阶段
-                uint32_t sync_cookie = HandshakePacket::getSynCookie(data, size);
-                auto trans = SrtTransportManager::Instance().getHandshakeItem(std::to_string(sync_cookie));
-                if (trans) {
-                    _transport = std::move(trans);
-                } else {
-                    WarnL << " hanshake packet not find transport ";
-                }
-            } else {
-                WarnL << " not reach there";
-            }
-        } else {
-            uint32_t socket_id = ControlPacket::getSocketID(data, size);
-            auto trans = SrtTransportManager::Instance().getItem(std::to_string(socket_id));
-            if (trans) {
-                _transport = std::move(trans);
-            } else {
-                WarnL << " not find transport";
-            }
-        }
-
+        _transport = querySrtTransport(data, size, getPoller());
         if (_transport) {
             _transport->setSession(static_pointer_cast<Session>(shared_from_this()));
         }

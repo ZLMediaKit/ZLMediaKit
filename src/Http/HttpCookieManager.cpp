@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -61,7 +61,7 @@ bool HttpServerCookie::isExpired() {
     return _ticker.elapsedTime() > _max_elapsed * 1000;
 }
 
-void HttpServerCookie::setAttach(std::shared_ptr<void> attach) {
+void HttpServerCookie::setAttach(toolkit::Any attach) {
     _attach = std::move(attach);
 }
 
@@ -114,8 +114,7 @@ void HttpCookieManager::onManager() {
     }
 }
 
-HttpServerCookie::Ptr HttpCookieManager::addCookie(const string &cookie_name, const string &uid_in,
-                                                   uint64_t max_elapsed, std::shared_ptr<void> attach, int max_client) {
+HttpServerCookie::Ptr HttpCookieManager::addCookie(const string &cookie_name, const string &uid_in, uint64_t max_elapsed, toolkit::Any attach, int max_client) {
     lock_guard<recursive_mutex> lck(_mtx_cookie);
     auto cookie = _generator.obtain();
     auto uid = uid_in.empty() ? cookie : uid_in;

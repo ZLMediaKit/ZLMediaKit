@@ -31,7 +31,7 @@ RUN apt-get update && \
 RUN mkdir -p /opt/media
 
 WORKDIR /opt/media
-RUN git clone --depth=1 https://github.com/xia-chu/ZLMediaKit && \
+RUN git clone --depth=1 https://github.com/ZLMediaKit/ZLMediaKit && \
     cd ZLMediaKit && git submodule update --init --recursive && \
     mkdir -p build release/linux/Release/
 
@@ -60,4 +60,4 @@ RUN apt-get update && \
 WORKDIR /opt/media/bin/
 COPY --from=build /opt/media/ZLMediaKit/release/linux/Release/MediaServer /opt/media/bin/MediaServer
 ENV PATH /opt/media/bin:$PATH
-CMD MediaServer
+CMD ["MediaServer"]

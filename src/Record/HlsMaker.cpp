@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -24,15 +24,40 @@ HlsMaker::HlsMaker(bool is_fmp4, float seg_duration, uint32_t seg_number, bool s
     _seg_keep = seg_keep;
 }
 
-void HlsMaker::makeIndexFile(bool eof) {
+void HlsMaker::makeIndexFile(bool include_delay, bool eof) {
+    GET_CONFIG(uint32_t, segDelay, Hls::kSegmentDelay);
+    GET_CONFIG(uint32_t, segRetain, Hls::kSegmentRetain);
+    std::deque<std::tuple<int, std::string>> temp(_seg_dur_list);
+    if (!include_delay && _seg_number) {
+        while (temp.size() > _seg_number) {
+            temp.pop_front();
+        }
+    }
     int maxSegmentDuration = 0;
-    for (auto &tp : _seg_dur_list) {
+    for (auto &tp : temp) {
         int dur = std::get<0>(tp);
         if (dur > maxSegmentDuration) {
             maxSegmentDuration = dur;
         }
     }
-    auto index_seq = _seg_number ? (_file_index > _seg_number ? _file_index - _seg_number : 0LL) : 0LL;
+    uint64_t index_seq;
+    if (_seg_number) {
+        if (include_delay) {
+            if (_file_index > _seg_number + segDelay) {
+                index_seq = _file_index - _seg_number - segDelay;
+            } else {
+                index_seq = 0LL;
+            }
+        } else {
+            if (_file_index > _seg_number) {
+                index_seq = _file_index - _seg_number;
+            } else {
+                index_seq = 0LL;
+            }
+        }
+    } else {
+        index_seq = 0LL;
+    }
 
     string index_str;
     index_str.reserve(2048);
@@ -50,7 +75,7 @@ void HlsMaker::makeIndexFile(bool eof) {
     }
 
     stringstream ss;
-    for (auto &tp : _seg_dur_list) {
+    for (auto &tp : temp) {
         ss << "#EXTINF:" << std::setprecision(3) << std::get<0>(tp) / 1000.0 << ",\n" << std::get<1>(tp) << "\n";
     }
     index_str += ss.str();
@@ -58,7 +83,7 @@ void HlsMaker::makeIndexFile(bool eof) {
     if (eof) {
         index_str += "#EXT-X-ENDLIST\n";
     }
-    onWriteHls(index_str);
+    onWriteHls(index_str, include_delay);
 }
 
 void HlsMaker::inputInitSegment(const char *data, size_t len) {
@@ -91,12 +116,13 @@ void HlsMaker::inputData(const char *data, size_t len, uint64_t timestamp, bool 
 }
 
 void HlsMaker::delOldSegment() {
+    GET_CONFIG(uint32_t, segDelay, Hls::kSegmentDelay);
     if (_seg_number == 0) {
         //如果设置为保留0个切片，则认为是保存为点播
         return;
     }
     //在hls m3u8索引文件中,我们保存的切片个数跟_seg_number相关设置一致
-    if (_file_index > _seg_number) {
+    if (_file_index > _seg_number + segDelay) {
         _seg_dur_list.pop_front();
     }
     //如果设置为一直保存，就不删除
@@ -105,17 +131,17 @@ void HlsMaker::delOldSegment() {
     }
     GET_CONFIG(uint32_t, segRetain, Hls::kSegmentRetain);
     //但是实际保存的切片个数比m3u8所述多若干个,这样做的目的是防止播放器在切片删除前能下载完毕
-    if (_file_index > _seg_number + segRetain) {
-        onDelSegment(_file_index - _seg_number - segRetain - 1);
+    if (_file_index > _seg_number + segDelay + segRetain) {
+        onDelSegment(_file_index - _seg_number - segDelay - segRetain - 1);
     }
 }
 
 void HlsMaker::addNewSegment(uint64_t stamp) {
-    if (!_last_file_name.empty() && stamp - _last_seg_timestamp < _seg_duration * 1000) {
-        //存在上个切片，并且未到分片时间
+    GET_CONFIG(bool, fastRegister, Hls::kFastRegister);
+    if (_file_index > fastRegister  && stamp - _last_seg_timestamp < _seg_duration * 1000) {
+        //确保序号为0的切片立即open，如果开启快速注册功能，序号为1的切片也应该遇到关键帧立即生成；否则需要等切片时长够长
         return;
     }
-
     //关闭并保存上一个切片，如果_seg_number==0,那么是点播。
     flushLastSegment(false);
     //新增切片
@@ -125,6 +151,7 @@ void HlsMaker::addNewSegment(uint64_t stamp) {
 }
 
 void HlsMaker::flushLastSegment(bool eof){
+    GET_CONFIG(uint32_t, segDelay, Hls::kSegmentDelay);
     if (_last_file_name.empty()) {
         //不存在上个切片
         return;
@@ -139,7 +166,11 @@ void HlsMaker::flushLastSegment(bool eof){
     //先flush ts切片，否则可能存在ts文件未写入完毕就被访问的情况
     onFlushLastSegment(seg_dur);
     //然后写m3u8文件
-    makeIndexFile(eof);
+    makeIndexFile(false, eof);
+    //写入切片延迟的m3u8文件
+    if (segDelay) {
+        makeIndexFile(true, eof);
+    }
 }
 
 bool HlsMaker::isLive() const {

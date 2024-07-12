@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -51,6 +51,7 @@ public:
         //根据内存地址设置掩码随机数
         _mask.assign((uint8_t*)(&ptr), (uint8_t*)(&ptr) + 4);
     }
+
     virtual ~WebSocketHeader() = default;
 
 public:
@@ -71,8 +72,6 @@ public:
     WebSocketBuffer(WebSocketHeader::Type headType, bool fin, ARGS &&...args)
             :  toolkit::BufferString(std::forward<ARGS>(args)...), _fin(fin), _head_type(headType){}
 
-    ~WebSocketBuffer() override = default;
-
     WebSocketHeader::Type headType() const { return _head_type; }
 
     bool isFinished() const { return _fin; };
@@ -84,9 +83,6 @@ private:
 
 class WebSocketSplitter : public WebSocketHeader{
 public:
-    WebSocketSplitter() = default;
-    virtual ~WebSocketSplitter() = default;
-
     /**
      * 输入数据以便解包webSocket数据以及处理粘包问题
      * 可能触发onWebSocketDecodeHeader和onWebSocketDecodePayload回调

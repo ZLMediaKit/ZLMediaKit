@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -96,7 +96,7 @@ protected:
     /**
      * 写m3u8文件回调
      */
-    virtual void onWriteHls(const std::string &data) = 0;
+    virtual void onWriteHls(const std::string &data, bool include_delay) = 0;
 
     /**
      * 上一个 ts 切片写入完成, 可在这里进行通知处理
@@ -115,7 +115,7 @@ private:
      * 生成m3u8文件
      * @param eof true代表点播
      */
-    void makeIndexFile(bool eof = false);
+    void makeIndexFile(bool include_delay, bool eof = false);
 
     /**
      * 删除旧的ts切片

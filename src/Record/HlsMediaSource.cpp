@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -33,6 +33,12 @@ void HlsCookieData::addReaderCount() {
                 // HlsMediaSource已经销毁
                 *added = false;
             });
+            auto info = _sock_info;
+            _ring_reader->setGetInfoCB([info]() {
+                Any ret;
+                ret.set(info);
+                return ret;
+            });
         }
     }
 }
@@ -47,7 +53,7 @@ HlsCookieData::~HlsCookieData() {
         uint64_t bytes = _bytes.load();
         if (bytes >= iFlowThreshold * 1024) {
             try {
-                NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _info, bytes, duration, true, static_cast<SockInfo &>(*_sock_info));
+                NOTICE_EMIT(BroadcastFlowReportArgs, Broadcast::kBroadcastFlowReport, _info, bytes, duration, true, *_sock_info);
             } catch (std::exception &ex) {
                 WarnL << "Exception occurred: " << ex.what();
             }

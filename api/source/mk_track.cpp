@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -27,8 +27,6 @@ public:
         }
     }
 
-    ~VideoTrackForC() override = default;
-
     int getVideoHeight() const override {
         return _args.video.height;
     }
@@ -45,16 +43,16 @@ public:
         return _codec_id;
     }
 
-    bool ready() override {
+    bool ready() const override {
         return true;
     }
 
-    Track::Ptr clone() override {
-        auto track_in = std::shared_ptr<Track>(shared_from_this());
+    Track::Ptr clone() const override {
+        auto track_in = std::shared_ptr<Track>(const_cast<VideoTrackForC *>(this)->shared_from_this());
         return Factory::getTrackByAbstractTrack(track_in);
     }
 
-    Sdp::Ptr getSdp() override {
+    Sdp::Ptr getSdp(uint8_t) const override {
         return nullptr;
     }
 
@@ -65,17 +63,15 @@ private:
 
 class AudioTrackForC : public AudioTrackImp, public std::enable_shared_from_this<AudioTrackForC> {
 public:
-    ~AudioTrackForC() override = default;
-
     AudioTrackForC(int codec_id, codec_args *args) :
         AudioTrackImp((CodecId) codec_id, args->audio.sample_rate, args->audio.channels, 16) {}
 
-    Track::Ptr clone() override {
-        auto track_in = std::shared_ptr<Track>(shared_from_this());
+    Track::Ptr clone() const override {
+        auto track_in = std::shared_ptr<Track>(const_cast<AudioTrackForC *>(this)->shared_from_this());
         return Factory::getTrackByAbstractTrack(track_in);
     }
 
-    Sdp::Ptr getSdp() override {
+    Sdp::Ptr getSdp(uint8_t payload_type) const override {
         return nullptr;
     }
 };
@@ -111,6 +107,21 @@ API_EXPORT const char *API_CALL mk_track_codec_name(mk_track track) {
 API_EXPORT int API_CALL mk_track_bit_rate(mk_track track) {
     assert(track);
     return (*((Track::Ptr *) track))->getBitRate();
+}
+
+API_EXPORT int API_CALL mk_track_ready(mk_track track) {
+    assert(track);
+    return (*((Track::Ptr *)track))->ready();
+}
+
+API_EXPORT uint64_t API_CALL mk_track_frames(mk_track track) {
+    assert(track);
+    return (*((Track::Ptr *)track))->getFrames();
+}
+
+API_EXPORT uint64_t API_CALL mk_track_duration(mk_track track) {
+    assert(track);
+    return (*((Track::Ptr *)track))->getDuration();
 }
 
 API_EXPORT void *API_CALL mk_track_add_delegate(mk_track track, on_mk_frame_out cb, void *user_data) {
@@ -166,6 +177,36 @@ API_EXPORT int API_CALL mk_track_video_fps(mk_track track) {
     auto video = dynamic_pointer_cast<VideoTrack>((*((Track::Ptr *) track)));
     if (video) {
         return video->getVideoFps();
+    }
+    WarnL << "not video track";
+    return 0;
+}
+
+API_EXPORT uint64_t API_CALL mk_track_video_key_frames(mk_track track) {
+    assert(track);
+    auto video = dynamic_pointer_cast<VideoTrack>((*((Track::Ptr *)track)));
+    if (video) {
+        return video->getVideoFps();
+    }
+    WarnL << "not video track";
+    return 0;
+}
+
+API_EXPORT int API_CALL mk_track_video_gop_size(mk_track track) {
+    assert(track);
+    auto video = dynamic_pointer_cast<VideoTrack>((*((Track::Ptr *)track)));
+    if (video) {
+        return video->getVideoGopSize();
+    }
+    WarnL << "not video track";
+    return 0;
+}
+
+API_EXPORT int API_CALL mk_track_video_gop_interval_ms(mk_track track) {
+    assert(track);
+    auto video = dynamic_pointer_cast<VideoTrack>((*((Track::Ptr *)track)));
+    if (video) {
+        return video->getVideoGopInterval();
     }
     WarnL << "not video track";
     return 0;

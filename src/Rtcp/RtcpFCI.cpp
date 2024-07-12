@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -210,7 +210,7 @@ string FCI_NACK::dumpString() const {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+#pragma pack(push, 1)
 class RunLengthChunk {
 public:
     static size_t constexpr kSize = 2;
@@ -241,6 +241,7 @@ public:
     // 打印本对象
     string dumpString() const;
 };
+#pragma pack(pop)
 
 RunLengthChunk::RunLengthChunk(SymbolStatus status, uint16_t run_length) {
     type = 0;
@@ -261,7 +262,7 @@ string RunLengthChunk::dumpString() const {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+#pragma pack(push, 1)
 class StatusVecChunk {
 public:
     static size_t constexpr kSize = 2;
@@ -292,6 +293,7 @@ public:
     // 打印本对象
     string dumpString() const;
 };
+#pragma pack(pop)
 
 StatusVecChunk::StatusVecChunk(bool symbol_bit, const vector<SymbolStatus> &status) {
     CHECK(status.size() << symbol_bit <= 14);
@@ -432,7 +434,7 @@ FCI_TWCC::TwccPacketStatus FCI_TWCC::getPacketChunkList(size_t total_size) const
     CHECK(ptr < end);
     auto seq = getBaseSeq();
     auto rtp_count = getPacketCount();
-    for (uint8_t i = 0; i < rtp_count;) {
+    for (uint16_t i = 0; i < rtp_count;) {
         CHECK(ptr + RunLengthChunk::kSize <= end);
         RunLengthChunk *chunk = (RunLengthChunk *)ptr;
         if (!chunk->type) {

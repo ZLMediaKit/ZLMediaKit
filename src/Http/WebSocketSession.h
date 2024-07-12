@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -21,7 +21,6 @@ class SendInterceptor{
 public:
     using onBeforeSendCB =std::function<ssize_t (const toolkit::Buffer::Ptr &buf)>;
 
-    SendInterceptor() = default;
     virtual ~SendInterceptor() = default;
     virtual void setOnBeforeSendCB(const onBeforeSendCB &cb) = 0;
 };
@@ -37,8 +36,6 @@ public:
 
     SessionTypeImp(const mediakit::Parser &header, const mediakit::HttpSession &parent, const toolkit::Socket::Ptr &pSock) :
             SessionType(pSock) {}
-
-    ~SessionTypeImp() = default;
 
     /**
      * 设置发送数据截取回调函数
@@ -69,7 +66,7 @@ template <typename SessionType>
 class SessionCreator {
 public:
     //返回的Session必须派生于SendInterceptor，可以返回null
-    toolkit::Session::Ptr operator()(const mediakit::Parser &header, const mediakit::HttpSession &parent, const toolkit::Socket::Ptr &pSock){
+    toolkit::Session::Ptr operator()(const mediakit::Parser &header, const mediakit::HttpSession &parent, const toolkit::Socket::Ptr &pSock, mediakit::WebSocketHeader::Type &data_type){
         return std::make_shared<SessionTypeImp<SessionType> >(header,parent,pSock);
     }
 };
@@ -82,7 +79,6 @@ template<typename Creator, typename HttpSessionType = mediakit::HttpSession, med
 class WebSocketSessionBase : public HttpSessionType {
 public:
     WebSocketSessionBase(const toolkit::Socket::Ptr &pSock) : HttpSessionType(pSock){}
-    virtual ~WebSocketSessionBase() = default;
 
     //收到eof或其他导致脱离TcpServer事件的回调
     void onError(const toolkit::SockException &err) override{
@@ -128,7 +124,8 @@ protected:
      */
     bool onWebSocketConnect(const mediakit::Parser &header) override{
         //创建websocket session类
-        _session = _creator(header, *this, HttpSessionType::getSock());
+        auto data_type = DataType;
+        _session = _creator(header, *this, HttpSessionType::getSock(), data_type);
         if (!_session) {
             // 此url不允许创建websocket连接
             return false;
@@ -140,13 +137,13 @@ protected:
 
         //此处截取数据并进行websocket协议打包
         std::weak_ptr<WebSocketSessionBase> weakSelf = std::static_pointer_cast<WebSocketSessionBase>(HttpSessionType::shared_from_this());
-        std::dynamic_pointer_cast<SendInterceptor>(_session)->setOnBeforeSendCB([weakSelf](const toolkit::Buffer::Ptr &buf) {
+        std::dynamic_pointer_cast<SendInterceptor>(_session)->setOnBeforeSendCB([weakSelf, data_type](const toolkit::Buffer::Ptr &buf) {
             auto strongSelf = weakSelf.lock();
             if (strongSelf) {
                 mediakit::WebSocketHeader header;
                 header._fin = true;
                 header._reserved = 0;
-                header._opcode = DataType;
+                header._opcode = data_type;
                 header._mask_flag = false;
                 strongSelf->HttpSessionType::encode(header, buf);
             }
@@ -248,7 +245,6 @@ template<typename SessionType,typename HttpSessionType = mediakit::HttpSession, 
 class WebSocketSession : public WebSocketSessionBase<SessionCreator<SessionType>,HttpSessionType,DataType>{
 public:
     WebSocketSession(const toolkit::Socket::Ptr &pSock) : WebSocketSessionBase<SessionCreator<SessionType>,HttpSessionType,DataType>(pSock){}
-    virtual ~WebSocketSession() = default;
 };
 
 #endif //ZLMEDIAKIT_WEBSOCKETSESSION_H

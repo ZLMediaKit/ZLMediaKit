@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -22,10 +22,12 @@
 #include <map>
 #include <iostream>
 
+#include "System.h"
+#include "Util/util.h"
 #include "Util/logger.h"
 #include "Util/uv_errno.h"
-#include "System.h"
 #include "Common/macros.h"
+#include "Common/JemallocUtil.h"
 
 using namespace std;
 using namespace toolkit;
@@ -55,6 +57,26 @@ string System::execute(const string &cmd) {
 
 static constexpr int MAX_STACK_FRAMES = 128;
 
+static void save_jemalloc_stats() {
+    string jemalloc_status = JemallocUtil::get_malloc_stats();
+    if (jemalloc_status.empty()) {
+        return;
+    }
+    ofstream out(StrPrinter << exeDir() << "/jemalloc.json", ios::out | ios::binary | ios::trunc);
+    out << jemalloc_status;
+    out.flush();
+}
+
+static std::string get_func_symbol(const std::string &symbol) {
+    size_t pos1 = symbol.find("(");
+    if (pos1 == string::npos) {
+        return "";
+    }
+    size_t pos2 = symbol.find("+", pos1);
+    auto ret = symbol.substr(pos1 + 1, pos2 - pos1 - 1);
+    return ret;
+}
+
 static void sig_crash(int sig) {
     signal(sig, SIG_DFL);
     void *array[MAX_STACK_FRAMES];
@@ -67,6 +89,10 @@ static void sig_crash(int sig) {
         std::string symbol(strings[i]);
         ref.emplace_back(symbol);
 #if defined(__linux) || defined(__linux__)
+        auto func_symbol = get_func_symbol(symbol);
+        if (!func_symbol.empty()) {
+            ref.emplace_back(toolkit::demangle(func_symbol.data()));
+        }
         static auto addr2line = [](const string &address) {
             string cmd = StrPrinter << "addr2line -C -f -e " << exePath() << " " << address;
             return System::execute(cmd);
@@ -126,6 +152,12 @@ void System::startDaemon(bool &kill_parent_if_failed) {
             exit(0);
         });
 
+        signal(SIGTERM,[](int) {
+            WarnL << "收到主动退出信号,关闭父进程与子进程";
+            kill(pid, SIGINT);
+            exit(0);
+        });
+
         do {
             int status = 0;
             if (waitpid(pid, &status, 0) >= 0) {
@@ -143,6 +175,12 @@ void System::startDaemon(bool &kill_parent_if_failed) {
 }
 
 void System::systemSetup(){
+
+#ifdef ENABLE_JEMALLOC_DUMP
+    //Save memory report when program exits
+    atexit(save_jemalloc_stats);
+#endif //ENABLE_JEMALLOC_DUMP
+
 #if !defined(_WIN32)
     struct rlimit rlim,rlim_new;
     if (getrlimit(RLIMIT_CORE, &rlim)==0) {

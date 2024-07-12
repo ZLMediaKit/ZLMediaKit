@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -31,7 +31,6 @@ public:
     using onRecv = std::function<void(const toolkit::Buffer::Ptr &buf)>;
     enum TcpMode { NONE = 0, PASSIVE, ACTIVE };
 
-    RtpServer() = default;
     ~RtpServer();
 
     /**
@@ -42,9 +41,10 @@ public:
      * @param local_ip 绑定的本地网卡ip
      * @param re_use_port 是否设置socket为re_use属性
      * @param ssrc 指定的ssrc
+     * @param multiplex 多路复用
      */
-    void start(uint16_t local_port, const std::string &stream_id = "", TcpMode tcp_mode = PASSIVE,
-               const char *local_ip = "::", bool re_use_port = true, uint32_t ssrc = 0, bool only_audio = false);
+    void start(uint16_t local_port, const MediaTuple &tuple = MediaTuple{DEFAULT_VHOST, kRtpAppName, "", ""}, TcpMode tcp_mode = PASSIVE,
+               const char *local_ip = "::", bool re_use_port = true, uint32_t ssrc = 0, int only_track = 0, bool multiplex = false);
 
     /**
      * 连接到tcp服务(tcp主动模式)
@@ -62,7 +62,7 @@ public:
     /**
      * 设置RtpProcess onDetach事件回调
      */
-    void setOnDetach(std::function<void()> cb);
+    void setOnDetach(RtpProcess::onDetachCB cb);
 
     /**
      * 更新ssrc
@@ -81,7 +81,7 @@ protected:
     std::shared_ptr<RtcpHelper> _rtcp_helper;
     std::function<void()> _on_cleanup;
 
-    bool _only_audio = false;
+    int _only_track = 0;
     //用于tcp主动模式
     TcpMode _tcp_mode = NONE;
 };
