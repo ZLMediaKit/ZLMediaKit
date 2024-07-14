@@ -79,7 +79,8 @@ int domain(const string &playUrl, const string &pushUrl) {
     ProtocolOption option;
     option.enable_hls = false;
     option.enable_mp4 = false;
-    PlayerProxy::Ptr player(new PlayerProxy(DEFAULT_VHOST, "app", "stream", option, -1, poller));
+    auto tuple = MediaTuple{DEFAULT_VHOST, "app", "stream", ""};
+    PlayerProxy::Ptr player(new PlayerProxy(tuple, option, -1, poller));
     //可以指定rtsp拉流方式，支持tcp和udp方式，默认tcp
 //    (*player)[Client::kRtpType] = Rtsp::RTP_UDP;
     player->play(playUrl.data());

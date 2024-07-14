@@ -148,9 +148,10 @@ int main(int argc, char *argv[]) {
     MediaSource::Ptr src = nullptr;
     PlayerProxy::Ptr proxy = nullptr;;
 
+    auto tuple = MediaTuple{DEFAULT_VHOST, app, stream};
     if (end_with(in_url, ".mp4")) {
         // create MediaSource from mp4file
-        auto reader = std::make_shared<MP4Reader>(DEFAULT_VHOST, app, stream, in_url);
+        auto reader = std::make_shared<MP4Reader>(tuple, in_url);
         //mp4 repeat
         reader->startReadMP4(0, true, true);
         src = MediaSource::find(schema, DEFAULT_VHOST, app, stream, false);
@@ -161,7 +162,7 @@ int main(int argc, char *argv[]) {
         }
     } else {
         //添加拉流代理
-        proxy = std::make_shared<PlayerProxy>(DEFAULT_VHOST, app, stream, option);
+        proxy = std::make_shared<PlayerProxy>(tuple, option);
         //rtsp拉流代理方式
         (*proxy)[Client::kRtpType] = rtp_type;
         //开始拉流代理

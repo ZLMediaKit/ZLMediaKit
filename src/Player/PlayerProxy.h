@@ -66,9 +66,9 @@ public:
 
     // 如果retry_count<0,则一直重试播放；否则重试retry_count次数
     // 默认一直重试
-    PlayerProxy(
-        const std::string &vhost, const std::string &app, const std::string &stream_id, const ProtocolOption &option, int retry_count = -1,
-        const toolkit::EventPoller::Ptr &poller = nullptr, int reconnect_delay_min = 2, int reconnect_delay_max = 60, int reconnect_delay_step = 3);
+    PlayerProxy(const MediaTuple &tuple, const ProtocolOption &option, int retry_count = -1,
+        const toolkit::EventPoller::Ptr &poller = nullptr, 
+        int reconnect_delay_min = 2, int reconnect_delay_max = 60, int reconnect_delay_step = 3);
 
     ~PlayerProxy() override;
 
