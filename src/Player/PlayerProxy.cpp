@@ -24,13 +24,9 @@ using namespace std;
 namespace mediakit {
 
 PlayerProxy::PlayerProxy(
-    const string &vhost, const string &app, const string &stream_id, const ProtocolOption &option, int retry_count,
+    const MediaTuple &tuple, const ProtocolOption &option, int retry_count,
     const EventPoller::Ptr &poller, int reconnect_delay_min, int reconnect_delay_max, int reconnect_delay_step)
-    : MediaPlayer(poller)
-    , _option(option) {
-    _tuple.vhost = vhost;
-    _tuple.app = app;
-    _tuple.stream = stream_id;
+    : MediaPlayer(poller), _tuple(tuple), _option(option) {
     _retry_count = retry_count;
 
     setOnClose(nullptr);

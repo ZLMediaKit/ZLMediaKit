@@ -376,9 +376,6 @@ static ServiceController<FFmpegSource> s_ffmpeg_src;
 static ServiceController<RtpServer> s_rtp_server;
 #endif
 
-static inline string getProxyKey(const string &vhost, const string &app, const string &stream) {
-    return vhost + "/" + app + "/" + stream;
-}
 
 static inline string getPusherKey(const string &schema, const string &vhost, const string &app, const string &stream,
                                   const string &dst_url) {
@@ -582,17 +579,17 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
 #endif
 }
 
-void addStreamProxy(const string &vhost, const string &app, const string &stream, const string &url, int retry_count,
+void addStreamProxy(const MediaTuple &tuple, const string &url, int retry_count,
                     const ProtocolOption &option, int rtp_type, float timeout_sec, const mINI &args,
                     const function<void(const SockException &ex, const string &key)> &cb) {
-    auto key = getProxyKey(vhost, app, stream);
+    auto key = tuple.shortUrl();
     if (s_player_proxy.find(key)) {
         //已经在拉流了
         cb(SockException(Err_other, "This stream already exists"), key);
         return;
     }
     //添加拉流代理
-    auto player = s_player_proxy.make(key, vhost, app, stream, option, retry_count);
+    auto player = s_player_proxy.make(key, tuple, option, retry_count);
 
     // 先透传拷贝参数
     for (auto &pr : args) {
@@ -1102,9 +1099,13 @@ void installWebApi() {
 
         ProtocolOption option(allArgs);
         auto retry_count = allArgs["retry_count"].empty()? -1: allArgs["retry_count"].as<int>();
-        addStreamProxy(allArgs["vhost"],
-                       allArgs["app"],
-                       allArgs["stream"],
+
+        std::string vhost = DEFAULT_VHOST;
+        if (!allArgs["vhost"].empty()) {
+            vhost = allArgs["vhost"];
+        }
+        auto tuple = MediaTuple { vhost, allArgs["app"], allArgs["stream"], "" };
+        addStreamProxy(tuple,
                        allArgs["url"],
                        retry_count,
                        option,
@@ -1963,8 +1964,8 @@ void installWebApi() {
         option.load(allArgs);
         // 强制无人观看时自动关闭
         option.auto_close = true;
-
-        auto reader = std::make_shared<MP4Reader>(allArgs["vhost"], allArgs["app"], allArgs["stream"], allArgs["file_path"], option);
+        auto tuple = MediaTuple{allArgs["vhost"], allArgs["app"], allArgs["stream"], ""};
+        auto reader = std::make_shared<MP4Reader>(tuple, allArgs["file_path"], option);
         // sample_ms设置为0，从配置文件加载；file_repeat可以指定，如果配置文件也指定循环解复用，那么强制开启
         reader->startReadMP4(0, true, allArgs["file_repeat"]);
     });

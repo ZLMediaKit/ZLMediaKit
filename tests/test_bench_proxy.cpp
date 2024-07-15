@@ -137,7 +137,8 @@ int main(int argc, char *argv[]) {
         option.enable_mp4 = false;
         for (auto i = 0; i < proxy_count; ++i) {
             auto stream = to_string(i);
-            PlayerProxy::Ptr player(new PlayerProxy(DEFAULT_VHOST, "live", stream, option));
+            auto tuple = MediaTuple{DEFAULT_VHOST, "live", stream, ""};
+            PlayerProxy::Ptr player(new PlayerProxy(tuple, option));
             (*player)[Client::kRtpType] = rtp_type;
             player->play(in_url);
             proxyMap.emplace(stream, player);

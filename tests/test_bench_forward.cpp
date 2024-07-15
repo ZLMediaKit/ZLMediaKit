@@ -224,7 +224,8 @@ int main(int argc, char *argv[]) {
         option.enable_mp4 = false;
         option.modify_stamp = (int)ProtocolOption::kModifyStampRelative;
         //添加拉流代理	
-        auto proxy = std::make_shared<PlayerProxy>(DEFAULT_VHOST, "app", std::to_string(i), option, -1, nullptr, 1);
+        auto tuple = MediaTuple{DEFAULT_VHOST, "app", std::to_string(i)};
+        auto proxy = std::make_shared<PlayerProxy>(tuple, option, -1, nullptr, 1);
         //开始拉流代理	
         proxy->play(input_urls[i]);
         proxy_map.emplace(i, std::move(proxy));

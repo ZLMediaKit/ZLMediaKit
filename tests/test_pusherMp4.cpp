@@ -43,7 +43,8 @@ int domain(const string &file, const string &url) {
     mINI::Instance()["protocol.enable_" + schema] = 1;
 
     // 从mp4文件加载生成MediaSource对象
-    auto reader = std::make_shared<MP4Reader>(DEFAULT_VHOST, "live", "stream", file);
+    auto tuple = MediaTuple {DEFAULT_VHOST, "live", "stream", ""};
+    auto reader = std::make_shared<MP4Reader>(tuple, file);
     // 开始加载mp4，ref_self设置为false，这样reader对象设置为nullptr就能注销了，file_repeat可以设置为空，这样文件读完了就停止推流了
     reader->startReadMP4(100, false, true);
     auto src = MediaSource::find(schema, DEFAULT_VHOST, "live", "stream", false);
