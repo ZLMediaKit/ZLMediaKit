@@ -176,6 +176,8 @@ void RtpServer::start(uint16_t local_port, const MediaTuple &tuple, TcpMode tcp_
         udp_server = std::make_shared<UdpServer>();
         (*udp_server)[RtpSession::kOnlyTrack] = only_track;
         (*udp_server)[RtpSession::kUdpRecvBuffer] = udpRecvSocketBuffer;
+        (*udp_server)[RtpSession::kVhost] = tuple.vhost;
+        (*udp_server)[RtpSession::kApp] = tuple.app;
         udp_server->start<RtpSession>(local_port, local_ip);
         rtp_socket = nullptr;
     }
