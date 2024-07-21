@@ -19,12 +19,13 @@ namespace mediakit {
 // RTC配置项目
 namespace Rtc {
 #define RTC_FIELD "rtc."
-//~ nack接收端
-// Nack缓存包最早时间间隔
-const string kMaxNackMS = RTC_FIELD "maxNackMS";
-// Nack包检查间隔(包数量)
-const string kRtpCacheCheckInterval = RTC_FIELD "rtpCacheCheckInterval";
-//~ nack发送端
+//~ nack接收端, rtp发送端
+// rtp重发缓存列队最大长度，单位毫秒
+const string kMaxRtpCacheMS = RTC_FIELD "maxRtpCacheMS";
+// rtp重发缓存列队最大长度，单位个数
+const string kMaxRtpCacheSize = RTC_FIELD "maxRtpCacheSize";
+
+//~ nack发送端，rtp接收端
 //最大保留的rtp丢包状态个数
 const string kNackMaxSize = RTC_FIELD "nackMaxSize";
 // rtp丢包状态最长保留时间
@@ -37,8 +38,8 @@ const string kNackIntervalRatio = RTC_FIELD "nackIntervalRatio";
 const string kNackRtpSize = RTC_FIELD "nackRtpSize";
 
 static onceToken token([]() {
-    mINI::Instance()[kMaxNackMS] = 5 * 1000;
-    mINI::Instance()[kRtpCacheCheckInterval] = 100;
+    mINI::Instance()[kMaxRtpCacheMS] = 5 * 1000;
+    mINI::Instance()[kMaxRtpCacheSize] = 2048;
     mINI::Instance()[kNackMaxSize] = 2048;
     mINI::Instance()[kNackMaxMS] = 3 * 1000;
     mINI::Instance()[kNackMaxCount] = 15;
@@ -49,17 +50,26 @@ static onceToken token([]() {
 } // namespace Rtc
 
 void NackList::pushBack(RtpPacket::Ptr rtp) {
+    GET_CONFIG(uint32_t, max_rtp_cache_ms, Rtc::kMaxRtpCacheMS);
+    GET_CONFIG(uint32_t, max_rtp_cache_size, Rtc::kMaxRtpCacheSize);
+
+    // 记录rtp
     auto seq = rtp->getSeq();
     _nack_cache_seq.emplace_back(seq);
     _nack_cache_pkt.emplace(seq, std::move(rtp));
-    GET_CONFIG(uint32_t, rtpcache_checkinterval, Rtc::kRtpCacheCheckInterval);
-    if (++_cache_ms_check < rtpcache_checkinterval) {
+
+    // 限制rtp缓存最大个数
+    if (_nack_cache_seq.size() > max_rtp_cache_size) {
+        popFront();
+    }
+
+    if (++_cache_ms_check < 100) {
+        // 每100个rtp包检测下缓存长度，节省cpu资源
         return;
     }
     _cache_ms_check = 0;
-    GET_CONFIG(uint32_t, maxnackms, Rtc::kMaxNackMS);
-    while (getCacheMS() >= maxnackms) {
-        // 需要清除部分nack缓存
+    // 限制rtp缓存最大时长
+    while (getCacheMS() >= max_rtp_cache_ms) {
         popFront();
     }
 }
@@ -96,13 +106,13 @@ RtpPacket::Ptr *NackList::getRtp(uint16_t seq) {
 
 uint32_t NackList::getCacheMS() {
     while (_nack_cache_seq.size() > 2) {
-        auto back_stamp = getRtpStamp(_nack_cache_seq.back());
+        auto back_stamp = getNtpStamp(_nack_cache_seq.back());
         if (back_stamp == -1) {
             _nack_cache_seq.pop_back();
             continue;
         }
 
-        auto front_stamp = getRtpStamp(_nack_cache_seq.front());
+        auto front_stamp = getNtpStamp(_nack_cache_seq.front());
         if (front_stamp == -1) {
             _nack_cache_seq.pop_front();
             continue;
@@ -111,18 +121,19 @@ uint32_t NackList::getCacheMS() {
         if (back_stamp >= front_stamp) {
             return back_stamp - front_stamp;
         }
-        // 很有可能回环了
-        return back_stamp + (UINT32_MAX - front_stamp);
+        // ntp时间戳回退了，非法数据，丢掉
+        _nack_cache_seq.pop_front();
     }
     return 0;
 }
 
-int64_t NackList::getRtpStamp(uint16_t seq) {
+int64_t NackList::getNtpStamp(uint16_t seq) {
     auto it = _nack_cache_pkt.find(seq);
     if (it == _nack_cache_pkt.end()) {
         return -1;
     }
-    return it->second->getStampMS(false);
+    // 使用ntp时间戳，不会回退
+    return it->second->getStampMS(true);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
