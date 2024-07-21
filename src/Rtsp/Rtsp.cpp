@@ -15,6 +15,7 @@
 #include "Common/Parser.h"
 #include "Common/config.h"
 #include "Network/Socket.h"
+#include "Extension/Factory.h"
 
 using namespace std;
 using namespace toolkit;
@@ -236,10 +237,6 @@ void SdpParser::load(const string &sdp) {
                 track._codec = codec;
                 track._samplerate = samplerate;
             }
-            if (!track._samplerate && track._type == TrackVideo) {
-                // 未设置视频采样率时，赋值为90000
-                track._samplerate = 90000;
-            }
             ++it;
         }
 
@@ -259,6 +256,17 @@ void SdpParser::load(const string &sdp) {
         it = track._attr.find("control");
         if (it != track._attr.end()) {
             track._control = it->second;
+        }
+
+        if (!track._samplerate && track._type == TrackVideo) {
+            // 未设置视频采样率时，赋值为90000
+            track._samplerate = 90000;
+        } else if (!track._samplerate && track._type == TrackAudio) {
+            // some rtsp sdp no sample rate but has fmt config to parser get sample rate
+            auto t = Factory::getTrackBySdp(track_ptr);
+            if (t) {
+                track._samplerate = std::static_pointer_cast<AudioTrack>(t)->getAudioSampleRate();
+            }
         }
     }
 }
