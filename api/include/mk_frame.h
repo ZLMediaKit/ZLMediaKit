@@ -27,17 +27,17 @@ extern "C" {
 #define MK_FRAME_FLAG_NOT_DECODE_ABLE (1 << 3)
 
 //codec id常量定义
-extern const int MKCodecH264;
-extern const int MKCodecH265;
-extern const int MKCodecAAC;
-extern const int MKCodecG711A;
-extern const int MKCodecG711U;
-extern const int MKCodecOpus;
-extern const int MKCodecL16;
-extern const int MKCodecVP8;
-extern const int MKCodecVP9;
-extern const int MKCodecAV1;
-extern const int MKCodecJPEG;
+API_EXPORT extern const int MKCodecH264;
+API_EXPORT extern const int MKCodecH265;
+API_EXPORT extern const int MKCodecAAC;
+API_EXPORT extern const int MKCodecG711A;
+API_EXPORT extern const int MKCodecG711U;
+API_EXPORT extern const int MKCodecOpus;
+API_EXPORT extern const int MKCodecL16;
+API_EXPORT extern const int MKCodecVP8;
+API_EXPORT extern const int MKCodecVP9;
+API_EXPORT extern const int MKCodecAV1;
+API_EXPORT extern const int MKCodecJPEG;
 
 typedef struct mk_frame_t *mk_frame;
 
