@@ -129,12 +129,12 @@ private:
     void setTranslationInfo();
 
 private:
-    ProtocolOption _option;
     int _retry_count;
     int _reconnect_delay_min;
     int _reconnect_delay_max;
     int _reconnect_delay_step;
     MediaTuple _tuple;
+    ProtocolOption _option;
     std::string _pull_url;
     toolkit::Timer::Ptr _timer;
     std::function<void()> _on_disconnect;
