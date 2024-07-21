@@ -29,9 +29,8 @@ static void on_h264_frame(void *user_data, mk_h264_splitter splitter, const char
 #else
     usleep(40 * 1000);
 #endif
-    static int dts = 0;
+    uint64_t dts = mk_util_get_current_millisecond();
     mk_frame frame = mk_frame_create(MKCodecH264, dts, dts, data, size, NULL, NULL);
-    dts += 40;
     mk_media_input_frame((mk_media) user_data, frame);
     mk_frame_unref(frame);
 }
