@@ -84,7 +84,13 @@ public:
     using Ptr = std::shared_ptr<HlsRecorder>;
     template <typename ...ARGS>
     HlsRecorder(ARGS && ...args) : HlsRecorderBase<MpegMuxer>(false, std::forward<ARGS>(args)...) {}
-    ~HlsRecorder() override { this->flush(); }
+    ~HlsRecorder() override {
+        try {
+            this->flush();
+        } catch (std::exception &ex) {
+            WarnL << ex.what();
+        }
+    }
 
 private:
     void onWrite(std::shared_ptr<toolkit::Buffer> buffer, uint64_t timestamp, bool key_pos) override {
@@ -102,7 +108,13 @@ public:
     using Ptr = std::shared_ptr<HlsFMP4Recorder>;
     template <typename ...ARGS>
     HlsFMP4Recorder(ARGS && ...args) : HlsRecorderBase<MP4MuxerMemory>(true, std::forward<ARGS>(args)...) {}
-    ~HlsFMP4Recorder() override { this->flush(); }
+    ~HlsFMP4Recorder() override {
+        try {
+            this->flush();
+        } catch (std::exception &ex) {
+            WarnL << ex.what();
+        }
+    }
 
     void addTrackCompleted() override {
         HlsRecorderBase<MP4MuxerMemory>::addTrackCompleted();

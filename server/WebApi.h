@@ -202,12 +202,12 @@ void installWebApi();
 void unInstallWebApi();
 
 #if defined(ENABLE_RTPPROXY)
-uint16_t openRtpServer(uint16_t local_port, const std::string &stream_id, int tcp_mode, const std::string &local_ip, bool re_use_port, uint32_t ssrc, int only_track, bool multiplex=false);
+uint16_t openRtpServer(uint16_t local_port, const mediakit::MediaTuple &tuple, int tcp_mode, const std::string &local_ip, bool re_use_port, uint32_t ssrc, int only_track, bool multiplex=false);
 #endif
 
 Json::Value makeMediaSourceJson(mediakit::MediaSource &media);
 void getStatisticJson(const std::function<void(Json::Value &val)> &cb);
-void addStreamProxy(const std::string &vhost, const std::string &app, const std::string &stream, const std::string &url, int retry_count,
+void addStreamProxy(const mediakit::MediaTuple &tuple, const std::string &url, int retry_count,
                     const mediakit::ProtocolOption &option, int rtp_type, float timeout_sec, const toolkit::mINI &args,
                     const std::function<void(const toolkit::SockException &ex, const std::string &key)> &cb);
 #endif //ZLMEDIAKIT_WEBAPI_H

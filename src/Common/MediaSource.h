@@ -15,6 +15,7 @@
 #include <atomic>
 #include <memory>
 #include <functional>
+#include "Util/mini.h"
 #include "Network/Socket.h"
 #include "Extension/Track.h"
 #include "Record/Recorder.h"
@@ -145,6 +146,14 @@ static void getArgsValue(const MAP &allArgs, const KEY &key, TYPE &value) {
     auto val = ((MAP &)allArgs)[key];
     if (!val.empty()) {
         value = (TYPE)val;
+    }
+}
+
+template <typename KEY, typename TYPE>
+static void getArgsValue(const toolkit::mINI &allArgs, const KEY &key, TYPE &value) {
+    auto it = allArgs.find(key);
+    if (it != allArgs.end()) {
+        value = (TYPE)it->second;
     }
 }
 

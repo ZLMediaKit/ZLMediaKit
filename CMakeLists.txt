@@ -448,9 +448,20 @@ endif()
 
 if(WIN32)
   update_cached_list(MK_LINK_LIBRARIES WS2_32 Iphlpapi shlwapi)
+elseif(ANDROID)
+  update_cached_list(MK_LINK_LIBRARIES log)
 elseif(NOT ANDROID OR IOS)
   update_cached_list(MK_LINK_LIBRARIES pthread)
 endif()
+
+if(ENABLE_VIDEOSTACK)
+  if(ENABLE_FFMPEG AND ENABLE_X264)
+    message(STATUS "ENABLE_VIDEOSTACK defined")
+    update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_VIDEOSTACK)
+  else()
+    message(WARNING "ENABLE_VIDEOSTACK requires ENABLE_FFMPEG and ENABLE_X264")
+  endif ()
+endif ()
 
 # ----------------------------------------------------------------------------
 # Solution folders:

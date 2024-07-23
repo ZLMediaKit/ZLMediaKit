@@ -301,7 +301,7 @@ static void pullStreamFromOrigin(const vector<string> &urls, size_t index, size_
     option.enable_hls = option.enable_hls || (args.schema == HLS_SCHEMA);
     option.enable_mp4 = false;
 
-    addStreamProxy(args.vhost, args.app, args.stream, url, retry_count, option, Rtsp::RTP_TCP, timeout_sec, mINI{}, [=](const SockException &ex, const string &key) mutable {
+    addStreamProxy(args, url, retry_count, option, Rtsp::RTP_TCP, timeout_sec, mINI{}, [=](const SockException &ex, const string &key) mutable {
         if (!ex) {
             return;
         }
@@ -682,7 +682,9 @@ void installWebHook() {
 
         ArgsType body;
         body["local_port"] = local_port;
-        body["stream_id"] = stream_id;
+        body[VHOST_KEY] = tuple.vhost;
+        body["app"] = tuple.app;
+        body["stream_id"] = tuple.stream;
         body["tcp_mode"] = tcp_mode;
         body["re_use_port"] = re_use_port;
         body["ssrc"] = ssrc;

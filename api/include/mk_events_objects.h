@@ -58,6 +58,8 @@ API_EXPORT const char *API_CALL mk_record_info_get_stream(const mk_record_info c
 ///////////////////////////////////////////Parser/////////////////////////////////////////////
 //Parser对象的C映射
 typedef struct mk_parser_t *mk_parser;
+//Parser对象中Headers foreach回调
+typedef void(API_CALL *on_mk_parser_header_cb)(void *user_data, const char *key, const char *val);
 //Parser::Method(),获取命令字，譬如GET/POST
 API_EXPORT const char* API_CALL mk_parser_get_method(const mk_parser ctx);
 //Parser::Url(),获取HTTP的访问url(不包括?后面的参数)
@@ -72,6 +74,8 @@ API_EXPORT const char* API_CALL mk_parser_get_tail(const mk_parser ctx);
 API_EXPORT const char* API_CALL mk_parser_get_header(const mk_parser ctx,const char *key);
 //Parser::Content(),获取HTTP body
 API_EXPORT const char* API_CALL mk_parser_get_content(const mk_parser ctx, size_t *length);
+//循环获取所有header
+API_EXPORT void API_CALL mk_parser_headers_for_each(const mk_parser ctx, on_mk_parser_header_cb cb, void *user_data);
 
 ///////////////////////////////////////////MediaInfo/////////////////////////////////////////////
 //MediaInfo对象的C映射
@@ -114,19 +118,24 @@ API_EXPORT int API_CALL mk_media_source_get_total_reader_count(const mk_media_so
 API_EXPORT int API_CALL mk_media_source_get_track_count(const mk_media_source ctx);
 // copy track reference by index from MediaSource, please use mk_track_unref to release it
 API_EXPORT mk_track API_CALL mk_media_source_get_track(const mk_media_source ctx, int index);
+// MediaSource::Track:loss
+API_EXPORT float API_CALL mk_media_source_get_track_loss(const mk_media_source ctx, const mk_track track);
 // MediaSource::broadcastMessage
 API_EXPORT int API_CALL mk_media_source_broadcast_msg(const mk_media_source ctx, const char *msg, size_t len);
 // MediaSource::getOriginUrl()
 API_EXPORT const char* API_CALL mk_media_source_get_origin_url(const mk_media_source ctx);
 // MediaSource::getOriginType()
 API_EXPORT int API_CALL mk_media_source_get_origin_type(const mk_media_source ctx);
+// MediaSource::getOriginTypeStr(), 使用后请用mk_free释放返回值
+API_EXPORT const char *API_CALL mk_media_source_get_origin_type_str(const mk_media_source ctx);
 // MediaSource::getCreateStamp()
 API_EXPORT uint64_t API_CALL mk_media_source_get_create_stamp(const mk_media_source ctx);
 // MediaSource::isRecording()  0:hls,1:MP4
 API_EXPORT int API_CALL mk_media_source_is_recording(const mk_media_source ctx, int type);
-
-
-
+// MediaSource::getBytesSpeed() 
+API_EXPORT int API_CALL mk_media_source_get_bytes_speed(const mk_media_source ctx);
+// MediaSource::getAliveSecond()
+API_EXPORT uint64_t API_CALL mk_media_source_get_alive_second(const mk_media_source ctx);
 /**
  * 直播源在ZLMediaKit中被称作为MediaSource，
  * 目前支持3种，分别是RtmpMediaSource、RtspMediaSource、HlsMediaSource

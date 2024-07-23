@@ -40,7 +40,7 @@ bool G711RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     auto remain_size = len;
     size_t max_size = 160 * _channels * _pkt_dur_ms / 20; // 20 ms per 160 byte
     size_t n = 0;
-    bool mark = true;
+    bool mark = false;
     while (remain_size >= max_size) {
         assert(remain_size >= max_size);
         const size_t rtp_size = max_size;

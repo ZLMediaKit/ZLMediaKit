@@ -117,7 +117,7 @@ size_t prefixSize(const char *ptr, size_t len) {
 H264Track::H264Track(const string &sps, const string &pps, int sps_prefix_len, int pps_prefix_len) {
     _sps = sps.substr(sps_prefix_len);
     _pps = pps.substr(pps_prefix_len);
-    update();
+    H264Track::update();
 }
 
 CodecId H264Track::getCodecId() const {
@@ -238,6 +238,14 @@ bool H264Track::update() {
     return getAVCInfo(_sps, _width, _height, _fps);
 }
 
+std::vector<Frame::Ptr> H264Track::getConfigFrames() const {
+    if (!ready()) {
+        return {};
+    }
+    return { createConfigFrame<H264Frame>(_sps, 0, getIndex()),
+             createConfigFrame<H264Frame>(_pps, 0, getIndex()) };
+}
+
 Track::Ptr H264Track::clone() const {
     return std::make_shared<H264Track>(*this);
 }
@@ -284,23 +292,11 @@ bool H264Track::inputFrame_l(const Frame::Ptr &frame) {
 
 void H264Track::insertConfigFrame(const Frame::Ptr &frame) {
     if (!_sps.empty()) {
-        auto spsFrame = FrameImp::create<H264Frame>();
-        spsFrame->_prefix_size = 4;
-        spsFrame->_buffer.assign("\x00\x00\x00\x01", 4);
-        spsFrame->_buffer.append(_sps);
-        spsFrame->_dts = frame->dts();
-        spsFrame->setIndex(frame->getIndex());
-        VideoTrack::inputFrame(spsFrame);
+        VideoTrack::inputFrame(createConfigFrame<H264Frame>(_sps, frame->dts(), frame->getIndex()));
     }
 
     if (!_pps.empty()) {
-        auto ppsFrame = FrameImp::create<H264Frame>();
-        ppsFrame->_prefix_size = 4;
-        ppsFrame->_buffer.assign("\x00\x00\x00\x01", 4);
-        ppsFrame->_buffer.append(_pps);
-        ppsFrame->_dts = frame->dts();
-        ppsFrame->setIndex(frame->getIndex());
-        VideoTrack::inputFrame(ppsFrame);
+        VideoTrack::inputFrame(createConfigFrame<H264Frame>(_pps, frame->dts(), frame->getIndex()));
     }
 }
 

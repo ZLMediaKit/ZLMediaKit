@@ -20,6 +20,15 @@
 
 namespace mediakit {
 
+// RTC配置项目
+namespace Rtc {
+//~ nack发送端，rtp接收端
+// 最大保留的rtp丢包状态个数
+extern const std::string kNackMaxSize;
+// rtp丢包状态最长保留时间
+extern const std::string kNackMaxMS;
+} // namespace Rtc
+
 class NackList {
 public:
     void pushBack(RtpPacket::Ptr rtp);
@@ -28,7 +37,7 @@ public:
 private:
     void popFront();
     uint32_t getCacheMS();
-    int64_t getRtpStamp(uint16_t seq);
+    int64_t getNtpStamp(uint16_t seq);
     RtpPacket::Ptr *getRtp(uint16_t seq);
 
 private:
@@ -66,7 +75,7 @@ private:
     struct NackStatus {
         uint64_t first_stamp;
         uint64_t update_stamp;
-        int nack_count = 0;
+        uint32_t nack_count = 0;
     };
     std::map<uint16_t /*seq*/, NackStatus> _nack_send_status;
 };

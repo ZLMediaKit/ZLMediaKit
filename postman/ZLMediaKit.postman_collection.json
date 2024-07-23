@@ -1477,6 +1477,16 @@
 							"description": "api操作密钥(配置文件配置)"
 						},
 						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "rtp",
+							"description": "应用名，例如 rtp"
+						},
+						{
 							"key": "stream_id",
 							"value": "test",
 							"description": "流id"
@@ -1516,6 +1526,16 @@
 							"key": "tcp_mode",
 							"value": "1",
 							"description": "tcp模式，0时为不启用tcp监听，1时为启用tcp监听，2时为tcp主动连接模式"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "rtp",
+							"description": "应用名，例如 rtp"
 						},
 						{
 							"key": "stream_id",
@@ -1583,6 +1603,16 @@
 							"description": "tcp模式，0时为不启用tcp监听，1时为启用tcp监听"
 						},
 						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "rtp",
+							"description": "应用名，例如 rtp"
+						},
+						{
 							"key": "stream_id",
 							"value": "test",
 							"description": "该端口绑定的流id\n"
@@ -1636,6 +1666,16 @@
 							"description": "tcp主动模式时服务端端口"
 						},
 						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "rtp",
+							"description": "应用名，例如 rtp"
+						},
+						{
 							"key": "stream_id",
 							"value": "test",
 							"description": "OpenRtpServer时绑定的流id\n"
@@ -1667,6 +1707,16 @@
 							"description": "api操作密钥(配置文件配置)"
 						},
 						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "rtp",
+							"description": "应用名，例如 rtp"
+						},
+						{
 							"key": "stream_id",
 							"value": "test",
 							"description": "该端口绑定的流id"
@@ -1696,6 +1746,16 @@
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
 							"description": "api操作密钥(配置文件配置)"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "rtp",
+							"description": "应用名，例如 rtp"
 						},
 						{
 							"key": "stream_id",
@@ -1734,6 +1794,16 @@
 							"description": "api操作密钥(配置文件配置)"
 						},
 						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "rtp",
+							"description": "应用名，例如 rtp"
+						},
+						{
 							"key": "stream_id",
 							"value": "test",
 							"description": "该端口绑定的流id"
@@ -1763,6 +1833,16 @@
 							"key": "secret",
 							"value": "{{ZLMediaKit_secret}}",
 							"description": "api操作密钥(配置文件配置)"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "rtp",
+							"description": "应用名，例如 rtp"
 						},
 						{
 							"key": "stream_id",

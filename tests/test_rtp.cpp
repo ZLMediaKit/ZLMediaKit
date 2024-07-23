@@ -42,7 +42,7 @@ static bool loadFile(const char *path, const EventPoller::Ptr &poller) {
     memset(&addr, 0, sizeof(addr));
     addr.ss_family = AF_INET;
     auto sock = Socket::createSocket(poller);
-    auto process = RtpProcess::createProcess("test");
+    auto process = RtpProcess::createProcess(MediaTuple { DEFAULT_VHOST, kRtpAppName, "test", "" });
 
     uint64_t stamp_last = 0;
     auto total_size = std::make_shared<size_t>(0);
@@ -75,7 +75,7 @@ static bool loadFile(const char *path, const EventPoller::Ptr &poller) {
                 return 0;
             }
 
-            auto diff = stamp - stamp_last;
+            auto diff = static_cast<int64_t>(stamp - stamp_last);
             if (diff < 0 || diff > 500) {
                 diff = 1;
             }

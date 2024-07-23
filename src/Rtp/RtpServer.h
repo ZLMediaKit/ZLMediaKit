@@ -43,7 +43,7 @@ public:
      * @param ssrc 指定的ssrc
      * @param multiplex 多路复用
      */
-    void start(uint16_t local_port, const std::string &stream_id = "", TcpMode tcp_mode = PASSIVE,
+    void start(uint16_t local_port, const MediaTuple &tuple = MediaTuple{DEFAULT_VHOST, kRtpAppName, "", ""}, TcpMode tcp_mode = PASSIVE,
                const char *local_ip = "::", bool re_use_port = true, uint32_t ssrc = 0, int only_track = 0, bool multiplex = false);
 
     /**
