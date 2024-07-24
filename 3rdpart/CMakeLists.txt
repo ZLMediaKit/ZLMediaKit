@@ -197,9 +197,26 @@ else()
     _CRT_SECURE_NO_WARNINGS _WINSOCK_DEPRECATED_NO_WARNINGS)
 endif()
 
-# 添加库
-add_library(zltoolkit STATIC ${ToolKit_SRC_LIST})
-add_library(ZLMediaKit::ToolKit ALIAS zltoolkit)
+if(ENABLE_CXX_API)
+  # 在 Windows 下启用导出所有符号的选项
+  if(WIN32)
+    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
+  endif()
+  # 添加动态库
+  add_library(zltoolkit SHARED ${ToolKit_SRC_LIST})
+  add_library(ZLMediaKit::ToolKit ALIAS zltoolkit)
+  # 设置生成的导出库文件 .lib（对于 Windows）
+  set_target_properties(zltoolkit PROPERTIES
+          OUTPUT_NAME zltoolkit  # 输出的 DLL 文件名
+  )
+  target_link_libraries(zltoolkit
+          PUBLIC ${MK_LINK_LIBRARIES})
+else ()
+  # 添加库
+  add_library(zltoolkit STATIC ${ToolKit_SRC_LIST})
+  add_library(ZLMediaKit::ToolKit ALIAS zltoolkit)
+endif ()
+
 target_compile_definitions(zltoolkit
   PUBLIC ${COMPILE_DEFINITIONS})
 target_compile_options(zltoolkit
@@ -220,9 +237,9 @@ endif()
 # 未在使用
 if(ENABLE_CXX_API)
   # 保留目录结构
-  install(DIRECTORY ${ToolKit_ROOT}/
-    DESTINATION ${INSTALL_PATH_INCLUDE}/ZLToolKit
-    REGEX "(.*[.](md|cpp)|win32)$" EXCLUDE)
-  install(TARGETS zltoolkit
-    DESTINATION ${INSTALL_PATH_LIB})
+  #install(DIRECTORY ${ToolKit_ROOT}/
+  #  DESTINATION ${INSTALL_PATH_INCLUDE}/ZLToolKit
+  #  REGEX "(.*[.](md|cpp)|win32)$" EXCLUDE)
+  #install(TARGETS zltoolkit
+  #  DESTINATION ${INSTALL_PATH_LIB})
 endif()

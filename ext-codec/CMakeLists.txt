@@ -23,6 +23,9 @@
 
 set(COMPILE_DEFINITIONS)
 set(INCLUDE_DIRECTORIES)
+# for zlm
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../src)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../3rdpart/ZLToolKit/src)
 
 file(GLOB EXT_SRC_LIST
         ${CMAKE_CURRENT_SOURCE_DIR}/*.c
@@ -36,7 +39,7 @@ add_library(ZLMediaKit::ext-codec ALIAS ext-codec)
 target_compile_options(ext-codec PRIVATE ${COMPILE_OPTIONS_DEFAULT})
 target_compile_definitions(ext-codec PUBLIC ${COMPILE_DEFINITIONS})
 
-target_link_libraries(ext-codec PRIVATE ZLMediaKit::MediaKit ZLMediaKit::ToolKit ${LINK_LIBRARIES})
+#target_link_libraries(ext-codec PRIVATE ZLMediaKit::MediaKit ZLMediaKit::ToolKit ${LINK_LIBRARIES})
 
 target_include_directories(ext-codec
         PRIVATE

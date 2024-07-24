@@ -36,7 +36,7 @@ set(CMAKE_CXX_STANDARD 11)
 option(ENABLE_API "Enable C API SDK" ON)
 option(ENABLE_API_STATIC_LIB "Enable mk_api static lib" OFF)
 option(ENABLE_ASAN "Enable Address Sanitize" OFF)
-option(ENABLE_CXX_API "Enable C++ API SDK" OFF)
+option(ENABLE_CXX_API "Enable C++ API SDK as shared library" OFF)
 option(ENABLE_FAAC "Enable FAAC" OFF)
 option(ENABLE_FFMPEG "Enable FFmpeg" OFF)
 option(ENABLE_HLS "Enable HLS" ON)
@@ -78,6 +78,14 @@ set(CMAKE_VERBOSE_MAKEFILE ON CACHE INTERNAL "" FORCE)
 
 # TODO: include 当前目录会导致 server 编译出错, 待排除
 set(CMAKE_INCLUDE_CURRENT_DIR OFF)
+
+if(ENABLE_CXX_API)
+  add_definitions(-DENABLE_CXX_API)
+  if(WIN32 AND ENABLE_MSVC_MT)
+    set(ENABLE_MSVC_MT OFF)
+    message(WARNING "Windows下C++ API SDK只支持md/mdd,ENABLE_MSVC_MT set off")
+  endif()
+endif ()
 
 # 安装路径
 # Install path

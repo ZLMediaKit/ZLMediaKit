@@ -17,20 +17,6 @@ using namespace toolkit;
 #include "ZLMVersion.h"
 #endif
 
-extern "C" {
-void Assert_Throw(int failed, const char *exp, const char *func, const char *file, int line, const char *str) {
-    if (failed) {
-        _StrPrinter printer;
-        printer << "Assertion failed: (" << exp ;
-        if(str && *str){
-            printer << ", " << str;
-        }
-        printer << "), function " << func << ", file " << file << ", line " << line << ".";
-        throw mediakit::AssertFailedException(printer);
-    }
-}
-}
-
 namespace mediakit {
 
 /**

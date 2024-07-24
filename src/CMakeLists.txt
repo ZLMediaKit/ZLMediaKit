@@ -31,10 +31,26 @@ if(USE_SOLUTION_FOLDERS AND (NOT GROUP_BY_EXPLORER))
   set_file_group("${CMAKE_CURRENT_SOURCE_DIR}" ${MediaKit_SRC_LIST})
 endif()
 
-
-# 添加库
-add_library(zlmediakit STATIC ${MediaKit_SRC_LIST})
-add_library(ZLMediaKit::MediaKit ALIAS zlmediakit)
+if(ENABLE_CXX_API)
+  # 在 Windows 下启用导出所有符号的选项
+  if(WIN32)
+    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
+  endif()
+  # 添加动态库
+  add_definitions(-DMediaKit_EXPORTS)
+  add_library(zlmediakit SHARED ${MediaKit_SRC_LIST})
+  add_library(ZLMediaKit::MediaKit ALIAS zlmediakit)
+  target_link_libraries(zlmediakit
+          PUBLIC ZLMediaKit::ext-codec)
+  # 设置生成的导出库文件 .lib（对于 Windows）
+  set_target_properties(zlmediakit PROPERTIES
+          OUTPUT_NAME zlmediakit  # 输出的 DLL 文件名
+  )
+else ()
+  # 添加库
+  add_library(zlmediakit STATIC ${MediaKit_SRC_LIST})
+  add_library(ZLMediaKit::MediaKit ALIAS zlmediakit)
+endif ()
 
 set(LINK_LIBRARIES ${MK_LINK_LIBRARIES})
 list(REMOVE_ITEM LINK_LIBRARIES ZLMediaKit::MediaKit)
@@ -57,9 +73,9 @@ update_cached_list(MK_LINK_LIBRARIES ZLMediaKit::MediaKit)
 # 未在使用
 if(ENABLE_CXX_API)
   # 保留目录结构
-  install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
-    DESTINATION ${INSTALL_PATH_INCLUDE}/ZLMediaKit
-    REGEX ".*[.](md|cpp)$" EXCLUDE)
-  install(TARGETS zlmediakit
-    DESTINATION ${INSTALL_PATH_LIB})
+  #install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
+  #  DESTINATION ${INSTALL_PATH_INCLUDE}/ZLMediaKit
+  #  REGEX ".*[.](md|cpp)$" EXCLUDE)
+  #install(TARGETS zlmediakit
+  #  DESTINATION ${INSTALL_PATH_LIB})
 endif ()
