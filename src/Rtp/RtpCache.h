@@ -41,7 +41,7 @@ private:
 class RtpCachePS : public RtpCache, public PSEncoderImp {
 public:
     RtpCachePS(onFlushed cb, uint32_t ssrc, uint8_t payload_type = 96, bool ps_or_ts = true) :
-        RtpCache(std::move(cb)), PSEncoderImp(ssrc, ps_or_ts ? payload_type : Rtsp::PT_MP2T, ps_or_ts) {};
+        RtpCache(std::move(cb)), PSEncoderImp(ssrc, ps_or_ts ? payload_type : static_cast<int>(Rtsp::PT_MP2T), ps_or_ts) {};
 
     void flush() override;
 

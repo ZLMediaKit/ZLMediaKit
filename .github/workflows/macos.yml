@@ -52,7 +52,7 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
           github.rest.issues.createComment({
-            issue_number: 483,
+            issue_number: ${{vars.VERSION_ISSUE_NO}},
             owner: context.repo.owner,
             repo: context.repo.repo,
             body: '- 下载地址: [${{ github.workflow }}_${{ env.BRANCH }}_${{ env.DATE }}](${{ steps.upload.outputs.artifact-url }})\n'

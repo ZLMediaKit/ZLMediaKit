@@ -99,10 +99,10 @@ RtpMultiCaster::~RtpMultiCaster() {
     DebugL;
 }
 
-RtpMultiCaster::RtpMultiCaster(SocketHelper &helper, const string &local_ip, const string &vhost, const string &app, const string &stream, uint32_t multicast_ip, uint16_t video_port, uint16_t audio_port) {
-    auto src = dynamic_pointer_cast<RtspMediaSource>(MediaSource::find(RTSP_SCHEMA, vhost, app, stream));
+RtpMultiCaster::RtpMultiCaster(SocketHelper &helper, const string &local_ip, const MediaTuple &tuple, uint32_t multicast_ip, uint16_t video_port, uint16_t audio_port) {
+    auto src = dynamic_pointer_cast<RtspMediaSource>(MediaSource::find(RTSP_SCHEMA, tuple.vhost, tuple.app, tuple.stream));
     if (!src) {
-        auto err = StrPrinter << "未找到媒体源:" << vhost << " " << app << " " << stream << endl;
+        auto err = StrPrinter << "未找到媒体源:" << tuple.shortUrl() << endl;
         throw std::runtime_error(err);
     }
     _multicast_ip = (multicast_ip) ? make_shared<uint32_t>(multicast_ip) : MultiCastAddressMaker::Instance().obtain();
@@ -144,7 +144,7 @@ RtpMultiCaster::RtpMultiCaster(SocketHelper &helper, const string &local_ip, con
         });
     });
 
-    string strKey = StrPrinter << local_ip << " " << vhost << " " << app << " " << stream << endl;
+    string strKey = StrPrinter << local_ip << " " << tuple.vhost << " " << tuple.app << " " << tuple.stream << endl;
     _rtp_reader->setDetachCB([this, strKey]() {
         {
             lock_guard<recursive_mutex> lck(g_mtx);
@@ -167,7 +167,7 @@ RtpMultiCaster::RtpMultiCaster(SocketHelper &helper, const string &local_ip, con
     DebugL << MultiCastAddressMaker::toString(*_multicast_ip) << " "
            << _udp_sock[0]->get_local_port() << " "
            << _udp_sock[1]->get_local_port() << " "
-           << vhost << " " << app << " " << stream;
+           << tuple.shortUrl();
 }
 
 uint16_t RtpMultiCaster::getMultiCasterPort(TrackType trackType) {
@@ -180,17 +180,17 @@ string RtpMultiCaster::getMultiCasterIP() {
     return SockUtil::inet_ntoa(addr);
 }
 
-RtpMultiCaster::Ptr RtpMultiCaster::get(SocketHelper &helper, const string &local_ip, const string &vhost, const string &app, const string &stream, uint32_t multicast_ip, uint16_t video_port, uint16_t audio_port) {
-    static auto on_create = [](SocketHelper &helper, const string &local_ip, const string &vhost, const string &app, const string &stream, uint32_t multicast_ip, uint16_t video_port, uint16_t audio_port){
+RtpMultiCaster::Ptr RtpMultiCaster::get(SocketHelper &helper, const string &local_ip, const MediaTuple &tuple, uint32_t multicast_ip, uint16_t video_port, uint16_t audio_port) {
+    static auto on_create = [](SocketHelper &helper, const string &local_ip, const MediaTuple &tuple, uint32_t multicast_ip, uint16_t video_port, uint16_t audio_port){
         try {
             auto poller = helper.getPoller();
-            auto ret = RtpMultiCaster::Ptr(new RtpMultiCaster(helper, local_ip, vhost, app, stream, multicast_ip, video_port, audio_port), [poller](RtpMultiCaster *ptr) {
+            auto ret = RtpMultiCaster::Ptr(new RtpMultiCaster(helper, local_ip, tuple, multicast_ip, video_port, audio_port), [poller](RtpMultiCaster *ptr) {
                 poller->async([ptr]() {
                     delete ptr;
                 });
             });
             lock_guard<recursive_mutex> lck(g_mtx);
-            string strKey = StrPrinter << local_ip << " " << vhost << " " << app << " " << stream << endl;
+            string strKey = StrPrinter << local_ip << " " << tuple.vhost << " " << tuple.app << " " << tuple.stream << endl;
             g_multi_caster_map.emplace(strKey, ret);
             return ret;
         } catch (std::exception &ex) {
@@ -199,16 +199,16 @@ RtpMultiCaster::Ptr RtpMultiCaster::get(SocketHelper &helper, const string &loca
         }
     };
 
-    string strKey = StrPrinter << local_ip << " " << vhost << " " << app << " " << stream << endl;
+    string strKey = StrPrinter << local_ip << " " << tuple.vhost << " " << tuple.app << " " << tuple.stream << endl;
     lock_guard<recursive_mutex> lck(g_mtx);
     auto it = g_multi_caster_map.find(strKey);
     if (it == g_multi_caster_map.end()) {
-        return on_create(helper, local_ip, vhost, app, stream, multicast_ip, video_port, audio_port);
+        return on_create(helper, local_ip, tuple, multicast_ip, video_port, audio_port);
     }
     auto ret = it->second.lock();
     if (!ret) {
         g_multi_caster_map.erase(it);
-        return on_create(helper, local_ip, vhost, app, stream, multicast_ip, video_port, audio_port);
+        return on_create(helper, local_ip, tuple, multicast_ip, video_port, audio_port);
     }
     return ret;
 }

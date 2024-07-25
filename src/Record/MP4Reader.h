@@ -28,11 +28,9 @@ public:
      * @param stream_id 流id,置空时,只解复用mp4,但是不生成MediaSource
      * @param file_path 文件路径，如果为空则根据配置文件和上面参数自动生成，否则使用指定的文件
      */
-    MP4Reader(const std::string &vhost, const std::string &app, const std::string &stream_id,
-              const std::string &file_path = "", toolkit::EventPoller::Ptr poller = nullptr);
+    MP4Reader(const MediaTuple &tuple, const std::string &file_path = "", toolkit::EventPoller::Ptr poller = nullptr);
 
-    MP4Reader(const std::string &vhost, const std::string &app, const std::string &stream_id,
-              const std::string &file_path, const ProtocolOption &option, toolkit::EventPoller::Ptr poller = nullptr);
+    MP4Reader(const MediaTuple &tuple, const std::string &file_path, const ProtocolOption &option, toolkit::EventPoller::Ptr poller = nullptr);
 
     /**
      * 开始解复用MP4文件
@@ -69,7 +67,7 @@ private:
     void setCurrentStamp(uint32_t stamp);
     bool seekTo(uint32_t stamp_seek);
 
-    void setup(const std::string &vhost, const std::string &app, const std::string &stream_id, const std::string &file_path, const ProtocolOption &option, toolkit::EventPoller::Ptr poller);
+    void setup(const MediaTuple &tuple, const std::string &file_path, const ProtocolOption &option, toolkit::EventPoller::Ptr poller);
 
 private:
     bool _file_repeat = false;

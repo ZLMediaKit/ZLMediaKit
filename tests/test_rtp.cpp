@@ -75,7 +75,7 @@ static bool loadFile(const char *path, const EventPoller::Ptr &poller) {
                 return 0;
             }
 
-            auto diff = stamp - stamp_last;
+            auto diff = static_cast<int64_t>(stamp - stamp_last);
             if (diff < 0 || diff > 500) {
                 diff = 1;
             }

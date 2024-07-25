@@ -28,7 +28,8 @@ API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create3(const char *vhost, c
     ProtocolOption option;
     option.enable_hls = hls_enabled;
     option.enable_mp4 = mp4_enabled;
-    PlayerProxy::Ptr *obj(new PlayerProxy::Ptr(new PlayerProxy(vhost, app, stream, option, retry_count)));
+    MediaTuple tuple = {vhost, app, stream, ""};
+    PlayerProxy::Ptr *obj(new PlayerProxy::Ptr(new PlayerProxy(tuple, option, retry_count)));
     return (mk_proxy_player)obj;
 }
 
@@ -36,7 +37,8 @@ API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create3(const char *vhost, c
 API_EXPORT mk_proxy_player API_CALL mk_proxy_player_create4(const char *vhost, const char *app, const char *stream, mk_ini ini, int retry_count) {
     assert(vhost && app && stream);
     ProtocolOption option(*((mINI *)ini));
-    PlayerProxy::Ptr *obj(new PlayerProxy::Ptr(new PlayerProxy(vhost, app, stream, option, retry_count)));
+    MediaTuple tuple = {vhost, app, stream, ""};
+    PlayerProxy::Ptr *obj(new PlayerProxy::Ptr(new PlayerProxy(tuple, option, retry_count)));
     return (mk_proxy_player)obj;
 }
 

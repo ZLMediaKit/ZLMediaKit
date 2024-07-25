@@ -230,8 +230,8 @@ int main(int argc,char *argv[]) {
         //http://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
         //rtsp://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
         //rtmp://127.0.0.1/record/live/0/2017-04-11/11-09-38.mp4
-
-        PlayerProxy::Ptr player(new PlayerProxy(DEFAULT_VHOST, "live", std::string("chn") + to_string(i).data(), ProtocolOption()));
+        auto tuple = MediaTuple{DEFAULT_VHOST, "live", std::string("chn") + to_string(i).data(), ""};
+        PlayerProxy::Ptr player(new PlayerProxy(tuple, ProtocolOption()));
         //指定RTP over TCP(播放rtsp时有效)
         (*player)[Client::kRtpType] = Rtsp::RTP_TCP;
         //开始播放，如果播放失败或者播放中止，将会自动重试若干次，重试次数在配置文件中配置，默认一直重试
