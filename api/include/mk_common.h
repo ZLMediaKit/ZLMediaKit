@@ -30,7 +30,7 @@
 
 #if defined(_WIN32) && defined(_MSC_VER)
 #    if !defined(GENERATE_EXPORT)
-#        if defined(MediaKitApi_EXPORTS)
+#        if defined(mk_api_EXPORTS)
 #            define API_EXPORT __declspec(dllexport)
 #        else
 #            define API_EXPORT __declspec(dllimport)

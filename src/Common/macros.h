@@ -79,20 +79,28 @@ extern void Assert_Throw(int failed, const char *exp, const char *func, const ch
 }
 #endif
 
-#if defined(ENABLE_CXX_API)
+
+#if defined(GENERATE_EXPORT)
+#include "mk_cxx_export.h"
+#endif
+
 #if defined(_WIN32) && defined(_MSC_VER)
-#        if defined(MediaKit_EXPORTS)
+#    define API_CALL __cdecl
+#else
+#    define API_CALL
+#endif
+
+#if defined(_WIN32) && defined(_MSC_VER)
+#    if !defined(GENERATE_EXPORT)
+#        if defined(zlmediakit_EXPORTS)
 #            define MK_EXPORT __declspec(dllexport)
 #        else
 #            define MK_EXPORT __declspec(dllimport)
 #        endif
-#else
+#    endif
+#elif !defined(GENERATE_EXPORT)
 #   define MK_EXPORT __attribute__((visibility("default")))
 #endif
-#else
-#            define MK_EXPORT
-#endif
-
 
 namespace mediakit {
 

@@ -23,9 +23,6 @@
 
 set(COMPILE_DEFINITIONS)
 set(INCLUDE_DIRECTORIES)
-# for zlm
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../src)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../3rdpart/ZLToolKit/src)
 
 file(GLOB EXT_SRC_LIST
         ${CMAKE_CURRENT_SOURCE_DIR}/*.c
@@ -38,8 +35,20 @@ add_library(ZLMediaKit::ext-codec ALIAS ext-codec)
 
 target_compile_options(ext-codec PRIVATE ${COMPILE_OPTIONS_DEFAULT})
 target_compile_definitions(ext-codec PUBLIC ${COMPILE_DEFINITIONS})
+target_compile_definitions(ext-codec PRIVATE ${MK_COMPILE_DEFINITIONS})
 
 #target_link_libraries(ext-codec PRIVATE ZLMediaKit::MediaKit ZLMediaKit::ToolKit ${LINK_LIBRARIES})
+
+# for zlm
+target_include_directories(ext-codec PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src ${CMAKE_CURRENT_SOURCE_DIR}/../3rdpart/ZLToolKit/src)
+
+set(MediaServer_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../3rdpart/media-server")
+set(MediaServer_FLV_ROOT ${MediaServer_ROOT}/libflv)
+target_include_directories(ext-codec
+        PRIVATE
+        "$<BUILD_INTERFACE:${MediaServer_FLV_ROOT}/include>"
+        PUBLIC
+        "$<BUILD_INTERFACE:${MediaServer_FLV_ROOT}/include>")
 
 target_include_directories(ext-codec
         PRIVATE
