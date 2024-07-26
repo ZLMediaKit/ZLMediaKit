@@ -1242,7 +1242,7 @@ void installWebApi() {
             // 兼容老版本请求，新版本去除only_audio参数并新增only_track参数
             only_track = 1;
         }
-        std::string local_ip = "::";
+        std::string local_ip = mINI::Instance()[General::kLocalIP];
         if (!allArgs["local_ip"].empty()) {
             local_ip = allArgs["local_ip"];
         }
