@@ -386,6 +386,17 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const MediaSourceE
 
     weak_ptr<MultiMediaSourceMuxer> weak_self = shared_from_this();
 
+    rtp_sender->setOnClose([weak_self, ssrc](const toolkit::SockException &ex) {
+        if (auto strong_self = weak_self.lock()) {
+            // 可能归属线程发生变更
+            strong_self->getOwnerPoller(MediaSource::NullMediaSource())->async([=]() {
+                WarnL << "stream:" << strong_self->shortUrl() << " stop send rtp:" << ssrc << ", reason:" << ex;
+                strong_self->_rtp_sender.erase(ssrc);
+                NOTICE_EMIT(BroadcastSendRtpStoppedArgs, Broadcast::kBroadcastSendRtpStopped, *strong_self, ssrc, ex);
+            });
+        }
+    });
+
     rtp_sender->startSend(args, [ssrc,ssrc_multi_send, weak_self, rtp_sender, cb, tracks, ring, poller](uint16_t local_port, const SockException &ex) mutable {
         cb(local_port, ex);
         auto strong_self = weak_self.lock();
@@ -397,16 +408,6 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const MediaSourceE
             rtp_sender->addTrack(track);
         }
         rtp_sender->addTrackCompleted();
-        rtp_sender->setOnClose([weak_self, ssrc](const toolkit::SockException &ex) {
-            if (auto strong_self = weak_self.lock()) {
-                // 可能归属线程发生变更
-                strong_self->getOwnerPoller(MediaSource::NullMediaSource())->async([=]() {
-                    WarnL << "stream:" << strong_self->shortUrl() << " stop send rtp:" << ssrc << ", reason:" << ex;
-                    strong_self->_rtp_sender.erase(ssrc);
-                    NOTICE_EMIT(BroadcastSendRtpStoppedArgs, Broadcast::kBroadcastSendRtpStopped, *strong_self, ssrc, ex);
-                });
-            }
-        });
 
         auto reader = ring->attach(poller);
         reader->setReadCB([rtp_sender](const Frame::Ptr &frame) {

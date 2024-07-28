@@ -1881,7 +1881,7 @@
 			"response": []
 		},
 		{
-			"name": "开始发送rtp(startSendRtp)",
+			"name": "开始active模式发送rtp(startSendRtp)",
 			"request": {
 				"method": "GET",
 				"header": [],
@@ -1940,7 +1940,7 @@
 						{
 							"key": "is_udp",
 							"value": "0",
-							"description": "是否为udp模式,否则为tcp模式"
+							"description": "1:udp active模式, 0:tcp active模式"
 						},
 						{
 							"key": "src_port",
@@ -1955,9 +1955,9 @@
 							"disabled": true
 						},
 						{
-							"key": "use_ps",
+							"key": "type",
 							"value": "1",
-							"description": "rtp打包采用ps还是es模式，默认采用ps模式，该参数非必选参数",
+							"description": "rtp打包模式，0:es, 1: ps, 2: ts",
 							"disabled": true
 						},
 						{
@@ -1990,7 +1990,7 @@
 			"response": []
 		},
 		{
-			"name": "开始tcp passive被动发送rtp(startSendRtpPassive)",
+			"name": "开始passive模式发送rtp(startSendRtpPassive)",
 			"request": {
 				"method": "GET",
 				"header": [],
@@ -2031,6 +2031,12 @@
 							"description": "rtp推流的ssrc，ssrc不同时，可以推流到多个上级服务器"
 						},
 						{
+							"key": "is_udp",
+							"value": "0",
+							"disabled": true,
+							"description": "1:udp passive模式, 0:tcp passive模式"
+						},
+						{
 							"key": "src_port",
 							"value": "0",
 							"description": "指定tcp/udp客户端使用的本地端口，0时为随机端口，该参数非必选参数，不传时为随机端口。",
@@ -2043,9 +2049,9 @@
 							"disabled": true
 						},
 						{
-							"key": "use_ps",
+							"key": "type",
 							"value": "1",
-							"description": "rtp打包采用ps还是es模式，默认采用ps模式，该参数非必选参数",
+							"description": "rtp打包模式，0:es, 1: ps, 2: ts",
 							"disabled": true
 						},
 						{

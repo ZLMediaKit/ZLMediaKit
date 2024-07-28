@@ -281,11 +281,11 @@ API_EXPORT int API_CALL mk_media_input_audio(mk_media ctx, const void *data, int
     return (*obj)->getChannel()->inputAudio((const char*)data, len, dts);
 }
 
-API_EXPORT void API_CALL mk_media_start_send_rtp(mk_media ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int is_udp, on_mk_media_send_rtp_result cb, void *user_data) {
-    mk_media_start_send_rtp2(ctx, dst_url, dst_port, ssrc, is_udp, cb, user_data, nullptr);
+API_EXPORT void API_CALL mk_media_start_send_rtp(mk_media ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int con_type, on_mk_media_send_rtp_result cb, void *user_data) {
+    mk_media_start_send_rtp2(ctx, dst_url, dst_port, ssrc, con_type, cb, user_data, nullptr);
 }
 
-API_EXPORT void API_CALL mk_media_start_send_rtp2(mk_media ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int is_udp, on_mk_media_send_rtp_result cb, void *user_data,
+API_EXPORT void API_CALL mk_media_start_send_rtp2(mk_media ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int con_type, on_mk_media_send_rtp_result cb, void *user_data,
     on_user_data_free user_data_free) {
     assert(ctx && dst_url && ssrc);
     MediaHelper::Ptr* obj = (MediaHelper::Ptr*) ctx;
@@ -294,7 +294,7 @@ API_EXPORT void API_CALL mk_media_start_send_rtp2(mk_media ctx, const char *dst_
     args.dst_url = dst_url;
     args.dst_port = dst_port;
     args.ssrc = ssrc;
-    args.is_udp = is_udp;
+    args.con_type = (mediakit::MediaSourceEvent::SendRtpArgs::ConType)con_type;
 
     // sender参数无用
     auto ref = *obj;
