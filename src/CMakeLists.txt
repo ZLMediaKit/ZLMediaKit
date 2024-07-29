@@ -59,6 +59,8 @@ set(LINK_LIBRARIES ${MK_LINK_LIBRARIES})
 list(REMOVE_ITEM LINK_LIBRARIES ZLMediaKit::MediaKit)
 set(COMPILE_DEFINITIONS ${MK_COMPILE_DEFINITIONS})
 
+list(APPEND COMPILE_DEFINITIONS GENERATE_EXPORT)
+
 target_compile_definitions(zlmediakit
   PUBLIC ${COMPILE_DEFINITIONS})
 target_compile_options(zlmediakit

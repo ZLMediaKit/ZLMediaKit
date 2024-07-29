@@ -85,6 +85,8 @@ if(ENABLE_CXX_API)
     set(ENABLE_MSVC_MT OFF)
     message(WARNING "Windows下C++ API SDK只支持md/mdd,ENABLE_MSVC_MT set off")
   endif()
+else()
+  add_definitions(-DMediaKit_STATIC)
 endif ()
 
 # 安装路径
