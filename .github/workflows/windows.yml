@@ -16,7 +16,7 @@ jobs:
         uses: lukka/run-vcpkg@v7
         with:
           vcpkgDirectory: '${{github.workspace}}/vcpkg'
-          vcpkgTriplet: x64-windows-static
+          vcpkgTriplet: x64-windows
           # 2024.06.01
           vcpkgGitCommitId: '47364fbc300756f64f7876b549d9422d5f3ec0d3'
           vcpkgArguments: 'openssl libsrtp[openssl] usrsctp'
