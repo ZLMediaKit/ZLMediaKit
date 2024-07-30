@@ -57,6 +57,7 @@ private:
     void onStream(int stream, int codecid, const void *extra, size_t bytes, int finish);
 
 private:
+    bool _finished = false;
     bool _have_video = false;
     Decoder::Ptr _decoder;
     MediaSinkInterface *_sink;

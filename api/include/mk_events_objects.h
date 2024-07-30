@@ -159,9 +159,9 @@ API_EXPORT int API_CALL mk_media_source_seek_to(const mk_media_source ctx,uint32
  */
 typedef void(API_CALL *on_mk_media_source_send_rtp_result)(void *user_data, uint16_t local_port, int err, const char *msg);
 
-//MediaSource::startSendRtp,请参考mk_media_start_send_rtp,注意ctx参数类型不一样
-API_EXPORT void API_CALL mk_media_source_start_send_rtp(const mk_media_source ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int is_udp, on_mk_media_source_send_rtp_result cb, void *user_data);
-API_EXPORT void API_CALL mk_media_source_start_send_rtp2(const mk_media_source ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int is_udp, on_mk_media_source_send_rtp_result cb, void *user_data, on_user_data_free user_data_free);
+// MediaSource::startSendRtp,请参考mk_media_start_send_rtp,注意ctx参数类型不一样
+API_EXPORT void API_CALL mk_media_source_start_send_rtp(const mk_media_source ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int con_type, on_mk_media_source_send_rtp_result cb, void *user_data);
+API_EXPORT void API_CALL mk_media_source_start_send_rtp2(const mk_media_source ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int con_type, on_mk_media_source_send_rtp_result cb, void *user_data, on_user_data_free user_data_free);
 //MediaSource::stopSendRtp，请参考mk_media_stop_send_rtp,注意ctx参数类型不一样
 API_EXPORT int API_CALL mk_media_source_stop_send_rtp(const mk_media_source ctx);
 

@@ -63,6 +63,9 @@ public:
      */
     virtual void resetTracks() override;
 
+    /**
+     * 设置发送rtp停止回调
+     */
     void setOnClose(std::function<void(const toolkit::SockException &ex)> on_close);
 
 private:

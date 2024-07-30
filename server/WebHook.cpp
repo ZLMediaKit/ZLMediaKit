@@ -301,7 +301,7 @@ static void pullStreamFromOrigin(const vector<string> &urls, size_t index, size_
     option.enable_hls = option.enable_hls || (args.schema == HLS_SCHEMA);
     option.enable_mp4 = false;
 
-    addStreamProxy(args.vhost, args.app, args.stream, url, retry_count, option, Rtsp::RTP_TCP, timeout_sec, mINI{}, [=](const SockException &ex, const string &key) mutable {
+    addStreamProxy(args, url, retry_count, option, Rtsp::RTP_TCP, timeout_sec, mINI{}, [=](const SockException &ex, const string &key) mutable {
         if (!ex) {
             return;
         }

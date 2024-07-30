@@ -598,7 +598,7 @@ void JPEGRtpEncoder::rtpSendJpeg(const uint8_t *buf, int size, uint64_t pts, uin
 {
     const uint8_t *qtables[4] = { NULL };
     int nb_qtables = 0;
-    uint8_t w, h;
+    uint8_t w { 0 }, h { 0 };
     uint8_t *p;
     int off = 0; /* fragment offset of the current JPEG frame */
     int len;

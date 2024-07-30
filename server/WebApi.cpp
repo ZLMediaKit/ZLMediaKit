@@ -376,9 +376,6 @@ static ServiceController<FFmpegSource> s_ffmpeg_src;
 static ServiceController<RtpServer> s_rtp_server;
 #endif
 
-static inline string getProxyKey(const string &vhost, const string &app, const string &stream) {
-    return vhost + "/" + app + "/" + stream;
-}
 
 static inline string getPusherKey(const string &schema, const string &vhost, const string &app, const string &stream,
                                   const string &dst_url) {
@@ -582,17 +579,17 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
 #endif
 }
 
-void addStreamProxy(const string &vhost, const string &app, const string &stream, const string &url, int retry_count,
+void addStreamProxy(const MediaTuple &tuple, const string &url, int retry_count,
                     const ProtocolOption &option, int rtp_type, float timeout_sec, const mINI &args,
                     const function<void(const SockException &ex, const string &key)> &cb) {
-    auto key = getProxyKey(vhost, app, stream);
+    auto key = tuple.shortUrl();
     if (s_player_proxy.find(key)) {
         //已经在拉流了
         cb(SockException(Err_other, "This stream already exists"), key);
         return;
     }
     //添加拉流代理
-    auto player = s_player_proxy.make(key, vhost, app, stream, option, retry_count);
+    auto player = s_player_proxy.make(key, tuple, option, retry_count);
 
     // 先透传拷贝参数
     for (auto &pr : args) {
@@ -1102,9 +1099,13 @@ void installWebApi() {
 
         ProtocolOption option(allArgs);
         auto retry_count = allArgs["retry_count"].empty()? -1: allArgs["retry_count"].as<int>();
-        addStreamProxy(allArgs["vhost"],
-                       allArgs["app"],
-                       allArgs["stream"],
+
+        std::string vhost = DEFAULT_VHOST;
+        if (!allArgs["vhost"].empty()) {
+            vhost = allArgs["vhost"];
+        }
+        auto tuple = MediaTuple { vhost, allArgs["app"], allArgs["stream"], "" };
+        addStreamProxy(tuple,
                        allArgs["url"],
                        retry_count,
                        option,
@@ -1376,10 +1377,7 @@ void installWebApi() {
         }
     });
 
-    api_regist("/index/api/startSendRtp",[](API_ARGS_MAP_ASYNC){
-        CHECK_SECRET();
-        CHECK_ARGS("vhost", "app", "stream", "ssrc", "dst_url", "dst_port", "is_udp");
-
+    static auto start_send_rtp = [] (bool passive, API_ARGS_MAP_ASYNC) {
         auto src = MediaSource::find(allArgs["vhost"], allArgs["app"], allArgs["stream"], allArgs["from_mp4"].as<int>());
         if (!src) {
             throw ApiRetException("can not find the source stream", API::NotFound);
@@ -1390,30 +1388,50 @@ void installWebApi() {
             type = allArgs["use_ps"].as<int>();
         }
         MediaSourceEvent::SendRtpArgs args;
-        args.passive = false;
+        if (passive) {
+            args.con_type = allArgs["is_udp"].as<bool>() ? mediakit::MediaSourceEvent::SendRtpArgs::kUdpPassive : mediakit::MediaSourceEvent::SendRtpArgs::kTcpPassive;
+        } else {
+            args.con_type = allArgs["is_udp"].as<bool>() ? mediakit::MediaSourceEvent::SendRtpArgs::kUdpActive : mediakit::MediaSourceEvent::SendRtpArgs::kTcpActive;
+        }
         args.dst_url = allArgs["dst_url"];
         args.dst_port = allArgs["dst_port"];
         args.ssrc_multi_send = allArgs["ssrc_multi_send"].empty() ? false : allArgs["ssrc_multi_send"].as<bool>();
         args.ssrc = allArgs["ssrc"];
-        args.is_udp = allArgs["is_udp"];
         args.src_port = allArgs["src_port"];
         args.pt = allArgs["pt"].empty() ? 96 : allArgs["pt"].as<int>();
-        args.type = (MediaSourceEvent::SendRtpArgs::Type)type;
+        args.data_type = (MediaSourceEvent::SendRtpArgs::DataType)type;
         args.only_audio = allArgs["only_audio"].as<bool>();
         args.udp_rtcp_timeout = allArgs["udp_rtcp_timeout"];
         args.recv_stream_id = allArgs["recv_stream_id"];
-        TraceL << "startSendRtp, pt " << int(args.pt) << " rtp type " << type << " audio " << args.only_audio;
-
+        args.close_delay_ms = allArgs["close_delay_ms"];
         src->getOwnerPoller()->async([=]() mutable {
-            src->startSendRtp(args, [val, headerOut, invoker](uint16_t local_port, const SockException &ex) mutable {
-                if (ex) {
-                    val["code"] = API::OtherFailed;
-                    val["msg"] = ex.what();
-                }
-                val["local_port"] = local_port;
+            try {
+                src->startSendRtp(args, [val, headerOut, invoker](uint16_t local_port, const SockException &ex) mutable {
+                    if (ex) {
+                        val["code"] = API::OtherFailed;
+                        val["msg"] = ex.what();
+                    }
+                    val["local_port"] = local_port;
+                    invoker(200, headerOut, val.toStyledString());
+                });
+            } catch (std::exception &ex) {
+                val["code"] = API::Exception;
+                val["msg"] = ex.what();
                 invoker(200, headerOut, val.toStyledString());
-            });
+            }
         });
+    };
+
+    api_regist("/index/api/startSendRtp",[](API_ARGS_MAP_ASYNC){
+        CHECK_SECRET();
+        CHECK_ARGS("vhost", "app", "stream", "ssrc", "dst_url", "dst_port", "is_udp");
+        start_send_rtp(false, API_ARGS_VALUE, invoker);
+    });
+
+    api_regist("/index/api/startSendRtpPassive",[](API_ARGS_MAP_ASYNC){
+        CHECK_SECRET();
+        CHECK_ARGS("vhost", "app", "stream", "ssrc");
+        start_send_rtp(true, API_ARGS_VALUE, invoker);
     });
 
     api_regist("/index/api/listRtpSender",[](API_ARGS_MAP_ASYNC){
@@ -1433,45 +1451,6 @@ void installWebApi() {
                 val["data"].append(ssrc);
             });
             invoker(200, headerOut, val.toStyledString());
-        });
-    });
-
-    api_regist("/index/api/startSendRtpPassive",[](API_ARGS_MAP_ASYNC){
-        CHECK_SECRET();
-        CHECK_ARGS("vhost", "app", "stream", "ssrc");
-
-        auto src = MediaSource::find(allArgs["vhost"], allArgs["app"], allArgs["stream"], allArgs["from_mp4"].as<int>());
-        if (!src) {
-            throw ApiRetException("can not find the source stream", API::NotFound);
-        }
-        auto type = allArgs["type"].empty() ? (int)MediaSourceEvent::SendRtpArgs::kRtpPS : allArgs["type"].as<int>();
-        if (!allArgs["use_ps"].empty()) {
-            // 兼容之前的use_ps参数
-            type = allArgs["use_ps"].as<int>();
-        }
-
-        MediaSourceEvent::SendRtpArgs args;
-        args.passive = true;
-        args.ssrc = allArgs["ssrc"];
-        args.is_udp = false;
-        args.src_port = allArgs["src_port"];
-        args.pt = allArgs["pt"].empty() ? 96 : allArgs["pt"].as<int>();
-        args.type = (MediaSourceEvent::SendRtpArgs::Type)type;
-        args.only_audio = allArgs["only_audio"].as<bool>();
-        args.recv_stream_id = allArgs["recv_stream_id"];
-        //tcp被动服务器等待链接超时时间
-        args.tcp_passive_close_delay_ms = allArgs["close_delay_ms"];
-        TraceL << "startSendRtpPassive, pt " << int(args.pt) << " rtp type " << type << " audio " <<  args.only_audio;
-
-        src->getOwnerPoller()->async([=]() mutable {
-            src->startSendRtp(args, [val, headerOut, invoker](uint16_t local_port, const SockException &ex) mutable {
-                if (ex) {
-                    val["code"] = API::OtherFailed;
-                    val["msg"] = ex.what();
-                }
-                val["local_port"] = local_port;
-                invoker(200, headerOut, val.toStyledString());
-            });
         });
     });
 
@@ -1963,8 +1942,8 @@ void installWebApi() {
         option.load(allArgs);
         // 强制无人观看时自动关闭
         option.auto_close = true;
-
-        auto reader = std::make_shared<MP4Reader>(allArgs["vhost"], allArgs["app"], allArgs["stream"], allArgs["file_path"], option);
+        auto tuple = MediaTuple{allArgs["vhost"], allArgs["app"], allArgs["stream"], ""};
+        auto reader = std::make_shared<MP4Reader>(tuple, allArgs["file_path"], option);
         // sample_ms设置为0，从配置文件加载；file_repeat可以指定，如果配置文件也指定循环解复用，那么强制开启
         reader->startReadMP4(0, true, allArgs["file_repeat"]);
     });

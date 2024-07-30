@@ -72,6 +72,7 @@ private:
     bool _started = false;
     bool _have_video = false;
     MP4FileIO::Writer _mov_writter;
+    int _non_iframe_video_count; // 非I帧个数
 
     class FrameMergerImp : public FrameMerger {
     public:
