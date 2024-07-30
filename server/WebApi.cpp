@@ -482,7 +482,7 @@ uint16_t openRtpServer(uint16_t local_port, const mediakit::MediaTuple &tuple, i
     }
 
     auto server = s_rtp_server.makeWithAction(key, [&](RtpServer::Ptr server) {
-        server->start(local_port, tuple, (RtpServer::TcpMode)tcp_mode, local_ip.c_str(), re_use_port, ssrc, only_track, multiplex);
+        server->start(local_port, local_ip.c_str(), tuple, (RtpServer::TcpMode)tcp_mode, re_use_port, ssrc, only_track, multiplex);
     });
     server->setOnDetach([key](const SockException &ex) {
         //设置rtp超时移除事件
@@ -1242,7 +1242,7 @@ void installWebApi() {
             // 兼容老版本请求，新版本去除only_audio参数并新增only_track参数
             only_track = 1;
         }
-        std::string local_ip = mINI::Instance()[General::kLocalIP];
+        GET_CONFIG(std::string, local_ip, General::kListenIP)
         if (!allArgs["local_ip"].empty()) {
             local_ip = allArgs["local_ip"];
         }

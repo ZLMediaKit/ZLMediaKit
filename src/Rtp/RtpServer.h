@@ -36,15 +36,15 @@ public:
     /**
      * 开启服务器，可能抛异常
      * @param local_port 本地端口，0时为随机端口
+     * @param local_ip 绑定的本地网卡ip
      * @param stream_id 流id，置空则使用ssrc
      * @param tcp_mode tcp服务模式
-     * @param local_ip 绑定的本地网卡ip
      * @param re_use_port 是否设置socket为re_use属性
      * @param ssrc 指定的ssrc
      * @param multiplex 多路复用
      */
-    void start(uint16_t local_port, const MediaTuple &tuple = MediaTuple{DEFAULT_VHOST, kRtpAppName, "", ""}, TcpMode tcp_mode = PASSIVE,
-               const char *local_ip = "::", bool re_use_port = true, uint32_t ssrc = 0, int only_track = 0, bool multiplex = false);
+    void start(uint16_t local_port, const char *local_ip = "::", const MediaTuple &tuple = MediaTuple{DEFAULT_VHOST, kRtpAppName, "", ""}, TcpMode tcp_mode = PASSIVE,
+               bool re_use_port = true, uint32_t ssrc = 0, int only_track = 0, bool multiplex = false);
 
     /**
      * 连接到tcp服务(tcp主动模式)

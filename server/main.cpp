@@ -281,7 +281,7 @@ int start_main(int argc,char *argv[]) {
             });
         }
 
-        std::string local_ip = mINI::Instance()[General::kLocalIP];
+        std::string listen_ip = mINI::Instance()[General::kListenIP];
         uint16_t shellPort = mINI::Instance()[Shell::kPort];
         uint16_t rtspPort = mINI::Instance()[Rtsp::kPort];
         uint16_t rtspsPort = mINI::Instance()[Rtsp::kSSLPort];
@@ -363,39 +363,39 @@ int start_main(int argc,char *argv[]) {
 
         try {
             //rtsp服务器，端口默认554
-            if (rtspPort) { rtspSrv->start<RtspSession>(rtspPort, local_ip); }
+            if (rtspPort) { rtspSrv->start<RtspSession>(rtspPort, listen_ip); }
             //rtsps服务器，端口默认322
-            if (rtspsPort) { rtspSSLSrv->start<RtspSessionWithSSL>(rtspsPort, local_ip); }
+            if (rtspsPort) { rtspSSLSrv->start<RtspSessionWithSSL>(rtspsPort, listen_ip); }
 
             //rtmp服务器，端口默认1935
-            if (rtmpPort) { rtmpSrv->start<RtmpSession>(rtmpPort, local_ip); }
+            if (rtmpPort) { rtmpSrv->start<RtmpSession>(rtmpPort, listen_ip); }
             //rtmps服务器，端口默认19350
-            if (rtmpsPort) { rtmpsSrv->start<RtmpSessionWithSSL>(rtmpsPort, local_ip); }
+            if (rtmpsPort) { rtmpsSrv->start<RtmpSessionWithSSL>(rtmpsPort, listen_ip); }
 
             //http服务器，端口默认80
-            if (httpPort) { httpSrv->start<HttpSession>(httpPort, local_ip); }
+            if (httpPort) { httpSrv->start<HttpSession>(httpPort, listen_ip); }
             //https服务器，端口默认443
-            if (httpsPort) { httpsSrv->start<HttpsSession>(httpsPort, local_ip); }
+            if (httpsPort) { httpsSrv->start<HttpsSession>(httpsPort, listen_ip); }
 
             //telnet远程调试服务器
-            if (shellPort) { shellSrv->start<ShellSession>(shellPort, local_ip); }
+            if (shellPort) { shellSrv->start<ShellSession>(shellPort, listen_ip); }
 
 #if defined(ENABLE_RTPPROXY)
             //创建rtp服务器
-            if (rtpPort) { rtpServer->start(rtpPort, MediaTuple{}, RtpServer::NONE, local_ip.c_str()); }
+            if (rtpPort) { rtpServer->start(rtpPort, listen_ip.c_str()); }
 #endif//defined(ENABLE_RTPPROXY)
 
 #if defined(ENABLE_WEBRTC)
             //webrtc udp服务器
-            if (rtcPort) { rtcSrv_udp->start<WebRtcSession>(rtcPort, local_ip);}
+            if (rtcPort) { rtcSrv_udp->start<WebRtcSession>(rtcPort, listen_ip);}
 
-            if (rtcTcpPort) { rtcSrv_tcp->start<WebRtcSession>(rtcTcpPort, local_ip);}
+            if (rtcTcpPort) { rtcSrv_tcp->start<WebRtcSession>(rtcTcpPort, listen_ip);}
              
 #endif//defined(ENABLE_WEBRTC)
 
 #if defined(ENABLE_SRT)
             // srt udp服务器
-            if (srtPort) { srtSrv->start<SRT::SrtSession>(srtPort, local_ip); }
+            if (srtPort) { srtSrv->start<SRT::SrtSession>(srtPort, listen_ip); }
 #endif//defined(ENABLE_SRT)
 
         } catch (std::exception &ex) {
