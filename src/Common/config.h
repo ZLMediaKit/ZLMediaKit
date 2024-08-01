@@ -202,6 +202,8 @@ extern const std::string kWaitAddTrackMS;
 extern const std::string kUnreadyFrameCache;
 // 是否启用观看人数变化事件广播，置1则启用，置0则关闭
 extern const std::string kBroadcastPlayerCountChanged;
+// 绑定的本地网卡ip
+extern const std::string kListenIP;
 } // namespace General
 
 namespace Protocol {
