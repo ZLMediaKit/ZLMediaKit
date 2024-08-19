@@ -148,7 +148,7 @@ int main(int argc, char *argv[]) {
     MediaSource::Ptr src = nullptr;
     PlayerProxy::Ptr proxy = nullptr;;
 
-    auto tuple = MediaTuple{DEFAULT_VHOST, app, stream};
+    auto tuple = MediaTuple { DEFAULT_VHOST, app, stream, "" };
     if (end_with(in_url, ".mp4")) {
         // create MediaSource from mp4file
         auto reader = std::make_shared<MP4Reader>(tuple, in_url);

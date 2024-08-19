@@ -240,7 +240,7 @@ void H265RtpDecoder::outputFrame(const RtpPacket::Ptr &rtp, const H265Frame::Ptr
         _gop_dropped = false;
         InfoL << "new gop received, rtp:\r\n" << rtp->dumpString();
     }
-    if (!_gop_dropped) {
+    if (!_gop_dropped || frame->configFrame()) {
         RtpCodec::inputFrame(frame);
     }
     _frame = obtainFrame();

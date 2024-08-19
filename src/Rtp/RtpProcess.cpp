@@ -30,6 +30,7 @@ RtpProcess::Ptr RtpProcess::createProcess(const MediaTuple &tuple) {
 }
 
 RtpProcess::RtpProcess(const MediaTuple &tuple) {
+    _media_info.schema = "rtp";
     static_cast<MediaTuple &>(_media_info) = tuple;
 
     GET_CONFIG(string, dump_dir, RtpProxy::kDumpDir);

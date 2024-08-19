@@ -295,11 +295,11 @@ API_EXPORT int API_CALL mk_media_source_seek_to(const mk_media_source ctx,uint32
     MediaSource *src = (MediaSource *)ctx;
     return src->seekTo(stamp);
 }
-API_EXPORT void API_CALL mk_media_source_start_send_rtp(const mk_media_source ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int is_udp, on_mk_media_source_send_rtp_result cb, void *user_data) {
-    mk_media_source_start_send_rtp2(ctx, dst_url, dst_port, ssrc, is_udp, cb, user_data, nullptr);
+API_EXPORT void API_CALL mk_media_source_start_send_rtp(const mk_media_source ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int con_type, on_mk_media_source_send_rtp_result cb, void *user_data) {
+    mk_media_source_start_send_rtp2(ctx, dst_url, dst_port, ssrc, con_type, cb, user_data, nullptr);
 }
 
-API_EXPORT void API_CALL mk_media_source_start_send_rtp2(const mk_media_source ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int is_udp, on_mk_media_source_send_rtp_result cb, void *user_data, on_user_data_free user_data_free){
+API_EXPORT void API_CALL mk_media_source_start_send_rtp2(const mk_media_source ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int con_type, on_mk_media_source_send_rtp_result cb, void *user_data, on_user_data_free user_data_free){
     assert(ctx && dst_url && ssrc);
     MediaSource *src = (MediaSource *)ctx;
 
@@ -307,7 +307,7 @@ API_EXPORT void API_CALL mk_media_source_start_send_rtp2(const mk_media_source c
     args.dst_url = dst_url;
     args.dst_port = dst_port;
     args.ssrc = ssrc;
-    args.is_udp = is_udp;
+    args.con_type = (mediakit::MediaSourceEvent::SendRtpArgs::ConType)con_type;
 
     std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
     src->startSendRtp(args, [cb, ptr](uint16_t local_port, const SockException &ex){

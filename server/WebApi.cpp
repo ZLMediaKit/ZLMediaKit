@@ -482,7 +482,7 @@ uint16_t openRtpServer(uint16_t local_port, const mediakit::MediaTuple &tuple, i
     }
 
     auto server = s_rtp_server.makeWithAction(key, [&](RtpServer::Ptr server) {
-        server->start(local_port, tuple, (RtpServer::TcpMode)tcp_mode, local_ip.c_str(), re_use_port, ssrc, only_track, multiplex);
+        server->start(local_port, local_ip.c_str(), tuple, (RtpServer::TcpMode)tcp_mode, re_use_port, ssrc, only_track, multiplex);
     });
     server->setOnDetach([key](const SockException &ex) {
         //设置rtp超时移除事件
@@ -1242,7 +1242,7 @@ void installWebApi() {
             // 兼容老版本请求，新版本去除only_audio参数并新增only_track参数
             only_track = 1;
         }
-        std::string local_ip = "::";
+        GET_CONFIG(std::string, local_ip, General::kListenIP)
         if (!allArgs["local_ip"].empty()) {
             local_ip = allArgs["local_ip"];
         }
@@ -1377,10 +1377,7 @@ void installWebApi() {
         }
     });
 
-    api_regist("/index/api/startSendRtp",[](API_ARGS_MAP_ASYNC){
-        CHECK_SECRET();
-        CHECK_ARGS("vhost", "app", "stream", "ssrc", "dst_url", "dst_port", "is_udp");
-
+    static auto start_send_rtp = [] (bool passive, API_ARGS_MAP_ASYNC) {
         auto src = MediaSource::find(allArgs["vhost"], allArgs["app"], allArgs["stream"], allArgs["from_mp4"].as<int>());
         if (!src) {
             throw ApiRetException("can not find the source stream", API::NotFound);
@@ -1391,30 +1388,50 @@ void installWebApi() {
             type = allArgs["use_ps"].as<int>();
         }
         MediaSourceEvent::SendRtpArgs args;
-        args.passive = false;
+        if (passive) {
+            args.con_type = allArgs["is_udp"].as<bool>() ? mediakit::MediaSourceEvent::SendRtpArgs::kUdpPassive : mediakit::MediaSourceEvent::SendRtpArgs::kTcpPassive;
+        } else {
+            args.con_type = allArgs["is_udp"].as<bool>() ? mediakit::MediaSourceEvent::SendRtpArgs::kUdpActive : mediakit::MediaSourceEvent::SendRtpArgs::kTcpActive;
+        }
         args.dst_url = allArgs["dst_url"];
         args.dst_port = allArgs["dst_port"];
         args.ssrc_multi_send = allArgs["ssrc_multi_send"].empty() ? false : allArgs["ssrc_multi_send"].as<bool>();
         args.ssrc = allArgs["ssrc"];
-        args.is_udp = allArgs["is_udp"];
         args.src_port = allArgs["src_port"];
         args.pt = allArgs["pt"].empty() ? 96 : allArgs["pt"].as<int>();
-        args.type = (MediaSourceEvent::SendRtpArgs::Type)type;
+        args.data_type = (MediaSourceEvent::SendRtpArgs::DataType)type;
         args.only_audio = allArgs["only_audio"].as<bool>();
         args.udp_rtcp_timeout = allArgs["udp_rtcp_timeout"];
         args.recv_stream_id = allArgs["recv_stream_id"];
-        TraceL << "startSendRtp, pt " << int(args.pt) << " rtp type " << type << " audio " << args.only_audio;
-
+        args.close_delay_ms = allArgs["close_delay_ms"];
         src->getOwnerPoller()->async([=]() mutable {
-            src->startSendRtp(args, [val, headerOut, invoker](uint16_t local_port, const SockException &ex) mutable {
-                if (ex) {
-                    val["code"] = API::OtherFailed;
-                    val["msg"] = ex.what();
-                }
-                val["local_port"] = local_port;
+            try {
+                src->startSendRtp(args, [val, headerOut, invoker](uint16_t local_port, const SockException &ex) mutable {
+                    if (ex) {
+                        val["code"] = API::OtherFailed;
+                        val["msg"] = ex.what();
+                    }
+                    val["local_port"] = local_port;
+                    invoker(200, headerOut, val.toStyledString());
+                });
+            } catch (std::exception &ex) {
+                val["code"] = API::Exception;
+                val["msg"] = ex.what();
                 invoker(200, headerOut, val.toStyledString());
-            });
+            }
         });
+    };
+
+    api_regist("/index/api/startSendRtp",[](API_ARGS_MAP_ASYNC){
+        CHECK_SECRET();
+        CHECK_ARGS("vhost", "app", "stream", "ssrc", "dst_url", "dst_port", "is_udp");
+        start_send_rtp(false, API_ARGS_VALUE, invoker);
+    });
+
+    api_regist("/index/api/startSendRtpPassive",[](API_ARGS_MAP_ASYNC){
+        CHECK_SECRET();
+        CHECK_ARGS("vhost", "app", "stream", "ssrc");
+        start_send_rtp(true, API_ARGS_VALUE, invoker);
     });
 
     api_regist("/index/api/listRtpSender",[](API_ARGS_MAP_ASYNC){
@@ -1434,45 +1451,6 @@ void installWebApi() {
                 val["data"].append(ssrc);
             });
             invoker(200, headerOut, val.toStyledString());
-        });
-    });
-
-    api_regist("/index/api/startSendRtpPassive",[](API_ARGS_MAP_ASYNC){
-        CHECK_SECRET();
-        CHECK_ARGS("vhost", "app", "stream", "ssrc");
-
-        auto src = MediaSource::find(allArgs["vhost"], allArgs["app"], allArgs["stream"], allArgs["from_mp4"].as<int>());
-        if (!src) {
-            throw ApiRetException("can not find the source stream", API::NotFound);
-        }
-        auto type = allArgs["type"].empty() ? (int)MediaSourceEvent::SendRtpArgs::kRtpPS : allArgs["type"].as<int>();
-        if (!allArgs["use_ps"].empty()) {
-            // 兼容之前的use_ps参数
-            type = allArgs["use_ps"].as<int>();
-        }
-
-        MediaSourceEvent::SendRtpArgs args;
-        args.passive = true;
-        args.ssrc = allArgs["ssrc"];
-        args.is_udp = false;
-        args.src_port = allArgs["src_port"];
-        args.pt = allArgs["pt"].empty() ? 96 : allArgs["pt"].as<int>();
-        args.type = (MediaSourceEvent::SendRtpArgs::Type)type;
-        args.only_audio = allArgs["only_audio"].as<bool>();
-        args.recv_stream_id = allArgs["recv_stream_id"];
-        //tcp被动服务器等待链接超时时间
-        args.tcp_passive_close_delay_ms = allArgs["close_delay_ms"];
-        TraceL << "startSendRtpPassive, pt " << int(args.pt) << " rtp type " << type << " audio " <<  args.only_audio;
-
-        src->getOwnerPoller()->async([=]() mutable {
-            src->startSendRtp(args, [val, headerOut, invoker](uint16_t local_port, const SockException &ex) mutable {
-                if (ex) {
-                    val["code"] = API::OtherFailed;
-                    val["msg"] = ex.what();
-                }
-                val["local_port"] = local_port;
-                invoker(200, headerOut, val.toStyledString());
-            });
         });
     });
 

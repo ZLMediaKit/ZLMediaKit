@@ -86,7 +86,7 @@ bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
     }
 
     // 每个audio unit时间戳增量
-    auto dts_inc = (stamp - _last_dts) / au_header_count;
+    auto dts_inc = static_cast<int64_t>(stamp - _last_dts) / au_header_count;
     if (dts_inc < 0 || dts_inc > 100) {
         // 时间戳增量异常，忽略
         dts_inc = 0;

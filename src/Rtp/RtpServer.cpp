@@ -122,7 +122,7 @@ private:
     std::shared_ptr<struct sockaddr_storage> _rtcp_addr;
 };
 
-void RtpServer::start(uint16_t local_port, const MediaTuple &tuple, TcpMode tcp_mode, const char *local_ip, bool re_use_port, uint32_t ssrc, int only_track, bool multiplex) {
+void RtpServer::start(uint16_t local_port, const char *local_ip, const MediaTuple &tuple, TcpMode tcp_mode, bool re_use_port, uint32_t ssrc, int only_track, bool multiplex) {
     //创建udp服务器
     auto poller = EventPollerPool::Instance().getPoller();
     Socket::Ptr rtp_socket = Socket::createSocket(poller, true);

@@ -191,13 +191,13 @@ void PlayerProxy::setDirectProxy() {
     if (dynamic_pointer_cast<RtspPlayer>(_delegate)) {
         // rtsp拉流
         GET_CONFIG(bool, directProxy, Rtsp::kDirectProxy);
-        if (directProxy) {
+        if (directProxy && _option.enable_rtsp) {
             mediaSource = std::make_shared<RtspMediaSource>(_tuple);
         }
     } else if (dynamic_pointer_cast<RtmpPlayer>(_delegate)) {
         // rtmp拉流
         GET_CONFIG(bool, directProxy, Rtmp::kDirectProxy);
-        if (directProxy) {
+        if (directProxy && _option.enable_rtmp) {
             mediaSource = std::make_shared<RtmpMediaSource>(_tuple);
         }
     }
