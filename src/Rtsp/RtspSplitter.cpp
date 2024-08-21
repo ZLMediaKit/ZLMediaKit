@@ -72,7 +72,7 @@ ssize_t RtspSplitter::onRecvHeader(const char *data, size_t len) {
     }
     try {
         _parser.parse(data, len);
-    } catch (mediakit::AssertFailedException &ex){
+    } catch (toolkit::AssertFailedException &ex){
         if (!_enableRecvRtp) {
             // 还在握手中，直接中断握手
             throw;

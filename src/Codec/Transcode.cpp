@@ -439,6 +439,7 @@ FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num, const std:
         if (codec->capabilities & AV_CODEC_CAP_TRUNCATED) {
             /* we do not send complete frames */
             _context->flags |= AV_CODEC_FLAG_TRUNCATED;
+            _do_merger = false;
         } else {
             // 此时业务层应该需要合帧
             _do_merger = true;

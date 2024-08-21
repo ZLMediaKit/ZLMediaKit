@@ -114,7 +114,8 @@ private:
     bool decodeFrame(const char *data, size_t size, uint64_t dts, uint64_t pts, bool live, bool key_frame);
 
 private:
-    bool _do_merger = false;
+    // default merge frame
+    bool _do_merger = true;
     toolkit::Ticker _ticker;
     onDec _cb;
     std::shared_ptr<AVCodecContext> _context;
