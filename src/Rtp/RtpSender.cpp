@@ -239,6 +239,9 @@ void RtpSender::onConnect() {
     if (!_args.recv_stream_id.empty()) {
         mINI ini;
         ini[RtpSession::kStreamID] = _args.recv_stream_id;
+        // 强制同步接收流和发送流的app和vhost
+        ini[RtpSession::kApp] = _args.recv_stream_app;
+        ini[RtpSession::kVhost] = _args.recv_stream_vhost;
         _rtp_session = std::make_shared<RtpSession>(_socket_rtp);
         _rtp_session->setParams(ini);
 

@@ -140,6 +140,9 @@ public:
 
         // 发送rtp同时接收，一般用于双向语言对讲, 如果不为空，说明开启接收
         std::string recv_stream_id;
+
+        std::string recv_stream_app;
+        std::string recv_stream_vhost;
     };
 
     // 开始发送ps-rtp
