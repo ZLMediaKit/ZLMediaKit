@@ -307,13 +307,53 @@ API_EXPORT void API_CALL mk_media_source_start_send_rtp2(const mk_media_source c
     args.dst_url = dst_url;
     args.dst_port = dst_port;
     args.ssrc = ssrc;
+    args.close_delay_ms = 30 * 1000;
     args.con_type = (mediakit::MediaSourceEvent::SendRtpArgs::ConType)con_type;
 
     std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
-    src->startSendRtp(args, [cb, ptr](uint16_t local_port, const SockException &ex){
-        if (cb) {
-            cb(ptr.get(), local_port, ex.getErrCode(), ex.what());
-        }
+    src->getOwnerPoller()->async([=]() mutable {
+        src->startSendRtp(args, [cb, ptr](uint16_t local_port, const SockException &ex) {
+            if (cb) {
+                cb(ptr.get(), local_port, ex.getErrCode(), ex.what());
+            }
+        });
+
+    });
+}
+
+API_EXPORT void API_CALL mk_media_source_start_send_rtp3(const mk_media_source ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int con_type, mk_ini options, on_mk_media_source_send_rtp_result cb,void *user_data) {
+    mk_media_source_start_send_rtp4(ctx, dst_url, dst_port, ssrc, con_type, options, cb, user_data, nullptr);
+}
+API_EXPORT void API_CALL mk_media_source_start_send_rtp4(const mk_media_source ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int con_type, mk_ini options, on_mk_media_source_send_rtp_result cb,void *user_data, on_user_data_free user_data_free) {
+    assert(ctx && dst_url && ssrc);
+    MediaSource *src = (MediaSource *)ctx;
+
+    MediaSourceEvent::SendRtpArgs args;
+    args.dst_url = dst_url;
+    args.dst_port = dst_port;
+    args.ssrc = ssrc;
+    args.con_type = (mediakit::MediaSourceEvent::SendRtpArgs::ConType)con_type;
+    auto ini_ptr = (mINI *)options;
+    args.src_port = (*ini_ptr)["src_port"].empty() ? 0 : (*ini_ptr)["src_port"].as<int>();
+    args.ssrc_multi_send = (*ini_ptr)["ssrc_multi_send"].empty() ? false : (*ini_ptr)["ssrc_multi_send"].as<bool>();
+    args.pt = (*ini_ptr)["pt"].empty() ? 96 : (*ini_ptr)["pt"].as<int>();
+    args.data_type = (*ini_ptr)["data_type"].empty() ? MediaSourceEvent::SendRtpArgs::DataType::kRtpPS:(MediaSourceEvent::SendRtpArgs::DataType)(*ini_ptr)["data_type"].as<int>();
+    args.only_audio = (*ini_ptr)["only_audio"].empty() ? false : (*ini_ptr)["only_audio"].as<bool>();
+    args.udp_rtcp_timeout = (*ini_ptr)["udp_rtcp_timeout"].empty() ? false : (*ini_ptr)["udp_rtcp_timeout"].as<bool>();
+    args.recv_stream_id = (*ini_ptr)["recv_stream_id"];
+    args.recv_stream_app = src->getMediaTuple().app.c_str();
+    args.recv_stream_vhost = src->getMediaTuple().vhost.c_str();
+    args.close_delay_ms = (*ini_ptr)["close_delay_ms"].empty() ? 0 : (*ini_ptr)["close_delay_ms"].as<int>();
+    args.rtcp_timeout_ms = (*ini_ptr)["rtcp_timeout_ms"].empty() ? 30000 : (*ini_ptr)["rtcp_timeout_ms"].as<int>();
+    args.rtcp_send_interval_ms = (*ini_ptr)["rtcp_send_interval_ms"].empty() ? 5000 : (*ini_ptr)["rtcp_send_interval_ms"].as<int>();
+    std::shared_ptr<void> ptr(
+        user_data, user_data_free ? user_data_free : [](void *) {});
+    src->getOwnerPoller()->async([=]() mutable {
+        src->startSendRtp(args, [cb, ptr](uint16_t local_port, const SockException &ex) {
+            if (cb) {
+                cb(ptr.get(), local_port, ex.getErrCode(), ex.what());
+            }
+        });
     });
 }
 
