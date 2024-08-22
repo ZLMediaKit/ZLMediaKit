@@ -288,14 +288,18 @@ void PlayerProxy::onPlaySuccess() {
     if (dynamic_pointer_cast<RtspMediaSource>(_media_src)) {
         // rtsp拉流代理
         if (reset_when_replay || !_muxer) {
+            auto old = _option.enable_rtsp;
             _option.enable_rtsp = false;
             _muxer = std::make_shared<MultiMediaSourceMuxer>(_tuple, getDuration(), _option);
+            _option.enable_rtsp = old;
         }
     } else if (dynamic_pointer_cast<RtmpMediaSource>(_media_src)) {
         // rtmp拉流代理
         if (reset_when_replay || !_muxer) {
+             auto old = _option.enable_rtmp;
             _option.enable_rtmp = false;
             _muxer = std::make_shared<MultiMediaSourceMuxer>(_tuple, getDuration(), _option);
+             _option.enable_rtmp = old;
         }
     } else {
         // 其他拉流代理
