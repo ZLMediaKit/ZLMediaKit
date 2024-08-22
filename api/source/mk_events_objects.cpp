@@ -341,6 +341,9 @@ API_EXPORT void API_CALL mk_media_source_start_send_rtp4(const mk_media_source c
     args.only_audio = (*ini_ptr)["only_audio"].empty() ? false : (*ini_ptr)["only_audio"].as<bool>();
     args.udp_rtcp_timeout = (*ini_ptr)["udp_rtcp_timeout"].empty() ? false : (*ini_ptr)["udp_rtcp_timeout"].as<bool>();
     args.recv_stream_id = (*ini_ptr)["recv_stream_id"];
+    args.recv_stream_id = src->getMediaTuple().stream.c_str();
+    args.recv_stream_app = src->getMediaTuple().app.c_str();
+    args.recv_stream_vhost = src->getMediaTuple().vhost.c_str();
     args.close_delay_ms = (*ini_ptr)["close_delay_ms"].empty() ? 0 : (*ini_ptr)["close_delay_ms"].as<int>();
     args.rtcp_timeout_ms = (*ini_ptr)["rtcp_timeout_ms"].empty() ? 30000 : (*ini_ptr)["rtcp_timeout_ms"].as<int>();
     args.rtcp_send_interval_ms = (*ini_ptr)["rtcp_send_interval_ms"].empty() ? 5000 : (*ini_ptr)["rtcp_send_interval_ms"].as<int>();
