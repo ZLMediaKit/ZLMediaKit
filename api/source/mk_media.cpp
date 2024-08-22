@@ -329,7 +329,7 @@ API_EXPORT void API_CALL mk_media_start_send_rtp4(mk_media ctx, const char *dst_
                                                      : (MediaSourceEvent::SendRtpArgs::DataType)(*ini_ptr)["data_type"].as<int>();
     args.only_audio = (*ini_ptr)["only_audio"].empty() ? false : (*ini_ptr)["only_audio"].as<bool>();
     args.udp_rtcp_timeout = (*ini_ptr)["udp_rtcp_timeout"].empty() ? false : (*ini_ptr)["udp_rtcp_timeout"].as<bool>();
-    args.recv_stream_id = obj->get()->getChannel()->getMediaTuple().stream.c_str();
+    args.recv_stream_id =(*ini_ptr)["recv_stream_id"];
     args.recv_stream_app =obj->get()->getChannel()->getMediaTuple().app.c_str();
     args.recv_stream_vhost = obj->get()->getChannel()->getMediaTuple().vhost.c_str();
     args.close_delay_ms = (*ini_ptr)["close_delay_ms"].empty() ? 30000 : (*ini_ptr)["close_delay_ms"].as<int>();
