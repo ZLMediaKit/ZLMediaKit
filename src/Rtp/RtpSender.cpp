@@ -239,6 +239,8 @@ void RtpSender::onConnect() {
     if (!_args.recv_stream_id.empty()) {
         mINI ini;
         ini[RtpSession::kStreamID] = _args.recv_stream_id;
+        ini[RtpSession::kApp] = _args.app;
+        ini[RtpSession::kVhost] = _args.vhost;
         _rtp_session = std::make_shared<RtpSession>(_socket_rtp);
         _rtp_session->setParams(ini);
 

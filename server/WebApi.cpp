@@ -1404,6 +1404,8 @@ void installWebApi() {
         args.udp_rtcp_timeout = allArgs["udp_rtcp_timeout"];
         args.recv_stream_id = allArgs["recv_stream_id"];
         args.close_delay_ms = allArgs["close_delay_ms"];
+        args.app = allArgs["app"];
+        args.vhost = allArgs["vhost"];
         src->getOwnerPoller()->async([=]() mutable {
             try {
                 src->startSendRtp(args, [val, headerOut, invoker](uint16_t local_port, const SockException &ex) mutable {
