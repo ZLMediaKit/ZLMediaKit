@@ -270,12 +270,14 @@ typedef on_mk_media_source_send_rtp_result on_mk_media_send_rtp_result;
  * @param dst_port 目标端口
  * @param ssrc rtp的ssrc，10进制的字符串打印
  * @param con_type 0: tcp主动，1：udp主动，2：tcp被动，3：udp被动
+ * @param options 选项
  * @param cb 启动成功或失败回调
  * @param user_data 回调用户指针
  */
 API_EXPORT void API_CALL mk_media_start_send_rtp(mk_media ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int con_type, on_mk_media_send_rtp_result cb, void *user_data);
 API_EXPORT void API_CALL mk_media_start_send_rtp2(mk_media ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int con_type, on_mk_media_send_rtp_result cb, void *user_data, on_user_data_free user_data_free);
-
+API_EXPORT void API_CALL mk_media_start_send_rtp3(mk_media ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int con_type, mk_ini options, on_mk_media_send_rtp_result cb, void *user_data);
+API_EXPORT void API_CALL mk_media_start_send_rtp4(mk_media ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int con_type, mk_ini options, on_mk_media_send_rtp_result cb, void *user_data,on_user_data_free user_data_free);
 /**
  * 停止某路或全部ps-rtp发送，此api线程安全
  * @param ctx 对象指针

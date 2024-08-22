@@ -162,6 +162,8 @@ typedef void(API_CALL *on_mk_media_source_send_rtp_result)(void *user_data, uint
 // MediaSource::startSendRtp,请参考mk_media_start_send_rtp,注意ctx参数类型不一样
 API_EXPORT void API_CALL mk_media_source_start_send_rtp(const mk_media_source ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int con_type, on_mk_media_source_send_rtp_result cb, void *user_data);
 API_EXPORT void API_CALL mk_media_source_start_send_rtp2(const mk_media_source ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int con_type, on_mk_media_source_send_rtp_result cb, void *user_data, on_user_data_free user_data_free);
+API_EXPORT void API_CALL mk_media_source_start_send_rtp3(const mk_media_source ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int con_type, mk_ini options, on_mk_media_source_send_rtp_result cb, void *user_data);
+API_EXPORT void API_CALL mk_media_source_start_send_rtp4(const mk_media_source ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int con_type, mk_ini options, on_mk_media_source_send_rtp_result cb,void *user_data, on_user_data_free user_data_free);
 //MediaSource::stopSendRtp，请参考mk_media_stop_send_rtp,注意ctx参数类型不一样
 API_EXPORT int API_CALL mk_media_source_stop_send_rtp(const mk_media_source ctx);
 
