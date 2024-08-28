@@ -1406,7 +1406,7 @@ void installWebApi() {
         args.close_delay_ms = allArgs["close_delay_ms"];
         // 记录发送流的app和vhost
         args.recv_stream_app = allArgs["app"];
-        args.recv_stream_app = allArgs["vhost"];
+        args.recv_stream_vhost = allArgs["vhost"];
         src->getOwnerPoller()->async([=]() mutable {
             try {
                 src->startSendRtp(args, [val, headerOut, invoker](uint16_t local_port, const SockException &ex) mutable {
