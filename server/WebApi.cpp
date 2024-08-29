@@ -1845,8 +1845,9 @@ void installWebApi() {
             auto &allArgs = _args;
             CHECK_ARGS("app", "stream");
 
-            return StrPrinter << "rtc://" << _args["Host"] << "/" << _args["app"] << "/"
-                              << _args["stream"] << "?" << _args.parser.params() + "&session=" + _session_id;
+            string auth = _args["Authorization"]; // Authorization  Bearer
+            return StrPrinter << "rtc://" << _args["Host"] << "/" << _args["app"] << "/" << _args["stream"] << "?"
+                              << _args.parser.params() + "&session=" + _session_id + (auth.empty() ? "" : ("&Authorization=" + auth));
         }
 
     private:
