@@ -80,6 +80,7 @@ public:
             return;
         }
         _pkt_sort_cache_map.emplace(seq, std::move(packet));
+
         if (needForceFlush(seq)) {
             forceFlush(next_seq);
         }
@@ -114,13 +115,12 @@ private:
     }
 
     bool needForceFlush(SEQ seq) {
-        return _pkt_sort_cache_map.size() > _max_buffer_size || distance(seq) > _max_distance || _ticker.elapsedTime() > _max_buffer_ms;
+        return !_pkt_sort_cache_map.empty() && (_pkt_sort_cache_map.size() > _max_buffer_size ||
+               distance(seq) > _max_distance || _ticker.elapsedTime() > _max_buffer_ms);
     }
 
+    //外部调用代码确保_pkt_sort_cache_map不为空
     void forceFlush(SEQ next_seq) {
-        if (_pkt_sort_cache_map.empty()) {
-            return;
-        }
         // 寻找距离比next_seq大的最近的seq
         auto it = _pkt_sort_cache_map.lower_bound(next_seq);
         if (it == _pkt_sort_cache_map.end()) {
