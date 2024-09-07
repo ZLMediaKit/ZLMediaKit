@@ -437,6 +437,61 @@ typedef struct T_HEVCSPS {
     int iVuiPresent;
 }T_HEVCSPS;
 
+typedef struct {
+    int pps_pic_parameter_set_id;
+    int pps_seq_parameter_set_id;
+    int dependent_slice_segments_enabled_flag;
+    int output_flag_present_flag;
+    int num_extra_slice_header_bits;
+    int sign_data_hiding_enabled_flag;
+    int cabac_init_present_flag;
+    int num_ref_idx_l0_default_active_minus1;
+    int num_ref_idx_l1_default_active_minus1;
+    int init_qp_minus26;
+    int constrained_intra_pred_flag;
+    int transform_skip_enabled_flag;
+    int cu_qp_delta_enabled_flag;
+    int diff_cu_qp_delta_depth;
+    int pps_cb_qp_offset;
+    int pps_cr_qp_offset;
+    int pps_slice_chroma_qp_offsets_present_flag;
+    int weighted_pred_flag;
+    int weighted_bipred_flag;
+    int transquant_bypass_enabled_flag;
+    int tiles_enabled_flag;
+    int entropy_coding_sync_enabled_flag;
+    int uniform_spacing_flag;
+    int loop_filter_across_tiles_enabled_flag;
+    int pps_loop_filter_across_slices_enabled_flag;
+    int deblocking_filter_control_present_flag;
+    int deblocking_filter_override_enabled_flag;
+    int pps_deblocking_filter_disabled_flag;
+    int pps_beta_offset_div2;
+    int pps_tc_offset_div2;
+    int pps_scaling_list_data_present_flag;
+    int lists_modification_present_flag;
+    int log2_parallel_merge_level_minus2;
+    int slice_segment_header_extension_present_flag;
+    int pps_extension_present_flag;
+    int pps_range_extension_flag;
+    int pps_multilayer_extension_flag;
+    int pps_3d_extension_flag;
+    int pps_scc_extension_flag;
+    int pps_extension_4bits;
+
+    // PPS range extension fields
+    int log2_max_transform_skip_block_size_minus2;
+    int cross_component_prediction_enabled_flag;
+    int chroma_qp_offset_list_enabled_flag;
+    int diff_cu_chroma_qp_offset_depth;
+    int chroma_qp_offset_list_len_minus1;
+    int cb_qp_offset_list[6];
+    int cr_qp_offset_list[6];
+    int log2_sao_offset_scale_luma;
+    int log2_sao_offset_scale_chroma;
+
+    // 可以根据需要添加更多字段
+} T_HEVC_PPS;
 
 typedef struct T_GetBitContext{
     uint8_t *pu8Buf;       // buf 
@@ -446,7 +501,7 @@ typedef struct T_GetBitContext{
     int     iCurBitPos;  // current bit position
 }T_GetBitContext;
 
-
+int h265ParsePps(T_GetBitContext *ptGetBitContext, T_HEVC_PPS *ptPps);
 int h264DecSeqParameterSet(void *pvBuf, T_SPS *ptSps);
 int h265DecSeqParameterSet( void *pvBufSrc, T_HEVCSPS *ptSps );
 int h265DecVideoParameterSet( void *pvBufSrc, T_HEVCVPS *ptVps );

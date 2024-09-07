@@ -2284,3 +2284,36 @@ void h265GeFramerate(T_HEVCVPS *ptVps, T_HEVCSPS *ptSps,float *pfFramerate)
     }
 }
 
+int h265ParsePps(T_GetBitContext *ptGetBitContext, T_HEVC_PPS *ptPps)
+{
+    int iRet = 0;
+
+    ptPps->pps_pic_parameter_set_id = parseUe(ptGetBitContext);
+    ptPps->pps_seq_parameter_set_id = parseUe(ptGetBitContext);
+    ptPps->dependent_slice_segments_enabled_flag = getOneBit(ptGetBitContext);
+    ptPps->output_flag_present_flag = getOneBit(ptGetBitContext);
+    ptPps->num_extra_slice_header_bits = getBits(ptGetBitContext, 3);
+    ptPps->sign_data_hiding_enabled_flag = getOneBit(ptGetBitContext);
+    ptPps->cabac_init_present_flag = getOneBit(ptGetBitContext);
+
+    ptPps->num_ref_idx_l0_default_active_minus1 = parseUe(ptGetBitContext);
+    ptPps->num_ref_idx_l1_default_active_minus1 = parseUe(ptGetBitContext);
+    ptPps->init_qp_minus26 = parseSe(ptGetBitContext);
+
+    ptPps->constrained_intra_pred_flag = getOneBit(ptGetBitContext);
+    ptPps->transform_skip_enabled_flag = getOneBit(ptGetBitContext);
+    ptPps->cu_qp_delta_enabled_flag = getOneBit(ptGetBitContext);
+
+    if (ptPps->cu_qp_delta_enabled_flag) {
+        ptPps->diff_cu_qp_delta_depth = parseUe(ptGetBitContext);
+    }
+    ptPps->pps_cb_qp_offset = parseSe(ptGetBitContext);
+    ptPps->pps_cr_qp_offset = parseSe(ptGetBitContext);
+    ptPps->pps_slice_chroma_qp_offsets_present_flag = getOneBit(ptGetBitContext);
+    ptPps->weighted_pred_flag = getOneBit(ptGetBitContext);
+    ptPps->weighted_bipred_flag = getOneBit(ptGetBitContext);
+    ptPps->transquant_bypass_enabled_flag = getOneBit(ptGetBitContext);
+    ptPps->tiles_enabled_flag = getOneBit(ptGetBitContext);
+    ptPps->entropy_coding_sync_enabled_flag = getOneBit(ptGetBitContext);
+    return iRet;
+}
