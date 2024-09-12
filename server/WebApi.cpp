@@ -1137,7 +1137,8 @@ void installWebApi() {
                                      int timeout_ms,
                                      bool enable_hls,
                                      bool enable_mp4,
-                                     const function<void(const SockException &ex, const string &key)> &cb) {
+                                     const function<void(const SockException &ex, const string &key)> &cb,
+                                     const vector<string> &ffmpeg_args) {
         auto key = MD5(dst_url).hexdigest();
         if (s_ffmpeg_src.find(key)) {
             //已经在拉流了
@@ -1151,7 +1152,7 @@ void installWebApi() {
             s_ffmpeg_src.erase(key);
         });
         ffmpeg->setupRecordFlag(enable_hls, enable_mp4);
-        ffmpeg->play(ffmpeg_cmd_key, src_url, dst_url, timeout_ms, [cb, key](const SockException &ex) {
+        ffmpeg->play(ffmpeg_cmd_key, src_url, dst_url, timeout_ms, ffmpeg_args, [cb, key](const SockException &ex) {
             if (ex) {
                 s_ffmpeg_src.erase(key);
             }
@@ -1169,6 +1170,31 @@ void installWebApi() {
         int timeout_ms = allArgs["timeout_ms"];
         auto enable_hls = allArgs["enable_hls"].as<int>();
         auto enable_mp4 = allArgs["enable_mp4"].as<int>();
+        string ffmpeg_extra_args_json_str = allArgs["ffmpeg_extra_args"];    // src_url、dst_url以外的ffmpeg参数 json数组格式
+
+        // 初始化用于存储ffmpeg命令所有格式化参数的 vector
+        vector<string> ffmpeg_args;
+        GET_CONFIG(string, ffmpeg_bin, FFmpeg::kBin);
+        ffmpeg_args.insert(ffmpeg_args.begin(),File::absolutePath("", ffmpeg_bin).data());
+        ffmpeg_args.insert(ffmpeg_args.begin()+1,src_url);
+
+        if (!ffmpeg_extra_args_json_str.empty()) {
+            // 使用 jsoncpp 来解析 ffmpeg_extra_args 的 JSON 字符串
+            Json::Value ffmpeg_extra_args_json;
+            Json::Reader reader;
+            if (!reader.parse(ffmpeg_extra_args_json_str, ffmpeg_extra_args_json) || !ffmpeg_extra_args_json.isArray()) {
+                throw InvalidArgsException("ffmpeg_extra_args should be a JSON array");
+            }
+            for (const auto &ffmpeg_arg : ffmpeg_extra_args_json) {
+                if (ffmpeg_arg.isString()) {
+                    ffmpeg_args.push_back(ffmpeg_arg.asString());
+                } else {
+                    throw InvalidArgsException("Each ffmpeg_extra_args element should be a string");
+                }
+            }
+        }
+
+        ffmpeg_args.push_back(dst_url);
 
         addFFmpegSource(allArgs["ffmpeg_cmd_key"], src_url, dst_url, timeout_ms, enable_hls, enable_mp4,
                         [invoker, val, headerOut](const SockException &ex, const string &key) mutable{
@@ -1179,7 +1205,7 @@ void installWebApi() {
                 val["data"]["key"] = key;
             }
             invoker(200, headerOut, val.toStyledString());
-        });
+        }, ffmpeg_args);
     });
 
     //关闭拉流代理

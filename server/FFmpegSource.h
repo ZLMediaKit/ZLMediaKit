@@ -57,9 +57,10 @@ public:
      * @param src_url FFmpeg拉流地址
      * @param dst_url FFmpeg推流地址
      * @param timeout_ms 等待结果超时时间，单位毫秒
+     * @param cmd_format_args 命令格式化参数，包括ffmpeg执行文件路径、src_url、dst_url.重试时可以传空集合
      * @param cb 成功与否回调
      */
-    void play(const std::string &ffmpeg_cmd_key, const std::string &src_url, const std::string &dst_url, int timeout_ms, const onPlay &cb);
+    void play(const std::string &ffmpeg_cmd_key, const std::string &src_url, const std::string &dst_url, int timeout_ms, const std::vector<std::string> &cmd_format_args,const onPlay &cb);
 
     /**
      * 设置录制
@@ -91,6 +92,8 @@ private:
     std::string _src_url;
     std::string _dst_url;
     std::string _ffmpeg_cmd_key;
+    // ffmpeg完整命令
+    std::string _cmd;
     std::function<void()> _onClose;
     toolkit::Ticker _replay_ticker;
 };
