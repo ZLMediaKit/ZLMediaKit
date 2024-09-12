@@ -114,11 +114,11 @@ void MediaSink::checkTrackIfReady() {
             if(it->second.first->getTrackType() != TrackAudio){
                 continue;
             }
-            if(_ticker.elapsedTime() > kWaitAudioTrackReadyMS&&!(it->second.second && it->second.first->ready())){
-                // 音频超时，忽略音频
+            if(_ticker.elapsedTime() > kWaitAudioTrackReadyMS&&!it->second.second ){
+                // 音频超时且完全没收到音频数据，忽略音频
                 auto index = it->second.first->getIndex();
                 WarnL<<"audio track "<< "index "<<index<<" codec "<< it->second.first->getCodecName()
-                      <<" is not ready for long "<< _ticker.elapsedTime() <<"ms. Ignore it!";
+                      <<" is not receive for long "<< _ticker.elapsedTime() <<"ms. Ignore it!";
                 it = _track_map.erase(it);
                 _max_track_size -= 1;
                 _track_ready_callback.erase(index);
