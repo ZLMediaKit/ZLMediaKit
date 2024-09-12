@@ -81,6 +81,7 @@ const string kMergeWriteMS = GENERAL_FIELD "mergeWriteMS";
 const string kCheckNvidiaDev = GENERAL_FIELD "check_nvidia_dev";
 const string kEnableFFmpegLog = GENERAL_FIELD "enable_ffmpeg_log";
 const string kWaitTrackReadyMS = GENERAL_FIELD "wait_track_ready_ms";
+const string kWaitAudioTrackDataMS = GENERAL_FIELD "wait_audio_track_data_ms";
 const string kWaitAddTrackMS = GENERAL_FIELD "wait_add_track_ms";
 const string kUnreadyFrameCache = GENERAL_FIELD "unready_frame_cache";
 const string kBroadcastPlayerCountChanged = GENERAL_FIELD "broadcast_player_count_changed";
@@ -97,6 +98,7 @@ static onceToken token([]() {
     mINI::Instance()[kCheckNvidiaDev] = 1;
     mINI::Instance()[kEnableFFmpegLog] = 0;
     mINI::Instance()[kWaitTrackReadyMS] = 10000;
+    mINI::Instance()[kWaitAudioTrackDataMS] = 1000;
     mINI::Instance()[kWaitAddTrackMS] = 3000;
     mINI::Instance()[kUnreadyFrameCache] = 100;
     mINI::Instance()[kBroadcastPlayerCountChanged] = 0;
