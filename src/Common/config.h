@@ -196,7 +196,7 @@ extern const std::string kEnableFFmpegLog;
 // 最多等待未初始化的Track 10秒，超时之后会忽略未初始化的Track
 extern const std::string kWaitTrackReadyMS;
 // 最多等待未初始化的音频Track 1秒，超时之后会忽略未初始化的音频Track
-extern const std::string kWaitAudioTrackReadyMS;
+extern const std::string kWaitAudioTrackDataMS;
 // 如果直播流只有单Track，最多等待3秒，超时后未收到其他Track的数据，则认为是单Track
 // 如果协议元数据有声明特定track数，那么无此等待时间
 extern const std::string kWaitAddTrackMS;
