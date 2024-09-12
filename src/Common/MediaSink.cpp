@@ -118,7 +118,7 @@ void MediaSink::checkTrackIfReady() {
                 // 音频超时且完全没收到音频数据，忽略音频
                 auto index = it->second.first->getIndex();
                 WarnL<<"audio track "<< "index "<<index<<" codec "<< it->second.first->getCodecName()
-                      <<" is not receive for long "<< _ticker.elapsedTime() <<"ms. Ignore it!";
+                      <<" receive no data for long "<< _ticker.elapsedTime() <<"ms. Ignore it!";
                 it = _track_map.erase(it);
                 _max_track_size -= 1;
                 _track_ready_callback.erase(index);
