@@ -85,8 +85,7 @@ public:
     }
 };
 
-// 此程序用于拉流播放性能测试  [AUTO-TRANSLATED:727e8fdb]
-// This program is used for pulling stream playback performance testing
+//此程序用于拉流播放性能测试
 int main(int argc, char *argv[]) {
     CMD_main cmd_main;
     try {
@@ -106,20 +105,16 @@ int main(int argc, char *argv[]) {
     auto delay_ms = cmd_main["delay"].as<int>();
     auto player_count = cmd_main["count"].as<int>();
 
-    // 设置日志  [AUTO-TRANSLATED:50372045]
-    // Set log
+    //设置日志
     Logger::Instance().add(std::make_shared<ConsoleChannel>("ConsoleChannel", logLevel));
-    // 启动异步日志线程  [AUTO-TRANSLATED:c93cc6f4]
-    // Start asynchronous log thread
+    //启动异步日志线程
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 
-    // 设置线程数  [AUTO-TRANSLATED:22ec5cc9]
-    // Set the number of threads
+    //设置线程数
     EventPollerPool::setPoolSize(threads);
     WorkThreadPool::setPoolSize(threads);
 
-    // 播放器map  [AUTO-TRANSLATED:53b5b4c4]
-    // Player map
+    //播放器map
     recursive_mutex mtx;
     unordered_map<void *, MediaPlayer::Ptr> player_map;
 
@@ -127,66 +122,52 @@ int main(int argc, char *argv[]) {
         auto player = std::make_shared<MediaPlayer>();
         auto tag = player.get();
         player->setOnCreateSocket([](const EventPoller::Ptr &poller) {
-            // socket关闭互斥锁，提高性能  [AUTO-TRANSLATED:471fc644]
-            // Socket close mutex, improve performance
+            //socket关闭互斥锁，提高性能
             return Socket::createSocket(poller, false);
         });
-        // 设置播放失败监听  [AUTO-TRANSLATED:14e18272]
-        // Set playback failure listener
+        //设置播放失败监听
         player->setOnPlayResult([&mtx, &player_map, tag](const SockException &ex) {
             if (ex) {
-                // 播放失败，移除之  [AUTO-TRANSLATED:e3e1ce5e]
-                // Playback failed, remove it
+                //播放失败，移除之
                 lock_guard<recursive_mutex> lck(mtx);
                 player_map.erase(tag);
             }
         });
-        // 设置播放中途断开监听  [AUTO-TRANSLATED:b1aa9531]
-        // Set playback interruption listener
+        //设置播放中途断开监听
         player->setOnShutdown([&mtx, &player_map, tag](const SockException &ex) {
-            // 播放中途失败，移除之  [AUTO-TRANSLATED:5cd7df25]
-            // Playback interrupted, remove it
+            //播放中途失败，移除之
             lock_guard<recursive_mutex> lck(mtx);
             player_map.erase(tag);
         });
-        // 设置为性能测试模式  [AUTO-TRANSLATED:96c16cc1]
-        // Set to performance test mode
+        //设置为性能测试模式
         (*player)[Client::kBenchmarkMode] = true;
-        // 设置rtsp拉流方式(在rtsp拉流时有效)  [AUTO-TRANSLATED:521f7bbd]
-        // Set RTSP pull stream method (effective when pulling RTSP stream)
+        //设置rtsp拉流方式(在rtsp拉流时有效)
         (*player)[Client::kRtpType] = rtp_type;
-        // 提高压测性能与正确性  [AUTO-TRANSLATED:947f0ef8]
-        // Improve stress test performance and accuracy
+        //提高压测性能与正确性
         (*player)[Client::kWaitTrackReady] = false;
-        // 发起播放请求  [AUTO-TRANSLATED:43e28453]
-        // Initiate playback request
+        //发起播放请求
         player->play(in_url);
 
-        // 保持对象不销毁  [AUTO-TRANSLATED:650977d0]
-        // Keep the object from being destroyed
+        //保持对象不销毁
         lock_guard<recursive_mutex> lck(mtx);
         player_map.emplace(tag, std::move(player));
 
-        // 休眠后再启动下一个播放，防止短时间海量链接  [AUTO-TRANSLATED:96c03767]
-        // Sleep and then start the next playback to prevent a large number of connections in a short time
+        //休眠后再启动下一个播放，防止短时间海量链接
         if (delay_ms > 0) {
             usleep(1000 * delay_ms);
         }
     };
 
-    // 添加这么多播放器  [AUTO-TRANSLATED:b93d3a9f]
-    // Add so many players
+    //添加这么多播放器
     for (auto i = 0; i < player_count; ++i) {
         add_player();
     }
 
-    // 设置退出信号  [AUTO-TRANSLATED:02c7fa30]
-    // Set exit signal
+    // 设置退出信号
     static bool exit_flag = false;
     signal(SIGINT, [](int) { exit_flag = true; });
     while (!exit_flag) {
-        // 休眠一秒打印  [AUTO-TRANSLATED:239dc996]
-        // Sleep for one second and print
+        //休眠一秒打印
         sleep(1);
 
         size_t alive_player = 0;
@@ -197,8 +178,7 @@ int main(int argc, char *argv[]) {
         InfoL << "在线播放器个数:" << alive_player;
         size_t re_try = player_count - alive_player;
         while (!exit_flag && re_try--) {
-            // 有些播放器播放失败了，那么我们重试添加  [AUTO-TRANSLATED:adcec1af]
-            // Some players failed to play, so we retry adding
+            //有些播放器播放失败了，那么我们重试添加
             add_player();
         }
     }

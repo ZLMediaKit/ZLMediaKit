@@ -107,8 +107,7 @@ void process_file(const char *file) {
     File::saveFile(str, file);
 }
 
-// / 这个程序是为了统一替换tab为4个空格  [AUTO-TRANSLATED:ecb3b523]
-// / This program is for unified replacement of tabs with 4 spaces
+/// 这个程序是为了统一替换tab为4个空格
 int main(int argc, char *argv[]) {
     CMD_main cmd_main;
     try {
@@ -128,31 +127,26 @@ int main(int argc, char *argv[]) {
     }
 
     bool no_filter = filter_set.find("*") != filter_set.end();
-    // 设置日志  [AUTO-TRANSLATED:50372045]
-    // Set log
+    //设置日志
     Logger::Instance().add(std::make_shared<ConsoleChannel>());
     File::scanDir(path, [&](const string &path, bool isDir) {
         if (isDir) {
             return true;
         }
         if (!no_filter) {
-            // 开启了过滤器  [AUTO-TRANSLATED:331a77dd]
-            // Filter enabled
+            //开启了过滤器
             auto pos = strstr(path.data(), ".");
             if (pos == nullptr) {
-                // 没有后缀  [AUTO-TRANSLATED:2273522f]
-                // No suffix
+                //没有后缀
                 return true;
             }
             auto ext = pos + 1;
             if (filter_set.find(ext) == filter_set.end()) {
-                // 后缀不匹配  [AUTO-TRANSLATED:7e30f0b4]
-                // Suffix does not match
+                //后缀不匹配
                 return true;
             }
         }
-        // 该文件匹配  [AUTO-TRANSLATED:9dce5098]
-        // File matches
+        //该文件匹配
         process_file(path.data());
         return true;
     }, true);

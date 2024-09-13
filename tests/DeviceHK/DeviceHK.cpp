@@ -176,8 +176,7 @@ void DevChannelHK::onPreview(DWORD dwDataType, BYTE* pBuffer, DWORD dwBufSize) {
                 break;
             }
             InfoL << "设置解码器成功！" << endl;
-            // 打开音频解码, 需要码流是复合流  [AUTO-TRANSLATED:ef6be0e4]
-            // Open audio decoding, requires a composite stream
+            //打开音频解码, 需要码流是复合流
             if (!PlayM4_PlaySoundShare(m_iPlayHandle)) {
                 WarnL << "PlayM4_PlaySound:" << NET_DVR_GetLastError();
                 break;

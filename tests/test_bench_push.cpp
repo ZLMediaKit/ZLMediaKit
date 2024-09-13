@@ -101,8 +101,7 @@ public:
     const char *description() const override { return "主程序命令参数"; }
 };
 
-// 此程序用于推流性能测试  [AUTO-TRANSLATED:45b48457]
-// This program is used for push stream performance testing
+// 此程序用于推流性能测试
 int main(int argc, char *argv[]) {
     CMD_main cmd_main;
     try {
@@ -131,20 +130,16 @@ int main(int argc, char *argv[]) {
     const std::string app = "app";
     const std::string stream = "test";
 
-    // 设置日志  [AUTO-TRANSLATED:50372045]
-    // Set log
+    //设置日志
     Logger::Instance().add(std::make_shared<ConsoleChannel>("ConsoleChannel", logLevel));
-    // 启动异步日志线程  [AUTO-TRANSLATED:c93cc6f4]
-    // Start asynchronous log thread
+    //启动异步日志线程
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 
-    // 设置线程数  [AUTO-TRANSLATED:22ec5cc9]
-    // Set the number of threads
+    //设置线程数
     EventPollerPool::setPoolSize(threads);
     WorkThreadPool::setPoolSize(threads);
 
-    // 设置合并写  [AUTO-TRANSLATED:7bf3456d]
-    // Set merge write
+    //设置合并写
     mINI::Instance()[General::kMergeWriteMS] = merge_ms;
 
     ProtocolOption option;
@@ -161,20 +156,16 @@ int main(int argc, char *argv[]) {
         reader->startReadMP4(0, true, true);
         src = MediaSource::find(schema, DEFAULT_VHOST, app, stream, false);
         if (!src) {
-            // mp4文件不存在  [AUTO-TRANSLATED:80188fb8]
-            // mp4 file does not exist
+            // mp4文件不存在
             WarnL << "no such file or directory: " << in_url;
             return -1;
         }
     } else {
-        // 添加拉流代理  [AUTO-TRANSLATED:aa516f44]
-        // Add pull stream proxy
+        //添加拉流代理
         proxy = std::make_shared<PlayerProxy>(tuple, option);
-        // rtsp拉流代理方式  [AUTO-TRANSLATED:065d328d]
-        // rtsp pull stream proxy method
+        //rtsp拉流代理方式
         (*proxy)[Client::kRtpType] = rtp_type;
-        // 开始拉流代理  [AUTO-TRANSLATED:6937338d]
-        // Start pull stream proxy
+        //开始拉流代理
         proxy->play(in_url);
 
     }
@@ -183,8 +174,7 @@ int main(int argc, char *argv[]) {
         return MediaSource::find(schema, DEFAULT_VHOST, app, stream, false);
     };
 
-    // 推流器map  [AUTO-TRANSLATED:279fcfb0]
-    // Push streamer map
+    //推流器map
     recursive_mutex mtx;
     unordered_map<void *, MediaPusher::Ptr> pusher_map;
 
@@ -193,55 +183,44 @@ int main(int argc, char *argv[]) {
         auto pusher = std::make_shared<MediaPusher>(src);
         auto tag = pusher.get();
         pusher->setOnCreateSocket([](const EventPoller::Ptr &poller) {
-            // socket关闭互斥锁，提高性能  [AUTO-TRANSLATED:471fc644]
-            // Socket close mutex, improve performance
+            //socket关闭互斥锁，提高性能
             return Socket::createSocket(poller, false);
         });
-        // 设置推流失败监听  [AUTO-TRANSLATED:4ad49de9]
-        // Set push stream failure listener
+        //设置推流失败监听
         pusher->setOnPublished([&mtx, &pusher_map, tag](const SockException &ex) {
             if (ex) {
-                // 推流失败，移除之  [AUTO-TRANSLATED:97a29246]
-                // Push stream failed, remove it
+                //推流失败，移除之
                 lock_guard<recursive_mutex> lck(mtx);
                 pusher_map.erase(tag);
             }
         });
-        // 设置推流中途断开监听  [AUTO-TRANSLATED:228076ef]
-        // Set push stream disconnection listener
+        //设置推流中途断开监听
         pusher->setOnShutdown([&mtx, &pusher_map, tag](const SockException &ex) {
-            // 推流中途失败，移除之  [AUTO-TRANSLATED:00e0928a]
-            // Push stream failed midway, remove it
+            //推流中途失败，移除之
             lock_guard<recursive_mutex> lck(mtx);
             pusher_map.erase(tag);
         });
-        // 设置rtsp推流方式(在rtsp推流时有效)  [AUTO-TRANSLATED:2dc733df]
-        // Set rtsp push stream method (effective when rtsp push stream)
+        //设置rtsp推流方式(在rtsp推流时有效)
         (*pusher)[Client::kRtpType] = rtp_type;
-        // 发起推流请求,每个推流端的stream_id都不一样  [AUTO-TRANSLATED:8b356fcb]
-        // Initiate push stream request, each push stream end's stream_id is different
+        //发起推流请求,每个推流端的stream_id都不一样
         string url = StrPrinter << out_url << "_" << rand_str << "_" << index;
         pusher->publish(url);
 
-        // 保持对象不销毁  [AUTO-TRANSLATED:650977d0]
-        // Keep the object from being destroyed
+        //保持对象不销毁
         lock_guard<recursive_mutex> lck(mtx);
         pusher_map.emplace(tag, std::move(pusher));
 
-        // 休眠后再启动下一个推流，防止短时间海量链接  [AUTO-TRANSLATED:df224fc9]
-        // Sleep and then start the next push stream to prevent massive connections in a short time
+        //休眠后再启动下一个推流，防止短时间海量链接
         if (delay_ms > 0) {
             usleep(1000 * delay_ms);
         }
     };
 
-    // 设置退出信号  [AUTO-TRANSLATED:02c7fa30]
-    // Set exit signal
+    // 设置退出信号
     static bool exit_flag = false;
     signal(SIGINT, [](int) { exit_flag = true; });
     while (!exit_flag) {
-        // 休眠一秒打印  [AUTO-TRANSLATED:239dc996]
-        // Sleep for one second and print
+        //休眠一秒打印
         sleep(1);
 
         size_t alive_pusher = 0;
@@ -252,8 +231,7 @@ int main(int argc, char *argv[]) {
         InfoL << "在线推流器个数:" << alive_pusher;
         auto src = get_src();
         for(size_t i = 0; i < pusher_count - alive_pusher && src && !exit_flag; ++i){
-            // 有些推流器失败了，那么我们重试添加  [AUTO-TRANSLATED:d01fb300]
-            // Some push streamers failed, so we retry adding
+            //有些推流器失败了，那么我们重试添加
             add_pusher(get_src(), makeRandStr(8), i);
         }
     }

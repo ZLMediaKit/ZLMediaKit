@@ -22,39 +22,30 @@ using namespace std;
 using namespace toolkit;
 using namespace mediakit;
 
-// 推流器，保持强引用  [AUTO-TRANSLATED:b2287a61]
-// Streamer, keep a strong reference
+//推流器，保持强引用
 MediaPusher::Ptr pusher;
 Timer::Ptr g_timer;
 
-// 声明函数  [AUTO-TRANSLATED:f3911a32]
-// Declare function
+//声明函数
 void rePushDelay(const EventPoller::Ptr &poller,const string &schema,const string &vhost,const string &app, const string &stream, const string &url);
 
-// 创建推流器并开始推流  [AUTO-TRANSLATED:583100b5]
-// Create a streamer and start streaming
+//创建推流器并开始推流
 void createPusher(const EventPoller::Ptr &poller, const string &schema,const string &vhost,const string &app, const string &stream, const string &url) {
-    // 创建推流器并绑定一个MediaSource  [AUTO-TRANSLATED:b0721d46]
-    // Create a streamer and bind a MediaSource
+    //创建推流器并绑定一个MediaSource
     pusher.reset(new MediaPusher(schema,vhost, app, stream,poller));
-    // 可以指定rtsp推流方式，支持tcp和udp方式，默认tcp  [AUTO-TRANSLATED:bb0be012]
-    // You can specify the RTSP streaming method, supporting TCP and UDP methods, defaulting to TCP
+    //可以指定rtsp推流方式，支持tcp和udp方式，默认tcp
 //    (*pusher)[Client::kRtpType] = Rtsp::RTP_UDP;
-    // 设置推流中断处理逻辑  [AUTO-TRANSLATED:aa6c0405]
-    // Set the streaming interruption handling logic
+    //设置推流中断处理逻辑
     pusher->setOnShutdown([poller,schema,vhost, app, stream, url](const SockException &ex) {
         WarnL << "Server connection is closed:" << ex.getErrCode() << " " << ex.what();
-        // 重试  [AUTO-TRANSLATED:d96b4814]
-        // Retry
+        //重试
         rePushDelay(poller,schema,vhost,app, stream, url);
     });
-    // 设置发布结果处理逻辑  [AUTO-TRANSLATED:0ee98a13]
-    // Set the publishing result handling logic
+    //设置发布结果处理逻辑
     pusher->setOnPublished([poller,schema,vhost, app, stream, url](const SockException &ex) {
         if (ex) {
             WarnL << "Publish fail:" << ex.getErrCode() << " " << ex.what();
-            // 如果发布失败，就重试  [AUTO-TRANSLATED:67aff5bd]
-            // If publishing fails, retry
+            //如果发布失败，就重试
             rePushDelay(poller,schema,vhost,app, stream, url);
         } else {
             InfoL << "Publish success,Please play with player:" << url;
@@ -63,33 +54,26 @@ void createPusher(const EventPoller::Ptr &poller, const string &schema,const str
     pusher->publish(url);
 }
 
-// 推流失败或断开延迟2秒后重试推流  [AUTO-TRANSLATED:bc496634]
-// If streaming fails or is disconnected, retry streaming after a 2-second delay
+//推流失败或断开延迟2秒后重试推流
 void rePushDelay(const EventPoller::Ptr &poller,const string &schema,const string &vhost,const string &app, const string &stream, const string &url) {
     g_timer = std::make_shared<Timer>(2.0f,[poller,schema,vhost,app, stream, url]() {
         InfoL << "Re-Publishing...";
-        // 重新推流  [AUTO-TRANSLATED:edb1e699]
-        // Re-stream
+        //重新推流
         createPusher(poller,schema,vhost,app, stream, url);
-        // 此任务不重复  [AUTO-TRANSLATED:84deec34]
-        // This task is not repeated
+        //此任务不重复
         return false;
     }, poller);
 }
 
-// 这里才是真正执行main函数，你可以把函数名(domain)改成main，然后就可以输入自定义url了  [AUTO-TRANSLATED:a441f1a2]
-// This is where the main function is actually executed, you can change the function name (domain) to main, and then you can enter a custom URL
+//这里才是真正执行main函数，你可以把函数名(domain)改成main，然后就可以输入自定义url了
 int domain(const string &playUrl, const string &pushUrl) {
-    // 设置日志  [AUTO-TRANSLATED:50372045]
-    // Set the log
+    //设置日志
     Logger::Instance().add(std::make_shared<ConsoleChannel>());
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
     auto poller = EventPollerPool::Instance().getPoller();
 
-    // 拉一个流，生成一个RtmpMediaSource，源的名称是"app/stream"  [AUTO-TRANSLATED:38b8ab6f]
-    // Pull a stream and generate an RtmpMediaSource, the source name is "app/stream"
-    // 你也可以以其他方式生成RtmpMediaSource，比如说MP4文件（请查看test_rtmpPusherMp4.cpp代码）  [AUTO-TRANSLATED:c94c5914]
-    // You can also generate RtmpMediaSource in other ways, such as an MP4 file (please refer to the test_rtmpPusherMp4.cpp code)
+    //拉一个流，生成一个RtmpMediaSource，源的名称是"app/stream"
+    //你也可以以其他方式生成RtmpMediaSource，比如说MP4文件（请查看test_rtmpPusherMp4.cpp代码）
     MediaInfo info(pushUrl);
 
     ProtocolOption option;
@@ -97,25 +81,21 @@ int domain(const string &playUrl, const string &pushUrl) {
     option.enable_mp4 = false;
     auto tuple = MediaTuple{DEFAULT_VHOST, "app", "stream", ""};
     PlayerProxy::Ptr player(new PlayerProxy(tuple, option, -1, poller));
-    // 可以指定rtsp拉流方式，支持tcp和udp方式，默认tcp  [AUTO-TRANSLATED:5169e341]
-    // You can specify the RTSP streaming method, supporting TCP and UDP methods, defaulting to TCP
+    //可以指定rtsp拉流方式，支持tcp和udp方式，默认tcp
 //    (*player)[Client::kRtpType] = Rtsp::RTP_UDP;
     player->play(playUrl.data());
 
-    // 监听RtmpMediaSource注册事件,在PlayerProxy播放成功后触发  [AUTO-TRANSLATED:da417dbe]
-    // Listen for RtmpMediaSource registration events, triggered after PlayerProxy playback is successful
+    //监听RtmpMediaSource注册事件,在PlayerProxy播放成功后触发
     NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastMediaChanged,
                                          [pushUrl,poller](BroadcastMediaChangedArgs) {
-                                             // 媒体源"app/stream"已经注册，这时方可新建一个RtmpPusher对象并绑定该媒体源  [AUTO-TRANSLATED:3670cbfd]
-                                             // The media source "app/stream" has been registered, at this point you can create a new RtmpPusher object and bind it to that media source
+                                             //媒体源"app/stream"已经注册，这时方可新建一个RtmpPusher对象并绑定该媒体源
                                              if (bRegist && pushUrl.find(sender.getSchema()) == 0) {
                                                  auto tuple = sender.getMediaTuple();
                                                  createPusher(poller, sender.getSchema(), tuple.vhost, tuple.app, tuple.stream, pushUrl);
                                              }
                                          });
 
-    // 设置退出信号处理函数  [AUTO-TRANSLATED:4f047770]
-    // Set the exit signal processing function
+    //设置退出信号处理函数
     static semaphore sem;
     signal(SIGINT, [](int) { sem.post(); });// 设置退出信号
     sem.wait();

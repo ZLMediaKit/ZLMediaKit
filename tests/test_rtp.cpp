@@ -52,8 +52,7 @@ static bool loadFile(const char *path, const EventPoller::Ptr &poller) {
         while (true) {
             if (2 != fread(&len, 1, 2, fp.get())) {
                 WarnL << "Read rtp size failed";
-                // 重新播放  [AUTO-TRANSLATED:9f678d55]
-                // Replay
+                // 重新播放
                 fseek(fp.get(), 0, SEEK_SET);
                 return 1;
             }
@@ -99,12 +98,10 @@ static bool loadFile(const char *path, const EventPoller::Ptr &poller) {
 #endif // #if defined(ENABLE_RTPPROXY)
 
 int main(int argc, char *argv[]) {
-    // 设置日志  [AUTO-TRANSLATED:50ba02ba]
-    // Set log
+    // 设置日志
     Logger::Instance().add(std::make_shared<ConsoleChannel>("ConsoleChannel"));
 #if defined(ENABLE_RTPPROXY)
-    // 启动异步日志线程  [AUTO-TRANSLATED:8340d047]
-    // Start asynchronous log thread
+    // 启动异步日志线程
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
     loadIniConfig((exeDir() + "config.ini").data());
     TcpServer::Ptr rtspSrv(new TcpServer());
@@ -113,8 +110,7 @@ int main(int argc, char *argv[]) {
     rtspSrv->start<RtspSession>(554); // 默认554
     rtmpSrv->start<RtmpSession>(1935); // 默认1935
     httpSrv->start<HttpSession>(80); // 默认80
-    // 此处选择是否导出调试文件  [AUTO-TRANSLATED:b147c25b]
-    // Choose whether to export debug file here
+    // 此处选择是否导出调试文件
     // mINI::Instance()[RtpProxy::kDumpDir] = "/Users/xzl/Desktop/";
 
     if (argc == 2) {

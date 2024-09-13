@@ -31,38 +31,32 @@ protected:
     void onRecv(const Buffer::Ptr &pBuf) override {
         DebugL << pBuf->toString();
     }
-    // 被动断开连接回调  [AUTO-TRANSLATED:037fc69f]
-    // Passive disconnection callback
+    //被动断开连接回调
     void onError(const SockException &ex) override {
         WarnL << ex;
     }
-    // tcp连接成功后每2秒触发一次该事件  [AUTO-TRANSLATED:4bcf65bf]
-    // Triggered every 2 seconds after a successful TCP connection
+    //tcp连接成功后每2秒触发一次该事件
     void onManager() override {
         SockSender::send("echo test!");
         DebugL << "send echo test";
     }
-    // 连接服务器结果回调  [AUTO-TRANSLATED:b8306897]
-    // Server connection result callback
+    //连接服务器结果回调
     void onConnect(const SockException &ex) override{
         DebugL << ex;
     }
 
-    // 数据全部发送完毕后回调  [AUTO-TRANSLATED:f927c4c9]
-    // Callback after all data has been sent
+    //数据全部发送完毕后回调
     void onFlush() override{
         DebugL;
     }
 };
 
 int main(int argc, char *argv[]) {
-    // 设置退出信号处理函数  [AUTO-TRANSLATED:4f047770]
-    // Set exit signal processing function
+    //设置退出信号处理函数
     static semaphore sem;
     signal(SIGINT, [](int) { sem.post(); });// 设置退出信号
 
-    // 设置日志  [AUTO-TRANSLATED:50372045]
-    // Set log
+    //设置日志
     Logger::Instance().add(std::make_shared<ConsoleChannel>());
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 
