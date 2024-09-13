@@ -228,7 +228,8 @@ API_EXPORT mk_track API_CALL mk_media_source_get_track(const mk_media_source ctx
 API_EXPORT float API_CALL mk_media_source_get_track_loss(const mk_media_source ctx, const mk_track track) {
     assert(ctx);
     MediaSource *src = (MediaSource *)ctx;
-    // rtp推流只有一个统计器，但是可能有多个track，如果短时间多次获取间隔丢包率，第二次会获取为-1
+    // rtp推流只有一个统计器，但是可能有多个track，如果短时间多次获取间隔丢包率，第二次会获取为-1  [AUTO-TRANSLATED:b30fec2c]
+    // RTP streaming has only one statistics object, but there may be multiple tracks. If the packet loss rate is obtained multiple times in a short period, the second time will be obtained as -1
     return src->getLossRate((*((Track::Ptr *)track))->getTrackType());
 }
 
@@ -608,7 +609,8 @@ API_EXPORT void API_CALL mk_rtc_send_datachannel(const mk_rtc_transport ctx, uin
     std::string msg_str(msg, len);
     std::weak_ptr<WebRtcTransport> weak_trans = transport->shared_from_this();
     transport->getPoller()->async([streamId, ppid, msg_str, weak_trans]() {
-        // 切换线程后再操作
+        // 切换线程后再操作  [AUTO-TRANSLATED:12d77fca]
+        // Operate after switching threads
         if (auto trans = weak_trans.lock()) {
             trans->sendDatachannel(streamId, ppid, msg_str.c_str(), msg_str.size());
         }

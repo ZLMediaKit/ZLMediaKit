@@ -20,12 +20,16 @@
 
 namespace mediakit {
 
-// RTC配置项目
+// RTC配置项目  [AUTO-TRANSLATED:19940011]
+// RTC configuration project
 namespace Rtc {
-//~ nack发送端，rtp接收端
-// 最大保留的rtp丢包状态个数
+// ~ nack发送端，rtp接收端  [AUTO-TRANSLATED:bb169205]
+// ~ nack sender, rtp receiver
+// 最大保留的rtp丢包状态个数  [AUTO-TRANSLATED:70eee442]
+// Maximum number of retained rtp packet loss states
 extern const std::string kNackMaxSize;
-// rtp丢包状态最长保留时间
+// rtp丢包状态最长保留时间  [AUTO-TRANSLATED:f9306375]
+// Maximum retention time for rtp packet loss states
 extern const std::string kNackMaxMS;
 } // namespace Rtc
 
@@ -69,7 +73,8 @@ private:
     int _rtt = 50;
     onNack _cb;
     std::set<uint16_t> _seq;
-    // 最新nack包中的rtp seq值
+    // 最新nack包中的rtp seq值  [AUTO-TRANSLATED:6984d95a]
+    // RTP seq value in the latest nack packet
     uint16_t _nack_seq = 0;
 
     struct NackStatus {

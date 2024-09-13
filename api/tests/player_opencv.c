@@ -33,14 +33,16 @@ void API_CALL on_frame_decode(void *user_data, mk_frame_pix frame) {
     int align = 32; 
     size_t pixel_size = 3;
     size_t raw_linesize = w * pixel_size;
-    // 对齐后的宽度
+    // 对齐后的宽度  [AUTO-TRANSLATED:f9bfe888]
+    // Aligned width
     size_t aligned_linesize = (raw_linesize + align - 1) & ~(align - 1);
     size_t total_size = aligned_linesize * h;
     uint8_t* brg24 = malloc(total_size);
     mk_swscale_input_frame(ctx->swscale, frame, brg24);
     free(brg24);
 #else
-    //todo 此处转换为opencv对象
+    // todo 此处转换为opencv对象  [AUTO-TRANSLATED:37358ee1]
+    // todo Convert to opencv object here
     cv::Mat *mat = new cv::Mat();
     mat->create(h, w, CV_8UC3);
     mk_swscale_input_frame(ctx->swscale, frame,  (uint8_t *) mat->data);
@@ -60,7 +62,8 @@ void API_CALL on_mk_play_event_func(void *user_data, int err_code, const char *e
                 log_info("got video track: %s", mk_track_codec_name(tracks[i]));
                 ctx->video_decoder = mk_decoder_create(tracks[i], 0);
                 mk_decoder_set_cb(ctx->video_decoder, on_frame_decode, user_data);
-                //监听track数据回调
+                // 监听track数据回调  [AUTO-TRANSLATED:8295ebf6]
+                // Listen to track data callback
                 mk_track_add_delegate(tracks[i], on_track_frame_out, user_data);
             }
         }

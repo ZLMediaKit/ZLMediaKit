@@ -47,7 +47,8 @@ enum class RtpExtType : uint8_t {
 
 class RtcMedia;
 
-//使用次对象的方法前需保证RtpHeader内存未释放
+// 使用次对象的方法前需保证RtpHeader内存未释放  [AUTO-TRANSLATED:0378877f]
+// Ensure that the RtpHeader memory has not been released before using the methods of this object
 class RtpExt {
 public:
     template<typename Type>
@@ -129,9 +130,11 @@ private:
 
 private:
     OnGetRtp _cb;
-    //发送rtp时需要修改rtp ext id
+    // 发送rtp时需要修改rtp ext id  [AUTO-TRANSLATED:b92a494b]
+    // Modify the rtp ext id when sending rtp
     std::map<RtpExtType, uint8_t> _rtp_ext_type_to_id;
-    //接收rtp时需要修改rtp ext id
+    // 接收rtp时需要修改rtp ext id  [AUTO-TRANSLATED:685e7a01]
+    // Modify the rtp ext id when receiving rtp
     std::unordered_map<uint8_t, RtpExtType> _rtp_ext_id_to_type;
     //ssrc --> rid
     std::unordered_map<uint32_t/*simulcast ssrc*/, std::string/*rid*/> _ssrc_to_rid;
