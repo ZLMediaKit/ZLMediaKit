@@ -80,14 +80,17 @@ void Channel::copyData(const mediakit::FFmpegFrame::Ptr& buf, const Param::Ptr& 
                 memcpy(buf->get()->data[0] + buf->get()->linesize[0] * (i + p->posY) + p->posX,
                        _tmp->get()->data[0] + _tmp->get()->linesize[0] * i, _tmp->get()->width);
             }
-            // 确保height为奇数时，也能正确的复制到最后一行uv数据
+            // 确保height为奇数时，也能正确的复制到最后一行uv数据  [AUTO-TRANSLATED:69895ea5]
+            // Ensure that the uv data can be copied to the last line correctly when height is odd
             for (int i = 0; i < (p->height + 1) / 2; i++) {
-                // U平面
+                // U平面  [AUTO-TRANSLATED:8b73dc2d]
+                // U plane
                 memcpy(buf->get()->data[1] + buf->get()->linesize[1] * (i + p->posY / 2) +
                            p->posX / 2,
                        _tmp->get()->data[1] + _tmp->get()->linesize[1] * i, _tmp->get()->width / 2);
 
-                // V平面
+                // V平面  [AUTO-TRANSLATED:8fa72cc7]
+                // V plane
                 memcpy(buf->get()->data[2] + buf->get()->linesize[2] * (i + p->posY / 2) +
                            p->posX / 2,
                        _tmp->get()->data[2] + _tmp->get()->linesize[2] * i, _tmp->get()->width / 2);
@@ -95,7 +98,8 @@ void Channel::copyData(const mediakit::FFmpegFrame::Ptr& buf, const Param::Ptr& 
             break;
         }
         case AV_PIX_FMT_NV12: {
-            // TODO: 待实现
+            // TODO: 待实现  [AUTO-TRANSLATED:247ec1df]
+            // TODO: To be implemented
             break;
         }
 
@@ -110,7 +114,8 @@ void StackPlayer::addChannel(const std::weak_ptr<Channel>& chn) {
 void StackPlayer::play() {
 
     auto url = _url;
-    // 创建拉流 解码对象
+    // 创建拉流 解码对象  [AUTO-TRANSLATED:9267c5dc]
+    // Create a pull stream decoding object
     _player = std::make_shared<mediakit::MediaPlayer>();
     std::weak_ptr<mediakit::MediaPlayer> weakPlayer = _player;
 
@@ -127,7 +132,8 @@ void StackPlayer::play() {
         if (!self) { return; }
 
         if (!ex) {
-            // 取消定时器
+            // 取消定时器  [AUTO-TRANSLATED:41ff7c9a]
+            // Cancel the timer
             self->_timer.reset();
             self->_failedCount = 0;
 
@@ -141,7 +147,8 @@ void StackPlayer::play() {
         // auto audioTrack = std::dynamic_pointer_cast<mediakit::AudioTrack>(strongPlayer->getTrack(mediakit::TrackAudio, false));
 
         if (videoTrack) {
-            // TODO:添加使用显卡还是cpu解码的判断逻辑
+            // TODO:添加使用显卡还是cpu解码的判断逻辑  [AUTO-TRANSLATED:44bef37a]
+            // TODO: Add logic to determine whether to use GPU or CPU decoding
             auto decoder = std::make_shared<mediakit::FFmpegDecoder>(
                 videoTrack, 0, std::vector<std::string>{"h264", "hevc"});
 
@@ -227,7 +234,8 @@ VideoStack::VideoStack(const std::string& id, int width, int height, AVPixelForm
     info.iBitRate = _bitRate;
 
     _dev->initVideo(info);
-    // dev->initAudio();         //TODO:音频
+    // dev->initAudio();         //TODO:音频  [AUTO-TRANSLATED:adc5658b]
+    // dev->initAudio();         //TODO: Audio
     _dev->addTrackCompleted();
 
     _isExit = false;
@@ -276,7 +284,8 @@ void VideoStack::start() {
 }
 
 void VideoStack::initBgColor() {
-    // 填充底色
+    // 填充底色  [AUTO-TRANSLATED:ee9bbd46]
+    // Fill the background color
     auto R = 20;
     auto G = 20;
     auto B = 20;
@@ -402,11 +411,13 @@ Params VideoStackManager::parseParams(const Json::Value& json, std::string& id, 
     float gapv = json["gapv"].asFloat();// 垂直间距
     float gaph = json["gaph"].asFloat();// 水平间距
 
-    // 单个间距
+    // 单个间距  [AUTO-TRANSLATED:e1b9b5b6]
+    // Single spacing
     int gaphPix = static_cast<int>(round(width * gaph));
     int gapvPix = static_cast<int>(round(height * gapv));
 
-    // 根据间距计算格子宽高
+    // 根据间距计算格子宽高  [AUTO-TRANSLATED:b9972498]
+    // Calculate the width and height of the grid according to the spacing
     int gridWidth = cols > 1 ? (width - gaphPix * (cols - 1)) / cols : width;
     int gridHeight = rows > 1 ? (height - gapvPix * (rows - 1)) / rows : height;
 
@@ -427,7 +438,8 @@ Params VideoStackManager::parseParams(const Json::Value& json, std::string& id, 
         }
     }
 
-    // 判断是否需要合并格子 （焦点屏）
+    // 判断是否需要合并格子 （焦点屏）  [AUTO-TRANSLATED:bfa14430]
+    // Determine whether to merge grids (focus screen)
     if (json.isMember("span") && json["span"].isArray() && json["span"].size() > 0) {
         for (const auto& subArray : json["span"]) {
             if (!subArray.isArray() || subArray.size() != 2) {

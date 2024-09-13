@@ -98,7 +98,8 @@ private:
     std::string _url;
     mediakit::MediaPlayer::Ptr _player;
 
-    // 用于断线重连
+    // 用于断线重连  [AUTO-TRANSLATED:18fd242a]
+    // Used for disconnection and reconnection
     toolkit::Timer::Ptr _timer;
     int _failedCount = 0;
 
@@ -145,13 +146,16 @@ private:
 
 class VideoStackManager {
 public:
-    // 创建拼接流
+    // 创建拼接流  [AUTO-TRANSLATED:ebb3a8ec]
+    // Create a concatenated stream
     int startVideoStack(const Json::Value& json);
 
-    // 停止拼接流
+    // 停止拼接流  [AUTO-TRANSLATED:a46f341f]
+    // Stop the concatenated stream
     int stopVideoStack(const std::string& id);
 
-    // 可以在不断流的情况下，修改拼接流的配置(实现切换拼接屏内容)
+    // 可以在不断流的情况下，修改拼接流的配置(实现切换拼接屏内容)  [AUTO-TRANSLATED:f9b59b6b]
+    // You can modify the configuration of the concatenated stream (to switch the content of the concatenated screen) without stopping the stream
     int resetVideoStack(const Json::Value& json);
 
 public:

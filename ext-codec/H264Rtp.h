@@ -22,6 +22,11 @@ namespace mediakit {
  * h264 rtp解码类
  * 将 h264 over rtsp-rtp 解复用出 h264-Frame
  * rfc3984
+ * h264 rtp decoder class
+ * Demultiplex h264-Frame from h264 over rtsp-rtp
+ * rfc3984
+ 
+ * [AUTO-TRANSLATED:84b4831b]
  */
 class H264RtpDecoder : public RtpCodec{
 public:
@@ -33,6 +38,11 @@ public:
      * 输入264 rtp包
      * @param rtp rtp包
      * @param key_pos 此参数忽略之
+     * Input 264 rtp packet
+     * @param rtp rtp packet
+     * @param key_pos This parameter is ignored
+     
+     * [AUTO-TRANSLATED:a9ed29db]
      */
     bool inputRtp(const RtpPacket::Ptr &rtp, bool key_pos = true) override;
 
@@ -56,6 +66,9 @@ private:
 
 /**
  * 264 rtp打包类
+ * 264 rtp packaging class
+ 
+ * [AUTO-TRANSLATED:baed5b50]
  */
 class H264RtpEncoder : public RtpCodec {
 public:
@@ -64,11 +77,19 @@ public:
     /**
      * 输入264帧
      * @param frame 帧数据，必须
+     * Input 264 frame
+     * @param frame Frame data, required
+     
+     * [AUTO-TRANSLATED:1190bc60]
      */
     bool inputFrame(const Frame::Ptr &frame) override;
 
     /**
      * 刷新输出所有frame缓存
+     * Flush all frame buffers in the output
+     
+     
+     * [AUTO-TRANSLATED:adaea568]
      */
     void flush() override;
 
@@ -87,6 +108,6 @@ private:
     Frame::Ptr _last_frame;
 };
 
-}//namespace mediakit{
+}//namespace mediakit
 
 #endif //ZLMEDIAKIT_H264RTPCODEC_H

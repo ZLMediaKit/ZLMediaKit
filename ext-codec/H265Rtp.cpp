@@ -13,7 +13,8 @@
 namespace mediakit{
 
 //https://datatracker.ietf.org/doc/rfc7798/
-//H265 nalu 头两个字节的定义
+// H265 nalu 头两个字节的定义  [AUTO-TRANSLATED:d896dd59]
+// H265 nalu header definition of the first two bytes
 /*
  0               1
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5
@@ -71,7 +72,8 @@ H265Frame::Ptr H265RtpDecoder::obtainFrame() {
 */
 bool H265RtpDecoder::unpackAp(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssize_t size, uint64_t stamp){
     bool have_key_frame = false;
-    //忽略PayloadHdr
+    // 忽略PayloadHdr  [AUTO-TRANSLATED:9868ddb5]
+    // Ignore PayloadHdr
     CHECK_SIZE(size, 2, have_key_frame);
     ptr += 2;
     size -= 2;
@@ -125,7 +127,8 @@ bool H265RtpDecoder::mergeFu(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssiz
     auto e_bit = (ptr[2] >> 6) & 0x01;
     auto type = ptr[2] & 0x3f;
     if (s_bit) {
-        //该帧的第一个rtp包
+        // 该帧的第一个rtp包  [AUTO-TRANSLATED:a9581a23]
+        // The first rtp packet of this frame
         _frame->_buffer.assign("\x00\x00\x00\x01", 4);
         _frame->_buffer.push_back((type << 1) | (ptr[0] & 0x81));
         _frame->_buffer.push_back(ptr[1]);
@@ -134,22 +137,26 @@ bool H265RtpDecoder::mergeFu(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssiz
     }
 
     if (_fu_dropped) {
-        //该帧不完整
+        // 该帧不完整  [AUTO-TRANSLATED:6bd7eca7]
+        // This frame is incomplete
         return false;
     }
 
     if (!s_bit && seq != (uint16_t) (_last_seq + 1)) {
-        //中间的或末尾的rtp包，其seq必须连续，否则说明rtp丢包，那么该帧不完整，必须得丢弃
+        // 中间的或末尾的rtp包，其seq必须连续，否则说明rtp丢包，那么该帧不完整，必须得丢弃  [AUTO-TRANSLATED:6953b332]
+        // The middle or end rtp packet, its seq must be continuous, otherwise it means rtp packet loss, then this frame is incomplete and must be discarded
         _fu_dropped = true;
         _frame->_buffer.clear();
         return false;
     }
 
-    //跳过PayloadHdr +  FU header
+    // 跳过PayloadHdr +  FU header  [AUTO-TRANSLATED:51ec6760]
+    // Skip PayloadHdr + FU header
     ptr += 3;
     size -= 3;
     if (_using_donl_field) {
-        //DONL确保不少于2个字节
+        // DONL确保不少于2个字节  [AUTO-TRANSLATED:7e72ecc1]
+        // DONL must be no less than 2 bytes
         CHECK_SIZE(size, 2, false);
         uint16_t donl = AV_RB16(ptr);
         size -= 2;
@@ -158,17 +165,21 @@ bool H265RtpDecoder::mergeFu(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssiz
 
     CHECK_SIZE(size, 1, false);
 
-    //后面追加数据
+    // 后面追加数据  [AUTO-TRANSLATED:248516e9]
+    // Append data later
     _frame->_buffer.append((char *) ptr, size);
 
     if (!e_bit) {
-        //非末尾包
+        // 非末尾包  [AUTO-TRANSLATED:2e43ac3c]
+        // Non-end packet
         return s_bit ? (_frame->keyFrame() || _frame->configFrame()) : false;
     }
 
-    //确保下一次fu必须收到第一个包
+    // 确保下一次fu必须收到第一个包  [AUTO-TRANSLATED:491d81ec]
+    // Ensure that the next fu must receive the first packet
     _fu_dropped = true;
-    //该帧最后一个rtp包
+    // 该帧最后一个rtp包  [AUTO-TRANSLATED:ea395f0e]
+    // The last rtp packet of this frame
     outputFrame(rtp, _frame);
     return false;
 }
@@ -182,14 +193,16 @@ bool H265RtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool) {
         WarnL << "start drop h265 gop, last seq:" << _last_seq << ", rtp:\r\n" << rtp->dumpString();
     }
     _last_seq = seq;
-    // 确保有sps rtp的时候，gop从sps开始；否则从关键帧开始
+    // 确保有sps rtp的时候，gop从sps开始；否则从关键帧开始  [AUTO-TRANSLATED:115ae07c]
+    // Ensure that when there is sps rtp, gop starts from sps; otherwise, it starts from the key frame
     return _is_gop && !last_is_gop;
 }
 
 bool H265RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtp) {
     auto payload_size = rtp->getPayloadSize();
     if (payload_size <= 0) {
-        //无实际负载
+        // 无实际负载  [AUTO-TRANSLATED:305af48f]
+        // No actual payload
         return false;
     }
     auto frame = rtp->getPayload();
@@ -229,10 +242,12 @@ bool H265RtpDecoder::singleFrame(const RtpPacket::Ptr &rtp, const uint8_t *ptr, 
 
 void H265RtpDecoder::outputFrame(const RtpPacket::Ptr &rtp, const H265Frame::Ptr &frame) {
     if (frame->dropAble()) {
-        //不参与dts生成
+        // 不参与dts生成  [AUTO-TRANSLATED:dff3b747]
+        // Not involved in dts generation
         frame->_dts = frame->_pts;
     } else {
-        //rtsp没有dts，那么根据pts排序算法生成dts
+        // rtsp没有dts，那么根据pts排序算法生成dts  [AUTO-TRANSLATED:f37c17f3]
+        // rtsp does not have dts, so dts is generated according to the pts sorting algorithm
         _dts_generator.getDts(frame->_pts, frame->_dts);
     }
 
@@ -270,19 +285,26 @@ void H265RtpEncoder::packRtpFu(const char *ptr, size_t len, uint64_t pts, bool i
         }
 
         {
-            // 传入nullptr先不做payload的内存拷贝
+            // 传入nullptr先不做payload的内存拷贝  [AUTO-TRANSLATED:7ed49f0a]
+            // Pass in nullptr first, do not copy the payload memory
             auto rtp = getRtpInfo().makeRtp(TrackVideo, nullptr, max_size + 3, mark_bit, pts);
-            // rtp payload 负载部分
+            // rtp payload 负载部分  [AUTO-TRANSLATED:03a5ef9b]
+            // rtp payload load part
             uint8_t *payload = rtp->getPayload();
-            // FU 第1个字节，表明为FU
+            // FU 第1个字节，表明为FU  [AUTO-TRANSLATED:9cf07fda]
+            // FU first byte, indicating FU
             payload[0] = 49 << 1;
-            // FU 第2个字节貌似固定为1
+            // FU 第2个字节貌似固定为1  [AUTO-TRANSLATED:77983091]
+            // FU second byte seems to be fixed to 1
             payload[1] = ptr[1]; // 1;
-            // FU 第3个字节
+            // FU 第3个字节  [AUTO-TRANSLATED:c627abd0]
+            // FU third byte
             payload[2] = s_e_flags;
-            // H265 数据
+            // H265 数据  [AUTO-TRANSLATED:a2c3135f]
+            // H265 data
             memcpy(payload + 3, ptr + offset, max_size);
-            // 输入到rtp环形缓存
+            // 输入到rtp环形缓存  [AUTO-TRANSLATED:6bafd42b]
+            // Input to rtp ring buffer
             RtpCodec::inputRtp(rtp, fu_start && gop_pos);
         }
 
@@ -296,7 +318,8 @@ void H265RtpEncoder::packRtp(const char *ptr, size_t len, uint64_t pts, bool is_
         //signal-nalu 
         RtpCodec::inputRtp(getRtpInfo().makeRtp(TrackVideo, ptr, len, is_mark, pts), gop_pos);
     } else {
-        //FU-A模式
+        // FU-A模式  [AUTO-TRANSLATED:a273a49c]
+        // FU-A mode
         packRtpFu(ptr, len, pts, is_mark, gop_pos);
     }
 }
@@ -305,7 +328,8 @@ void H265RtpEncoder::insertConfigFrame(uint64_t pts){
         WarnL<<" not ok";
         return;
     }
-    //gop缓存从vps 开始，vps ,sps、pps后面还有时间戳相同的关键帧，所以mark bit为false
+    // gop缓存从vps 开始，vps ,sps、pps后面还有时间戳相同的关键帧，所以mark bit为false  [AUTO-TRANSLATED:2534b06f]
+    // gop cache starts from vps, vps, sps, pps followed by key frames with the same timestamp, so mark bit is false
     packRtp(_vps->data() + _vps->prefixSize(), _vps->size() - _vps->prefixSize(), pts, false, true);
     packRtp(_sps->data() + _sps->prefixSize(), _sps->size() - _sps->prefixSize(), pts, false, false);
     packRtp(_pps->data() + _pps->prefixSize(), _pps->size() - _pps->prefixSize(), pts, false, false);
@@ -313,7 +337,8 @@ void H265RtpEncoder::insertConfigFrame(uint64_t pts){
 }
 bool H265RtpEncoder::inputFrame_l(const Frame::Ptr &frame, bool is_mark){
      if (frame->keyFrame()) {
-        //保证每一个关键帧前都有SPS PPS VPS
+        // 保证每一个关键帧前都有SPS PPS VPS  [AUTO-TRANSLATED:9189f8d7]
+        // Ensure that there are SPS PPS VPS before each key frame
         insertConfigFrame(frame->pts());
     }
     packRtp(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize(), frame->pts(), is_mark, false);
@@ -347,7 +372,8 @@ bool H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
         inputFrame_l(frame, true);
     } else {
         if (_last_frame) {
-            //如果时间戳发生了变化，那么markbit才置true
+            // 如果时间戳发生了变化，那么markbit才置true  [AUTO-TRANSLATED:19b68429]
+            // If the timestamp changes, then markbit is set to true
             inputFrame_l(_last_frame, _last_frame->pts() != frame->pts());
         }
         _last_frame = Frame::getCacheAbleFrame(frame);
@@ -357,7 +383,8 @@ bool H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
 
 void H265RtpEncoder::flush() {
     if (_last_frame) {
-        // 如果时间戳发生了变化，那么markbit才置true
+        // 如果时间戳发生了变化，那么markbit才置true  [AUTO-TRANSLATED:6b1d0fe0]
+        // If the timestamp changes, then markbit is set to true
         inputFrame_l(_last_frame, true);
         _last_frame = nullptr;
     }

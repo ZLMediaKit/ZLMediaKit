@@ -62,7 +62,8 @@ void H264RtmpEncoder::flush() {
 bool H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     if (!_rtmp_packet) {
         _rtmp_packet = RtmpPacket::create();
-        //flags/not config/cts预占位
+        // flags/not config/cts预占位  [AUTO-TRANSLATED:7effb692]
+        // flags/not config/cts placeholder
         _rtmp_packet->buffer.resize(5);
     }
 
@@ -78,7 +79,8 @@ bool H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
             _rtmp_packet->chunk_id = CHUNK_VIDEO;
             _rtmp_packet->stream_index = STREAM_MEDIA;
             _rtmp_packet->type_id = MSG_VIDEO;
-            // 输出rtmp packet
+            // 输出rtmp packet  [AUTO-TRANSLATED:d72e89a7]
+            // Output rtmp packet
             RtmpCodec::inputRtmp(_rtmp_packet);
             _rtmp_packet = nullptr;
         }, &_rtmp_packet->buffer);

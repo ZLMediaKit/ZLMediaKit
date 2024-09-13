@@ -37,14 +37,18 @@ public:
     unsigned int channel_configuration; // 3 uimsbf  表示声道数
     unsigned int original; // 1 bslbf
     unsigned int home; // 1 bslbf
-    // 下面的为改变的参数即每一帧都不同
+    // 下面的为改变的参数即每一帧都不同  [AUTO-TRANSLATED:481aa349]
+    // The following are the parameters that change in each frame
     unsigned int copyright_identification_bit; // 1 bslbf
     unsigned int copyright_identification_start; // 1 bslbf
     unsigned int aac_frame_length; // 13 bslbf  一个ADTS帧的长度包括ADTS头和raw data block
     unsigned int adts_buffer_fullness; // 11 bslbf     0x7FF 说明是码率可变的码流
-    // no_raw_data_blocks_in_frame 表示ADTS帧中有number_of_raw_data_blocks_in_frame + 1个AAC原始帧.
-    // 所以说number_of_raw_data_blocks_in_frame == 0
-    // 表示说ADTS帧中有一个AAC数据块并不是说没有。(一个AAC原始帧包含一段时间内1024个采样及相关数据)
+    // no_raw_data_blocks_in_frame 表示ADTS帧中有number_of_raw_data_blocks_in_frame + 1个AAC原始帧.  [AUTO-TRANSLATED:3e975531]
+    // no_raw_data_blocks_in_frame indicates that there are number_of_raw_data_blocks_in_frame + 1 AAC raw frames in the ADTS frame.
+    // 所以说number_of_raw_data_blocks_in_frame == 0  [AUTO-TRANSLATED:1b8e9697]
+    // So number_of_raw_data_blocks_in_frame == 0
+    // 表示说ADTS帧中有一个AAC数据块并不是说没有。(一个AAC原始帧包含一段时间内1024个采样及相关数据)  [AUTO-TRANSLATED:4a09d783]
+    // means that there is one AAC data block in the ADTS frame, not that there is none. (An AAC raw frame contains 1024 samples and related data over a period of time)
     unsigned int no_raw_data_blocks_in_frame; // 2 uimsfb
 };
 
@@ -203,6 +207,9 @@ bool parseAacConfig(const string &config, int &samplerate, int &channels) {
 
 /**
  * aac类型SDP
+ * aac type SDP
+ 
+ * [AUTO-TRANSLATED:c06f00b1]
  */
 class AACSdp : public Sdp {
 public:
@@ -213,6 +220,14 @@ public:
      * @param sample_rate 音频采样率
      * @param channels 通道数
      * @param bitrate 比特率
+     * Constructor
+     * @param aac_cfg aac two-byte configuration description
+     * @param payload_type rtp payload type
+     * @param sample_rate audio sampling rate
+     * @param channels number of channels
+     * @param bitrate bitrate
+     
+     * [AUTO-TRANSLATED:6fe1f3b2]
      */
     AACSdp(const string &aac_cfg, int payload_type, int sample_rate, int channels, int bitrate)
         : Sdp(sample_rate, payload_type) {
@@ -271,7 +286,8 @@ int AACTrack::getAudioChannel() const {
 static Frame::Ptr addADTSHeader(const Frame::Ptr &frame_in, const std::string &aac_config) {
     auto frame = FrameImp::create();
     frame->_codec_id = CodecAAC;
-    // 生成adts头
+    // 生成adts头  [AUTO-TRANSLATED:c285b9b0]
+    // Generate adts header
     char adts_header[32] = { 0 };
     auto size = dumpAacConfig(aac_config, frame_in->size(), (uint8_t *)adts_header, sizeof(adts_header));
     CHECK(size > 0, "Invalid adts config");
@@ -290,7 +306,8 @@ bool AACTrack::inputFrame(const Frame::Ptr &frame) {
     }
 
     bool ret = false;
-    //有adts头，尝试分帧
+    // 有adts头，尝试分帧  [AUTO-TRANSLATED:f691c4ce]
+    // There is an adts header, try to frame
     int64_t dts = frame->dts();
     int64_t pts = frame->pts();
 
@@ -322,13 +339,15 @@ bool AACTrack::inputFrame(const Frame::Ptr &frame) {
 
 bool AACTrack::inputFrame_l(const Frame::Ptr &frame) {
     if (_cfg.empty() && frame->prefixSize()) {
-        // 未获取到aac_cfg信息，根据7个字节的adts头生成aac config
+        // 未获取到aac_cfg信息，根据7个字节的adts头生成aac config  [AUTO-TRANSLATED:1b80f562]
+        // Unable to get aac_cfg information, generate aac config based on the 7-byte adts header
         _cfg = makeAacConfig((uint8_t *)(frame->data()), frame->prefixSize());
         update();
     }
 
     if (frame->size() > frame->prefixSize()) {
-        // 除adts头外，有实际负载
+        // 除adts头外，有实际负载  [AUTO-TRANSLATED:5b7c088e]
+        // There is an actual payload besides the adts header
         return AudioTrack::inputFrame(frame);
     }
     return false;
@@ -377,7 +396,8 @@ Track::Ptr getTrackBySdp(const SdpTrack::Ptr &track) {
         aac_cfg_str = findSubString(track->_fmtp.data(), "config=", nullptr);
     }
     if (aac_cfg_str.empty()) {
-        // 如果sdp中获取不到aac config信息，那么在rtp也无法获取，那么忽略该Track
+        // 如果sdp中获取不到aac config信息，那么在rtp也无法获取，那么忽略该Track  [AUTO-TRANSLATED:995bc20d]
+        // If aac config information cannot be obtained from sdp, then it cannot be obtained from rtp either, so ignore this Track
         return nullptr;
     }
     string aac_cfg;

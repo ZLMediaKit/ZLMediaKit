@@ -26,11 +26,16 @@ namespace FFmpeg {
 class FFmpegSnap {
 public:
     using onSnap = std::function<void(bool success, const std::string &err_msg)>;
-    /// 创建截图
-    /// \param play_url 播放url地址，只要FFmpeg支持即可
-    /// \param save_path 截图jpeg文件保存路径
-    /// \param timeout_sec 生成截图超时时间(防止阻塞太久)
-    /// \param cb 生成截图成功与否回调
+    // / 创建截图  [AUTO-TRANSLATED:6d334c49]
+    // / Create a screenshot
+    // / \param play_url 播放url地址，只要FFmpeg支持即可  [AUTO-TRANSLATED:609d4de4]
+    // / \param play_url The playback URL address, as long as FFmpeg supports it
+    // / \param save_path 截图jpeg文件保存路径  [AUTO-TRANSLATED:0fc0ac0d]
+    // / \param save_path The path to save the screenshot JPEG file
+    // / \param timeout_sec 生成截图超时时间(防止阻塞太久)  [AUTO-TRANSLATED:0dcc0095]
+    // / \param timeout_sec Timeout for generating the screenshot (to prevent blocking for too long)
+    // / \param cb 生成截图成功与否回调  [AUTO-TRANSLATED:5b4b93c9]
+    // / \param cb Callback for whether the screenshot was generated successfully
     static void makeSnap(const std::string &play_url, const std::string &save_path, float timeout_sec, const onSnap &cb);
 
 private:
@@ -48,6 +53,9 @@ public:
 
     /**
      * 设置主动关闭回调
+     * Set the active close callback
+     
+     * [AUTO-TRANSLATED:2134a5b3]
      */
     void setOnClose(const std::function<void()> &cb);
 
@@ -58,6 +66,14 @@ public:
      * @param dst_url FFmpeg推流地址
      * @param timeout_ms 等待结果超时时间，单位毫秒
      * @param cb 成功与否回调
+     * Start playing the URL
+     * @param ffmpeg_cmd_key FFmpeg stream command configuration item key, users can set multiple command parameter templates in the configuration file at the same time
+     * @param src_url FFmpeg stream address
+     * @param dst_url FFmpeg push stream address
+     * @param timeout_ms Timeout for waiting for the result, in milliseconds
+     * @param cb Success or failure callback
+     
+     * [AUTO-TRANSLATED:2c35789e]
      */
     void play(const std::string &ffmpeg_cmd_key, const std::string &src_url, const std::string &dst_url, int timeout_ms, const onPlay &cb);
 
@@ -65,6 +81,11 @@ public:
      * 设置录制
      * @param enable_hls 是否开启hls直播或录制
      * @param enable_mp4 是否录制mp4
+     * Set recording
+     * @param enable_hls Whether to enable HLS live streaming or recording
+     * @param enable_mp4 Whether to record MP4
+     
+     * [AUTO-TRANSLATED:9f28d5c2]
      */
     void setupRecordFlag(bool enable_hls, bool enable_mp4);
 
@@ -74,11 +95,14 @@ private:
     void onGetMediaSource(const mediakit::MediaSource::Ptr &src);
 
     ///////MediaSourceEvent override///////
-    // 关闭
+    // 关闭  [AUTO-TRANSLATED:92392f02]
+    // Close
     bool close(mediakit::MediaSource &sender) override;
-    // 获取媒体源类型
+    // 获取媒体源类型  [AUTO-TRANSLATED:34290a69]
+    // Get the media source type
     mediakit::MediaOriginType getOriginType(mediakit::MediaSource &sender) const override;
-    //获取媒体源url或者文件路径
+    // 获取媒体源url或者文件路径  [AUTO-TRANSLATED:d6d885b8]
+    // Get the media source URL or file path
     std::string getOriginUrl(mediakit::MediaSource &sender) const override;
 
 private:

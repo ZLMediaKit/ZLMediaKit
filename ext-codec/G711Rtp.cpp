@@ -16,7 +16,8 @@ void G711RtpEncoder::setOpt(int opt, const toolkit::Any &param) {
                 WarnL << "set g711 rtp encoder  duration ms failed for " << dur;
                 return;
             }
-            // 向上 20ms 取整
+            // 向上 20ms 取整  [AUTO-TRANSLATED:b8a9e39e]
+            // Round up to the nearest 20ms
             _pkt_dur_ms = (dur + 19) / 20 * 20;
         }
     }
