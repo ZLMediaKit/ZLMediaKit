@@ -90,9 +90,11 @@ static bool loadFile(const char *path){
 }
 
 int main(int argc,char *argv[]) {
-    //设置日志
+    // 设置日志  [AUTO-TRANSLATED:50372045]
+    // Set log
     Logger::Instance().add(std::make_shared<ConsoleChannel>("ConsoleChannel"));
-    //启动异步日志线程
+    // 启动异步日志线程  [AUTO-TRANSLATED:c93cc6f4]
+    // Start asynchronous log thread
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
     loadIniConfig((exeDir() + "config.ini").data());
     TcpServer::Ptr rtspSrv(new TcpServer());
