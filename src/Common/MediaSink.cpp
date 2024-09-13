@@ -107,6 +107,26 @@ void MediaSink::checkTrackIfReady() {
         }
     }
 
+    // 等待音频超时时间
+    GET_CONFIG(uint32_t, kWaitAudioTrackDataMS, General::kWaitAudioTrackDataMS);
+    if (_max_track_size > 1) {
+        for (auto it = _track_map.begin(); it != _track_map.end(); ++it) {
+            if (it->second.first->getTrackType() != TrackAudio) {
+                continue;
+            }
+            if (_ticker.elapsedTime() > kWaitAudioTrackDataMS && !it->second.second) {
+                // 音频超时且完全没收到音频数据，忽略音频
+                auto index = it->second.first->getIndex();
+                WarnL << "audio track " << "index " << index << " codec " << it->second.first->getCodecName() << " receive no data for long "
+                      << _ticker.elapsedTime() << "ms. Ignore it!";
+                it = _track_map.erase(it);
+                _max_track_size -= 1;
+                _track_ready_callback.erase(index);
+                continue;
+            }
+        }
+    }
+
     if (!_all_track_ready) {
         GET_CONFIG(uint32_t, kMaxWaitReadyMS, General::kWaitTrackReadyMS);
         if (_ticker.elapsedTime() > kMaxWaitReadyMS) {

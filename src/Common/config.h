@@ -195,6 +195,9 @@ extern const std::string kCheckNvidiaDev;
 extern const std::string kEnableFFmpegLog;
 // 最多等待未初始化的Track 10秒，超时之后会忽略未初始化的Track
 extern const std::string kWaitTrackReadyMS;
+//最多等待音频Track收到数据时间，单位毫秒，超时且完全没收到音频数据，忽略音频Track
+//加快某些带封装的流metadata说明有音频，但是实际上没有的流ready时间（比如很多厂商的GB28181 PS）
+extern const std::string kWaitAudioTrackDataMS;
 // 如果直播流只有单Track，最多等待3秒，超时后未收到其他Track的数据，则认为是单Track
 // 如果协议元数据有声明特定track数，那么无此等待时间
 extern const std::string kWaitAddTrackMS;
