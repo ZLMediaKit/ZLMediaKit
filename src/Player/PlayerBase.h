@@ -36,81 +36,133 @@ public:
     /**
      * 开始播放
      * @param url 视频url，支持rtsp/rtmp
+     * Start playback
+     * @param url Video url, supports rtsp/rtmp
+     
+     * [AUTO-TRANSLATED:3871cbee]
      */
     virtual void play(const std::string &url) {};
 
     /**
      * 暂停或恢复
      * @param flag true:暂停，false:恢复
+     * Pause or resume
+     * @param flag true: pause, false: resume
+     
+     * [AUTO-TRANSLATED:2a17eab2]
      */
     virtual void pause(bool flag) {};
 
     /**
      * 获取节目总时长，单位秒
+     * Get the total duration of the program, in seconds
+     
+     * [AUTO-TRANSLATED:f3de1631]
      */
     virtual float getDuration() const { return 0; };
 
     /**
      * 倍数播放
      * @param speed 1.0 2.0 0.5
+     * Playback at a multiple
+     * @param speed 1.0 2.0 0.5
+     
+     * [AUTO-TRANSLATED:46bf057e]
      */
     virtual void speed(float speed) {};
 
     /**
      * 中断播放
+     * Interrupt playback
+     
+     * [AUTO-TRANSLATED:d962e9bc]
      */
     virtual void teardown() {};
 
     /**
      * 获取播放进度，取值 0.0 ~ 1.0
+     * Get playback progress, value 0.0 ~ 1.0
+     
+     * [AUTO-TRANSLATED:ba24f450]
      */
     virtual float getProgress() const { return 0; };
 
     /**
      * 获取播放进度pos，取值 相对开始时间增量 单位秒
+     * Get playback progress pos, value relative to the start time increment, unit seconds
+     
+     * [AUTO-TRANSLATED:1eb148ad]
      */
     virtual uint32_t getProgressPos() const { return 0; };
 
     /**
      * 拖动进度条
      * @param progress 进度，取值 0.0 ~ 1.0
+     * Drag the progress bar
+     * @param progress Progress, value 0.0 ~ 1.0
+     
+     * [AUTO-TRANSLATED:c4907336]
      */
     virtual void seekTo(float progress) {};
 
     /**
      * 拖动进度条
      * @param pos 进度，取值 相对于开始时间的增量 单位秒
+     * Drag the progress bar
+     * @param pos Progress, value relative to the start time increment, unit seconds
+     
+     * [AUTO-TRANSLATED:77dab991]
      */
     virtual void seekTo(uint32_t pos) {};
 
     /**
      * 获取丢包率，只支持rtsp
      * @param type 音频或视频，TrackInvalid时为总丢包率
+     * Get packet loss rate, only supports rtsp
+     * @param type Audio or video, TrackInvalid for total packet loss rate
+     
+     * [AUTO-TRANSLATED:aac7f19c]
      */
     virtual float getPacketLossRate(TrackType type) const { return -1; };
 
     /**
      * 获取所有track
+     * Get all tracks
+     
+     * [AUTO-TRANSLATED:5860aed6]
      */
     std::vector<Track::Ptr> getTracks(bool ready = true) const override { return std::vector<Track::Ptr>(); };
 
     /**
      * 设置一个MediaSource，直接生产rtsp/rtmp代理
+     * Set a MediaSource, directly produce rtsp/rtmp proxy
+     
+     * [AUTO-TRANSLATED:dda602c4]
      */
     virtual void setMediaSource(const MediaSource::Ptr &src) = 0;
 
     /**
      * 设置异常中断回调
+     * Set exception interrupt callback
+     
+     * [AUTO-TRANSLATED:d931e70d]
      */
     virtual void setOnShutdown(const Event &cb) = 0;
 
     /**
      * 设置播放结果回调
+     * Set playback result callback
+     
+     * [AUTO-TRANSLATED:f6d73f89]
      */
     virtual void setOnPlayResult(const Event &cb) = 0;
 
     /**
      * 设置播放恢复回调
+     * Set playback resume callback
+     
+     
+     * [AUTO-TRANSLATED:8fb31d43]
      */
     virtual void setOnResume(const std::function<void()> &cb) = 0;
 

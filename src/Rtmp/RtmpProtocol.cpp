@@ -36,7 +36,8 @@ static string openssl_HMACsha256(const void *key, size_t key_len, const void *da
     unsigned int out_len;
 
 #if defined(OPENSSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER > 0x10100000L)
-    //openssl 1.1.0新增api，老版本api作废
+    // openssl 1.1.0新增api，老版本api作废  [AUTO-TRANSLATED:4c7b59a8]
+    // OpenSSL 1.1.0 added new APIs, old APIs are deprecated
     HMAC_CTX *ctx = HMAC_CTX_new();
     HMAC_CTX_reset(ctx);
     HMAC_Init_ex(ctx, key, (int)key_len, EVP_sha256(), NULL);
@@ -171,10 +172,12 @@ void RtmpProtocol::sendInvoke(const string &cmd, const AMFValue &val) {
 
 void RtmpProtocol::sendRequest(int cmd, const string& str) {
     if (cmd <= MSG_SET_PEER_BW) {
-        // 若 cmd 属于 Protocol Control Messages ，则应使用 chunk id 2 发送
+        // 若 cmd 属于 Protocol Control Messages ，则应使用 chunk id 2 发送  [AUTO-TRANSLATED:3f17e21f]
+        // If cmd belongs to Protocol Control Messages, it should be sent using chunk id 2
         sendRtmp(cmd, _stream_index, str, 0, CHUNK_NETWORK);
     } else {
-        // 否则使用 chunk id 发送(任意值3-128，参见 obs 及 ffmpeg 选取 3)
+        // 否则使用 chunk id 发送(任意值3-128，参见 obs 及 ffmpeg 选取 3)  [AUTO-TRANSLATED:65f8d861]
+        // Otherwise, use chunk id to send (any value 3-128, see obs and ffmpeg select 3)
         sendRtmp(cmd, _stream_index, str, 0, CHUNK_SYSTEM);
     }
 }
@@ -210,14 +213,17 @@ void RtmpProtocol::sendRtmp(uint8_t type, uint32_t stream_index, const Buffer::P
         auto strErr = StrPrinter << "不支持发送该类型的块流 ID:" << chunk_id << endl;
         throw std::runtime_error(strErr);
     }
-    //是否有扩展时间戳
+    // 是否有扩展时间戳  [AUTO-TRANSLATED:85bae69f]
+    // Does it have an extended timestamp
     bool ext_stamp = stamp >= 0xFFFFFF;
 
-    //rtmp头
+    // rtmp头  [AUTO-TRANSLATED:915b278c]
+    // RTMP header
     BufferRaw::Ptr buffer_header = obtainBuffer();
     buffer_header->setCapacity(sizeof(RtmpHeader));
     buffer_header->setSize(sizeof(RtmpHeader));
-    //对rtmp头赋值，如果使用整形赋值，在arm android上可能由于数据对齐导致总线错误的问题
+    // 对rtmp头赋值，如果使用整形赋值，在arm android上可能由于数据对齐导致总线错误的问题  [AUTO-TRANSLATED:90c79d70]
+    // Assign values to the RTMP header. If using integer assignment, it may cause bus errors on ARM Android due to data alignment issues
     RtmpHeader *header = (RtmpHeader *) buffer_header->data();
     header->fmt = 0;
     header->chunk_id = chunk_id;
@@ -225,20 +231,24 @@ void RtmpProtocol::sendRtmp(uint8_t type, uint32_t stream_index, const Buffer::P
     set_be24(header->time_stamp, ext_stamp ? 0xFFFFFF : stamp);
     set_be24(header->body_size, (uint32_t)buf->size());
     set_le32(header->stream_index, stream_index);
-    //发送rtmp头
+    // 发送rtmp头  [AUTO-TRANSLATED:3c038cd5]
+    // Send RTMP header
     onSendRawData(std::move(buffer_header));
 
-    //扩展时间戳字段
+    // 扩展时间戳字段  [AUTO-TRANSLATED:6f79a475]
+    // Extended timestamp field
     BufferRaw::Ptr buffer_ext_stamp;
     if (ext_stamp) {
-        //生成扩展时间戳
+        // 生成扩展时间戳  [AUTO-TRANSLATED:cd22977a]
+        // Generate extended timestamp
         buffer_ext_stamp = obtainBuffer();
         buffer_ext_stamp->setCapacity(4);
         buffer_ext_stamp->setSize(4);
         set_be32(buffer_ext_stamp->data(), stamp);
     }
 
-    //生成一个字节的flag，标明是什么chunkId
+    // 生成一个字节的flag，标明是什么chunkId  [AUTO-TRANSLATED:fbdbf476]
+    // Generate a one-byte flag to indicate what chunkId it is
     BufferRaw::Ptr buffer_flags = obtainBuffer();
     buffer_flags->setCapacity(1);
     buffer_flags->setSize(1);
@@ -254,7 +264,8 @@ void RtmpProtocol::sendRtmp(uint8_t type, uint32_t stream_index, const Buffer::P
             totalSize += 1;
         }
         if (ext_stamp) {
-            //扩展时间戳
+            // 扩展时间戳  [AUTO-TRANSLATED:f263b9bf]
+            // Extended timestamp
             onSendRawData(buffer_ext_stamp);
             totalSize += 4;
         }
@@ -275,12 +286,15 @@ void RtmpProtocol::onParseRtmp(const char *data, size_t size) {
 }
 
 const char *RtmpProtocol::onSearchPacketTail(const char *data,size_t len){
-    //移动拷贝提高性能
+    // 移动拷贝提高性能  [AUTO-TRANSLATED:1e6fce8d]
+    // Move copy to improve performance
     auto next_step_func(std::move(_next_step_func));
-    //执行下一步
+    // 执行下一步  [AUTO-TRANSLATED:4199a3e3]
+    // Execute the next step
     auto ret = next_step_func(data, len);
     if (!_next_step_func) {
-        //为设置下一步，恢复之
+        // 为设置下一步，恢复之  [AUTO-TRANSLATED:b5494ef3]
+        // Set the next step, restore it
         next_step_func.swap(_next_step_func);
     }
     return ret;
@@ -288,7 +302,8 @@ const char *RtmpProtocol::onSearchPacketTail(const char *data,size_t len){
 
 ////for client////
 void RtmpProtocol::startClientSession(const function<void()> &func, bool complex) {
-    //发送 C0C1
+    // 发送 C0C1  [AUTO-TRANSLATED:5da06136]
+    // Send C0C1
     char handshake_head = HANDSHAKE_PLAINTEXT;
     onSendRawData(obtainBuffer(&handshake_head, 1));
     RtmpHandshake c1(0);
@@ -297,25 +312,30 @@ void RtmpProtocol::startClientSession(const function<void()> &func, bool complex
     }
     onSendRawData(obtainBuffer((char *) (&c1), sizeof(c1)));
     _next_step_func = [this, func](const char *data, size_t len) {
-        //等待 S0+S1+S2
+        // 等待 S0+S1+S2  [AUTO-TRANSLATED:3f95dd6d]
+        // Wait for S0+S1+S2
         return handle_S0S1S2(data, len, func);
     };
 }
 
 const char* RtmpProtocol::handle_S0S1S2(const char *data, size_t len, const function<void()> &func) {
     if (len < 1 + 2 * C1_HANDSHARK_SIZE) {
-        //数据不够
+        // 数据不够  [AUTO-TRANSLATED:72802244]
+        // Not enough data
         return nullptr;
     }
     if (data[0] != HANDSHAKE_PLAINTEXT) {
         throw std::runtime_error("only plaintext[0x03] handshake supported");
     }
-    //发送 C2
+    // 发送 C2  [AUTO-TRANSLATED:e51c339e]
+    // Send C2
     const char *pcC2 = data + 1;
     onSendRawData(obtainBuffer(pcC2, C1_HANDSHARK_SIZE));
-    //握手结束
+    // 握手结束  [AUTO-TRANSLATED:9df763ff]
+    // Handshake finished
     _next_step_func = [this](const char *data, size_t len) {
-        //握手结束并且开始进入解析命令模式
+        // 握手结束并且开始进入解析命令模式  [AUTO-TRANSLATED:3b4e0886]
+        // Handshake finished and start entering command parsing mode
         return handle_rtmp(data, len);
     };
     func();
@@ -347,24 +367,30 @@ const char * RtmpProtocol::handle_C0C1(const char *data, size_t len) {
 }
 
 void RtmpProtocol::handle_C1_simple(const char *data){
-    //发送S0
+    // 发送S0  [AUTO-TRANSLATED:79eca118]
+    // Send S0
     char handshake_head = HANDSHAKE_PLAINTEXT;
     onSendRawData(obtainBuffer(&handshake_head, 1));
-    //发送S1
+    // 发送S1  [AUTO-TRANSLATED:a86847cf]
+    // Send S1
     RtmpHandshake s1(0);
     onSendRawData(obtainBuffer((char *) &s1, C1_HANDSHARK_SIZE));
-    //发送S2
+    // 发送S2  [AUTO-TRANSLATED:dbcf960a]
+    // Send S2
     onSendRawData(obtainBuffer(data + 1, C1_HANDSHARK_SIZE));
-    //等待C2
+    // 等待C2  [AUTO-TRANSLATED:b9900831]
+    // Wait for C2
     _next_step_func = [this](const char *data, size_t len) {
-        //握手结束并且开始进入解析命令模式
+        // 握手结束并且开始进入解析命令模式  [AUTO-TRANSLATED:3b4e0886]
+        // Handshake finished and start entering command parsing mode
         return handle_C2(data, len);
     };
 }
 
 #ifdef ENABLE_OPENSSL
 void RtmpProtocol::handle_C1_complex(const char *data){
-    //参考自:http://blog.csdn.net/win_lin/article/details/13006803
+    // 参考自:http://blog.csdn.net/win_lin/article/details/13006803  [AUTO-TRANSLATED:97a05bd3]
+    // Refer to: http://blog.csdn.net/win_lin/article/details/13006803
     //skip c0,time,version
     const char *c1_start = data + 1;
     const char *schema_start = c1_start + 8;
@@ -384,7 +410,8 @@ void RtmpProtocol::handle_C1_complex(const char *data){
         send_complex_S0S1S2(0, digest);
 //		InfoL << "schema0";
     } catch (std::exception &) {
-        //貌似flash从来都不用schema1
+        // 貌似flash从来都不用schema1  [AUTO-TRANSLATED:2c6d140f]
+        // It seems that flash never uses schema1
 //		WarnL << "try rtmp complex schema0 failed:" <<  ex.what();
         try {
             /* c1s1 schema1
@@ -449,6 +476,13 @@ string RtmpProtocol::get_C1_digest(const uint8_t *ptr,char **digestPos){
     random-data: (offset)bytes
     digest-data: 32bytes
     random-data: (764-4-offset-32)bytes
+     *764bytes digest structure
+     offset: 4bytes
+     random-data: (offset)bytes
+     digest-data: 32bytes
+     random-data: (764-4-offset-32)bytes
+     
+     * [AUTO-TRANSLATED:99455c22]
      */
     int offset = 0;
     for (int i = 0; i < C1_OFFSET_SIZE; ++i) {
@@ -467,6 +501,13 @@ string RtmpProtocol::get_C1_key(const uint8_t *ptr){
     key-data: 128bytes
     random-data: (764-offset-128-4)bytes
     offset: 4bytes
+     *764bytes key structure
+     random-data: (offset)bytes
+     key-data: 128bytes
+     random-data: (764-offset-128-4)bytes
+     offset: 4bytes
+     
+     * [AUTO-TRANSLATED:25b8d7c7]
      */
     int offset = 0;
     for (int i = C1_SCHEMA_SIZE - C1_OFFSET_SIZE; i < C1_SCHEMA_SIZE; ++i) {
@@ -479,8 +520,10 @@ string RtmpProtocol::get_C1_key(const uint8_t *ptr){
 }
 
 void RtmpProtocol::send_complex_S0S1S2(int schemeType,const string &digest){
-    //S1S2计算参考自:https://github.com/hitYangfei/golang/blob/master/rtmpserver.go
-    //发送S0
+    // S1S2计算参考自:https://github.com/hitYangfei/golang/blob/master/rtmpserver.go  [AUTO-TRANSLATED:8a372a12]
+    // S1S2 calculation refers to: https://github.com/hitYangfei/golang/blob/master/rtmpserver.go
+    // 发送S0  [AUTO-TRANSLATED:79eca118]
+    // Send S0
     char handshake_head = HANDSHAKE_PLAINTEXT;
     onSendRawData(obtainBuffer(&handshake_head, 1));
     //S1
@@ -518,29 +561,36 @@ void RtmpProtocol::send_complex_S0S1S2(int schemeType,const string &digest){
     string s2_digest = openssl_HMACsha256(s2_key.data(), s2_key.size(), &s2, sizeof(s2) - C1_DIGEST_SIZE);
     memcpy((char *) &s2 + C1_HANDSHARK_SIZE - C1_DIGEST_SIZE, s2_digest.data(), C1_DIGEST_SIZE);
     onSendRawData(obtainBuffer((char *) &s2, sizeof(s2)));
-    //等待C2
+    // 等待C2  [AUTO-TRANSLATED:b9900831]
+    // Wait for C2
     _next_step_func = [this](const char *data, size_t len) {
         return handle_C2(data, len);
     };
 }
 #endif //ENABLE_OPENSSL
 
-//发送复杂握手c0c1
+// 发送复杂握手c0c1  [AUTO-TRANSLATED:f6f646dc]
+// Send complex handshake c0c1
 void RtmpHandshake::create_complex_c0c1() {
 #ifdef ENABLE_OPENSSL
     memcpy(zero, "\x80\x00\x07\x02", 4);
-    //digest随机偏移长度
+    // digest随机偏移长度  [AUTO-TRANSLATED:758606f0]
+    // Digest random offset length
     auto offset_value = rand() % (C1_SCHEMA_SIZE - C1_OFFSET_SIZE - C1_DIGEST_SIZE);
-    //设置digest偏移长度
+    // 设置digest偏移长度  [AUTO-TRANSLATED:1a4caf92]
+    // Set digest offset length
     auto offset_ptr = random + C1_SCHEMA_SIZE;
     offset_ptr[0] = offset_ptr[1] = offset_ptr[2] = offset_value / 4;
     offset_ptr[3] = offset_value - 3 * (offset_value / 4);
-    //去除digest后的剩余随机数据
+    // 去除digest后的剩余随机数据  [AUTO-TRANSLATED:133cc74e]
+    // Remove the remaining random data after digest
     string str((char *) this, sizeof(*this));
     str.erase(8 + C1_SCHEMA_SIZE + C1_OFFSET_SIZE + offset_value, C1_DIGEST_SIZE);
-    //获取摘要
+    // 获取摘要  [AUTO-TRANSLATED:2a7aab55]
+    // Get digest
     auto digest_value = openssl_HMACsha256(FPKey, C1_FPKEY_SIZE, str.data(), str.size());
-    //插入摘要
+    // 插入摘要  [AUTO-TRANSLATED:3f12641b]
+    // Insert digest
     memcpy(random + C1_SCHEMA_SIZE + C1_OFFSET_SIZE + offset_value, digest_value.data(), digest_value.size());
 #endif
 }
@@ -554,7 +604,8 @@ const char* RtmpProtocol::handle_C2(const char *data, size_t len) {
         return handle_rtmp(data, len);
     };
 
-    //握手结束，进入命令模式
+    // 握手结束，进入命令模式  [AUTO-TRANSLATED:2b22d604]
+    // Handshake ends, enter command mode
     return handle_rtmp(data + C1_HANDSHARK_SIZE, len - C1_HANDSHARK_SIZE);
 }
 
@@ -569,8 +620,10 @@ const char* RtmpProtocol::handle_rtmp(const char *data, size_t len) {
         _now_chunk_id = header->chunk_id;
         switch (_now_chunk_id) {
             case 0: {
-                //0 值表示二字节形式，并且 ID 范围 64 - 319
-                //(第二个字节 + 64)。
+                // 0 值表示二字节形式，并且 ID 范围 64 - 319  [AUTO-TRANSLATED:46207a57]
+                // 0 value represents two-byte form, and ID range is 64 - 319
+                // (第二个字节 + 64)。  [AUTO-TRANSLATED:ab640c90]
+                // (second byte + 64).
                 if (len < 2) {
                     //need more data
                     return ptr;
@@ -581,8 +634,10 @@ const char* RtmpProtocol::handle_rtmp(const char *data, size_t len) {
             }
 
             case 1: {
-                //1 值表示三字节形式，并且 ID 范围为 64 - 65599
-                //((第三个字节) * 256 + 第二个字节 + 64)。
+                // 1 值表示三字节形式，并且 ID 范围为 64 - 65599  [AUTO-TRANSLATED:e7f24d54]
+                // 1 value represents three-byte form, and ID range is 64 - 65599
+                // ((第三个字节) * 256 + 第二个字节 + 64)。  [AUTO-TRANSLATED:6e631032]
+                // ((third byte) * 256 + second byte + 64).
                 if (len < 3) {
                     //need more data
                     return ptr;
@@ -592,7 +647,8 @@ const char* RtmpProtocol::handle_rtmp(const char *data, size_t len) {
                 break;
             }
 
-            //带有 2 值的块流 ID 被保留，用于下层协议控制消息和命令。
+            // 带有 2 值的块流 ID 被保留，用于下层协议控制消息和命令。  [AUTO-TRANSLATED:b0987fdb]
+            // Block stream IDs with a value of 2 are reserved for lower-level protocol control messages and commands.
             default : break;
         }
 
@@ -607,10 +663,12 @@ const char* RtmpProtocol::handle_rtmp(const char *data, size_t len) {
         if (!now_packet) {
             now_packet = RtmpPacket::create();
             if (last_packet) {
-                //恢复chunk上下文
+                // 恢复chunk上下文  [AUTO-TRANSLATED:84bf0621]
+                // Restore chunk context
                 *now_packet = *last_packet;
             }
-            //绝对时间戳标记复位
+            // 绝对时间戳标记复位  [AUTO-TRANSLATED:a0d50bad]
+            // Absolute timestamp marker reset
             now_packet->is_abs_stamp = false;
         }
         auto &chunk_data = *now_packet;
@@ -654,7 +712,8 @@ const char* RtmpProtocol::handle_rtmp(const char *data, size_t len) {
             //frame is ready
             _now_stream_index = chunk_data.stream_index;
             chunk_data.time_stamp = time_stamp + (chunk_data.is_abs_stamp ? 0 : chunk_data.time_stamp);
-            //保存chunk上下文
+            // 保存chunk上下文  [AUTO-TRANSLATED:4ed4fbb0]
+            // Save chunk context
             last_packet = now_packet;
             if (chunk_data.body_size) {
                 handle_chunk(std::move(now_packet));
@@ -715,7 +774,8 @@ void RtmpProtocol::handle_chunk(RtmpPacket::Ptr packet) {
                 }
 
                 case CONTROL_STREAM_BEGIN: {
-                    //开始播放
+                    // 开始播放  [AUTO-TRANSLATED:1d82b293]
+                    // Start playback
                     if (chunk_data.buffer.size() < 4) {
                         WarnL << "CONTROL_STREAM_BEGIN: Not enough data:" << chunk_data.buffer.size();
                         break;
@@ -727,7 +787,8 @@ void RtmpProtocol::handle_chunk(RtmpPacket::Ptr packet) {
                 }
 
                 case CONTROL_STREAM_EOF: {
-                    //暂停
+                    // 暂停  [AUTO-TRANSLATED:73a3f145]
+                    // Pause
                     if (chunk_data.buffer.size() < 4) {
                         throw std::runtime_error("CONTROL_STREAM_EOF: Not enough data.");
                     }
@@ -738,7 +799,8 @@ void RtmpProtocol::handle_chunk(RtmpPacket::Ptr packet) {
                 }
 
                 case CONTROL_STREAM_DRY: {
-                    //停止播放
+                    // 停止播放  [AUTO-TRANSLATED:1292c1b5]
+                    // Stop playback
                     if (chunk_data.buffer.size() < 4) {
                         throw std::runtime_error("CONTROL_STREAM_DRY: Not enough data.");
                     }
@@ -754,8 +816,10 @@ void RtmpProtocol::handle_chunk(RtmpPacket::Ptr packet) {
         }
 
         case MSG_WIN_SIZE: {
-            //如果窗口太小，会导致发送sendAcknowledgement时无限递归：https://github.com/ZLMediaKit/ZLMediaKit/issues/1839
-            //窗口太大，也可能导致fms服务器认为播放器心跳超时
+            // 如果窗口太小，会导致发送sendAcknowledgement时无限递归：https://github.com/ZLMediaKit/ZLMediaKit/issues/1839  [AUTO-TRANSLATED:05267962]
+            // If the window is too small, it will cause infinite recursion when sending sendAcknowledgement: https://github.com/ZLMediaKit/ZLMediaKit/issues/1839
+            // 窗口太大，也可能导致fms服务器认为播放器心跳超时  [AUTO-TRANSLATED:30147e88]
+            // If the window is too large, it may also cause the fms server to consider the player heartbeat timeout
             _windows_size = min(max(load_be32(&chunk_data.buffer[0]), 32 * 1024U), 1280 * 1024U);
             TraceL << "MSG_WIN_SIZE:" << _windows_size;
             break;
@@ -784,7 +848,8 @@ void RtmpProtocol::handle_chunk(RtmpPacket::Ptr packet) {
                 ts |= (*ptr << 24);
                 ptr += 1;
                 ptr += 3;
-                //参考FFmpeg多拷贝了4个字节
+                // 参考FFmpeg多拷贝了4个字节  [AUTO-TRANSLATED:d8aae4ae]
+                // Reference FFmpeg copied 4 more bytes
                 size += 4;
                 if (ptr + size > ptr_tail) {
                     break;

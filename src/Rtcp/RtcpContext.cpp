@@ -64,13 +64,16 @@ void RtcpContextForSend::onRtcp(RtcpHeader *rtcp) {
             if (it == _sender_report_ntp.end()) {
                 continue;
             }
-            // 发送sr到收到rr之间的时间戳增量
+            // 发送sr到收到rr之间的时间戳增量  [AUTO-TRANSLATED:da014bf1]
+            // Timestamp increment between sending sr and receiving rr
             auto ms_inc = getCurrentMillisecond() - it->second;
-            // rtp接收端收到sr包后，回复rr包的延时，已转换为毫秒
+            // rtp接收端收到sr包后，回复rr包的延时，已转换为毫秒  [AUTO-TRANSLATED:bfab8622]
+            // Delay of the rtp receiver replying to the rr packet after receiving the sr packet, converted to milliseconds
             auto delay_ms = (uint64_t)item->delay_since_last_sr * 1000 / 65536;
             auto rtt = (int)(ms_inc - delay_ms);
             if (rtt >= 0) {
-                // rtt不可能小于0
+                // rtt不可能小于0  [AUTO-TRANSLATED:34914014]
+                // RTT cannot be less than 0
                 _rtt[item->ssrc] = rtt;
                 // InfoL << "ssrc:" << item->ssrc << ",rtt:" << rtt;
             }
@@ -111,11 +114,13 @@ Buffer::Ptr RtcpContextForSend::createRtcpSR(uint32_t rtcp_ssrc) {
     rtcp->packet_count = htonl((uint32_t)_packets);
     rtcp->octet_count = htonl((uint32_t)_bytes);
 
-    // 记录上次发送的sender report信息，用于后续统计rtt
+    // 记录上次发送的sender report信息，用于后续统计rtt  [AUTO-TRANSLATED:1d22d2c8]
+    // Record the last sent sender report information for subsequent RTT statistics
     auto last_sr_lsr = ((ntohl(rtcp->ntpmsw) & 0xFFFF) << 16) | ((ntohl(rtcp->ntplsw) >> 16) & 0xFFFF);
     _sender_report_ntp[last_sr_lsr] = getCurrentMillisecond();
     if (_sender_report_ntp.size() >= 5) {
-        // 删除最早的sr rtcp
+        // 删除最早的sr rtcp  [AUTO-TRANSLATED:2457e08d]
+        // Delete the earliest sr rtcp
         _sender_report_ntp.erase(_sender_report_ntp.begin());
     }
 
@@ -141,7 +146,8 @@ toolkit::Buffer::Ptr RtcpContextForSend::createRtcpXRDLRR(uint32_t rtcp_ssrc, ui
         rtcp->items.dlrr = 0;
         WarnL;
     } else {
-        // now - Last SR time,单位毫秒
+        // now - Last SR time,单位毫秒  [AUTO-TRANSLATED:cc449199]
+        // now - Last SR time, in milliseconds
         auto delay = getCurrentMillisecond() - _xr_rrtr_recv_sys_stamp[rtp_ssrc];
         // in units of 1/65536 seconds
         auto dlsr = (uint32_t)(delay / 1000.0f * 65536);
@@ -155,38 +161,46 @@ toolkit::Buffer::Ptr RtcpContextForSend::createRtcpXRDLRR(uint32_t rtcp_ssrc, ui
 void RtcpContextForRecv::onRtp(
     uint16_t seq, uint32_t stamp, uint64_t ntp_stamp_ms, uint32_t sample_rate, size_t bytes) {
     {
-        // 接收者才做复杂的统计运算
+        // 接收者才做复杂的统计运算  [AUTO-TRANSLATED:853c68e0]
+        // The receiver performs complex statistical calculations
         auto sys_stamp = getCurrentMillisecond();
         if (_last_rtp_sys_stamp) {
-            // 计算时间戳抖动值
+            // 计算时间戳抖动值  [AUTO-TRANSLATED:cd3571b4]
+            // Calculate the timestamp jitter value
             double diff = double(
                 (int64_t(sys_stamp) - int64_t(_last_rtp_sys_stamp)) * (sample_rate / double(1000.0))
                 - (int64_t(stamp) - int64_t(_last_rtp_stamp)));
             if (diff < 0) {
                 diff = -diff;
             }
-            // 抖动单位为采样次数
+            // 抖动单位为采样次数  [AUTO-TRANSLATED:b713633a]
+            // Jitter unit is the number of samples
             _jitter += (diff - _jitter) / 16.0;
         } else {
             _jitter = 0;
         }
 
         if (_last_rtp_seq > 0xFF00 && seq < 0xFF && (!_seq_cycles || _packets - _last_cycle_packets > 0x1FFF)) {
-            // 上次seq大于0xFF00且本次seq小于0xFF，
-            // 且未发生回环或者距离上次回环间隔超过0x1FFF个包，则认为回环
+            // 上次seq大于0xFF00且本次seq小于0xFF，  [AUTO-TRANSLATED:82dd69fa]
+            // Last seq is greater than 0xFF00 and this seq is less than 0xFF,
+            // 且未发生回环或者距离上次回环间隔超过0x1FFF个包，则认为回环  [AUTO-TRANSLATED:2907b595]
+            // and no loopback occurs or the interval between the last loopback is greater than 0x1FFF packets, then it is considered a loopback
             ++_seq_cycles;
             _last_cycle_packets = _packets;
             _seq_max = seq;
         } else if (seq > _seq_max) {
-            // 本次回环前最大seq
+            // 本次回环前最大seq  [AUTO-TRANSLATED:c02f6a87]
+            // Maximum seq before this loopback
             _seq_max = seq;
         }
 
         if (!_seq_base) {
-            // 记录第一个rtp的seq
+            // 记录第一个rtp的seq  [AUTO-TRANSLATED:ce2bb7d7]
+            // Record the seq of the first rtp
             _seq_base = seq;
         } else if (!_seq_cycles && seq < _seq_base) {
-            // 未发生回环，那么取最新的seq为基准seq
+            // 未发生回环，那么取最新的seq为基准seq  [AUTO-TRANSLATED:721b37fc]
+            // If no loopback occurs, then take the latest seq as the base seq
             _seq_base = seq;
         }
 
@@ -258,7 +272,8 @@ Buffer::Ptr RtcpContextForRecv::createRtcpRR(uint32_t rtcp_ssrc, uint32_t rtp_ss
     item->jitter = htonl(uint32_t(_jitter));
     item->last_sr_stamp = htonl(_last_sr_lsr);
 
-    // now - Last SR time,单位毫秒
+    // now - Last SR time,单位毫秒  [AUTO-TRANSLATED:cc449199]
+    // now - Last SR time, in milliseconds
     auto delay = getCurrentMillisecond() - _last_sr_ntp_sys;
     // in units of 1/65536 seconds
     auto dlsr = (uint32_t)(delay / 1000.0f * 65536);

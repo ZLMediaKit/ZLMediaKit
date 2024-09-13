@@ -255,7 +255,8 @@ public:
     void check(size_t size);
     uint16_t getPid() const;
     uint16_t getBlp() const;
-    // 返回丢包列表，总长度17，第一个包必丢
+    // 返回丢包列表，总长度17，第一个包必丢  [AUTO-TRANSLATED:5d5cd4b8]
+    // Return the list of lost packets, total length 17, the first packet must be lost
     //  TODO: replace std::bitset
     std::vector<bool> getBitArray() const;
     std::string dumpString() const;
@@ -321,9 +322,11 @@ public:
 enum class SymbolStatus : uint8_t {
     // Packet not received
     not_received = 0,
-    // Packet received, small delta （所谓small detal是指能用一个字节表示的数值）
+    // Packet received, small delta （所谓small detal是指能用一个字节表示的数值）  [AUTO-TRANSLATED:50af3beb]
+    // Packet received, small delta (so-called small delta refers to a value that can be represented by one byte)
     small_delta = 1,
-    // Packet received, large ornegative delta （large即是能用两个字节表示的数值）
+    // Packet received, large ornegative delta （large即是能用两个字节表示的数值）  [AUTO-TRANSLATED:7a16594d]
+    // Packet received, large or negative delta (large is a value that can be represented by two bytes)
     large_delta = 2,
     // Reserved
     reserved = 3
@@ -359,7 +362,8 @@ public:
     void check(size_t size);
     std::string dumpString(size_t total_size) const;
     uint16_t getBaseSeq() const;
-    // 单位64ms
+    // 单位64ms  [AUTO-TRANSLATED:992ffed7]
+    // Unit 64ms
     uint32_t getReferenceTime() const;
     uint16_t getPacketCount() const;
     TwccPacketStatus getPacketChunkList(size_t total_size) const;
@@ -367,13 +371,17 @@ public:
     static std::string create(uint32_t ref_time, uint8_t fb_pkt_count, TwccPacketStatus &status);
 
 private:
-    // base sequence number,基础序号,本次反馈的第一个包的序号;也就是RTP扩展头的序列号
+    // base sequence number,基础序号,本次反馈的第一个包的序号;也就是RTP扩展头的序列号  [AUTO-TRANSLATED:4e43ffcc]
+    // base sequence number, basic sequence number, the sequence number of the first packet in this feedback; that is, the sequence number of the RTP extension header
     uint16_t base_seq;
-    // packet status count, 包个数,本次反馈包含多少个包的状态;从基础序号开始算
+    // packet status count, 包个数,本次反馈包含多少个包的状态;从基础序号开始算  [AUTO-TRANSLATED:533efb94]
+    // packet status count, number of packets, how many packet statuses are included in this feedback; counted from the base sequence number
     uint16_t pkt_status_count;
-    // reference time,基准时间,绝对时间;计算该包中每个媒体包的到达时间都要基于这个基准时间计算
+    // reference time,基准时间,绝对时间;计算该包中每个媒体包的到达时间都要基于这个基准时间计算  [AUTO-TRANSLATED:5265d98e]
+    // reference time, reference time, absolute time; the arrival time of each media packet in this packet is calculated based on this reference time
     uint8_t ref_time[3];
-    // feedback packet count,反馈包号,本包是第几个transport-cc包，每次加1                          |
+    // feedback packet count,反馈包号,本包是第几个transport-cc包，每次加1                          |  [AUTO-TRANSLATED:1ff6d73e]
+    // feedback packet count, feedback packet number, this packet is the nth transport-cc packet, incremented by 1 each time                          |
     uint8_t fb_pkt_count;
 };
 #pragma pack(pop)

@@ -21,14 +21,16 @@ RtpPacket::Ptr RtpInfo::makeRtp(TrackType type, const void* data, size_t len, bo
     rtp->type = type;
     rtp->track_index = _track_index;
 
-    //rtsp over tcp 头
+    // rtsp over tcp 头  [AUTO-TRANSLATED:4225b9ec]
+    // rtsp over tcp header
     auto ptr = (uint8_t *) rtp->data();
     ptr[0] = '$';
     ptr[1] = _interleaved;
     ptr[2] = payload_len >> 8;
     ptr[3] = payload_len & 0xFF;
 
-    //rtp头
+    // rtp头  [AUTO-TRANSLATED:64aef747]
+    // rtp header
     auto header = rtp->getHeader();
     header->version = RtpPacket::kRtpVersion;
     header->padding = 0;
@@ -41,7 +43,8 @@ RtpPacket::Ptr RtpInfo::makeRtp(TrackType type, const void* data, size_t len, bo
     header->stamp = htonl(uint64_t(stamp) * _sample_rate / 1000);
     header->ssrc = htonl(_ssrc);
     rtp->ntp_stamp = stamp;
-    //有效负载
+    // 有效负载  [AUTO-TRANSLATED:8530a274]
+    // payload
     if (data) {
         memcpy(&ptr[RtpPacket::kRtpHeaderSize + RtpPacket::kRtpTcpHeaderSize], data, len);
     }

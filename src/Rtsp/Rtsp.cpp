@@ -102,7 +102,8 @@ string SdpTrack::getName() const {
 
 string SdpTrack::getControlUrl(const string &base_url) const {
     if (_control.find("://") != string::npos) {
-        // 以rtsp://开头
+        // 以rtsp://开头  [AUTO-TRANSLATED:293b3f8c]
+        // Starts with rtsp://
         return _control;
     }
     return base_url + "/" + _control;
@@ -224,7 +225,8 @@ void SdpParser::load(const string &sdp) {
 
             sscanf(rtpmap.data(), "%d", &pt);
             if (track._pt != pt && track._pt != 0xff) {
-                // pt不匹配
+                // pt不匹配  [AUTO-TRANSLATED:ce7abb0a]
+                // pt mismatch
                 it = track._attr.erase(it);
                 continue;
             }
@@ -245,7 +247,8 @@ void SdpParser::load(const string &sdp) {
             int pt;
             sscanf(fmtp.data(), "%d", &pt);
             if (track._pt != pt && track._pt != 0xff) {
-                // pt不匹配
+                // pt不匹配  [AUTO-TRANSLATED:ce7abb0a]
+                // pt mismatch
                 it = track._attr.erase(it);
                 continue;
             }
@@ -259,7 +262,8 @@ void SdpParser::load(const string &sdp) {
         }
 
         if (!track._samplerate && track._type == TrackVideo) {
-            // 未设置视频采样率时，赋值为90000
+            // 未设置视频采样率时，赋值为90000  [AUTO-TRANSLATED:416c4f0f]
+            // If video sampling rate is not set, assign it to 90000
             track._samplerate = 90000;
         } else if (!track._samplerate && track._type == TrackAudio) {
             // some rtsp sdp no sample rate but has fmt config to parser get sample rate
@@ -333,7 +337,8 @@ string SdpParser::toString() const {
 std::string SdpParser::getControlUrl(const std::string &url) const {
     auto title_track = getTrack(TrackTitle);
     if (title_track && title_track->_control.find("://") != string::npos) {
-        // 以rtsp://开头
+        // 以rtsp://开头  [AUTO-TRANSLATED:293b3f8c]
+        // Starts with rtsp://
         return title_track->_control;
     }
     return url;
@@ -366,7 +371,8 @@ public:
         }
         makeSockPair_l(sock_pair, pair, local_ip, re_use_port, is_udp);
 
-        // 确保udp和tcp模式都能打开
+        // 确保udp和tcp模式都能打开  [AUTO-TRANSLATED:dcb46232]
+        // Ensure both udp and tcp modes are open
         auto new_pair = std::make_pair(Socket::createSocket(), Socket::createSocket());
         makeSockPair_l(sock_pair, new_pair, local_ip, re_use_port, !is_udp);
     }
@@ -376,32 +382,38 @@ public:
         auto &sock1 = pair.second;
         if (is_udp) {
             if (!sock0->bindUdpSock(2 * *sock_pair, local_ip.data(), re_use_port)) {
-                // 分配端口失败
+                // 分配端口失败  [AUTO-TRANSLATED:59ecd25d]
+                // Port allocation failed
                 throw runtime_error("open udp socket[0] failed");
             }
 
             if (!sock1->bindUdpSock(2 * *sock_pair + 1, local_ip.data(), re_use_port)) {
-                // 分配端口失败
+                // 分配端口失败  [AUTO-TRANSLATED:59ecd25d]
+                // Port allocation failed
                 throw runtime_error("open udp socket[1] failed");
             }
 
             auto on_cycle = [sock_pair](Socket::Ptr &, std::shared_ptr<void> &) {};
-            // udp socket没onAccept事件，设置该回调，目的是为了在销毁socket时，回收对象
+            // udp socket没onAccept事件，设置该回调，目的是为了在销毁socket时，回收对象  [AUTO-TRANSLATED:ee91256f]
+            // UDP socket has no onAccept event, set this callback to recycle the object when destroying the socket
             sock0->setOnAccept(on_cycle);
             sock1->setOnAccept(on_cycle);
         } else {
             if (!sock0->listen(2 * *sock_pair, local_ip.data())) {
-                // 分配端口失败
+                // 分配端口失败  [AUTO-TRANSLATED:59ecd25d]
+                // Port allocation failed
                 throw runtime_error("listen tcp socket[0] failed");
             }
 
             if (!sock1->listen(2 * *sock_pair + 1, local_ip.data())) {
-                // 分配端口失败
+                // 分配端口失败  [AUTO-TRANSLATED:59ecd25d]
+                // Port allocation failed
                 throw runtime_error("listen tcp socket[1] failed");
             }
 
             auto on_cycle = [sock_pair](const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len) {};
-            // udp socket没onAccept事件，设置该回调，目的是为了在销毁socket时，回收对象
+            // udp socket没onAccept事件，设置该回调，目的是为了在销毁socket时，回收对象  [AUTO-TRANSLATED:ee91256f]
+            // UDP socket has no onAccept event, set this callback to recycle the object when destroying the socket
             sock0->setOnRead(on_cycle);
             sock1->setOnRead(on_cycle);
         }
@@ -413,7 +425,8 @@ private:
         lock_guard<recursive_mutex> lck(_pool_mtx);
         auto it = _port_pair_pool.begin();
         while (start_pos < end_pos) {
-            // 随机端口排序，防止重启后导致分配的端口重复
+            // 随机端口排序，防止重启后导致分配的端口重复  [AUTO-TRANSLATED:b622db1c]
+            // Randomly sort ports to prevent duplicate port allocation after restart
             _port_pair_pool.insert(it, start_pos++);
             it = _port_pair_pool.begin() + (rng() % (1 + _port_pair_pool.size()));
         }
@@ -436,7 +449,8 @@ private:
                 return;
             }
             InfoL << "return port to pool:" << 2 * pos << "-" << 2 * pos + 1;
-            // 回收端口号
+            // 回收端口号  [AUTO-TRANSLATED:646a5284]
+            // Recycle port number
             lock_guard<recursive_mutex> lck(strong_self->_pool_mtx);
             strong_self->_port_pair_pool.emplace_back(pos);
         });
@@ -452,7 +466,8 @@ void makeSockPair(std::pair<Socket::Ptr, Socket::Ptr> &pair, const string &local
     int try_count = 0;
     while (true) {
         try {
-            // udp和tcp端口池使用相同算法和范围分配，但是互不相干
+            // udp和tcp端口池使用相同算法和范围分配，但是互不相干  [AUTO-TRANSLATED:86200c72]
+            // UDP and TCP port pools use the same algorithm and range for allocation, but are independent of each other
             if (is_udp) {
                 PortManager<0>::Instance().makeSockPair(pair, local_ip, re_use_port, is_udp);
             } else {
@@ -518,7 +533,8 @@ Buffer::Ptr makeRtpOverTcpPrefix(uint16_t size, uint8_t interleaved) {
 #define AV_RB16(x) ((((const uint8_t *)(x))[0] << 8) | ((const uint8_t *)(x))[1])
 
 size_t RtpHeader::getCsrcSize() const {
-    // 每个csrc占用4字节
+    // 每个csrc占用4字节  [AUTO-TRANSLATED:6237ca37]
+    // Each csrc occupies 4 bytes
     return csrc << 2;
 }
 
@@ -530,18 +546,21 @@ uint8_t *RtpHeader::getCsrcData() {
 }
 
 size_t RtpHeader::getExtSize() const {
-    // rtp有ext
+    // rtp有ext  [AUTO-TRANSLATED:d5d9af4f]
+    // RTP has ext
     if (!ext) {
         return 0;
     }
     auto ext_ptr = &payload + getCsrcSize();
     // uint16_t reserved = AV_RB16(ext_ptr);
-    // 每个ext占用4字节
+    // 每个ext占用4字节  [AUTO-TRANSLATED:93e9b453]
+    // Each ext occupies 4 bytes
     return AV_RB16(ext_ptr + 2) << 2;
 }
 
 uint16_t RtpHeader::getExtReserved() const {
-    // rtp有ext
+    // rtp有ext  [AUTO-TRANSLATED:d5d9af4f]
+    // RTP has ext
     if (!ext) {
         return 0;
     }
@@ -554,12 +573,14 @@ uint8_t *RtpHeader::getExtData() {
         return nullptr;
     }
     auto ext_ptr = &payload + getCsrcSize();
-    // 多出的4个字节分别为reserved、ext_len
+    // 多出的4个字节分别为reserved、ext_len  [AUTO-TRANSLATED:070138f4]
+    // The extra 4 bytes are reserved, ext_len
     return ext_ptr + 4;
 }
 
 size_t RtpHeader::getPayloadOffset() const {
-    // 有ext时，还需要忽略reserved、ext_len 4个字节
+    // 有ext时，还需要忽略reserved、ext_len 4个字节  [AUTO-TRANSLATED:3e222997]
+    // When there is ext, you also need to ignore the reserved, ext_len 4 bytes
     return getCsrcSize() + (ext ? (4 + getExtSize()) : 0);
 }
 
@@ -600,7 +621,8 @@ string RtpHeader::dumpString(size_t rtp_size) const {
 ///////////////////////////////////////////////////////////////////////
 
 RtpHeader *RtpPacket::getHeader() {
-    // 需除去rtcp over tcp 4个字节长度
+    // 需除去rtcp over tcp 4个字节长度  [AUTO-TRANSLATED:936f6f5b]
+    // Need to remove the rtcp over tcp 4 byte length
     return (RtpHeader *)(data() + RtpPacket::kRtpTcpHeaderSize);
 }
 
@@ -633,7 +655,8 @@ uint8_t *RtpPacket::getPayload() {
 }
 
 size_t RtpPacket::getPayloadSize() const {
-    // 需除去rtcp over tcp 4个字节长度
+    // 需除去rtcp over tcp 4个字节长度  [AUTO-TRANSLATED:936f6f5b]
+    // Need to remove the rtcp over tcp 4 byte length
     return getHeader()->getPayloadSize(size() - kRtpTcpHeaderSize);
 }
 
@@ -656,6 +679,12 @@ RtpPacket::Ptr RtpPacket::create() {
  * @param dur_sec rtsp点播时长，0代表直播，单位秒
  * @param header 自定义sdp描述
  * @param version sdp版本
+ * Construct title type sdp
+ * @param dur_sec rtsp on-demand duration, 0 represents live broadcast, unit is seconds
+ * @param header Custom sdp description
+ * @param version sdp version
+ 
+ * [AUTO-TRANSLATED:a548fc69]
  */
 
 TitleSdp::TitleSdp(float dur_sec, const std::map<std::string, std::string> &header, int version)
@@ -674,10 +703,12 @@ TitleSdp::TitleSdp(float dur_sec, const std::map<std::string, std::string> &head
     }
 
     if (dur_sec <= 0) {
-        // 直播
+        // 直播  [AUTO-TRANSLATED:079c0cbc]
+        // Live broadcast
         _printer << "a=range:npt=now-\r\n";
     } else {
-        // 点播
+        // 点播  [AUTO-TRANSLATED:f0b0f74a]
+        // On-demand
         _dur_sec = dur_sec;
         _printer << "a=range:npt=0-" << dur_sec << "\r\n";
     }

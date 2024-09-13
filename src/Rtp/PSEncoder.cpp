@@ -24,7 +24,8 @@ PSEncoderImp::PSEncoderImp(uint32_t ssrc, uint8_t payload_type, bool ps_or_ts) :
     _rtp_encoder = std::make_shared<CommonRtpEncoder>();
     auto video_mtu = s_video_mtu;
     if (!ps_or_ts) {
-        // 确保ts rtp负载部分长度是188的倍数
+        // 确保ts rtp负载部分长度是188的倍数  [AUTO-TRANSLATED:ad7aa6c0]
+        // Ensure the ts rtp payload length is a multiple of 188
         video_mtu = RtpPacket::kRtpHeaderSize + (s_video_mtu - (s_video_mtu % 188));
         if (video_mtu > s_video_mtu) {
             video_mtu -= 188;

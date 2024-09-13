@@ -31,21 +31,34 @@ public:
 
     /**
      * 重置所有Track
+     * Reset all Tracks
+     
+     * [AUTO-TRANSLATED:8dd80826]
      */
     void resetTracks() override;
 
     /**
      * 输入frame
+     * Input frame
+     
+     * [AUTO-TRANSLATED:3722ea0e]
      */
     bool inputFrame(const Frame::Ptr &frame) override;
 
     /**
      * 刷新输出所有frame缓存
+     * Refresh output all frame cache
+     
+     * [AUTO-TRANSLATED:adaea568]
      */
     void flush() override;
 
     /**
      * 添加ready状态的track
+     * Add ready state track
+     
+     
+     * [AUTO-TRANSLATED:2d8138b3]
      */
     bool addTrack(const Track::Ptr & track) override;
 

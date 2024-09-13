@@ -38,7 +38,8 @@ PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &in_poller, cons
     string prefix = findSubString(url.data(), NULL, "://");
     auto pos = url.find('?');
     if (pos != string::npos) {
-        //去除？后面的字符串
+        // 去除？后面的字符串  [AUTO-TRANSLATED:0ccb41c2]
+        // Remove the string after the question mark
         url = url.substr(0, pos);
     }
 

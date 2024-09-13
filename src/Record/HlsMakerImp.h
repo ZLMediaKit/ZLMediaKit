@@ -27,17 +27,28 @@ public:
 
     /**
      * 设置媒体信息
+     * Set media information
+     
+     * [AUTO-TRANSLATED:d205db9f]
      */
     void setMediaSource(const MediaTuple& tuple);
 
     /**
      * 获取MediaSource
      * @return
+     * Get MediaSource
+     * @return
+     
+     * [AUTO-TRANSLATED:af916433]
      */
     HlsMediaSource::Ptr getMediaSource() const;
 
      /**
       * 清空缓存
+      * Clear cache
+      
+      
+      * [AUTO-TRANSLATED:f872d7e2]
       */
      void clearCache();
 

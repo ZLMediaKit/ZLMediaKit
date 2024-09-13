@@ -24,41 +24,65 @@ public:
 
     /**
      * 添加已经ready状态的track
+     * Add tracks that are in ready state
+     
+     * [AUTO-TRANSLATED:ea4983df]
      */
     bool addTrack(const Track::Ptr &track) override;
 
     /**
      * 输入帧
+     * Input frame
+     
+     * [AUTO-TRANSLATED:c91b5ec6]
      */
     bool inputFrame(const Frame::Ptr &frame) override;
 
     /**
      * 重置所有track
+     * Reset all tracks
+     
+     * [AUTO-TRANSLATED:f203fa3e]
      */
     void resetTracks() override;
 
     /**
      * 刷新输出所有frame缓存
+     * Refresh all frame cache output
+     
+     * [AUTO-TRANSLATED:adaea568]
      */
     void flush() override;
 
     /**
      * 是否包含视频
+     * Whether it contains video
+     
+     * [AUTO-TRANSLATED:6d9e1039]
      */
     bool haveVideo() const;
 
     /**
      * 保存fmp4分片
+     * Save fmp4 fragment
+     
+     * [AUTO-TRANSLATED:7b808759]
      */
     void saveSegment();
 
     /**
      * 创建新切片
+     * Create new fragment
+     
+     * [AUTO-TRANSLATED:b27545cf]
      */
     void initSegment();
 
     /**
      * 获取mp4时长,单位毫秒
+     * Get mp4 duration, in milliseconds
+     
+     * [AUTO-TRANSLATED:d87afcfb]
      */
     uint64_t getDuration() const;
 
@@ -93,17 +117,27 @@ public:
     ~MP4Muxer() override;
     /**
      * 重置所有track
+     * Reset all tracks
+     
+     * [AUTO-TRANSLATED:f203fa3e]
      */
     void resetTracks() override;
 
     /**
      * 打开mp4
      * @param file 文件完整路径
+     * Open mp4
+     * @param file Full file path
+     
+     * [AUTO-TRANSLATED:416892f4]
      */
     void openMP4(const std::string &file);
 
     /**
      * 手动关闭文件(对象析构时会自动关闭)
+     * Manually close the file (it will be closed automatically when the object is destructed)
+     
+     * [AUTO-TRANSLATED:9ca68ff9]
      */
     void closeMP4();
 
@@ -121,16 +155,25 @@ public:
 
     /**
      * 重置所有track
+     * Reset all tracks
+     
+     * [AUTO-TRANSLATED:f203fa3e]
      */
     void resetTracks() override;
 
     /**
      * 输入帧
+     * Input frame
+     
+     * [AUTO-TRANSLATED:c91b5ec6]
      */
     bool inputFrame(const Frame::Ptr &frame) override;
 
     /**
      * 获取fmp4 init segment
+     * Get fmp4 init segment
+     
+     * [AUTO-TRANSLATED:6c704ec9]
      */
     const std::string &getInitSegment();
 
@@ -140,6 +183,12 @@ protected:
      * @param std::string 切片内容
      * @param stamp 切片末尾时间戳
      * @param key_frame 是否有关键帧
+     * Output fmp4 fragment callback function
+     * @param std::string Fragment content
+     * @param stamp Fragment end timestamp
+     * @param key_frame Whether there is a key frame
+     
+     * [AUTO-TRANSLATED:dd742da5]
      */
     virtual void onSegmentData(std::string string, uint64_t stamp, bool key_frame) = 0;
 
@@ -173,6 +222,13 @@ protected:
      * @param std::string 切片内容
      * @param stamp 切片末尾时间戳
      * @param key_frame 是否有关键帧
+     * Output fmp4 fragment callback function
+     * @param std::string Fragment content
+     * @param stamp Fragment end timestamp
+     * @param key_frame Whether there is a key frame
+     
+     
+     * [AUTO-TRANSLATED:dd742da5]
      */
     virtual void onSegmentData(std::string string, uint64_t stamp, bool key_frame) = 0;
 };

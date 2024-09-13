@@ -26,7 +26,8 @@ static void setOnCreateSocket_l(const std::shared_ptr<PlayerBase> &delegate, con
         if (cb) {
             helper->setOnCreateSocket(cb);
         } else {
-            //客户端，确保开启互斥锁
+            // 客户端，确保开启互斥锁  [AUTO-TRANSLATED:a75e6e36]
+            // Client, ensure mutual exclusion lock is enabled
             helper->setOnCreateSocket([](const EventPoller::Ptr &poller) {
                 return Socket::createSocket(poller, true);
             });

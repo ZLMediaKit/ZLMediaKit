@@ -16,12 +16,14 @@ namespace mediakit {
 
 void HttpClientImp::onConnect(const SockException &ex) {
     if (isUsedProxy() && !isProxyConnected()) {
-        // 连接代理服务器
+        // 连接代理服务器  [AUTO-TRANSLATED:e7a8979a]
+        // Connect to the proxy server
         setDoNotUseSSL();
         HttpClient::onConnect(ex);
     } else {
         if (!isHttps()) {
-            // https 302跳转 http时，需要关闭ssl
+            // https 302跳转 http时，需要关闭ssl  [AUTO-TRANSLATED:2ba55daf]
+            // When https 302 redirects to http, ssl needs to be closed
             setDoNotUseSSL();
             HttpClient::onConnect(ex);
         } else {

@@ -60,7 +60,8 @@ public:
     std::vector<Track::Ptr> getTracks(bool ready = true) const override;
 
 private:
-    //派生类回调函数
+    // 派生类回调函数  [AUTO-TRANSLATED:61e20903]
+    // Derived class callback function
     bool onCheckSDP(const std::string &sdp) override;
 
     void onRecvRTP(RtpPacket::Ptr rtp, const SdpTrack::Ptr &track) override;

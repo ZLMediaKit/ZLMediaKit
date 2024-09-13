@@ -103,16 +103,19 @@ bool DevChannel::inputAAC(const char *data_without_adts, int len, uint64_t dts, 
     }
 
     if (!adts_header) {
-        //没有adts头
+        // 没有adts头  [AUTO-TRANSLATED:b9faaa83]
+        // No adts header
         return inputFrame(std::make_shared<FrameFromPtr>(CodecAAC, (char *) data_without_adts, len, dts, 0, 0));
     }
 
     if (adts_header + ADTS_HEADER_LEN == data_without_adts) {
-        //adts头和帧在一起
+        // adts头和帧在一起  [AUTO-TRANSLATED:76c4e678]
+        // adts header and frame together
         return inputFrame(std::make_shared<FrameFromPtr>(CodecAAC, (char *) data_without_adts - ADTS_HEADER_LEN, len + ADTS_HEADER_LEN, dts, 0, ADTS_HEADER_LEN));
     }
 
-    //adts头和帧不在一起
+    // adts头和帧不在一起  [AUTO-TRANSLATED:591dd07a]
+    // adts header and frame not together
     char *data_with_adts = new char[len + ADTS_HEADER_LEN];
     memcpy(data_with_adts, adts_header, ADTS_HEADER_LEN);
     memcpy(data_with_adts + ADTS_HEADER_LEN, data_without_adts, len);

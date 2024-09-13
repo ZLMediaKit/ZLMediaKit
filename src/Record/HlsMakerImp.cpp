@@ -43,7 +43,8 @@ HlsMakerImp::HlsMakerImp(bool is_fmp4, const string &m3u8_file, const string &pa
 
 HlsMakerImp::~HlsMakerImp() {
     try {
-        // 可能hls注册时导致抛异常
+        // 可能hls注册时导致抛异常  [AUTO-TRANSLATED:82add30d]
+        // Possible exception thrown during hls registration
         clearCache(false, true);
     } catch (std::exception &ex) {
         WarnL << ex.what();
@@ -62,7 +63,8 @@ static void clearHls(const std::list<std::string> &files) {
 }
 
 void HlsMakerImp::clearCache(bool immediately, bool eof) {
-    // 录制完了
+    // 录制完了  [AUTO-TRANSLATED:5d3bfbeb]
+    // Recording finished
     flushLastSegment(eof);
     if (!isLive() || isKeep()) {
         return;
@@ -79,7 +81,8 @@ void HlsMakerImp::clearCache(bool immediately, bool eof) {
             lst.emplace_back(std::move(pr.second));
         }
 
-        // hls直播才删除文件
+        // hls直播才删除文件  [AUTO-TRANSLATED:81d2aaa5]
+        // Delete file only after hls live streaming
         GET_CONFIG(uint32_t, delay, Hls::kDeleteDelaySec);
         if (!delay || immediately) {
             clearHls(lst);
@@ -110,7 +113,8 @@ string HlsMakerImp::onOpenSegment(uint64_t index) {
     }
     _file = makeFile(segment_path, true);
 
-    // 保存本切片的元数据
+    // 保存本切片的元数据  [AUTO-TRANSLATED:64e6f692]
+    // Save metadata for this slice
     _info.start_time = ::time(NULL);
     _info.file_name = segment_name;
     _info.file_path = segment_path;
@@ -171,7 +175,8 @@ void HlsMakerImp::onWriteHls(const std::string &data, bool include_delay) {
 }
 
 void HlsMakerImp::onFlushLastSegment(uint64_t duration_ms) {
-    // 关闭并flush文件到磁盘
+    // 关闭并flush文件到磁盘  [AUTO-TRANSLATED:9798ec4d]
+    // Close and flush file to disk
     _file = nullptr;
 
     GET_CONFIG(bool, broadcastRecordTs, Hls::kBroadcastRecordTs);

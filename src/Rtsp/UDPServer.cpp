@@ -33,7 +33,8 @@ Socket::Ptr UDPServer::getSock(SocketHelper &helper, const char* local_ip, int i
     if (it == _udp_sock_map.end()) {
         Socket::Ptr sock = helper.createSocket();
         if (!sock->bindUdpSock(local_port, local_ip)) {
-            //分配失败
+            // 分配失败  [AUTO-TRANSLATED:a6c6a6e6]
+            // Allocation failed
             return nullptr;
         }
 

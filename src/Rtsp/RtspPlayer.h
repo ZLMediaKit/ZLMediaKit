@@ -24,7 +24,8 @@
 
 namespace mediakit {
 
-//实现了rtsp播放器协议部分的功能，及数据接收功能
+// 实现了rtsp播放器协议部分的功能，及数据接收功能  [AUTO-TRANSLATED:c1ed5c0f]
+// Implemented the rtsp player protocol part functionality, and data receiving functionality
 class RtspPlayer : public PlayerBase, public toolkit::TcpClient, public RtspSplitter, public RtpReceiver {
 public:
     using Ptr = std::shared_ptr<RtspPlayer>;
@@ -39,7 +40,8 @@ public:
     float getPacketLossRate(TrackType type) const override;
 
 protected:
-    //派生类回调函数
+    // 派生类回调函数  [AUTO-TRANSLATED:61e20903]
+    // Derived class callback function
     virtual bool onCheckSDP(const std::string &sdp) = 0;
     virtual void onRecvRTP(RtpPacket::Ptr rtp, const SdpTrack::Ptr &track) = 0;
     uint32_t getProgressMilliSecond() const;
@@ -48,6 +50,10 @@ protected:
     /**
      * 收到完整的rtsp包回调，包括sdp等content数据
      * @param parser rtsp包
+     * Callback for receiving a complete rtsp packet, including sdp and other content data
+     * @param parser rtsp packet
+     
+     * [AUTO-TRANSLATED:4d3c2056]
      */
     void onWholeRtspPacket(Parser &parser) override ;
 
@@ -55,6 +61,11 @@ protected:
      * 收到rtp包回调
      * @param data
      * @param len
+     * Callback for receiving rtp packet
+     * @param data
+     * @param len
+     
+     * [AUTO-TRANSLATED:c8f7c9bb]
      */
     void onRtpPacket(const char *data,size_t len) override ;
 
@@ -62,6 +73,11 @@ protected:
      * rtp数据包排序后输出
      * @param rtp rtp数据包
      * @param track_idx track索引
+     * Output rtp data packets after sorting
+     * @param rtp rtp data packet
+     * @param track_idx track index
+     
+     * [AUTO-TRANSLATED:8f9ca364]
      */
     void onRtpSorted(RtpPacket::Ptr rtp, int track_idx) override;
 
@@ -69,6 +85,11 @@ protected:
      * 解析出rtp但还未排序
      * @param rtp rtp数据包
      * @param track_index track索引
+     * Parse out rtp but not yet sorted
+     * @param rtp rtp data packet
+     * @param track_index track index
+     
+     * [AUTO-TRANSLATED:c1636911]
      */
     void onBeforeRtpSorted(const RtpPacket::Ptr &rtp, int track_index) override;
 
@@ -78,6 +99,13 @@ protected:
      * @param track sdp相关信息
      * @param data rtcp内容
      * @param len rtcp内容长度
+     * Callback for receiving RTCP packet
+     * @param track_idx track index
+     * @param track sdp related information
+     * @param data rtcp content
+     * @param len rtcp content length
+     
+     * [AUTO-TRANSLATED:1a2cfa4f]
      */
     virtual void onRtcpPacket(int track_idx, SdpTrack::Ptr &track, uint8_t *data, size_t len);
 
@@ -109,27 +137,35 @@ private:
     void createUdpSockIfNecessary(int track_idx);
 
 private:
-    //是否为性能测试模式
+    // 是否为性能测试模式  [AUTO-TRANSLATED:1fde8234]
+    // Whether it is performance test mode
     bool _benchmark_mode = false;
-    //轮流发送rtcp与GET_PARAMETER保活
+    // 轮流发送rtcp与GET_PARAMETER保活  [AUTO-TRANSLATED:5b6f9c37]
+    // Send rtcp and GET_PARAMETER keep-alive in turn
     bool _send_rtcp[2] = {true, true};
 
-    // 心跳类型
+    // 心跳类型  [AUTO-TRANSLATED:c22abb05]
+    // Heartbeat type
     uint32_t _beat_type = 0;
-    // 心跳保护间隔
+    // 心跳保护间隔  [AUTO-TRANSLATED:de16d9c9]
+    // Heartbeat protection interval
     uint32_t _beat_interval_ms = 0;
 
     std::string _play_url;
-    // rtsp开始倍速
+    // rtsp开始倍速  [AUTO-TRANSLATED:9ab84508]
+    // Rtsp start speed
     float _speed= 0.0f;
     std::vector<SdpTrack::Ptr> _sdp_track;
     std::function<void(const Parser&)> _on_response;
-    //RTP端口,trackid idx 为数组下标
+    // RTP端口,trackid idx 为数组下标  [AUTO-TRANSLATED:77c186bb]
+    // RTP port, trackid idx is the array subscript
     toolkit::Socket::Ptr _rtp_sock[2];
-    //RTCP端口,trackid idx 为数组下标
+    // RTCP端口,trackid idx 为数组下标  [AUTO-TRANSLATED:446a7861]
+    // RTCP port, trackid idx is the array subscript
     toolkit::Socket::Ptr _rtcp_sock[2];
 
-    //rtsp鉴权相关
+    // rtsp鉴权相关  [AUTO-TRANSLATED:947dc6a3]
+    // Rtsp authentication related
     std::string _md5_nonce;
     std::string _realm;
     //rtsp info
@@ -139,19 +175,24 @@ private:
     std::string _control_url;
     Rtsp::eRtpType _rtp_type = Rtsp::RTP_TCP;
 
-    //当前rtp时间戳
+    // 当前rtp时间戳  [AUTO-TRANSLATED:410f2691]
+    // Current rtp timestamp
     uint32_t _stamp[2] = {0, 0};
 
-    //超时功能实现
+    // 超时功能实现  [AUTO-TRANSLATED:1d603b3a]
+    // Timeout function implementation
     toolkit::Ticker _rtp_recv_ticker;
     std::shared_ptr<toolkit::Timer> _play_check_timer;
     std::shared_ptr<toolkit::Timer> _rtp_check_timer;
-    //服务器支持的命令
+    // 服务器支持的命令  [AUTO-TRANSLATED:f7f589bf]
+    // Server supported commands
     std::set<std::string> _supported_cmd;
     ////////// rtcp ////////////////
-    //rtcp发送时间,trackid idx 为数组下标
+    // rtcp发送时间,trackid idx 为数组下标  [AUTO-TRANSLATED:bf3248b1]
+    // Rtcp send time, trackid idx is the array subscript
     toolkit::Ticker _rtcp_send_ticker[2];
-    //统计rtp并发送rtcp
+    // 统计rtp并发送rtcp  [AUTO-TRANSLATED:0ac2b665]
+    // Statistics rtp and send rtcp
     std::vector<RtcpContext::Ptr> _rtcp_context;
 };
 
