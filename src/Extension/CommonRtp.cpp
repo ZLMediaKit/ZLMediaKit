@@ -58,7 +58,7 @@ bool CommonRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool){
 
     _last_seq = seq;
 
-    if(_drop_flag&&rtp->getHeader()->mark){
+    if (_drop_flag && rtp->getHeader()->mark) {
         _drop_flag = false;
     }
     return false;
