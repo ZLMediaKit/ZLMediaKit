@@ -52,7 +52,6 @@ public:
     /**
      * 发送http[s]请求
      * @param url 请求url
-     ```java
      * Send http[s] request
      * @param url Request url
      
@@ -251,9 +250,6 @@ protected:
      * @param url Redirect url
      * @param temporary Whether it is a temporary redirect
      * @return Whether to continue
-     
-     
-     ```
      * [AUTO-TRANSLATED:b64d5f8b]
      */
     virtual bool onRedirectUrl(const std::string &url, bool temporary) { return true; };

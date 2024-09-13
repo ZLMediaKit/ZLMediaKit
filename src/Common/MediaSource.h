@@ -169,8 +169,7 @@ public:
         uint32_t rtcp_send_interval_ms = 5 * 1000;
 
         // 发送rtp同时接收，一般用于双向语言对讲, 如果不为空，说明开启接收  [AUTO-TRANSLATED:f4c18084]
-        // ```cpp
-// Send rtp while receiving, generally used for two-way language intercom, if not empty, it means receiving is enabled
+        // Send rtp while receiving, generally used for two-way language intercom, if not empty, it means receiving is enabled
         std::string recv_stream_id;
 
         std::string recv_stream_app;
@@ -300,7 +299,6 @@ public:
 
     // 最大track数  [AUTO-TRANSLATED:2565fd37]
     // Maximum number of tracks
-```
     size_t max_track = 2;
 
     template <typename MAP>

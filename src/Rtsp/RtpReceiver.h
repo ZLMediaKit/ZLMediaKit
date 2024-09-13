@@ -34,7 +34,6 @@ public:
 
     /**
      * 清空状态
-     ```java
      * Clear the state
      
      * [AUTO-TRANSLATED:6aadbd77]
@@ -388,8 +387,7 @@ protected:
      * RTP data packet parsed but not yet sorted
      * @param rtp RTP data packet
      * @param track_index Track index
-     
-     ```
+
      * [AUTO-TRANSLATED:c1636911]
      */
     virtual void onBeforeRtpSorted(const RtpPacket::Ptr &rtp, int index) {}

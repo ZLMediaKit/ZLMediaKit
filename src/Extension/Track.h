@@ -20,7 +20,6 @@ namespace mediakit{
 
 /**
  * 媒体通道描述类，也支持帧输入输出
- ```java
  * Media channel description class, also supports frame input and output
  
  * [AUTO-TRANSLATED:a3acd089]
@@ -353,8 +352,6 @@ public:
      * Get specific Track
      * @param type Track type
      * @param trackReady Whether to get all ready Tracks
-     
-     ```
      * [AUTO-TRANSLATED:c50781b9]
      */
     Track::Ptr getTrack(TrackType type , bool trackReady = true) const {

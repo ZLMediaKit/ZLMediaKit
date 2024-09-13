@@ -55,7 +55,6 @@ typedef enum {
 
 /**
  * 字符串转媒体类型转
- ```java
  * String to media type conversion
  
  * [AUTO-TRANSLATED:59850011]
@@ -340,8 +339,6 @@ public:
 private:
     // 对象个数统计  [AUTO-TRANSLATED:3b43e8c2]
     // Object count statistics
-
-```
     toolkit::ObjectStatistic<FrameImp> _statistic;
 
 protected:

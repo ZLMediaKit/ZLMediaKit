@@ -27,7 +27,6 @@ class HttpWsClient;
  * 辅助类,用于拦截TcpClient数据发送前的拦截
  * @tparam ClientType TcpClient派生类
  * @tparam DataType 这里无用,为了声明友元用
- ```C#
  * Helper class for intercepting data sent by TcpClient before sending
  * @tparam ClientType TcpClient derived class
  * @tparam DataType This is useless, used for declaring friends
@@ -329,7 +328,6 @@ protected:
             case WebSocketHeader::CLOSE: {
                 // 服务器主动关闭  [AUTO-TRANSLATED:5a59e1bf]
                 // Server actively closes
-```
                 WebSocketSplitter::encode(header, nullptr);
                 shutdown(toolkit::SockException(toolkit::Err_eof, "websocket server close the connection"));
                 break;

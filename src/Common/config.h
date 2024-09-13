@@ -147,7 +147,6 @@ extern const std::string kBroadcastRtcSctpClosed;
 #define BroadcastRtcSctpConnectArgs WebRtcTransport& sender
 
 // rtc transport sctp 发送数据  [AUTO-TRANSLATED:258f1ba8]
-// ```
 // rtc transport sctp send data
 extern const std::string kBroadcastRtcSctpSend;
 #define BroadcastRtcSctpSendArgs WebRtcTransport& sender, const uint8_t *&data, size_t& len
@@ -277,8 +276,6 @@ extern const std::string kAddMuteAudio;
 // When there are no viewers, whether to close directly (instead of returning close through the on_none_reader hook)
 // 此配置置1时，此流如果无人观看，将不触发on_none_reader hook回调，  [AUTO-TRANSLATED:a5ead314]
 // When this configuration is set to 1, if this stream has no viewers, it will not trigger the on_none_reader hook callback,
-
-```
 // 而是将直接关闭流  [AUTO-TRANSLATED:06887d49]
 // Instead, it will directly close the stream
 extern const std::string kAutoClose;
@@ -479,7 +476,6 @@ namespace Record {
 // Application name for viewing recordings
 extern const std::string kAppName;
 // 每次流化MP4文件的时长,单位毫秒  [AUTO-TRANSLATED:0add878d]
-// ```
 // Duration of each MP4 file streaming, in milliseconds
 extern const std::string kSampleMS;
 // mp4文件写缓存大小  [AUTO-TRANSLATED:9904413d]
@@ -582,7 +578,6 @@ namespace Client {
 extern const std::string kNetAdapter;
 // 设置rtp传输类型，可选项有0(tcp，默认)、1(udp)、2(组播)  [AUTO-TRANSLATED:bf73f779]
 // Set rtp transport type, options are 0 (tcp, default), 1 (udp), 2 (multicast)
-```
 // 设置方法:player[PlayerBase::kRtpType] = 0/1/2;  [AUTO-TRANSLATED:30eb2936]
 // Set method: player[PlayerBase::kRtpType] = 0/1/2;
 extern const std::string kRtpType;

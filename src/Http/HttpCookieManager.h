@@ -27,7 +27,6 @@ class HttpCookieManager;
 
 /**
  * cookie对象，用于保存cookie的一些相关属性
- ```cpp
  * cookie object, used to store some related attributes of the cookie
  
  * [AUTO-TRANSLATED:267fbbc3]
@@ -347,9 +346,7 @@ private:
      * @param cookie_name cookie name, such as MY_SESSION
      * @param cookie cookie random string
      * @return success true
-     
-     
-     ```
+
      * [AUTO-TRANSLATED:09fa1e44]
      */
     bool delCookie(const std::string &cookie_name, const std::string &cookie);
