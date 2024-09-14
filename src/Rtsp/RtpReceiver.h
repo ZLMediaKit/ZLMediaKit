@@ -137,7 +137,7 @@ private:
     }
 
     // 外部调用代码确保_pkt_sort_cache_map不为空  [AUTO-TRANSLATED:a6d5829f]
-    // External calling code ensures that _pkt_sort_cache_map is not empty
+    // External call code ensures that _pkt_sort_cache_map is not empty
     void forceFlush(SEQ next_seq) {
         // 寻找距离比next_seq大的最近的seq  [AUTO-TRANSLATED:d2de6f5b]
         // Find the nearest seq that is greater than next_seq
@@ -315,9 +315,9 @@ public:
      * Generate and sort rtp packets from input data pointer
      * @param index Track index
      * @param type Track type
-     * @param samplerate RTP timestamp base clock, 90000 for video, sample rate for audio
-     * @param ptr RTP data pointer
-     * @param len RTP data pointer length
+     * @param samplerate rtp timestamp base clock, 90000 for video, sample rate for audio
+     * @param ptr rtp data pointer
+     * @param len rtp data pointer length
      * @return Return true if parsing is successful
      
      * [AUTO-TRANSLATED:4ec12e4a]
@@ -336,8 +336,8 @@ public:
      * Set ntp timestamp, set when receiving rtcp sender report
      * If rtp_stamp/sample_rate/ntp_stamp_ms are all 0, then use rtp timestamp as ntp timestamp
      * @param index Track index
-     * @param rtp_stamp RTP timestamp
-     * @param ntp_stamp_ms NTP timestamp
+     * @param rtp_stamp rtp timestamp
+     * @param ntp_stamp_ms ntp timestamp
      
      * [AUTO-TRANSLATED:1e50904e]
      */
@@ -373,7 +373,7 @@ protected:
      * @param rtp rtp数据包
      * @param track_index track索引
      * Output rtp data packets after sorting
-     * @param rtp RTP data packet
+     * @param rtp rtp data packet
      * @param track_index Track index
      
      * [AUTO-TRANSLATED:55022da9]
@@ -384,9 +384,10 @@ protected:
      * 解析出rtp但还未排序
      * @param rtp rtp数据包
      * @param track_index track索引
-     * RTP data packet parsed but not yet sorted
-     * @param rtp RTP data packet
+     * Parse rtp but not yet sorted
+     * @param rtp rtp data packet
      * @param track_index Track index
+     
      
      * [AUTO-TRANSLATED:c1636911]
      */
