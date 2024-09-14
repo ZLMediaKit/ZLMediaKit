@@ -106,30 +106,35 @@ bool H265Track::inputFrame(const Frame::Ptr &frame) {
 }
 
 bool H265Track::inputFrame_l(const Frame::Ptr &frame) {
-    if (frame->keyFrame()) {
-        insertConfigFrame(frame);
-        _is_idr = true;
-        return VideoTrack::inputFrame(frame);
-    }
-
-    _is_idr = false;
+    int type = H265_TYPE(frame->data()[frame->prefixSize()]);
     bool ret = true;
-
-    //非idr帧
-    switch (H265_TYPE( frame->data()[frame->prefixSize()])) {
+    switch (type) {
         case H265Frame::NAL_VPS: {
             _vps = string(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
+            _latest_is_config_frame = true;
+            ret = VideoTrack::inputFrame(frame);
             break;
         }
         case H265Frame::NAL_SPS: {
             _sps = string(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
+            _latest_is_config_frame = true;
+            ret = VideoTrack::inputFrame(frame);
             break;
         }
         case H265Frame::NAL_PPS: {
             _pps = string(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
+            _latest_is_config_frame = true;
+            ret = VideoTrack::inputFrame(frame);
             break;
         }
         default: {
+            // 判断是否是I帧, 并且如果是,那判断前面是否插入过config帧, 如果插入过就不插入了
+            if (frame->keyFrame() && !_latest_is_config_frame) {
+                insertConfigFrame(frame);
+            }
+            if (!frame->dropAble()) {
+                _latest_is_config_frame = false;
+            }
             ret = VideoTrack::inputFrame(frame);
             break;
         }
@@ -199,9 +204,6 @@ Track::Ptr H265Track::clone() const {
 }
 
 void H265Track::insertConfigFrame(const Frame::Ptr &frame) {
-    if (_is_idr) {
-        return;
-    }
     if (!_vps.empty()) {
         VideoTrack::inputFrame(createConfigFrame<H265Frame>(_vps, frame->dts(), frame->getIndex()));
     }
