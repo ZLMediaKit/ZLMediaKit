@@ -65,7 +65,8 @@ public:
     bool keyFrame() const override {
         auto nal_ptr = (uint8_t *) this->data() + this->prefixSize();
         auto type = H265_TYPE(*nal_ptr);
-        // 参考自FFmpeg: IRAP VCL NAL unit types span the range
+        // 参考自FFmpeg: IRAP VCL NAL unit types span the range  [AUTO-TRANSLATED:45413c06]
+        // Referenced from FFmpeg: IRAP VCL NAL unit types span the range
         // [BLA_W_LP (16), RSV_IRAP_VCL23 (23)].
         return (type >= NAL_BLA_W_LP && type <= NAL_RSV_IRAP_VCL23) && decodeAble() ;
     }
@@ -93,24 +94,35 @@ public:
     bool decodeAble() const override {
         auto nal_ptr = (uint8_t *) this->data() + this->prefixSize();
         auto type = H265_TYPE(*nal_ptr);
-        //多slice情况下, first_slice_segment_in_pic_flag 表示其为一帧的开始
+        // 多slice情况下, first_slice_segment_in_pic_flag 表示其为一帧的开始  [AUTO-TRANSLATED:0427551b]
+        // In the case of multiple slices, first_slice_segment_in_pic_flag indicates the start of a frame
         return type >= NAL_TRAIL_N && type <= NAL_RSV_IRAP_VCL23 && (nal_ptr[2] & 0x80);
     }
 };
 
 /**
  * 265帧类
+ * H.265 frame class
+ 
+ * [AUTO-TRANSLATED:9141a4be]
  */
 using H265Frame = H265FrameHelper<FrameImp>;
 
 /**
  * 防止内存拷贝的H265类
  * 用户可以通过该类型快速把一个指针无拷贝的包装成Frame类
+ * H.265 class that prevents memory copying
+ * Users can quickly wrap a pointer into a Frame class without copying through this type
+ 
+ * [AUTO-TRANSLATED:44bde991]
  */
 using H265FrameNoCacheAble = H265FrameHelper<FrameFromPtr>;
 
 /**
 * 265视频通道
+ * H.265 video channel
+ 
+ * [AUTO-TRANSLATED:27c65a36]
 */
 class H265Track : public VideoTrack {
 public:
@@ -119,6 +131,10 @@ public:
     /**
      * 不指定sps pps构造h265类型的媒体
      * 在随后的inputFrame中获取sps pps
+     * Construct H.265 media without specifying sps and pps
+     * Obtain sps and pps in the subsequent inputFrame
+     
+     * [AUTO-TRANSLATED:bf86e048]
      */
     H265Track() = default;
 
@@ -130,6 +146,15 @@ public:
      * @param vps_prefix_len 265头长度，可以为3个或4个字节，一般为0x00 00 00 01
      * @param sps_prefix_len 265头长度，可以为3个或4个字节，一般为0x00 00 00 01
      * @param pps_prefix_len 265头长度，可以为3个或4个字节，一般为0x00 00 00 01
+     * Construct H.265 media
+     * @param vps vps frame data
+     * @param sps sps frame data
+     * @param pps pps frame data
+     * @param vps_prefix_len H.265 header length, can be 3 or 4 bytes, usually 0x00 00 00 01
+     * @param sps_prefix_len H.265 header length, can be 3 or 4 bytes, usually 0x00 00 00 01
+     * @param pps_prefix_len H.265 header length, can be 3 or 4 bytes, usually 0x00 00 00 01
+     
+     * [AUTO-TRANSLATED:a8c42d9f]
      */
     H265Track(const std::string &vps,const std::string &sps, const std::string &pps,int vps_prefix_len = 4, int sps_prefix_len = 4, int pps_prefix_len = 4);
 
