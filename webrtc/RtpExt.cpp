@@ -136,7 +136,8 @@ void appendExt(map<uint8_t, RtpExt> &ret, uint8_t *ptr, const uint8_t *end) {
     while (ptr < end) {
         auto ext = reinterpret_cast<Type *>(ptr);
         if (ext->getId() == (uint8_t) RtpExtType::padding) {
-            //padding，忽略
+            // padding，忽略  [AUTO-TRANSLATED:a7fda608]
+            // padding, ignore
             ++ptr;
             continue;
         }
@@ -329,7 +330,8 @@ uint8_t RtpExt::getAudioLevel(bool *vad) const{
 }
 
 //http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
-//Wire format: 1-byte extension, 3 bytes of data. total 4 bytes extra per packet (plus shared 4 bytes for all extensions present: 2 byte magic word 0xBEDE, 2 byte # of extensions). Will in practice replace the “toffset” extension so we should see no long term increase in traffic as a result.
+// Wire format: 1-byte extension, 3 bytes of data. total 4 bytes extra per packet (plus shared 4 bytes for all extensions present: 2 byte magic word 0xBEDE, 2 byte # of extensions). Will in practice replace the “toffset” extension so we should see no long term increase in traffic as a result.  [AUTO-TRANSLATED:178290be]
+// Wire format: 1-byte extension, 3 bytes of data. total 4 bytes extra per packet (plus shared 4 bytes for all extensions present: 2 byte magic word 0xBEDE, 2 byte # of extensions). Will in practice replace the “toffset” extension so we should see no long term increase in traffic as a result.
 //
 //Encoding: Timestamp is in seconds, 24 bit 6.18 fixed point, yielding 64s wraparound and 3.8us resolution (one increment for each 477 bytes going out on a 1Gbps interface).
 //
@@ -374,7 +376,8 @@ string RtpExt::getSdesMid() const {
 
 
 //https://tools.ietf.org/html/draft-ietf-avtext-rid-06
-//用于simulcast
+// 用于simulcast  [AUTO-TRANSLATED:59b2682f]
+// Used for simulcast
 //3.1.  RTCP 'RtpStreamId' SDES Extension
 //
 //        0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -463,7 +466,8 @@ void RtpExt::getVideoTiming(uint8_t &flags,
 //Values:
 //0x00: Unspecified. Default value. Treated the same as an absence of an extension.
 //0x01: Screenshare. Video stream is of a screenshare type.
-//0x02: 摄像头？
+// 0x02: 摄像头？  [AUTO-TRANSLATED:ce2acbbb]
+// 0x02: Camera?
 //Notes: Extension shoud be present only in the last packet of key-frames.
 // If attached to other packets it should be ignored.
 // If extension is absent, Unspecified value is assumed.
@@ -584,12 +588,14 @@ RtpExt RtpExtContext::changeRtpExtId(const RtpHeader *header, bool is_recv, stri
         if (is_recv) {
             auto it = _rtp_ext_id_to_type.find(pr.first);
             if (it == _rtp_ext_id_to_type.end()) {
-                //TraceL << "接收rtp时,忽略不识别的rtp ext, id=" << (int) pr.first;
+                // TraceL << "接收rtp时,忽略不识别的rtp ext, id=" << (int) pr.first;  [AUTO-TRANSLATED:284d8a38]
+                // TraceL << "Receiving rtp, ignoring unrecognized rtp ext, id=" << (int) pr.first;
                 pr.second.clearExt();
                 continue;
             }
             pr.second.setType(it->second);
-            //重新赋值ext id为 ext type，作为后面处理ext的统一中间类型
+            // 重新赋值ext id为 ext type，作为后面处理ext的统一中间类型  [AUTO-TRANSLATED:ab825878]
+            // Reassign ext id to ext type, as a unified intermediate type for processing ext later
             pr.second.setExtId((uint8_t) it->second);
             switch (it->second) {
                 case RtpExtType::sdes_rtp_stream_id : rid = pr.second.getRtpStreamId(); break;
@@ -600,11 +606,13 @@ RtpExt RtpExtContext::changeRtpExtId(const RtpHeader *header, bool is_recv, stri
             pr.second.setType((RtpExtType) pr.first);
             auto it = _rtp_ext_type_to_id.find((RtpExtType) pr.first);
             if (it == _rtp_ext_type_to_id.end()) {
-                //TraceL << "发送rtp时, 忽略不被客户端支持rtp ext:" << pr.second.dumpString();
+                // TraceL << "发送rtp时, 忽略不被客户端支持rtp ext:" << pr.second.dumpString();  [AUTO-TRANSLATED:5d9fd8cc]
+                // TraceL << "Sending rtp, ignoring rtp ext not supported by client:" << pr.second.dumpString();
                 pr.second.clearExt();
                 continue;
             }
-            //重新赋值ext id为客户端sdp声明的类型
+            // 重新赋值ext id为客户端sdp声明的类型  [AUTO-TRANSLATED:06d60796]
+            // Reassign ext id to the type declared in client sdp
             pr.second.setExtId(it->second);
         }
         if (pr.second.getType() == type) {
@@ -620,10 +628,12 @@ RtpExt RtpExtContext::changeRtpExtId(const RtpHeader *header, bool is_recv, stri
     }
     auto ssrc = ntohl(header->ssrc);
     if (rid.empty()) {
-        //获取rid
+        // 获取rid  [AUTO-TRANSLATED:8ae4dffa]
+        // Get rid
         rid = _ssrc_to_rid[ssrc];
     } else {
-        //设置rid
+        // 设置rid  [AUTO-TRANSLATED:5e34819b]
+        // Set rid
         auto it = _ssrc_to_rid.find(ssrc);
         if (it == _ssrc_to_rid.end() || it->second != rid) {
             _ssrc_to_rid[ssrc] = rid;

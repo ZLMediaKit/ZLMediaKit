@@ -25,6 +25,13 @@ typedef struct mk_h264_splitter_t *mk_h264_splitter;
  * @param splitter 对象
  * @param frame 帧数据
  * @param size 帧数据长度
+ * h264 frame splitter output callback function
+ * @param user_data user data pointer set when setting the callback
+ * @param splitter object
+ * @param frame frame data
+ * @param size frame data length
+ 
+ * [AUTO-TRANSLATED:3e4e4dfa]
  */
 typedef void(API_CALL *on_mk_h264_splitter_frame)(void *user_data, mk_h264_splitter splitter, const char *frame, int size);
 
@@ -34,6 +41,13 @@ typedef void(API_CALL *on_mk_h264_splitter_frame)(void *user_data, mk_h264_split
  * @param user_data 回调用户数据指针
  * @param is_h265 是否是265
  * @return 分帧器对象
+ * Create h264 frame splitter
+ * @param cb frame splitting callback function
+ * @param user_data callback user data pointer
+ * @param is_h265 whether it is 265
+ * @return frame splitter object
+ 
+ * [AUTO-TRANSLATED:6e06f68d]
  */
 API_EXPORT mk_h264_splitter API_CALL mk_h264_splitter_create(on_mk_h264_splitter_frame cb, void *user_data, int is_h265);
 API_EXPORT mk_h264_splitter API_CALL mk_h264_splitter_create2(on_mk_h264_splitter_frame cb, void *user_data, on_user_data_free user_data_free, int is_h265);
@@ -41,6 +55,10 @@ API_EXPORT mk_h264_splitter API_CALL mk_h264_splitter_create2(on_mk_h264_splitte
 /**
  * 删除h264分帧器
  * @param ctx 分帧器
+ * Delete h264 frame splitter
+ * @param ctx frame splitter
+ 
+ * [AUTO-TRANSLATED:e69bb6dd]
  */
 API_EXPORT void API_CALL mk_h264_splitter_release(mk_h264_splitter ctx);
 
@@ -49,6 +67,13 @@ API_EXPORT void API_CALL mk_h264_splitter_release(mk_h264_splitter ctx);
  * @param ctx 分帧器
  * @param data h264/h265数据
  * @param size 数据长度
+ * Input data and split frames
+ * @param ctx frame splitter
+ * @param data h264/h265 data
+ * @param size data length
+ 
+ 
+ * [AUTO-TRANSLATED:c6b93aed]
  */
 API_EXPORT void API_CALL mk_h264_splitter_input_data(mk_h264_splitter ctx, const char *data, int size);
 

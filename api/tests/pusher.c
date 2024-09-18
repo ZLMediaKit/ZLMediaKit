@@ -65,7 +65,8 @@ void API_CALL on_mk_media_source_regist_func(void *user_data, mk_media_source se
     Context *ctx = (Context *) user_data;
     const char *schema = mk_media_source_get_schema(sender);
     if (strncmp(schema, ctx->push_url, strlen(schema)) == 0) {
-        //判断是否为推流协议相关的流注册或注销事件
+        // 判断是否为推流协议相关的流注册或注销事件  [AUTO-TRANSLATED:00a88a17]
+        // Determine if it is a stream registration or deregistration event related to the streaming protocol
         release_pusher(&(ctx->pusher));
         if (regist) {
             ctx->pusher = mk_pusher_create_src(sender);
@@ -131,17 +132,20 @@ int main(int argc, char *argv[]){
         return -1;
     }
 
-    //可以通过
+    // 可以通过  [AUTO-TRANSLATED:9a320d61]
+    // Can be achieved through
     //rtmp://127.0.0.1/live/test
     //rtsp://127.0.0.1/live/test
-    //播放mk_media的数据
+    // 播放mk_media的数据  [AUTO-TRANSLATED:623dc58f]
+    // Playing the data of mk_media
     mk_rtsp_server_start(554, 0);
     mk_rtmp_server_start(1935, 0);
 
     Context *ctx = (Context *) malloc(sizeof(Context));
     memset(ctx, 0, sizeof(Context));
 
-    //推流给自己测试，当然也可以推流给其他服务器测试
+    // 推流给自己测试，当然也可以推流给其他服务器测试  [AUTO-TRANSLATED:616e4dc2]
+    // Stream to yourself for testing, of course, you can also stream to other servers for testing
     context_start(ctx, argv[1], argv[2]);
 
     log_info("enter any key to exit");

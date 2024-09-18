@@ -28,7 +28,8 @@
 
 namespace mediakit {
 
-//RTC配置项目
+// RTC配置项目  [AUTO-TRANSLATED:65784416]
+// RTC configuration project
 namespace Rtc {
 extern const std::string kPort;
 extern const std::string kTcpPort;
@@ -72,11 +73,17 @@ public:
 
     /**
      * 创建对象
+     * Create object
+     
+     * [AUTO-TRANSLATED:830344e4]
      */
     virtual void onCreate();
 
     /**
      * 销毁对象
+     * Destroy object
+     
+     * [AUTO-TRANSLATED:1016b97b]
      */
     virtual void onDestory();
 
@@ -84,11 +91,19 @@ public:
      * 创建webrtc answer sdp
      * @param offer offer sdp
      * @return answer sdp
+     * Create webrtc answer sdp
+     * @param offer offer sdp
+     * @return answer sdp
+     
+     * [AUTO-TRANSLATED:d9b027d7]
      */
     std::string getAnswerSdp(const std::string &offer) override final;
 
     /**
      * 获取对象唯一id
+     * Get object unique id
+     
+     * [AUTO-TRANSLATED:9ad519c6]
      */
     const std::string& getIdentifier() const override;
     const std::string& deleteRandStr() const override;
@@ -98,6 +113,12 @@ public:
      * @param buf 数据指针
      * @param len 数据长度
      * @param tuple 数据来源
+     * Socket receives udp data
+     * @param buf data pointer
+     * @param len data length
+     * @param tuple data source
+     
+     * [AUTO-TRANSLATED:1ee86069]
      */
     void inputSockData(char *buf, int len, RTC::TransportTuple *tuple);
 
@@ -107,6 +128,13 @@ public:
      * @param len rtcp长度
      * @param flush 是否flush socket
      * @param ctx 用户指针
+     * Send rtp
+     * @param buf rtcp content
+     * @param len rtcp length
+     * @param flush whether to flush socket
+     * @param ctx user pointer
+     
+     * [AUTO-TRANSLATED:aa833695]
      */
     void sendRtpPacket(const char *buf, int len, bool flush, void *ctx = nullptr);
     void sendRtcpPacket(const char *buf, int len, bool flush, void *ctx = nullptr);
@@ -116,7 +144,8 @@ public:
     Session::Ptr getSession() const;
 
 protected:
-    ////  dtls相关的回调 ////
+    // //  dtls相关的回调 ////  [AUTO-TRANSLATED:31a1f32c]
+    // //  dtls related callbacks ////
     void OnDtlsTransportConnecting(const RTC::DtlsTransport *dtlsTransport) override;
     void OnDtlsTransportConnected(const RTC::DtlsTransport *dtlsTransport,
                                   RTC::SrtpSession::CryptoSuite srtpCryptoSuite,
@@ -132,7 +161,8 @@ protected:
     void OnDtlsTransportApplicationDataReceived(const RTC::DtlsTransport *dtlsTransport, const uint8_t *data, size_t len) override;
 
 protected:
-    //// ice相关的回调 ///
+    // // ice相关的回调 ///  [AUTO-TRANSLATED:30abf693]
+    // // ice related callbacks ///
     void OnIceServerSendStunPacket(const RTC::IceServer *iceServer, const RTC::StunPacket *packet, RTC::TransportTuple *tuple) override;
     void OnIceServerConnected(const RTC::IceServer *iceServer) override;
     void OnIceServerCompleted(const RTC::IceServer *iceServer) override;
@@ -182,7 +212,8 @@ private:
     std::shared_ptr<RTC::SrtpSession> _srtp_session_send;
     std::shared_ptr<RTC::SrtpSession> _srtp_session_recv;
     Ticker _ticker;
-    // 循环池
+    // 循环池  [AUTO-TRANSLATED:b7059f37]
+    // Cycle pool
     ResourcePool<BufferRaw> _packet_pool;
 
 #ifdef ENABLE_SCTP
@@ -290,26 +321,36 @@ private:
 private:
     bool _preferred_tcp = false;
     uint16_t _rtx_seq[2] = {0, 0};
-    //用掉的总流量
+    // 用掉的总流量  [AUTO-TRANSLATED:713b61c9]
+    // Total traffic used
     uint64_t _bytes_usage = 0;
-    //保持自我强引用
+    // 保持自我强引用  [AUTO-TRANSLATED:c2dc228f]
+    // Keep self strong reference
     Ptr _self;
-    //检测超时的定时器
+    // 检测超时的定时器  [AUTO-TRANSLATED:a58e1388]
+    // Timeout detection timer
     Timer::Ptr _timer;
-    //刷新计时器
+    // 刷新计时器  [AUTO-TRANSLATED:61eb11e5]
+    // Refresh timer
     Ticker _alive_ticker;
-    //pli rtcp计时器
+    // pli rtcp计时器  [AUTO-TRANSLATED:a1a5fd18]
+    // pli rtcp timer
     Ticker _pli_ticker;
-    //twcc rtcp发送上下文对象
+    // twcc rtcp发送上下文对象  [AUTO-TRANSLATED:aef6476a]
+    // twcc rtcp send context object
     TwccContext _twcc_ctx;
-    //根据发送rtp的track类型获取相关信息
+    // 根据发送rtp的track类型获取相关信息  [AUTO-TRANSLATED:ff31c272]
+    // Get relevant information based on the track type of the sent rtp
     MediaTrack::Ptr _type_to_track[2];
-    //根据rtcp的ssrc获取相关信息，收发rtp和rtx的ssrc都会记录
+    // 根据rtcp的ssrc获取相关信息，收发rtp和rtx的ssrc都会记录  [AUTO-TRANSLATED:6c57cd48]
+    // Get relevant information based on the ssrc of the rtcp, the ssrc of sending and receiving rtp and rtx will be recorded
     std::unordered_map<uint32_t/*ssrc*/, MediaTrack::Ptr> _ssrc_to_track;
-    //根据接收rtp的pt获取相关信息
+    // 根据接收rtp的pt获取相关信息  [AUTO-TRANSLATED:39e56d7d]
+    // Get relevant information based on the pt of the received rtp
     std::unordered_map<uint8_t/*pt*/, std::unique_ptr<WrappedMediaTrack>> _pt_to_track;
     std::vector<SdpAttrCandidate> _cands;
-    //http访问时的host ip
+    // http访问时的host ip  [AUTO-TRANSLATED:e8fe6957]
+    // Host ip for http access
     std::string _local_ip;
 };
 
