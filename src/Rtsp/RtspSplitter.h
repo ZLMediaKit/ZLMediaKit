@@ -21,12 +21,20 @@ public:
     /**
     * 是否允许接收rtp包
     * @param enable
+     * Whether to allow receiving rtp packets
+     * @param enable
+     
+     * [AUTO-TRANSLATED:8de8e1ee]
     */
     void enableRecvRtp(bool enable);
 protected:
     /**
      * 收到完整的rtsp包回调，包括sdp等content数据
      * @param parser rtsp包
+     * Callback for receiving a complete rtsp packet, including sdp and other content data
+     * @param parser rtsp packet
+     
+     * [AUTO-TRANSLATED:4d3c2056]
      */
     virtual void onWholeRtspPacket(Parser &parser) = 0;
 
@@ -34,6 +42,11 @@ protected:
      * 收到rtp包回调
      * @param data
      * @param len
+     * Callback for receiving rtp packets
+     * @param data
+     * @param len
+     
+     * [AUTO-TRANSLATED:c8f7c9bb]
      */
     virtual void onRtpPacket(const char *data,size_t len) = 0;
 
@@ -41,6 +54,12 @@ protected:
      * 从rtsp头中获取Content长度
      * @param parser
      * @return
+     * Get the Content length from the rtsp header
+     * @param parser
+     * @return
+     
+     
+     * [AUTO-TRANSLATED:f0bc1fb8]
      */
     virtual ssize_t getContentLength(Parser &parser);
 

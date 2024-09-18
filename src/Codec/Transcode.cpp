@@ -88,7 +88,8 @@ static bool checkIfSupportedNvidia_l() {
     bool find_driver = false;
     File::scanDir("/dev", [&](const string &path, bool is_dir) {
         if (!is_dir && start_with(path, "/dev/nvidia")) {
-            //找到nvidia的驱动
+            // 找到nvidia的驱动  [AUTO-TRANSLATED:5b87bf81]
+            // Find the Nvidia driver
             find_driver = true;
             return false;
         }
@@ -403,7 +404,8 @@ FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num, const std:
             throw std::runtime_error("创建解码器失败");
         }
 
-        //保存AVFrame的引用
+        // 保存AVFrame的引用  [AUTO-TRANSLATED:2df53d07]
+        // Save the AVFrame reference
 #ifdef FF_API_OLD_ENCDEC
         _context->refcounted_frames = 1;
 #endif
@@ -441,7 +443,8 @@ FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num, const std:
             _context->flags |= AV_CODEC_FLAG_TRUNCATED;
             _do_merger = false;
         } else {
-            // 此时业务层应该需要合帧
+            // 此时业务层应该需要合帧  [AUTO-TRANSLATED:8dea0fff]
+            // The business layer should need to merge frames at this time
             _do_merger = true;
         }
 #endif
@@ -449,13 +452,15 @@ FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num, const std:
         int ret = avcodec_open2(_context.get(), codec, &dict);
         av_dict_free(&dict);
         if (ret >= 0) {
-            //成功
+            // 成功  [AUTO-TRANSLATED:7d878ca9]
+            // Success
             InfoL << "打开解码器成功:" << codec->name;
             break;
         }
 
         if (codec_default && codec_default != codec) {
-            //硬件编解码器打开失败，尝试软件的
+            // 硬件编解码器打开失败，尝试软件的  [AUTO-TRANSLATED:060200f4]
+            // Hardware codec failed to open, try software codec
             WarnL << "打开解码器" << codec->name << "失败，原因是:" << ffmpeg_err(ret) << ", 再尝试打开解码器" << codec_default->name;
             codec = codec_default;
             continue;
@@ -507,7 +512,8 @@ bool FFmpegDecoder::inputFrame_l(const Frame::Ptr &frame, bool live, bool enable
 
 bool FFmpegDecoder::inputFrame(const Frame::Ptr &frame, bool live, bool async, bool enable_merge) {
     if (async && !TaskManager::isEnabled() && getContext()->codec_type == AVMEDIA_TYPE_VIDEO) {
-        //开启异步编码，且为视频，尝试启动异步解码线程
+        // 开启异步编码，且为视频，尝试启动异步解码线程  [AUTO-TRANSLATED:17a68fc6]
+        // Enable asynchronous encoding, and it is video, try to start asynchronous decoding thread
         startThread("decoder thread");
     }
 
@@ -518,7 +524,8 @@ bool FFmpegDecoder::inputFrame(const Frame::Ptr &frame, bool live, bool async, b
     auto frame_cache = Frame::getCacheAbleFrame(frame);
     return addDecodeTask(frame->keyFrame(), [this, live, frame_cache, enable_merge]() {
         inputFrame_l(frame_cache, live, enable_merge);
-        //此处模拟解码太慢导致的主动丢帧
+        // 此处模拟解码太慢导致的主动丢帧  [AUTO-TRANSLATED:fc8bea8a]
+        // Here simulates decoding too slow, resulting in active frame dropping
         //usleep(100 * 1000);
     });
 }
@@ -554,7 +561,8 @@ bool FFmpegDecoder::decodeFrame(const char *data, size_t size, uint64_t dts, uin
             break;
         }
         if (live && pts - out_frame->get()->pts > MAX_DELAY_SECOND * 1000 && _ticker.createdTime() > 10 * 1000) {
-            //后面的帧才忽略,防止Track无法ready
+            // 后面的帧才忽略,防止Track无法ready  [AUTO-TRANSLATED:23f1a7c9]
+            // The following frames are ignored to prevent the Track from being ready
             WarnL << "解码时，忽略" << MAX_DELAY_SECOND << "秒前的数据:" << pts << " " << out_frame->get()->pts;
             continue;
         }
@@ -593,7 +601,8 @@ FFmpegFrame::Ptr FFmpegSwr::inputFrame(const FFmpegFrame::Ptr &frame) {
         frame->get()->channels == _target_channels &&
         frame->get()->channel_layout == (uint64_t)_target_channel_layout &&
         frame->get()->sample_rate == _target_samplerate) {
-        //不转格式
+        // 不转格式  [AUTO-TRANSLATED:31dc6ae1]
+        // Do not convert format
         return frame;
     }
     if (!_ctx) {
@@ -655,11 +664,13 @@ FFmpegFrame::Ptr FFmpegSws::inputFrame(const FFmpegFrame::Ptr &frame, int &ret, 
     auto target_width = _target_width ? _target_width : frame->get()->width;
     auto target_height = _target_height ? _target_height : frame->get()->height;
     if (frame->get()->format == _target_format && frame->get()->width == target_width && frame->get()->height == target_height) {
-        //不转格式
+        // 不转格式  [AUTO-TRANSLATED:31dc6ae1]
+        // Do not convert format
         return frame;
     }
     if (_ctx && (_src_width != frame->get()->width || _src_height != frame->get()->height || _src_format != (enum AVPixelFormat) frame->get()->format)) {
-        //输入分辨率发生变化了
+        // 输入分辨率发生变化了  [AUTO-TRANSLATED:0e4ea2e8]
+        // Input resolution has changed
         sws_freeContext(_ctx);
         _ctx = nullptr;
     }

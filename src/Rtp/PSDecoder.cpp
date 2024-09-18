@@ -57,17 +57,20 @@ const char *PSDecoder::onSearchPacketTail(const char *data, size_t len) {
     try {
         auto ret = ps_demuxer_input(static_cast<struct ps_demuxer_t *>(_ps_demuxer), reinterpret_cast<const uint8_t *>(data), len);
         if (ret >= 0) {
-            //解析成功全部或部分
+            // 解析成功全部或部分  [AUTO-TRANSLATED:a8085d34]
+            // Parse successful, all or part
             return data + ret;
         }
 
-        //解析失败，丢弃所有数据
+        // 解析失败，丢弃所有数据  [AUTO-TRANSLATED:e6f644d9]
+        // Parse failed, discard all data
         return data + len;
     } catch (toolkit::AssertFailedException &ex) {
         InfoL << "解析 ps 异常: bytes=" << len
               << ", exception=" << ex.what()
               << ", hex=" << hexdump(data, MIN(len, 32));
-        //触发断言，解析失败，丢弃所有数据
+        // 触发断言，解析失败，丢弃所有数据  [AUTO-TRANSLATED:b60c6db0]
+        // Trigger assertion, parse failed, discard all data
         return data + len;
     }
 }

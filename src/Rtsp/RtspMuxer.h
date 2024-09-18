@@ -36,6 +36,9 @@ private:
 
 /**
 * rtsp生成器
+ * RTSP generator
+ 
+ * [AUTO-TRANSLATED:2a72d801]
 */
 class RtspMuxer : public MediaSinkInterface {
 public:
@@ -43,39 +46,64 @@ public:
 
     /**
      * 构造函数
+     * Constructor
+     
+     * [AUTO-TRANSLATED:41469869]
      */
     RtspMuxer(const TitleSdp::Ptr &title = nullptr);
 
     /**
      * 获取完整的SDP字符串
      * @return SDP字符串
+     * Get the complete SDP string
+     * @return SDP string
+     
+     * [AUTO-TRANSLATED:f5d1b0a6]
      */
     std::string getSdp() ;
 
     /**
      * 获取rtp环形缓存
      * @return
+     * Get the RTP ring buffer
+     * @return
+     
+     * [AUTO-TRANSLATED:644e8634]
      */
     RtpRing::RingType::Ptr getRtpRing() const;
 
     /**
      * 添加ready状态的track
+     * Add a ready state track
+     
+     * [AUTO-TRANSLATED:2d8138b3]
      */
     bool addTrack(const Track::Ptr & track) override;
 
     /**
      * 写入帧数据
      * @param frame 帧
+     * Write frame data
+     * @param frame Frame
+     
+     * [AUTO-TRANSLATED:b7c92013]
      */
     bool inputFrame(const Frame::Ptr &frame) override;
 
     /**
      * 刷新输出所有frame缓存
+     * Flush all frame buffers
+     
+     * [AUTO-TRANSLATED:adaea568]
      */
     void flush() override;
 
     /**
      * 重置所有track
+     * Reset all tracks
+     
+     
+     * [AUTO-TRANSLATED:f203fa3e]
      */
     void resetTracks() override ;
 

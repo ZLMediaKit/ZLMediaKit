@@ -58,7 +58,8 @@ do{ \
 void WebSocketSplitter::decode(uint8_t *data, size_t len) {
     uint8_t *ptr = data;
     if(!_got_header) {
-        //还没有获取数据头
+        // 还没有获取数据头  [AUTO-TRANSLATED:2b50f282]
+        // No data header has been obtained yet
         if(!_remain_data.empty()){
             _remain_data.append((char *)data,len);
             data = ptr = (uint8_t *)_remain_data.data();
@@ -107,7 +108,8 @@ begin_decode:
         }
     }
 
-    //进入后面逻辑代表已经获取到了webSocket协议头，
+    // 进入后面逻辑代表已经获取到了webSocket协议头，  [AUTO-TRANSLATED:e6bd2556]
+    // Entering the following logic means that the webSocket protocol header has been obtained,
 
     auto remain = len - (ptr - data);
     if(remain > 0){
@@ -121,13 +123,15 @@ begin_decode:
         if(_payload_offset == _payload_len){
             onWebSocketDecodeComplete(*this);
 
-            //这是下一个包
+            // 这是下一个包  [AUTO-TRANSLATED:bf657413]
+            // This is the next package
             remain -= payload_slice_len;
             ptr += payload_slice_len;
             _got_header = false;
 
             if(remain > 0){
-                //剩余数据是下一个包，把它的数据放置在缓存中
+                // 剩余数据是下一个包，把它的数据放置在缓存中  [AUTO-TRANSLATED:7b2ebfad]
+                // The remaining data is the next package, place its data in the cache
                 string str((char *)ptr,remain);
                 _remain_data = str;
 

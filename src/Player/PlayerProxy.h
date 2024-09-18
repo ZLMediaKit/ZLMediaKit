@@ -64,8 +64,10 @@ class PlayerProxy
 public:
     using Ptr = std::shared_ptr<PlayerProxy>;
 
-    // 如果retry_count<0,则一直重试播放；否则重试retry_count次数
-    // 默认一直重试
+    // 如果retry_count<0,则一直重试播放；否则重试retry_count次数  [AUTO-TRANSLATED:5582d53c]
+    // If retry_count < 0, then retry playing indefinitely; otherwise, retry retry_count times
+    // 默认一直重试  [AUTO-TRANSLATED:779d3c46]
+    // Default to retrying indefinitely
     PlayerProxy(const MediaTuple &tuple, const ProtocolOption &option, int retry_count = -1,
         const toolkit::EventPoller::Ptr &poller = nullptr, 
         int reconnect_delay_min = 2, int reconnect_delay_max = 60, int reconnect_delay_step = 3);
@@ -75,35 +77,58 @@ public:
     /**
      * 设置play结果回调，只触发一次；在play执行之前有效
      * @param cb 回调对象
+     * Set a callback for the play result, triggered only once; effective before play execution
+     * @param cb Callback object
+     
+     * [AUTO-TRANSLATED:f34625f6]
      */
     void setPlayCallbackOnce(std::function<void(const toolkit::SockException &ex)> cb);
 
     /**
      * 设置主动关闭回调
      * @param cb 回调对象
+     * Set a callback for active closure
+     * @param cb Callback object
+     
+     * [AUTO-TRANSLATED:83b7700a]
      */
     void setOnClose(std::function<void(const toolkit::SockException &ex)> cb);
 
     /**
     * Set a callback for failed server connection
     * @param cb 回调对象
+     * Set a callback for failed server connection
+     * @param cb Callback object
+     
+     * [AUTO-TRANSLATED:e7f5e7cc]
     */
     void setOnDisconnect(std::function<void()> cb);
 
     /**
     * Set a callback for a successful connection to the server
     * @param cb 回调对象
+     * Set a callback for a successful connection to the server
+     * @param cb Callback object
+     
+     * [AUTO-TRANSLATED:b88e0d4c]
     */
     void setOnConnect(std::function<void(const TranslationInfo&)> cb);
 
     /**
      * 开始拉流播放
      * @param strUrl
+     * Start streaming playback
+     * @param strUrl
+     
+     * [AUTO-TRANSLATED:a2f0e859]
      */
     void play(const std::string &strUrl) override;
 
     /**
      * 获取观看总人数
+     * Get the total number of viewers
+     
+     * [AUTO-TRANSLATED:6c1b8bf1]
      */
     int totalReaderCount();
 
@@ -145,7 +170,8 @@ private:
     MultiMediaSourceMuxer::Ptr _muxer;
 
     toolkit::Ticker _live_ticker;
-    // 0 表示正常 1 表示正在尝试拉流
+    // 0 表示正常 1 表示正在尝试拉流  [AUTO-TRANSLATED:2080bedf]
+    // 0 indicates normal, 1 indicates attempting to stream
     std::atomic<int> _live_status;
     std::atomic<uint64_t> _live_secs;
 

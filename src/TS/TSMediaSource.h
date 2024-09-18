@@ -19,7 +19,8 @@
 
 namespace mediakit {
 
-//TS直播数据包
+// TS直播数据包  [AUTO-TRANSLATED:02fb2e8e]
+// TS Live Data Packet
 class TSPacket : public toolkit::BufferOffset<toolkit::Buffer::Ptr>{
 public:
     using Ptr = std::shared_ptr<TSPacket>;
@@ -31,7 +32,8 @@ public:
     uint64_t time_stamp = 0;
 };
 
-//TS直播源
+// TS直播源  [AUTO-TRANSLATED:0d25ead6]
+// TS Live Source
 class TSMediaSource final : public MediaSource, public toolkit::RingDelegate<TSPacket::Ptr>, private PacketCache<TSPacket>{
 public:
     using Ptr = std::shared_ptr<TSMediaSource>;
@@ -50,6 +52,9 @@ public:
 
     /**
      * 获取媒体源的环形缓冲
+     * Get the circular buffer of the media source
+     
+     * [AUTO-TRANSLATED:91a762bc]
      */
     const RingType::Ptr &getRing() const {
         return _ring;
@@ -62,6 +67,9 @@ public:
 
     /**
      * 获取播放器个数
+     * Get the number of players
+     
+     * [AUTO-TRANSLATED:a451c846]
      */
     int readerCount() override {
         return _ring ? _ring->readerCount() : 0;
@@ -71,6 +79,11 @@ public:
      * 输入TS包
      * @param packet TS包
      * @param key 是否为关键帧第一个包
+     * Input TS packet
+     * @param packet TS packet
+     * @param key Whether it is the first packet of the key frame
+     
+     * [AUTO-TRANSLATED:cd773549]
      */
     void onWrite(TSPacket::Ptr packet, bool key) override {
         _speed[TrackVideo] += packet->size();
@@ -86,6 +99,9 @@ public:
 
     /**
      * 情况GOP缓存
+     * Clear GOP cache
+     
+     * [AUTO-TRANSLATED:d863f8c9]
      */
     void clearCache() override {
         PacketCache<TSPacket>::clearCache();
@@ -102,7 +118,8 @@ private:
             }
             strong_self->onReaderChanged(size);
         });
-        //注册媒体源
+        // 注册媒体源  [AUTO-TRANSLATED:b87b5ac4]
+        // Register media source
         regist();
     }
 
@@ -110,9 +127,15 @@ private:
      * 合并写回调
      * @param packet_list 合并写缓存列队
      * @param key_pos 是否包含关键帧
+     * Merge write callback
+     * @param packet_list Merge write cache queue
+     * @param key_pos Whether it contains a key frame
+     
+     * [AUTO-TRANSLATED:6e93913e]
      */
     void onFlush(std::shared_ptr<toolkit::List<TSPacket::Ptr> > packet_list, bool key_pos) override {
-        //如果不存在视频，那么就没有存在GOP缓存的意义，所以确保一直清空GOP缓存
+        // 如果不存在视频，那么就没有存在GOP缓存的意义，所以确保一直清空GOP缓存  [AUTO-TRANSLATED:66208f94]
+        // If there is no video, then there is no meaning to the existence of GOP cache, so make sure to clear the GOP cache all the time
         _ring->write(std::move(packet_list), _have_video ? key_pos : true);
     }
 

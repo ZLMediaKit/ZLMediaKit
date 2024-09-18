@@ -35,7 +35,8 @@ const char *TSSegment::onSearchPacketTail(const char *data, size_t len) {
         }
         return nullptr;
     }
-    //下一个包头
+    // 下一个包头  [AUTO-TRANSLATED:c653c49d]
+    // Next packet header
     if (((uint8_t *) data)[_size] == TS_SYNC_BYTE) {
         return data + _size;
     }
@@ -44,10 +45,12 @@ const char *TSSegment::onSearchPacketTail(const char *data, size_t len) {
         return (char *) pos;
     }
     if (remainDataSize() > 4 * _size) {
-        //数据这么多都没ts包，全部清空
+        // 数据这么多都没ts包，全部清空  [AUTO-TRANSLATED:95bece98]
+        // So much data but no ts packets, clear all
         return data + len;
     }
-    //等待更多数据
+    // 等待更多数据  [AUTO-TRANSLATED:b47fbc81]
+    // Wait for more data
     return nullptr;
 }
 
@@ -93,7 +96,8 @@ ssize_t TSDecoder::input(const uint8_t *data, size_t bytes) {
     try {
         _ts_segment.input((char *) data, bytes);
     } catch (...) {
-        //ts解析失败，清空缓存数据
+        // ts解析失败，清空缓存数据  [AUTO-TRANSLATED:18b3de5b]
+        // ts parsing failed, clear cache data
         _ts_segment.reset();
         throw;
     }

@@ -18,6 +18,9 @@
 namespace mediakit {
 /**
  * aac Rtmp转adts类
+ * aac Rtmp to adts class
+ 
+ * [AUTO-TRANSLATED:8b262ddb]
  */
 class AACRtmpDecoder : public RtmpCodec {
 public:
@@ -28,12 +31,19 @@ public:
     /**
      * 输入Rtmp并解码
      * @param rtmp Rtmp数据包
+     * Input Rtmp and decode
+     * @param rtmp Rtmp data packet
+     
+     * [AUTO-TRANSLATED:43b1eae8]
      */
     void inputRtmp(const RtmpPacket::Ptr &rtmp) override;
 };
 
 /**
  * aac adts转Rtmp类
+ * aac adts to Rtmp class
+ 
+ * [AUTO-TRANSLATED:2d9c53dd]
  */
 class AACRtmpEncoder : public RtmpCodec {
 public:
@@ -44,17 +54,31 @@ public:
      * 如果track不为空且包含adts头相关信息，
      * 那么inputFrame时可以不输入adts头
      * @param track
+     * Constructor, track can be empty, in which case the adts header is input when inputFrame is called
+     * If track is not empty and contains adts header related information,
+     * then the adts header can be omitted when inputFrame is called
+     * @param track
+     
+     * [AUTO-TRANSLATED:fcf8f765]
      */
     AACRtmpEncoder(const Track::Ptr &track) : RtmpCodec(track) {}
 
     /**
      * 输入aac 数据，可以不带adts头
      * @param frame aac数据
+     * Input aac data, can be without adts header
+     * @param frame aac data
+     
+     * [AUTO-TRANSLATED:d9f4131a]
      */
     bool inputFrame(const Frame::Ptr &frame) override;
 
     /**
      * 生成config包
+     * Generate config package
+     
+     
+     * [AUTO-TRANSLATED:8f851364]
      */
     void makeConfigPacket() override;
 

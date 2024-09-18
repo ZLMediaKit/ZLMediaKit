@@ -88,12 +88,14 @@ void DecoderImp::onStream(int stream, int codecid, const void *extra, size_t byt
     if (_finished) {
         return;
     }
-    // G711传统只支持 8000/1/16的规格，FFmpeg貌似做了扩展，但是这里不管它了
+    // G711传统只支持 8000/1/16的规格，FFmpeg貌似做了扩展，但是这里不管它了  [AUTO-TRANSLATED:851813f7]
+    // G711 traditionally only supports the 8000/1/16 specification. FFmpeg seems to have extended it, but we'll ignore that here.
     auto track = Factory::getTrackByCodecId(getCodecByMpegId(codecid), 8000, 1, 16);
     if (track) {
         onTrack(stream, std::move(track));
     }
-    // 防止未获取视频track提前complete导致忽略后续视频的问题，用于兼容一些不太规范的ps流
+    // 防止未获取视频track提前complete导致忽略后续视频的问题，用于兼容一些不太规范的ps流  [AUTO-TRANSLATED:d6b349b5]
+    // Prevent the problem of ignoring subsequent video due to premature completion of the video track before it is obtained. This is used to be compatible with some non-standard PS streams.
     if (finish && _have_video) {
         _finished = true;
         _sink->addTrackCompleted();

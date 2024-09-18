@@ -67,24 +67,31 @@ void splitH264(
     while (true) {
         auto next_start = memfind(start, end - start, "\x00\x00\x01", 3);
         if (next_start) {
-            //找到下一帧
+            // 找到下一帧  [AUTO-TRANSLATED:7161f54a]
+            // Find the next frame
             if (*(next_start - 1) == 0x00) {
-                //这个是00 00 00 01开头
+                // 这个是00 00 00 01开头  [AUTO-TRANSLATED:b0d79e9e]
+                // This starts with 00 00 00 01
                 next_start -= 1;
                 next_prefix = 4;
             } else {
-                //这个是00 00 01开头
+                // 这个是00 00 01开头  [AUTO-TRANSLATED:18ae81d8]
+                // This starts with 00 00 01
                 next_prefix = 3;
             }
-            //记得加上本帧prefix长度
+            // 记得加上本帧prefix长度  [AUTO-TRANSLATED:8bde5d52]
+            // Remember to add the prefix length of this frame
             cb(start - prefix, next_start - start + prefix, prefix);
-            //搜索下一帧末尾的起始位置
+            // 搜索下一帧末尾的起始位置  [AUTO-TRANSLATED:8976b719]
+            // Search for the starting position of the end of the next frame
             start = next_start + next_prefix;
-            //记录下一帧的prefix长度
+            // 记录下一帧的prefix长度  [AUTO-TRANSLATED:756aee4e]
+            // Record the prefix length of the next frame
             prefix = next_prefix;
             continue;
         }
-        //未找到下一帧,这是最后一帧
+        // 未找到下一帧,这是最后一帧  [AUTO-TRANSLATED:58365453]
+        // The next frame was not found, this is the last frame
         cb(start - prefix, end - start + prefix, prefix);
         break;
     }
@@ -96,17 +103,20 @@ size_t prefixSize(const char *ptr, size_t len) {
     }
 
     if (ptr[0] != 0x00 || ptr[1] != 0x00) {
-        //不是0x00 00开头
+        // 不是0x00 00开头  [AUTO-TRANSLATED:c406f0da]
+        // Not 0x00 00 at the beginning
         return 0;
     }
 
     if (ptr[2] == 0x00 && ptr[3] == 0x01) {
-        //是0x00 00 00 01
+        // 是0x00 00 00 01  [AUTO-TRANSLATED:70caae72]
+        // It is 0x00 00 00 01
         return 4;
     }
 
     if (ptr[2] == 0x01) {
-        //是0x00 00 01
+        // 是0x00 00 01  [AUTO-TRANSLATED:78b4a3c9]
+        // It is 0x00 00 01
         return 3;
     }
     return 0;
@@ -148,7 +158,8 @@ bool H264Track::inputFrame(const Frame::Ptr &frame) {
         return inputFrame_l(frame);
     }
 
-    //非I/B/P帧情况下，split一下，防止多个帧粘合在一起
+    // 非I/B/P帧情况下，split一下，防止多个帧粘合在一起  [AUTO-TRANSLATED:b69c6e75]
+    // In the case of non-I/B/P frames, split it to prevent multiple frames from sticking together
     bool ret = false;
     splitH264(frame->data(), frame->size(), frame->prefixSize(), [&](const char *ptr, size_t len, size_t prefix) {
         H264FrameInternal::Ptr sub_frame = std::make_shared<H264FrameInternal>(frame, (char *)ptr, len, prefix);
@@ -267,13 +278,15 @@ bool H264Track::inputFrame_l(const Frame::Ptr &frame) {
             break;
         }
         default:
-            // 避免识别不出关键帧
+            // 避免识别不出关键帧  [AUTO-TRANSLATED:8eb84679]
+            // Avoid not being able to recognize keyframes
             if (_latest_is_config_frame && !frame->dropAble()) {
                 if (!frame->keyFrame()) {
                     const_cast<Frame::Ptr &>(frame) = std::make_shared<FrameCacheAble>(frame, true);
                 }
             }
-            // 判断是否是I帧, 并且如果是,那判断前面是否插入过config帧, 如果插入过就不插入了
+            // 判断是否是I帧, 并且如果是,那判断前面是否插入过config帧, 如果插入过就不插入了  [AUTO-TRANSLATED:40733cd8]
+            // Determine if it is an I frame, and if it is, determine if a config frame has been inserted before, and if it has been inserted, do not insert it
             if (frame->keyFrame() && !_latest_is_config_frame) {
                 insertConfigFrame(frame);
             }
@@ -313,6 +326,11 @@ public:
          Single NAI Unit Mode = 0. // Single NAI mode (Only nals from 1-23 are allowed)
          Non Interleaved Mode = 1，// Non-interleaved Mode: 1-23，24 (STAP-A)，28 (FU-A) are allowed
          Interleaved Mode = 2,  // 25 (STAP-B)，26 (MTAP16)，27 (MTAP24)，28 (EU-A)，and 29 (EU-B) are allowed.
+         Single NAI Unit Mode = 0. // Single NAI mode (Only nals from 1-23 are allowed)
+         Non Interleaved Mode = 1，// Non-interleaved Mode: 1-23，24 (STAP-A)，28 (FU-A) are allowed
+         Interleaved Mode = 2,  // 25 (STAP-B)，26 (MTAP16)，27 (MTAP24)，28 (EU-A)，and 29 (EU-B) are allowed.
+         *
+         * [AUTO-TRANSLATED:6166738f]
          **/
         GET_CONFIG(bool, h264_stap_a, Rtp::kH264StapA);
         _printer << "a=fmtp:" << payload_type << " packetization-mode=" << h264_stap_a << "; profile-level-id=";
@@ -365,7 +383,8 @@ Track::Ptr getTrackBySdp(const SdpTrack::Ptr &track) {
     auto sps = decodeBase64(base64_SPS);
     auto pps = decodeBase64(base64_PPS);
     if (sps.empty() || pps.empty()) {
-        //如果sdp里面没有sps/pps,那么可能在后续的rtp里面恢复出sps/pps
+        // 如果sdp里面没有sps/pps,那么可能在后续的rtp里面恢复出sps/pps  [AUTO-TRANSLATED:60f03d45]
+        // If there is no sps/pps in the sdp, then it may be possible to recover the sps/pps in the subsequent rtp
         return std::make_shared<H264Track>();
     }
     return std::make_shared<H264Track>(sps, pps, 0, 0);

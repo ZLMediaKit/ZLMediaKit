@@ -19,7 +19,8 @@
 
 namespace mediakit {
 
-//FMP4直播数据包
+// FMP4直播数据包  [AUTO-TRANSLATED:64f8a1d1]
+// FMP4 Live Data Packet
 class FMP4Packet : public toolkit::BufferString{
 public:
     using Ptr = std::shared_ptr<FMP4Packet>;
@@ -31,7 +32,8 @@ public:
     uint64_t time_stamp = 0;
 };
 
-//FMP4直播源
+// FMP4直播源  [AUTO-TRANSLATED:15c43604]
+// FMP4 Live Source
 class FMP4MediaSource final : public MediaSource, public toolkit::RingDelegate<FMP4Packet::Ptr>, private PacketCache<FMP4Packet>{
 public:
     using Ptr = std::shared_ptr<FMP4MediaSource>;
@@ -51,6 +53,9 @@ public:
 
     /**
      * 获取媒体源的环形缓冲
+     * Get the circular buffer of the media source
+     
+     * [AUTO-TRANSLATED:91a762bc]
      */
     const RingType::Ptr &getRing() const {
         return _ring;
@@ -63,6 +68,9 @@ public:
 
     /**
      * 获取fmp4 init segment
+     * Get the fmp4 init segment
+     
+     * [AUTO-TRANSLATED:6c704ec9]
      */
     const std::string &getInitSegment() const{
         return _init_segment;
@@ -71,6 +79,10 @@ public:
     /**
      * 设置fmp4 init segment
      * @param str init segment
+     * Set the fmp4 init segment
+     * @param str init segment
+     
+     * [AUTO-TRANSLATED:3f41879f]
      */
     void setInitSegment(std::string str) {
         _init_segment = std::move(str);
@@ -79,6 +91,9 @@ public:
 
     /**
      * 获取播放器个数
+     * Get the number of players
+     
+     * [AUTO-TRANSLATED:a451c846]
      */
     int readerCount() override {
         return _ring ? _ring->readerCount() : 0;
@@ -88,6 +103,11 @@ public:
      * 输入FMP4包
      * @param packet FMP4包
      * @param key 是否为关键帧第一个包
+     * Input FMP4 packet
+     * @param packet FMP4 packet
+     * @param key Whether it is the first packet of the key frame
+     
+     * [AUTO-TRANSLATED:3b310b27]
      */
     void onWrite(FMP4Packet::Ptr packet, bool key) override {
         if (!_ring) {
@@ -103,6 +123,9 @@ public:
 
     /**
      * 情况GOP缓存
+     * Clear GOP cache
+     
+     * [AUTO-TRANSLATED:d863f8c9]
      */
     void clearCache() override {
         PacketCache<FMP4Packet>::clearCache();
@@ -128,9 +151,15 @@ private:
      * 合并写回调
      * @param packet_list 合并写缓存列队
      * @param key_pos 是否包含关键帧
+     * Merge write callback
+     * @param packet_list Merge write cache queue
+     * @param key_pos Whether it contains a key frame
+     
+     * [AUTO-TRANSLATED:6e93913e]
      */
     void onFlush(std::shared_ptr<toolkit::List<FMP4Packet::Ptr> > packet_list, bool key_pos) override {
-        //如果不存在视频，那么就没有存在GOP缓存的意义，所以确保一直清空GOP缓存
+        // 如果不存在视频，那么就没有存在GOP缓存的意义，所以确保一直清空GOP缓存  [AUTO-TRANSLATED:66208f94]
+        // If there is no video, then there is no meaning to the existence of GOP cache, so make sure to clear the GOP cache all the time
         _ring->write(std::move(packet_list), _have_video ? key_pos : true);
     }
 

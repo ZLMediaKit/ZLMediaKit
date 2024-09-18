@@ -119,7 +119,8 @@ string FCI_REMB::create(const vector<uint32_t> &ssrcs, uint32_t bitrate) {
     // BR Mantissa (18 bits)
     thiz->bitrate[3] = (uint8_t)(mantissa);
 
-    // 设置ssrc列表
+    // 设置ssrc列表  [AUTO-TRANSLATED:51a0df3a]
+    // Set ssrc list
     int i = 0;
     for (auto ssrc : ssrcs) {
         thiz->ssrc_feedback[i++] = htonl(ssrc);
@@ -186,7 +187,8 @@ uint16_t FCI_NACK::getBlp() const {
 vector<bool> FCI_NACK::getBitArray() const {
     vector<bool> ret;
     ret.resize(kBitSize + 1);
-    // nack第一个包丢包
+    // nack第一个包丢包  [AUTO-TRANSLATED:357feeea]
+    // Nack the first packet loss
     ret[0] = true;
 
     auto blp_h = getBlp();
@@ -224,21 +226,28 @@ public:
     uint16_t symbol : 2;
     uint16_t run_length_high : 5;
 #else
-    // Run Length 高5位
+    // Run Length 高5位  [AUTO-TRANSLATED:a1426130]
+    // Run Length high 5 bits
     uint16_t run_length_high : 5;
-    // 参考SymbolStatus定义
+    // 参考SymbolStatus定义  [AUTO-TRANSLATED:0268c65e]
+    // Refer to SymbolStatus definition
     uint16_t symbol : 2;
-    // 固定为0
+    // 固定为0  [AUTO-TRANSLATED:7b516577]
+    // Fixed to 0
     uint16_t type : 1;
 #endif
-    // Run Length 低8位
+    // Run Length 低8位  [AUTO-TRANSLATED:8984c00d]
+    // Run Length low 8 bits
     uint16_t run_length_low : 8;
 
-    // 获取Run Length
+    // 获取Run Length  [AUTO-TRANSLATED:9fb792e6]
+    // Get Run Length
     uint16_t getRunLength() const;
-    // 构造函数
+    // 构造函数  [AUTO-TRANSLATED:b9f7407d]
+    // Constructor
     RunLengthChunk(SymbolStatus status, uint16_t run_length);
-    // 打印本对象
+    // 打印本对象  [AUTO-TRANSLATED:e8bd8207]
+    // Print this object
     string dumpString() const;
 };
 #pragma pack(pop)
@@ -276,21 +285,28 @@ public:
     uint16_t symbol : 1;
     uint16_t symbol_list_high : 6;
 #else
-    // symbol_list 高6位
+    // symbol_list 高6位  [AUTO-TRANSLATED:2ef1be51]
+    // symbol_list high 6 bits
     uint16_t symbol_list_high : 6;
-    // symbol_list中元素是1个还是2个bit
+    // symbol_list中元素是1个还是2个bit  [AUTO-TRANSLATED:0f56756f]
+    // Whether the element in symbol_list is 1 or 2 bits
     uint16_t symbol : 1;
-    // 固定为1
+    // 固定为1  [AUTO-TRANSLATED:1fb4c9c8]
+    // Fixed to 1
     uint16_t type : 1;
 #endif
-    // symbol_list 低8位
+    // symbol_list 低8位  [AUTO-TRANSLATED:257bf13b]
+    // symbol_list low 8 bits
     uint16_t symbol_list_low : 8;
 
-    // 获取symbollist
+    // 获取symbollist  [AUTO-TRANSLATED:a24b8d73]
+    // Get symbollist
     vector<SymbolStatus> getSymbolList() const;
-    // 构造函数
+    // 构造函数  [AUTO-TRANSLATED:b9f7407d]
+    // Constructor
     StatusVecChunk(bool symbol_bit, const vector<SymbolStatus> &status);
-    // 打印本对象
+    // 打印本对象  [AUTO-TRANSLATED:e8bd8207]
+    // Print this object
     string dumpString() const;
 };
 #pragma pack(pop)
@@ -321,13 +337,15 @@ vector<SymbolStatus> StatusVecChunk::getSymbolList() const {
     vector<SymbolStatus> ret;
     auto thiz = ntohs(*((uint16_t *)this));
     if (symbol == 0) {
-        // s = 0 时，表示symbollist的每一个bit能表示一个数据包的到达状态
+        // s = 0 时，表示symbollist的每一个bit能表示一个数据包的到达状态  [AUTO-TRANSLATED:89d8f104]
+        // When s = 0, each bit in symbollist represents the arrival status of a data packet
         for (int i = 13; i >= 0; --i) {
             SymbolStatus status = (SymbolStatus)((bool)(thiz & (1 << i)));
             ret.emplace_back(status);
         }
     } else {
-        // s = 1 时，表示symbollist每两个bit表示一个数据包的状态
+        // s = 1 时，表示symbollist每两个bit表示一个数据包的状态  [AUTO-TRANSLATED:fd7eb5fe]
+        // When s = 1, every two bits in symbollist represent the status of a data packet
         for (int i = 12; i >= 0; i -= 2) {
             SymbolStatus status = (SymbolStatus)((thiz & (3 << i)) >> i);
             ret.emplace_back(status);
@@ -398,29 +416,34 @@ static int16_t getRecvDelta(SymbolStatus status, uint8_t *&ptr, const uint8_t *e
     int16_t delta = 0;
     switch (status) {
     case SymbolStatus::not_received: {
-        // 丢包， recv delta为0个字节
+        // 丢包， recv delta为0个字节  [AUTO-TRANSLATED:4312b1ce]
+        // Packet loss, recv delta is 0 bytes
         break;
     }
     case SymbolStatus::small_delta: {
         CHECK(ptr + 1 <= end);
-        // 时间戳增量小于256， recv delta为1个字节
+        // 时间戳增量小于256， recv delta为1个字节  [AUTO-TRANSLATED:4b93efeb]
+        // Timestamp increment is less than 256, recv delta is 1 byte
         delta = *ptr;
         ptr += 1;
         break;
     }
     case SymbolStatus::large_delta: {
         CHECK(ptr + 2 <= end);
-        // 时间戳增量256~65535间，recv delta为2个字节
+        // 时间戳增量256~65535间，recv delta为2个字节  [AUTO-TRANSLATED:989c8340]
+        // Timestamp increment is between 256 and 65535, recv delta is 2 bytes
         delta = *ptr << 8 | *(ptr + 1);
         ptr += 2;
         break;
     }
     case SymbolStatus::reserved: {
-        // 没有时间戳
+        // 没有时间戳  [AUTO-TRANSLATED:0767909f]
+        // No timestamp
         break;
     }
     default:
-        // 这个逻辑分支不可达到
+        // 这个逻辑分支不可达到  [AUTO-TRANSLATED:451ba1eb]
+        // This logic branch cannot be reached
         CHECK(0);
         break;
     }
@@ -479,17 +502,20 @@ string FCI_TWCC::dumpString(size_t total_size) const {
 static void appendDeltaString(string &delta_str, FCI_TWCC::TwccPacketStatus &status, int count) {
     for (auto it = status.begin(); it != status.end() && count--;) {
         switch (it->second.first) {
-        // large delta模式先写高字节，再写低字节
+        // large delta模式先写高字节，再写低字节  [AUTO-TRANSLATED:cb25ff45]
+        // Large delta mode writes the high byte first, then the low byte
         case SymbolStatus::large_delta:
             delta_str.push_back((it->second.second >> 8) & 0xFF);
-            // small delta模式只写低字节
+            // small delta模式只写低字节  [AUTO-TRANSLATED:5caea5d6]
+            // Small delta mode only writes the low byte
         case SymbolStatus::small_delta:
             delta_str.push_back(it->second.second & 0xFF);
             break;
         default:
             break;
         }
-        // 移除已经处理过的数据
+        // 移除已经处理过的数据  [AUTO-TRANSLATED:106fb6db]
+        // Remove the data that has been processed
         it = status.erase(it);
     }
 }
@@ -508,21 +534,25 @@ string FCI_TWCC::create(uint32_t ref_time, uint8_t fb_pkt_count, TwccPacketStatu
     string delta_str;
     while (!status.empty()) {
         {
-            // 第一个rtp的状态
+            // 第一个rtp的状态  [AUTO-TRANSLATED:b0efb9ad]
+            // The status of the first rtp
             auto symbol = status.begin()->second.first;
             int16_t count = 0;
             for (auto &pr : status) {
                 if (pr.second.first != symbol) {
-                    // 状态发送变更了，本chunk结束
+                    // 状态发送变更了，本chunk结束  [AUTO-TRANSLATED:f1c2c6d1]
+                    // The status sending changed, this chunk ends
                     break;
                 }
                 if (++count >= (0xFFFF >> 3)) {
-                    // RunLengthChunk 13个bit表明rtp个数，最多可以表述0xFFFF >> 3个rtp状态
+                    // RunLengthChunk 13个bit表明rtp个数，最多可以表述0xFFFF >> 3个rtp状态  [AUTO-TRANSLATED:c6c4de01]
+                    // RunLengthChunk 13 bits indicate the number of rtp, at most 0xFFFF >> 3 rtp status can be expressed
                     break;
                 }
             }
             if (count >= 7) {
-                // 连续状态相同个数大于6个时，使用RunLengthChunk模式比较节省带宽
+                // 连续状态相同个数大于6个时，使用RunLengthChunk模式比较节省带宽  [AUTO-TRANSLATED:c243c73f]
+                // When the number of consecutive states is greater than 6, using RunLengthChunk mode is more bandwidth-saving
                 RunLengthChunk chunk(symbol, count);
                 fci.append((char *)&chunk, RunLengthChunk::kSize);
                 appendDeltaString(delta_str, status, count);
@@ -531,20 +561,25 @@ string FCI_TWCC::create(uint32_t ref_time, uint8_t fb_pkt_count, TwccPacketStatu
         }
 
         {
-            // StatusVecChunk模式
-            // symbol_list中元素是1个bit
+            // StatusVecChunk模式  [AUTO-TRANSLATED:612e548c]
+            // StatusVecChunk mode
+            // symbol_list中元素是1个bit  [AUTO-TRANSLATED:e5f8cbf8]
+            // Elements in symbol_list are 1 bit
             auto symbol = 0;
             vector<SymbolStatus> vec;
             for (auto &pr : status) {
                 vec.push_back(pr.second.first);
                 if (pr.second.first >= SymbolStatus::large_delta) {
-                    // symbol_list中元素是2个bit
+                    // symbol_list中元素是2个bit  [AUTO-TRANSLATED:43429094]
+                    // Elements in symbol_list are 2 bits
                     symbol = 1;
                 }
 
                 if (vec.size() << symbol >= 14) {
-                    // symbol为0时，最多存放14个rtp的状态
-                    // symbol为1时，最多存放7个rtp的状态
+                    // symbol为0时，最多存放14个rtp的状态  [AUTO-TRANSLATED:1da4fad6]
+                    // When symbol is 0, at most 14 RTP statuses can be stored
+                    // symbol为1时，最多存放7个rtp的状态  [AUTO-TRANSLATED:34f39e9a]
+                    // When symbol is 1, at most 7 RTP statuses can be stored
                     break;
                 }
             }
@@ -555,7 +590,8 @@ string FCI_TWCC::create(uint32_t ref_time, uint8_t fb_pkt_count, TwccPacketStatu
         }
     }
 
-    // recv delta部分
+    // recv delta部分  [AUTO-TRANSLATED:f7e0d5bc]
+    // recv delta part
     fci.append(delta_str);
     return fci;
 }

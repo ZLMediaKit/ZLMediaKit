@@ -68,24 +68,35 @@ public:
     bool decodeAble() const override {
         auto nal_ptr = (uint8_t *) this->data() + this->prefixSize();
         auto type = H264_TYPE(*nal_ptr);
-        //多slice情况下, first_mb_in_slice 表示其为一帧的开始
+        // 多slice情况下, first_mb_in_slice 表示其为一帧的开始  [AUTO-TRANSLATED:80e88e88]
+        // // In the case of multiple slices, first_mb_in_slice indicates the start of a frame
         return type >= NAL_B_P && type <= NAL_IDR && (nal_ptr[1] & 0x80);
     }
 };
 
 /**
  * 264帧类
+ * 264 frame class
+ 
+ * [AUTO-TRANSLATED:342ccb1e]
  */
 using H264Frame = H264FrameHelper<FrameImp>;
 
 /**
  * 防止内存拷贝的H264类
  * 用户可以通过该类型快速把一个指针无拷贝的包装成Frame类
+ * H264 class that prevents memory copying
+ * Users can quickly wrap a pointer into a Frame class without copying using this type
+ 
+ * [AUTO-TRANSLATED:ff9be1c8]
  */
 using H264FrameNoCacheAble = H264FrameHelper<FrameFromPtr>;
 
 /**
  * 264视频通道
+ * 264 video channel
+ 
+ * [AUTO-TRANSLATED:6936e76d]
  */
 class H264Track : public VideoTrack {
 public:
@@ -94,6 +105,10 @@ public:
     /**
      * 不指定sps pps构造h264类型的媒体
      * 在随后的inputFrame中获取sps pps
+     * Construct a media of h264 type without specifying sps pps
+     * Get sps pps in the subsequent inputFrame
+     
+     * [AUTO-TRANSLATED:84d01c7f]
      */
     H264Track() = default;
 
@@ -103,6 +118,14 @@ public:
      * @param pps pps帧数据
      * @param sps_prefix_len 264头长度，可以为3个或4个字节，一般为0x00 00 00 01
      * @param pps_prefix_len 264头长度，可以为3个或4个字节，一般为0x00 00 00 01
+     * Construct a media of h264 type
+     * @param sps sps frame data
+     * @param pps pps frame data
+     * @param sps_prefix_len 264 header length, can be 3 or 4 bytes, generally 0x00 00 00 01
+     * @param pps_prefix_len 264 header length, can be 3 or 4 bytes, generally 0x00 00 00 01
+     
+     
+     * [AUTO-TRANSLATED:702c1433]
      */
     H264Track(const std::string &sps, const std::string &pps, int sps_prefix_len = 4, int pps_prefix_len = 4);
 

@@ -22,6 +22,11 @@ namespace mediakit {
  * h265 rtp解码类
  * 将 h265 over rtsp-rtp 解复用出 h265-Frame
  * 《草案（H265-over-RTP）draft-ietf-payload-rtp-h265-07.pdf》
+ * h265 rtp decoder class
+ * Demultiplex h265-Frame from h265 over rtsp-rtp
+ * 《Draft (H265-over-RTP) draft-ietf-payload-rtp-h265-07.pdf》
+ 
+ * [AUTO-TRANSLATED:24e7e278]
  */
 class H265RtpDecoder : public RtpCodec {
 public:
@@ -33,6 +38,11 @@ public:
      * 输入265 rtp包
      * @param rtp rtp包
      * @param key_pos 此参数忽略之
+     * Input 265 rtp packet
+     * @param rtp rtp packet
+     * @param key_pos This parameter is ignored
+     
+     * [AUTO-TRANSLATED:35e8fa1d]
      */
     bool inputRtp(const RtpPacket::Ptr &rtp, bool key_pos = true) override;
 
@@ -57,6 +67,9 @@ private:
 
 /**
  * 265 rtp打包类
+ * 265 rtp packer class
+ 
+ * [AUTO-TRANSLATED:4b3f96fe]
  */
 class H265RtpEncoder : public RtpCodec {
 public:
@@ -65,11 +78,19 @@ public:
     /**
      * 输入265帧
      * @param frame 帧数据，必须
+     * Input 265 frame
+     * @param frame Frame data, required
+     
+     * [AUTO-TRANSLATED:48454707]
      */
     bool inputFrame(const Frame::Ptr &frame) override;
 
     /**
      * 刷新输出所有frame缓存
+     * Flush all frame cache in output
+     
+     
+     * [AUTO-TRANSLATED:adaea568]
      */
     void flush() override;
 
@@ -85,6 +106,6 @@ private:
     Frame::Ptr _last_frame;
 };
 
-}//namespace mediakit{
+}//namespace mediakit
 
 #endif //ZLMEDIAKIT_H265RTPCODEC_H

@@ -2155,7 +2155,8 @@ exit:
     
 void h264GetWidthHeight(T_SPS *ptSps, int *piWidth, int *piHeight)
 {
-    // ¿í¸ß¼ÆËã¹«Ê½
+    // ¿í¸ß¼ÆËã¹«Ê½  [AUTO-TRANSLATED:e2d61727]
+    // What is the frame rate
     int iCodeWidth = 0;
     int iCodedHeight = 0;
     iCodeWidth	= 16 * ptSps->iMbWidth;
@@ -2278,7 +2279,8 @@ void h265GeFramerate(T_HEVCVPS *ptVps, T_HEVCSPS *ptSps,float *pfFramerate)
         *pfFramerate = (float)(ptSps->tVui.u32VuiTimeScale) / (float)(ptSps->tVui.u32VuiNumUnitsInTick);
     }
     else{
-        //vps sps可能不包含帧率
+        // vps sps可能不包含帧率  [AUTO-TRANSLATED:15424320]
+        // vps sps may not contain frame rate
         *pfFramerate = 0.0F;
         RPT(RPT_WRN, "frame rate:0");
     }

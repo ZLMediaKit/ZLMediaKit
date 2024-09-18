@@ -22,11 +22,18 @@ public:
 
     /**
      * 开始播放
+     * Start playing
+     
+     * [AUTO-TRANSLATED:53a212c5]
      */
     void play(const std::string &url) override;
 
     /**
      * 停止播放
+     * Stop playing
+     
+     
+     * [AUTO-TRANSLATED:db52bf15]
      */
     void teardown() override;
 

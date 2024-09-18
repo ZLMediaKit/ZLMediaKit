@@ -22,6 +22,9 @@ namespace mediakit {
 
 /**
  * http客户端cookie对象
+ * http client cookie object
+ 
+ * [AUTO-TRANSLATED:5c1840bb]
  */
 class HttpCookie {
 public:
@@ -47,6 +50,10 @@ private:
 
 /**
  * http客户端cookie全局保存器
+ * http client cookie global saver
+ 
+ 
+ * [AUTO-TRANSLATED:cac4a704]
  */
 class HttpCookieStorage{
 public:

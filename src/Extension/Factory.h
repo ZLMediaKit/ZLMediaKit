@@ -44,6 +44,9 @@ class Factory {
 public:
     /**
      * 注册插件，非线程安全的
+     * Register plugin, not thread-safe
+     
+     * [AUTO-TRANSLATED:43e22d01]
      */
     static void registerPlugin(const CodecPlugin &plugin);
 
@@ -53,17 +56,31 @@ public:
      * @param sample_rate 采样率，视频固定为90000
      * @param channels 音频通道数
      * @param sample_bit 音频采样位数
+     * Get track by codec_id
+     * @param codecId codec id
+     * @param sample_rate sample rate, video is fixed to 90000
+     * @param channels number of audio channels
+     * @param sample_bit audio sample bit
+     
+     * [AUTO-TRANSLATED:397b982e]
      */
     static Track::Ptr getTrackByCodecId(CodecId codecId, int sample_rate = 0, int channels = 0, int sample_bit = 0);
 
-    ////////////////////////////////rtsp相关//////////////////////////////////
+    // //////////////////////////////rtsp相关//////////////////////////////////  [AUTO-TRANSLATED:884055ec]
+    // //////////////////////////////rtsp相关//////////////////////////////////
     /**
      * 根据sdp生成Track对象
+     * Generate Track object based on sdp
+     
+     * [AUTO-TRANSLATED:79a99990]
      */
     static Track::Ptr getTrackBySdp(const SdpTrack::Ptr &track);
 
     /**
      * 根据c api 抽象的Track生成具体Track对象
+     * Generate specific Track object based on Track abstracted from c api
+     
+     * [AUTO-TRANSLATED:991e7721]
      */
     static Track::Ptr getTrackByAbstractTrack(const Track::Ptr& track);
 
@@ -71,43 +88,72 @@ public:
      * 根据codec id生成rtp编码器
      * @param codec_id 编码id
      * @param pt rtp payload type
+     * Generate rtp encoder based on codec id
+     * @param codec_id codec id
+     * @param pt rtp payload type
+     
+     * [AUTO-TRANSLATED:3895b39c]
      */
     static RtpCodec::Ptr getRtpEncoderByCodecId(CodecId codec_id, uint8_t pt);
 
     /**
      * 根据Track生成Rtp解包器
+     * Generate Rtp unpacker based on Track
+     
+     * [AUTO-TRANSLATED:50dbf826]
      */
     static RtpCodec::Ptr getRtpDecoderByCodecId(CodecId codec);
 
 
-    ////////////////////////////////rtmp相关//////////////////////////////////
+    // //////////////////////////////rtmp相关//////////////////////////////////  [AUTO-TRANSLATED:df02d6fb]
+    // //////////////////////////////rtmp相关//////////////////////////////////
 
     /**
      * 根据amf对象获取视频相应的Track
      * @param amf rtmp metadata中的videocodecid的值
+     * Get the corresponding video Track based on the amf object
+     * @param amf the value of videocodecid in rtmp metadata
+     
+     * [AUTO-TRANSLATED:c0c632c1]
      */
     static Track::Ptr getVideoTrackByAmf(const AMFValue &amf);
 
     /**
      * 根据amf对象获取音频相应的Track
      * @param amf rtmp metadata中的audiocodecid的值
+     * Get the corresponding audio Track based on the amf object
+     * @param amf the value of audiocodecid in rtmp metadata
+     
+     * [AUTO-TRANSLATED:fc34f9e4]
      */
     static Track::Ptr getAudioTrackByAmf(const AMFValue& amf, int sample_rate, int channels, int sample_bit);
 
     /**
      * 根据Track获取Rtmp的编码器
      * @param track 媒体描述对象
+     * Get the Rtmp encoder based on Track
+     * @param track media description object
+     
+     * [AUTO-TRANSLATED:81fc38af]
      */
     static RtmpCodec::Ptr getRtmpEncoderByTrack(const Track::Ptr &track);
 
     /**
      * 根据Track获取Rtmp的解码器
      * @param track 媒体描述对象
+     * Get the Rtmp decoder based on Track
+     * @param track media description object
+     
+     * [AUTO-TRANSLATED:0744b09e]
      */
     static RtmpCodec::Ptr getRtmpDecoderByTrack(const Track::Ptr &track);
 
     /**
      * 根据codecId获取rtmp的codec描述
+     * Get the rtmp codec description based on codecId
+     
+     
+     * [AUTO-TRANSLATED:67c749b7]
      */
     static AMFValue getAmfByCodecId(CodecId codecId);
 

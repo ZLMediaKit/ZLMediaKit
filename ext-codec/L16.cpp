@@ -20,6 +20,9 @@ namespace mediakit {
 
 /**
  * L16类型SDP
+ * L16 type SDP
+ 
+ * [AUTO-TRANSLATED:11b1196d]
  */
 class L16Sdp : public Sdp {
 public:
@@ -29,6 +32,14 @@ public:
      * @param channels 通道数
      * @param sample_rate 音频采样率
      * @param bitrate 比特率
+     * L16 sampling bit width is fixed to 16 bits
+     * @param payload_type rtp payload type
+     * @param channels number of channels
+     * @param sample_rate audio sampling rate
+     * @param bitrate bitrate
+     
+     
+     * [AUTO-TRANSLATED:7a08a400]
      */
     L16Sdp(int payload_type, int sample_rate, int channels, int bitrate) : Sdp(sample_rate, payload_type) {
         _printer << "m=audio 0 RTP/AVP " << payload_type << "\r\n";

@@ -18,7 +18,8 @@
 
 namespace mediakit{
 
-//ps解析器
+// ps解析器  [AUTO-TRANSLATED:f156a1f1]
+// ps parser
 class PSDecoder : public Decoder, private HttpRequestSplitter {
 public:
     PSDecoder();

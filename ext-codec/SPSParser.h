@@ -144,6 +144,11 @@ typedef struct T_AVRational{
 /***
  * Sequence parameter set
  * ¿É²Î¿¼H264±ê×¼µÚ7½ÚºÍ¸½Â¼D E
+ /***
+ * Sequence parameter set
+ * H.264 sequence parameter set, version 7 and above, D E
+ 
+ * [AUTO-TRANSLATED:bd590cb8]
  */
 #define Extended_SAR 255
 
@@ -490,7 +495,8 @@ typedef struct {
     int log2_sao_offset_scale_luma;
     int log2_sao_offset_scale_chroma;
 
-    // 可以根据需要添加更多字段
+    // 可以根据需要添加更多字段  [AUTO-TRANSLATED:57b9a7c1]
+    // You can add more fields as needed
 } T_HEVC_PPS;
 
 typedef struct T_GetBitContext{

@@ -18,6 +18,9 @@ namespace mediakit {
 
 /**
  * Opus帧音频通道
+ * Opus frame audio channel
+ 
+ * [AUTO-TRANSLATED:522e95da]
  */
 class OpusTrack : public AudioTrackImp{
 public:
@@ -25,11 +28,13 @@ public:
     OpusTrack() : AudioTrackImp(CodecOpus,48000,2,16){}
 
 private:
-    //克隆该Track
+    // 克隆该Track  [AUTO-TRANSLATED:9a15682a]
+    // Clone this Track
     Track::Ptr clone() const override {
         return std::make_shared<OpusTrack>(*this);
     }
-    //生成sdp
+    // 生成sdp  [AUTO-TRANSLATED:663a9367]
+    // Generate sdp
     Sdp::Ptr getSdp(uint8_t payload_type) const override ;
 };
 

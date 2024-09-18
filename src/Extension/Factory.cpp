@@ -45,7 +45,8 @@ void Factory::registerPlugin(const CodecPlugin &plugin) {
 Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
     auto codec = getCodecId(track->_codec);
     if (codec == CodecInvalid) {
-        // 根据传统的payload type 获取编码类型以及采样率等信息
+        // 根据传统的payload type 获取编码类型以及采样率等信息  [AUTO-TRANSLATED:d01ca068]
+        // Get the encoding type, sampling rate, and other information based on the traditional payload type
         codec = RtpPayload::getCodecId(track->_pt);
     }
     auto it = s_plugins.find(codec);
@@ -83,7 +84,8 @@ RtpCodec::Ptr Factory::getRtpDecoderByCodecId(CodecId codec) {
     return it->second->getRtpDecoderByCodecId();
 }
 
-/////////////////////////////rtmp相关///////////////////////////////////////////
+// ///////////////////////////rtmp相关///////////////////////////////////////////  [AUTO-TRANSLATED:da9645df]
+// ///////////////////////////rtmp related///////////////////////////////////////////
 
 static CodecId getVideoCodecIdByAmf(const AMFValue &val){
     if (val.type() == AMF_STRING) {
@@ -197,7 +199,8 @@ AMFValue Factory::getAmfByCodecId(CodecId codecId) {
 Frame::Ptr Factory::getFrameFromPtr(CodecId codec, const char *data, size_t bytes, uint64_t dts, uint64_t pts) {
     auto it = s_plugins.find(codec);
     if (it == s_plugins.end()) {
-        // 创建不支持codec的frame
+        // 创建不支持codec的frame  [AUTO-TRANSLATED:00936c6c]
+        // Create a frame that does not support the codec
         return std::make_shared<FrameFromPtr>(codec, (char *)data, bytes, dts, pts);
     }
     return it->second->getFrameFromPtr(data, bytes, dts, pts);

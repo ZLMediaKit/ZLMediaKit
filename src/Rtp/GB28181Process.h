@@ -33,11 +33,21 @@ public:
      * @param data rtp数据指针
      * @param data_len rtp数据长度
      * @return 是否解析成功
+     * Input rtp
+     * @param data rtp data pointer
+     * @param data_len rtp data length
+     * @return Whether the parsing is successful
+     
+     * [AUTO-TRANSLATED:d7b14ffe]
      */
     bool inputRtp(bool, const char *data, size_t data_len) override;
 
     /**
      * 刷新输出所有缓存
+     * Refresh and output all caches
+     
+     
+     * [AUTO-TRANSLATED:4509b01f]
      */
     void flush() override;
 
