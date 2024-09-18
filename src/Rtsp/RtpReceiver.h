@@ -64,6 +64,7 @@ public:
             output(seq, std::move(packet));
             // 清空连续包列表
             flushPacket();
+            _pkt_drop_cache_map.clear();
             return;
         }
 
@@ -162,9 +163,6 @@ private:
                 continue;
             }
             break;
-        }
-        if (!_pkt_drop_cache_map.empty()) {
-            _pkt_drop_cache_map.clear();
         }
     }
 
