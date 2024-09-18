@@ -93,7 +93,8 @@ void process_file(const char *file,bool rm_bom){
     }
 
     if (have_bom == !rm_bom) {
-//        DebugL << "无需" << (rm_bom ? "删除" : "添加") << "bom:" << file;
+//        DebugL << "无需" << (rm_bom ? "删除" : "添加") << "bom:" << file;  [AUTO-TRANSLATED:6062a9ca]
+// DebugL << "No need to" << (rm_bom ? "remove" : "add") << "bom:" << file;
         return;
     }
 
@@ -102,7 +103,8 @@ void process_file(const char *file,bool rm_bom){
     InfoL << (rm_bom ? "删除" : "添加") << "bom:" << file;
 }
 
-/// 这个程序是为了统一添加或删除utf-8 bom头
+// / 这个程序是为了统一添加或删除utf-8 bom头  [AUTO-TRANSLATED:945a36b6]
+// / This program is for unified adding or removing utf-8 bom header
 int main(int argc, char *argv[]) {
     CMD_main cmd_main;
     try {
@@ -123,26 +125,31 @@ int main(int argc, char *argv[]) {
     }
 
     bool no_filter = filter_set.find("*") != filter_set.end();
-    //设置日志
+    // 设置日志  [AUTO-TRANSLATED:50372045]
+    // Set log
     Logger::Instance().add(std::make_shared<ConsoleChannel>());
     File::scanDir(path, [&](const string &path, bool isDir) {
         if (isDir) {
             return true;
         }
         if (!no_filter) {
-            //开启了过滤器
+            // 开启了过滤器  [AUTO-TRANSLATED:331a77dd]
+            // Filter enabled
             auto pos = strstr(path.data(), ".");
             if (pos == nullptr) {
-                //没有后缀
+                // 没有后缀  [AUTO-TRANSLATED:2273522f]
+                // No suffix
                 return true;
             }
             auto ext = pos + 1;
             if (filter_set.find(ext) == filter_set.end()) {
-                //后缀不匹配
+                // 后缀不匹配  [AUTO-TRANSLATED:7e30f0b4]
+                // Suffix does not match
                 return true;
             }
         }
-        //该文件匹配
+        // 该文件匹配  [AUTO-TRANSLATED:9dce5098]
+        // File matches
         process_file(path.data(), rm_bom);
         return true;
     }, true);

@@ -78,7 +78,8 @@ bool PacketQueue::inputPacket(DataPacket::Ptr pkt, std::list<DataPacket::Ptr> &o
     }
 
     while (_pkt_map.size() > _pkt_cap) {
-        // 防止回环
+        // 防止回环  [AUTO-TRANSLATED:5999c704]
+        // Prevent circular references
         it = _pkt_map.find(_pkt_expected_seq);
         if (it != _pkt_map.end()) {
             out.push_back(it->second);
