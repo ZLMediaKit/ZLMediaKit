@@ -18,6 +18,10 @@ namespace mediakit {
 
 /**
  * L16音频通道
+ * L16 audio channel
+ 
+ 
+ * [AUTO-TRANSLATED:7a4b086f]
  */
 class L16Track : public AudioTrackImp{
 public:

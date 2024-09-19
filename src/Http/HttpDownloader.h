@@ -27,6 +27,13 @@ public:
      * @param url 下载http url
      * @param file_path 文件保存地址，置空则选择默认文件路径
      * @param append 如果文件已经存在，是否断点续传方式下载
+     * Start downloading the file, default to resume download
+     * @param url Download http url
+     * @param file_path File save address, leave blank to choose the default file path
+     * @param append If the file already exists, whether to download in resume mode
+     
+     
+     * [AUTO-TRANSLATED:6f651882]
      */
     void startDownload(const std::string &url, const std::string &file_path = "", bool append = false);
 

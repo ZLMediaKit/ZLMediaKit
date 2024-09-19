@@ -27,6 +27,13 @@ public:
      * @param app 应用名
      * @param stream_id 流id,置空时,只解复用mp4,但是不生成MediaSource
      * @param file_path 文件路径，如果为空则根据配置文件和上面参数自动生成，否则使用指定的文件
+     * Play an mp4 file and convert it to a MediaSource stream
+     * @param vhost Virtual host
+     * @param app Application name
+     * @param stream_id Stream id, if empty, only demultiplex mp4, but not generate MediaSource
+     * @param file_path File path, if empty, it will be automatically generated according to the configuration file and the above parameters, otherwise use the specified file
+     
+     * [AUTO-TRANSLATED:2faeb5db]
      */
     MP4Reader(const MediaTuple &tuple, const std::string &file_path = "", toolkit::EventPoller::Ptr poller = nullptr);
 
@@ -37,16 +44,29 @@ public:
      * @param sample_ms 每次读取文件数据量，单位毫秒，置0时采用配置文件配置
      * @param ref_self 是否让定时器引用此对象本身，如果无其他对象引用本身，在不循环读文件时，读取文件结束后本对象将自动销毁
      * @param file_repeat 是否循环读取文件，如果配置文件设置为循环读文件，此参数无效
+     * Start demultiplexing the MP4 file
+     * @param sample_ms The amount of file data read each time, in milliseconds, set to 0 to use the configuration file configuration
+     * @param ref_self Whether to let the timer reference this object itself, if there is no other object referencing itself, when not looping to read the file, after reading the file, this object will be automatically destroyed
+     * @param file_repeat Whether to loop to read the file, if the configuration file is set to loop to read the file, this parameter is invalid
+     
+     * [AUTO-TRANSLATED:2164a99d]
      */
     void startReadMP4(uint64_t sample_ms = 0, bool ref_self = true,  bool file_repeat = false);
 
     /**
      * 停止解复用MP4定时器
+     * Stop demultiplexing the MP4 timer
+     
+     * [AUTO-TRANSLATED:45fb1ef7]
      */
     void stopReadMP4();
 
     /**
      * 获取mp4解复用器
+     * Get the mp4 demultiplexer
+     
+     
+     * [AUTO-TRANSLATED:4f0dfc29]
      */
     const MP4Demuxer::Ptr& getDemuxer() const;
 

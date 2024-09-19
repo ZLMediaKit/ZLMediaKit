@@ -134,17 +134,20 @@ void System::startDaemon(bool &kill_parent_if_failed) {
         pid = fork();
         if (pid == -1) {
             WarnL << "fork失败:" << get_uv_errmsg();
-            //休眠1秒再试
+            // 休眠1秒再试  [AUTO-TRANSLATED:00e5d7bf]
+            // Sleep for 1 second and try again
             sleep(1);
             continue;
         }
 
         if (pid == 0) {
-            //子进程
+            // 子进程  [AUTO-TRANSLATED:3f793797]
+            // Child process
             return;
         }
 
-        //父进程,监视子进程是否退出
+        // 父进程,监视子进程是否退出  [AUTO-TRANSLATED:0e13a34d]
+        // Parent process, monitor whether the child process exits
         DebugL << "启动子进程:" << pid;
         signal(SIGINT, [](int) {
             WarnL << "收到主动退出信号,关闭父进程与子进程";
@@ -162,9 +165,11 @@ void System::startDaemon(bool &kill_parent_if_failed) {
             int status = 0;
             if (waitpid(pid, &status, 0) >= 0) {
                 WarnL << "子进程退出";
-                //休眠3秒再启动子进程
+                // 休眠3秒再启动子进程  [AUTO-TRANSLATED:608448bd]
+                // Sleep for 3 seconds and then start the child process
                 sleep(3);
-                //重启子进程，如果子进程重启失败，那么不应该杀掉守护进程，这样守护进程可以一直尝试重启子进程
+                // 重启子进程，如果子进程重启失败，那么不应该杀掉守护进程，这样守护进程可以一直尝试重启子进程  [AUTO-TRANSLATED:0a336b0a]
+                // Restart the child process. If the child process fails to restart, the daemon process should not be killed. This allows the daemon process to continuously attempt to restart the child process.
                 kill_parent_if_failed = false;
                 break;
             }
@@ -204,7 +209,8 @@ void System::systemSetup(){
 #ifndef ANDROID
     signal(SIGSEGV, sig_crash);
     signal(SIGABRT, sig_crash);
-    //忽略挂起信号
+    // 忽略挂起信号  [AUTO-TRANSLATED:73e71e54]
+    // Ignore the hang up signal
     signal(SIGHUP, SIG_IGN);
 #endif// ANDROID
 #endif//!defined(_WIN32)

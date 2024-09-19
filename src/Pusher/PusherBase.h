@@ -36,21 +36,34 @@ public:
     /**
      * 开始推流
      * @param strUrl 视频url，支持rtsp/rtmp
+     * Start streaming
+     * @param strUrl Video url, supports rtsp/rtmp
+     
+     * [AUTO-TRANSLATED:d1decdf6]
      */
     virtual void publish(const std::string &strUrl) {};
 
     /**
      * 中断推流
+     * Stop streaming
+     
+     * [AUTO-TRANSLATED:db8d228b]
      */
     virtual void teardown() {};
 
     /**
      * 摄像推流结果回调
+     * Camera streaming result callback
+     
+     * [AUTO-TRANSLATED:33825a4d]
      */
     virtual void setOnPublished(const Event &cb) = 0;
 
     /**
      * 设置断开回调
+     * Set disconnect callback
+     
+     * [AUTO-TRANSLATED:b948082c]
      */
     virtual void setOnShutdown(const Event &cb) = 0;
 
@@ -70,6 +83,10 @@ public:
     /**
      * 开始推流
      * @param url 推流url，支持rtsp/rtmp
+     * Start streaming
+     * @param url Streaming url, supports rtsp/rtmp
+     
+     * [AUTO-TRANSLATED:ffa95c22]
      */
     void publish(const std::string &url) override {
         return _delegate ? _delegate->publish(url) : Parent::publish(url);
@@ -77,6 +94,9 @@ public:
 
     /**
      * 中断推流
+     * Stop streaming
+     
+     * [AUTO-TRANSLATED:db8d228b]
      */
     void teardown() override {
         return _delegate ? _delegate->teardown() : Parent::teardown();
@@ -88,6 +108,9 @@ public:
 
     /**
      * 摄像推流结果回调
+     * Camera streaming result callback
+     
+     * [AUTO-TRANSLATED:33825a4d]
      */
     void setOnPublished(const PusherBase::Event &cb) override {
         if (_delegate) {
@@ -98,6 +121,10 @@ public:
 
     /**
      * 设置断开回调
+     * Set disconnect callback
+     
+     
+     * [AUTO-TRANSLATED:b948082c]
      */
     void setOnShutdown(const PusherBase::Event &cb) override {
         if (_delegate) {

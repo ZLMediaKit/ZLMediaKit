@@ -37,6 +37,7 @@ static time_t time_to_epoch(const struct tm *ltm, int utcdiff) {
 
     tyears = ltm->tm_year - 70; // tm->tm_year is from 1900.
     leaps = (tyears + 2) / 4; // no of next two lines until year 2100.
+    // i = (ltm->tm_year – 100) / 100;  [AUTO-TRANSLATED:12beea30]
     // i = (ltm->tm_year – 100) / 100;
     // leaps -= ( (i/4)*3 + i%4 );
     tdays = 0;
@@ -53,7 +54,8 @@ static time_t time_to_epoch(const struct tm *ltm, int utcdiff) {
 static time_t timeStrToInt(const string &date) {
     struct tm tt;
     strptime(date.data(), "%a, %b %d %Y %H:%M:%S %Z", &tt);
-    // mktime内部有使用互斥锁，非常影响性能
+    // mktime内部有使用互斥锁，非常影响性能  [AUTO-TRANSLATED:b3270635]
+    // mktime uses mutex internally, which significantly affects performance
     return time_to_epoch(&tt, getGMTOff() / 3600); // mktime(&tt);
 }
 
@@ -99,23 +101,29 @@ vector<HttpCookie::Ptr> HttpCookieStorage::get(const string &host, const string 
     lock_guard<mutex> lck(_mtx_cookie);
     auto it = _all_cookie.find(host);
     if (it == _all_cookie.end()) {
-        //未找到该host相关记录
+        // 未找到该host相关记录  [AUTO-TRANSLATED:0655542a]
+        // No record found for this host
         return ret;
     }
-    //遍历该host下所有path
+    // 遍历该host下所有path  [AUTO-TRANSLATED:94ca2180]
+    // Traverse all paths under this host
     for (auto &pr : it->second) {
         if (path.find(pr.first) != 0) {
-            //这个path不匹配
+            // 这个path不匹配  [AUTO-TRANSLATED:3ec99732]
+            // This path does not match
             continue;
         }
-        //遍历该path下的各个cookie
+        // 遍历该path下的各个cookie  [AUTO-TRANSLATED:ceab9c83]
+        // Traverse all cookies under this path
         for (auto it_cookie = pr.second.begin(); it_cookie != pr.second.end();) {
             if (!*(it_cookie->second)) {
-                //该cookie已经过期，移除之
+                // 该cookie已经过期，移除之  [AUTO-TRANSLATED:52762286]
+                // This cookie has expired, remove it
                 it_cookie = pr.second.erase(it_cookie);
                 continue;
             }
-            //保存有效cookie
+            // 保存有效cookie  [AUTO-TRANSLATED:bd875507]
+            // Save valid cookies
             ret.emplace_back(it_cookie->second);
             ++it_cookie;
         }

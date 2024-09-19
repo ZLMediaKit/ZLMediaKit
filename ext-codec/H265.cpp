@@ -219,6 +219,9 @@ void H265Track::insertConfigFrame(const Frame::Ptr &frame) {
 
 /**
  * h265类型sdp
+ * h265 type sdp
+ 
+ * [AUTO-TRANSLATED:4418a7df]
  */
 class H265Sdp : public Sdp {
 public:
@@ -228,9 +231,17 @@ public:
      * @param pps 265 pps,不带0x00000001头
      * @param payload_type  rtp payload type 默认96
      * @param bitrate 比特率
+     * Constructor
+     * @param sps 265 sps, without 0x00000001 header
+     * @param pps 265 pps, without 0x00000001 header
+     * @param payload_type  rtp payload type, default 96
+     * @param bitrate Bitrate
+     
+     * [AUTO-TRANSLATED:93f4ec48]
      */
     H265Sdp(const string &strVPS, const string &strSPS, const string &strPPS, int payload_type, int bitrate) : Sdp(90000, payload_type) {
-        //视频通道
+        // 视频通道  [AUTO-TRANSLATED:642ca881]
+        // Video channel
         _printer << "m=video 0 RTP/AVP " << payload_type << "\r\n";
         if (bitrate) {
             _printer << "b=AS:" << bitrate << "\r\n";
@@ -276,7 +287,8 @@ Track::Ptr getTrackBySdp(const SdpTrack::Ptr &track) {
     auto sps = decodeBase64(map["sprop-sps"]);
     auto pps = decodeBase64(map["sprop-pps"]);
     if (sps.empty() || pps.empty()) {
-        // 如果sdp里面没有sps/pps,那么可能在后续的rtp里面恢复出sps/pps
+        // 如果sdp里面没有sps/pps,那么可能在后续的rtp里面恢复出sps/pps  [AUTO-TRANSLATED:9300510b]
+        // If there is no sps/pps in the sdp, then it may be possible to recover sps/pps from the subsequent rtp
         return std::make_shared<H265Track>();
     }
     return std::make_shared<H265Track>(vps, sps, pps, 0, 0, 0);

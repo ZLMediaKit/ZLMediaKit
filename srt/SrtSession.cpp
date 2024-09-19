@@ -32,7 +32,8 @@ void SrtSession::onRecv(const Buffer::Ptr &buffer) {
     size_t size = buffer->size();
 
     if (_find_transport) {
-        //只允许寻找一次transport
+        // 只允许寻找一次transport  [AUTO-TRANSLATED:620078e7]
+        // Only allow finding transport once
         _find_transport = false;
         _transport = querySrtTransport(data, size, getPoller());
         if (_transport) {
@@ -50,20 +51,25 @@ void SrtSession::onRecv(const Buffer::Ptr &buffer) {
 }
 
 void SrtSession::onError(const SockException &err) {
-    // udp链接超时，但是srt链接不一定超时，因为可能存在udp链接迁移的情况
-    //在udp链接迁移时，新的SrtSession对象将接管SrtSession对象的生命周期
-    //本SrtSession对象将在超时后自动销毁
+    // udp链接超时，但是srt链接不一定超时，因为可能存在udp链接迁移的情况  [AUTO-TRANSLATED:8673c03c]
+    // UDP connection timed out, but SRT connection may not time out due to possible UDP connection migration
+    // 在udp链接迁移时，新的SrtSession对象将接管SrtSession对象的生命周期  [AUTO-TRANSLATED:13f0a9e6]
+    // When UDP connection migrates, a new SrtSession object will take over the lifecycle of the SrtSession object
+    // 本SrtSession对象将在超时后自动销毁  [AUTO-TRANSLATED:d0a34ab8]
+    // This SrtSession object will be automatically destroyed after timeout
     WarnP(this) << err;
 
     if (!_transport) {
         return;
     }
 
-    // 防止互相引用导致不释放
+    // 防止互相引用导致不释放  [AUTO-TRANSLATED:82547e46]
+    // Prevent mutual reference from causing non-release
     auto transport = std::move(_transport);
     getPoller()->async(
         [transport] {
-            //延时减引用，防止使用transport对象时，销毁对象
+            // 延时减引用，防止使用transport对象时，销毁对象  [AUTO-TRANSLATED:09dd6609]
+            // Delayed dereference to prevent object destruction when using the transport object
             //transport->onShutdown(err);
         },
         false);

@@ -38,33 +38,60 @@ public:
      * @param addr 数据源地址
      * @param dts_out 解析出最新的dts
      * @return 是否解析成功
+     * Input rtp
+     * @param is_udp Whether it is udp mode
+     * @param sock Local listening socket
+     * @param data Rtp data pointer
+     * @param len Rtp data length
+     * @param addr Data source address
+     * @param dts_out Parse out the latest dts
+     * @return Whether the parsing is successful
+     
+     * [AUTO-TRANSLATED:a10c5edf]
      */
     bool inputRtp(bool is_udp, const toolkit::Socket::Ptr &sock, const char *data, size_t len, const struct sockaddr *addr , uint64_t *dts_out = nullptr);
 
 
     /**
      * 超时时被RtpSelector移除时触发
+     * Triggered when removed by RtpSelector when timeout
+     
+     * [AUTO-TRANSLATED:dc4c6609]
      */
     void onDetach(const toolkit::SockException &ex);
 
     /**
      * 设置onDetach事件回调
+     * Set onDetach event callback
+     
+     * [AUTO-TRANSLATED:b30f67c3]
      */
     void setOnDetach(onDetachCB cb);
 
     /**
      * 设置onDetach事件回调,false检查RTP超时，true停止
+     * Set onDetach event callback, false checks RTP timeout, true stops
+     
+     * [AUTO-TRANSLATED:2780397f]
      */
     void setStopCheckRtp(bool is_check=false);
 
     /**
      * 设置为单track，单音频/单视频时可以加快媒体注册速度
      * 请在inputRtp前调用此方法，否则可能会是空操作
+     * Set to single track, single audio/single video can speed up media registration
+     * Please call this method before inputRtp, otherwise it may be a null operation
+     
+     * [AUTO-TRANSLATED:55095289]
      */
     void setOnlyTrack(OnlyTrack only_track);
 
     /**
      * flush输出缓存
+     * Flush output cache
+     
+     
+     * [AUTO-TRANSLATED:40618a29]
      */
     void flush() override;
 

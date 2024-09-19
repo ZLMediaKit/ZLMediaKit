@@ -34,15 +34,19 @@ private:
     void sendConfigFrames(uint32_t before_seq, uint32_t sample_rate, uint32_t timestamp, uint64_t ntp_timestamp);
 
 private:
-    //媒体相关元数据
+    // 媒体相关元数据  [AUTO-TRANSLATED:f4cf8045]
+    // Media related metadata
     MediaInfo _media_info;
-    //播放的rtsp源
+    // 播放的rtsp源  [AUTO-TRANSLATED:9963eed1]
+    // Playing rtsp source
     std::weak_ptr<RtspMediaSource> _play_src;
 
-    // rtp 直接转发情况下通常会缺少 sps/pps, 在转发 rtp 前, 先发送一次相关帧信息, 部分情况下是可以播放的
+    // rtp 直接转发情况下通常会缺少 sps/pps, 在转发 rtp 前, 先发送一次相关帧信息, 部分情况下是可以播放的  [AUTO-TRANSLATED:65fdf16a]
+    // In the case of direct RTP forwarding, sps/pps is usually missing. Before forwarding RTP, send the relevant frame information once. In some cases, it can be played.
     bool _send_config_frames_once { false };
 
-    //播放rtsp源的reader对象
+    // 播放rtsp源的reader对象  [AUTO-TRANSLATED:7b305055]
+    // Reader object for playing rtsp source
     RtspMediaSource::RingType::RingReader::Ptr _reader;
 };
 

@@ -90,8 +90,10 @@ void WebRtcPlayer::onStartWebRTC() {
             }
             if (data.is<Buffer>()) {
                 auto &buffer = data.get<Buffer>();
-                // PPID 51: 文本string
-                // PPID 53: 二进制
+                // PPID 51: 文本string  [AUTO-TRANSLATED:69a8cf81]
+                // PPID 51: Text string
+                // PPID 53: 二进制  [AUTO-TRANSLATED:faf00c3e]
+                // PPID 53: Binary
                 strong_self->sendDatachannel(0, 51, buffer.data(), buffer.size());
             } else {
                 WarnL << "Send unknown message type to webrtc player: " << data.type_name();
@@ -102,7 +104,8 @@ void WebRtcPlayer::onStartWebRTC() {
 void WebRtcPlayer::onDestory() {
     auto duration = getDuration();
     auto bytes_usage = getBytesUsage();
-    //流量统计事件广播
+    // 流量统计事件广播  [AUTO-TRANSLATED:6b0b1234]
+    // Traffic statistics event broadcast
     GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
     if (_reader && getSession()) {
         WarnL << "RTC播放器(" << _media_info.shortUrl() << ")结束播放,耗时(s):" << duration;
@@ -119,7 +122,8 @@ void WebRtcPlayer::onRtcConfigure(RtcConfigure &configure) const {
         return ;
     }
     WebRtcTransportImp::onRtcConfigure(configure);
-    //这是播放
+    // 这是播放  [AUTO-TRANSLATED:d93c019e]
+    // This is playing
     configure.audio.direction = configure.video.direction = RtpDirection::sendonly;
     configure.setPlayRtspInfo(playSrc->getSdp());
 }

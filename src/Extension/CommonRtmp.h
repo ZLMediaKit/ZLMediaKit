@@ -18,6 +18,9 @@ namespace mediakit{
 
 /**
  * 通用 rtmp解码类
+ * Generic rtmp decoder class
+ 
+ * [AUTO-TRANSLATED:b04614f4]
  */
 class CommonRtmpDecoder : public RtmpCodec {
 public:
@@ -25,18 +28,28 @@ public:
 
     /**
      * 构造函数
+     * Constructor
+     
+     * [AUTO-TRANSLATED:41469869]
      */
     CommonRtmpDecoder(const Track::Ptr &track) : RtmpCodec(track) {}
 
     /**
      * 输入Rtmp并解码
      * @param rtmp Rtmp数据包
+     * Input Rtmp and decode
+     * @param rtmp Rtmp data packet
+     
+     * [AUTO-TRANSLATED:43b1eae8]
      */
     void inputRtmp(const RtmpPacket::Ptr &rtmp) override;
 };
 
 /**
  * 通用 rtmp编码类
+ * Generic rtmp encoder class
+ 
+ * [AUTO-TRANSLATED:4616a2a8]
  */
 class CommonRtmpEncoder : public RtmpCodec {
 public:
@@ -46,6 +59,10 @@ public:
 
     /**
      * 输入帧数据
+     * Input frame data
+     
+     
+     * [AUTO-TRANSLATED:d13bc7f2]
      */
     bool inputFrame(const Frame::Ptr &frame) override;
 

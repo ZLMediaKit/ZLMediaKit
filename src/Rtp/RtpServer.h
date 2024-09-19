@@ -24,6 +24,9 @@ class RtcpHelper;
 
 /**
  * RTP服务器，支持UDP/TCP
+ * RTP server, supports UDP/TCP
+ 
+ * [AUTO-TRANSLATED:03e7daba]
  */
 class RtpServer : public std::enable_shared_from_this<RtpServer> {
 public:
@@ -42,6 +45,16 @@ public:
      * @param re_use_port 是否设置socket为re_use属性
      * @param ssrc 指定的ssrc
      * @param multiplex 多路复用
+     * Start the server, may throw an exception
+     * @param local_port Local port, 0 for random port
+     * @param local_ip Local network interface ip to bind
+     * @param stream_id Stream id, use ssrc if empty
+     * @param tcp_mode TCP service mode
+     * @param re_use_port Whether to set the socket to re_use property
+     * @param ssrc Specified ssrc
+     * @param multiplex Multiplexing
+     
+     * [AUTO-TRANSLATED:cb9e0717]
      */
     void start(uint16_t local_port, const char *local_ip = "::", const MediaTuple &tuple = MediaTuple{DEFAULT_VHOST, kRtpAppName, "", ""}, TcpMode tcp_mode = PASSIVE,
                bool re_use_port = true, uint32_t ssrc = 0, int only_track = 0, bool multiplex = false);
@@ -51,26 +64,42 @@ public:
      * @param url 服务器地址
      * @param port 服务器端口
      * @param cb 连接服务器是否成功的回调
+     * Connect to the tcp service (tcp active mode)
+     * @param url Server address
+     * @param port Server port
+     * @param cb Callback whether the connection to the server is successful
+     
+     * [AUTO-TRANSLATED:3de57bc0]
      */
     void connectToServer(const std::string &url, uint16_t port, const std::function<void(const toolkit::SockException &ex)> &cb);
 
     /**
      * 获取绑定的本地端口
+     * Get the bound local port
+     
+     * [AUTO-TRANSLATED:beed15d6]
      */
     uint16_t getPort();
 
     /**
      * 设置RtpProcess onDetach事件回调
+     * Set RtpProcess onDetach event callback
+     
+     * [AUTO-TRANSLATED:a316d07e]
      */
     void setOnDetach(RtpProcess::onDetachCB cb);
 
     /**
      * 更新ssrc
+     * Update ssrc
+     
+     * [AUTO-TRANSLATED:dae5e276]
      */
     void updateSSRC(uint32_t ssrc);
 
 private:
-    // tcp主动模式连接服务器成功回调
+    // tcp主动模式连接服务器成功回调  [AUTO-TRANSLATED:0775844e]
+    // tcp active mode connection server success callback
     void onConnect();
 
 protected:
@@ -82,7 +111,8 @@ protected:
     std::function<void()> _on_cleanup;
 
     int _only_track = 0;
-    //用于tcp主动模式
+    // 用于tcp主动模式  [AUTO-TRANSLATED:faedf05c]
+    // Used for tcp active mode
     TcpMode _tcp_mode = NONE;
 };
 

@@ -27,12 +27,19 @@ public:
      * @param ssrc rtp的ssrc
      * @param payload_type rtp的pt
      * @param ps_or_ts true: ps, false: ts
+     * Create a psh or ts rtp encoder
+     * @param ssrc rtp's ssrc
+     * @param payload_type rtp's pt
+     * @param ps_or_ts true: ps, false: ts
+     
+     * [AUTO-TRANSLATED:b79d8b65]
      */
     PSEncoderImp(uint32_t ssrc, uint8_t payload_type = 96, bool ps_or_ts = true);
     ~PSEncoderImp() override;
 
 protected:
-    //rtp打包后回调
+    // rtp打包后回调  [AUTO-TRANSLATED:8f88aef9]
+    // Callback after rtp packaging
     virtual void onRTP(toolkit::Buffer::Ptr rtp, bool is_key = false) = 0;
 
 protected:

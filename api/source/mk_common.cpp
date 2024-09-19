@@ -93,20 +93,24 @@ API_EXPORT void API_CALL mk_env_init2(int thread_num,
                                       int ssl_is_path,
                                       const char *ssl,
                                       const char *ssl_pwd) {
-    //确保只初始化一次
+    // 确保只初始化一次  [AUTO-TRANSLATED:e4b32b0f]
+    // Ensure initialization only happens once
     static onceToken token([&]() {
         if (log_mask & LOG_CONSOLE) {
-            //控制台日志
+            // 控制台日志  [AUTO-TRANSLATED:5c00e83f]
+            // Console log
             Logger::Instance().add(std::make_shared<ConsoleChannel>("ConsoleChannel", (LogLevel) log_level));
         }
 
         if (log_mask & LOG_CALLBACK) {
-            //广播日志
+            // 广播日志  [AUTO-TRANSLATED:67556df8]
+            // Broadcast log
             Logger::Instance().add(std::make_shared<EventChannel>("EventChannel", (LogLevel) log_level));
         }
 
         if (log_mask & LOG_FILE) {
-            //日志文件
+            // 日志文件  [AUTO-TRANSLATED:afacc934]
+            // Log file
             auto channel = std::make_shared<FileChannel>("FileChannel",
                                                          log_file_path ? File::absolutePath("", log_file_path) :
                                                          exeDir() + "log/", (LogLevel) log_level);
@@ -114,15 +118,18 @@ API_EXPORT void API_CALL mk_env_init2(int thread_num,
             Logger::Instance().add(channel);
         }
 
-        //异步日志线程
+        // 异步日志线程  [AUTO-TRANSLATED:1cc193a1]
+        // Asynchronous log thread
         Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 
-        //设置线程数
+        // 设置线程数  [AUTO-TRANSLATED:22ec5cc9]
+        // Set thread count
         EventPollerPool::setPoolSize(thread_num);
         WorkThreadPool::setPoolSize(thread_num);
 
         if (ini && ini[0]) {
-            //设置配置文件
+            // 设置配置文件  [AUTO-TRANSLATED:2216856d]
+            // Set configuration file
             if (ini_is_path) {
                 try {
                     mINI::Instance().parseFile(ini);
@@ -136,7 +143,8 @@ API_EXPORT void API_CALL mk_env_init2(int thread_num,
         }
 
         if (ssl && ssl[0]) {
-            //设置ssl证书
+            // 设置ssl证书  [AUTO-TRANSLATED:e441027c]
+            // Set SSL certificate
             SSL_Initor::Instance().loadCertificate(ssl, true, ssl_pwd ? ssl_pwd : "", ssl_is_path);
         }
     });
@@ -157,7 +165,8 @@ API_EXPORT void API_CALL mk_set_option(const char *key, const char *val) {
         return;
     }
     mINI::Instance()[key] = val;
-    //广播配置文件热加载
+    // 广播配置文件热加载  [AUTO-TRANSLATED:7ae561f3]
+    // Broadcast configuration file hot reload
     NOTICE_EMIT(BroadcastReloadConfigArgs, Broadcast::kBroadcastReloadConfig);
 }
 
@@ -226,7 +235,8 @@ API_EXPORT uint16_t API_CALL mk_rtmp_server_start(uint16_t port, int ssl) {
 API_EXPORT uint16_t API_CALL mk_rtp_server_start(uint16_t port){
 #ifdef ENABLE_RTPPROXY
     try {
-        //创建rtp 服务器
+        // 创建rtp 服务器  [AUTO-TRANSLATED:480fda83]
+        // Create RTP server
         rtpServer = std::make_shared<RtpServer>();
         rtpServer->start(port);
         return rtpServer->getPort();
@@ -244,7 +254,8 @@ API_EXPORT uint16_t API_CALL mk_rtp_server_start(uint16_t port){
 API_EXPORT uint16_t API_CALL mk_rtc_server_start(uint16_t port) {
 #ifdef ENABLE_WEBRTC
     try {
-        //创建rtc udp服务器
+        // 创建rtc udp服务器  [AUTO-TRANSLATED:9287972e]
+        // Create RTC UDP server
         rtcServer_udp = std::make_shared<UdpServer>();
         rtcServer_udp->setOnCreateSocket([](const EventPoller::Ptr &poller, const Buffer::Ptr &buf, struct sockaddr *, int) {
             if (!buf) {
@@ -252,13 +263,15 @@ API_EXPORT uint16_t API_CALL mk_rtc_server_start(uint16_t port) {
             }
             auto new_poller = WebRtcSession::queryPoller(buf);
             if (!new_poller) {
-                //该数据对应的webrtc对象未找到，丢弃之
+                // 该数据对应的webrtc对象未找到，丢弃之  [AUTO-TRANSLATED:d401f8cb]
+                // The WebRTC object corresponding to this data was not found, discard it
                 return Socket::Ptr();
             }
             return Socket::createSocket(new_poller, false);
         });
         rtcServer_udp->start<WebRtcSession>(port);
-        //创建rtc tcp服务器
+        // 创建rtc tcp服务器  [AUTO-TRANSLATED:1eefd92f]
+        // Create RTC TCP server
         rtcServer_tcp = std::make_shared<TcpServer>();
         rtcServer_tcp->start<WebRtcSession>(rtcServer_udp->getPort());
         return rtcServer_udp->getPort();
@@ -328,7 +341,8 @@ API_EXPORT uint16_t API_CALL mk_srt_server_start(uint16_t port) {
             }
             auto new_poller = SRT::SrtSession::queryPoller(buf);
             if (!new_poller) {
-                //握手第一阶段
+                // 握手第一阶段  [AUTO-TRANSLATED:6b3abcd4]
+                // Handshake stage one
                 return Socket::createSocket(poller, false);
             }
             return Socket::createSocket(new_poller, false);

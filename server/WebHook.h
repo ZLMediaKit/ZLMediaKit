@@ -15,7 +15,8 @@
 #include <functional>
 #include "json/json.h"
 
-//支持json或urlencoded方式传输参数
+// 支持json或urlencoded方式传输参数  [AUTO-TRANSLATED:0e14d484]
+// // Support json or urlencoded way to transmit parameters
 #define JSON_ARGS
 
 #ifdef JSON_ARGS
@@ -25,7 +26,8 @@ typedef mediakit::HttpArgs ArgsType;
 #endif
 
 namespace Hook {
-//web hook回复最大超时时间
+// web hook回复最大超时时间  [AUTO-TRANSLATED:9a059363]
+// Maximum timeout for web hook reply
 extern const std::string kTimeoutSec;
 }//namespace Hook
 
@@ -37,6 +39,13 @@ void onProcessExited();
  * @param url 请求地址
  * @param body 请求body
  * @param func 回调
+ * Trigger http hook request
+ * @param url Request address
+ * @param body Request body
+ * @param func Callback
+ 
+ 
+ * [AUTO-TRANSLATED:8ffdd09b]
  */
 void do_http_hook(const std::string &url, const ArgsType &body, const std::function<void(const Json::Value &, const std::string &)> &func = nullptr);
 #endif //ZLMEDIAKIT_WEBHOOK_H

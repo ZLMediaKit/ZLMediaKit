@@ -19,6 +19,9 @@ namespace mediakit{
 
 /**
  * aac音频通道
+ * AAC audio channel
+ 
+ * [AUTO-TRANSLATED:0d58b638]
  */
 class AACTrack : public AudioTrack {
 public:
@@ -28,6 +31,10 @@ public:
 
     /**
      * 通过aac extra data 构造对象
+     * Construct object through AAC extra data
+     
+     
+     * [AUTO-TRANSLATED:1fa035c8]
      */
     AACTrack(const std::string &aac_cfg);
 

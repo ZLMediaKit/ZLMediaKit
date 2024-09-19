@@ -20,6 +20,10 @@ class HttpChunkedSplitter : public HttpRequestSplitter {
 public:
     /**
      * len == 0时代表结束
+     * When len == 0, it represents the end.
+     
+     
+     * [AUTO-TRANSLATED:1607d203]
      */
    using onChunkData = std::function<void(const char *data, size_t len)>;
 

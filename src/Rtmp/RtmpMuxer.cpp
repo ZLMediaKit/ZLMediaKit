@@ -24,7 +24,8 @@ RtmpMuxer::RtmpMuxer(const TitleMeta::Ptr &title) {
 
 bool RtmpMuxer::addTrack(const Track::Ptr &track) {
     if (_track_existed[track->getTrackType()]) {
-        // rtmp不支持多个同类型track
+        // rtmp不支持多个同类型track  [AUTO-TRANSLATED:c69a7864]
+        // rtmp does not support multiple tracks of the same type
         WarnL << "Already add a track kind of: " << track->getTrackTypeStr() << ", ignore track: " << track->getCodecName();
         return false;
     }
@@ -36,13 +37,16 @@ bool RtmpMuxer::addTrack(const Track::Ptr &track) {
         return false;
     }
 
-    // 标记已经存在该类型track
+    // 标记已经存在该类型track  [AUTO-TRANSLATED:ed79ebb5]
+    // Mark that a track of this type already exists
     _track_existed[track->getTrackType()] = true;
 
-    // 设置rtmp输出环形缓存
+    // 设置rtmp输出环形缓存  [AUTO-TRANSLATED:d65af70c]
+    // Set the rtmp output circular buffer
     encoder->setRtmpRing(_rtmp_ring);
 
-    // 添加metadata
+    // 添加metadata  [AUTO-TRANSLATED:eaf2f5ae]
+    // Add metadata
     Metadata::addTrack(_metadata, track);
     return true;
 }

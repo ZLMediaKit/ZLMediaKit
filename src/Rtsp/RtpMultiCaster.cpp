@@ -58,11 +58,13 @@ std::shared_ptr<uint32_t> MultiCastAddressMaker::obtain(uint32_t max_try) {
     }
     auto iGotAddr = _addr++;
     if (_used_addr.find(iGotAddr) != _used_addr.end()) {
-        //已经分配过了
+        // 已经分配过了  [AUTO-TRANSLATED:b231af33]
+        // Already allocated
         if (max_try) {
             return obtain(--max_try);
         }
-        //分配完了,应该不可能到这里
+        // 分配完了,应该不可能到这里  [AUTO-TRANSLATED:c7f06cb9]
+        // Allocation is complete, it should not be possible to reach here
         ErrorL;
         return nullptr;
     }
@@ -111,7 +113,8 @@ RtpMultiCaster::RtpMultiCaster(SocketHelper &helper, const string &local_ip, con
     }
 
     for (auto i = 0; i < 2; ++i) {
-        //创建udp socket, 数组下标为TrackType
+        // 创建udp socket, 数组下标为TrackType  [AUTO-TRANSLATED:17d153d5]
+        // Create UDP socket, array index is TrackType
         _udp_sock[i] = helper.createSocket();
         if (!_udp_sock[i]->bindUdpSock((i == TrackVideo) ? video_port : audio_port, local_ip.data())) {
             auto err = StrPrinter << "绑定UDP端口失败:" << local_ip << endl;
@@ -125,9 +128,11 @@ RtpMultiCaster::RtpMultiCaster(SocketHelper &helper, const string &local_ip, con
 
         struct sockaddr_in peer;
         peer.sin_family = AF_INET;
-        //组播目标端口为本地发送端口
+        // 组播目标端口为本地发送端口  [AUTO-TRANSLATED:9eae5d47]
+        // Multicast target port is the local sending port
         peer.sin_port = htons(_udp_sock[i]->get_local_port());
-        //组播目标地址
+        // 组播目标地址  [AUTO-TRANSLATED:3291a33b]
+        // Multicast target address
         peer.sin_addr.s_addr = htonl(*_multicast_ip);
         bzero(&(peer.sin_zero), sizeof peer.sin_zero);
         _udp_sock[i]->bindPeerAddr((struct sockaddr *) &peer);

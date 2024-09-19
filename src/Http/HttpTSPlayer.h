@@ -17,7 +17,8 @@
 
 namespace mediakit {
 
-//http-ts播发器，未实现ts解复用
+// http-ts播发器，未实现ts解复用  [AUTO-TRANSLATED:cecbd6e7]
+// http-ts broadcaster, ts demultiplexing not implemented
 class HttpTSPlayer : public HttpClientImp {
 public:
     using Ptr = std::shared_ptr<HttpTSPlayer>;
@@ -27,11 +28,18 @@ public:
 
     /**
      * 设置下载完毕或异常断开回调
+     * Set the callback for download completion or abnormal disconnection
+     
+     * [AUTO-TRANSLATED:4f25d583]
      */
     void setOnComplete(onComplete cb);
 
     /**
      * 设置接收ts包回调
+     * Set the callback for receiving ts packets
+     
+     
+     * [AUTO-TRANSLATED:af3044a1]
      */
     void setOnPacket(TSSegment::onSegment cb);
 
