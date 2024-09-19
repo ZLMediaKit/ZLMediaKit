@@ -117,8 +117,9 @@ void MediaSink::checkTrackIfReady() {
     // 等待音频超时时间
     GET_CONFIG(uint32_t, kWaitAudioTrackDataMS, General::kWaitAudioTrackDataMS);
     if (_max_track_size > 1) {
-        for (auto it = _track_map.begin(); it != _track_map.end(); ++it) {
+        for (auto it = _track_map.begin(); it != _track_map.end();) {
             if (it->second.first->getTrackType() != TrackAudio) {
+		++it;
                 continue;
             }
             if (_ticker.elapsedTime() > kWaitAudioTrackDataMS && !it->second.second) {
@@ -129,8 +130,10 @@ void MediaSink::checkTrackIfReady() {
                 it = _track_map.erase(it);
                 _max_track_size -= 1;
                 _track_ready_callback.erase(index);
-                continue;
-            }
+            } else {
+    		++it; 
+    
+	    }
         }
     }
 
