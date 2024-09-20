@@ -488,7 +488,7 @@ Value makeMediaSourceJson(MediaSource &media){
 }
 
 #if defined(ENABLE_RTPPROXY)
-uint16_t openRtpServer(uint16_t local_port, const mediakit::MediaTuple &tuple, int tcp_mode, const string &local_ip, bool re_use_port, uint32_t ssrc, int only_track, bool multiplex) {
+uint16_t openRtpServer(uint16_t local_port, const mediakit::MediaTuple &tuple, int tcp_mode, const string &local_ip, bool re_use_port, uint32_t ssrc, int only_track, const std::string& user_data, bool multiplex) {
     auto key = tuple.shortUrl();
     if (s_rtp_server.find(key)) {
         // 为了防止RtpProcess所有权限混乱的问题，不允许重复添加相同的key  [AUTO-TRANSLATED:06c7b14c]
@@ -497,7 +497,7 @@ uint16_t openRtpServer(uint16_t local_port, const mediakit::MediaTuple &tuple, i
     }
 
     auto server = s_rtp_server.makeWithAction(key, [&](RtpServer::Ptr server) {
-        server->start(local_port, local_ip.c_str(), tuple, (RtpServer::TcpMode)tcp_mode, re_use_port, ssrc, only_track, multiplex);
+        server->start(local_port, local_ip.c_str(), tuple, (RtpServer::TcpMode)tcp_mode, re_use_port, ssrc, only_track, user_data.c_str(), multiplex);
     });
     server->setOnDetach([key](const SockException &ex) {
         // 设置rtp超时移除事件  [AUTO-TRANSLATED:98d42cf3]
@@ -1347,8 +1347,9 @@ void installWebApi() {
         if (!allArgs["local_ip"].empty()) {
             local_ip = allArgs["local_ip"];
         }
+
         auto port = openRtpServer(allArgs["port"], tuple, tcp_mode, local_ip, allArgs["re_use_port"].as<bool>(),
-                                  allArgs["ssrc"].as<uint32_t>(), only_track);
+                                  allArgs["ssrc"].as<uint32_t>(), only_track, allArgs["userdata"]);
         if (port == 0) {
             throw InvalidArgsException("This stream already exists");
         }
@@ -1387,7 +1388,12 @@ void installWebApi() {
             local_ip = allArgs["local_ip"];
         }
 
-        auto port = openRtpServer(allArgs["port"], tuple, tcp_mode, local_ip, true, 0, only_track, true);
+        std::string user_data = "";
+        if (!allArgs["userdata"].empty()) {
+            user_data = allArgs["userdata"];
+        }
+
+        auto port = openRtpServer(allArgs["port"], tuple, tcp_mode, local_ip, true, 0, only_track, user_data, true);
         if (port == 0) {
             throw InvalidArgsException("This stream already exists");
         }
