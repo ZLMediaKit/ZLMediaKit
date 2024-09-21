@@ -193,7 +193,7 @@ if(UNIX)
     "-fPIC"
     "-Wall;-Wextra"
     "-Wno-unused-function;-Wno-unused-parameter;-Wno-unused-variable;-Wno-deprecated-declarations"
-    "-Wno-error=extra;-Wno-error=missing-field-initializers;-Wno-error=type-limits")
+    "-Wno-error=extra;-Wno-error=missing-field-initializers;-Wno-error=type-limits;-Wno-comment")
 
   if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     set(COMPILE_OPTIONS_DEFAULT ${COMPILE_OPTIONS_DEFAULT} "-g3")
