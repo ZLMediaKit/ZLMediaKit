@@ -215,6 +215,9 @@ public:
 // Global variable, used in WebApi to save configuration files
 string g_ini_file;
 
+// 加载ssl证书函数对象
+std::function<void()> g_reload_certificates;
+
 int start_main(int argc,char *argv[]) {
     {
         CMD_main cmd_main;
@@ -284,19 +287,24 @@ int start_main(int argc,char *argv[]) {
         if (!File::is_dir(ssl_file)) {
             // 不是文件夹，加载证书，证书包含公钥和私钥  [AUTO-TRANSLATED:5d3a5e49]
             // Not a folder, load certificate, certificate contains public key and private key
-            SSL_Initor::Instance().loadCertificate(ssl_file.data());
+            g_reload_certificates = [ssl_file] () {
+                SSL_Initor::Instance().loadCertificate(ssl_file.data());
+            };
         } else {
             // 加载文件夹下的所有证书  [AUTO-TRANSLATED:0e1f9b20]
             // Load all certificates under the folder
-            File::scanDir(ssl_file,[](const string &path, bool isDir){
-                if (!isDir) {
-                    // 最后的一个证书会当做默认证书(客户端ssl握手时未指定主机)  [AUTO-TRANSLATED:b242685c]
-                    // The last certificate will be used as the default certificate (client ssl handshake does not specify the host)
-                    SSL_Initor::Instance().loadCertificate(path.data());
-                }
-                return true;
-            });
+            g_reload_certificates = [ssl_file]() {
+                File::scanDir(ssl_file, [](const string &path, bool isDir) {
+                    if (!isDir) {
+                        // 最后的一个证书会当做默认证书(客户端ssl握手时未指定主机)  [AUTO-TRANSLATED:b242685c]
+                        // The last certificate will be used as the default certificate (client ssl handshake does not specify the host)
+                        SSL_Initor::Instance().loadCertificate(path.data());
+                    }
+                    return true;
+                });
+            };
         }
+        g_reload_certificates();
 
         std::string listen_ip = mINI::Instance()[General::kListenIP];
         uint16_t shellPort = mINI::Instance()[Shell::kPort];
@@ -465,7 +473,10 @@ int start_main(int argc,char *argv[]) {
         });
 
 #if !defined(_WIN32)
-        signal(SIGHUP, [](int) { mediakit::loadIniConfig(g_ini_file.data()); });
+        signal(SIGHUP, [](int) {
+            mediakit::loadIniConfig(g_ini_file.data());
+            g_reload_certificates();
+        });
 #endif
         sem.wait();
     }
