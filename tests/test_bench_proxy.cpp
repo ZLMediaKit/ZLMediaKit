@@ -91,7 +91,8 @@ public:
     }
 };
 
-//此程序为zlm的拉流代理性能测试工具，用于测试拉流代理性能
+// 此程序为zlm的拉流代理性能测试工具，用于测试拉流代理性能  [AUTO-TRANSLATED:365ee033]
+// This program is a pull stream proxy performance test tool for zlm, used to test the pull stream proxy performance
 int main(int argc, char *argv[]) {
     {
         CMD_main cmd_main;
@@ -114,16 +115,20 @@ int main(int argc, char *argv[]) {
         auto merge_ms = cmd_main["merge"].as<int>();
         auto demand = cmd_main["demand"].as<int>();
 
-        //设置日志
+        // 设置日志  [AUTO-TRANSLATED:50372045]
+        // Set log
         Logger::Instance().add(std::make_shared<ConsoleChannel>("ConsoleChannel", logLevel));
-        //启动异步日志线程
+        // 启动异步日志线程  [AUTO-TRANSLATED:c93cc6f4]
+        // Start asynchronous log thread
         Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 
-        //设置线程数
+        // 设置线程数  [AUTO-TRANSLATED:22ec5cc9]
+        // Set the number of threads
         EventPollerPool::setPoolSize(threads);
         WorkThreadPool::setPoolSize(threads);
 
-        //设置合并写
+        // 设置合并写  [AUTO-TRANSLATED:7bf3456d]
+        // Set merge write
         mINI::Instance()[General::kMergeWriteMS] = merge_ms;
         mINI::Instance()[Protocol::kRtspDemand] = demand;
         mINI::Instance()[Protocol::kRtmpDemand] = demand;
@@ -142,7 +147,8 @@ int main(int argc, char *argv[]) {
             (*player)[Client::kRtpType] = rtp_type;
             player->play(in_url);
             proxyMap.emplace(stream, player);
-            //休眠后再启动下一个拉流代理，防止短时间海量链接
+            // 休眠后再启动下一个拉流代理，防止短时间海量链接  [AUTO-TRANSLATED:20fc6ab9]
+            // Sleep before starting the next pull stream proxy to prevent a large number of connections in a short time
             if (delay_ms > 0) {
                 usleep(1000 * delay_ms);
             }

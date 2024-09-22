@@ -63,7 +63,8 @@ API_EXPORT mk_ini API_CALL mk_ini_default() {
 
 static void emit_ini_file_reload(mk_ini ini) {
     if (ini == mk_ini_default()) {
-        // 广播配置文件热加载
+        // 广播配置文件热加载  [AUTO-TRANSLATED:86a0c1be]
+        // Broadcast configuration hot reload
         NOTICE_EMIT(BroadcastReloadConfigArgs, Broadcast::kBroadcastReloadConfig);
     }
 }
@@ -223,7 +224,8 @@ API_EXPORT void API_CALL mk_get_statistic(on_mk_get_statistic_cb func, void *use
                 (*obj).emplace(prefix + pr.first, std::move(pr.second));
             }
         }
-        // 触发回调
+        // 触发回调  [AUTO-TRANSLATED:ae2ff258]
+        // Trigger callback
         cb(*obj);
     });
 

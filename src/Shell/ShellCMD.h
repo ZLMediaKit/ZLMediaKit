@@ -22,14 +22,16 @@ public:
         _parser.reset(new toolkit::OptionParser([](const std::shared_ptr<std::ostream> &stream, toolkit::mINI &ini) {
             MediaSource::for_each_media([&](const MediaSource::Ptr &media) {
                 if (ini.find("list") != ini.end()) {
-                    //列出源
+                    // 列出源  [AUTO-TRANSLATED:cee6cf16]
+                    // List sources
                     (*stream) << "\t" << media->getUrl() << "\r\n";
                     return;
                 }
 
                 toolkit::EventPollerPool::Instance().getPoller()->async([ini, media, stream]() {
                     if (ini.find("kick") != ini.end()) {
-                        //踢出源
+                        // 踢出源  [AUTO-TRANSLATED:67fdbfaa]
+                        // Kick out sources
                         do {
                             if (!media) {
                                 break;

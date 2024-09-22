@@ -121,7 +121,8 @@ void RtspPlayer::onConnect(const SockException &err) {
 
 void RtspPlayer::onRecv(const Buffer::Ptr &buf) {
     if (_benchmark_mode && !_play_check_timer) {
-        // 在性能测试模式下，如果rtsp握手完毕后，不再解析rtp包
+        // 在性能测试模式下，如果rtsp握手完毕后，不再解析rtp包  [AUTO-TRANSLATED:747b5399]
+        // In performance test mode, if the RTSP handshake is complete, no RTP packets will be parsed
         _rtp_recv_ticker.resetTime();
         return;
     }
@@ -134,14 +135,16 @@ void RtspPlayer::onRecv(const Buffer::Ptr &buf) {
 }
 
 void RtspPlayer::onError(const SockException &ex) {
-    // 定时器_pPlayTimer为空后表明握手结束了
+    // 定时器_pPlayTimer为空后表明握手结束了  [AUTO-TRANSLATED:06a369c2]
+    // After the timer _pPlayTimer is empty, it indicates that the handshake is complete
     onPlayResult_l(ex, !_play_check_timer);
 }
 
 // from live555
 bool RtspPlayer::handleAuthenticationFailure(const string &paramsStr) {
     if (!_realm.empty()) {
-        // 已经认证过了
+        // 已经认证过了  [AUTO-TRANSLATED:f2db5f9c]
+        // It has been authenticated
         return false;
     }
 
@@ -173,7 +176,8 @@ bool RtspPlayer::handleAuthenticationFailure(const string &paramsStr) {
 
 bool RtspPlayer::handleResponse(const string &cmd, const Parser &parser) {
     string authInfo = parser["WWW-Authenticate"];
-    // 发送DESCRIBE命令后的回复
+    // 发送DESCRIBE命令后的回复  [AUTO-TRANSLATED:39629cf0]
+    // The response after sending the DESCRIBE command
     if ((parser.status() == "401") && handleAuthenticationFailure(authInfo)) {
         sendOptions();
         return false;
@@ -204,7 +208,8 @@ void RtspPlayer::handleResDESCRIBE(const Parser &parser) {
         _content_base.pop_back();
     }
 
-    // 解析sdp
+    // 解析sdp  [AUTO-TRANSLATED:ed3f07fe]
+    // Parse SDP
     SdpParser sdpParser(parser.content());
 
     _control_url = sdpParser.getControlUrl(_content_base);
@@ -237,7 +242,8 @@ void RtspPlayer::handleResDESCRIBE(const Parser &parser) {
     sendSetup(0);
 }
 
-// 有必要的情况下创建udp端口
+// 有必要的情况下创建udp端口  [AUTO-TRANSLATED:651202fc]
+// Create UDP port if necessary
 void RtspPlayer::createUdpSockIfNecessary(int track_idx) {
     auto &rtpSockRef = _rtp_sock[track_idx];
     auto &rtcpSockRef = _rtcp_sock[track_idx];
@@ -249,7 +255,8 @@ void RtspPlayer::createUdpSockIfNecessary(int track_idx) {
     }
 }
 
-// 发送SETUP命令
+// 发送SETUP命令  [AUTO-TRANSLATED:68a7ca33]
+// Send SETUP command
 void RtspPlayer::sendSetup(unsigned int track_idx) {
     _on_response = std::bind(&RtspPlayer::handleResSETUP, this, placeholders::_1, track_idx);
     auto &track = _sdp_track[track_idx];
@@ -314,10 +321,12 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int track_idx) {
         auto &pRtcpSockRef = _rtcp_sock[track_idx];
 
         if (_rtp_type == Rtsp::RTP_MULTICAST) {
-            // udp组播
+            // udp组播  [AUTO-TRANSLATED:ccc90d1f]
+            // UDP multicast
             auto multiAddr = transport_map["destination"];
             pRtpSockRef = createSocket();
-            // 目前组播仅支持ipv4
+            // 目前组播仅支持ipv4  [AUTO-TRANSLATED:8215bfd2]
+            // Currently, multicast only supports IPv4
             if (!pRtpSockRef->bindUdpSock(rtp_port, "0.0.0.0")) {
                 pRtpSockRef.reset();
                 throw std::runtime_error("open udp sock err");
@@ -327,33 +336,41 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int track_idx) {
                 SockUtil::joinMultiAddr(fd, multiAddr.data(), get_local_ip().data());
             }
 
-            // 设置rtcp发送端口
+            // 设置rtcp发送端口  [AUTO-TRANSLATED:f39b07bd]
+            // Set RTCP send port
             pRtcpSockRef = createSocket();
-            // 目前组播仅支持ipv4
+            // 目前组播仅支持ipv4  [AUTO-TRANSLATED:8215bfd2]
+            // Currently, multicast only supports IPv4
             if (!pRtcpSockRef->bindUdpSock(0, "0.0.0.0")) {
-                // 分配端口失败
+                // 分配端口失败  [AUTO-TRANSLATED:59ecd25d]
+                // Port allocation failed
                 throw runtime_error("open udp socket failed");
             }
 
-            // 设置发送地址和发送端口
+            // 设置发送地址和发送端口  [AUTO-TRANSLATED:67e1cb6e]
+            // Set send address and send port
             auto dst = SockUtil::make_sockaddr(get_peer_ip().data(), rtcp_port);
             pRtcpSockRef->bindPeerAddr((struct sockaddr *)&(dst));
         } else {
             createUdpSockIfNecessary(track_idx);
-            // udp单播
+            // udp单播  [AUTO-TRANSLATED:7d16a875]
+            // UDP unicast
             auto dst = SockUtil::make_sockaddr(get_peer_ip().data(), rtp_port);
             pRtpSockRef->bindPeerAddr((struct sockaddr *)&(dst));
-            // 发送rtp打洞包
+            // 发送rtp打洞包  [AUTO-TRANSLATED:9a79d94f]
+            // Send RTP hole punching packet
             pRtpSockRef->send("\xce\xfa\xed\xfe", 4);
 
             dst = SockUtil::make_sockaddr(get_peer_ip().data(), rtcp_port);
-            // 设置rtcp发送目标，为后续发送rtcp做准备
+            // 设置rtcp发送目标，为后续发送rtcp做准备  [AUTO-TRANSLATED:70929b8e]
+            // Set RTCP send target, prepare for subsequent RTCP sending
             pRtcpSockRef->bindPeerAddr((struct sockaddr *)&(dst));
         }
 
         auto peer_ip = get_peer_ip();
         weak_ptr<RtspPlayer> weakSelf = static_pointer_cast<RtspPlayer>(shared_from_this());
-        // 设置rtp over udp接收回调处理函数
+        // 设置rtp over udp接收回调处理函数  [AUTO-TRANSLATED:6e74b593]
+        // Set RTP over UDP receive callback handler
         pRtpSockRef->setOnRead([peer_ip, track_idx, weakSelf](const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len) {
             auto strongSelf = weakSelf.lock();
             if (!strongSelf) {
@@ -368,7 +385,8 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int track_idx) {
         });
 
         if (pRtcpSockRef) {
-            // 设置rtcp over udp接收回调处理函数
+            // 设置rtcp over udp接收回调处理函数  [AUTO-TRANSLATED:eed55b8e]
+            // Set RTCP over UDP receive callback handler
             pRtcpSockRef->setOnRead([peer_ip, track_idx, weakSelf](const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len) {
                 auto strongSelf = weakSelf.lock();
                 if (!strongSelf) {
@@ -384,12 +402,15 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int track_idx) {
     }
 
     if (track_idx < _sdp_track.size() - 1) {
-        // 需要继续发送SETUP命令
+        // 需要继续发送SETUP命令  [AUTO-TRANSLATED:d7ea1a7a]
+        // Need to continue sending SETUP command
         sendSetup(track_idx + 1);
         return;
     }
-    // 所有setup命令发送完毕
-    // 发送play命令
+    // 所有setup命令发送完毕  [AUTO-TRANSLATED:be499080]
+    // All SETUP commands have been sent
+    // 发送play命令  [AUTO-TRANSLATED:47a826d1]
+    // Send PLAY command
     if (_speed==0.0f) {
         sendPause(type_play, 0);
     } else {
@@ -399,7 +420,8 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int track_idx) {
 }
 
 void RtspPlayer::sendDescribe() {
-    // 发送DESCRIBE命令后处理函数:handleResDESCRIBE
+    // 发送DESCRIBE命令后处理函数:handleResDESCRIBE  [AUTO-TRANSLATED:3c2b0ffe]
+    // Handle the response to the DESCRIBE command: handleResDESCRIBE
     _on_response = std::bind(&RtspPlayer::handleResDESCRIBE, this, placeholders::_1);
     sendRtspRequest("DESCRIBE", _play_url, { "Accept", "application/sdp" });
 }
@@ -409,14 +431,16 @@ void RtspPlayer::sendOptions() {
         if (!handleResponse("OPTIONS", parser)) {
             return;
         }
-        // 获取服务器支持的命令
+        // 获取服务器支持的命令  [AUTO-TRANSLATED:8a6a12f1]
+        // Get the commands supported by the server
         _supported_cmd.clear();
         auto public_val = split(parser["Public"], ",");
         for (auto &cmd : public_val) {
             trim(cmd);
             _supported_cmd.emplace(cmd);
         }
-        // 发送Describe请求，获取sdp
+        // 发送Describe请求，获取sdp  [AUTO-TRANSLATED:f2e291d1]
+        // Send Describe request to get SDP
         sendDescribe();
     };
     sendRtspRequest("OPTIONS", _play_url);
@@ -425,17 +449,20 @@ void RtspPlayer::sendOptions() {
 void RtspPlayer::sendKeepAlive() {
     _on_response = [](const Parser &parser) {};
     if (_supported_cmd.find("GET_PARAMETER") != _supported_cmd.end()) {
-        // 支持GET_PARAMETER，用此命令保活
+        // 支持GET_PARAMETER，用此命令保活  [AUTO-TRANSLATED:b45cd737]
+        // Support GET_PARAMETER, use this command to keep alive
         sendRtspRequest("GET_PARAMETER", _control_url);
     } else {
-        // 不支持GET_PARAMETER，用OPTIONS命令保活
+        // 不支持GET_PARAMETER，用OPTIONS命令保活  [AUTO-TRANSLATED:3391350c]
+        // Do not support GET_PARAMETER, use OPTIONS command to keep alive
         sendRtspRequest("OPTIONS", _play_url);
     }
 }
 
 void RtspPlayer::sendPause(int type, uint32_t seekMS) {
     _on_response = std::bind(&RtspPlayer::handleResPAUSE, this, placeholders::_1, type);
-    // 开启或暂停rtsp
+    // 开启或暂停rtsp  [AUTO-TRANSLATED:8ba5b594]
+    // Start or pause RTSP
     switch (type) {
         case type_pause: sendRtspRequest("PAUSE", _control_url, {}); break;
         case type_play:
@@ -476,14 +503,17 @@ void RtspPlayer::handleResPAUSE(const Parser &parser, int type) {
     }
 
     if (type == type_pause) {
-        // 暂停成功！
+        // 暂停成功！  [AUTO-TRANSLATED:782cea77]
+        // Pause successfully!
         _rtp_check_timer.reset();
         return;
     }
 
-    // play或seek成功
+    // play或seek成功  [AUTO-TRANSLATED:ba7b0da3]
+    // Play or seek successfully
     uint32_t iSeekTo = 0;
-    // 修正时间轴
+    // 修正时间轴  [AUTO-TRANSLATED:5ab341f9]
+    // Correct the timeline
     auto strRange = parser["Range"];
     if (strRange.size()) {
         auto strStart = findSubString(strRange.data(), "npt=", "-");
@@ -499,7 +529,8 @@ void RtspPlayer::handleResPAUSE(const Parser &parser, int type) {
 
 void RtspPlayer::onWholeRtspPacket(Parser &parser) {
     if (!start_with(parser.method(), "RTSP")) {
-        // 不是rtsp回复，忽略
+        // 不是rtsp回复，忽略  [AUTO-TRANSLATED:1dca8f64]
+        // Not an RTSP response, ignore
         WarnL << "Not rtsp response: " << parser.method();
         return;
     }
@@ -511,7 +542,8 @@ void RtspPlayer::onWholeRtspPacket(Parser &parser) {
         }
         parser.clear();
     } catch (std::exception &err) {
-        // 定时器_pPlayTimer为空后表明握手结束了
+        // 定时器_pPlayTimer为空后表明握手结束了  [AUTO-TRANSLATED:06a369c2]
+        // _pPlayTimer is empty after handshake ends
         onPlayResult_l(SockException(Err_other, err.what()), !_play_check_timer);
     }
 }
@@ -536,14 +568,16 @@ void RtspPlayer::onRtpPacket(const char *data, size_t len) {
     }
 }
 
-// 此处预留rtcp处理函数
+// 此处预留rtcp处理函数  [AUTO-TRANSLATED:30c3afa8]
+// Reserved for RTCP processing function
 void RtspPlayer::onRtcpPacket(int track_idx, SdpTrack::Ptr &track, uint8_t *data, size_t len) {
     auto rtcp_arr = RtcpHeader::loadFromBytes((char *)data, len);
     for (auto &rtcp : rtcp_arr) {
         _rtcp_context[track_idx]->onRtcp(rtcp);
         if ((RtcpType)rtcp->pt == RtcpType::RTCP_SR) {
             auto sr = (RtcpSR *)(rtcp);
-            // 设置rtp时间戳与ntp时间戳的对应关系
+            // 设置rtp时间戳与ntp时间戳的对应关系  [AUTO-TRANSLATED:e92f4749]
+            // Set the correspondence between RTP timestamp and NTP timestamp
             setNtpStamp(track_idx, sr->rtpts, sr->getNtpUnixStampMS());
         }
     }
@@ -611,7 +645,8 @@ void RtspPlayer::sendRtspRequest(const string &cmd, const string &url, const Str
 
     if (!_realm.empty() && !(*this)[Client::kRtspUser].empty()) {
         if (!_md5_nonce.empty()) {
-            // MD5认证
+            // MD5认证  [AUTO-TRANSLATED:0640fa6a]
+            // MD5 authentication
             /*
             response计算方法如下：
             RTSP客户端应该使用username + password并计算response如下:
@@ -619,6 +654,15 @@ void RtspPlayer::sendRtspRequest(const string &cmd, const string &url, const Str
                 response = md5( password:nonce:md5(public_method:url)  );
             (2)当password为ANSI字符串,则
                 response= md5( md5(username:realm:password):nonce:md5(public_method:url) );
+             /*
+             The response calculation method is as follows:
+             The RTSP client should use username + password and calculate the response as follows:
+             (1) When password is MD5 encoded, then
+             response = md5( password:nonce:md5(public_method:url)  );
+             (2) When password is ANSI string, then
+             response= md5( md5(username:realm:password):nonce:md5(public_method:url) );
+             
+             * [AUTO-TRANSLATED:7858b67d]
              */
             string encrypted_pwd = (*this)[Client::kRtspPwd];
             if (!(*this)[Client::kRtspPwdIsMD5].as<bool>()) {
@@ -634,7 +678,8 @@ void RtspPlayer::sendRtspRequest(const string &cmd, const string &url, const Str
             printer << "response=\"" << response << "\"";
             header.emplace("Authorization", printer);
         } else if (!(*this)[Client::kRtspPwdIsMD5].as<bool>()) {
-            // base64认证
+            // base64认证  [AUTO-TRANSLATED:06d26447]
+            // Base64 authentication
             auto authStrBase64 = encodeBase64((*this)[Client::kRtspUser] + ":" + (*this)[Client::kRtspPwd]);
             header.emplace("Authorization", StrPrinter << "Basic " << authStrBase64);
         }
@@ -657,11 +702,13 @@ void RtspPlayer::onBeforeRtpSorted(const RtpPacket::Ptr &rtp, int track_idx) {
 
     auto &ticker = _rtcp_send_ticker[track_idx];
     if (ticker.elapsedTime() < _beat_interval_ms) {
-        // 心跳时间未到
+        // 心跳时间未到  [AUTO-TRANSLATED:265d4e62]
+        // Heartbeat time not reached
         return;
     }
 
-    // 有些rtsp服务器需要rtcp保活，有些需要发送信令保活; rtcp与rtsp信令轮流心跳，该特性用于兼容issue:#642
+    // 有些rtsp服务器需要rtcp保活，有些需要发送信令保活; rtcp与rtsp信令轮流心跳，该特性用于兼容issue:#642  [AUTO-TRANSLATED:a36070c5]
+    // Some RTSP servers require RTCP keep-alive, some require sending signaling keep-alive; RTCP and RTSP signaling alternate heartbeat, this feature is used to be compatible with issue:#642
     auto &rtcp_flag = _send_rtcp[track_idx];
     ticker.resetTime();
 
@@ -672,16 +719,19 @@ void RtspPlayer::onBeforeRtpSorted(const RtpPacket::Ptr &rtp, int track_idx) {
         default: rtcp_flag = !rtcp_flag; break;
     }
 
-    // 发送信令保活
+    // 发送信令保活  [AUTO-TRANSLATED:0ef0747e]
+    // Send signaling keep-alive
     if (!rtcp_flag) {
         if (track_idx == 0) {
-            // 两个track无需同时触发发送信令保活
+            // 两个track无需同时触发发送信令保活  [AUTO-TRANSLATED:7dde4aec]
+            // Two tracks do not need to trigger sending signaling keep-alive at the same time
             sendKeepAlive();
         }
         return;
     }
 
-    // 发送rtcp
+    // 发送rtcp  [AUTO-TRANSLATED:5c7aad87]
+    // Send RTCP
     static auto send_rtcp = [](RtspPlayer *thiz, int index, Buffer::Ptr ptr) {
         if (thiz->_rtp_type == Rtsp::RTP_TCP) {
             auto &track = thiz->_sdp_track[index];
@@ -703,27 +753,33 @@ void RtspPlayer::onBeforeRtpSorted(const RtpPacket::Ptr &rtp, int track_idx) {
 
 void RtspPlayer::onPlayResult_l(const SockException &ex, bool handshake_done) {
     if (ex.getErrCode() == Err_shutdown) {
-        // 主动shutdown的，不触发回调
+        // 主动shutdown的，不触发回调  [AUTO-TRANSLATED:21f9c396]
+        // Active shutdown, do not trigger callback
         return;
     }
 
     WarnL << ex.getErrCode() << " " << ex.what();
     if (!handshake_done) {
-        // 开始播放阶段
+        // 开始播放阶段  [AUTO-TRANSLATED:7ef385fc]
+        // Start playback stage
         _play_check_timer.reset();
         onPlayResult(ex);
-        // 是否为性能测试模式
+        // 是否为性能测试模式  [AUTO-TRANSLATED:871a0e65]
+        // Whether it is performance test mode
         _benchmark_mode = (*this)[Client::kBenchmarkMode].as<int>();
     } else if (ex) {
-        // 播放成功后异常断开回调
+        // 播放成功后异常断开回调  [AUTO-TRANSLATED:3fe28e4f]
+        // Callback for abnormal disconnection after successful playback
         onShutdown(ex);
     } else {
-        // 恢复播放
+        // 恢复播放  [AUTO-TRANSLATED:7a99afd6]
+        // Resume playback
         onResume();
     }
 
     if (!ex) {
-        // 播放成功，恢复rtp接收超时定时器
+        // 播放成功，恢复rtp接收超时定时器  [AUTO-TRANSLATED:0ebefcb5]
+        // Playback successful, restore RTP receive timeout timer
         _rtp_recv_ticker.resetTime();
         auto timeoutMS = (*this)[Client::kMediaTimeoutMS].as<uint64_t>();
         weak_ptr<RtspPlayer> weakSelf = static_pointer_cast<RtspPlayer>(shared_from_this());
@@ -733,13 +789,15 @@ void RtspPlayer::onPlayResult_l(const SockException &ex, bool handshake_done) {
                 return false;
             }
             if (strongSelf->_rtp_recv_ticker.elapsedTime() > timeoutMS) {
-                // 接收rtp媒体数据包超时
+                // 接收rtp媒体数据包超时  [AUTO-TRANSLATED:601b8c0c]
+                // Receive RTP media data packet timeout
                 strongSelf->onPlayResult_l(SockException(Err_timeout, "receive rtp timeout"), true);
                 return false;
             }
             return true;
         };
-        // 创建rtp数据接收超时检测定时器
+        // 创建rtp数据接收超时检测定时器  [AUTO-TRANSLATED:edbffc19]
+        // Create RTP data receive timeout detection timer
         _rtp_check_timer = std::make_shared<Timer>(timeoutMS / 2000.0f, lam, getPoller());
     } else {
         sendTeardown();
@@ -806,7 +864,8 @@ bool RtspPlayerImp::onCheckSDP(const std::string &sdp) {
 }
 
 void RtspPlayerImp::onRecvRTP(RtpPacket::Ptr rtp, const SdpTrack::Ptr &track) {
-    // rtp解复用时可以判断是否为关键帧起始位置
+    // rtp解复用时可以判断是否为关键帧起始位置  [AUTO-TRANSLATED:fb7d9b6e]
+    // When demultiplexing RTP, it can be determined whether it is the starting position of the key frame
     auto key_pos = _demuxer->inputRtp(rtp);
     if (_rtsp_media_src) {
         _rtsp_media_src->onWrite(std::move(rtp), key_pos);

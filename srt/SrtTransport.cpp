@@ -10,9 +10,11 @@
 
 namespace SRT {
 #define SRT_FIELD "srt."
-// srt 超时时间
+// srt 超时时间  [AUTO-TRANSLATED:7828ddb5]
+// SRT timeout time
 const std::string kTimeOutSec = SRT_FIELD "timeoutSec";
-// srt 单端口udp服务器
+// srt 单端口udp服务器  [AUTO-TRANSLATED:af5210db]
+// SRT single-port UDP server
 const std::string kPort = SRT_FIELD "port";
 const std::string kLatencyMul = SRT_FIELD "latencyMul";
 const std::string kPktBufSize = SRT_FIELD "pktBufSize";
@@ -107,7 +109,8 @@ void SrtTransport::inputSockData(uint8_t *buf, int len, struct sockaddr_storage 
         s_control_functions.emplace(ControlPacket::USERDEFINEDTYPE, &SrtTransport::handleUserDefinedType);
     });
     _now = SteadyClock::now();
-    // 处理srt数据
+    // 处理srt数据  [AUTO-TRANSLATED:b8b065b8]
+    // Handling SRT data
     if (DataPacket::isDataPacket(buf, len)) {
         uint32_t socketId = DataPacket::getSocketID(buf, len);
         if (socketId == _socket_id) {
@@ -492,7 +495,8 @@ void SrtTransport::handleACKACK(uint8_t *buf, int len, struct sockaddr_storage *
             // clear data
             for(auto it = _ack_send_timestamp.begin(); it != _ack_send_timestamp.end();){
                 if(DurationCountMicroseconds(_now-it->second)>5e6){
-                    // 超过五秒没有ackack 丢弃
+                    // 超过五秒没有ackack 丢弃  [AUTO-TRANSLATED:9626442f]
+                    // Discard if no ACK for more than five seconds
                     it = _ack_send_timestamp.erase(it);
                 }else{
                     it++;

@@ -18,6 +18,10 @@ namespace mediakit{
 
 /**
  * G711音频通道
+ * G711 audio channel
+ 
+ 
+ * [AUTO-TRANSLATED:57f8bc08]
  */
 class G711Track : public AudioTrackImp{
 public:

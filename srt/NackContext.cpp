@@ -68,7 +68,8 @@ void NackContext::drop(uint32_t seq) {
 
     for (auto it = _nack_map.begin(); it != _nack_map.end();) {
         if (!is_cycle) {
-            // 不回环
+            // 不回环  [AUTO-TRANSLATED:abe3c07b]
+            // No loop
             if (it->first <= seq) {
                 it = _nack_map.erase(it);
             } else {

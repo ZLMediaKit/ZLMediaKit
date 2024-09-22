@@ -28,6 +28,11 @@ protected:
     /**
      * 输入rtp(目的是为了合并写)
      * @param buffer rtp数据
+     * Input rtp (for merging)
+     * @param buffer rtp data
+     
+     
+     * [AUTO-TRANSLATED:de9469b5]
      */
     void input(uint64_t stamp, toolkit::Buffer::Ptr buffer,bool is_key = false);
 

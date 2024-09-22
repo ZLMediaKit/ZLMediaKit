@@ -20,6 +20,9 @@ namespace mediakit {
 
 /**
  * Opus类型SDP
+ * Opus type SDP
+ 
+ * [AUTO-TRANSLATED:6c0a72ed]
  */
 class OpusSdp : public Sdp {
 public:
@@ -29,6 +32,14 @@ public:
      * @param sample_rate 音频采样率
      * @param channels 通道数
      * @param bitrate 比特率
+     * Construct opus sdp
+     * @param payload_type rtp payload type
+     * @param sample_rate audio sample rate
+     * @param channels number of channels
+     * @param bitrate bitrate
+     
+     
+     * [AUTO-TRANSLATED:40713e9d]
      */
     OpusSdp(int payload_type, int sample_rate, int channels, int bitrate) : Sdp(sample_rate, payload_type) {
         _printer << "m=audio 0 RTP/AVP " << payload_type << "\r\n";

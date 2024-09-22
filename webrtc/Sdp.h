@@ -57,23 +57,30 @@ namespace mediakit {
 
 enum class RtpDirection {
     invalid = -1,
-    // 只发送
+    // 只发送  [AUTO-TRANSLATED:d7e7fdb7]
+    // Send only
     sendonly,
-    // 只接收
+    // 只接收  [AUTO-TRANSLATED:f75ca789]
+    // Receive only
     recvonly,
-    // 同时发送接收
+    // 同时发送接收  [AUTO-TRANSLATED:7f900ba1]
+    // Send and receive simultaneously
     sendrecv,
-    // 禁止发送数据
+    // 禁止发送数据  [AUTO-TRANSLATED:6045b47e]
+    // Prohibit sending data
     inactive
 };
 
 enum class DtlsRole {
     invalid = -1,
-    // 客户端
+    // 客户端  [AUTO-TRANSLATED:915417a2]
+    // Client
     active,
-    // 服务端
+    // 服务端  [AUTO-TRANSLATED:03a80b18]
+    // Server
     passive,
-    // 既可作做客户端也可以做服务端
+    // 既可作做客户端也可以做服务端  [AUTO-TRANSLATED:5ab1162e]
+    // Can be used as both client and server
     actpass,
 };
 
@@ -169,7 +176,8 @@ public:
     // 5.8.  Bandwidth ("b=")
     // b=<bwtype>:<bandwidth>
 
-    // AS、CT
+    // AS、CT  [AUTO-TRANSLATED:65298206]
+    // AS, CT
     std::string bwtype { "AS" };
     uint32_t bandwidth { 0 };
 
@@ -185,10 +193,14 @@ public:
     // m=<media> <port> <proto> <fmt> ...
     TrackType type;
     uint16_t port;
-    // RTP/AVP：应用场景为视频/音频的 RTP 协议。参考 RFC 3551
-    // RTP/SAVP：应用场景为视频/音频的 SRTP 协议。参考 RFC 3711
-    // RTP/AVPF: 应用场景为视频/音频的 RTP 协议，支持 RTCP-based Feedback。参考 RFC 4585
-    // RTP/SAVPF: 应用场景为视频/音频的 SRTP 协议，支持 RTCP-based Feedback。参考 RFC 5124
+    // RTP/AVP：应用场景为视频/音频的 RTP 协议。参考 RFC 3551  [AUTO-TRANSLATED:7a9d7e86]
+    // RTP/AVP: The application scenario is the RTP protocol for video/audio. Refer to RFC 3551
+    // RTP/SAVP：应用场景为视频/音频的 SRTP 协议。参考 RFC 3711  [AUTO-TRANSLATED:7989a619]
+    // RTP/SAVP: The application scenario is the SRTP protocol for video/audio. Refer to RFC 3711
+    // RTP/AVPF: 应用场景为视频/音频的 RTP 协议，支持 RTCP-based Feedback。参考 RFC 4585  [AUTO-TRANSLATED:71241e80]
+    // RTP/AVPF: The application scenario is the RTP protocol for video/audio, supporting RTCP-based Feedback. Refer to RFC 4585
+    // RTP/SAVPF: 应用场景为视频/音频的 SRTP 协议，支持 RTCP-based Feedback。参考 RFC 5124  [AUTO-TRANSLATED:69015267]
+    // RTP/SAVPF: The application scenario is the SRTP protocol for video/audio, supporting RTCP-based Feedback. Refer to RFC 5124
     std::string proto;
     std::vector<std::string> fmts;
 
@@ -349,11 +361,16 @@ public:
 class SdpAttrRtcpFb : public SdpItem {
 public:
     // a=rtcp-fb:98 nack pli
-    // a=rtcp-fb:120 nack 支持 nack 重传，nack (Negative-Acknowledgment) 。
-    // a=rtcp-fb:120 nack pli 支持 nack 关键帧重传，PLI (Picture Loss Indication) 。
-    // a=rtcp-fb:120 ccm fir 支持编码层关键帧请求，CCM (Codec Control Message)，FIR (Full Intra Request )，通常与 nack pli 有同样的效果，但是 nack pli
-    // 是用于重传时的关键帧请求。 a=rtcp-fb:120 goog-remb 支持 REMB (Receiver Estimated Maximum Bitrate) 。 a=rtcp-fb:120 transport-cc 支持 TCC (Transport
-    // Congest Control) 。
+    // a=rtcp-fb:120 nack 支持 nack 重传，nack (Negative-Acknowledgment) 。  [AUTO-TRANSLATED:08d5c4e2]
+    // a=rtcp-fb:120 nack supports nack retransmission, nack (Negative-Acknowledgment).
+    // a=rtcp-fb:120 nack pli 支持 nack 关键帧重传，PLI (Picture Loss Indication) 。  [AUTO-TRANSLATED:c331c1dd]
+    // a=rtcp-fb:120 nack pli supports nack keyframe retransmission, PLI (Picture Loss Indication).
+    // a=rtcp-fb:120 ccm fir 支持编码层关键帧请求，CCM (Codec Control Message)，FIR (Full Intra Request )，通常与 nack pli 有同样的效果，但是 nack pli  [AUTO-TRANSLATED:7090fdc9]
+    // a=rtcp-fb:120 ccm fir supports keyframe requests for the coding layer, CCM (Codec Control Message), FIR (Full Intra Request), which usually has the same effect as nack pli, but nack pli
+    // 是用于重传时的关键帧请求。 a=rtcp-fb:120 goog-remb 支持 REMB (Receiver Estimated Maximum Bitrate) 。 a=rtcp-fb:120 transport-cc 支持 TCC (Transport  [AUTO-TRANSLATED:ffac8e91]
+    // is used for keyframe requests during retransmission. a=rtcp-fb:120 goog-remb supports REMB (Receiver Estimated Maximum Bitrate). a=rtcp-fb:120 transport-cc supports TCC (Transport
+    // Congest Control) 。  [AUTO-TRANSLATED:dcf53e31]
+    // Congest Control).
     uint8_t pt;
     std::string rtcp_type;
     void parse(const std::string &str) override;
@@ -379,12 +396,18 @@ public:
     // a=ssrc:3245185839 label:0cf7e597-36a2-4480-9796-69bf0955eef5
     // a=ssrc:<ssrc-id> <attribute>
     // a=ssrc:<ssrc-id> <attribute>:<value>
-    // cname 是必须的，msid/mslabel/label 这三个属性都是 WebRTC 自创的，或者说 Google 自创的，可以参考 https://tools.ietf.org/html/draft-ietf-mmusic-msid-17，
-    //  理解它们三者的关系需要先了解三个概念：RTP stream / MediaStreamTrack / MediaStream ：
-    // 一个 a=ssrc 代表一个 RTP stream ；
-    // 一个 MediaStreamTrack 通常包含一个或多个 RTP stream，例如一个视频 MediaStreamTrack 中通常包含两个 RTP stream，一个用于常规传输，一个用于 nack 重传；
-    // 一个 MediaStream 通常包含一个或多个 MediaStreamTrack ，例如 simulcast 场景下，一个 MediaStream 通常会包含三个不同编码质量的 MediaStreamTrack ；
-    // 这种标记方式并不被 Firefox 认可，在 Firefox 生成的 SDP 中一个 a=ssrc 通常只有一行，例如：
+    // cname 是必须的，msid/mslabel/label 这三个属性都是 WebRTC 自创的，或者说 Google 自创的，可以参考 https://tools.ietf.org/html/draft-ietf-mmusic-msid-17，  [AUTO-TRANSLATED:d8cb1baf]
+    // cname is required, msid/mslabel/label these three attributes are all created by WebRTC, or Google created, you can refer to https://tools.ietf.org/html/draft-ietf-mmusic-msid-17,
+    //  理解它们三者的关系需要先了解三个概念：RTP stream / MediaStreamTrack / MediaStream ：  [AUTO-TRANSLATED:7d385cf5]
+    // understanding the relationship between the three requires understanding three concepts: RTP stream / MediaStreamTrack / MediaStream:
+    // 一个 a=ssrc 代表一个 RTP stream ；  [AUTO-TRANSLATED:ee1ecc6f]
+    // One a=ssrc represents one RTP stream;
+    // 一个 MediaStreamTrack 通常包含一个或多个 RTP stream，例如一个视频 MediaStreamTrack 中通常包含两个 RTP stream，一个用于常规传输，一个用于 nack 重传；  [AUTO-TRANSLATED:e8ddf0fd]
+    // A MediaStreamTrack usually contains one or more RTP streams, for example, a video MediaStreamTrack usually contains two RTP streams, one for regular transmission and one for nack retransmission;
+    // 一个 MediaStream 通常包含一个或多个 MediaStreamTrack ，例如 simulcast 场景下，一个 MediaStream 通常会包含三个不同编码质量的 MediaStreamTrack ；  [AUTO-TRANSLATED:31318d43]
+    // A MediaStream usually contains one or more MediaStreamTrack, for example, in a simulcast scenario, a MediaStream usually contains three MediaStreamTrack of different encoding quality;
+    // 这种标记方式并不被 Firefox 认可，在 Firefox 生成的 SDP 中一个 a=ssrc 通常只有一行，例如：  [AUTO-TRANSLATED:8c2c424c]
+    // This marking method is not recognized by Firefox, in the SDP generated by Firefox, one a=ssrc usually has only one line, for example:
     // a=ssrc:3245185839 cname:Cx4i/VTR51etgjT7
 
     uint32_t ssrc;
@@ -397,11 +420,14 @@ public:
 
 class SdpAttrSSRCGroup : public SdpItem {
 public:
-    // a=ssrc-group 定义参考 RFC 5576(https://tools.ietf.org/html/rfc5576) ，用于描述多个 ssrc 之间的关联，常见的有两种：
+    // a=ssrc-group 定义参考 RFC 5576(https://tools.ietf.org/html/rfc5576) ，用于描述多个 ssrc 之间的关联，常见的有两种：  [AUTO-TRANSLATED:a87cbcc6]
+    // a=ssrc-group definition refers to RFC 5576(https://tools.ietf.org/html/rfc5576), used to describe the association between multiple ssrcs, there are two common types:
     // a=ssrc-group:FID 2430709021 3715850271
-    //  FID (Flow Identification) 最初用在 FEC 的关联中，WebRTC 中通常用于关联一组常规 RTP stream 和 重传 RTP stream 。
+    //  FID (Flow Identification) 最初用在 FEC 的关联中，WebRTC 中通常用于关联一组常规 RTP stream 和 重传 RTP stream 。  [AUTO-TRANSLATED:f2c0fcbb]
+    // FID (Flow Identification) was originally used in FEC association, and in WebRTC it is usually used to associate a group of regular RTP streams and retransmission RTP streams.
     // a=ssrc-group:SIM 360918977 360918978 360918980
-    //  在 Chrome 独有的 SDP munging 风格的 simulcast 中使用，将三组编码质量由低到高的 MediaStreamTrack 关联在一起。
+    //  在 Chrome 独有的 SDP munging 风格的 simulcast 中使用，将三组编码质量由低到高的 MediaStreamTrack 关联在一起。  [AUTO-TRANSLATED:61bf7596]
+    // Used in Chrome's unique SDP munging style simulcast, associating three groups of MediaStreamTrack from low to high encoding quality.
     std::string type { "FID" };
     std::vector<uint32_t> ssrcs;
 
@@ -434,7 +460,8 @@ public:
     // a=candidate:4 1 udp 2 192.168.1.7 58107 typ host
     // a=candidate:<foundation> <component-id> <transport> <priority> <address> <port> typ <cand-type>
     std::string foundation;
-    // 传输媒体的类型,1代表RTP;2代表 RTCP。
+    // 传输媒体的类型,1代表RTP;2代表 RTCP。  [AUTO-TRANSLATED:9ec924a6]
+    // The type of media to be transmitted, 1 represents RTP; 2 represents RTCP.
     uint32_t component;
     std::string transport { "udp" };
     uint32_t priority;
@@ -567,7 +594,8 @@ public:
 
 //////////////////////////////////////////////////////////////////
 
-// ssrc相关信息
+// ssrc相关信息  [AUTO-TRANSLATED:954c641d]
+// ssrc related information
 class RtcSSRC {
 public:
     uint32_t ssrc { 0 };
@@ -580,23 +608,27 @@ public:
     bool empty() const { return ssrc == 0 && cname.empty(); }
 };
 
-// rtc传输编码方案
+// rtc传输编码方案  [AUTO-TRANSLATED:8b911508]
+// rtc transmission encoding scheme
 class RtcCodecPlan {
 public:
     using Ptr = std::shared_ptr<RtcCodecPlan>;
     uint8_t pt;
     std::string codec;
     uint32_t sample_rate;
-    // 音频时有效
+    // 音频时有效  [AUTO-TRANSLATED:5b230fc8]
+    // Valid for audio
     uint32_t channel = 0;
-    // rtcp反馈
+    // rtcp反馈  [AUTO-TRANSLATED:580378bd]
+    // RTCP feedback
     std::set<std::string> rtcp_fb;
     std::map<std::string /*key*/, std::string /*value*/, StrCaseCompare> fmtp;
 
     std::string getFmtp(const char *key) const;
 };
 
-// rtc 媒体描述
+// rtc 媒体描述  [AUTO-TRANSLATED:b1711a11]
+// RTC media description
 class RtcMedia {
 public:
     TrackType type { TrackType::TrackInvalid };

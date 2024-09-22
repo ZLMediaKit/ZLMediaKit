@@ -39,7 +39,8 @@ void WebRtcEchoTest::onRtcp(const char *buf, size_t len) {
     sendRtcpPacket(buf, len, true, nullptr);
 }
 
-//修改mline的a=msid属性，目的是在echo test的情况下，如果offer和answer的msid相同，chrome会忽略远端的track
+// 修改mline的a=msid属性，目的是在echo test的情况下，如果offer和answer的msid相同，chrome会忽略远端的track  [AUTO-TRANSLATED:f2e3da54]
+// Modify the a=msid attribute of mline, the purpose is that in the echo test case, if the offer and answer have the same msid, chrome will ignore the remote track.
 void WebRtcEchoTest::onCheckSdp(SdpType type, RtcSession &sdp) {
     if (type == SdpType::answer) {
         for (auto &m : sdp.media) {

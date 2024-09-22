@@ -19,6 +19,9 @@ struct PayloadContext {
 
 /**
  * 通用 rtp解码类
+ * General rtp decoding class
+ 
+ * [AUTO-TRANSLATED:41b57089]
  */
 class JPEGRtpDecoder : public RtpCodec {
 public:
@@ -30,6 +33,12 @@ public:
      * 输入rtp并解码
      * @param rtp rtp数据包
      * @param key_pos 此参数内部强制转换为false,请忽略之
+     * Input rtp and decode
+     * @param rtp rtp data packet
+     * @param key_pos This parameter is internally forced to false, please ignore it
+     
+     
+     * [AUTO-TRANSLATED:2993fcbe]
      */
     bool inputRtp(const RtpPacket::Ptr &rtp, bool key_pos = false) override;
 

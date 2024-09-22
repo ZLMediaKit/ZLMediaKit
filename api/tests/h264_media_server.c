@@ -36,7 +36,8 @@ static void on_h264_frame(void *user_data, mk_h264_splitter splitter, const char
 }
 
 
-//按照json转义规则转义webrtc answer sdp
+// 按照json转义规则转义webrtc answer sdp  [AUTO-TRANSLATED:b9373d68]
+// Escape the webrtc answer sdp according to json escape rules
 static char *escape_string(const char *ptr){
     char *escaped = malloc(2 * strlen(ptr));
     char *ptr_escaped = escaped;
@@ -108,8 +109,16 @@ static void on_mk_webrtc_get_answer_sdp_func(void *user_data, const char *answer
  * @param invoker 执行该invoker返回http回复
  * @param consumed 置1则说明我们要处理该事件
  * @param sender http客户端相关信息
+ * Receive http api request broadcast (including GET/POST)
+ * @param parser http request content object
+ * @param invoker Execute this invoker to return http reply
+ * @param consumed Set to 1 if we want to handle this event
+ * @param sender http client related information
+ 
+ * [AUTO-TRANSLATED:39435e52]
  */
-//测试url : http://127.0.0.1/api/test
+// 测试url : http://127.0.0.1/api/test  [AUTO-TRANSLATED:4776d7a3]
+// Test url: http://127.0.0.1/api/test
 void API_CALL on_mk_http_request(const mk_parser parser,
                                  const mk_http_response_invoker invoker,
                                  int *consumed,
@@ -119,7 +128,8 @@ void API_CALL on_mk_http_request(const mk_parser parser,
     *consumed = 1;
 
     if (strcmp(url, "/index/api/webrtc") == 0) {
-        //拦截api: /index/api/webrtc
+        // 拦截api: /index/api/webrtc  [AUTO-TRANSLATED:1db21d1c]
+        // Intercept api: /index/api/webrtc
         char rtc_url[1024];
         snprintf(rtc_url, sizeof(rtc_url), "rtc://%s/%s/%s?%s", mk_parser_get_header(parser, "Host"),
                  mk_parser_get_url_param(parser, "app"), mk_parser_get_url_param(parser, "stream"),
@@ -179,7 +189,8 @@ int main(int argc, char *argv[]) {
     }
 
     mk_media media = mk_media_create("__defaultVhost__", "live", "test", 0, 0, 0);
-    //h264的codec
+    // h264的codec  [AUTO-TRANSLATED:940c6a32]
+    // h264 codec
     //mk_media_init_video(media, 0, 0, 0, 0, 2 * 104 * 1024);
     codec_args v_args = {0};
     mk_track v_track = mk_track_create(MKCodecH264, &v_args);
@@ -187,7 +198,8 @@ int main(int argc, char *argv[]) {
     mk_media_init_complete(media);
     mk_track_unref(v_track);
 
-    //创建h264分帧器
+    // 创建h264分帧器  [AUTO-TRANSLATED:5775837d]
+    // Create h264 frame splitter
     mk_h264_splitter splitter = mk_h264_splitter_create(on_h264_frame, media, 0);
     signal(SIGINT, s_on_exit);// 设置退出信号
 
@@ -197,7 +209,8 @@ int main(int argc, char *argv[]) {
         if (size > 0) {
             mk_h264_splitter_input_data(splitter, buf, size);
         } else {
-            //文件读完了，重新开始
+            // 文件读完了，重新开始  [AUTO-TRANSLATED:035fb238]
+            // File read finished, start again
             fseek(fp, 0, SEEK_SET);
         }
     }

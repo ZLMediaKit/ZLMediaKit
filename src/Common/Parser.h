@@ -17,11 +17,14 @@
 
 namespace mediakit {
 
-// 从字符串中提取子字符串
+// 从字符串中提取子字符串  [AUTO-TRANSLATED:8493b6a5]
+// Extract substring from string
 std::string findSubString(const char *buf, const char *start, const char *end, size_t buf_size = 0);
-// 把url解析为主机地址和端口号,兼容ipv4/ipv6/dns
+// 把url解析为主机地址和端口号,兼容ipv4/ipv6/dns  [AUTO-TRANSLATED:0cfa4a6c]
+// Parse url to host address and port number, compatible with ipv4/ipv6/dns
 void splitUrl(const std::string &url, std::string &host, uint16_t &port);
-// 解析proxy url,仅支持http
+// 解析proxy url,仅支持http  [AUTO-TRANSLATED:194b49d7]
+// Parse proxy url, only supports http
 void parseProxyUrl(const std::string &proxy_url, std::string &proxy_host, uint16_t &proxy_port, std::string &proxy_auth);
 
 struct StrCaseCompare {
@@ -55,53 +58,70 @@ public:
     }
 };
 
-// rtsp/http/sip解析类
+// rtsp/http/sip解析类  [AUTO-TRANSLATED:188ca500]
+// rtsp/http/sip parsing class
 class Parser {
 public:
-    // 解析http/rtsp/sip请求，需要确保buf以\0结尾
+    // 解析http/rtsp/sip请求，需要确保buf以\0结尾  [AUTO-TRANSLATED:552953af]
+    // Parse http/rtsp/sip request, ensure buf ends with \0
     void parse(const char *buf, size_t size);
 
-    // 获取命令字，如GET/POST
+    // 获取命令字，如GET/POST  [AUTO-TRANSLATED:34750f3d]
+    // Get command word, such as GET/POST
     const std::string &method() const;
 
-    // 请求时，获取中间url，不包含?后面的参数
+    // 请求时，获取中间url，不包含?后面的参数  [AUTO-TRANSLATED:c259f1ed]
+    // When requesting, get the middle url, excluding the parameters after ?
     const std::string &url() const;
-    // 回复时，获取状态码，如200/404
+    // 回复时，获取状态码，如200/404  [AUTO-TRANSLATED:ac3f8ed4]
+    // When replying, get the status code, such as 200/404
     const std::string &status() const;
 
-    // 获取中间url，包含?后面的参数
+    // 获取中间url，包含?后面的参数  [AUTO-TRANSLATED:ca1fec1a]
+    // Get the middle url, including the parameters after ?
     std::string fullUrl() const;
 
-    // 请求时，获取协议名，如HTTP/1.1
+    // 请求时，获取协议名，如HTTP/1.1  [AUTO-TRANSLATED:7410fed6]
+    // When requesting, get the protocol name, such as HTTP/1.1
     const std::string &protocol() const;
-    // 回复时，获取状态字符串，如 OK/Not Found
+    // 回复时，获取状态字符串，如 OK/Not Found  [AUTO-TRANSLATED:d245247a]
+    // When replying, get the status string, such as OK/Not Found
     const std::string &statusStr() const;
 
-    // 根据header key名，获取请求header value值
+    // 根据header key名，获取请求header value值  [AUTO-TRANSLATED:5cbc9ac7]
+    // Get the request header value according to the header key name
     const std::string &operator[](const char *name) const;
 
-    // 获取http body或sdp
+    // 获取http body或sdp  [AUTO-TRANSLATED:d6fd1803]
+    // Get http body or sdp
     const std::string &content() const;
 
-    // 清空，为了重用
+    // 清空，为了重用  [AUTO-TRANSLATED:cb7a16dd]
+    // Clear, for reuse
     void clear();
 
-    // 获取?后面的参数
+    // 获取?后面的参数  [AUTO-TRANSLATED:4ada90e1]
+    // Get the parameters after ?
     const std::string &params() const;
 
-    // 重新设置url
+    // 重新设置url  [AUTO-TRANSLATED:4829ba8e]
+    // Reset url
     void setUrl(std::string url);
 
-    // 重新设置content
+    // 重新设置content  [AUTO-TRANSLATED:ac8fc8c0]
+    // Reset content
     void setContent(std::string content);
 
-    // 获取header列表
+    // 获取header列表  [AUTO-TRANSLATED:90d90b03]
+    // Get header list
     StrCaseMap &getHeader() const;
 
-    // 获取url参数列表
+    // 获取url参数列表  [AUTO-TRANSLATED:da1df48a]
+    // Get url parameter list
     StrCaseMap &getUrlArgs() const;
 
-    // 解析?后面的参数
+    // 解析?后面的参数  [AUTO-TRANSLATED:38692051]
+    // Parse the parameters after ?
     static StrCaseMap parseArgs(const std::string &str, const char *pair_delim = "&", const char *key_delim = "=");
 
     static std::string mergeUrl(const std::string &base_url, const std::string &path);
@@ -116,7 +136,8 @@ private:
     mutable StrCaseMap _url_args;
 };
 
-// 解析rtsp url的工具类
+// 解析rtsp url的工具类  [AUTO-TRANSLATED:0d31ae01]
+// Utility class for parsing rtsp url
 class RtspUrl {
 public:
     bool _is_ssl;

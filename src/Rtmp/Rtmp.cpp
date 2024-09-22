@@ -74,7 +74,8 @@ uint8_t getAudioRtmpFlags(const Track::Ptr &track) {
                 case CodecG711U: flvAudioType = (uint8_t)RtmpAudioCodec::g711u; break;
                 case CodecOpus: {
                     flvAudioType = (uint8_t)RtmpAudioCodec::opus;
-                    // opus不通过flags获取音频相关信息
+                    // opus不通过flags获取音频相关信息  [AUTO-TRANSLATED:0ddf328b]
+                    // opus does not get audio information through flags
                     iSampleRate = 44100;
                     iSampleBit = 16;
                     iChannel = 2;
@@ -82,7 +83,8 @@ uint8_t getAudioRtmpFlags(const Track::Ptr &track) {
                 }
                 case CodecAAC: {
                     flvAudioType = (uint8_t)RtmpAudioCodec::aac;
-                    // aac不通过flags获取音频相关信息
+                    // aac不通过flags获取音频相关信息  [AUTO-TRANSLATED:63ac5081]
+                    // aac does not get audio information through flags
                     iSampleRate = 44100;
                     iSampleBit = 16;
                     iChannel = 2;

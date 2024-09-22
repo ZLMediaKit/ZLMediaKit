@@ -41,12 +41,16 @@ public:
 
 /**
  * MultiMediaSourceMuxer类的包装，方便初学者使用
+ * Wrapper class for MultiMediaSourceMuxer, making it easier for beginners to use.
+ 
+ * [AUTO-TRANSLATED:101887bd]
  */
 class DevChannel  : public MultiMediaSourceMuxer{
 public:
     using Ptr = std::shared_ptr<DevChannel>;
 
-    //fDuration<=0为直播，否则为点播
+    // fDuration<=0为直播，否则为点播  [AUTO-TRANSLATED:e3b6029a]
+    // fDuration<=0 for live streaming, otherwise for on-demand
     DevChannel(const MediaTuple& tuple, float duration = 0, const ProtocolOption &option = ProtocolOption())
         : MultiMediaSourceMuxer(tuple, duration, option) {}
 
@@ -54,6 +58,11 @@ public:
      * 初始化视频Track
      * 相当于MultiMediaSourceMuxer::addTrack(VideoTrack::Ptr );
      * @param info 视频相关信息
+     * Initialize the video Track
+     * Equivalent to MultiMediaSourceMuxer::addTrack(VideoTrack::Ptr );
+     * @param info Video related information
+     
+     * [AUTO-TRANSLATED:6845d52d]
      */
     bool initVideo(const VideoInfo &info);
 
@@ -61,6 +70,11 @@ public:
      * 初始化音频Track
      * 相当于MultiMediaSourceMuxer::addTrack(AudioTrack::Ptr );
      * @param info 音频相关信息
+     * Initialize the audio Track
+     * Equivalent to MultiMediaSourceMuxer::addTrack(AudioTrack::Ptr );
+     * @param info Audio related information
+     
+     * [AUTO-TRANSLATED:5be9d272]
      */
     bool initAudio(const AudioInfo &info);
 
@@ -70,6 +84,13 @@ public:
      * @param len 数据指针长度
      * @param dts 解码时间戳，单位毫秒；等于0时内部会自动生成时间戳
      * @param pts 播放时间戳，单位毫秒；等于0时内部会赋值为dts
+     * Input 264 frame
+     * @param data 264 single frame data pointer
+     * @param len Data pointer length
+     * @param dts Decode timestamp, in milliseconds; If it is 0, the timestamp will be generated automatically internally
+     * @param pts Play timestamp, in milliseconds; If it is 0, it will be assigned to dts internally
+     
+     * [AUTO-TRANSLATED:bda112e9]
      */
     bool inputH264(const char *data, int len, uint64_t dts, uint64_t pts = 0);
 
@@ -79,6 +100,13 @@ public:
      * @param len 数据指针长度
      * @param dts 解码时间戳，单位毫秒；等于0时内部会自动生成时间戳
      * @param pts 播放时间戳，单位毫秒；等于0时内部会赋值为dts
+     * Input 265 frame
+     * @param data 265 single frame data pointer
+     * @param len Data pointer length
+     * @param dts Decode timestamp, in milliseconds; If it is 0, the timestamp will be generated automatically internally
+     * @param pts Play timestamp, in milliseconds; If it is 0, it will be assigned to dts internally
+     
+     * [AUTO-TRANSLATED:1fc1c892]
      */
     bool inputH265(const char *data, int len, uint64_t dts, uint64_t pts = 0);
 
@@ -88,6 +116,13 @@ public:
      * @param len 帧数据长度
      * @param dts 时间戳，单位毫秒
      * @param adts_header adts头
+     * Input aac frame
+     * @param data_without_adts aac frame without adts header
+     * @param len Frame data length
+     * @param dts Timestamp, in milliseconds
+     * @param adts_header adts header
+     
+     * [AUTO-TRANSLATED:6eca0279]
      */
     bool inputAAC(const char *data_without_adts, int len, uint64_t dts, const char *adts_header);
 
@@ -96,6 +131,12 @@ public:
      * @param data 音频帧
      * @param len 帧数据长度
      * @param dts 时间戳，单位毫秒
+     * Input OPUS/G711 audio frame
+     * @param data Audio frame
+     * @param len Frame data length
+     * @param dts Timestamp, in milliseconds
+     
+     * [AUTO-TRANSLATED:5f13cdf6]
      */
     bool inputAudio(const char *data, int len, uint64_t dts);
 
@@ -104,6 +145,12 @@ public:
      * @param yuv yuv420p数据指针
      * @param linesize yuv420p数据linesize
      * @param cts 采集时间戳，单位毫秒
+     * Input yuv420p video frame, encoding will be completed internally and inputH264 method will be called
+     * @param yuv yuv420p data pointer
+     * @param linesize yuv420p data linesize
+     * @param cts Capture timestamp, in milliseconds
+     
+     * [AUTO-TRANSLATED:1b945575]
      */
     bool inputYUV(char *yuv[3], int linesize[3], uint64_t cts);
 
@@ -112,10 +159,17 @@ public:
      * @param data pcm数据指针，int16整形
      * @param len pcm数据长度
      * @param cts 采集时间戳，单位毫秒
+     * Input pcm data, encoding will be completed internally and inputAAC method will be called
+     * @param data pcm data pointer, int16 integer
+     * @param len pcm data length
+     * @param cts Capture timestamp, in milliseconds
+     
+     * [AUTO-TRANSLATED:b99a9e82]
      */
     bool inputPCM(char *data, int len, uint64_t cts);
 
-    //// 重载基类方法，确保线程安全 ////
+    // // 重载基类方法，确保线程安全 ////  [AUTO-TRANSLATED:86e2df12]
+    // // Override base class methods to ensure thread safety ////
     bool inputFrame(const Frame::Ptr &frame) override;
     bool addTrack(const Track::Ptr & track) override;
     void addTrackCompleted() override;

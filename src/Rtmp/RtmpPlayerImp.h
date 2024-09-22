@@ -43,9 +43,11 @@ public:
     }
 
 private:
-    //派生类回调函数
+    // 派生类回调函数  [AUTO-TRANSLATED:61e20903]
+    // Derived class callback function
     bool onMetadata(const AMFValue &val) override {
-        //无metadata或metadata中无track信息时，需要从数据包中获取track
+        // 无metadata或metadata中无track信息时，需要从数据包中获取track  [AUTO-TRANSLATED:92a71803]
+        // When there is no metadata or no track information in the metadata, it is necessary to obtain the track from the data packet
         _wait_track_ready = this->Super::operator[](Client::kWaitTrackReady).template as<bool>() || RtmpDemuxer::trackCount(val) == 0;
         onCheckMeta_l(val);
         return true;
@@ -53,7 +55,8 @@ private:
 
     void onRtmpPacket(RtmpPacket::Ptr chunkData) override {
         if (!_demuxer) {
-            //有些rtmp流没metadata
+            // 有些rtmp流没metadata  [AUTO-TRANSLATED:2509786f]
+            // Some rtmp streams do not have metadata
             onCheckMeta_l(TitleMeta().getMetadata());
         }
         _demuxer->inputRtmp(chunkData);

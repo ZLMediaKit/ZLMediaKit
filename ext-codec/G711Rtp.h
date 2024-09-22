@@ -19,6 +19,9 @@ namespace mediakit {
 
 /**
  * G711 rtp编码类
+ * G711 rtp encoding class
+ 
+ * [AUTO-TRANSLATED:92aa6cf3]
  */
 class G711RtpEncoder : public RtpCodec {
 public:
@@ -28,11 +31,20 @@ public:
      * 构造函数
      * @param codec 编码类型
      * @param channels 通道数
+     * Constructor
+     * @param codec Encoding type
+     * @param channels Number of channels
+     
+     * [AUTO-TRANSLATED:dbbd593e]
      */
     G711RtpEncoder(CodecId codec, uint32_t channels);
 
     /**
      * 输入帧数据并编码成rtp
+     * Input frame data and encode it into rtp
+     
+     
+     * [AUTO-TRANSLATED:02bc9009]
      */
     bool inputFrame(const Frame::Ptr &frame) override;
 

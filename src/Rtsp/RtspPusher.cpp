@@ -101,15 +101,18 @@ void RtspPusher::publish(const string &url_str) {
 void RtspPusher::onPublishResult_l(const SockException &ex, bool handshake_done) {
     DebugL << ex.what();
     if (ex.getErrCode() == Err_shutdown) {
-        //主动shutdown的，不触发回调
+        // 主动shutdown的，不触发回调  [AUTO-TRANSLATED:bd97b1c1]
+        // Actively shutdown, do not trigger callback
         return;
     }
     if (!handshake_done) {
-        //播放结果回调
+        // 播放结果回调  [AUTO-TRANSLATED:a5714269]
+        // Playback result callback
         _publish_timer.reset();
         onPublishResult(ex);
     } else {
-        //播放成功后异常断开回调
+        // 播放成功后异常断开回调  [AUTO-TRANSLATED:b5c5fa80]
+        // Callback for abnormal disconnection after playback success
         onShutdown(ex);
     }
 
@@ -119,7 +122,8 @@ void RtspPusher::onPublishResult_l(const SockException &ex, bool handshake_done)
 }
 
 void RtspPusher::onError(const SockException &ex) {
-    //定时器_pPublishTimer为空后表明握手结束了
+    // 定时器_pPublishTimer为空后表明握手结束了  [AUTO-TRANSLATED:630ec31e]
+    // The timer _pPublishTimer is empty, indicating that the handshake is over
     onPublishResult_l(ex, !_publish_timer);
 }
 
@@ -136,7 +140,8 @@ void RtspPusher::onRecv(const Buffer::Ptr &buf){
         input(buf->data(), buf->size());
     } catch (exception &e) {
         SockException ex(Err_other, e.what());
-        //定时器_pPublishTimer为空后表明握手结束了
+        // 定时器_pPublishTimer为空后表明握手结束了  [AUTO-TRANSLATED:630ec31e]
+        // The timer _pPublishTimer is empty, indicating that the handshake is over
         onPublishResult_l(ex, !_publish_timer);
     }
 }
@@ -171,7 +176,8 @@ void RtspPusher::sendAnnounce() {
     if (!src) {
         throw std::runtime_error("the media source was released");
     }
-    //解析sdp
+    // 解析sdp  [AUTO-TRANSLATED:a2d549e2]
+    // Parse sdp
     _sdp_parser.load(src->getSdp());
     _track_vec = _sdp_parser.getAvailableTrack();
     if (_track_vec.empty()) {
@@ -187,7 +193,8 @@ void RtspPusher::sendAnnounce() {
 
 void RtspPusher::handleResAnnounce(const Parser &parser) {
     string authInfo = parser["WWW-Authenticate"];
-    //发送DESCRIBE命令后的回复
+    // 发送DESCRIBE命令后的回复  [AUTO-TRANSLATED:924afd2e]
+    // Reply after sending DESCRIBE command
     if ((parser.status() == "401") && handleAuthenticationFailure(authInfo)) {
         sendAnnounce();
         return;
@@ -219,7 +226,8 @@ void RtspPusher::handleResAnnounce(const Parser &parser) {
 
 bool RtspPusher::handleAuthenticationFailure(const string &params_str) {
     if (!_realm.empty()) {
-        //已经认证过了
+        // 已经认证过了  [AUTO-TRANSLATED:3c8ce1d6]
+        // Already authenticated
         return false;
     }
 
@@ -249,7 +257,8 @@ bool RtspPusher::handleAuthenticationFailure(const string &params_str) {
     return false;
 }
 
-//有必要的情况下创建udp端口
+// 有必要的情况下创建udp端口  [AUTO-TRANSLATED:b59b7389]
+// Create UDP port if necessary
 void RtspPusher::createUdpSockIfNecessary(int track_idx){
     auto &rtpSockRef = _rtp_sock[track_idx];
     auto &rtcpSockRef = _rtcp_sock[track_idx];
@@ -312,17 +321,20 @@ void RtspPusher::handleResSetup(const Parser &parser, unsigned int track_idx) {
         auto &rtcp_sock = _rtcp_sock[track_idx];
 
         auto rtpto = SockUtil::make_sockaddr(get_peer_ip().data(), rtp_port);
-        //设置rtp发送目标，为后续发送rtp做准备
+        // 设置rtp发送目标，为后续发送rtp做准备  [AUTO-TRANSLATED:5ae9bd72]
+        // Set RTP sending target, prepare for subsequent RTP sending
         rtp_sock->bindPeerAddr((struct sockaddr *) &(rtpto));
 
-        //设置rtcp发送目标，为后续发送rtcp做准备
+        // 设置rtcp发送目标，为后续发送rtcp做准备  [AUTO-TRANSLATED:a487732d]
+        // Set RTCP sending target, prepare for subsequent RTCP sending
         auto rtcpto = SockUtil::make_sockaddr(get_peer_ip().data(), rtcp_port);
         rtcp_sock->bindPeerAddr((struct sockaddr *)&(rtcpto));
 
         auto peer_ip = get_peer_ip();
         weak_ptr<RtspPusher> weakSelf = static_pointer_cast<RtspPusher>(shared_from_this());
         if(rtcp_sock) {
-            //设置rtcp over udp接收回调处理函数
+            // 设置rtcp over udp接收回调处理函数  [AUTO-TRANSLATED:59963785]
+            // Set RTCP over UDP receive callback handler
             rtcp_sock->setOnRead([peer_ip, track_idx, weakSelf](const Buffer::Ptr &buf, struct sockaddr *addr , int addr_len) {
                 auto strongSelf = weakSelf.lock();
                 if (!strongSelf) {
@@ -340,7 +352,8 @@ void RtspPusher::handleResSetup(const Parser &parser, unsigned int track_idx) {
     RtspSplitter::enableRecvRtp(_rtp_type == Rtsp::RTP_TCP);
 
     if (track_idx < _track_vec.size() - 1) {
-        //需要继续发送SETUP命令
+        // 需要继续发送SETUP命令  [AUTO-TRANSLATED:fddda4c6]
+        // Need to continue sending SETUP command
         sendSetup(track_idx + 1);
         return;
     }
@@ -359,7 +372,8 @@ void RtspPusher::updateRtcpContext(const RtpPacket::Ptr &rtp){
     auto &rtcp_ctx = _rtcp_context[track_index];
     rtcp_ctx->onRtp(rtp->getSeq(), rtp->getStamp(), rtp->ntp_stamp, rtp->sample_rate, rtp->size() - RtpPacket::kRtpTcpHeaderSize);
     if (!rtp->ntp_stamp && !rtp->getStamp()) {
-        // 忽略时间戳都为0的rtp
+        // 忽略时间戳都为0的rtp  [AUTO-TRANSLATED:6b793565]
+        // Ignore RTP with all timestamps being 0
         return;
     }
     //send rtcp every 5 second
@@ -469,7 +483,8 @@ void RtspPusher::sendRecord() {
             }
         });
         if (_rtp_type != Rtsp::RTP_TCP) {
-            /////////////////////////心跳/////////////////////////////////
+            // ///////////////////////心跳/////////////////////////////////  [AUTO-TRANSLATED:4e72777b]
+            // ///////////////////////Heartbeat/////////////////////////////////
             _beat_timer.reset(new Timer((*this)[Client::kBeatIntervalMS].as<int>() / 1000.0f, [weak_self]() {
                 auto strong_self = weak_self.lock();
                 if (!strong_self) {
@@ -480,7 +495,8 @@ void RtspPusher::sendRecord() {
             }, getPoller()));
         }
         onPublishResult_l(SockException(Err_success, "success"), false);
-        //提升发送性能
+        // 提升发送性能  [AUTO-TRANSLATED:90630751]
+        // Improve sending performance
         setSocketFlags();
     };
     sendRtspRequest("RECORD", _content_base, {"Range", "npt=0.000-"});
@@ -489,7 +505,8 @@ void RtspPusher::sendRecord() {
 void RtspPusher::setSocketFlags(){
     GET_CONFIG(int, merge_write_ms, General::kMergeWriteMS);
     if (merge_write_ms > 0) {
-        //提高发送性能
+        // 提高发送性能  [AUTO-TRANSLATED:de96ec30]
+        // Improve sending performance
         setSendFlags(SOCKET_DEFAULE_FLAGS | FLAG_MORE);
         SockUtil::setNoDelay(getSock()->rawFD(), false);
     }
@@ -519,7 +536,8 @@ void RtspPusher::sendRtspRequest(const string &cmd, const string &url,const StrC
 
     if (!_realm.empty() && !(*this)[Client::kRtspUser].empty()) {
         if (!_nonce.empty()) {
-            //MD5认证
+            // MD5认证  [AUTO-TRANSLATED:57936f0b]
+            // MD5 authentication
             /*
             response计算方法如下：
             RTSP客户端应该使用username + password并计算response如下:
@@ -527,6 +545,15 @@ void RtspPusher::sendRtspRequest(const string &cmd, const string &url,const StrC
                 response = md5( password:nonce:md5(public_method:url)  );
             (2)当password为ANSI字符串,则
                 response= md5( md5(username:realm:password):nonce:md5(public_method:url) );
+             /*
+             The response calculation method is as follows:
+             The RTSP client should use username + password and calculate the response as follows:
+             (1) When password is MD5 encoded, then
+             response = md5( password:nonce:md5(public_method:url)  );
+             (2) When password is ANSI string, then
+             response= md5( md5(username:realm:password):nonce:md5(public_method:url) );
+             
+             * [AUTO-TRANSLATED:7858b67d]
              */
             string encrypted_pwd = (*this)[Client::kRtspPwd];
             if (!(*this)[Client::kRtspPwdIsMD5].as<bool>()) {
@@ -542,7 +569,8 @@ void RtspPusher::sendRtspRequest(const string &cmd, const string &url,const StrC
             printer << "response=\"" << response << "\"";
             header.emplace("Authorization", printer);
         } else if (!(*this)[Client::kRtspPwdIsMD5].as<bool>()) {
-            // base64认证
+            // base64认证  [AUTO-TRANSLATED:06d26447]
+            // base64 authentication
             auto authStrBase64 = encodeBase64((*this)[Client::kRtspUser] + ":" + (*this)[Client::kRtspPwd]);
             header.emplace("Authorization", StrPrinter << "Basic " << authStrBase64);
         }

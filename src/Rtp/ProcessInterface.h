@@ -28,11 +28,22 @@ public:
       * @param data rtp数据指针
       * @param data_len rtp数据长度
       * @return 是否解析成功
+     * Input rtp
+     * @param is_udp Whether it is udp mode
+     * @param data rtp data pointer
+     * @param data_len rtp data length
+     * @return Whether the parsing is successful
+     
+     * [AUTO-TRANSLATED:7d5b06f0]
       */
     virtual bool inputRtp(bool is_udp, const char *data, size_t data_len) = 0;
 
     /**
      * 刷新输出所有缓存
+     * Refresh and output all caches
+     
+     
+     * [AUTO-TRANSLATED:4509b01f]
      */
     virtual void flush() {}
 };

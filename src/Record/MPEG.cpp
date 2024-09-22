@@ -54,10 +54,12 @@ bool MpegMuxer::inputFrame(const Frame::Ptr &frame) {
     switch (frame->getCodecId()) {
         case CodecH264:
         case CodecH265: {
-            // 这里的代码逻辑是让SPS、PPS、IDR这些时间戳相同的帧打包到一起当做一个帧处理，
+            // 这里的代码逻辑是让SPS、PPS、IDR这些时间戳相同的帧打包到一起当做一个帧处理，  [AUTO-TRANSLATED:edf57c32]
+            // The code logic here is to package frames with the same timestamp, such as SPS, PPS, and IDR, together as one frame.
             return track.merger.inputFrame(frame, [this, &track](uint64_t dts, uint64_t pts, const Buffer::Ptr &buffer, bool have_idr) {
                 _key_pos = have_idr;
-                // 取视频时间戳为TS的时间戳
+                // 取视频时间戳为TS的时间戳  [AUTO-TRANSLATED:5ff7796d]
+                // Take the video timestamp as the TS timestamp.
                 _timestamp = dts;
                 _max_cache_size = 512 + 1.2 * buffer->size();
                 mpeg_muxer_input((::mpeg_muxer_t *)_context, track.track_id, have_idr ? 0x0001 : 0, pts * 90LL, dts * 90LL, buffer->data(), buffer->size());
@@ -71,7 +73,8 @@ bool MpegMuxer::inputFrame(const Frame::Ptr &frame) {
 
         default: {
             if (!_have_video) {
-                // 没有视频时，才以音频时间戳为TS的时间戳
+                // 没有视频时，才以音频时间戳为TS的时间戳  [AUTO-TRANSLATED:17cef4f7]
+                // When there is no video, use the audio timestamp as the TS timestamp.
                 _timestamp = frame->dts();
             }
 
@@ -89,7 +92,8 @@ bool MpegMuxer::inputFrame(const Frame::Ptr &frame) {
 
 void MpegMuxer::resetTracks() {
     _have_video = false;
-    //通知片段中断
+    // 通知片段中断  [AUTO-TRANSLATED:ed3d87ba]
+    // Notify fragment interruption.
     onWrite(nullptr, _timestamp, false);
     releaseContext();
     createContext();
@@ -113,7 +117,8 @@ void MpegMuxer::createContext() {
             },
             /*free*/
             [](void *param, void *packet) {
-                //什么也不做
+                // 什么也不做  [AUTO-TRANSLATED:e2f8de75]
+                // Do nothing.
             },
             /*wtite*/
             [](void *param, int stream, void *packet, size_t bytes) {

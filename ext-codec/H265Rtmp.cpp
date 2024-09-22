@@ -22,12 +22,14 @@ namespace mediakit {
 
 void H265RtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt) {
     if (_info.codec == CodecInvalid) {
-        // 先判断是否为增强型rtmp
+        // 先判断是否为增强型rtmp  [AUTO-TRANSLATED:86c4f86a]
+        // First, determine if it is an enhanced rtmp
         parseVideoRtmpPacket((uint8_t *)pkt->data(), pkt->size(), &_info);
     }
 
     if (_info.is_enhanced) {
-        // 增强型rtmp
+        // 增强型rtmp  [AUTO-TRANSLATED:d7d72114]
+        // Enhanced rtmp
         parseVideoRtmpPacket((uint8_t *)pkt->data(), pkt->size(), &_info);
         if (!_info.is_enhanced || _info.codec != CodecH265) {
             throw std::invalid_argument("Invalid enhanced-rtmp hevc packet!");
@@ -61,7 +63,8 @@ void H265RtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt) {
         return;
     }
 
-    // 国内扩展(12) H265 rtmp
+    // 国内扩展(12) H265 rtmp  [AUTO-TRANSLATED:ba272139]
+    // Domestic extension (12) H265 rtmp
     if (pkt->isConfigFrame()) {
         CHECK_RET(pkt->size() > 5);
         getTrack()->setExtraData((uint8_t *)pkt->data() + 5, pkt->size() - 5);
@@ -133,7 +136,8 @@ bool H265RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
             _rtmp_packet->chunk_id = CHUNK_VIDEO;
             _rtmp_packet->stream_index = STREAM_MEDIA;
             _rtmp_packet->type_id = MSG_VIDEO;
-            // 输出rtmp packet
+            // 输出rtmp packet  [AUTO-TRANSLATED:d72e89a7]
+            // Output rtmp packet
             RtmpCodec::inputRtmp(_rtmp_packet);
             _rtmp_packet = nullptr;
         }, &_rtmp_packet->buffer);
