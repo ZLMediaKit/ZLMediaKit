@@ -833,7 +833,7 @@ void RtspSession::handleReq_Play(const Parser &parser) {
 
         rtp_info << "url=" << track->getControlUrl(_content_base) << ";"
                  << "seq=" << track->_seq << ";"
-                 << "rtptime=" << (int) (track->_time_stamp * (track->_samplerate / 1000)) << ",";
+                 << "rtptime=" << (int64_t)(track->_time_stamp) * (int64_t)(track->_samplerate/ 1000) << ",";
     }
 
     rtp_info.pop_back();

@@ -54,7 +54,9 @@ void RtspMediaSource::onWrite(RtpPacket::Ptr rtp, bool keyPos) {
     assert(rtp->type >= 0 && rtp->type < TrackMax);
     auto &track = _tracks[rtp->type];
     auto stamp = rtp->getStampMS();
-    if (track) {
+    bool is_video = rtp->type == TrackVideo;
+
+    if (track && ((keyPos && _have_video && is_video) || (!_have_video))) {
         track->_seq = rtp->getSeq();
         track->_time_stamp = rtp->getStamp() * uint64_t(1000) / rtp->sample_rate;
         track->_ssrc = rtp->getSSRC();
@@ -77,7 +79,7 @@ void RtspMediaSource::onWrite(RtpPacket::Ptr rtp, bool keyPos) {
             regist();
         }
     }
-    bool is_video = rtp->type == TrackVideo;
+   
     PacketCache<RtpPacket>::inputPacket(stamp, is_video, std::move(rtp), keyPos);
 }
 
