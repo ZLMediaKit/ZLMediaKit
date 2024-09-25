@@ -55,8 +55,8 @@ void RtspMediaSource::onWrite(RtpPacket::Ptr rtp, bool keyPos) {
     auto &track = _tracks[rtp->type];
     auto stamp = rtp->getStampMS();
     bool is_video = rtp->type == TrackVideo;
-
-    if (track && ((keyPos && _have_video && is_video) || (!_have_video))) {
+    // 音频总是更新，视频在关键包时更新
+    if (track && ((keyPos && _have_video && is_video) || (!is_video))) {
         track->_seq = rtp->getSeq();
         track->_time_stamp = rtp->getStamp() * uint64_t(1000) / rtp->sample_rate;
         track->_ssrc = rtp->getSSRC();
