@@ -206,7 +206,7 @@ void SrtTransport::handleHandshakeInduction(HandshakePacket &pkt, struct sockadd
     res->srt_socket_id = _peer_socket_id;
     res->syn_cookie = HandshakePacket::generateSynCookie(addr, _start_timestamp);
     _sync_cookie = res->syn_cookie;
-    memcpy(res->peer_ip_addr, pkt.peer_ip_addr, sizeof(pkt.peer_ip_addr) * sizeof(pkt.peer_ip_addr[0]));
+    memcpy(res->peer_ip_addr, pkt.peer_ip_addr, sizeof(pkt.peer_ip_addr));
     _handleshake_res = res;
     res->storeToData();
 
