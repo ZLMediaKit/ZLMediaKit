@@ -54,7 +54,7 @@ void MP4Reader::setup(const MediaTuple &tuple, const std::string &file_path, con
         _file_path = File::absolutePath(_file_path, recordPath);
     }
 
-    _demuxer = std::make_shared<MP4Demuxer>();
+    _demuxer = std::make_shared<MultiMP4Demuxer>();
     _demuxer->openMP4(_file_path);
 
     if (tuple.stream.empty()) {
@@ -164,7 +164,7 @@ void MP4Reader::startReadMP4(uint64_t sample_ms, bool ref_self, bool file_repeat
     _file_repeat = file_repeat;
 }
 
-const MP4Demuxer::Ptr &MP4Reader::getDemuxer() const {
+const MultiMP4Demuxer::Ptr &MP4Reader::getDemuxer() const {
     return _demuxer;
 }
 

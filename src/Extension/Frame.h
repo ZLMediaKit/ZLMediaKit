@@ -524,6 +524,7 @@ private:
 class FrameStamp : public Frame {
 public:
     using Ptr = std::shared_ptr<FrameStamp>;
+    FrameStamp(Frame::Ptr frame);
     FrameStamp(Frame::Ptr frame, Stamp &stamp, int modify_stamp);
     ~FrameStamp() override {}
 
@@ -538,6 +539,7 @@ public:
     char *data() const override { return _frame->data(); }
     size_t size() const override { return _frame->size(); }
     CodecId getCodecId() const override { return _frame->getCodecId(); }
+    void setStamp(int64_t dts, int64_t pts);
 
 private:
     int64_t _dts;
