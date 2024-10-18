@@ -125,9 +125,6 @@ API_EXPORT int API_CALL mk_recorder_start(int type, const char *vhost, const cha
  */
 API_EXPORT int API_CALL mk_recorder_stop(int type, const char *vhost, const char *app, const char *stream);
 
-
-#if ENABLE_MP4
-
 /**
  * 加载mp4列表
  * @param vhost 虚拟主机
@@ -137,10 +134,8 @@ API_EXPORT int API_CALL mk_recorder_stop(int type, const char *vhost, const char
  * @param file_repeat 循环解复用
  * @param ini 配置
  */
-API_EXPORT void API_CALL mk_player_load_mp4_file(const char *vhost, const char *app, const char *stream, const char *file_path, int file_repeat);
-API_EXPORT void API_CALL mk_player_load_mp4_file2(const char *vhost, const char *app, const char *stream, const char *file_path, int file_repeat, mk_ini ini);
-
-#endif
+API_EXPORT void API_CALL mk_load_mp4_file(const char *vhost, const char *app, const char *stream, const char *file_path, int file_repeat);
+API_EXPORT void API_CALL mk_load_mp4_file2(const char *vhost, const char *app, const char *stream, const char *file_path, int file_repeat, mk_ini ini);
 
 #ifdef __cplusplus
 }

@@ -87,7 +87,7 @@ API_EXPORT int API_CALL mk_recorder_stop(int type, const char *vhost, const char
 
 #if ENABLE_MP4
 
-API_EXPORT void API_CALL mk_player_load_mp4_file(const char *vhost, const char *app, const char *stream, const char *file_path, int file_repeat) {
+API_EXPORT void API_CALL mk_load_mp4_file(const char *vhost, const char *app, const char *stream, const char *file_path, int file_repeat) {
     assert(vhost && app && stream && file_path);
     ProtocolOption option;
     // mp4支持多track  [AUTO-TRANSLATED:b9688762]
@@ -110,7 +110,7 @@ API_EXPORT void API_CALL mk_player_load_mp4_file(const char *vhost, const char *
     reader->startReadMP4(0, true, file_repeat);
 }
 
-API_EXPORT void API_CALL mk_player_load_mp4_file2(const char *vhost, const char *app, const char *stream, const char *file_path, int file_repeat, mk_ini ini) {
+API_EXPORT void API_CALL mk_load_mp4_file2(const char *vhost, const char *app, const char *stream, const char *file_path, int file_repeat, mk_ini ini) {
     assert(vhost && app && stream && file_path);
     ProtocolOption option(*((mINI *)ini));
     // mp4支持多track  [AUTO-TRANSLATED:b9688762]
