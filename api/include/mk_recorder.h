@@ -19,7 +19,8 @@ extern "C" {
 #endif
 
 // /////////////////////////////////////////flv录制/////////////////////////////////////////////  [AUTO-TRANSLATED:a084663f]
-// /////////////////////////////////////////flv录制/////////////////////////////////////////////
+// /////////////////////////////////////////flv录制/////////////////////////////////////////////  [AUTO-TRANSLATED:dbe04ff9]
+// /////////////////////////////////////////FLV recording/////////////////////////////////////////////
 
 typedef struct mk_flv_recorder_t *mk_flv_recorder;
 
@@ -64,7 +65,8 @@ API_EXPORT void API_CALL mk_flv_recorder_release(mk_flv_recorder ctx);
 API_EXPORT int API_CALL mk_flv_recorder_start(mk_flv_recorder ctx, const char *vhost, const char *app, const char *stream, const char *file_path);
 
 // /////////////////////////////////////////hls/mp4录制/////////////////////////////////////////////  [AUTO-TRANSLATED:99c61c68]
-// /////////////////////////////////////////hls/mp4录制/////////////////////////////////////////////
+// /////////////////////////////////////////hls/mp4录制/////////////////////////////////////////////  [AUTO-TRANSLATED:0f2773b8]
+// /////////////////////////////////////////HLS/MP4 recording/////////////////////////////////////////////
 
 /**
  * 获取录制状态
@@ -133,6 +135,15 @@ API_EXPORT int API_CALL mk_recorder_stop(int type, const char *vhost, const char
  * @param file_path 文件路径
  * @param file_repeat 循环解复用
  * @param ini 配置
+ * Load MP4 list
+ * @param vhost Virtual host
+ * @param app App
+ * @param stream Stream ID
+ * @param file_path File path
+ * @param file_repeat Loop demux
+ * @param ini Configuration
+ 
+ * [AUTO-TRANSLATED:2fa2d09a]
  */
 API_EXPORT void API_CALL mk_load_mp4_file(const char *vhost, const char *app, const char *stream, const char *file_path, int file_repeat);
 API_EXPORT void API_CALL mk_load_mp4_file2(const char *vhost, const char *app, const char *stream, const char *file_path, int file_repeat, mk_ini ini);
