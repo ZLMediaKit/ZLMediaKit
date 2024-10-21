@@ -122,12 +122,17 @@ private:
     std::list<std::pair<uint64_t, Frame::Ptr>> _cache;
 };
 
-static std::shared_ptr<MediaSinkInterface> makeRecorder(MediaSource &sender, const vector<Track::Ptr> &tracks, Recorder::type type, const ProtocolOption &option){
-    auto recorder = Recorder::createRecorder(type, sender.getMediaTuple(), option);
-    for (auto &track : tracks) {
+std::shared_ptr<MediaSinkInterface> MultiMediaSourceMuxer::makeRecorder(MediaSource &sender, Recorder::type type) {
+    auto recorder = Recorder::createRecorder(type, sender.getMediaTuple(), _option);
+    for (auto &track : getTracks()) {
         recorder->addTrack(track);
     }
     recorder->addTrackCompleted();
+    if (_ring) {
+        _ring->flushGop([&](const Frame::Ptr &frame) {
+            recorder->inputFrame(frame);
+        });
+    }
     return recorder;
 }
 
@@ -305,7 +310,7 @@ bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type
                 // 开始录制  [AUTO-TRANSLATED:36d99250]
                 // Start recording
                 _option.hls_save_path = custom_path;
-                auto hls = dynamic_pointer_cast<HlsRecorder>(makeRecorder(sender, getTracks(), type, _option));
+                auto hls = dynamic_pointer_cast<HlsRecorder>(makeRecorder(sender, type));
                 if (hls) {
                     // 设置HlsMediaSource的事件监听器  [AUTO-TRANSLATED:69990c92]
                     // Set the event listener for HlsMediaSource
@@ -325,7 +330,7 @@ bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type
                 // Start recording
                 _option.mp4_save_path = custom_path;
                 _option.mp4_max_second = max_second;
-                _mp4 = makeRecorder(sender, getTracks(), type, _option);
+                _mp4 = makeRecorder(sender, type);
             } else if (!start && _mp4) {
                 // 停止录制  [AUTO-TRANSLATED:3dee9292]
                 // Stop recording
@@ -338,7 +343,7 @@ bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type
                 // 开始录制  [AUTO-TRANSLATED:36d99250]
                 // Start recording
                 _option.hls_save_path = custom_path;
-                auto hls = dynamic_pointer_cast<HlsFMP4Recorder>(makeRecorder(sender, getTracks(), type, _option));
+                auto hls = dynamic_pointer_cast<HlsFMP4Recorder>(makeRecorder(sender, type));
                 if (hls) {
                     // 设置HlsMediaSource的事件监听器  [AUTO-TRANSLATED:69990c92]
                     // Set the event listener for HlsMediaSource
@@ -354,7 +359,7 @@ bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type
         }
         case Recorder::type_fmp4: {
             if (start && !_fmp4) {
-                auto fmp4 = dynamic_pointer_cast<FMP4MediaSourceMuxer>(makeRecorder(sender, getTracks(), type, _option));
+                auto fmp4 = dynamic_pointer_cast<FMP4MediaSourceMuxer>(makeRecorder(sender, type));
                 if (fmp4) {
                     fmp4->setListener(shared_from_this());
                 }
@@ -366,7 +371,7 @@ bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type
         }
         case Recorder::type_ts: {
             if (start && !_ts) {
-                auto ts = dynamic_pointer_cast<TSMediaSourceMuxer>(makeRecorder(sender, getTracks(), type, _option));
+                auto ts = dynamic_pointer_cast<TSMediaSourceMuxer>(makeRecorder(sender, type));
                 if (ts) {
                     ts->setListener(shared_from_this());
                 }
