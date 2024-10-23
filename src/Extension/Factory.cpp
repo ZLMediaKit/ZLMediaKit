@@ -21,6 +21,8 @@ namespace mediakit {
 
 static std::unordered_map<int, const CodecPlugin *> s_plugins;
 
+REGISTER_CODEC(vp8_plugin);
+REGISTER_CODEC(vp9_plugin);
 REGISTER_CODEC(h264_plugin);
 REGISTER_CODEC(h265_plugin);
 REGISTER_CODEC(av1_plugin);
