@@ -1,6 +1,6 @@
 ﻿#include "VP8.h"
 #include "VP8Rtp.h"
-#include "Rtmp/RtmpCodec.h"
+#include "VpxRtmp.h"
 #include "Extension/Factory.h"
 
 using namespace std;
@@ -54,13 +54,11 @@ RtpCodec::Ptr getRtpDecoderByCodecId() {
 }
 
 RtmpCodec::Ptr getRtmpEncoderByTrack(const Track::Ptr &track) {
-    return nullptr;
-    //std::make_shared<RtmpCodec>(track);
+    return std::make_shared<VpxRtmpEncoder>(track);
 }
 
 RtmpCodec::Ptr getRtmpDecoderByTrack(const Track::Ptr &track) {
-    return nullptr;
-    //std::make_shared<RtmpCodec>(track);
+    return std::make_shared<VpxRtmpDecoder>(track);
 }
 
 Frame::Ptr getFrameFromPtr(const char *data, size_t bytes, uint64_t dts, uint64_t pts) {

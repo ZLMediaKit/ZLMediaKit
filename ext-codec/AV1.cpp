@@ -10,8 +10,8 @@
 
 #include "AV1.h"
 #include "AV1Rtp.h"
+#include "VpxRtmp.h"
 #include "Extension/Factory.h"
-#include "Extension/CommonRtmp.h"
 
 using namespace std;
 using namespace toolkit;
@@ -70,11 +70,11 @@ RtpCodec::Ptr getRtpDecoderByCodecId() {
 }
 
 RtmpCodec::Ptr getRtmpEncoderByTrack(const Track::Ptr &track) {
-    return std::make_shared<CommonRtmpEncoder>(track);
+    return std::make_shared<VpxRtmpEncoder>(track);
 }
 
 RtmpCodec::Ptr getRtmpDecoderByTrack(const Track::Ptr &track) {
-    return std::make_shared<CommonRtmpDecoder>(track);
+    return std::make_shared<VpxRtmpDecoder>(track);
 }
 
 Frame::Ptr getFrameFromPtr(const char *data, size_t bytes, uint64_t dts, uint64_t pts) {
