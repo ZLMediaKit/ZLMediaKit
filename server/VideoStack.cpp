@@ -282,7 +282,9 @@ void VideoStack::start() {
 
                 _dev->inputYUV((char**)_buffer->get()->data, _buffer->get()->linesize, pts);
                 pts += frameInterval;
-            }
+            } else {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }  
         }
     });
 }
