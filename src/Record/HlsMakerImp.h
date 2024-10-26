@@ -63,6 +63,7 @@ protected:
 private:
     std::shared_ptr<FILE> makeFile(const std::string &file,bool setbuf = false);
     void clearCache(bool immediately, bool eof);
+    void saveCurrentDir();
 
 private:
     int _buf_size;
