@@ -77,7 +77,6 @@ private:
     std::atomic<int> _live_status;
     std::atomic<uint64_t> _live_secs;
     std::atomic<uint64_t> _republish_count;
-    std::weak_ptr<MediaSource> _weak_src;
     std::function<void(const toolkit::SockException &ex)> _on_close;
     std::function<void(const toolkit::SockException &ex)> _on_publish;
 };
