@@ -2226,6 +2226,31 @@
 			"response": []
 		},
 		{
+			"name": "拉流代理信息列表(getProxyList)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/getProxyList?secret={{ZLMediaKit_secret}}",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"getProxyList"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "获取推流代理信息(getProxyPusherInfo)",
 			"request": {
 				"method": "GET",
@@ -2248,6 +2273,31 @@
 						{
 							"key": "key",
 							"value": "rtmp/__defaultVhost__/live/test/f40a8ab006cac16ecc0858409e890491"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "推流代理信息列表(getProxyPusherList)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/getProxyPusherList?secret={{ZLMediaKit_secret}}&key=rtmp/__defaultVhost__/live/test/f40a8ab006cac16ecc0858409e890491",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"getProxyPusherList"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}"
 						}
 					]
 				}

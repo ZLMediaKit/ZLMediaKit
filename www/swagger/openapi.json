@@ -4163,6 +4163,32 @@
                 }
             }
         },
+        "/index/api/getProxyList": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u62c9\u6d41\u4ee3\u7406\u4fe1\u606f\u5217\u8868(getProxyList)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
         "/index/api/getProxyPusherInfo": {
             "get": {
                 "tags": [
@@ -4217,6 +4243,32 @@
                             "type": "string"
                         },
                         "example": "rtmp/__defaultVhost__/live/test/f40a8ab006cac16ecc0858409e890491"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/index/api/getProxyPusherList": {
+            "get": {
+                "tags": [
+                    "GET"
+                ],
+                "summary": "\u63a8\u6d41\u4ee3\u7406\u4fe1\u606f\u5217\u8868(getProxyPusherList)",
+                "parameters": [
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "FTRaFEWs08KeTxKEEO25ePDKuV3CjOqp"
                     }
                 ],
                 "responses": {

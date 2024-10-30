@@ -1747,6 +1747,19 @@ void installWebApi() {
         invoker(200, headerOut, val.toStyledString());
     });
 
+    api_regist("/index/api/getProxyPusherList", [](API_ARGS_MAP_ASYNC) {
+        CHECK_SECRET();
+        for (auto &pr : s_pusher_proxy._map) {
+            Value obj;
+            obj["key"] = pr.first;
+            obj["status"] = pr.second->getStatus();
+            obj["liveSecs"] = pr.second->getLiveSecs();
+            obj["rePublishCount"] = pr.second->getRePublishCount();
+            val["data"].append(obj);
+        }
+        invoker(200, headerOut, val.toStyledString());
+    });
+
     api_regist("/index/api/getProxyInfo", [](API_ARGS_MAP_ASYNC) {
         CHECK_SECRET();
         CHECK_ARGS("key");
@@ -1758,6 +1771,19 @@ void installWebApi() {
         val["data"]["status"] = proxy->getStatus();
         val["data"]["liveSecs"] = proxy->getLiveSecs();
         val["data"]["rePullCount"] = proxy->getRePullCount();
+        invoker(200, headerOut, val.toStyledString());
+    });
+
+    api_regist("/index/api/getProxyList", [](API_ARGS_MAP_ASYNC) {
+        CHECK_SECRET();
+        for (auto &pr : s_player_proxy._map) {
+            Value obj;
+            obj["key"] = pr.first;
+            obj["status"] = pr.second->getStatus();
+            obj["liveSecs"] = pr.second->getLiveSecs();
+            obj["rePullCount"] = pr.second->getRePullCount();
+            val["data"].append(obj);
+        }
         invoker(200, headerOut, val.toStyledString());
     });
 
