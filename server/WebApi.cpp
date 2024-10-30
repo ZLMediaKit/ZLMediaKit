@@ -1749,6 +1749,7 @@ void installWebApi() {
 
     api_regist("/index/api/getProxyPusherList", [](API_ARGS_MAP_ASYNC) {
         CHECK_SECRET();
+        std::lock_guard<std::recursive_mutex> lck(s_pusher_proxy._mtx);
         for (auto &pr : s_pusher_proxy._map) {
             Value obj;
             obj["key"] = pr.first;
@@ -1776,6 +1777,7 @@ void installWebApi() {
 
     api_regist("/index/api/getProxyList", [](API_ARGS_MAP_ASYNC) {
         CHECK_SECRET();
+        std::lock_guard<std::recursive_mutex> lck(s_player_proxy._mtx);
         for (auto &pr : s_player_proxy._map) {
             Value obj;
             obj["key"] = pr.first;
