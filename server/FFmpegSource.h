@@ -77,10 +77,10 @@ public:
      */
     void play(const std::string &ffmpeg_cmd_key, const std::string &src_url, const std::string &dst_url, int timeout_ms, const onPlay &cb);
 
-    const std::string &getSrcUrl() const { return _src_url; }
-    const std::string &getDstUrl() const { return _dst_url; }
-    const std::string &getCmd() const { return _cmd; }
-    const std::string &getCmdKey() const { return _ffmpeg_cmd_key; }
+    const std::string& getSrcUrl() const { return _src_url; }
+    const std::string& getDstUrl() const { return _dst_url; }
+    const std::string& getCmd() const { return _cmd; }
+    const std::string& getCmdKey() const { return _ffmpeg_cmd_key; }
     const mediakit::MediaInfo& getMediaInfo() const { return _media_info; }
 
     /**
