@@ -346,7 +346,7 @@ public:
         return it->second;
     }
 
-    void for_each(std::function<void(const std::string&, const Pointer&)> cb) {
+    void for_each(const std::function<void(const std::string&, const Pointer&)>& cb) {
         std::lock_guard<std::recursive_mutex> lck(_mtx);
         auto it = _map.begin();
         while (it != _map.end()) {
