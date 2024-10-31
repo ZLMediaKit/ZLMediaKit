@@ -295,5 +295,13 @@ void RtpServer::updateSSRC(uint32_t ssrc) {
     }
 }
 
+uint32_t RtpServer::getSSRC() const {
+    if (_ssrc)
+        return *_ssrc;
+    else if (_tcp_server)
+        return (*_tcp_server)[RtpSession::kSSRC];
+    return 0;
+}
+
 }//namespace mediakit
 #endif//defined(ENABLE_RTPPROXY)

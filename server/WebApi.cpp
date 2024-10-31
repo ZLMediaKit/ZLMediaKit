@@ -1535,7 +1535,11 @@ void installWebApi() {
             obj["vhost"] = vec[0];
             obj["app"] = vec[1];
             obj["stream_id"] = vec[2];
-            obj["port"] = pr.second->getPort();
+            auto& rtps = pr.second;
+            obj["port"] = rtps->getPort();
+            obj["ssrc"] = rtps->getSSRC();
+            obj["tcp_mode"] = rtps->getTcpMode();
+            obj["only_track"] = rtps->getOnlyTrack();
             val["data"].append(obj);
         }
     });
