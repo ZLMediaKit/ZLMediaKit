@@ -97,6 +97,9 @@ public:
      */
     void updateSSRC(uint32_t ssrc);
 
+    uint32_t getSSRC() const;
+    int getOnlyTrack() const { return _only_track; }
+    TcpMode getTcpMode() const { return _tcp_mode; }
 private:
     // tcp主动模式连接服务器成功回调  [AUTO-TRANSLATED:0775844e]
     // tcp active mode connection server success callback

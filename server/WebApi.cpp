@@ -346,6 +346,15 @@ public:
         return it->second;
     }
 
+    void for_each(const std::function<void(const std::string&, const Pointer&)>& cb) {
+        std::lock_guard<std::recursive_mutex> lck(_mtx);
+        auto it = _map.begin();
+        while (it != _map.end()) {
+            cb(it->first, it->second);
+            it++;
+        }
+    }
+
     template<class ..._Args>
     Pointer make(const std::string &key, _Args&& ...__args) {
         // assert(!find(key));
@@ -407,6 +416,29 @@ void dumpMediaTuple(const MediaTuple &tuple, Json::Value& item) {
     item["app"] = tuple.app;
     item["stream"] = tuple.stream;
     item["params"] = tuple.params;
+}
+
+Value ToJson(const PusherProxy::Ptr& p) {
+    Value item;
+    item["url"] = p->getUrl();
+    item["status"] = p->getStatus();
+    item["liveSecs"] = p->getLiveSecs();
+    item["rePublishCount"] = p->getRePublishCount();
+    if (auto src = p->getSrc()) {
+        dumpMediaTuple(src->getMediaTuple(), item["src"]);
+    }
+    return item;
+}
+
+Value ToJson(const PlayerProxy::Ptr& p) {
+    Value item;
+    item["url"] = p->getUrl();
+    item["status"] = p->getStatus();
+    item["liveSecs"] = p->getLiveSecs();
+    item["rePullCount"] = p->getRePullCount();
+    item["totalReaderCount"] = p->totalReaderCount();
+    dumpMediaTuple(p->getMediaTuple(), item["src"]);
+    return item;
 }
 
 Value makeMediaSourceJson(MediaSource &media){
@@ -1173,7 +1205,22 @@ void installWebApi() {
         CHECK_ARGS("key");
         val["data"]["flag"] = s_pusher_proxy.erase(allArgs["key"]) == 1;
     });
-
+    api_regist("/index/api/listStreamPusherProxy", [](API_ARGS_MAP) {
+        CHECK_SECRET();
+        s_pusher_proxy.for_each([&val](const std::string& key, const PusherProxy::Ptr& p) {
+            Json::Value item = ToJson(p);
+            item["key"] = key;
+            val["data"].append(item);
+        });
+    });
+    api_regist("/index/api/listStreamProxy", [](API_ARGS_MAP) {
+        CHECK_SECRET();
+        s_player_proxy.for_each([&val](const std::string& key, const PlayerProxy::Ptr& p) {
+            Json::Value item = ToJson(p);
+            item["key"] = key;
+            val["data"].append(item);
+        });
+    });
     // 动态添加rtsp/rtmp拉流代理  [AUTO-TRANSLATED:2616537c]
     // Dynamically add rtsp/rtmp pull stream proxy
     // 测试url http://127.0.0.1/index/api/addStreamProxy?vhost=__defaultVhost__&app=proxy&enable_rtsp=1&enable_rtmp=1&stream=0&url=rtmp://127.0.0.1/live/obs  [AUTO-TRANSLATED:71ddce15]
@@ -1286,7 +1333,18 @@ void installWebApi() {
         CHECK_ARGS("key");
         val["data"]["flag"] = s_ffmpeg_src.erase(allArgs["key"]) == 1;
     });
-
+    api_regist("/index/api/listFFmpegSource", [](API_ARGS_MAP) {
+        CHECK_SECRET();
+        s_ffmpeg_src.for_each([&val](const std::string& key, const FFmpegSource::Ptr& src) {
+            Json::Value item;
+            item["src_url"] = src->getSrcUrl();
+            item["dst_url"] = src->getDstUrl();
+            item["cmd"] = src->getCmd();
+            item["ffmpeg_cmd_key"] = src->getCmdKey();
+            item["key"] = key;
+            val["data"].append(item);
+        });
+    });
     // 新增http api下载可执行程序文件接口  [AUTO-TRANSLATED:d6e44e84]
     // Add a new http api to download executable files
     // 测试url http://127.0.0.1/index/api/downloadBin  [AUTO-TRANSLATED:9525e834]
@@ -1477,7 +1535,11 @@ void installWebApi() {
             obj["vhost"] = vec[0];
             obj["app"] = vec[1];
             obj["stream_id"] = vec[2];
-            obj["port"] = pr.second->getPort();
+            auto& rtps = pr.second;
+            obj["port"] = rtps->getPort();
+            obj["ssrc"] = rtps->getSSRC();
+            obj["tcp_mode"] = rtps->getTcpMode();
+            obj["only_track"] = rtps->getOnlyTrack();
             val["data"].append(obj);
         }
     });
@@ -1741,9 +1803,7 @@ void installWebApi() {
             throw ApiRetException("can not find pusher", API::NotFound);
         }
 
-        val["data"]["status"] = pusher->getStatus();
-        val["data"]["liveSecs"] = pusher->getLiveSecs();
-        val["data"]["rePublishCount"] = pusher->getRePublishCount();
+        val["data"] = ToJson(pusher);
         invoker(200, headerOut, val.toStyledString());
     });
 
@@ -1755,9 +1815,7 @@ void installWebApi() {
             throw ApiRetException("can not find the proxy", API::NotFound);
         }
 
-        val["data"]["status"] = proxy->getStatus();
-        val["data"]["liveSecs"] = proxy->getLiveSecs();
-        val["data"]["rePullCount"] = proxy->getRePullCount();
+        val["data"] = ToJson(proxy);
         invoker(200, headerOut, val.toStyledString());
     });
 
