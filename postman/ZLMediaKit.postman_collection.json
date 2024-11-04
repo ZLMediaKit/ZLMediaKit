@@ -701,6 +701,58 @@
 			"response": []
 		},
 		{
+			"name": "获取拉流代理列表(listStreamProxy)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/listStreamProxy?secret={{ZLMediaKit_secret}}",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"listStreamProxy"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "获取推流代理列表(listStreamPusherProxy)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/listStreamPusherProxy?secret={{ZLMediaKit_secret}}",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"listStreamPusherProxy"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)"
+						}
+					]
+				}
+			},
+			"response": []
+		},	
+		{
 			"name": "添加rtsp/rtmp推流(addStreamPusherProxy)",
 			"request": {
 				"method": "GET",
@@ -800,6 +852,32 @@
 			},
 			"response": []
 		},
+		{
+			"name": "获取FFmpeg拉流代理列表(listFFmpegSource)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/listFFmpegSource?secret={{ZLMediaKit_secret}}",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"listFFmpegSource"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)"
+						}
+					]
+				}
+			},
+			"response": []
+		},		
 		{
 			"name": "添加FFmpeg拉流代理(addFFmpegSource)",
 			"request": {

@@ -77,6 +77,12 @@ public:
      */
     void play(const std::string &ffmpeg_cmd_key, const std::string &src_url, const std::string &dst_url, int timeout_ms, const onPlay &cb);
 
+    const std::string& getSrcUrl() const { return _src_url; }
+    const std::string& getDstUrl() const { return _dst_url; }
+    const std::string& getCmd() const { return _cmd; }
+    const std::string& getCmdKey() const { return _ffmpeg_cmd_key; }
+    const mediakit::MediaInfo& getMediaInfo() const { return _media_info; }
+
     /**
      * 设置录制
      * @param enable_hls 是否开启hls直播或录制
@@ -115,6 +121,7 @@ private:
     std::string _src_url;
     std::string _dst_url;
     std::string _ffmpeg_cmd_key;
+    std::string _cmd;
     std::function<void()> _onClose;
     toolkit::Ticker _replay_ticker;
 };
