@@ -1136,7 +1136,7 @@ int RtspSession::getTrackIndexByTrackType(TrackType type) {
 
 int RtspSession::getTrackIndexByControlUrl(const string &control_url) {
     for (size_t i = 0; i < _sdp_track.size(); ++i) {
-        if (control_url == _sdp_track[i]->getControlUrl(_content_base)) {
+        if (control_url.find(_sdp_track[i]->getControlUrl(_content_base)) == 0) {
             return i;
         }
     }
