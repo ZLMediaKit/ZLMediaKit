@@ -1606,6 +1606,41 @@ void installWebApi() {
         start_send_rtp(true, API_ARGS_VALUE, invoker);
     });
 
+    api_regist("/index/api/startSendRtpTalk",[](API_ARGS_MAP_ASYNC){
+        CHECK_SECRET();
+        CHECK_ARGS("vhost", "app", "stream", "ssrc", "recv_stream_id");
+        auto src = MediaSource::find(allArgs["vhost"], allArgs["app"], allArgs["stream"], allArgs["from_mp4"].as<int>());
+        if (!src) {
+            throw ApiRetException("can not find the source stream", API::NotFound);
+        }
+        MediaSourceEvent::SendRtpArgs args;
+        args.con_type = mediakit::MediaSourceEvent::SendRtpArgs::kVoiceTalk;
+        args.ssrc = allArgs["ssrc"];
+        args.pt = allArgs["pt"].empty() ? 96 : allArgs["pt"].as<int>();
+        args.data_type = allArgs["type"].empty() ? MediaSourceEvent::SendRtpArgs::kRtpPS : (MediaSourceEvent::SendRtpArgs::DataType)(allArgs["type"].as<int>());
+        args.only_audio = allArgs["only_audio"].as<bool>();
+        args.recv_stream_id = allArgs["recv_stream_id"];
+        args.recv_stream_app = allArgs["app"];
+        args.recv_stream_vhost = allArgs["vhost"];
+
+        src->getOwnerPoller()->async([=]() mutable {
+            try {
+                src->startSendRtp(args, [val, headerOut, invoker](uint16_t local_port, const SockException &ex) mutable {
+                    if (ex) {
+                        val["code"] = API::OtherFailed;
+                        val["msg"] = ex.what();
+                    }
+                    val["local_port"] = local_port;
+                    invoker(200, headerOut, val.toStyledString());
+                });
+            } catch (std::exception &ex) {
+                val["code"] = API::Exception;
+                val["msg"] = ex.what();
+                invoker(200, headerOut, val.toStyledString());
+            }
+        });
+    });
+
     api_regist("/index/api/listRtpSender",[](API_ARGS_MAP_ASYNC){
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream");
