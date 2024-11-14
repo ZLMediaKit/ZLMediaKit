@@ -23,11 +23,10 @@ void RtspMuxer::onRtp(RtpPacket::Ptr in, bool is_key) {
         if (ref.rtp_stamp != in->getHeader()->stamp) {
             // rtp时间戳变化才计算ntp，节省cpu资源  [AUTO-TRANSLATED:729d54f2]
             // Only calculate NTP when the RTP timestamp changes, saving CPU resources
-            int64_t stamp_ms = in->getStamp() * uint64_t(1000) / in->sample_rate;
             int64_t stamp_ms_inc;
             // 求rtp时间戳增量  [AUTO-TRANSLATED:f6ba022f]
             // Get the RTP timestamp increment
-            ref.stamp.revise(stamp_ms, stamp_ms, stamp_ms_inc, stamp_ms_inc);
+            ref.stamp.revise(in->ntp_stamp, in->ntp_stamp, stamp_ms_inc, stamp_ms_inc);
             ref.rtp_stamp = in->getHeader()->stamp;
             ref.ntp_stamp = stamp_ms_inc + _ntp_stamp_start;
         }
