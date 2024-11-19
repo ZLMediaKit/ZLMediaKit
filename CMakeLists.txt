@@ -358,13 +358,6 @@ if(ENABLE_ASAN)
   message(STATUS "Address Sanitize enabled")
 endif()
 
-if(CMAKE_SYSTEM_NAME MATCHES "Linux" AND ENABLE_TESTS)
-set(LIBPCAP_SDK_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tests/third_party/libpcap)
-include_directories(SYSTEM ${LIBPCAP_SDK_DIR}/include)
-set(LIBPCAP_LIB ${LIBPCAP_SDK_DIR}/lib/libpcap.so.1)
-update_cached_list(MK_LINK_LIBRARIES ${LIBPCAP_LIB})
-endif()
-
 # 下载jemalloc后静态编译
 # Static compilation after downloading jemalloc
 set(DEP_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdpart/external-${CMAKE_SYSTEM_NAME})
@@ -469,6 +462,15 @@ if(ENABLE_VIDEOSTACK)
     message(WARNING "ENABLE_VIDEOSTACK requires ENABLE_FFMPEG and ENABLE_X264")
   endif ()
 endif ()
+
+if(NOT PCAP_FOUND AND ENABLE_TESTS)
+  find_package(PCAP QUIET)
+  if(PCAP_FOUND)
+    include_directories(SYSTEM ${PCAP_INCLUDE_DIRS})
+    list(APPEND LINK_LIBRARIES ${PCAP_LIBRARIES})
+    message(STATUS "found library: ${PCAP_LIBRARIES}")
+  endif()
+endif()
 
 # ----------------------------------------------------------------------------
 # Solution folders:
