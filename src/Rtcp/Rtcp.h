@@ -870,7 +870,6 @@ private:
 
     /**
      * 网络字节序转换为主机字节序
-     * @param size 字节长度，防止内存越界
      */
     void net2Host();
 };
