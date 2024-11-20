@@ -772,7 +772,6 @@ private:
 
     /**
      * 网络字节序转换为主机字节序
-     * @param size 字节长度，防止内存越界
      */
     void net2Host();
 };
@@ -854,9 +853,9 @@ public:
     // Indicates which temporal layer this bitrate concerns.
     uint32_t temporal_layer : 4;
 #else
-    // reception report count
+    // Indicates which temporal layer this bitrate concerns.
     uint32_t temporal_layer : 4;
-    // padding，末尾是否有追加填充
+    // Indicates which temporal layer this bitrate concerns.
     uint32_t spatial_layer : 4;
 #endif
     //The encoder target bitrate for this layer, in kbps.
@@ -889,7 +888,7 @@ public:
     /**
      * 创建RtcpXRTargetBitrate包，只赋值了RtcpHeader部分(网络字节序)
      * @param item_count RtcpXRTargetBitrateItem对象个数
-     * @return RtcpXRDLRR包
+     * @return RtcpXRTargetBitrate包
      */
     static std::shared_ptr<RtcpXRTargetBitrate> create(size_t item_count);
 
