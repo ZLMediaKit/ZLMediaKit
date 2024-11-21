@@ -15,8 +15,8 @@ var ZLMRTCClient = (function (exports) {
 	  CAPTURE_STREAM_FAILED: 'CAPTURE_STREAM_FAILED'
 	};
 
-	const VERSION$1 = '1.1.0';
-	const BUILD_DATE = 'Thu Jun 20 2024 16:15:41 GMT+0800 (China Standard Time)';
+	const VERSION$1 = '1.1.1';
+	const BUILD_DATE = 'Tue Nov 19 2024 20:10:15 GMT+0800 (China Standard Time)';
 
 	// Copyright (C) <2018> Intel Corporation
 	//
@@ -9090,6 +9090,12 @@ var ZLMRTCClient = (function (exports) {
 	    if (this.options.useCamera) {
 	      if (this.options.videoEnable) videoConstraints = new VideoTrackConstraints(VideoSourceInfo.CAMERA);
 	      if (this.options.audioEnable) audioConstraints = new AudioTrackConstraints(AudioSourceInfo.MIC);
+	      if (typeof videoConstraints == 'object' && this.options.videoId != '') {
+	        videoConstraints.deviceId = this.options.videoId;
+	      }
+	      if (typeof audioConstraints == 'object' && this.options.audioId != '') {
+	        audioConstraints.deviceId = this.options.audioId;
+	      }
 	    } else {
 	      if (this.options.videoEnable) {
 	        videoConstraints = new VideoTrackConstraints(VideoSourceInfo.SCREENCAST);
@@ -9099,16 +9105,13 @@ var ZLMRTCClient = (function (exports) {
 	          // error shared display media not only audio
 	          error(this.TAG, 'error paramter');
 	        }
+	        if (typeof audioConstraints == 'object' && this.options.audioId != '') {
+	          audioConstraints.deviceId = this.options.audioId;
+	        }
 	      }
 	    }
 	    if (this.options.resolution.w != 0 && this.options.resolution.h != 0 && typeof videoConstraints == 'object') {
 	      videoConstraints.resolution = new Resolution(this.options.resolution.w, this.options.resolution.h);
-	    }
-	    if (typeof videoConstraints == 'object' && this.options.videoId != '') {
-	      videoConstraints.deviceId = this.options.videoId;
-	    }
-	    if (typeof audioConstraints == 'object' && this.options.audioId != '') {
-	      audioConstraints.deviceId = this.options.audioId;
 	    }
 	    MediaStreamFactory.createMediaStream(new StreamConstraints(audioConstraints, videoConstraints)).then(stream => {
 	      this._localStream = stream;

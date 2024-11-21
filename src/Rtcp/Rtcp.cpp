@@ -209,8 +209,13 @@ void RtcpHeader::net2Host(size_t len) {
                 RtcpXRDLRR *dlrr = (RtcpXRDLRR *)this;
                 dlrr->net2Host(len);
                 TraceL << dlrr->dumpString();
+            } else if (xr->bt == 42){
+                //当有浏览器将屏幕推流到服务器时会发生这个, 暂时没发现什么作用，先解析出来，不做处理
+                RtcpXRTargetBitrate* tb = (RtcpXRTargetBitrate *)this;
+                tb->net2Host(len);
+                //TraceL << tb->dumpString();
             } else {
-                throw std::runtime_error(StrPrinter << "rtcp xr bt " << xr->bt << " not support");
+                throw std::runtime_error(StrPrinter << "rtcp xr bt " << (int)xr->bt << " not support");
             }
             break;
         }
@@ -794,6 +799,71 @@ std::shared_ptr<RtcpXRDLRR> RtcpXRDLRR::create(size_t item_count) {
     setupHeader(ptr, RtcpType::RTCP_XR, 0, bytes);
     setupPadding(ptr, bytes - real_size);
     return std::shared_ptr<RtcpXRDLRR>(ptr, [](RtcpXRDLRR *ptr) { delete[](char *) ptr; });
+}
+
+////////////////////////////////////
+string RtcpXRTargetBitrateItem::dumpString() const {
+    _StrPrinter printer;
+
+    printer << "Spatial Layer :" << spatial_layer << "\r\n";
+    printer << "Temporal Layer :" << temporal_layer << "\r\n";
+    printer << "Target Bitrate: " << target_bitrate << "\r\n";
+
+    return std::move(printer);
+}
+
+void RtcpXRTargetBitrateItem::net2Host() {
+
+    target_bitrate = ntohl(target_bitrate) >> 8;
+}
+
+std::vector<RtcpXRTargetBitrateItem *> RtcpXRTargetBitrate::getItemList() {
+    auto count = block_length;
+    RtcpXRTargetBitrateItem *ptr = &items;
+    vector<RtcpXRTargetBitrateItem *> ret;
+    for (int i = 0; i < (int)count; ++i) {
+        ret.emplace_back(ptr);
+        ++ptr;
+    }
+    return ret;
+}
+string RtcpXRTargetBitrate::dumpString() const {
+    _StrPrinter printer;
+    printer << RtcpHeader::dumpHeader();
+    printer << "ssrc :" << ssrc << "\r\n";
+    printer << "bt :" << (int)bt << "\r\n";
+    printer << "block_length : " << block_length << "\r\n";
+    auto items_list = ((RtcpXRTargetBitrate *)this)->getItemList();
+    auto i = 0;
+    for (auto &item : items_list) {
+        printer << "---- item:" << i++ << " ----\r\n";
+        printer << item->dumpString();
+    }
+    return std::move(printer);
+}
+
+void RtcpXRTargetBitrate::net2Host(size_t size) {
+    static const size_t kMinSize = sizeof(RtcpHeader);
+    CHECK_MIN_SIZE(size, kMinSize);
+
+    ssrc = ntohl(ssrc);
+    block_length = ntohs(block_length);
+
+    auto count = block_length;
+    for (int i = 0; i < (int)count; ++i) {
+        RtcpXRTargetBitrateItem *ptr = &items;
+        ptr->net2Host();
+        ptr++;
+    }
+}
+
+std::shared_ptr<RtcpXRTargetBitrate> RtcpXRTargetBitrate::create(size_t item_count) {
+    auto real_size = sizeof(RtcpXRTargetBitrate) - sizeof(RtcpXRTargetBitrateItem) + item_count * sizeof(RtcpXRTargetBitrateItem);
+    auto bytes = alignSize(real_size);
+    auto ptr = (RtcpXRTargetBitrate *)new char[bytes];
+    setupHeader(ptr, RtcpType::RTCP_XR, 0, bytes);
+    setupPadding(ptr, bytes - real_size);
+    return std::shared_ptr<RtcpXRTargetBitrate>(ptr, [](RtcpXRTargetBitrate *ptr) { delete[](char *) ptr; });
 }
 
 #if 0

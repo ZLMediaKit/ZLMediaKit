@@ -772,7 +772,6 @@ private:
 
     /**
      * 网络字节序转换为主机字节序
-     * @param size 字节长度，防止内存越界
      */
     void net2Host();
 };
@@ -798,6 +797,105 @@ public:
      * 使用net2Host转换成主机字节序后才可使用此函数
      */
     std::vector<RtcpXRDLRRReportItem *> getItemList();
+
+private:
+    /**
+     * 打印字段详情
+     * 使用net2Host转换成主机字节序后才可使用此函数
+     */
+    std::string dumpString() const;
+
+    /**
+     * 网络字节序转换为主机字节序
+     * @param size 字节长度，防止内存越界
+     */
+    void net2Host(size_t size);
+
+};
+
+//  RFC 4585: Feedback format.
+//
+//  Common packet format:
+//
+//   0                   1                   2                   3
+//   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |     BT=42     |   reserved    |         block length          |
+//  +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+//
+//  Target bitrate item (repeat as many times as necessary).
+//
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |   S   |   T   |                Target Bitrate                 |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  :  ...                                                          :
+//
+//  Spatial Layer (S): 4 bits
+//    Indicates which temporal layer this bitrate concerns.
+//
+//  Temporal Layer (T): 4 bits
+//    Indicates which temporal layer this bitrate concerns.
+//
+//  Target Bitrate: 24 bits
+//    The encoder target bitrate for this layer, in kbps.
+//
+//  As an example of how S and T are intended to be used, VP8 simulcast will
+//  use a separate TargetBitrate message per stream, since they are transmitted
+//  on separate SSRCs, with temporal layers grouped by stream.
+//  If VP9 SVC is used, there will be only one SSRC, so each spatial and
+//  temporal layer combo used shall be specified in the TargetBitrate packet.
+class RtcpXRTargetBitrateItem {
+public:
+    friend class RtcpXRTargetBitrate;
+#if __BYTE_ORDER == __BIG_ENDIAN
+    // Indicates which temporal layer this bitrate concerns.
+    uint32_t spatial_layer : 4;
+    // Indicates which temporal layer this bitrate concerns.
+    uint32_t temporal_layer : 4;
+#else
+    // Indicates which temporal layer this bitrate concerns.
+    uint32_t temporal_layer : 4;
+    // Indicates which temporal layer this bitrate concerns.
+    uint32_t spatial_layer : 4;
+#endif
+    //The encoder target bitrate for this layer, in kbps.
+    uint32_t target_bitrate : 24;
+
+private:
+    /**
+     * 打印字段详情
+     * 使用net2Host转换成主机字节序后才可使用此函数
+     */
+    std::string dumpString() const;
+
+    /**
+     * 网络字节序转换为主机字节序
+     */
+    void net2Host();
+};
+
+
+class RtcpXRTargetBitrate : public RtcpHeader {
+public:
+    friend class RtcpHeader;
+    uint32_t ssrc;
+    uint8_t bt;
+    uint8_t reserved;
+    uint16_t block_length;
+    RtcpXRTargetBitrateItem items;
+
+    /**
+     * 创建RtcpXRTargetBitrate包，只赋值了RtcpHeader部分(网络字节序)
+     * @param item_count RtcpXRTargetBitrateItem对象个数
+     * @return RtcpXRTargetBitrate包
+     */
+    static std::shared_ptr<RtcpXRTargetBitrate> create(size_t item_count);
+
+    /**
+     * 获取RtcpXRTargetBitrateItem对象指针列表
+     * 使用net2Host转换成主机字节序后才可使用此函数
+     */
+    std::vector<RtcpXRTargetBitrateItem *> getItemList();
 
 private:
     /**
