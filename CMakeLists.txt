@@ -79,6 +79,11 @@ set(CMAKE_VERBOSE_MAKEFILE ON CACHE INTERNAL "" FORCE)
 # TODO: include 当前目录会导致 server 编译出错, 待排除
 set(CMAKE_INCLUDE_CURRENT_DIR OFF)
 
+get_filename_component(ZLMediaKit_PARENT_DIR ${CMAKE_CURRENT_SOURCE_DIR} DIRECTORY)
+string(LENGTH "${ZLMediaKit_PARENT_DIR}" ZLMediaKit_PREFIX_LENGTH)
+add_compile_definitions(-DZLMediaKit_PREFIX_LENGTH=${ZLMediaKit_PREFIX_LENGTH})
+message(STATUS "ZLMediaKit_PREFIX_LENGTH: ${CMAKE_CURRENT_SOURCE_DIR} ${ZLMediaKit_PREFIX_LENGTH}")
+
 # 安装路径
 # Install path
 if(NOT CMAKE_INSTALL_PREFIX)
