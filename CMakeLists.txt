@@ -463,6 +463,15 @@ if(ENABLE_VIDEOSTACK)
   endif ()
 endif ()
 
+if(NOT PCAP_FOUND AND ENABLE_TESTS)
+  find_package(PCAP QUIET)
+  if(PCAP_FOUND)
+    include_directories(SYSTEM ${PCAP_INCLUDE_DIRS})
+    list(APPEND LINK_LIBRARIES ${PCAP_LIBRARIES})
+    message(STATUS "found library: ${PCAP_LIBRARIES}")
+  endif()
+endif()
+
 # ----------------------------------------------------------------------------
 # Solution folders:
 # ----------------------------------------------------------------------------

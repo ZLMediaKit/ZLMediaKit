@@ -26,6 +26,13 @@ aux_source_directory(. TEST_SRC_LIST)
 foreach(TEST_SRC ${TEST_SRC_LIST})
   get_filename_component(TEST_EXE_NAME ${TEST_SRC} NAME_WE)
 
+  if(NOT PCAP_FOUND)
+    message(WARNING "PCAP 未找到")
+    if("${TEST_EXE_NAME}" MATCHES "test_rtp_pcap")
+      continue()
+    endif()
+  endif()
+  
   if(NOT TARGET ZLMediaKit::WebRTC)
     # 暂时过滤掉依赖 WebRTC 的测试模块
     if("${TEST_EXE_NAME}" MATCHES "test_rtcp_nack")
@@ -46,6 +53,7 @@ foreach(TEST_SRC ${TEST_SRC_LIST})
   endif()
 
   if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+
     target_link_libraries(${TEST_EXE_NAME} -Wl,--start-group ${MK_LINK_LIBRARIES} -Wl,--end-group)
   else()
     target_link_libraries(${TEST_EXE_NAME} ${MK_LINK_LIBRARIES})
