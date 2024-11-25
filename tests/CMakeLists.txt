@@ -23,6 +23,8 @@
 
 aux_source_directory(. TEST_SRC_LIST)
 
+find_package(PCAP QUIET)
+
 foreach(TEST_SRC ${TEST_SRC_LIST})
   get_filename_component(TEST_EXE_NAME ${TEST_SRC} NAME_WE)
 
@@ -59,3 +61,8 @@ foreach(TEST_SRC ${TEST_SRC_LIST})
     target_link_libraries(${TEST_EXE_NAME} ${MK_LINK_LIBRARIES})
   endif()
 endforeach()
+
+if(TARGET test_rtp_pcap)
+  target_include_directories(test_rtp_pcap SYSTEM PRIVATE ${PCAP_INCLUDE_DIRS})
+  target_link_libraries(test_rtp_pcap  ${PCAP_LIBRARIES})
+endif()
