@@ -127,8 +127,7 @@ void RtpSession::onRtpPacket(const char *data, size_t len) {
         weak_ptr<RtpSession>  weak_self = static_pointer_cast<RtpSession>(shared_from_this());
         _process->setOnDetach([weak_self](const SockException &ex) {
             if (auto strong_self = weak_self.lock()) {
-                strong_self->_process = nullptr;
-                strong_self->shutdown(ex);
+                strong_self->safeShutdown(ex);
             }
         });
     }
