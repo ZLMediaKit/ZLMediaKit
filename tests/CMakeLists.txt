@@ -29,7 +29,7 @@ foreach(TEST_SRC ${TEST_SRC_LIST})
   get_filename_component(TEST_EXE_NAME ${TEST_SRC} NAME_WE)
 
   if(NOT PCAP_FOUND)
-    message(WARNING "PCAP 未找到")
+    # message(WARNING "PCAP 未找到")
     if("${TEST_EXE_NAME}" MATCHES "test_rtp_pcap")
       continue()
     endif()
