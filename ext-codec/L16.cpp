@@ -61,7 +61,7 @@ Sdp::Ptr L16Track::getSdp(uint8_t payload_type) const {
         WarnL << getCodecName() << " Track未准备好";
         return nullptr;
     }
-    return std::make_shared<L16Sdp>(payload_type, getAudioSampleRate(), getAudioChannel(), getBitRate() / 1024);
+    return std::make_shared<L16Sdp>(payload_type, getAudioSampleRate(), getAudioChannel(), getBitRate() >> 10);
 }
 
 Track::Ptr L16Track::clone() const {

@@ -85,7 +85,7 @@ static bool loadFile(const char *path, const EventPoller::Ptr &poller) {
     if (ps_decoder) {
         ps_decoder->input(text, lSize);
     }
-    WarnL << lSize / 1024 << "KB";
+    WarnL << (lSize >> 10) << "KB";
     fclose(fp);
     return true;
 }

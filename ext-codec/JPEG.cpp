@@ -47,7 +47,7 @@ private:
 };
 
 Sdp::Ptr JPEGTrack::getSdp(uint8_t) const {
-    return std::make_shared<JPEGSdp>(getBitRate() / 1024);
+    return std::make_shared<JPEGSdp>(getBitRate() >> 10);
 }
 
 

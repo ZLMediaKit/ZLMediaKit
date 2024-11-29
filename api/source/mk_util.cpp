@@ -196,7 +196,7 @@ API_EXPORT void API_CALL mk_get_statistic(on_mk_get_statistic_cb func, void *use
 #ifdef ENABLE_MEM_DEBUG
     auto bytes = getTotalMemUsage();
     val["memory.memUsage"] = bytes;
-    val["memory.memUsageMB"] = (int)(bytes / 1024 / 1024);
+    val["memory.memUsageMB"] = (int)(bytes >> 20);
     val["memory.memBlock"] = getTotalMemBlock();
     static auto block_type_size = getBlockTypeSize();
     {
@@ -240,7 +240,7 @@ API_EXPORT void API_CALL mk_get_statistic(on_mk_get_statistic_cb func, void *use
 #ifdef ENABLE_MEM_DEBUG
             auto bytes = getThisThreadMemUsage();
             val["memUsage"] = bytes;
-            val["memUsageMB"] = bytes / 1024 / 1024;
+            val["memUsageMB"] = bytes >> 20;
             val["memBlock"] = getThisThreadMemBlock();
             {
                 int i = 0;

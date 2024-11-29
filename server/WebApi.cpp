@@ -570,7 +570,7 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
 #ifdef ENABLE_MEM_DEBUG
     auto bytes = getTotalMemUsage();
     val["totalMemUsage"] = (Json::UInt64) bytes;
-    val["totalMemUsageMB"] = (int) (bytes / 1024 / 1024);
+    val["totalMemUsageMB"] = (int) (bytes >> 20);
     val["totalMemBlock"] = (Json::UInt64) getTotalMemBlock();
     static auto block_type_size = getBlockTypeSize();
     {
@@ -604,7 +604,7 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
             auto bytes = getThisThreadMemUsage();
             val["threadName"] = getThreadName();
             val["threadMemUsage"] = (Json::UInt64) bytes;
-            val["threadMemUsageMB"] = (Json::UInt64) (bytes / 1024 / 1024);
+            val["threadMemUsageMB"] = (Json::UInt64) (bytes >> 20);
             val["threadMemBlock"] = (Json::UInt64) getThisThreadMemBlock();
             {
                 int i = 0;

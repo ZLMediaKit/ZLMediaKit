@@ -34,14 +34,14 @@ VideoMeta::VideoMeta(const VideoTrack::Ptr &video) {
         _metadata.set("framerate", video->getVideoFps());
     }
     if (video->getBitRate()) {
-        _metadata.set("videodatarate", video->getBitRate() / 1024);
+        _metadata.set("videodatarate", video->getBitRate() >> 10);
     }
     _metadata.set("videocodecid", Factory::getAmfByCodecId(video->getCodecId()));
 }
 
 AudioMeta::AudioMeta(const AudioTrack::Ptr &audio) {
     if (audio->getBitRate()) {
-        _metadata.set("audiodatarate", audio->getBitRate() / 1024);
+        _metadata.set("audiodatarate", audio->getBitRate() >> 10);
     }
     if (audio->getAudioSampleRate() > 0) {
         _metadata.set("audiosamplerate", audio->getAudioSampleRate());
