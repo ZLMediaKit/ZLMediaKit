@@ -119,7 +119,7 @@ Track::Ptr getTrackBySdpU(const SdpTrack::Ptr &track) {
 
 RtpCodec::Ptr getRtpEncoderByCodecId_l(CodecId codec, uint8_t pt) {
     if (pt == Rtsp::PT_PCMA || pt == Rtsp::PT_PCMU) {
-        return std::make_shared<G711RtpEncoder>(codec, 1);
+        return std::make_shared<G711RtpEncoder>(8000, 1);
     }
     return std::make_shared<CommonRtpEncoder>();
 }
