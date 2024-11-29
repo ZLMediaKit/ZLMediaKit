@@ -68,29 +68,23 @@ uint8_t getAudioRtmpFlags(const Track::Ptr &track) {
             auto iChannel = audioTrack->getAudioChannel();
             auto iSampleBit = audioTrack->getAudioSampleBit();
 
-            uint8_t flvAudioType;
+            auto amf = Factory::getAmfByCodecId(track->getCodecId());
+            if (!amf) {
+                WarnL << "该编码格式不支持转换为RTMP: " << track->getCodecName();
+                return 0;
+            }
+            uint8_t flvAudioType = amf.as_integer();
             switch (track->getCodecId()) {
-                case CodecG711A: flvAudioType = (uint8_t)RtmpAudioCodec::g711a; break;
-                case CodecG711U: flvAudioType = (uint8_t)RtmpAudioCodec::g711u; break;
+                case CodecAAC:
                 case CodecOpus: {
-                    flvAudioType = (uint8_t)RtmpAudioCodec::opus;
-                    // opus不通过flags获取音频相关信息  [AUTO-TRANSLATED:0ddf328b]
-                    // opus does not get audio information through flags
+                    // opus/aac不通过flags获取音频相关信息  [AUTO-TRANSLATED:0ddf328b]
+                    // opus/aac does not get audio information through flags
                     iSampleRate = 44100;
                     iSampleBit = 16;
                     iChannel = 2;
                     break;
                 }
-                case CodecAAC: {
-                    flvAudioType = (uint8_t)RtmpAudioCodec::aac;
-                    // aac不通过flags获取音频相关信息  [AUTO-TRANSLATED:63ac5081]
-                    // aac does not get audio information through flags
-                    iSampleRate = 44100;
-                    iSampleBit = 16;
-                    iChannel = 2;
-                    break;
-                }
-                default: WarnL << "该编码格式不支持转换为RTMP: " << track->getCodecName(); return 0;
+                default: break;
             }
 
             uint8_t flvSampleRate;

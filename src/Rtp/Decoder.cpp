@@ -90,7 +90,8 @@ void DecoderImp::onStream(int stream, int codecid, const void *extra, size_t byt
     }
     // G711传统只支持 8000/1/16的规格，FFmpeg貌似做了扩展，但是这里不管它了  [AUTO-TRANSLATED:851813f7]
     // G711 traditionally only supports the 8000/1/16 specification. FFmpeg seems to have extended it, but we'll ignore that here.
-    auto track = Factory::getTrackByCodecId(getCodecByMpegId(codecid), 8000, 1, 16);
+    auto codec = getCodecByMpegId(codecid);
+    auto track= Factory::getTrackByCodecId(codec);
     if (track) {
         onTrack(stream, std::move(track));
     }
@@ -113,7 +114,7 @@ void DecoderImp::onDecode(int stream, int codecid, int flags, int64_t pts, int64
     }
     auto &ref = _tracks[stream];
     if (!ref.first) {
-        onTrack(stream, Factory::getTrackByCodecId(codec, 8000, 1, 16));
+        onTrack(stream, Factory::getTrackByCodecId(codec));
     }
     if (!ref.first) {
         WarnL << "Unsupported codec :" << getCodecName(codec);

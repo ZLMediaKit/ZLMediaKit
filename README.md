@@ -37,6 +37,7 @@
 - [谁在使用zlmediakit?](https://github.com/ZLMediaKit/ZLMediaKit/issues/511)
 - 全面支持ipv6网络
 - 支持多轨道模式(一个流中多个视频/音频)
+- 全协议支持H264/H265/AAC/G711/OPUS，部分支持VP8/VP9/AV1/JPEG/MP3/H266/ADPCM/SVAC/G722/G723/G729
 
 ## 项目定位
 

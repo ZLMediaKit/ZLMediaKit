@@ -357,10 +357,6 @@ private:
 };
 
 Sdp::Ptr H264Track::getSdp(uint8_t payload_type) const {
-    if (!ready()) {
-        WarnL << getCodecName() << " Track未准备好";
-        return nullptr;
-    }
     return std::make_shared<H264Sdp>(_sps, _pps, payload_type, getBitRate() >> 10);
 }
 
