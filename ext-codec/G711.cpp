@@ -38,7 +38,7 @@ CodecId getCodecU() {
 }
 
 Track::Ptr getTrackByCodecId_l(CodecId codec, int sample_rate, int channels, int sample_bit) {
-    return (sample_rate && channels && sample_bit) ? std::make_shared<G711Track>(codec, sample_rate, channels, sample_bit) : nullptr;
+    return std::make_shared<G711Track>(codec, sample_rate, 1, 16);
 }
 
 Track::Ptr getTrackByCodecIdA(int sample_rate, int channels, int sample_bit) {
