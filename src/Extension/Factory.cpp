@@ -178,8 +178,9 @@ RtmpCodec::Ptr Factory::getRtmpDecoderByTrack(const Track::Ptr &track) {
 RtmpCodec::Ptr Factory::getRtmpEncoderByTrack(const Track::Ptr &track) {
     auto it = s_plugins.find(track->getCodecId());
     if (it == s_plugins.end()) {
-        WarnL << "Unsupported codec: " << track->getCodecName() << ", use CommonRtmpEncoder";
-        return std::make_shared<CommonRtmpEncoder>(track);
+        auto amf = Factory::getAmfByCodecId(track->getCodecId());
+        WarnL << "Unsupported codec: " << track->getCodecName() << (amf ? ", use CommonRtmpEncoder" : "");
+        return amf ? std::make_shared<CommonRtmpEncoder>(track) : nullptr;
     }
     return it->second->getRtmpEncoderByTrack(track);
 }
