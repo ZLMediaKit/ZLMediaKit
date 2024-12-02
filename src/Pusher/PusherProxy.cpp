@@ -19,7 +19,6 @@ PusherProxy::PusherProxy(const MediaSource::Ptr &src, int retry_count, const Eve
     : MediaPusher(src, poller) {
     _retry_count = retry_count;
     _on_close = [](const SockException &) {};
-    _weak_src = src;
     _live_secs = 0;
     _live_status = 1;
     _republish_count = 0;
@@ -52,7 +51,7 @@ void PusherProxy::publish(const string &dst_url) {
             strong_self->_on_publish = nullptr;
         }
 
-        auto src = strong_self->_weak_src.lock();
+        auto src = strong_self->getSrc();
         if (!err) {
             // 推流成功  [AUTO-TRANSLATED:28ce6e56]
             // Stream successfully pushed
@@ -87,7 +86,7 @@ void PusherProxy::publish(const string &dst_url) {
             TraceL << " live secs " << strong_self->_live_secs;
         }
 
-        auto src = strong_self->_weak_src.lock();
+        auto src = strong_self->getSrc();
         // 推流异常中断，延时重试播放  [AUTO-TRANSLATED:e69e5a05]
         // Stream abnormally interrupted, retry playing with delay
         if (src && (*failed_cnt < strong_self->_retry_count || strong_self->_retry_count < 0)) {

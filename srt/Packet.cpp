@@ -292,8 +292,8 @@ bool HandshakePacket::loadFromData(uint8_t *buf, size_t len) {
     syn_cookie = loadUint32(ptr);
     ptr += 4;
 
-    memcpy(peer_ip_addr, ptr, sizeof(peer_ip_addr) * sizeof(peer_ip_addr[0]));
-    ptr += sizeof(peer_ip_addr) * sizeof(peer_ip_addr[0]);
+    memcpy(peer_ip_addr, ptr, sizeof(peer_ip_addr));
+    ptr += sizeof(peer_ip_addr);
 
     if (encryption_field != NO_ENCRYPTION) {
         ErrorL << "not support encryption " << encryption_field;
@@ -400,8 +400,8 @@ bool HandshakePacket::storeToData() {
     storeUint32(ptr, syn_cookie);
     ptr += 4;
 
-    memcpy(ptr, peer_ip_addr, sizeof(peer_ip_addr) * sizeof(peer_ip_addr[0]));
-    ptr += sizeof(peer_ip_addr) * sizeof(peer_ip_addr[0]);
+    memcpy(ptr, peer_ip_addr, sizeof(peer_ip_addr));
+    ptr += sizeof(peer_ip_addr);
 
     if (encryption_field != NO_ENCRYPTION) {
         ErrorL << "not support encryption " << encryption_field;
@@ -433,7 +433,7 @@ uint32_t HandshakePacket::getSynCookie(uint8_t *buf, size_t len) {
 }
 
 void HandshakePacket::assignPeerIP(struct sockaddr_storage *addr) {
-    memset(peer_ip_addr, 0, sizeof(peer_ip_addr) * sizeof(peer_ip_addr[0]));
+    memset(peer_ip_addr, 0, sizeof(peer_ip_addr));
     if (addr->ss_family == AF_INET) {
         struct sockaddr_in *ipv4 = (struct sockaddr_in *)addr;
         // 抓包 奇怪好像是小头端？？？  [AUTO-TRANSLATED:40eb164c]
@@ -446,7 +446,7 @@ void HandshakePacket::assignPeerIP(struct sockaddr_storage *addr) {
             storeUint32LE(peer_ip_addr, addr4.s_addr);
         } else {
             const sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)addr;
-            memcpy(peer_ip_addr, ipv6->sin6_addr.s6_addr, sizeof(peer_ip_addr) * sizeof(peer_ip_addr[0]));
+            memcpy(peer_ip_addr, ipv6->sin6_addr.s6_addr, sizeof(peer_ip_addr));
         }
     }
 }

@@ -31,25 +31,9 @@ void JPEGTrack::getVideoResolution(const uint8_t *buf, int len) {
     }
 }
 
-class JPEGSdp : public Sdp {
-public:
-    JPEGSdp(int bitrate) : Sdp(90000, Rtsp::PT_JPEG) {
-        _printer << "m=video 0 RTP/AVP " << (int)getPayloadType() << "\r\n";
-        if (bitrate) {
-            _printer << "b=AS:" << bitrate << "\r\n";
-        }
-    }
-
-    std::string getSdp() const { return _printer; }
-
-private:
-    _StrPrinter _printer;
-};
-
-Sdp::Ptr JPEGTrack::getSdp(uint8_t) const {
-    return std::make_shared<JPEGSdp>(getBitRate() / 1024);
+Sdp::Ptr JPEGTrack::getSdp(uint8_t pt) const {
+    return std::make_shared<DefaultSdp>(pt, *this);
 }
-
 
 namespace {
 

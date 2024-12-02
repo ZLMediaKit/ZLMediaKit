@@ -2,10 +2,10 @@
 
 namespace mediakit {
 
-G711RtpEncoder::G711RtpEncoder(CodecId codec, uint32_t channels){
-    _cache_frame = FrameImp::create();
-    _cache_frame->_codec_id = codec;
+G711RtpEncoder::G711RtpEncoder(int sample_rate, int channels, int sample_bit) {
+    _sample_rate = sample_rate;
     _channels = channels;
+    _sample_bit = sample_bit;
 }
 
 void G711RtpEncoder::setOpt(int opt, const toolkit::Any &param) {
@@ -24,36 +24,24 @@ void G711RtpEncoder::setOpt(int opt, const toolkit::Any &param) {
 }
 
 bool G711RtpEncoder::inputFrame(const Frame::Ptr &frame) {
-    auto dur = (_cache_frame->size() - _cache_frame->prefixSize()) / (8 * _channels);
-    auto next_pts = _cache_frame->pts() + dur;
-    if (next_pts == 0) {
-        _cache_frame->_pts = frame->pts();
-    } else {
-        if ((next_pts + _pkt_dur_ms) < frame->pts()) { // 有丢包超过20ms
-            _cache_frame->_pts = frame->pts() - dur;
-        }
-    }
-    _cache_frame->_buffer.append(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
+    auto ptr = frame->data() + frame->prefixSize();
+    auto size = frame->size() - frame->prefixSize();
+    _buffer.append(ptr, size);
+    _in_size += size;
+    _in_pts = frame->pts();
 
-    auto stamp = _cache_frame->pts();
-    auto ptr = _cache_frame->data() + _cache_frame->prefixSize();
-    auto len = _cache_frame->size() - _cache_frame->prefixSize();
-    auto remain_size = len;
-    size_t max_size = 160 * _channels * _pkt_dur_ms / 20; // 20 ms per 160 byte
-    size_t n = 0;
-    bool mark = false;
-    while (remain_size >= max_size) {
-        assert(remain_size >= max_size);
-        const size_t rtp_size = max_size;
-        n++;
-        stamp += _pkt_dur_ms;
-        RtpCodec::inputRtp(getRtpInfo().makeRtp(TrackAudio, ptr, rtp_size, mark, stamp), false);
-        ptr += rtp_size;
-        remain_size -= rtp_size;
+    if (!_pkt_bytes) {
+        // G711压缩率固定是2倍
+        _pkt_bytes = _pkt_dur_ms * _channels * (_sample_bit / 8) * _sample_rate / 1000 / 2;
     }
-    _cache_frame->_buffer.erase(0, n * max_size);
-    _cache_frame->_pts += (uint64_t)_pkt_dur_ms * n;
-    return len > 0;
+
+    while (_buffer.size() >= _pkt_bytes) {
+        _out_size += _pkt_bytes;
+        auto pts = _in_pts - (_in_size - _out_size) * (_pkt_dur_ms / (float)_pkt_bytes);
+        RtpCodec::inputRtp(getRtpInfo().makeRtp(TrackAudio, _buffer.data(), _pkt_bytes, false, pts), false);
+        _buffer.erase(0, _pkt_bytes);
+    }
+    return true;
 }
 
 } // namespace mediakit

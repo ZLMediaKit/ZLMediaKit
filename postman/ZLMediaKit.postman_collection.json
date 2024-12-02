@@ -701,6 +701,58 @@
 			"response": []
 		},
 		{
+			"name": "获取拉流代理列表(listStreamProxy)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/listStreamProxy?secret={{ZLMediaKit_secret}}",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"listStreamProxy"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "获取推流代理列表(listStreamPusherProxy)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/listStreamPusherProxy?secret={{ZLMediaKit_secret}}",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"listStreamPusherProxy"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)"
+						}
+					]
+				}
+			},
+			"response": []
+		},	
+		{
 			"name": "添加rtsp/rtmp推流(addStreamPusherProxy)",
 			"request": {
 				"method": "GET",
@@ -800,6 +852,32 @@
 			},
 			"response": []
 		},
+		{
+			"name": "获取FFmpeg拉流代理列表(listFFmpegSource)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/listFFmpegSource?secret={{ZLMediaKit_secret}}",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"listFFmpegSource"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)"
+						}
+					]
+				}
+			},
+			"response": []
+		},		
 		{
 			"name": "添加FFmpeg拉流代理(addFFmpegSource)",
 			"request": {
@@ -2076,6 +2154,81 @@
 							"key": "close_delay_ms",
 							"value": "5000",
 							"description": "等待tcp连接超时时间，单位毫秒，默认5000毫秒",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "开始双向对讲(startSendRtpTalk)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/startSendRtpTalk?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=live&stream=obs&ssrc=1&recv_stream_id=",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"startSendRtpTalk"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "rtp",
+							"description": "应用名，例如 rtp"
+						},
+						{
+							"key": "stream",
+							"value": "rtc",
+							"description": "流id，例如webrtc推流上来的流id"
+						},
+						{
+							"key": "ssrc",
+							"value": "1",
+							"description": "rtp推流出去的ssrc"
+						},
+						{
+							"key": "recv_stream_id",
+							"value": "",
+							"description": "对方rtp推流上来的流id，我们将通过这个链接回复他rtp流；请注意两个流的app和vhost需一致"
+						},
+						{
+							"key": "from_mp4",
+							"value": "0",
+							"description": "是否推送本地MP4录像，该参数非必选参数",
+							"disabled": true
+						},
+						{
+							"key": "type",
+							"value": "1",
+							"description": "0(ES流)、1(PS流)、2(TS流)，默认1(PS流)；该参数非必选参数",
+							"disabled": true
+						},
+						{
+							"key": "pt",
+							"value": "96",
+							"description": "rtp payload type，默认96；该参数非必选参数",
+							"disabled": true
+						},
+						{
+							"key": "only_audio",
+							"value": "1",
+							"description": "rtp es方式打包时，是否只打包音频；该参数非必选参数",
 							"disabled": true
 						}
 					]

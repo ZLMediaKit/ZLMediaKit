@@ -11,6 +11,7 @@
 #include "mk_recorder.h"
 #include "Rtmp/FlvMuxer.h"
 #include "Record/Recorder.h"
+#include "Record/MP4Reader.h"
 
 using namespace std;
 using namespace toolkit;
@@ -83,3 +84,36 @@ API_EXPORT int API_CALL mk_recorder_stop(int type, const char *vhost, const char
     assert(vhost && app && stream);
     return stopRecord((Recorder::type)type,vhost,app,stream);
 }
+
+API_EXPORT void API_CALL mk_load_mp4_file(const char *vhost, const char *app, const char *stream, const char *file_path, int file_repeat) {
+    mINI ini;
+    mk_load_mp4_file2(vhost, app, stream, file_path, file_repeat, (mk_ini)&ini);
+}
+
+API_EXPORT void API_CALL mk_load_mp4_file2(const char *vhost, const char *app, const char *stream, const char *file_path, int file_repeat, mk_ini ini) {
+#if ENABLE_MP4
+    assert(vhost && app && stream && file_path && ini);
+    ProtocolOption option(*((mINI *)ini));
+    // mp4支持多track  [AUTO-TRANSLATED:b9688762]
+    // mp4 supports multiple tracks
+    option.max_track = 16;
+    // 默认解复用mp4不生成mp4  [AUTO-TRANSLATED:11f2dcee]
+    // By default, demultiplexing mp4 does not generate mp4
+    option.enable_mp4 = false;
+    // 但是如果参数明确指定开启mp4, 那么也允许之  [AUTO-TRANSLATED:b143a9e3]
+    // But if the parameter explicitly specifies to enable mp4, then it is also allowed
+
+    // 强制无人观看时自动关闭  [AUTO-TRANSLATED:f7c85948]
+    // Force automatic shutdown when no one is watching
+    option.auto_close = true;
+    MediaTuple tuple = { vhost, app, stream, "" };
+    auto reader = std::make_shared<MP4Reader>(tuple, file_path, option);
+    // sample_ms设置为0，从配置文件加载；file_repeat可以指定，如果配置文件也指定循环解复用，那么强制开启  [AUTO-TRANSLATED:23e826b4]
+    // sample_ms is set to 0, loaded from the configuration file; file_repeat can be specified, if the configuration file also specifies loop demultiplexing,
+    // then force it to be enabled
+    reader->startReadMP4(0, true, file_repeat);
+#else
+    WarnL << "MP4-related features are disabled. Please enable the ENABLE_MP4 macro and recompile.";
+#endif
+}
+

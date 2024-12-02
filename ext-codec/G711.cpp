@@ -19,69 +19,13 @@ using namespace toolkit;
 
 namespace mediakit {
 
-/**
- * G711类型SDP
- * G711 type SDP
- 
- * [AUTO-TRANSLATED:ea72d60a]
- */
-class G711Sdp : public Sdp {
-public:
-    /**
-     * G711采样率固定为8000
-     * @param codecId G711A G711U
-     * @param payload_type rtp payload type
-     * @param sample_rate 音频采样率
-     * @param channels 通道数
-     * @param bitrate 比特率
-     * G711 sampling rate is fixed at 8000
-     * @param codecId G711A G711U
-     * @param payload_type rtp payload type
-     * @param sample_rate audio sampling rate
-     * @param channels number of channels
-     * @param bitrate bitrate
-     
-     * [AUTO-TRANSLATED:5ea4b771]
-     */
-    G711Sdp(CodecId codecId, int payload_type, int sample_rate, int channels, int bitrate)
-        : Sdp(sample_rate, payload_type) {
-        _printer << "m=audio 0 RTP/AVP " << payload_type << "\r\n";
-        if (bitrate) {
-            _printer << "b=AS:" << bitrate << "\r\n";
-        }
-        _printer << "a=rtpmap:" << payload_type << " " << getCodecName(codecId) << "/" << sample_rate  << "/" << channels << "\r\n";
-    }
-
-    string getSdp() const override {
-        return _printer;
-    }
-
-private:
-    _StrPrinter _printer;
-};
-
 Track::Ptr G711Track::clone() const {
     return std::make_shared<G711Track>(*this);
 }
 
 Sdp::Ptr G711Track::getSdp(uint8_t payload_type) const {
-    if (!ready()) {
-        WarnL << getCodecName() << " Track未准备好";
-        return nullptr;
-    }
-
-    const auto codec = getCodecId();
-    const auto sample_rate = getAudioSampleRate();
-    const auto audio_channel = getAudioChannel();
-    const auto bitrate = getBitRate() >> 10;
-    if (sample_rate == 8000 && audio_channel == 1) {
-        // https://datatracker.ietf.org/doc/html/rfc3551#section-6
-        payload_type = (codec == CodecG711U) ? Rtsp::PT_PCMU : Rtsp::PT_PCMA;
-    }
-
-    return std::make_shared<G711Sdp>(codec, payload_type, sample_rate, audio_channel, bitrate);
+    return std::make_shared<DefaultSdp>(payload_type, *this);
 }
-
 
 namespace {
 
@@ -94,7 +38,7 @@ CodecId getCodecU() {
 }
 
 Track::Ptr getTrackByCodecId_l(CodecId codec, int sample_rate, int channels, int sample_bit) {
-    return (sample_rate && channels && sample_bit) ? std::make_shared<G711Track>(codec, sample_rate, channels, sample_bit) : nullptr;
+    return std::make_shared<G711Track>(codec, sample_rate, 1, 16);
 }
 
 Track::Ptr getTrackByCodecIdA(int sample_rate, int channels, int sample_bit) {
@@ -119,7 +63,7 @@ Track::Ptr getTrackBySdpU(const SdpTrack::Ptr &track) {
 
 RtpCodec::Ptr getRtpEncoderByCodecId_l(CodecId codec, uint8_t pt) {
     if (pt == Rtsp::PT_PCMA || pt == Rtsp::PT_PCMU) {
-        return std::make_shared<G711RtpEncoder>(codec, 1);
+        return std::make_shared<G711RtpEncoder>(8000, 1);
     }
     return std::make_shared<CommonRtpEncoder>();
 }

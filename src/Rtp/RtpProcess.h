@@ -102,6 +102,8 @@ public:
     uint16_t get_peer_port() override;
     std::string getIdentifier() const override;
 
+    const toolkit::Socket::Ptr& getSock() const;
+
 protected:
     bool inputFrame(const Frame::Ptr &frame) override;
     bool addTrack(const Track::Ptr & track) override;

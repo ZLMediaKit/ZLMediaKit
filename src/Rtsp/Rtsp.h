@@ -11,15 +11,17 @@
 #ifndef RTSP_RTSP_H_
 #define RTSP_RTSP_H_
 
-#include "Common/macros.h"
-#include "Extension/Frame.h"
-#include "Network/Socket.h"
-#include <memory>
 #include <string.h>
 #include <string>
+#include <memory>
 #include <unordered_map>
+#include "Network/Socket.h"
+#include "Common/macros.h"
+#include "Extension/Frame.h"
 
 namespace mediakit {
+
+class Track;
 
 namespace Rtsp {
 typedef enum {
@@ -32,27 +34,27 @@ typedef enum {
 #define RTP_PT_MAP(XX)                                                                                                                                         \
     XX(PCMU, TrackAudio, 0, 8000, 1, CodecG711U)                                                                                                               \
     XX(GSM, TrackAudio, 3, 8000, 1, CodecInvalid)                                                                                                              \
-    XX(G723, TrackAudio, 4, 8000, 1, CodecInvalid)                                                                                                             \
+    XX(G723, TrackAudio, 4, 8000, 1, CodecG723)                                                                                                             \
     XX(DVI4_8000, TrackAudio, 5, 8000, 1, CodecInvalid)                                                                                                        \
     XX(DVI4_16000, TrackAudio, 6, 16000, 1, CodecInvalid)                                                                                                      \
     XX(LPC, TrackAudio, 7, 8000, 1, CodecInvalid)                                                                                                              \
     XX(PCMA, TrackAudio, 8, 8000, 1, CodecG711A)                                                                                                               \
-    XX(G722, TrackAudio, 9, 8000, 1, CodecInvalid)                                                                                                             \
+    XX(G722, TrackAudio, 9, 16000, 1, CodecG722)                                                                                                             \
     XX(L16_Stereo, TrackAudio, 10, 44100, 2, CodecInvalid)                                                                                                     \
     XX(L16_Mono, TrackAudio, 11, 44100, 1, CodecInvalid)                                                                                                       \
     XX(QCELP, TrackAudio, 12, 8000, 1, CodecInvalid)                                                                                                           \
     XX(CN, TrackAudio, 13, 8000, 1, CodecInvalid)                                                                                                              \
-    XX(MPA, TrackAudio, 14, 90000, 1, CodecInvalid)                                                                                                            \
-    XX(G728, TrackAudio, 15, 8000, 1, CodecInvalid)                                                                                                            \
+    XX(MP3, TrackAudio, 14, 44100, 2, CodecMP3)                                                                                                            \
+    XX(G728, TrackAudio, 15, 8000, 1, CodecG728)                                                                                                            \
     XX(DVI4_11025, TrackAudio, 16, 11025, 1, CodecInvalid)                                                                                                     \
     XX(DVI4_22050, TrackAudio, 17, 22050, 1, CodecInvalid)                                                                                                     \
-    XX(G729, TrackAudio, 18, 8000, 1, CodecInvalid)                                                                                                            \
+    XX(G729, TrackAudio, 18, 8000, 1, CodecG729)                                                                                                            \
     XX(CelB, TrackVideo, 25, 90000, 1, CodecInvalid)                                                                                                           \
     XX(JPEG, TrackVideo, 26, 90000, 1, CodecJPEG)                                                                                                              \
     XX(nv, TrackVideo, 28, 90000, 1, CodecInvalid)                                                                                                             \
     XX(H261, TrackVideo, 31, 90000, 1, CodecInvalid)                                                                                                           \
     XX(MPV, TrackVideo, 32, 90000, 1, CodecInvalid)                                                                                                            \
-    XX(MP2T, TrackVideo, 33, 90000, 1, CodecInvalid)                                                                                                           \
+    XX(MP2T, TrackVideo, 33, 90000, 1, CodecTS)                                                                                                           \
     XX(H263, TrackVideo, 34, 90000, 1, CodecInvalid)
 
 typedef enum {
@@ -213,10 +215,12 @@ private:
 class RtpPayload {
 public:
     static int getClockRate(int pt);
+    static int getClockRateByCodec(CodecId codec);
     static TrackType getTrackType(int pt);
     static int getAudioChannel(int pt);
     static const char *getName(int pt);
     static CodecId getCodecId(int pt);
+    static int getPayloadType(const Track &track);
 
 private:
     RtpPayload() = delete;
@@ -243,8 +247,8 @@ public:
 
 public:
     int _pt = 0xff;
-    int _channel;
-    int _samplerate;
+    int _channel = 0;
+    int _samplerate = 0;
     TrackType _type;
     std::string _codec;
     std::string _fmtp;
@@ -338,6 +342,15 @@ public:
 private:
     uint8_t _payload_type;
     uint32_t _sample_rate;
+};
+
+class DefaultSdp : public Sdp {
+public:
+    DefaultSdp(int payload_type, const Track &track);
+    std::string getSdp() const override { return _printer; }
+
+private:
+    toolkit::_StrPrinter _printer;
 };
 
 /**

@@ -284,9 +284,9 @@ static bool makeFolderMenu(const string &httpPath, const string &strFullPath, st
         } else if (fileSize < 1024 * 1024) {
             ss << fixed << setprecision(2) << " (" << fileSize / 1024.0 << "KB)";
         } else if (fileSize < 1024 * 1024 * 1024) {
-            ss << fixed << setprecision(2) << " (" << fileSize / 1024 / 1024.0 << "MB)";
+            ss << fixed << setprecision(2) << " (" << (fileSize >> 10) / 1024.0 << "MB)";
         } else {
-            ss << fixed << setprecision(2) << " (" << fileSize / 1024 / 1024 / 1024.0 << "GB)";
+            ss << fixed << setprecision(2) << " (" << (fileSize >> 20) / 1024.0 << "GB)";
         }
         ss << "</a></li>\r\n";
     }

@@ -68,7 +68,7 @@ public:
      
      * [AUTO-TRANSLATED:4f0dfc29]
      */
-    const MP4Demuxer::Ptr& getDemuxer() const;
+    const MultiMP4Demuxer::Ptr& getDemuxer() const;
 
 private:
     //MediaSourceEvent override
@@ -100,7 +100,7 @@ private:
     std::recursive_mutex _mtx;
     toolkit::Ticker _seek_ticker;
     toolkit::Timer::Ptr _timer;
-    MP4Demuxer::Ptr _demuxer;
+    MultiMP4Demuxer::Ptr _demuxer;
     MultiMediaSourceMuxer::Ptr _muxer;
     toolkit::EventPoller::Ptr _poller;
 };

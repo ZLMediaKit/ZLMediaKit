@@ -124,7 +124,8 @@ public:
             kTcpActive = 0, // tcp主动模式，tcp客户端主动连接对方并发送rtp
             kUdpActive = 1, // udp主动模式，主动发送数据给对方
             kTcpPassive = 2, // tcp被动模式，tcp服务器，等待对方连接并回复rtp
-            kUdpPassive = 3 // udp被动方式，等待对方发送nat打洞包，然后回复rtp至打洞包源地址
+            kUdpPassive = 3, // udp被动方式，等待对方发送nat打洞包，然后回复rtp至打洞包源地址
+            kVoiceTalk = 4,  // 语音对讲模式，对方必须想推流上来，通过他的推流链路再回复rtp数据
         };
 
         // rtp类型  [AUTO-TRANSLATED:acca40ab]
