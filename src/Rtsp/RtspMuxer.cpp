@@ -65,14 +65,19 @@ bool RtspMuxer::addTrack(const Track::Ptr &track) {
         WarnL << "Already add a track kind of: " << track->getTrackTypeStr() << ", ignore track: " << track->getCodecName();
         return false;
     }
+    if (!track->ready()) {
+        WarnL << track->getCodecName() << " unready!";
+        return false;
+    }
 
     auto &ref = _tracks[track->getIndex()];
     auto &encoder = ref.encoder;
     CHECK(!encoder);
 
+    auto pt = RtpPayload::getPayloadType(*track);
     // payload type 96以后则为动态pt  [AUTO-TRANSLATED:812ac0a2]
     // Payload type 96 and above is dynamic PT
-    Sdp::Ptr sdp = track->getSdp(96 + _index);
+    Sdp::Ptr sdp = track->getSdp(pt == -1 ? 96 + _index : pt);
     if (!sdp) {
         WarnL << "Unsupported codec: " << track->getCodecName();
         return false;

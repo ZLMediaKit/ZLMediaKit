@@ -29,15 +29,17 @@ public:
 
     /**
      * 构造函数
-     * @param codec 编码类型
+     * @param sample_rate 音频采样率
      * @param channels 通道数
+     * @param sample_bit 音频采样位数
      * Constructor
-     * @param codec Encoding type
+     * @param sample_rate audio sample rate
      * @param channels Number of channels
-     
+     * @param sample_bit audio sample bits
+
      * [AUTO-TRANSLATED:dbbd593e]
      */
-    G711RtpEncoder(CodecId codec, uint32_t channels);
+    G711RtpEncoder(int sample_rate = 8000, int channels = 1, int sample_bit = 16);
 
     /**
      * 输入帧数据并编码成rtp
@@ -51,9 +53,16 @@ public:
     void setOpt(int opt, const toolkit::Any &param) override;
 
 private:
-    uint32_t _channels = 1;
+    int _channels;
+    int _sample_rate;
+    int _sample_bit;
+
     uint32_t _pkt_dur_ms = 20;
-    FrameImp::Ptr _cache_frame;
+    uint32_t _pkt_bytes = 0;
+    uint64_t _in_size = 0;
+    uint64_t _out_size = 0;
+    int64_t _in_pts = 0;
+    toolkit::BufferLikeString _buffer;
 };
 
 }//namespace mediakit

@@ -7,7 +7,7 @@
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
-
+#ifdef ENABLE_MP4
 #include <signal.h>
 #include <iostream>
 #include "Util/logger.h"
@@ -141,3 +141,4 @@ int main(int argc, char *argv[]) {
     // return domain("/Users/xiongziliang/Downloads/mp4/Quantum.mp4", "rtsp://127.0.0.1/live/rtsp_push");
     return domain(argv[1], argv[2]);
 }
+#endif

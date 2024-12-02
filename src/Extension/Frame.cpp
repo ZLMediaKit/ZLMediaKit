@@ -261,7 +261,7 @@ static bool isNeedMerge(CodecId codec){
 
 bool FrameMerger::inputFrame(const Frame::Ptr &frame, onOutput cb, BufferLikeString *buffer) {
     if (frame && !isNeedMerge(frame->getCodecId())) {
-        cb(frame->dts(), frame->pts(), frame, true);
+        cb(frame->dts(), frame->pts(), Frame::getCacheAbleFrame(frame), true);
         return true;
     }
     if (willFlush(frame)) {
