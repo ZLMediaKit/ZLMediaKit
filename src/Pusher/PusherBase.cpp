@@ -22,7 +22,7 @@ PusherBase::Ptr PusherBase::createPusher(const EventPoller::Ptr &in_poller,
                                          const std::string & url) {
     auto poller = in_poller ? in_poller : EventPollerPool::Instance().getPoller();
     std::weak_ptr<EventPoller> weak_poller = poller;
-    static auto release_func = [weak_poller](PusherBase *ptr) {
+    auto release_func = [weak_poller](PusherBase *ptr) {
         if (auto poller = weak_poller.lock()) {
             poller->async([ptr]() {
                 onceToken token(nullptr, [&]() { delete ptr; });
