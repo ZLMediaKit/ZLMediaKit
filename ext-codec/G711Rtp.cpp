@@ -26,20 +26,20 @@ void G711RtpEncoder::setOpt(int opt, const toolkit::Any &param) {
 bool G711RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     auto ptr = frame->data() + frame->prefixSize();
     auto size = frame->size() - frame->prefixSize();
-
+    uint64_t in_pts;
     if (!_pkt_bytes) {
-        _in_pts = frame->pts();
+        in_pts = frame->pts();
         // G711压缩率固定是2倍
         _pkt_bytes = _pkt_dur_ms * _channels * (_sample_bit / 8) * _sample_rate / 1000 / 2;
     } else {
-        _in_pts = frame->pts() - (float)_buffer.size() / (float)_pkt_bytes * _pkt_dur_ms;
+        in_pts = frame->pts() - _buffer.size() * _pkt_dur_ms / _pkt_bytes;
     }
 
     _buffer.append(ptr, size);
 
     while (_buffer.size() >= _pkt_bytes) {
-        _in_pts += _pkt_dur_ms;
-        RtpCodec::inputRtp(getRtpInfo().makeRtp(TrackAudio, _buffer.data(), _pkt_bytes, false, _in_pts), false);
+        RtpCodec::inputRtp(getRtpInfo().makeRtp(TrackAudio, _buffer.data(), _pkt_bytes, false, in_pts), false);
+         in_pts += _pkt_dur_ms;
         _buffer.erase(0, _pkt_bytes);
     }
     return true;
