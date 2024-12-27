@@ -12,6 +12,9 @@
 #include "PusherBase.h"
 #include "Rtsp/RtspPusher.h"
 #include "Rtmp/RtmpPusher.h"
+#ifdef ENABLE_SRT
+#include "Srt/SrtPusher.h"
+#endif // ENABLE_SRT
 
 using namespace toolkit;
 
@@ -49,6 +52,13 @@ PusherBase::Ptr PusherBase::createPusher(const EventPoller::Ptr &in_poller,
     if (strcasecmp("rtmp",prefix.data()) == 0) {
         return PusherBase::Ptr(new RtmpPusherImp(poller, std::dynamic_pointer_cast<RtmpMediaSource>(src)), release_func);
     }
+
+#ifdef ENABLE_SRT
+    if (strcasecmp("srt", prefix.data()) == 0) {
+        return PusherBase::Ptr(new SrtPusherImp(poller, std::dynamic_pointer_cast<TSMediaSource>(src)), release_func);
+    }
+#endif//ENABLE_SRT
+
 
     throw std::invalid_argument("not supported push schema:" + url);
 }

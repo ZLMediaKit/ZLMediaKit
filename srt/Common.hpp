@@ -28,6 +28,10 @@ static inline int64_t DurationCountMicroseconds(SteadyClock::duration dur) {
     return std::chrono::duration_cast<std::chrono::microseconds>(dur).count();
 }
 
+static inline uint32_t DurationCountSeconds(SteadyClock::duration dur) {
+    return std::chrono::duration_cast<std::chrono::seconds>(dur).count();
+}
+
 static inline uint32_t loadUint32(uint8_t *ptr) {
     return ptr[0] << 24 | ptr[1] << 16 | ptr[2] << 8 | ptr[3];
 }
