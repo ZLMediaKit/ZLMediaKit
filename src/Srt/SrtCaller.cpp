@@ -645,8 +645,8 @@ void SrtCaller::handleHandshakeInduction(SRT::HandshakePacket &pkt, struct socka
 
 	_sync_cookie = pkt.syn_cookie;
 
-    _mtu = std::min(pkt.mtu, _mtu);
-    _max_flow_window_size = std::min(pkt.max_flow_window_size, _max_flow_window_size);
+    _mtu = std::min<uint32_t>(pkt.mtu, _mtu);
+    _max_flow_window_size = std::min<uint32_t>(pkt.max_flow_window_size, _max_flow_window_size);
 	sendHandshakeConclusion();
     return;
 }
@@ -695,7 +695,7 @@ void SrtCaller::handleHandshakeConclusion(SRT::HandshakePacket &pkt, struct sock
 	}
 
 	if (resp) {
-        _delay = std::max(_delay, resp->recv_tsbpd_delay);
+        _delay = std::max<uint16_t>(_delay, resp->recv_tsbpd_delay);
 		//DebugL << "flag " << resp->srt_flag;
 		//DebugL << "recv_tsbpd_delay " << resp->recv_tsbpd_delay;
 		//DebugL << "send_tsbpd_delay " << resp->send_tsbpd_delay;
@@ -711,7 +711,7 @@ void SrtCaller::handleHandshakeConclusion(SRT::HandshakePacket &pkt, struct sock
     } else {
         //The recommended threshold value is 1.25 times the SRT latency value.
         //Note that the SRT sender keeps packets for at least 1 second in case the latency is not high enough for a large RTT
-        _send_buf = std::make_shared<PacketSendQueue>(getPktBufSize(), std::min(_delay * 1250, 1000000), resp->srt_flag);
+        _send_buf = std::make_shared<PacketSendQueue>(getPktBufSize(), std::min<uint32_t>((uint32_t)_delay * 1250, 1000000), resp->srt_flag);
     }
 
     onHandShakeFinished();

@@ -350,7 +350,7 @@ BufferLikeString::Ptr CryptoContext::generateIv(uint32_t pkt_seq_no) {
     uint8_t* ivData = (uint8_t*)iv->data();
     memset((void*)ivData, 0, iv->size());
     memcpy((void*)(ivData + 10), (void*)&pkt_seq_no, 4);
-    for (size_t i = 0; i < std::min(_salt.size(), (size_t)112 /8); ++i) {
+    for (size_t i = 0; i < std::min<size_t>(_salt.size(), (size_t)112 /8); ++i) {
         ivData[i] ^= saltData[i];
     }
     return iv;
