@@ -685,6 +685,7 @@ void addStreamPusherProxy(const string &schema,
                           int retry_count,
                           int rtp_type,
                           float timeout_sec,
+                          const mINI &args,
                           const function<void(const SockException &ex, const string &key)> &cb) {
     auto key = getPusherKey(schema, vhost, app, stream, url);
     auto src = MediaSource::find(schema, vhost, app, stream);
@@ -703,14 +704,20 @@ void addStreamPusherProxy(const string &schema,
     // Add push stream proxy
     auto pusher = s_pusher_proxy.make(key, src, retry_count);
 
+    // 先透传拷贝参数  [AUTO-TRANSLATED:22b5605e]
+    // First pass-through copy parameters
+    for (auto &pr : args) {
+        (*pusher)[pr.first] = pr.second;
+    }
+
     // 指定RTP over TCP(播放rtsp时有效)  [AUTO-TRANSLATED:1a062656]
     // Specify RTP over TCP (effective when playing RTSP)
-    pusher->emplace(Client::kRtpType, rtp_type);
+    (*pusher)[Client::kRtpType] = rtp_type;
 
     if (timeout_sec > 0.1f) {
         // 推流握手超时时间  [AUTO-TRANSLATED:00762fc1]
         // Push stream handshake timeout
-        pusher->emplace(Client::kTimeoutMS, timeout_sec * 1000);
+        (*pusher)[Client::kTimeoutMS] = timeout_sec * 1000;
     }
 
     // 开始推流，如果推流失败或者推流中止，将会自动重试若干次，默认一直重试  [AUTO-TRANSLATED:c8b95088]
@@ -1174,6 +1181,12 @@ void installWebApi() {
     api_regist("/index/api/addStreamPusherProxy", [](API_ARGS_MAP_ASYNC) {
         CHECK_SECRET();
         CHECK_ARGS("schema", "vhost", "app", "stream", "dst_url");
+
+        mINI args;
+        for (auto &pr : allArgs.args) {
+            args.emplace(pr.first, pr.second);
+        }
+
         auto dst_url = allArgs["dst_url"];
         auto retry_count = allArgs["retry_count"].empty() ? -1 : allArgs["retry_count"].as<int>();
         addStreamPusherProxy(allArgs["schema"],
@@ -1184,6 +1197,7 @@ void installWebApi() {
                              retry_count,
                              allArgs["rtp_type"],
                              allArgs["timeout_sec"],
+                             args,
                              [invoker, val, headerOut, dst_url](const SockException &ex, const string &key) mutable {
                                  if (ex) {
                                      val["code"] = API::OtherFailed;

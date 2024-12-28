@@ -370,6 +370,11 @@ float SrtTransportImp::getTimeOutSec() {
     return timeOutSec;
 }
 
+std::string SrtTransportImp::getPassphrase() {
+    GET_CONFIG(string, passphrase, kPassPhrase);
+    return passphrase;
+}
+
 int SrtTransportImp::getPktBufSize() {
     // kPktBufSize
     GET_CONFIG(int, pktBufSize, kPktBufSize);
