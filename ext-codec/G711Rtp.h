@@ -59,7 +59,6 @@ private:
 
     uint32_t _pkt_dur_ms = 20;
     uint32_t _pkt_bytes = 0;
-    int64_t _in_pts = 0;
     toolkit::BufferLikeString _buffer;
 };
 
