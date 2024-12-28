@@ -58,6 +58,7 @@ static bool aes_wrap(const uint8_t* in, int in_len, uint8_t* out, int* outLen, u
             WarnL << "EVP_CIPHER_CTX_new fail";
             break;
         }
+        EVP_CIPHER_CTX_set_flags(ctx, EVP_CIPHER_CTX_FLAG_WRAP_ALLOW);
 
         if (1 != EVP_EncryptInit_ex(ctx, aes_key_len_mapping_wrap_cipher(key_len), NULL, key, NULL)) {
             WarnL << "EVP_EncryptInit_ex fail";
@@ -112,6 +113,7 @@ static bool aes_unwrap(const uint8_t* in, int in_len, uint8_t* out, int* outLen,
             WarnL << "EVP_CIPHER_CTX_new fail";
             break;
         }
+        EVP_CIPHER_CTX_set_flags(ctx, EVP_CIPHER_CTX_FLAG_WRAP_ALLOW);
 
         if (1 != EVP_DecryptInit_ex(ctx, aes_key_len_mapping_wrap_cipher(key_len), NULL, key, NULL)) {
             WarnL << "EVP_DecryptInit_ex fail";
