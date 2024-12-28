@@ -116,8 +116,8 @@ float SrtPlayer::getTimeOutSec() {
 }
 
 std::string SrtPlayer::getPassphrase() {
-    auto passphrase = (*this)[Client::kPassPhrase].as<string>();
-    return passphrase;
+    auto passPhrase = (*this)[Client::kPassPhrase].as<string>();
+    return passPhrase;
 }
 
 ///////////////////////////////////////////////////

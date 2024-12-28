@@ -77,8 +77,8 @@ float SrtPusher::getTimeOutSec() {
 }
 
 std::string SrtPusher::getPassphrase() {
-    auto passphrase = (*this)[Client::kPassPhrase].as<string>();
-    return passphrase;
+    auto passPhrase = (*this)[Client::kPassPhrase].as<string>();
+    return passPhrase;
 }
 
 void SrtPusher::doPublish() {
