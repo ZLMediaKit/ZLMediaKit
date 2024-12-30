@@ -175,21 +175,18 @@ extern const std::string kBroadcastPlayerCountChanged;
 // 监听某个配置发送变更  [AUTO-TRANSLATED:7f46b5b1]
 // listen for configuration changes
 #define LISTEN_RELOAD_KEY(arg, key, ...)                                                                               \
-    do {                                                                                                               \
-        static ::toolkit::onceToken s_token_listen([]() {                                                              \
+        static ::toolkit::onceToken s_token_listen##arg([]() {                                                         \
             ::toolkit::NoticeCenter::Instance().addListener(                                                           \
                 ReloadConfigTag, Broadcast::kBroadcastReloadConfig, [](BroadcastReloadConfigArgs) { __VA_ARGS__; });   \
-        });                                                                                                            \
-    } while (0)
+        });                                                                                                            
 
 #define GET_CONFIG(type, arg, key)                                                                                     \
     static type arg = ::toolkit::mINI::Instance()[key];                                                                \
     LISTEN_RELOAD_KEY(arg, key, { RELOAD_KEY(arg, key); });
 
 #define GET_CONFIG_FUNC(type, arg, key, ...)                                                                           \
-    static type arg;                                                                                                   \
-    do {                                                                                                               \
-        static ::toolkit::onceToken s_token_set([]() {                                                                 \
+        static type arg;                                                                                               \
+        static ::toolkit::onceToken s_token_set##arg([]() {                                                            \
             static auto lam = __VA_ARGS__;                                                                             \
             static auto arg##_str = ::toolkit::mINI::Instance()[key];                                                  \
             arg = lam(arg##_str);                                                                                      \
@@ -197,8 +194,7 @@ extern const std::string kBroadcastPlayerCountChanged;
                 RELOAD_KEY(arg##_str, key);                                                                            \
                 arg = lam(arg##_str);                                                                                  \
             });                                                                                                        \
-        });                                                                                                            \
-    } while (0)
+        });                                                                                                            
 
 } // namespace Broadcast
 
