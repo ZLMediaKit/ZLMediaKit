@@ -55,6 +55,13 @@ bool DataPacket::loadFromData(uint8_t *buf, size_t len) {
     return true;
 }
 
+bool DataPacket::reloadPayload(uint8_t *buf, size_t len) {
+    _data->setCapacity(len + HEADER_SIZE);
+    _data->setSize(len + HEADER_SIZE);
+    memcpy(_data->data() + HEADER_SIZE, buf, len);
+    return true;
+}
+
 bool DataPacket::storeToHeader() {
     if (!_data || _data->size() < HEADER_SIZE) {
         WarnL << "data size less " << HEADER_SIZE;
@@ -162,6 +169,12 @@ uint16_t ControlPacket::getControlType(uint8_t *buf, size_t len) {
     return control_type;
 }
 
+uint16_t ControlPacket::getSubType(uint8_t *buf, size_t len) {
+    uint8_t *ptr = buf;
+    uint16_t subtype = loadUint16(ptr + 2);
+    return subtype;
+}
+
 bool ControlPacket::loadHeader() {
     uint8_t *ptr = (uint8_t *)_data->data();
     f = ptr[0] >> 7;
@@ -225,6 +238,20 @@ size_t ControlPacket::size() const {
 uint32_t ControlPacket::getSocketID(uint8_t *buf, size_t len) {
     return loadUint32(buf + 12);
 }
+
+#define XX(name, value, str) {str, name},
+std::map<std::string, SRT_REJECT_REASON> reject_map = {REJ_MAP(XX)};
+#undef XX
+
+std::string getRejectReason(SRT_REJECT_REASON code) {
+    switch (code) {
+#define XX(name, value, str) case name : return str;
+        REJ_MAP(XX)
+#undef XX
+        default : return "invalid";
+    }
+}
+
 std::string HandshakePacket::dump(){
     _StrPrinter printer;
     printer <<"flag:"<< (int)f<<"\r\n";
@@ -324,6 +351,9 @@ bool HandshakePacket::loadExtMessage(uint8_t *buf, size_t len) {
             case HSExt::SRT_CMD_HSREQ:
             case HSExt::SRT_CMD_HSRSP: ext = std::make_shared<HSExtMessage>(); break;
             case HSExt::SRT_CMD_SID: ext = std::make_shared<HSExtStreamID>(); break;
+            case HSExt::SRT_CMD_KMREQ:
+            case HSExt::SRT_CMD_KMRSP: 
+				ext = std::make_shared<HSExtKeyMaterial>(); break;
             default: WarnL << "not support ext " << type; break;
         }
         if (ext) {
@@ -450,6 +480,23 @@ void HandshakePacket::assignPeerIP(struct sockaddr_storage *addr) {
         }
     }
 }
+
+void HandshakePacket::assignPeerIPBE(struct sockaddr_storage *addr) {
+    memset(peer_ip_addr, 0, sizeof(peer_ip_addr) * sizeof(peer_ip_addr[0]));
+    if (addr->ss_family == AF_INET) {
+        struct sockaddr_in *ipv4 = (struct sockaddr_in *)addr;
+        storeUint32(peer_ip_addr, ipv4->sin_addr.s_addr);
+    } else if (addr->ss_family == AF_INET6) {
+        if (IN6_IS_ADDR_V4MAPPED(&((struct sockaddr_in6 *)addr)->sin6_addr)) {
+            struct in_addr addr4;
+            memcpy(&addr4, 12 + (char *)&(((struct sockaddr_in6 *)addr)->sin6_addr), 4);
+            storeUint32(peer_ip_addr, addr4.s_addr);
+        } else {
+            const sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)addr;
+            memcpy(peer_ip_addr, ipv6->sin6_addr.s6_addr, sizeof(peer_ip_addr) * sizeof(peer_ip_addr[0]));
+        }
+     }
+ }
 
 uint32_t HandshakePacket::generateSynCookie(
     struct sockaddr_storage *addr, TimePoint ts, uint32_t current_cookie, int correction) {

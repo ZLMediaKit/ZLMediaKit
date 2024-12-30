@@ -522,7 +522,7 @@
 			"response": []
 		},
 		{
-			"name": "添加rtsp/rtmp/hls拉流代理(addStreamProxy)",
+			"name": "添加rtsp/rtmp/hls/srt拉流代理(addStreamProxy)",
 			"request": {
 				"method": "GET",
 				"header": [],
@@ -663,7 +663,19 @@
 							"value": null,
 							"description": "无人观看时，是否直接关闭(而不是通过on_none_reader hook返回close)",
 							"disabled": true
-						}
+						},
+						{
+							"key": "latency",
+							"value": null,
+							"description": "srt延时, 单位毫秒",
+							"disabled": true
+						},
+						{
+							"key": "passphrase",
+							"value": null,
+							"description": "srt拉流的密码",
+							"disabled": true
+                        }
 					]
 				}
 			},
@@ -753,7 +765,7 @@
 			"response": []
 		},	
 		{
-			"name": "添加rtsp/rtmp推流(addStreamPusherProxy)",
+			"name": "添加rtsp/rtmp/srt推流(addStreamPusherProxy)",
 			"request": {
 				"method": "GET",
 				"header": [],
@@ -815,7 +827,20 @@
 							"value": null,
 							"description": "推流重试次数,不传此参数或传值<=0时，则无限重试",
 							"disabled": true
-						}
+						},
+                        {
+							"key": "latency",
+							"value": null,
+							"description": "srt延时, 单位毫秒",
+							"disabled": true
+						},
+						{
+							"key": "passphrase",
+							"value": null,
+							"description": "srt推流的密码",
+							"disabled": true
+                        }
+
 					]
 				}
 			},

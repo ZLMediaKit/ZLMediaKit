@@ -624,6 +624,10 @@ extern const std::string kProxyUrl;
 // 设置开始rtsp倍速播放  [AUTO-TRANSLATED:5db03cad]
 // Set the start RTSP playback speed
 extern const std::string kRtspSpeed;
+// Set SRT delay
+extern const std::string kLatency;
+// Set SRT PassPhrase
+extern const std::string kPassPhrase;
 } // namespace Client
 } // namespace mediakit
 
