@@ -64,11 +64,20 @@ public:
             output(seq, std::move(packet));
             // 清空连续包列表
             flushPacket();
+	    _pkt_drop_cache_map.clear();
             return;
         }
 
         if (seq < next_seq && !mayLooped(next_seq, seq)) {
-            // 无回环风险, 过滤seq回退包
+            // 无回环风险, 缓存seq回退包
+            _pkt_drop_cache_map.emplace(seq, std::move(packet));
+            if (_pkt_drop_cache_map.size() > _max_distance || _ticker.elapsedTime() > _max_buffer_ms) {
+                // seq回退包太多，可能源端重置seq计数器，这部分数据需要输出
+                forceFlush(next_seq);
+                // 旧的seq计数器的数据清空后把新seq计数器的数据赋值给排序列队
+                _pkt_sort_cache_map = std::move(_pkt_drop_cache_map);
+                popIterator(_pkt_sort_cache_map.begin());
+            }
             return;
         }
         _pkt_sort_cache_map.emplace(seq, std::move(packet));
@@ -107,12 +116,15 @@ private:
     }
 
     bool needForceFlush(SEQ seq) {
-        return !_pkt_sort_cache_map.empty() && (_pkt_sort_cache_map.size() > _max_buffer_size ||
-               distance(seq) > _max_distance || _ticker.elapsedTime() > _max_buffer_ms);
+	return _pkt_sort_cache_map.size() > _max_buffer_size || distance(seq) > _max_distance || _ticker.elapsedTime() > _max_buffer_ms;
     }
+
 
     //外部调用代码确保_pkt_sort_cache_map不为空
     void forceFlush(SEQ next_seq) {
+	if (_pkt_sort_cache_map.empty()) {
+            return;
+        }
         // 寻找距离比next_seq大的最近的seq
         auto it = _pkt_sort_cache_map.lower_bound(next_seq);
         if (it == _pkt_sort_cache_map.end()) {
@@ -177,7 +189,7 @@ private:
 private:
     bool _started = false;
     // 排序缓存最大保存数据长度，单位毫秒
-    size_t _max_buffer_ms = 1000;
+    size_t _max_buffer_ms = 300;
     // 排序缓存最大保存数据个数
     size_t _max_buffer_size = 1024;
     // seq最大跳跃距离
@@ -190,6 +202,8 @@ private:
     SEQ _last_seq_out = 0;
     // pkt排序缓存，根据seq排序
     std::map<SEQ, T> _pkt_sort_cache_map;
+    // 预丢弃包列表
+    std::map<SEQ, T> _pkt_drop_cache_map;
     // 回调
     std::function<void(SEQ seq, T packet)> _cb;
 };
