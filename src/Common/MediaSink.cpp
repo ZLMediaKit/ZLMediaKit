@@ -37,6 +37,10 @@ bool MediaSink::addTrack(const Track::Ptr &track_in) {
         WarnL << "All track is ready, add track too late: " << track_in->getCodecName();
         return false;
     }
+    if (_track_map.size() >= _max_track_size) {
+        WarnL << "Max track size reached: " << _max_track_size << ", add track ignored:" << track_in->getCodecName();
+        return false;
+    }
     // 克隆Track，只拷贝其数据，不拷贝其数据转发关系  [AUTO-TRANSLATED:09edaa31]
     // Clone Track, only copy its data, not its data forwarding relationship
     auto track = track_in->clone();

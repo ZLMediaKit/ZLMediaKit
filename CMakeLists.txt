@@ -463,6 +463,10 @@ if(ENABLE_VIDEOSTACK)
   endif ()
 endif ()
 
+if(ENABLE_SRT)
+  update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_SRT)
+endif()
+
 # ----------------------------------------------------------------------------
 # Solution folders:
 # ----------------------------------------------------------------------------

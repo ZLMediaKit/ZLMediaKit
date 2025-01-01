@@ -68,10 +68,9 @@ public:
             // 记录第一个seq  [AUTO-TRANSLATED:410c831f]
             // Record the first seq
             _started = true;
-            _last_seq_out = seq - 1;
+            _next_seq = seq;
         }
-        auto next_seq = static_cast<SEQ>(_last_seq_out + 1);
-        if (seq == next_seq) {
+        if (seq == _next_seq) {
             // 收到下一个seq  [AUTO-TRANSLATED:44960fea]
             // Receive the next seq
             output(seq, std::move(packet));
@@ -82,14 +81,14 @@ public:
             return;
         }
 
-        if (seq < next_seq && !mayLooped(next_seq, seq)) {
+        if (seq < _next_seq && !mayLooped(_next_seq, seq)) {
             // 无回环风险, 缓存seq回退包  [AUTO-TRANSLATED:4200dd1b]
             // No loop risk, cache seq rollback packets
             _pkt_drop_cache_map.emplace(seq, std::move(packet));
             if (_pkt_drop_cache_map.size() > _max_distance || _ticker.elapsedTime() > _max_buffer_ms) {
                 // seq回退包太多，可能源端重置seq计数器，这部分数据需要输出  [AUTO-TRANSLATED:d31aead7]
                 // Too many seq rollback packets, the source may reset the seq counter, this part of data needs to be output
-                forceFlush(next_seq);
+                forceFlush(_next_seq);
                 // 旧的seq计数器的数据清空后把新seq计数器的数据赋值给排序列队  [AUTO-TRANSLATED:f69f864c]
                 // After clearing the data of the old seq counter, assign the data of the new seq counter to the sorting queue
                 _pkt_sort_cache_map = std::move(_pkt_drop_cache_map);
@@ -100,13 +99,13 @@ public:
         _pkt_sort_cache_map.emplace(seq, std::move(packet));
 
         if (needForceFlush(seq)) {
-            forceFlush(next_seq);
+            forceFlush(_next_seq);
         }
     }
 
     void flush() {
         if (!_pkt_sort_cache_map.empty()) {
-            forceFlush(static_cast<SEQ>(_last_seq_out + 1));
+            forceFlush(_next_seq);
             _pkt_sort_cache_map.clear();
         }
     }
@@ -120,11 +119,10 @@ public:
 private:
     SEQ distance(SEQ seq) {
         SEQ ret;
-        auto next_seq = static_cast<SEQ>(_last_seq_out + 1);
-        if (seq > next_seq) {
-            ret = seq - next_seq;
+        if (seq > _next_seq) {
+            ret = seq - _next_seq;
         } else {
-            ret = next_seq - seq;
+            ret = _next_seq - seq;
         }
         if (ret > SEQ_MAX >> 1) {
             return SEQ_MAX - ret;
@@ -171,9 +169,8 @@ private:
         if (_pkt_sort_cache_map.empty()) {
             return;
         }
-        auto next_seq = static_cast<SEQ>(_last_seq_out + 1);
-        auto it = _pkt_sort_cache_map.lower_bound(next_seq);
-        if (!mayLooped(next_seq, next_seq)) {
+        auto it = _pkt_sort_cache_map.lower_bound(_next_seq);
+        if (!mayLooped(_next_seq, _next_seq)) {
             // 无回环风险, 清空 < next_seq的值  [AUTO-TRANSLATED:10c77bf9]
             // No loop risk, clear values less than next_seq
             it = _pkt_sort_cache_map.erase(_pkt_sort_cache_map.begin(), it);
@@ -182,7 +179,7 @@ private:
         while (it != _pkt_sort_cache_map.end()) {
             // 找到下一个包  [AUTO-TRANSLATED:8e20ab9f]
             // Find the next packet
-            if (it->first == static_cast<SEQ>(_last_seq_out + 1)) {
+            if (it->first == _next_seq) {
                 it = popIterator(it);
                 continue;
             }
@@ -196,14 +193,13 @@ private:
     }
 
     void output(SEQ seq, T packet) {
-        auto next_seq = static_cast<SEQ>(_last_seq_out + 1);
-        if (seq != next_seq) {
-            WarnL << "packet dropped: " << next_seq << " -> " << static_cast<SEQ>(seq - 1)
+        if (seq != _next_seq) {
+            WarnL << "packet dropped: " << _next_seq << " -> " << static_cast<SEQ>(seq - 1)
                   << ", latest seq: " << _latest_seq
                   << ", jitter buffer size: " << _pkt_sort_cache_map.size()
                   << ", jitter buffer ms: " << _ticker.elapsedTime();
         }
-        _last_seq_out = seq;
+        _next_seq = static_cast<SEQ>(seq + 1);
         _cb(seq, std::move(packet));
         _ticker.resetTime();
     }
@@ -227,7 +223,7 @@ private:
     SEQ _latest_seq = 0;
     // 下次应该输出的SEQ  [AUTO-TRANSLATED:e757a4fa]
     // The next SEQ to be output
-    SEQ _last_seq_out = 0;
+    SEQ _next_seq = 0;
     // pkt排序缓存，根据seq排序  [AUTO-TRANSLATED:3787f9a6]
     // pkt sorting cache, sorted by seq
     std::map<SEQ, T> _pkt_sort_cache_map;
