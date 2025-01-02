@@ -1,6 +1,6 @@
 ﻿# MIT License
 #
-# Copyright (c) 2016-2022 The ZLMediaKit project authors. All Rights Reserved.
+# Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -31,6 +31,13 @@ file(GLOB API_SRC_LIST
 set(LINK_LIBRARIES ${MK_LINK_LIBRARIES})
 
 set(COMPILE_DEFINITIONS ${MK_COMPILE_DEFINITIONS})
+
+list(APPEND COMPILE_DEFINITIONS
+  -DCOMMIT_HASH="${COMMIT_HASH}"
+  -DCOMMIT_TIME="${COMMIT_TIME}"
+  -DBRANCH_NAME="${BRANCH_NAME}"
+  -DBUILD_TIME="${BUILD_TIME}"
+)
 
 if (MSVC)
   list(APPEND COMPILE_DEFINITIONS GENERATE_EXPORT)
@@ -76,6 +83,12 @@ install(TARGETS mk_api
   ARCHIVE DESTINATION ${INSTALL_PATH_LIB}
   LIBRARY DESTINATION ${INSTALL_PATH_LIB}
   RUNTIME DESTINATION ${INSTALL_PATH_RUNTIME})
+
+if(MSVC)
+  set(RESOURCE_FILE "../resource.rc")
+  set_source_files_properties(${RESOURCE_FILE} PROPERTIES LANGUAGE RC)
+  target_sources(mk_api PRIVATE ${RESOURCE_FILE})
+endif()
 
 # IOS 跳过测试代码
 if(IOS)

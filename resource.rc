@@ -1,0 +1,56 @@
+﻿#ifdef APSTUDIO_INVOKED
+#error This file is not editable by Visual C++.
+#endif //APSTUDIO_INVOKED
+
+#include "winres.h"
+
+#define ZLM_VERSION 8,0,0,1
+
+#ifdef COMMIT_HASH
+#define COMMIT_HASH_STR COMMIT_HASH
+#else
+#define COMMIT_HASH_STR "Unknown"
+#endif
+
+#ifdef BRANCH_NAME
+#define BRANCH_NAME_STR BRANCH_NAME
+#else
+#define BRANCH_NAME_STR "Unknown"
+#endif
+
+// 拼接 COMMIT_HASH_STR 和 BRANCH_NAME_STR
+#define COMMIT_HASH_BRANCH_STR BRANCH_NAME_STR " - " COMMIT_HASH_STR 
+
+IDI_ICON1 ICON DISCARDABLE "zlm.ico"
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION ZLM_VERSION
+ PRODUCTVERSION ZLM_VERSION
+ FILEFLAGSMASK 0x17L
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x4L
+ FILETYPE 0x2L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "000004b0"
+        BEGIN
+            VALUE "CompanyName", "Applied ZLMediaKit Informatics Software"
+            VALUE "FileDescription", "This file is part of the C++ ZLM"
+            VALUE "FileVersion", COMMIT_HASH_BRANCH_STR
+            VALUE "InternalName", COMMIT_HASH_BRANCH_STR
+            VALUE "LegalCopyright", "Copyright (c) 2016-present The ZLMediaKit project authors"
+            VALUE "ProductName", "https://github.com/ZLMediaKit"
+            VALUE "ProductVersion", COMMIT_HASH_BRANCH_STR
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0, 1200
+    END
+END

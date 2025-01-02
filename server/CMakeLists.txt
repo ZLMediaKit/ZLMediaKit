@@ -1,6 +1,6 @@
 ﻿# MIT License
 #
-# Copyright (c) 2016-2022 The ZLMediaKit project authors. All Rights Reserved.
+# Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +24,13 @@
 file(GLOB MediaServer_SRC_LIST ./*.cpp ./*.h)
 
 set(COMPILE_DEFINITIONS ${MK_COMPILE_DEFINITIONS})
+
+list(APPEND COMPILE_DEFINITIONS
+  -DCOMMIT_HASH="${COMMIT_HASH}"
+  -DCOMMIT_TIME="${COMMIT_TIME}"
+  -DBRANCH_NAME="${BRANCH_NAME}"
+  -DBUILD_TIME="${BUILD_TIME}"
+)
 
 if(ENABLE_SERVER_LIB)
   list(APPEND COMPILE_DEFINITIONS DISABLE_MAIN)
@@ -54,6 +61,15 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
   target_link_libraries(MediaServer -Wl,--start-group ${MK_LINK_LIBRARIES} -Wl,--end-group)
 else()
   target_link_libraries(MediaServer ${MK_LINK_LIBRARIES})
+endif()
+
+if(MSVC)
+  set(RESOURCE_FILE "../resource.rc")
+  set_source_files_properties(${RESOURCE_FILE} PROPERTIES LANGUAGE RC)
+  target_sources(MediaServer PRIVATE ${RESOURCE_FILE})
+else()
+ # Android, IOS, macos ...
+ # clion ,gcc ...
 endif()
 
 install(TARGETS MediaServer DESTINATION ${INSTALL_PATH_RUNTIME})
