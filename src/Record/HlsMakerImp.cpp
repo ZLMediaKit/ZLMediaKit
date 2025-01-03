@@ -104,13 +104,17 @@ void HlsMakerImp::clearCache(bool immediately, bool eof) {
     _segment_file_paths.clear();
 }
 
-/** 写入该目录的init.mp4文件以及m3u8文件 **/
+/** 写入该目录的init.mp4文件以及m3u8文件 *
+ /** Write the init.mp4 file and m3u8 file to this directory *
+ * [AUTO-TRANSLATED:ef690a98]
+ */
 void HlsMakerImp::saveCurrentDir() {
     if (_current_dir.empty() || _current_dir_seg_list.empty()) {
         return;
     }
     if (isFmp4()) {
-        // 写入init.mp4文件
+        // 写入init.mp4文件  [AUTO-TRANSLATED:cc6d6776]
+        // Write the init.mp4 file
         File::saveFile(_current_dir_init_file, _path_prefix + "/" + _current_dir + "init.mp4");
     }
 
@@ -140,7 +144,10 @@ void HlsMakerImp::saveCurrentDir() {
     index_str += ss.str();
     index_str += "#EXT-X-ENDLIST\n";
 
-    /** 写入该目录的m3u8文件 **/
+    /** 写入该目录的m3u8文件 *
+     /** Write the m3u8 file to this directory *
+     * [AUTO-TRANSLATED:5350a9d3]
+     */
     File::saveFile(index_str, _path_prefix + "/" + _current_dir + (isFmp4() ? "vod.fmp4.m3u8" : "vod.m3u8"));
 }
 
@@ -154,11 +161,13 @@ string HlsMakerImp::onOpenSegment(uint64_t index) {
         segment_name = current_dir + strTime + "_" + std::to_string(index) + (isFmp4() ? ".mp4" : ".ts");
         segment_path = _path_prefix + "/" + segment_name;
         if (isLive()) {
-            // 直播
+            // 直播  [AUTO-TRANSLATED:079c0cbc]
+            // Live broadcast
             _segment_file_paths.emplace(index, segment_path);
         }
         if (!isLive() || isKeep()) {
-            // 目录将发生变更，保留ts切片时，每个目录都生成一个m3u8文件
+            // 目录将发生变更，保留ts切片时，每个目录都生成一个m3u8文件  [AUTO-TRANSLATED:8bd19092]
+            // The directory will change, when keeping the ts slices, an m3u8 file is generated for each directory
             if (!_current_dir.empty() && current_dir != _current_dir) {
                 saveCurrentDir();
             }
