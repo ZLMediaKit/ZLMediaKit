@@ -6,7 +6,7 @@
 #include "ZLMVersion.h"
 #define ZLM_VERSION 8,0,0,1
 
-// 拼接 COMMIT_HASH_STR 和 BRANCH_NAME_STR
+// 拼接 BRANCH_NAME 和 COMMIT_HASH ，例如 master - 1c8ed1c
 #define COMMIT_HASH_BRANCH_STR BRANCH_NAME " - " COMMIT_HASH 
 
 IDI_ICON1 ICON DISCARDABLE "www//logo.ico"
