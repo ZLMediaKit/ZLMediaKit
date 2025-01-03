@@ -64,12 +64,12 @@ else()
 endif()
 
 if(MSVC)
-  set(RESOURCE_FILE "../resource.rc")
-  set_source_files_properties(${RESOURCE_FILE} PROPERTIES LANGUAGE RC)
+  set(RESOURCE_FILE "${CMAKE_SOURCE_DIR}/resource.rc")
+  set_source_files_properties(${RESOURCE_FILE} PROPERTIES LANGUAGE RC)  
   target_sources(MediaServer PRIVATE ${RESOURCE_FILE})
 else()
- # Android, IOS, macos ...
- # clion ,gcc ...
+  # Android, IOS, macOS ...
+  # CLion, GCC ...
 endif()
 
 install(TARGETS MediaServer DESTINATION ${INSTALL_PATH_RUNTIME})

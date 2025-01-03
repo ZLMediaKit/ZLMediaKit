@@ -85,7 +85,7 @@ install(TARGETS mk_api
   RUNTIME DESTINATION ${INSTALL_PATH_RUNTIME})
 
 if(MSVC)
-  set(RESOURCE_FILE "../resource.rc")
+  set(RESOURCE_FILE "${CMAKE_SOURCE_DIR}/resource.rc")
   set_source_files_properties(${RESOURCE_FILE} PROPERTIES LANGUAGE RC)
   target_sources(mk_api PRIVATE ${RESOURCE_FILE})
 endif()
