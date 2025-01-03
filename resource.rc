@@ -3,23 +3,11 @@
 #endif //APSTUDIO_INVOKED
 
 #include "winres.h"
-
+#include "ZLMVersion.h"
 #define ZLM_VERSION 8,0,0,1
 
-#ifdef COMMIT_HASH
-#define COMMIT_HASH_STR COMMIT_HASH
-#else
-#define COMMIT_HASH_STR "Unknown"
-#endif
-
-#ifdef BRANCH_NAME
-#define BRANCH_NAME_STR BRANCH_NAME
-#else
-#define BRANCH_NAME_STR "Unknown"
-#endif
-
 // 拼接 COMMIT_HASH_STR 和 BRANCH_NAME_STR
-#define COMMIT_HASH_BRANCH_STR BRANCH_NAME_STR " - " COMMIT_HASH_STR 
+#define COMMIT_HASH_BRANCH_STR BRANCH_NAME " - " COMMIT_HASH 
 
 IDI_ICON1 ICON DISCARDABLE "www//logo.ico"
 
