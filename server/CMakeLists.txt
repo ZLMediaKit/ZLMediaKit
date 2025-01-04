@@ -36,7 +36,7 @@ if(ENABLE_SERVER_LIB)
     PRIVATE ${MK_LINK_LIBRARIES})
   update_cached_list(MK_LINK_LIBRARIES MediaServer)
   return()
-endif()
+e
 
 # IOS 不编译可执行程序，只做依赖库
 if(IOS)
