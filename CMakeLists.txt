@@ -353,6 +353,13 @@ if(ENABLE_FFMPEG)
   endif()
 endif()
 
+id(FF_API_OLD_CHANNEL_LAYOUT)
+  update_cached_list(MK_COMPILE_DEFINITIONS FF_API_OLD_CHANNEL_LAYOUT)
+else()
+  set(FF_API_OLD_CHANNEL_LAYOUT OFF)
+endif()
+
+
 if(ENABLE_MEM_DEBUG)
   update_cached_list(MK_LINK_LIBRARIES
     "-Wl,-wrap,free;-Wl,-wrap,malloc;-Wl,-wrap,realloc;-Wl,-wrap,calloc")
