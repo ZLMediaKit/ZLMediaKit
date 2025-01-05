@@ -420,9 +420,15 @@ FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num, const std:
             case CodecG711A:
             case CodecG711U: {
                 AudioTrack::Ptr audio = static_pointer_cast<AudioTrack>(track);
+
+#if defined(FF_API_OLD_CHANNEL_LAYOUT)
                 _context->channels = audio->getAudioChannel();
-                _context->sample_rate = audio->getAudioSampleRate();
                 _context->channel_layout = av_get_default_channel_layout(_context->channels);
+#else
+                av_channel_layout_default(&_context->ch_layout, audio->getAudioChannel());
+#endif // FF_API_OLD_CHANNEL_LAYOUT
+
+                _context->sample_rate = audio->getAudioSampleRate();
                 break;
             }
             default:
@@ -582,13 +588,20 @@ void FFmpegDecoder::onDecode(const FFmpegFrame::Ptr &frame) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+#if defined(FF_API_OLD_CHANNEL_LAYOUT)
 FFmpegSwr::FFmpegSwr(AVSampleFormat output, int channel, int channel_layout, int samplerate) {
     _target_format = output;
     _target_channels = channel;
     _target_channel_layout = channel_layout;
     _target_samplerate = samplerate;
 }
+#else
+FFmpegSwr::FFmpegSwr(AVSampleFormat output, AVChannelLayout ch_layout, int samplerate) {
+    _target_format = output;
+    _target_ch_layout = ch_layout;
+    _target_samplerate = samplerate;
+}
+#endif  // FF_API_OLD_CHANNEL_LAYOUT
 
 FFmpegSwr::~FFmpegSwr() {
     if (_ctx) {
@@ -598,25 +611,46 @@ FFmpegSwr::~FFmpegSwr() {
 
 FFmpegFrame::Ptr FFmpegSwr::inputFrame(const FFmpegFrame::Ptr &frame) {
     if (frame->get()->format == _target_format &&
-        frame->get()->channels == _target_channels &&
-        frame->get()->channel_layout == (uint64_t)_target_channel_layout &&
+
+#if defined(FF_API_OLD_CHANNEL_LAYOUT)
+        frame->get()->channels == _target_channels && frame->get()->channel_layout == (uint64_t)_target_channel_layout &&
+#else
+        frame->get()->ch_layout.nb_channels == _target_ch_layout.nb_channels && frame->get()->ch_layout.u.mask == _target_ch_layout.u.mask &&
+#endif // FF_API_OLD_CHANNEL_LAYOUT
+
         frame->get()->sample_rate == _target_samplerate) {
         // 不转格式  [AUTO-TRANSLATED:31dc6ae1]
         // Do not convert format
         return frame;
     }
     if (!_ctx) {
+
+#if defined(FF_API_OLD_CHANNEL_LAYOUT)
         _ctx = swr_alloc_set_opts(nullptr, _target_channel_layout, _target_format, _target_samplerate,
                                   frame->get()->channel_layout, (AVSampleFormat) frame->get()->format,
                                   frame->get()->sample_rate, 0, nullptr);
+#else
+        _ctx = swr_alloc();
+        swr_alloc_set_opts2(&_ctx, 
+                    &_target_ch_layout, _target_format, _target_samplerate, 
+                    &frame->get()->ch_layout, (AVSampleFormat)frame->get()->format, frame->get()->sample_rate,
+                     0, nullptr);
+#endif // FF_API_OLD_CHANNEL_LAYOUT
+
         InfoL << "swr_alloc_set_opts:" << av_get_sample_fmt_name((enum AVSampleFormat) frame->get()->format) << " -> "
               << av_get_sample_fmt_name(_target_format);
     }
     if (_ctx) {
         auto out = std::make_shared<FFmpegFrame>();
         out->get()->format = _target_format;
+
+#if defined(FF_API_OLD_CHANNEL_LAYOUT)
         out->get()->channel_layout = _target_channel_layout;
         out->get()->channels = _target_channels;
+#else
+        out->get()->ch_layout = _target_ch_layout;
+#endif // FF_API_OLD_CHANNEL_LAYOUT
+
         out->get()->sample_rate = _target_samplerate;
         out->get()->pkt_dts = frame->get()->pkt_dts;
         out->get()->pts = frame->get()->pts;

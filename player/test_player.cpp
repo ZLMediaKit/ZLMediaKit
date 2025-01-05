@@ -97,7 +97,13 @@ int main(int argc, char *argv[]) {
 
                 decoder->setOnDecode([audio_player, swr](const FFmpegFrame::Ptr &frame) mutable {
                     if (!swr) {
+
+#if defined(FF_API_OLD_CHANNEL_LAYOUT)
                         swr = std::make_shared<FFmpegSwr>(AV_SAMPLE_FMT_S16, frame->get()->channels, frame->get()->channel_layout, frame->get()->sample_rate);
+#else
+                        swr = std::make_shared<FFmpegSwr>(AV_SAMPLE_FMT_S16, frame->get()->ch_layout, frame->get()->sample_rate);
+#endif // FF_API_OLD_CHANNEL_LAYOUT
+
                     }
                     auto pcm = swr->inputFrame(frame);
                     auto len = pcm->get()->nb_samples * pcm->get()->channels * av_get_bytes_per_sample((enum AVSampleFormat)pcm->get()->format);

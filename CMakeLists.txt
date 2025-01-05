@@ -67,8 +67,10 @@ option(USE_SOLUTION_FOLDERS "Enable solution dir supported" ON)
 set(SOCKET_DEFAULT_BUF_SIZE 262144 CACHE STRING "Default buffer size for socket" FORCE)
 
 if("${CMAKE_BUILD_TYPE}" STREQUAL "")
-  set(CMAKE_BUILD_TYPE "Debug")
+set(CMAKE_BUILD_TYPE "Debug")
 endif()
+
+option(FF_API_OLD_CHANNEL_LAYOUT "FF_API_OLD_CHANNEL_LAYOUT" ON)
 
 message(STATUS "编译类型: ${CMAKE_BUILD_TYPE}")
 
@@ -253,6 +255,11 @@ if(ENABLE_FFMPEG)
   if(PKG_CONFIG_FOUND)
     pkg_check_modules(AVUTIL QUIET IMPORTED_TARGET libavutil)
     if(AVUTIL_FOUND)
+      # 解析版本号
+      if (AVCODEC_VERSION VERSION_GREATER_EQUAL "61.0")
+          message(STATUS "libavcodec version is 61.0 or higher (FFmpeg 7.0 or higher)")
+          set(FF_API_OLD_CHANNEL_LAYOUT OFF)
+      endif()
       update_cached_list(MK_LINK_LIBRARIES PkgConfig::AVUTIL)
       message(STATUS "found library: ${AVUTIL_LIBRARIES}")
     endif()
@@ -307,6 +314,11 @@ if(ENABLE_FFMPEG)
       include_directories(SYSTEM ${AVCODEC_INCLUDE_DIR})
       update_cached_list(MK_LINK_LIBRARIES ${AVCODEC_LIBRARIES})
       message(STATUS "found library: ${AVCODEC_LIBRARIES}")
+      # 解析版本号
+      if (AVCODEC_VERSION VERSION_GREATER_EQUAL "61.0")
+        message(STATUS "libavcodec version is 61.0 or higher (FFmpeg 7.0 or higher)")
+        set(FF_API_OLD_CHANNEL_LAYOUT OFF)
+      endif()
     endif()
   endif()
 

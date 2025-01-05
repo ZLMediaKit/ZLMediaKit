@@ -26,6 +26,9 @@ extern "C" {
 #include "libswresample/swresample.h"
 #include "libavutil/audio_fifo.h"
 #include "libavutil/imgutils.h"
+#if !defined(FF_API_OLD_CHANNEL_LAYOUT)
+#include "libavutil/frame.h"
+#endif  // FF_API_OLD_CHANNEL_LAYOUT
 #ifdef __cplusplus
 }
 #endif
@@ -51,13 +54,24 @@ class FFmpegSwr {
 public:
     using Ptr = std::shared_ptr<FFmpegSwr>;
 
+#if defined(FF_API_OLD_CHANNEL_LAYOUT)
     FFmpegSwr(AVSampleFormat output, int channel, int channel_layout, int samplerate);
+#else
+    FFmpegSwr(AVSampleFormat output, AVChannelLayout ch_layout, int samplerate);
+#endif // FF_API_OLD_CHANNEL_LAYOUT
+
     ~FFmpegSwr();
     FFmpegFrame::Ptr inputFrame(const FFmpegFrame::Ptr &frame);
 
 private:
+
+#if defined(FF_API_OLD_CHANNEL_LAYOUT)
     int _target_channels;
     int _target_channel_layout;
+#else
+    AVChannelLayout _target_ch_layout;
+#endif // FF_API_OLD_CHANNEL_LAYOUT
+
     int _target_samplerate;
     AVSampleFormat _target_format;
     SwrContext *_ctx = nullptr;
