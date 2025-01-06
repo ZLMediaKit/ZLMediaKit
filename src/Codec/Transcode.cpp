@@ -317,6 +317,7 @@ static inline const AVCodec *getCodecByName(const std::vector<std::string> &code
 
 FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num, const std::vector<std::string> &codec_name) {
     setupFFmpeg();
+    _frame_pool.setSize(AV_NUM_DATA_POINTERS);
     const AVCodec *codec = nullptr;
     const AVCodec *codec_default = nullptr;
     if (!codec_name.empty()) {
@@ -479,7 +480,7 @@ FFmpegDecoder::~FFmpegDecoder() {
 
 void FFmpegDecoder::flush() {
     while (true) {
-        auto out_frame = std::make_shared<FFmpegFrame>();
+        auto out_frame = _frame_pool.obtain2();
         auto ret = avcodec_receive_frame(_context.get(), out_frame->get());
         if (ret == AVERROR(EAGAIN)) {
             avcodec_send_packet(_context.get(), nullptr);
@@ -521,8 +522,8 @@ bool FFmpegDecoder::inputFrame(const Frame::Ptr &frame, bool live, bool async, b
         return inputFrame_l(frame, live, enable_merge);
     }
 
-    auto frame_cache = Frame::getCacheAbleFrame(frame);
-    return addDecodeTask(frame->keyFrame(), [this, live, frame_cache, enable_merge]() {
+    auto&& frame_cache = Frame::getCacheAbleFrame(frame);
+    return addDecodeTask(frame->keyFrame(), [this, live, frame_cache = move(frame_cache), enable_merge]() {
         inputFrame_l(frame_cache, live, enable_merge);
         // 此处模拟解码太慢导致的主动丢帧  [AUTO-TRANSLATED:fc8bea8a]
         // Here simulates decoding too slow, resulting in active frame dropping
@@ -550,8 +551,8 @@ bool FFmpegDecoder::decodeFrame(const char *data, size_t size, uint64_t dts, uin
         return false;
     }
 
-    while (true) {
-        auto out_frame = std::make_shared<FFmpegFrame>();
+    for (;;) {
+        auto out_frame = _frame_pool.obtain2();
         ret = avcodec_receive_frame(_context.get(), out_frame->get());
         if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
             break;
@@ -588,6 +589,8 @@ FFmpegSwr::FFmpegSwr(AVSampleFormat output, int channel, int channel_layout, int
     _target_channels = channel;
     _target_channel_layout = channel_layout;
     _target_samplerate = samplerate;
+
+    _swr_frame_pool.setSize(AV_NUM_DATA_POINTERS);
 }
 
 FFmpegSwr::~FFmpegSwr() {
@@ -613,7 +616,7 @@ FFmpegFrame::Ptr FFmpegSwr::inputFrame(const FFmpegFrame::Ptr &frame) {
               << av_get_sample_fmt_name(_target_format);
     }
     if (_ctx) {
-        auto out = std::make_shared<FFmpegFrame>();
+        auto out = _swr_frame_pool.obtain2();
         out->get()->format = _target_format;
         out->get()->channel_layout = _target_channel_layout;
         out->get()->channels = _target_channels;
@@ -638,6 +641,8 @@ FFmpegSws::FFmpegSws(AVPixelFormat output, int width, int height) {
     _target_format = output;
     _target_width = width;
     _target_height = height;
+
+    _sws_frame_pool.setSize(AV_NUM_DATA_POINTERS);
 }
 
 FFmpegSws::~FFmpegSws() {
@@ -682,7 +687,7 @@ FFmpegFrame::Ptr FFmpegSws::inputFrame(const FFmpegFrame::Ptr &frame, int &ret, 
         InfoL << "sws_getContext:" << av_get_pix_fmt_name((enum AVPixelFormat) frame->get()->format) << " -> " << av_get_pix_fmt_name(_target_format);
     }
     if (_ctx) {
-        auto out = std::make_shared<FFmpegFrame>();
+        auto out = _sws_frame_pool.obtain2();
         if (!out->get()->data[0]) {
             if (data) {
                 av_image_fill_arrays(out->get()->data, out->get()->linesize, data, _target_format, target_width, target_height, 32);
