@@ -208,8 +208,8 @@ elseif(WIN32)
             # warning C4530: C++ exception handler used, but unwind semantics are not enabled.
             "/EHsc")
     # disable Windows logo
-    list(APPEND COMPILE_OPTIONS_DEFAULT "/nologo")
-    list(APPEND CMAKE_STATIC_LINKER_FLAGS "/nologo")
+   string(REPLACE "/nologo" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+   set(CMAKE_STATIC_LINKER_FLAGS "")
   endif()
 endif()
 

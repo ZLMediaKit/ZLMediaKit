@@ -3,7 +3,11 @@
 #endif //APSTUDIO_INVOKED
 
 #include "winres.h"
+
+#if defined(ENABLE_VERSION)
 #include "ZLMVersion.h"
+#endif
+
 #define ZLM_VERSION 8,0,0,1
 
 // 拼接 BRANCH_NAME 和 COMMIT_HASH ，例如 master - 1c8ed1c
