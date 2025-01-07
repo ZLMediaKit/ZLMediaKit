@@ -29,13 +29,8 @@ static string ffmpeg_err(int errnum) {
     return errbuf;
 }
 
-std::shared_ptr<AVPacket> alloc_av_packet() {
-    auto pkt = std::shared_ptr<AVPacket>(av_packet_alloc(), [](AVPacket *pkt) {
-        av_packet_free(&pkt);
-    });
-    pkt->data = NULL;    // packet data will be allocated by the encoder
-    pkt->size = 0;
-    return pkt;
+std::unique_ptr<AVPacket, void (*)(AVPacket *)> alloc_av_packet() {
+    return std::unique_ptr<AVPacket, void (*)(AVPacket *)>(av_packet_alloc(), [](AVPacket *pkt) { av_packet_free(&pkt); });
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
