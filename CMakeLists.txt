@@ -70,7 +70,7 @@ if("${CMAKE_BUILD_TYPE}" STREQUAL "")
 set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
-option(FF_API_OLD_CHANNEL_LAYOUT "FF_API_OLD_CHANNEL_LAYOUT" ON)
+# option(FF_API_OLD_CHANNEL_LAYOUT "FF_API_OLD_CHANNEL_LAYOUT" ON)
 
 message(STATUS "编译类型: ${CMAKE_BUILD_TYPE}")
 
@@ -265,11 +265,6 @@ if(ENABLE_FFMPEG)
   if(PKG_CONFIG_FOUND)
     pkg_check_modules(AVCODEC QUIET IMPORTED_TARGET libavcodec)
     if(AVCODEC_FOUND)
-      # 解析版本号
-      if (AVCODEC_VERSION VERSION_GREATER_EQUAL "61.0")
-        message(STATUS "libavcodec version is ${AVCODEC_VERSION} or higher (FFmpeg 7.0 or higher)")
-        set(FF_API_OLD_CHANNEL_LAYOUT OFF)
-      endif()
       update_cached_list(MK_LINK_LIBRARIES PkgConfig::AVCODEC)
       message(STATUS "found library: ${AVCODEC_LIBRARIES}")
     endif()
@@ -314,11 +309,6 @@ if(ENABLE_FFMPEG)
       include_directories(SYSTEM ${AVCODEC_INCLUDE_DIR})
       update_cached_list(MK_LINK_LIBRARIES ${AVCODEC_LIBRARIES})
       message(STATUS "found library: ${AVCODEC_LIBRARIES}")
-      # 解析版本号
-      if (AVCODEC_VERSION VERSION_GREATER_EQUAL "61.0")
-        message(STATUS "libavcodec version is ${AVCODEC_VERSION} or higher (FFmpeg 7.0 or higher)")
-        set(FF_API_OLD_CHANNEL_LAYOUT OFF)
-      endif()
     endif()
   endif()
 
@@ -351,12 +341,6 @@ if(ENABLE_FFMPEG)
     set(ENABLE_FFMPEG OFF)
     message(WARNING "ffmpeg related functions not found")
   endif()
-endif()
-
-if(FF_API_OLD_CHANNEL_LAYOUT)
-  update_cached_list(MK_COMPILE_DEFINITIONS FF_API_OLD_CHANNEL_LAYOUT)
-else()
-  set(FF_API_OLD_CHANNEL_LAYOUT OFF)
 endif()
 
 

@@ -98,11 +98,11 @@ int main(int argc, char *argv[]) {
                 decoder->setOnDecode([audio_player, swr](const FFmpegFrame::Ptr &frame) mutable {
                     if (!swr) {
 
-#if defined(FF_API_OLD_CHANNEL_LAYOUT)
-                        swr = std::make_shared<FFmpegSwr>(AV_SAMPLE_FMT_S16, frame->get()->channels, frame->get()->channel_layout, frame->get()->sample_rate);
-#else
+# if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(61, 0, 0)
                         swr = std::make_shared<FFmpegSwr>(AV_SAMPLE_FMT_S16, frame->get()->ch_layout, frame->get()->sample_rate);
-#endif // FF_API_OLD_CHANNEL_LAYOUT
+#else
+                        swr = std::make_shared<FFmpegSwr>(AV_SAMPLE_FMT_S16, frame->get()->channels, frame->get()->channel_layout, frame->get()->sample_rate);
+#endif
 
                     }
                     auto pcm = swr->inputFrame(frame);

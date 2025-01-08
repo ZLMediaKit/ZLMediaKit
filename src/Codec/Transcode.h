@@ -26,9 +26,9 @@ extern "C" {
 #include "libswresample/swresample.h"
 #include "libavutil/audio_fifo.h"
 #include "libavutil/imgutils.h"
-#if !defined(FF_API_OLD_CHANNEL_LAYOUT)
+# if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(61, 0, 0)
 #include "libavutil/frame.h"
-#endif  // FF_API_OLD_CHANNEL_LAYOUT
+#endif
 #ifdef __cplusplus
 }
 #endif
@@ -54,23 +54,23 @@ class FFmpegSwr {
 public:
     using Ptr = std::shared_ptr<FFmpegSwr>;
 
-#if defined(FF_API_OLD_CHANNEL_LAYOUT)
-    FFmpegSwr(AVSampleFormat output, int channel, int channel_layout, int samplerate);
-#else
+# if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(61, 0, 0)
     FFmpegSwr(AVSampleFormat output, AVChannelLayout ch_layout, int samplerate);
-#endif // FF_API_OLD_CHANNEL_LAYOUT
+#else
+    FFmpegSwr(AVSampleFormat output, int channel, int channel_layout, int samplerate);
+#endif
 
     ~FFmpegSwr();
     FFmpegFrame::Ptr inputFrame(const FFmpegFrame::Ptr &frame);
 
 private:
 
-#if defined(FF_API_OLD_CHANNEL_LAYOUT)
+# if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(61, 0, 0)
+    AVChannelLayout _target_ch_layout;
+#else
     int _target_channels;
     int _target_channel_layout;
-#else
-    AVChannelLayout _target_ch_layout;
-#endif // FF_API_OLD_CHANNEL_LAYOUT
+#endif
 
     int _target_samplerate;
     AVSampleFormat _target_format;
