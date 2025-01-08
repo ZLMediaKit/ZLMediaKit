@@ -67,10 +67,8 @@ option(USE_SOLUTION_FOLDERS "Enable solution dir supported" ON)
 set(SOCKET_DEFAULT_BUF_SIZE 262144 CACHE STRING "Default buffer size for socket" FORCE)
 
 if("${CMAKE_BUILD_TYPE}" STREQUAL "")
-set(CMAKE_BUILD_TYPE "Debug")
+  set(CMAKE_BUILD_TYPE "Debug")
 endif()
-
-# option(FF_API_OLD_CHANNEL_LAYOUT "FF_API_OLD_CHANNEL_LAYOUT" ON)
 
 message(STATUS "编译类型: ${CMAKE_BUILD_TYPE}")
 
@@ -342,7 +340,6 @@ if(ENABLE_FFMPEG)
     message(WARNING "ffmpeg related functions not found")
   endif()
 endif()
-
 
 if(ENABLE_MEM_DEBUG)
   update_cached_list(MK_LINK_LIBRARIES

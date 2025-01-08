@@ -26,9 +26,7 @@ extern "C" {
 #include "libswresample/swresample.h"
 #include "libavutil/audio_fifo.h"
 #include "libavutil/imgutils.h"
-# if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(61, 0, 0)
 #include "libavutil/frame.h"
-#endif
 #ifdef __cplusplus
 }
 #endif
