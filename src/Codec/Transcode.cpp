@@ -775,15 +775,14 @@ bool FFmpegDecoder::save_frame_as_jpeg(const FFmpegFrame::Ptr &frame, const char
         return false;
     }
 
-    while (avcodec_receive_packet(jpeg_codec_ctx.get(), pkt.get()) == 0) {
-        FILE *file = fopen(filename, "wb");
-        if (file) {
-            fwrite(pkt.get()->data, pkt.get()->size, 1, file);
-            fclose(file);
-        } else {
-            ErrorL << "Open path failed :" << filename;
-            return false;
+    std::unique_ptr<FILE, void (*)(FILE *)> tmp_save_file_jpg(File::create_file(filename, "wb"), [](FILE *fp) {
+        if (fp) {
+            fclose(fp);
         }
+    });
+
+    while (avcodec_receive_packet(jpeg_codec_ctx.get(), pkt.get()) == 0) {
+        fwrite(pkt.get()->data, pkt.get()->size, 1, tmp_save_file_jpg.get());
     }
 
     sws_freeContext(sws_ctx);
