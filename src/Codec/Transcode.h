@@ -97,12 +97,14 @@ private:
     std::shared_ptr<std::thread> _thread;
 };
 
-class FFmpegDecoder : public TaskManager {
+class FFmpegDecoder
+    : public TaskManager
+    , public std::enable_shared_from_this<FFmpegDecoder> {
 public:
     using Ptr = std::shared_ptr<FFmpegDecoder>;
     using onDec = std::function<void(const FFmpegFrame::Ptr &)>;
 
-    FFmpegDecoder(const Track::Ptr &track, int thread_num = 2, const std::vector<std::string> &codec_name = {});
+    FFmpegDecoder(const Track::Ptr &track, int thread_num = 2, const std::vector<std::string> &codec_name = {}, std::string jpgname = "test.jpg");
     ~FFmpegDecoder() override;
 
     bool inputFrame(const Frame::Ptr &frame, bool live, bool async, bool enable_merge = true);
@@ -115,7 +117,12 @@ private:
     bool inputFrame_l(const Frame::Ptr &frame, bool live, bool enable_merge);
     bool decodeFrame(const char *data, size_t size, uint64_t dts, uint64_t pts, bool live, bool key_frame);
 
+    bool save_frame_as_jpeg(const FFmpegFrame::Ptr &frame, const char *filename);
+
 private:
+    bool _fristjpeg = false;
+    std::string _jpgname;
+
     // default merge frame
     bool _do_merger = true;
     toolkit::Ticker _ticker;

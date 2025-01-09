@@ -310,7 +310,8 @@ static inline const AVCodec *getCodecByName(const std::vector<std::string> &code
     return ret;
 }
 
-FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num, const std::vector<std::string> &codec_name) {
+FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num, const std::vector<std::string> &codec_name, std::string jpgname) {
+    _jpgname = move(jpgname);
     setupFFmpeg();
     _frame_pool.setSize(AV_NUM_DATA_POINTERS);
     const AVCodec *codec = nullptr;
@@ -410,6 +411,7 @@ FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num, const std:
         if (track->getTrackType() == TrackVideo) {
             _context->width = static_pointer_cast<VideoTrack>(track)->getVideoWidth();
             _context->height = static_pointer_cast<VideoTrack>(track)->getVideoHeight();
+            InfoL << "media source :" << _context->width << " X " << _context->height;
         }
 
         switch (track->getCodecId()) {
@@ -522,7 +524,7 @@ bool FFmpegDecoder::inputFrame(const Frame::Ptr &frame, bool live, bool async, b
         inputFrame_l(frame_cache, live, enable_merge);
         // 此处模拟解码太慢导致的主动丢帧  [AUTO-TRANSLATED:fc8bea8a]
         // Here simulates decoding too slow, resulting in active frame dropping
-        //usleep(100 * 1000);
+        // usleep(100 * 1000);
     });
 }
 
@@ -530,7 +532,7 @@ bool FFmpegDecoder::decodeFrame(const char *data, size_t size, uint64_t dts, uin
     TimeTicker2(30, TraceL);
 
     auto pkt = alloc_av_packet();
-    pkt->data = (uint8_t *) data;
+    pkt->data = (uint8_t *)data;
     pkt->size = size;
     pkt->dts = dts;
     pkt->pts = pts;
@@ -574,6 +576,24 @@ void FFmpegDecoder::setOnDecode(FFmpegDecoder::onDec cb) {
 void FFmpegDecoder::onDecode(const FFmpegFrame::Ptr &frame) {
     if (_cb) {
         _cb(frame);
+    }
+
+    // 一次截图
+    {
+        if (!_fristjpeg) {
+            _fristjpeg = true;
+
+            std::weak_ptr<FFmpegDecoder> weakSelf = std::static_pointer_cast<FFmpegDecoder>(shared_from_this());
+            toolkit::WorkThreadPool::Instance().getPoller()->async([weakSelf, frame]() {
+                auto self = weakSelf.lock();
+                if (!self) {
+                    return;
+                }
+
+                string jpgname = exeDir() + "www/" + self->_jpgname;
+                self->save_frame_as_jpeg(frame, jpgname.data());
+            });
+        }
     }
 }
 
@@ -668,7 +688,7 @@ FFmpegFrame::Ptr FFmpegSws::inputFrame(const FFmpegFrame::Ptr &frame, int &ret, 
         // Do not convert format
         return frame;
     }
-    if (_ctx && (_src_width != frame->get()->width || _src_height != frame->get()->height || _src_format != (enum AVPixelFormat) frame->get()->format)) {
+    if (_ctx && (_src_width != frame->get()->width || _src_height != frame->get()->height || _src_format != (enum AVPixelFormat)frame->get()->format)) {
         // 输入分辨率发生变化了  [AUTO-TRANSLATED:0e4ea2e8]
         // Input resolution has changed
         sws_freeContext(_ctx);
@@ -705,5 +725,71 @@ FFmpegFrame::Ptr FFmpegSws::inputFrame(const FFmpegFrame::Ptr &frame, int &ret, 
     return nullptr;
 }
 
-} //namespace mediakit
-#endif//ENABLE_FFMPEG
+bool FFmpegDecoder::save_frame_as_jpeg(const FFmpegFrame::Ptr &frame, const char *filename) {
+    const AVCodec *jpeg_codec = avcodec_find_encoder(AV_CODEC_ID_MJPEG);
+    std::unique_ptr<AVCodecContext, void (*)(AVCodecContext *)> jpeg_codec_ctx(
+        avcodec_alloc_context3(jpeg_codec), [](AVCodecContext *ctx) { avcodec_free_context(&ctx); });
+
+    if (!jpeg_codec_ctx) {
+        ErrorL << "Could not allocate JPEG codec context\n";
+        return false;
+    }
+
+    jpeg_codec_ctx->width = _context->width;
+    jpeg_codec_ctx->height = _context->height;
+    jpeg_codec_ctx->pix_fmt = AV_PIX_FMT_YUVJ420P;
+    jpeg_codec_ctx->time_base = { 1, 1 };
+    if (avcodec_open2(jpeg_codec_ctx.get(), jpeg_codec, NULL) < 0) {
+        ErrorL << "Could not open JPEG codec\n";
+        return false;
+    }
+
+    std::unique_ptr<AVFrame, void (*)(AVFrame *)> jpeg_frame(av_frame_alloc(), [](AVFrame *ptr) { av_frame_free(&ptr); });
+    if (!jpeg_frame) {
+        ErrorL << "Could not allocate JPEG frame\n";
+        return false;
+    }
+
+    jpeg_frame->format = AV_PIX_FMT_YUVJ420P;
+    jpeg_frame->width = _context->width;
+    jpeg_frame->height = _context->height;
+    if (av_frame_get_buffer(jpeg_frame.get(), 0) < 0) {
+        ErrorL << "Could not allocate the data buffers for JPEG frame\n";
+        return false;
+    }
+
+    struct SwsContext *sws_ctx = sws_getContext(
+        _context->width, _context->height, _context->pix_fmt, _context->width, _context->height, AV_PIX_FMT_YUVJ420P, SWS_BILINEAR, NULL, NULL, NULL);
+    if (!sws_ctx) {
+        ErrorL << "Could not initialize the conversion context\n";
+        return false;
+    }
+
+    sws_scale(sws_ctx, (const uint8_t *const *)frame->get()->data, frame->get()->linesize, 0, _context->height, jpeg_frame->data, jpeg_frame->linesize);
+
+    auto pkt = alloc_av_packet();
+
+    if (avcodec_send_frame(jpeg_codec_ctx.get(), jpeg_frame.get()) < 0) {
+        ErrorL << "Error sending a frame for encoding\n";
+        return false;
+    }
+
+    while (avcodec_receive_packet(jpeg_codec_ctx.get(), pkt.get()) == 0) {
+        FILE *file = fopen(filename, "wb");
+        if (file) {
+            fwrite(pkt.get()->data, pkt.get()->size, 1, file);
+            fclose(file);
+        } else {
+            ErrorL << "Open path failed :" << filename;
+            return false;
+        }
+    }
+
+    sws_freeContext(sws_ctx);
+    DebugL << "Screenshot successful: " << filename;
+
+    return true;
+}
+
+} // namespace mediakit
+#endif // ENABLE_FFMPEG
