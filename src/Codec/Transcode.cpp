@@ -726,7 +726,7 @@ FFmpegFrame::Ptr FFmpegSws::inputFrame(const FFmpegFrame::Ptr &frame, int &ret, 
     return nullptr;
 }
 
-bool FFmpegDecoder::save_frame_as_jpeg(const FFmpegFrame::Ptr &frame, const char *filename) {
+bool FFmpegDecoder::save_frame_as_jpeg(const FFmpegFrame::Ptr &frame, const char *filename) const {
     const AVCodec *jpeg_codec = avcodec_find_encoder(AV_CODEC_ID_MJPEG);
     std::unique_ptr<AVCodecContext, void (*)(AVCodecContext *)> jpeg_codec_ctx(
         avcodec_alloc_context3(jpeg_codec), [](AVCodecContext *ctx) { avcodec_free_context(&ctx); });

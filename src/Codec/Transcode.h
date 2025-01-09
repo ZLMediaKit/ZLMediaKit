@@ -117,7 +117,7 @@ private:
     bool inputFrame_l(const Frame::Ptr &frame, bool live, bool enable_merge);
     bool decodeFrame(const char *data, size_t size, uint64_t dts, uint64_t pts, bool live, bool key_frame);
 
-    bool save_frame_as_jpeg(const FFmpegFrame::Ptr &frame, const char *filename);
+    bool save_frame_as_jpeg(const FFmpegFrame::Ptr &frame, const char *filename) const;
 
 private:
     bool _fristjpeg = false;
