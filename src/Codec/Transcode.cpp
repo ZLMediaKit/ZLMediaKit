@@ -16,6 +16,7 @@
 #include "Util/uv_errno.h"
 #include "Transcode.h"
 #include "Common/config.h"
+#include "Thread/WorkThreadPool.h"
 #define MAX_DELAY_SECOND 3
 
 using namespace std;
