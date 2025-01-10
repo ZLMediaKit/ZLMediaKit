@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
@@ -589,9 +589,9 @@ void FFmpegDecoder::onDecode(const FFmpegFrame::Ptr &frame) {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 # if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(61, 0, 0)
-FFmpegSwr::FFmpegSwr(AVSampleFormat output, AVChannelLayout ch_layout, int samplerate) {
+FFmpegSwr::FFmpegSwr(AVSampleFormat output, AVChannelLayout *ch_layout, int samplerate) {
     _target_format = output;
-    _target_ch_layout = ch_layout;
+    av_channel_layout_copy(&_target_ch_layout, ch_layout);
     _target_samplerate = samplerate;
 }
 #else
@@ -607,13 +607,14 @@ FFmpegSwr::~FFmpegSwr() {
     if (_ctx) {
         swr_free(&_ctx);
     }
+    av_channel_layout_uninit(&_target_ch_layout);
 }
 
 FFmpegFrame::Ptr FFmpegSwr::inputFrame(const FFmpegFrame::Ptr &frame) {
     if (frame->get()->format == _target_format &&
 
 # if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(61, 0, 0)
-        frame->get()->ch_layout.nb_channels == _target_ch_layout.nb_channels && frame->get()->ch_layout.u.mask == _target_ch_layout.u.mask &&
+        av_channel_layout_compare(&(frame->get()->ch_layout), &_target_ch_layout) &&
 #else
         frame->get()->channels == _target_channels && frame->get()->channel_layout == (uint64_t)_target_channel_layout &&
 #endif
@@ -646,6 +647,7 @@ FFmpegFrame::Ptr FFmpegSwr::inputFrame(const FFmpegFrame::Ptr &frame) {
 
 # if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(61, 0, 0)
         out->get()->ch_layout = _target_ch_layout;
+        av_channel_layout_copy(&(out->get()->ch_layout), &_target_ch_layout);
 #else
         out->get()->channel_layout = _target_channel_layout;
         out->get()->channels = _target_channels;

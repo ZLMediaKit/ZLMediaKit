@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
@@ -99,7 +99,7 @@ int main(int argc, char *argv[]) {
                     if (!swr) {
 
 # if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(61, 0, 0)
-                        swr = std::make_shared<FFmpegSwr>(AV_SAMPLE_FMT_S16, frame->get()->ch_layout, frame->get()->sample_rate);
+                        swr = std::make_shared<FFmpegSwr>(AV_SAMPLE_FMT_S16, &(frame->get()->ch_layout), frame->get()->sample_rate);
 #else
                         swr = std::make_shared<FFmpegSwr>(AV_SAMPLE_FMT_S16, frame->get()->channels, frame->get()->channel_layout, frame->get()->sample_rate);
 #endif

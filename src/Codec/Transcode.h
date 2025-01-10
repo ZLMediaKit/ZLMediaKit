@@ -53,7 +53,7 @@ public:
     using Ptr = std::shared_ptr<FFmpegSwr>;
 
 # if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(61, 0, 0)
-    FFmpegSwr(AVSampleFormat output, AVChannelLayout ch_layout, int samplerate);
+    FFmpegSwr(AVSampleFormat output, AVChannelLayout *ch_layout, int samplerate);
 #else
     FFmpegSwr(AVSampleFormat output, int channel, int channel_layout, int samplerate);
 #endif
