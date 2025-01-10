@@ -20,6 +20,32 @@ using namespace toolkit;
 
 namespace mediakit {
 
+static bool checkMediaSourceAndUrlMatch(const MediaSource::Ptr &src, const std::string &url) {
+    std::string prefix = findSubString(url.data(), NULL, "://");
+
+    if (strcasecmp("rtsps", prefix.data()) == 0 || strcasecmp("rtsp", prefix.data()) == 0) {
+        auto rtsp_src = std::dynamic_pointer_cast<RtspMediaSource>(src);
+        if (!rtsp_src) {
+            return false;
+        }
+    }
+
+    if (strcasecmp("rtmp", prefix.data()) == 0 || strcasecmp("rtmps", prefix.data()) == 0) {
+        auto rtmp_src = std::dynamic_pointer_cast<RtmpMediaSource>(src);
+        if (!rtmp_src) {
+            return false;
+        }
+    }
+
+    if (strcasecmp("srt", prefix.data()) == 0) {
+        auto ts_src = std::dynamic_pointer_cast<TSMediaSource>(src);
+        if (!ts_src) {
+            return false;
+        }
+    }
+    return true;
+}
+
 PusherBase::Ptr PusherBase::createPusher(const EventPoller::Ptr &in_poller,
                                          const MediaSource::Ptr &src,
                                          const std::string & url) {
@@ -35,6 +61,10 @@ PusherBase::Ptr PusherBase::createPusher(const EventPoller::Ptr &in_poller,
             delete ptr;
         }
     };
+    if (!checkMediaSourceAndUrlMatch(src, url)) {
+        throw std::invalid_argument(" media source (schema) and  push url not match");
+    }
+
     std::string prefix = findSubString(url.data(), NULL, "://");
 
     if (strcasecmp("rtsps",prefix.data()) == 0) {
