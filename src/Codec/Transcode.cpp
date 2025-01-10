@@ -781,6 +781,11 @@ bool FFmpegDecoder::save_frame_as_jpeg(const FFmpegFrame::Ptr &frame, const char
         }
     });
 
+    if (!tmp_save_file_jpg) {
+        ErrorL << "Could not open the file " << filename;
+        return false;
+    }
+
     while (avcodec_receive_packet(jpeg_codec_ctx.get(), pkt.get()) == 0) {
         fwrite(pkt.get()->data, pkt.get()->size, 1, tmp_save_file_jpg.get());
     }
