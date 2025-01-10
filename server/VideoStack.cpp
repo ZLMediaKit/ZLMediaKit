@@ -1,6 +1,6 @@
 ﻿#if defined(ENABLE_VIDEOSTACK) && defined(ENABLE_X264) && defined(ENABLE_FFMPEG)
 #include "VideoStack.h"
-#include "Util/base64.h"
+#include "Util/MD5.h"
 #include "Codec/Transcode.h"
 #include "Common/Device.h"
 #include "Util/logger.h"
@@ -21,6 +21,8 @@
 #define RGB_TO_Y(R, G, B) (((47 * (R) + 157 * (G) + 16 * (B) + 128) >> 8) + 16)
 #define RGB_TO_U(R, G, B) (((-26 * (R) - 87 * (G) + 112 * (B) + 128) >> 8) + 128)
 #define RGB_TO_V(R, G, B) (((112 * (R) - 102 * (G) - 10 * (B) + 128) >> 8) + 128)
+
+using namespace toolkit;
 
 INSTANCE_IMP(VideoStackManager)
 
@@ -152,9 +154,10 @@ void StackPlayer::play() {
         // auto audioTrack = std::dynamic_pointer_cast<mediakit::AudioTrack>(strongPlayer->getTrack(mediakit::TrackAudio, false));
 
         if (videoTrack) {
+            // 如果每次不同 可以加个时间戳 time(NULL);
+            auto jpgname = MD5(url).hexdigest() + ".jpg";  
             // TODO:添加使用显卡还是cpu解码的判断逻辑  [AUTO-TRANSLATED:44bef37a]
             // TODO: Add logic to determine whether to use GPU or CPU decoding
-            auto jpgname = encodeBase64(url) + ".jpg"; // Time(null);
             auto decoder = std::make_shared<mediakit::FFmpegDecoder>(videoTrack, 0, std::vector<std::string> { "h264", "hevc" }, jpgname);
 
             decoder->setOnDecode([weakSelf](const mediakit::FFmpegFrame::Ptr& frame) mutable {
