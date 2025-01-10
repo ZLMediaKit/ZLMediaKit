@@ -581,7 +581,7 @@ void FFmpegDecoder::onDecode(const FFmpegFrame::Ptr &frame) {
 
     // 一次截图
     {
-        if (!_fristjpeg) {
+        if (!_fristjpeg && !_jpgname.empty()) {
             _fristjpeg = true;
 
             std::weak_ptr<FFmpegDecoder> weakSelf = std::static_pointer_cast<FFmpegDecoder>(shared_from_this());

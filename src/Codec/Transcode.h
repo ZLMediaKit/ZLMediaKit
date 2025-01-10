@@ -104,7 +104,7 @@ public:
     using Ptr = std::shared_ptr<FFmpegDecoder>;
     using onDec = std::function<void(const FFmpegFrame::Ptr &)>;
 
-    FFmpegDecoder(const Track::Ptr &track, int thread_num = 2, const std::vector<std::string> &codec_name = {}, std::string jpgname = "test.jpg");
+    FFmpegDecoder(const Track::Ptr &track, int thread_num = 2, const std::vector<std::string> &codec_name = {}, std::string jpgname = "");
     ~FFmpegDecoder() override;
 
     bool inputFrame(const Frame::Ptr &frame, bool live, bool async, bool enable_merge = true);
