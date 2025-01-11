@@ -97,9 +97,7 @@ private:
     std::shared_ptr<std::thread> _thread;
 };
 
-class FFmpegDecoder
-    : public TaskManager
-    , public std::enable_shared_from_this<FFmpegDecoder> {
+class FFmpegDecoder: public TaskManager {
 public:
     using Ptr = std::shared_ptr<FFmpegDecoder>;
     using onDec = std::function<void(const FFmpegFrame::Ptr &)>;
@@ -117,7 +115,7 @@ private:
     bool inputFrame_l(const Frame::Ptr &frame, bool live, bool enable_merge);
     bool decodeFrame(const char *data, size_t size, uint64_t dts, uint64_t pts, bool live, bool key_frame);
 
-    bool save_frame_as_jpeg(const FFmpegFrame::Ptr &frame, const char *filename) const;
+    static bool save_frame_as_jpeg(const FFmpegFrame::Ptr &frame, const char *filename);
 
 private:
     bool _fristjpeg = false;

@@ -520,8 +520,8 @@ bool FFmpegDecoder::inputFrame(const Frame::Ptr &frame, bool live, bool async, b
         return inputFrame_l(frame, live, enable_merge);
     }
 
-    auto&& frame_cache = Frame::getCacheAbleFrame(frame);
-    return addDecodeTask(frame->keyFrame(), [this, live, frame_cache = move(frame_cache), enable_merge]() {
+    auto frame_cache = Frame::getCacheAbleFrame(frame);
+    return addDecodeTask(frame->keyFrame(), [this, live, frame_cache, enable_merge]() {
         inputFrame_l(frame_cache, live, enable_merge);
         // 此处模拟解码太慢导致的主动丢帧  [AUTO-TRANSLATED:fc8bea8a]
         // Here simulates decoding too slow, resulting in active frame dropping
@@ -581,18 +581,12 @@ void FFmpegDecoder::onDecode(const FFmpegFrame::Ptr &frame) {
 
     // 一次截图
     {
-        if (!_fristjpeg && !_jpgname.empty()) {
-            _fristjpeg = true;
-
-            std::weak_ptr<FFmpegDecoder> weakSelf = std::static_pointer_cast<FFmpegDecoder>(shared_from_this());
-            toolkit::WorkThreadPool::Instance().getPoller()->async([weakSelf, frame]() {
-                auto self = weakSelf.lock();
-                if (!self) {
-                    return;
-                }
-
-                string jpgname = exeDir() + "www/" + self->_jpgname;
-                self->save_frame_as_jpeg(frame, jpgname.data());
+        string tmp_jpgename = _jpgname;
+        if (!_fristjpeg && !tmp_jpgename.empty()) {
+            _fristjpeg = true;            
+            toolkit::WorkThreadPool::Instance().getPoller()->async([tmp_jpgename, frame]() {
+                string jpgname = exeDir() + "www/" + tmp_jpgename;
+                save_frame_as_jpeg(frame, jpgname.data());
             });
         }
     }
@@ -726,7 +720,7 @@ FFmpegFrame::Ptr FFmpegSws::inputFrame(const FFmpegFrame::Ptr &frame, int &ret, 
     return nullptr;
 }
 
-bool FFmpegDecoder::save_frame_as_jpeg(const FFmpegFrame::Ptr &frame, const char *filename) const {
+bool FFmpegDecoder::save_frame_as_jpeg(const FFmpegFrame::Ptr &frame, const char *filename) {
     const AVCodec *jpeg_codec = avcodec_find_encoder(AV_CODEC_ID_MJPEG);
     std::unique_ptr<AVCodecContext, void (*)(AVCodecContext *)> jpeg_codec_ctx(
         avcodec_alloc_context3(jpeg_codec), [](AVCodecContext *ctx) { avcodec_free_context(&ctx); });
@@ -736,8 +730,8 @@ bool FFmpegDecoder::save_frame_as_jpeg(const FFmpegFrame::Ptr &frame, const char
         return false;
     }
 
-    jpeg_codec_ctx->width = _context->width;
-    jpeg_codec_ctx->height = _context->height;
+    jpeg_codec_ctx->width = frame->get()->width;
+    jpeg_codec_ctx->height = frame->get()->height;
     jpeg_codec_ctx->pix_fmt = AV_PIX_FMT_YUVJ420P;
     jpeg_codec_ctx->time_base = { 1, 1 };
     if (avcodec_open2(jpeg_codec_ctx.get(), jpeg_codec, NULL) < 0) {
@@ -752,21 +746,23 @@ bool FFmpegDecoder::save_frame_as_jpeg(const FFmpegFrame::Ptr &frame, const char
     }
 
     jpeg_frame->format = AV_PIX_FMT_YUVJ420P;
-    jpeg_frame->width = _context->width;
-    jpeg_frame->height = _context->height;
+    jpeg_frame->width = frame->get()->width;
+    jpeg_frame->height = frame->get()->height;
     if (av_frame_get_buffer(jpeg_frame.get(), 0) < 0) {
         ErrorL << "Could not allocate the data buffers for JPEG frame\n";
         return false;
     }
 
     struct SwsContext *sws_ctx = sws_getContext(
-        _context->width, _context->height, _context->pix_fmt, _context->width, _context->height, AV_PIX_FMT_YUVJ420P, SWS_BILINEAR, NULL, NULL, NULL);
+        jpeg_frame->width, jpeg_frame->height, (enum AVPixelFormat)frame->get()->format, jpeg_frame->width, jpeg_frame->height, AV_PIX_FMT_YUVJ420P,
+        SWS_BILINEAR, NULL, NULL, NULL);
+
     if (!sws_ctx) {
         ErrorL << "Could not initialize the conversion context\n";
         return false;
     }
 
-    sws_scale(sws_ctx, (const uint8_t *const *)frame->get()->data, frame->get()->linesize, 0, _context->height, jpeg_frame->data, jpeg_frame->linesize);
+    sws_scale(sws_ctx, (const uint8_t *const *)frame->get()->data, frame->get()->linesize, 0, jpeg_frame->height, jpeg_frame->data, jpeg_frame->linesize);
 
     auto pkt = alloc_av_packet();
 
@@ -789,6 +785,9 @@ bool FFmpegDecoder::save_frame_as_jpeg(const FFmpegFrame::Ptr &frame, const char
     while (avcodec_receive_packet(jpeg_codec_ctx.get(), pkt.get()) == 0) {
         fwrite(pkt.get()->data, pkt.get()->size, 1, tmp_save_file_jpg.get());
     }
+
+    fflush(tmp_save_file_jpg.get());
+    // tmp_save_file_jpg = nullptr;
 
     sws_freeContext(sws_ctx);
     DebugL << "Screenshot successful: " << filename;

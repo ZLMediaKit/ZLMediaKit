@@ -1,6 +1,5 @@
 ﻿#if defined(ENABLE_VIDEOSTACK) && defined(ENABLE_X264) && defined(ENABLE_FFMPEG)
 #include "VideoStack.h"
-#include "Util/MD5.h"
 #include "Codec/Transcode.h"
 #include "Common/Device.h"
 #include "Util/logger.h"
@@ -155,10 +154,9 @@ void StackPlayer::play() {
 
         if (videoTrack) {
             // 如果每次不同 可以加个时间戳 time(NULL);
-            auto jpgname = MD5(url).hexdigest() + ".jpg";  
             // TODO:添加使用显卡还是cpu解码的判断逻辑  [AUTO-TRANSLATED:44bef37a]
             // TODO: Add logic to determine whether to use GPU or CPU decoding
-            auto decoder = std::make_shared<mediakit::FFmpegDecoder>(videoTrack, 0, std::vector<std::string> { "h264", "hevc" }, jpgname);
+            auto decoder = std::make_shared<mediakit::FFmpegDecoder>(videoTrack, 0, std::vector<std::string> { "h264", "hevc" });
 
             decoder->setOnDecode([weakSelf](const mediakit::FFmpegFrame::Ptr& frame) mutable {
                 auto self = weakSelf.lock();
