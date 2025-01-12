@@ -26,9 +26,12 @@ extern "C" {
 #include "libswresample/swresample.h"
 #include "libavutil/audio_fifo.h"
 #include "libavutil/imgutils.h"
+#include "libavutil/frame.h"
 #ifdef __cplusplus
 }
 #endif
+
+#define FF_CODEC_VER_7_1 AV_VERSION_INT(61, 0, 0)
 
 namespace mediakit {
 
@@ -51,13 +54,24 @@ class FFmpegSwr {
 public:
     using Ptr = std::shared_ptr<FFmpegSwr>;
 
+# if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
+    FFmpegSwr(AVSampleFormat output, AVChannelLayout *ch_layout, int samplerate);
+#else
     FFmpegSwr(AVSampleFormat output, int channel, int channel_layout, int samplerate);
+#endif
+
     ~FFmpegSwr();
     FFmpegFrame::Ptr inputFrame(const FFmpegFrame::Ptr &frame);
 
 private:
+
+# if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
+    AVChannelLayout _target_ch_layout;
+#else
     int _target_channels;
     int _target_channel_layout;
+#endif
+
     int _target_samplerate;
     AVSampleFormat _target_format;
     SwrContext *_ctx = nullptr;

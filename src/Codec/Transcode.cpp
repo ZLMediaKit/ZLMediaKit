@@ -420,9 +420,15 @@ FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num, const std:
             case CodecG711A:
             case CodecG711U: {
                 AudioTrack::Ptr audio = static_pointer_cast<AudioTrack>(track);
+
+#if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
+                av_channel_layout_default(&_context->ch_layout, audio->getAudioChannel());
+#else
                 _context->channels = audio->getAudioChannel();
-                _context->sample_rate = audio->getAudioSampleRate();
                 _context->channel_layout = av_get_default_channel_layout(_context->channels);
+#endif
+
+                _context->sample_rate = audio->getAudioSampleRate();
                 break;
             }
             default:
@@ -582,41 +588,73 @@ void FFmpegDecoder::onDecode(const FFmpegFrame::Ptr &frame) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+#if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
+FFmpegSwr::FFmpegSwr(AVSampleFormat output, AVChannelLayout *ch_layout, int samplerate) {
+    _target_format = output;
+    av_channel_layout_copy(&_target_ch_layout, ch_layout);
+    _target_samplerate = samplerate;
+}
+#else
 FFmpegSwr::FFmpegSwr(AVSampleFormat output, int channel, int channel_layout, int samplerate) {
     _target_format = output;
     _target_channels = channel;
     _target_channel_layout = channel_layout;
     _target_samplerate = samplerate;
 }
+#endif
 
 FFmpegSwr::~FFmpegSwr() {
     if (_ctx) {
         swr_free(&_ctx);
     }
+#if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
+    av_channel_layout_uninit(&_target_ch_layout);
+#endif
 }
 
 FFmpegFrame::Ptr FFmpegSwr::inputFrame(const FFmpegFrame::Ptr &frame) {
     if (frame->get()->format == _target_format &&
-        frame->get()->channels == _target_channels &&
-        frame->get()->channel_layout == (uint64_t)_target_channel_layout &&
+
+#if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
+        !av_channel_layout_compare(&(frame->get()->ch_layout), &_target_ch_layout) &&
+#else
+        frame->get()->channels == _target_channels && frame->get()->channel_layout == (uint64_t)_target_channel_layout &&
+#endif
+
         frame->get()->sample_rate == _target_samplerate) {
         // 不转格式  [AUTO-TRANSLATED:31dc6ae1]
         // Do not convert format
         return frame;
     }
     if (!_ctx) {
+
+#if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
+        _ctx = swr_alloc();
+        swr_alloc_set_opts2(&_ctx, 
+                    &_target_ch_layout, _target_format, _target_samplerate, 
+                    &frame->get()->ch_layout, (AVSampleFormat)frame->get()->format, frame->get()->sample_rate,
+                     0, nullptr);
+#else
         _ctx = swr_alloc_set_opts(nullptr, _target_channel_layout, _target_format, _target_samplerate,
                                   frame->get()->channel_layout, (AVSampleFormat) frame->get()->format,
                                   frame->get()->sample_rate, 0, nullptr);
+#endif
+
         InfoL << "swr_alloc_set_opts:" << av_get_sample_fmt_name((enum AVSampleFormat) frame->get()->format) << " -> "
               << av_get_sample_fmt_name(_target_format);
     }
     if (_ctx) {
         auto out = std::make_shared<FFmpegFrame>();
         out->get()->format = _target_format;
+
+#if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
+        out->get()->ch_layout = _target_ch_layout;
+        av_channel_layout_copy(&(out->get()->ch_layout), &_target_ch_layout);
+#else
         out->get()->channel_layout = _target_channel_layout;
         out->get()->channels = _target_channels;
+#endif
+
         out->get()->sample_rate = _target_samplerate;
         out->get()->pkt_dts = frame->get()->pkt_dts;
         out->get()->pts = frame->get()->pts;
