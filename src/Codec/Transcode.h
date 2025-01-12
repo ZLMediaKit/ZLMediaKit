@@ -31,6 +31,8 @@ extern "C" {
 }
 #endif
 
+#define FF_CODEC_VER_7_1 AV_VERSION_INT(61, 0, 0)
+
 namespace mediakit {
 
 class FFmpegFrame {
@@ -52,7 +54,7 @@ class FFmpegSwr {
 public:
     using Ptr = std::shared_ptr<FFmpegSwr>;
 
-# if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(61, 0, 0)
+# if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
     FFmpegSwr(AVSampleFormat output, AVChannelLayout *ch_layout, int samplerate);
 #else
     FFmpegSwr(AVSampleFormat output, int channel, int channel_layout, int samplerate);
@@ -63,7 +65,7 @@ public:
 
 private:
 
-# if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(61, 0, 0)
+# if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
     AVChannelLayout _target_ch_layout;
 #else
     int _target_channels;

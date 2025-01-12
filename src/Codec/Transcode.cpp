@@ -421,7 +421,7 @@ FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num, const std:
             case CodecG711U: {
                 AudioTrack::Ptr audio = static_pointer_cast<AudioTrack>(track);
 
-# if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(61, 0, 0)
+#if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
                 av_channel_layout_default(&_context->ch_layout, audio->getAudioChannel());
 #else
                 _context->channels = audio->getAudioChannel();
@@ -588,7 +588,7 @@ void FFmpegDecoder::onDecode(const FFmpegFrame::Ptr &frame) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-# if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(61, 0, 0)
+#if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
 FFmpegSwr::FFmpegSwr(AVSampleFormat output, AVChannelLayout *ch_layout, int samplerate) {
     _target_format = output;
     av_channel_layout_copy(&_target_ch_layout, ch_layout);
@@ -607,14 +607,16 @@ FFmpegSwr::~FFmpegSwr() {
     if (_ctx) {
         swr_free(&_ctx);
     }
+#if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
     av_channel_layout_uninit(&_target_ch_layout);
+#endif
 }
 
 FFmpegFrame::Ptr FFmpegSwr::inputFrame(const FFmpegFrame::Ptr &frame) {
     if (frame->get()->format == _target_format &&
 
-# if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(61, 0, 0)
-        av_channel_layout_compare(&(frame->get()->ch_layout), &_target_ch_layout) &&
+#if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
+        !av_channel_layout_compare(&(frame->get()->ch_layout), &_target_ch_layout) &&
 #else
         frame->get()->channels == _target_channels && frame->get()->channel_layout == (uint64_t)_target_channel_layout &&
 #endif
@@ -626,7 +628,7 @@ FFmpegFrame::Ptr FFmpegSwr::inputFrame(const FFmpegFrame::Ptr &frame) {
     }
     if (!_ctx) {
 
-# if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(61, 0, 0)
+#if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
         _ctx = swr_alloc();
         swr_alloc_set_opts2(&_ctx, 
                     &_target_ch_layout, _target_format, _target_samplerate, 
@@ -645,7 +647,7 @@ FFmpegFrame::Ptr FFmpegSwr::inputFrame(const FFmpegFrame::Ptr &frame) {
         auto out = std::make_shared<FFmpegFrame>();
         out->get()->format = _target_format;
 
-# if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(61, 0, 0)
+#if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
         out->get()->ch_layout = _target_ch_layout;
         av_channel_layout_copy(&(out->get()->ch_layout), &_target_ch_layout);
 #else
