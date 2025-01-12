@@ -97,7 +97,7 @@ private:
     std::shared_ptr<std::thread> _thread;
 };
 
-class FFmpegDecoder: public TaskManager {
+class FFmpegDecoder : public TaskManager {
 public:
     using Ptr = std::shared_ptr<FFmpegDecoder>;
     using onDec = std::function<void(const FFmpegFrame::Ptr &)>;
@@ -153,7 +153,7 @@ private:
 };
 
 class FFmpegJpegEncoder {
-public: 
+public:
     using Ptr = std::shared_ptr<FFmpegJpegEncoder>;
 
     static bool save_frame_as_jpeg(const FFmpegFrame::Ptr &frame, const char *filename);

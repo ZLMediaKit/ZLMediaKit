@@ -583,7 +583,7 @@ void FFmpegDecoder::onDecode(const FFmpegFrame::Ptr &frame) {
     {
         string tmp_jpgename = _jpgname;
         if (!_fristjpeg && !tmp_jpgename.empty()) {
-            _fristjpeg = true;            
+            _fristjpeg = true;
             toolkit::WorkThreadPool::Instance().getPoller()->async([tmp_jpgename, frame]() {
                 string jpgname = exeDir() + "www/" + tmp_jpgename;
                 FFmpegJpegEncoder::save_frame_as_jpeg(frame, jpgname.data());
@@ -794,6 +794,5 @@ bool FFmpegJpegEncoder::save_frame_as_jpeg(const FFmpegFrame::Ptr &frame, const 
 
     return true;
 }
-
 } // namespace mediakit
 #endif // ENABLE_FFMPEG
