@@ -586,7 +586,7 @@ void FFmpegDecoder::onDecode(const FFmpegFrame::Ptr &frame) {
             _fristjpeg = true;            
             toolkit::WorkThreadPool::Instance().getPoller()->async([tmp_jpgename, frame]() {
                 string jpgname = exeDir() + "www/" + tmp_jpgename;
-                save_frame_as_jpeg(frame, jpgname.data());
+                FFmpegJpegEncoder::save_frame_as_jpeg(frame, jpgname.data());
             });
         }
     }
@@ -720,7 +720,7 @@ FFmpegFrame::Ptr FFmpegSws::inputFrame(const FFmpegFrame::Ptr &frame, int &ret, 
     return nullptr;
 }
 
-bool FFmpegDecoder::save_frame_as_jpeg(const FFmpegFrame::Ptr &frame, const char *filename) {
+bool FFmpegJpegEncoder::save_frame_as_jpeg(const FFmpegFrame::Ptr &frame, const char *filename) {
     const AVCodec *jpeg_codec = avcodec_find_encoder(AV_CODEC_ID_MJPEG);
     std::unique_ptr<AVCodecContext, void (*)(AVCodecContext *)> jpeg_codec_ctx(
         avcodec_alloc_context3(jpeg_codec), [](AVCodecContext *ctx) { avcodec_free_context(&ctx); });

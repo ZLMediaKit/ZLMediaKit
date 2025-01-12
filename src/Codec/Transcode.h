@@ -115,7 +115,6 @@ private:
     bool inputFrame_l(const Frame::Ptr &frame, bool live, bool enable_merge);
     bool decodeFrame(const char *data, size_t size, uint64_t dts, uint64_t pts, bool live, bool key_frame);
 
-    static bool save_frame_as_jpeg(const FFmpegFrame::Ptr &frame, const char *filename);
 
 private:
     bool _fristjpeg = false;
@@ -151,6 +150,13 @@ private:
     AVPixelFormat _src_format = AV_PIX_FMT_NONE;
     AVPixelFormat _target_format = AV_PIX_FMT_NONE;
     toolkit::ResourcePool<FFmpegFrame> _sws_frame_pool;
+};
+
+class FFmpegJpegEncoder {
+public: 
+    using Ptr = std::shared_ptr<FFmpegJpegEncoder>;
+
+    static bool save_frame_as_jpeg(const FFmpegFrame::Ptr &frame, const char *filename);
 };
 
 }//namespace mediakit
