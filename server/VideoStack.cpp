@@ -21,8 +21,6 @@
 #define RGB_TO_U(R, G, B) (((-26 * (R) - 87 * (G) + 112 * (B) + 128) >> 8) + 128)
 #define RGB_TO_V(R, G, B) (((112 * (R) - 102 * (G) - 10 * (B) + 128) >> 8) + 128)
 
-using namespace toolkit;
-
 INSTANCE_IMP(VideoStackManager)
 
 Param::~Param() {

@@ -67,6 +67,10 @@
 #include "VideoStack.h"
 #endif
 
+#if defined(ENABLE_FFMPEG)
+#include "Codec/Transcode.h"
+#endif
+
 using namespace std;
 using namespace Json;
 using namespace toolkit;
@@ -332,7 +336,7 @@ public:
         return _map.erase(key);
     }
 
-    size_t size() { 
+    size_t size() {
         std::lock_guard<std::recursive_mutex> lck(_mtx);
         return _map.size();
     }
@@ -346,7 +350,7 @@ public:
         return it->second;
     }
 
-    void for_each(const std::function<void(const std::string&, const Pointer&)>& cb) {
+    void for_each(const std::function<void(const std::string &, const Pointer &)> &cb) {
         std::lock_guard<std::recursive_mutex> lck(_mtx);
         auto it = _map.begin();
         while (it != _map.end()) {
@@ -355,8 +359,8 @@ public:
         }
     }
 
-    template<class ..._Args>
-    Pointer make(const std::string &key, _Args&& ...__args) {
+    template <class... _Args>
+    Pointer make(const std::string &key, _Args &&...__args) {
         // assert(!find(key));
 
         auto server = std::make_shared<Type>(std::forward<_Args>(__args)...);
@@ -366,8 +370,8 @@ public:
         return server;
     }
 
-    template<class ..._Args>
-    Pointer makeWithAction(const std::string &key, function<void(Pointer)> action, _Args&& ...__args) {
+    template <class... _Args>
+    Pointer makeWithAction(const std::string &key, function<void(Pointer)> action, _Args &&...__args) {
         // assert(!find(key));
 
         auto server = std::make_shared<Type>(std::forward<_Args>(__args)...);
@@ -376,6 +380,21 @@ public:
         auto it = _map.emplace(key, server);
         assert(it.second);
         return server;
+    }
+
+    template <class... _Args>
+    Pointer move(const std::string &key, bool check, _Args &&...__args) {
+        if (check) {
+            Pointer p = find(key);
+            if (p) {
+                return p;
+            }
+        }
+
+        std::lock_guard<std::recursive_mutex> lck(_mtx);
+        auto it = _map.emplace(key, std::forward<_Args>(__args)...);
+        assert(it.second);
+        return it.first->second;
     }
 };
 
@@ -397,6 +416,9 @@ static ServiceController<FFmpegSource> s_ffmpeg_src;
 static ServiceController<RtpServer> s_rtp_server;
 #endif
 
+#if defined(ENABLE_FFMPEG)
+static ServiceController<MediaPlayer> s_media_jpgs;
+#endif
 
 static inline string getPusherKey(const string &schema, const string &vhost, const string &app, const string &stream,
                                   const string &dst_url) {
@@ -2062,6 +2084,100 @@ void installWebApi() {
         });
     });
 
+#if defined(ENABLE_FFMPEG)
+    // http://127.0.0.1:80/index/api/ScreenShot?url=xxx
+    api_regist("/index/api/ScreenShot", [](API_ARGS_MAP_ASYNC) {
+        CHECK_SECRET();
+        CHECK_ARGS("url");
+
+        string inurl = allArgs["url"];
+        bool oneshot = false;
+        string msg("");
+        string timeout_sec = allArgs["timeout"];
+        int ncount = 0;
+
+        if (timeout_sec.empty()) {
+            timeout_sec = "30000";
+        }
+
+        int64_t t = time(nullptr);
+        auto jpgname = exeDir() + "www/" + to_string(t) + "-" + makeRandStr(8, true) + ".jpeg";
+
+        auto it = s_media_jpgs.find(inurl);
+        if (it) {
+            throw ApiRetException("Screenshot is in progress", API::InvalidArgs);
+        }
+
+        auto player = std::make_shared<MediaPlayer>();
+        (*player)[mediakit::Client::kTimeoutMS] = timeout_sec;
+        weak_ptr<MediaPlayer> weakPlayer = player;
+
+        player->setOnPlayResult([invoker, allArgs, headerOut, weakPlayer, jpgname, inurl, oneshot, msg, ncount](const SockException &ex) mutable {
+            InfoL << "OnPlayResult:" << ex.what();
+            auto strongPlayer = weakPlayer.lock();
+            if (ex || !strongPlayer) {
+                Value v;
+                v["code"] = API::AuthFailed;
+                v["msg"] = ex.what();
+                invoker(200, headerOut, v.toStyledString());
+                s_media_jpgs.erase(inurl);
+                return;
+            }
+
+            auto videoTrack = dynamic_pointer_cast<VideoTrack>(strongPlayer->getTrack(TrackVideo, false));
+
+            if (videoTrack) {
+                auto decoder = std::make_shared<FFmpegDecoder>(videoTrack);
+                decoder->setOnDecode([invoker, allArgs, headerOut, jpgname, inurl, oneshot, msg, ncount](const FFmpegFrame::Ptr &yuv) mutable {
+                    if (!oneshot) {
+                        auto ret = FFmpegJpegEncoder::save_frame_as_jpeg(yuv, jpgname.data());
+                        tie(oneshot, msg) = ret;
+
+                        if (oneshot) {
+                            s_media_jpgs.erase(inurl);
+                            responseSnap(jpgname, allArgs.parser.getHeader(), invoker);
+
+                            // 60秒后删除
+                            WorkThreadPool::Instance().getPoller()->doDelayTask(1000 * 60, [jpgname, inurl]() {
+                                auto f = File::delete_file(jpgname);
+                                return 0;
+                            });
+                        } else {
+                            ++ncount;
+                        }
+
+                        // 超过失败次数
+                        if (ncount > 10) {
+                            ncount = 0;
+                            s_media_jpgs.erase(inurl);
+                            Value v;
+                            v["code"] = API::OtherFailed;
+                            v["msg"] = msg;
+                            invoker(200, headerOut, v.toStyledString());
+                        }
+                    }
+                });
+                videoTrack->addDelegate([decoder = move(decoder)](const Frame::Ptr &frame) { return decoder->inputFrame(frame, false, true); });
+            } else {
+                s_media_jpgs.erase(inurl);
+                Value v;
+                v["code"] = API::Exception;
+                v["msg"] = "can't found vediotrack";
+                invoker(200, headerOut, v.toStyledString());
+            }
+        });
+
+        player->setOnShutdown([inurl](const SockException &ex) {
+            WarnL << "play shutdown: " << ex.what();
+            s_media_jpgs.erase(inurl);
+        });
+
+        player->play(inurl);
+        // s_media_jpgs.makeWithAction(inurl, [] {});
+        s_media_jpgs.move(inurl, false, std::move(player));
+    });
+#endif
+
     api_regist("/index/api/getStatistic",[](API_ARGS_MAP_ASYNC){
         CHECK_SECRET();
         getStatisticJson([headerOut, val, invoker](const Value &data) mutable{
@@ -2307,11 +2423,17 @@ void unInstallWebApi(){
     s_player_proxy.clear();
     s_ffmpeg_src.clear();
     s_pusher_proxy.clear();
+
 #if defined(ENABLE_RTPPROXY)
     s_rtp_server.clear();
 #endif
+
 #if defined(ENABLE_VIDEOSTACK) && defined(ENABLE_FFMPEG) && defined(ENABLE_X264)
     VideoStackManager::Instance().clear();
+#endif
+
+ #if defined(ENABLE_FFMPEG)
+    s_media_jpgs.clear();
 #endif
 
     NoticeCenter::Instance().delListener(&web_api_tag);
