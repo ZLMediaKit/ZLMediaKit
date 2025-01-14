@@ -2110,6 +2110,7 @@ void installWebApi() {
 
         auto player = std::make_shared<MediaPlayer>();
         (*player)[mediakit::Client::kTimeoutMS] = timeout_sec;
+        (*player)[mediakit::Protocol::kEnableAudio] = 0;
         weak_ptr<MediaPlayer> weakPlayer = player;
 
         player->setOnPlayResult([invoker, allArgs, headerOut, weakPlayer, jpgname, inurl, oneshot, msg, ncount](const SockException &ex) mutable {

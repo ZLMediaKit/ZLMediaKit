@@ -675,7 +675,7 @@
 							"value": null,
 							"description": "srt拉流的密码",
 							"disabled": true
-                        }
+						}
 					]
 				}
 			},
@@ -763,7 +763,7 @@
 				}
 			},
 			"response": []
-		},	
+		},
 		{
 			"name": "添加rtsp/rtmp/srt推流(addStreamPusherProxy)",
 			"request": {
@@ -828,7 +828,7 @@
 							"description": "推流重试次数,不传此参数或传值<=0时，则无限重试",
 							"disabled": true
 						},
-                        {
+						{
 							"key": "latency",
 							"value": null,
 							"description": "srt延时, 单位毫秒",
@@ -839,7 +839,7 @@
 							"value": null,
 							"description": "srt推流的密码",
 							"disabled": true
-                        }
+						}
 
 					]
 				}
@@ -902,7 +902,7 @@
 				}
 			},
 			"response": []
-		},		
+		},
 		{
 			"name": "添加FFmpeg拉流代理(addFFmpegSource)",
 			"request": {
@@ -1552,6 +1552,42 @@
 							"key": "expire_sec",
 							"value": "1",
 							"description": "截图的过期时间，该时间内产生的截图都会作为缓存返回"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ffmpeg sdk获取截图(ScreenShot)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/ScreenShot?secret={{ZLMediaKit_secret}}&url=rtsp://www.mym9.com/101065?from=2019-06-28/01:12:13",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"ScreenShot"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)"
+						},
+						{
+							"key": "url",
+							"value": "rtsp://www.mym9.com/101065?from=2019-06-28/01:12:13",
+							"description": "需要截图的url，可以是本机的，也可以是远程主机的"
+						},
+						{
+							"key": "timeout",
+							"value": "300000",
+							"description": "可选参数，默认30000 ms"
 						}
 					]
 				}
