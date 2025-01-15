@@ -707,11 +707,12 @@ FFmpegFrame::Ptr FFmpegSws::inputFrame(const FFmpegFrame::Ptr &frame, int &ret, 
     return nullptr;
 }
 
-std::tuple<bool, std::string> FFmpegJpegEncoder::save_frame_as_jpeg(const FFmpegFrame::Ptr &frame, const char *filename) {
-    std::tuple<bool, std::string> ret { true, "OK" };
+std::tuple<bool, std::string> FFmpegJpegEncoder::save_frame_as_jpeg(const FFmpegFrame::Ptr &frame, const char *filename, AVPixelFormat fmt) {
+    std::tuple<bool, std::string> result { true, "OK" };
     stringstream ss;
+    int ret = -1;
 
-    const AVCodec *jpeg_codec = avcodec_find_encoder(AV_CODEC_ID_MJPEG);
+    const AVCodec *jpeg_codec = avcodec_find_encoder(fmt == AV_PIX_FMT_YUVJ420P ? AV_CODEC_ID_MJPEG : AV_CODEC_ID_PNG); // AV_CODEC_ID_PNG ,test failed
     std::unique_ptr<AVCodecContext, void (*)(AVCodecContext *)> jpeg_codec_ctx(
         avcodec_alloc_context3(jpeg_codec), [](AVCodecContext *ctx) { avcodec_free_context(&ctx); });
 
@@ -723,10 +724,12 @@ std::tuple<bool, std::string> FFmpegJpegEncoder::save_frame_as_jpeg(const FFmpeg
 
     jpeg_codec_ctx->width = frame->get()->width;
     jpeg_codec_ctx->height = frame->get()->height;
-    jpeg_codec_ctx->pix_fmt = AV_PIX_FMT_YUVJ420P;
+    jpeg_codec_ctx->pix_fmt = fmt;
     jpeg_codec_ctx->time_base = { 1, 1 };
-    if (avcodec_open2(jpeg_codec_ctx.get(), jpeg_codec, NULL) < 0) {
-        ss << "Could not open JPEG codec\n";
+
+    ret = avcodec_open2(jpeg_codec_ctx.get(), jpeg_codec, NULL);
+    if (ret < 0) {
+        ss << "Could not open JPEG codec, " << ffmpeg_err(ret);
         DebugL << ss.str();
         return { false, ss.str() };
     }
@@ -738,17 +741,18 @@ std::tuple<bool, std::string> FFmpegJpegEncoder::save_frame_as_jpeg(const FFmpeg
         return { false, ss.str() };
     }
 
-    jpeg_frame->format = AV_PIX_FMT_YUVJ420P;
+    jpeg_frame->format = fmt;
     jpeg_frame->width = frame->get()->width;
     jpeg_frame->height = frame->get()->height;
-    if (av_frame_get_buffer(jpeg_frame.get(), 0) < 0) {
-        ss << "Could not allocate the data buffers for JPEG frame\n";
+    ret = av_frame_get_buffer(jpeg_frame.get(), 0);
+    if (ret < 0) {
+        ss << "Could not allocate the data buffers for JPEG frame, " << ffmpeg_err(ret);
         DebugL << ss.str();
         return { false, ss.str() };
     }
 
     struct SwsContext *sws_ctx = sws_getContext(
-        jpeg_frame->width, jpeg_frame->height, (enum AVPixelFormat)frame->get()->format, jpeg_frame->width, jpeg_frame->height, AV_PIX_FMT_YUVJ420P,
+        frame->get()->width, frame->get()->height, (enum AVPixelFormat)frame->get()->format, jpeg_frame->width, jpeg_frame->height, fmt,
         SWS_BILINEAR, NULL, NULL, NULL);
 
     if (!sws_ctx) {
@@ -757,12 +761,17 @@ std::tuple<bool, std::string> FFmpegJpegEncoder::save_frame_as_jpeg(const FFmpeg
         return { false, ss.str() };
     }
 
-    sws_scale(sws_ctx, (const uint8_t *const *)frame->get()->data, frame->get()->linesize, 0, jpeg_frame->height, jpeg_frame->data, jpeg_frame->linesize);
+    ret = sws_scale(sws_ctx, (const uint8_t *const *)frame->get()->data, frame->get()->linesize, 0, frame->get()->height, jpeg_frame->data, jpeg_frame->linesize);
+    if (ret < 0) {
+        ss << "Could not scale the frame," << ffmpeg_err(ret);
+        DebugL << ss.str();
+        return { false, ss.str() };
+    }
 
     auto pkt = alloc_av_packet();
-
-    if (avcodec_send_frame(jpeg_codec_ctx.get(), jpeg_frame.get()) < 0) {
-        ss << "Error sending a frame for encoding\n";
+    ret = avcodec_send_frame(jpeg_codec_ctx.get(), jpeg_frame.get());
+    if (ret < 0) {
+        ss << "Error sending a frame for encoding," << ffmpeg_err(ret);
         DebugL << ss.str();
         return { false, ss.str() };
     }
@@ -789,7 +798,8 @@ std::tuple<bool, std::string> FFmpegJpegEncoder::save_frame_as_jpeg(const FFmpeg
     sws_freeContext(sws_ctx);
     DebugL << "Screenshot successful: " << filename;
 
-    return ret;
+    return result;
 }
+
 } // namespace mediakit
 #endif // ENABLE_FFMPEG

@@ -1588,6 +1588,11 @@
 							"key": "timeout",
 							"value": "300000",
 							"description": "可选参数，默认30000 ms"
+						},
+						{
+							"key": "imagetype",
+							"value": "jpg",
+							"description": "可选参数，默认jpg ,有 jpg png"
 						}
 					]
 				}

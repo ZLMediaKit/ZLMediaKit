@@ -152,8 +152,11 @@ class FFmpegJpegEncoder {
 public:
     // using Ptr = std::shared_ptr<FFmpegJpegEncoder>;
 
-    static std::tuple<bool, std::string> save_frame_as_jpeg(const FFmpegFrame::Ptr &frame, const char *filename);
+    // jpg --> AV_PIX_FMT_YUVJ420P
+    // PNG --> AV_PIX_FMT_RGB24
+    static std::tuple<bool, std::string> save_frame_as_jpeg(const FFmpegFrame::Ptr &frame, const char *filename, AVPixelFormat fmt = AV_PIX_FMT_YUVJ420P);
 };
+
 }//namespace mediakit
 #endif// ENABLE_FFMPEG
 #endif //ZLMEDIAKIT_TRANSCODE_H
