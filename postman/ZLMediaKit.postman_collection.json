@@ -1592,7 +1592,7 @@
 					]
 				}
 			},
-			"response": []
+			"response": ["正常,200 ok + jpeg", "异常， 400 + json "]
 		},
 		{
 			"name": "获取rtp推流信息(getRtpInfo)",

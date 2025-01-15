@@ -886,16 +886,16 @@ void installWebApi() {
     // Get server api list
     // 测试url http://127.0.0.1/index/api/getApiList  [AUTO-TRANSLATED:df09e368]
     // Test url http://127.0.0.1/index/api/getApiList
-    api_regist("/index/api/getApiList",[](API_ARGS_MAP) {
-        s_get_api_list(API_ARGS_VALUE);
+    api_regist("/index/api/getApiList", [](API_ARGS_MAP) { 
+        s_get_api_list(API_ARGS_VALUE); 
     });
 
     // 获取服务器api列表  [AUTO-TRANSLATED:e4c0dd9d]
     // Get server api list
     // 测试url http://127.0.0.1/index/  [AUTO-TRANSLATED:76934dd3]
     // Test url http://127.0.0.1/index/
-    api_regist("/index/",[](API_ARGS_MAP) {
-        s_get_api_list(API_ARGS_VALUE);
+    api_regist("/index/", [](API_ARGS_MAP) { 
+        s_get_api_list(API_ARGS_VALUE); 
     });
 
 #if !defined(_WIN32)
@@ -1791,10 +1791,7 @@ void installWebApi() {
     api_regist("/index/api/setRecordSpeed", [](API_ARGS_MAP_ASYNC) {
         CHECK_SECRET();
         CHECK_ARGS("schema", "vhost", "app", "stream", "speed");
-        auto src = MediaSource::find(allArgs["schema"],
-                                     allArgs["vhost"],
-                                     allArgs["app"],
-                                     allArgs["stream"]);
+        auto src = MediaSource::find(allArgs["schema"], allArgs["vhost"], allArgs["app"], allArgs["stream"]);
         if (!src) {
             throw ApiRetException("can not find the stream", API::NotFound);
         }
@@ -1812,10 +1809,7 @@ void installWebApi() {
     api_regist("/index/api/seekRecordStamp", [](API_ARGS_MAP_ASYNC) {
         CHECK_SECRET();
         CHECK_ARGS("schema", "vhost", "app", "stream", "stamp");
-        auto src = MediaSource::find(allArgs["schema"],
-                                     allArgs["vhost"],
-                                     allArgs["app"],
-                                     allArgs["stream"]);
+        auto src = MediaSource::find(allArgs["schema"], allArgs["vhost"], allArgs["app"], allArgs["stream"]);
         if (!src) {
             throw ApiRetException("can not find the stream", API::NotFound);
         }
@@ -2090,92 +2084,104 @@ void installWebApi() {
 #if defined(ENABLE_FFMPEG)
     // http://127.0.0.1:80/index/api/ScreenShot?url=xxx
     api_regist("/index/api/ScreenShot", [](API_ARGS_MAP_ASYNC) {
-        CHECK_SECRET();
-        CHECK_ARGS("url");
+        string inurl("");
+        try {
+            CHECK_SECRET();
+            CHECK_ARGS("url");
 
-        string inurl = allArgs["url"];
-        bool oneshot = false;
-        string msg("");
-        int timeout_ms = allArgs["timeout"].as<int>();
-        int ncount = 0;
+            inurl = allArgs["url"];
+            bool oneshot = false;
+            string msg("");
 
-        if (timeout_ms <= 0 || timeout_ms > 30000) {
-            timeout_ms = 30000;
-        }
+            int timeout_ms = allArgs["timeout"].as<int>();
+            int ncount = 0;
 
-        int64_t t = time(nullptr);
-        auto jpgname = exeDir() + "www/" + to_string(t) + "-" + makeRandStr(8, true) + ".jpeg";
+            if (timeout_ms <= 0 || timeout_ms > 30000) {
+                timeout_ms = 30000;
+            }
 
-        auto it = s_media_jpgs.find(inurl);
-        if (it) {
-            throw ApiRetException("Screenshot is in progress", API::InvalidArgs);
-        }
+            int64_t t = time(nullptr);
+            auto jpgname = exeDir() + "www/" + to_string(t) + "-" + makeRandStr(8, true) + ".jpeg";
 
-        auto player = std::make_shared<MediaPlayer>();
-        (*player)[mediakit::Client::kTimeoutMS] = timeout_ms;
-        (*player)[mediakit::Protocol::kEnableAudio] = 0;
-        weak_ptr<MediaPlayer> weakPlayer = player;
-
-        player->setOnPlayResult([invoker, allArgs, headerOut, val, weakPlayer, jpgname, inurl, oneshot, msg, ncount](const SockException &ex) mutable {
-            InfoL << "OnPlayResult:" << ex.what();
-            auto strongPlayer = weakPlayer.lock();
-            if (ex || !strongPlayer) {
-                val["code"] = API::AuthFailed;
-                val["msg"] = ex.what();
-                invoker(200, headerOut, val.toStyledString());
-                s_media_jpgs.erase(inurl);
+            auto it = s_media_jpgs.find(inurl);
+            if (it) {
+                val["code"] = API::OtherFailed;
+                val["msg"] = "The screenshot of this stream is in progress";
+                invoker(400, headerOut, val.toStyledString());
                 return;
             }
 
-            auto videoTrack = dynamic_pointer_cast<VideoTrack>(strongPlayer->getTrack(TrackVideo, false));
+            auto player = std::make_shared<MediaPlayer>();
+            (*player)[mediakit::Client::kTimeoutMS] = timeout_ms;
+            (*player)[mediakit::Protocol::kEnableAudio] = 0;
+            weak_ptr<MediaPlayer> weakPlayer = player;
 
-            if (videoTrack) {
-                auto decoder = std::make_shared<FFmpegDecoder>(videoTrack);
-                decoder->setOnDecode([invoker, allArgs, headerOut, val, jpgname, inurl, oneshot, msg, ncount](const FFmpegFrame::Ptr &yuv) mutable {
-                    if (!oneshot) {
-                        auto ret = FFmpegJpegEncoder::save_frame_as_jpeg(yuv, jpgname.data());
-                        tie(oneshot, msg) = ret;
+            player->setOnPlayResult([invoker, allArgs, headerOut, val, weakPlayer, jpgname, inurl, oneshot, msg, ncount](const SockException &ex) mutable {
+                InfoL << "OnPlayResult:" << ex.what();
+                auto strongPlayer = weakPlayer.lock();
+                if (ex || !strongPlayer) {
+                    val["code"] = API::AuthFailed;
+                    val["msg"] = ex.what();
+                    invoker(400, headerOut, val.toStyledString());
+                    s_media_jpgs.erase(inurl);
+                    return;
+                }
 
-                        if (oneshot) {
-                            s_media_jpgs.erase(inurl);
-                            responseSnap(jpgname, allArgs.parser.getHeader(), invoker);
+                auto videoTrack = dynamic_pointer_cast<VideoTrack>(strongPlayer->getTrack(TrackVideo, false));
 
-                            // 60秒后删除
-                            WorkThreadPool::Instance().getPoller()->doDelayTask(1000 * 60, [jpgname, inurl]() {
-                                auto f = File::delete_file(jpgname);
-                                return 0;
-                            });
-                        } else {
-                            ++ncount;
+                if (videoTrack) {
+                    auto decoder = std::make_shared<FFmpegDecoder>(videoTrack);
+                    decoder->setOnDecode([invoker, allArgs, headerOut, val, jpgname, inurl, oneshot, msg, ncount](const FFmpegFrame::Ptr &yuv) mutable {
+                        if (!oneshot) {
+                            auto ret = FFmpegJpegEncoder::save_frame_as_jpeg(yuv, jpgname.data());
+                            tie(oneshot, msg) = ret;
+
+                            if (oneshot) {
+                                s_media_jpgs.erase(inurl);
+                                responseSnap(jpgname, allArgs.parser.getHeader(), invoker);
+
+                                // 60秒后删除
+                                WorkThreadPool::Instance().getPoller()->doDelayTask(1000 * 60, [jpgname, inurl]() {
+                                    auto f = File::delete_file(jpgname);
+                                    return 0;
+                                });
+                            } else {
+                                ++ncount;
+                            }
+
+                            // 超过失败次数
+                            if (ncount > 10) {
+                                ncount = 0;
+                                s_media_jpgs.erase(inurl);
+                                val["code"] = API::OtherFailed;
+                                val["msg"] = msg;
+                                invoker(400, headerOut, val.toStyledString());
+                            }
                         }
+                    });
+                    videoTrack->addDelegate([decoder = move(decoder)](const Frame::Ptr &frame) { return decoder->inputFrame(frame, false, true); });
+                } else {
+                    s_media_jpgs.erase(inurl);
+                    val["code"] = API::Exception;
+                    val["msg"] = "can't found videoTrack";
+                    invoker(400, headerOut, val.toStyledString());
+                }
+            });
 
-                        // 超过失败次数
-                        if (ncount > 10) {
-                            ncount = 0;
-                            s_media_jpgs.erase(inurl);
-                            val["code"] = API::OtherFailed;
-                            val["msg"] = msg;
-                            invoker(200, headerOut, val.toStyledString());
-                        }
-                    }
-                });
-                videoTrack->addDelegate([decoder = move(decoder)](const Frame::Ptr &frame) { return decoder->inputFrame(frame, false, true); });
-            } else {
+            player->setOnShutdown([inurl](const SockException &ex) {
+                WarnL << "play shutdown: " << ex.what();
                 s_media_jpgs.erase(inurl);
-                val["code"] = API::Exception;
-                val["msg"] = "can't found vediotrack";
-                invoker(200, headerOut, val.toStyledString());
-            }
-        });
+            });
 
-        player->setOnShutdown([inurl](const SockException &ex) {
-            WarnL << "play shutdown: " << ex.what();
+            player->play(inurl);
+            // s_media_jpgs.makeWithAction(inurl, [] {});
+            s_media_jpgs.move(inurl, false, std::move(player));
+        } catch (std::exception &ex) {
+            val["code"] = API::Exception;
+            val["msg"] = ex.what();
+            invoker(400, headerOut, val.toStyledString());
             s_media_jpgs.erase(inurl);
-        });
-
-        player->play(inurl);
-        // s_media_jpgs.makeWithAction(inurl, [] {});
-        s_media_jpgs.move(inurl, false, std::move(player));
+        }
     });
 #endif
 
