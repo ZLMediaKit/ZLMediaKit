@@ -2099,7 +2099,7 @@ void installWebApi() {
         int timeout_ms = allArgs["timeout"].as<int>();
         int ncount = 0;
 
-        if (timeout_ms < 0 || timeout_ms > 30000) {
+        if (timeout_ms <= 0 || timeout_ms > 30000) {
             timeout_ms = 30000;
         }
 
