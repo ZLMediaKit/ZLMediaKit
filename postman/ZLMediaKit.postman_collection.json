@@ -1592,7 +1592,7 @@
 						{
 							"key": "imagetype",
 							"value": "jpg",
-							"description": "可选参数，默认jpg ,有 jpg png"
+							"description": "可选参数，默认jpg ,有 jpg或jpeg,和 png"
 						}
 					]
 				}

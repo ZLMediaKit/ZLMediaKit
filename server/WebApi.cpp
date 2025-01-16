@@ -2100,8 +2100,23 @@ void installWebApi() {
                 timeout_ms = 30000;
             }
 
+            string imagetype = allArgs["imagetype"];
+            AVPixelFormat fmt = AV_PIX_FMT_YUVJ420P; // 默认
+
+            std::regex jpgRegex("^(jpg|jpeg)$", std::regex_constants::icase); // 匹配 jpg 或 jpeg，不区分大小写
+            std::regex pngRegex("^png$", std::regex_constants::icase);
+
+            if (imagetype.empty() || std::regex_match(imagetype, jpgRegex)) {
+                imagetype = ".jpeg";
+            } else if (std::regex_match(imagetype, pngRegex)) {
+                imagetype = ".png";
+                fmt = AV_PIX_FMT_RGB24;
+            } else {
+                imagetype = ".jpg";
+            }
+
             int64_t t = time(nullptr);
-            auto jpgname = exeDir() + "www/" + to_string(t) + "-" + makeRandStr(8, true) + ".jpeg";
+            auto jpgname = exeDir() + "www/" + to_string(t) + "-" + makeRandStr(8, true) + imagetype;
 
             auto it = s_media_jpgs.find(inurl);
             if (it) {
@@ -2116,7 +2131,7 @@ void installWebApi() {
             (*player)[mediakit::Protocol::kEnableAudio] = 0;
             weak_ptr<MediaPlayer> weakPlayer = player;
 
-            player->setOnPlayResult([invoker, allArgs, headerOut, val, weakPlayer, jpgname, inurl, oneshot, msg, ncount](const SockException &ex) mutable {
+            player->setOnPlayResult([invoker, allArgs, headerOut, val, weakPlayer, jpgname, inurl, oneshot, msg, ncount, fmt](const SockException &ex) mutable {
                 InfoL << "OnPlayResult:" << ex.what();
                 auto strongPlayer = weakPlayer.lock();
                 if (ex || !strongPlayer) {
@@ -2131,9 +2146,9 @@ void installWebApi() {
 
                 if (videoTrack) {
                     auto decoder = std::make_shared<FFmpegDecoder>(videoTrack);
-                    decoder->setOnDecode([invoker, allArgs, headerOut, val, jpgname, inurl, oneshot, msg, ncount](const FFmpegFrame::Ptr &yuv) mutable {
+                    decoder->setOnDecode([invoker, allArgs, headerOut, val, jpgname, inurl, oneshot, msg, ncount, fmt](const FFmpegFrame::Ptr &yuv) mutable {
                         if (!oneshot) {
-                            auto ret = FFmpegJpegEncoder::save_frame_as_jpeg(yuv, jpgname.data());
+                            auto ret = FFmpegJpegEncoder::save_frame_as_jpeg(yuv, jpgname.data(), fmt);
                             tie(oneshot, msg) = ret;
 
                             if (oneshot) {
@@ -2163,7 +2178,7 @@ void installWebApi() {
                 } else {
                     s_media_jpgs.erase(inurl);
                     val["code"] = API::Exception;
-                    val["msg"] = "can't found videoTrack";
+                    val["msg"] = "Could not found videoTrack";
                     invoker(400, headerOut, val.toStyledString());
                 }
             });
