@@ -1586,8 +1586,8 @@
 						},
 						{
 							"key": "timeout",
-							"value": "300000",
-							"description": "可选参数，默认30000 ms"
+							"value": "100000",
+							"description": "可选参数，默认10000 ms, 当传参小于0 或大于 30000 时，此值为默认值"
 						},
 						{
 							"key": "imagetype",

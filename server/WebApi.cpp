@@ -381,21 +381,6 @@ public:
         assert(it.second);
         return server;
     }
-
-    template <class... _Args>
-    Pointer move(const std::string &key, bool check, _Args &&...__args) {
-        if (check) {
-            Pointer p = find(key);
-            if (p) {
-                return p;
-            }
-        }
-
-        std::lock_guard<std::recursive_mutex> lck(_mtx);
-        auto it = _map.emplace(key, std::forward<_Args>(__args)...);
-        assert(it.second);
-        return it.first->second;
-    }
 };
 
 // 拉流代理器列表  [AUTO-TRANSLATED:6dcfb11f]
@@ -414,10 +399,6 @@ static ServiceController<FFmpegSource> s_ffmpeg_src;
 // rtp服务器列表  [AUTO-TRANSLATED:2e362a8c]
 // RTP server list
 static ServiceController<RtpServer> s_rtp_server;
-#endif
-
-#if defined(ENABLE_FFMPEG)
-static ServiceController<MediaPlayer> s_media_jpgs;
 #endif
 
 static inline string getPusherKey(const string &schema, const string &vhost, const string &app, const string &stream,
@@ -2097,7 +2078,7 @@ void installWebApi() {
             int ncount = 0;
 
             if (timeout_ms <= 0 || timeout_ms > 30000) {
-                timeout_ms = 30000;
+                timeout_ms = 10000;
             }
 
             string imagetype = allArgs["imagetype"];
@@ -2118,84 +2099,68 @@ void installWebApi() {
             int64_t t = time(nullptr);
             auto jpgname = exeDir() + "www/" + to_string(t) + "-" + makeRandStr(8, true) + imagetype;
 
-            auto it = s_media_jpgs.find(inurl);
-            if (it) {
-                val["code"] = API::OtherFailed;
-                val["msg"] = "The screenshot of this stream is in progress";
-                invoker(400, headerOut, val.toStyledString());
-                return;
-            }
-
             auto player = std::make_shared<MediaPlayer>();
             (*player)[mediakit::Client::kTimeoutMS] = timeout_ms;
             (*player)[mediakit::Protocol::kEnableAudio] = 0;
-            weak_ptr<MediaPlayer> weakPlayer = player;
 
-            player->setOnPlayResult([invoker, allArgs, headerOut, val, weakPlayer, jpgname, inurl, oneshot, msg, ncount, fmt](const SockException &ex) mutable {
+            player->setOnPlayResult([player, invoker, allArgs, headerOut, val, jpgname, inurl, oneshot, msg, ncount, fmt](const SockException &ex) mutable {
                 InfoL << "OnPlayResult:" << ex.what();
-                auto strongPlayer = weakPlayer.lock();
-                if (ex || !strongPlayer) {
+                if (ex) {
                     val["code"] = API::AuthFailed;
                     val["msg"] = ex.what();
                     invoker(400, headerOut, val.toStyledString());
-                    s_media_jpgs.erase(inurl);
+                    player.reset();
                     return;
                 }
 
-                auto videoTrack = dynamic_pointer_cast<VideoTrack>(strongPlayer->getTrack(TrackVideo, false));
+                auto videoTrack = dynamic_pointer_cast<VideoTrack>(player->getTrack(TrackVideo, false));
 
                 if (videoTrack) {
                     auto decoder = std::make_shared<FFmpegDecoder>(videoTrack);
-                    decoder->setOnDecode([invoker, allArgs, headerOut, val, jpgname, inurl, oneshot, msg, ncount, fmt](const FFmpegFrame::Ptr &yuv) mutable {
-                        if (!oneshot) {
-                            auto ret = FFmpegJpegEncoder::save_frame_as_jpeg(yuv, jpgname.data(), fmt);
-                            tie(oneshot, msg) = ret;
+                    decoder->setOnDecode(
+                        [invoker, allArgs, headerOut, val, player, jpgname, inurl, oneshot, msg, ncount, fmt](const FFmpegFrame::Ptr &yuv) mutable {
+                            if (!oneshot) {
+                                auto ret = FFmpegJpegEncoder::save_frame_as_jpeg(yuv, jpgname.data(), fmt);
+                                tie(oneshot, msg) = ret;
 
-                            if (oneshot) {
-                                s_media_jpgs.erase(inurl);
-                                responseSnap(jpgname, allArgs.parser.getHeader(), invoker);
+                                if (oneshot) {
+                                    player.reset();
+                                    responseSnap(jpgname, allArgs.parser.getHeader(), invoker);
 
-                                // 60秒后删除
-                                WorkThreadPool::Instance().getPoller()->doDelayTask(1000 * 60, [jpgname, inurl]() {
-                                    auto f = File::delete_file(jpgname);
-                                    return 0;
-                                });
-                            } else {
-                                ++ncount;
+                                    // 60秒后删除
+                                    WorkThreadPool::Instance().getPoller()->doDelayTask(1000 * 60, [jpgname, inurl]() {
+                                        auto f = File::delete_file(jpgname);
+                                        return 0;
+                                    });
+                                } else {
+                                    ++ncount;
+                                }
+
+                                // 超过失败次数
+                                if (ncount > 10) {
+                                    ncount = 0;
+                                    player.reset();
+                                    val["code"] = API::OtherFailed;
+                                    val["msg"] = msg;
+                                    invoker(400, headerOut, val.toStyledString());
+                                }
                             }
-
-                            // 超过失败次数
-                            if (ncount > 10) {
-                                ncount = 0;
-                                s_media_jpgs.erase(inurl);
-                                val["code"] = API::OtherFailed;
-                                val["msg"] = msg;
-                                invoker(400, headerOut, val.toStyledString());
-                            }
-                        }
-                    });
+                        });
                     videoTrack->addDelegate([decoder = move(decoder)](const Frame::Ptr &frame) { return decoder->inputFrame(frame, false, true); });
                 } else {
-                    s_media_jpgs.erase(inurl);
+                    player.reset();
                     val["code"] = API::Exception;
                     val["msg"] = "Could not found videoTrack";
                     invoker(400, headerOut, val.toStyledString());
                 }
             });
 
-            player->setOnShutdown([inurl](const SockException &ex) {
-                WarnL << "play shutdown: " << ex.what();
-                s_media_jpgs.erase(inurl);
-            });
-
+            player->setOnShutdown([inurl](const SockException &ex) { WarnL << inurl << " play shutdown: " << ex.what(); });
             player->play(inurl);
-            // s_media_jpgs.makeWithAction(inurl, [] {});
-            s_media_jpgs.move(inurl, false, std::move(player));
         } catch (std::exception &ex) {
             val["code"] = API::Exception;
             val["msg"] = ex.what();
             invoker(400, headerOut, val.toStyledString());
-            s_media_jpgs.erase(inurl);
         }
     });
 #endif
@@ -2452,10 +2417,6 @@ void unInstallWebApi() {
 
 #if defined(ENABLE_VIDEOSTACK) && defined(ENABLE_FFMPEG) && defined(ENABLE_X264)
     VideoStackManager::Instance().clear();
-#endif
-
-#if defined(ENABLE_FFMPEG)
-    s_media_jpgs.clear();
 #endif
 
     NoticeCenter::Instance().delListener(&web_api_tag);
