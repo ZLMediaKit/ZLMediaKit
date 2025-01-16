@@ -75,6 +75,8 @@ private:
     int _target_samplerate;
     AVSampleFormat _target_format;
     SwrContext *_ctx = nullptr;
+
+    toolkit::ResourcePool<FFmpegFrame> _swr_frame_pool;
 };
 
 class TaskManager {
@@ -134,6 +136,7 @@ private:
     onDec _cb;
     std::shared_ptr<AVCodecContext> _context;
     FrameMerger _merger{FrameMerger::h264_prefix};
+    toolkit::ResourcePool<FFmpegFrame> _frame_pool;
 };
 
 class FFmpegSws {
@@ -156,6 +159,16 @@ private:
     SwsContext *_ctx = nullptr;
     AVPixelFormat _src_format = AV_PIX_FMT_NONE;
     AVPixelFormat _target_format = AV_PIX_FMT_NONE;
+    toolkit::ResourcePool<FFmpegFrame> _sws_frame_pool;
+};
+
+class FFmpegJpegEncoder {
+public:
+    // using Ptr = std::shared_ptr<FFmpegJpegEncoder>;
+
+    // jpg --> AV_PIX_FMT_YUVJ420P
+    // PNG --> AV_PIX_FMT_RGB24
+    static std::tuple<bool, std::string> save_frame_as_jpeg(const FFmpegFrame::Ptr &frame, const char *filename, AVPixelFormat fmt = AV_PIX_FMT_YUVJ420P);
 };
 
 }//namespace mediakit
