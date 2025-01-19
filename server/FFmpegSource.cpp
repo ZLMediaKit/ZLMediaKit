@@ -349,7 +349,57 @@ void FFmpegSource::onGetMediaSource(const MediaSource::Ptr &src) {
     }
 }
 
-void FFmpegSnap::makeSnap(const string &play_url, const string &save_path, float timeout_sec, const onSnap &cb) {
+#if defined(ENABLE_FFMPEG)
+#include "Player/MediaPlayer.h"
+#include "Codec/Transcode.h"
+
+static void makeSnapAsync(const string &play_url, const string &save_path, float timeout_sec, const FFmpegSnap::onSnap &cb) {
+    struct Holder {
+        MediaPlayer::Ptr player;
+    };
+    auto holder = std::make_shared<Holder>();
+    holder->player = std::make_shared<MediaPlayer>();
+    (*holder->player)[mediakit::Client::kTimeoutMS] = timeout_sec * 1000;
+
+    holder->player->setOnPlayResult([holder, save_path, cb, timeout_sec](const SockException &ex) mutable {
+        onceToken token(nullptr, [&]() { holder->player = nullptr; });
+        auto video = ex ? nullptr : dynamic_pointer_cast<VideoTrack>(holder->player->getTrack(TrackVideo, false));
+        if (!video) {
+            cb(false, ex ? ex.what() : "none video track");
+            return;
+        }
+        auto decoder = std::make_shared<FFmpegDecoder>(video);
+        auto new_holder = std::make_shared<Holder>(*holder);
+        auto timer = EventPollerPool::Instance().getPoller()->doDelayTask(1000 * timeout_sec, [new_holder]() {
+            // 防止解码失败导致播放器无法释放
+            new_holder->player = nullptr;
+            return 0;
+        });
+        auto success = false;
+        decoder->setOnDecode([save_path, new_holder, cb, success, timer](const FFmpegFrame::Ptr &frame) mutable {
+            if (success) {
+                return;
+            }
+            onceToken token(nullptr, [&]() { new_holder->player = nullptr; timer->cancel(); });
+            auto ret = FFmpegUtils::saveFrame(frame, save_path.data());
+            success = std::get<0>(ret);
+            cb(success, std::get<1>(ret));
+        });
+        video->addDelegate([decoder](const Frame::Ptr &frame) { return decoder->inputFrame(frame, false, true); });
+    });
+    holder->player->play(play_url);
+}
+
+#endif
+
+void FFmpegSnap::makeSnap(bool async, const string &play_url, const string &save_path, float timeout_sec, const onSnap &cb) {
+#if defined(ENABLE_FFMPEG)
+    if (async) {
+        makeSnapAsync(play_url, save_path, timeout_sec, cb);
+        return;
+    }
+#endif
+
     GET_CONFIG(string, ffmpeg_bin, FFmpeg::kBin);
     GET_CONFIG(string, ffmpeg_snap, FFmpeg::kSnap);
     GET_CONFIG(string, ffmpeg_log, FFmpeg::kLog);

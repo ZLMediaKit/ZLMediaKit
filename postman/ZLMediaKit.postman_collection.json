@@ -1552,6 +1552,12 @@
 							"key": "expire_sec",
 							"value": "1",
 							"description": "截图的过期时间，该时间内产生的截图都会作为缓存返回"
+						},
+						{
+							"key": "async",
+							"value": "0",
+							"disabled": true,
+							"description": "是否采用zlm内置播放器、解码器api异步截图，开启后截图速度提升但兼容性降低"
 						}
 					]
 				}
