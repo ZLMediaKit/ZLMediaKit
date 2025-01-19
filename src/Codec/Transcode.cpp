@@ -746,18 +746,15 @@ FFmpegFrame::Ptr FFmpegSws::inputFrame(const FFmpegFrame::Ptr &frame, int &ret, 
 }
 
 std::tuple<bool, std::string> FFmpegJpegEncoder::save_frame_as_jpeg(const FFmpegFrame::Ptr &frame, const char *filename, AVPixelFormat fmt) {
-    std::tuple<bool, std::string> result { true, "OK" };
-    stringstream ss;
-    int ret = -1;
-
+    _StrPrinter ss;
     const AVCodec *jpeg_codec = avcodec_find_encoder(fmt == AV_PIX_FMT_YUVJ420P ? AV_CODEC_ID_MJPEG : AV_CODEC_ID_PNG);
     std::unique_ptr<AVCodecContext, void (*)(AVCodecContext *)> jpeg_codec_ctx(
-        avcodec_alloc_context3(jpeg_codec), [](AVCodecContext *ctx) { avcodec_free_context(&ctx); });
+        jpeg_codec ? avcodec_alloc_context3(jpeg_codec) : nullptr, [](AVCodecContext *ctx) { avcodec_free_context(&ctx); });
 
     if (!jpeg_codec_ctx) {
-        ss << "Could not allocate JPEG codec context";
-        DebugL << ss.str();
-        return { false, ss.str() };
+        ss << "Could not allocate JPEG/PNG codec context";
+        DebugL << ss;
+        return { false, ss };
     }
 
     jpeg_codec_ctx->width = frame->get()->width;
@@ -765,53 +762,27 @@ std::tuple<bool, std::string> FFmpegJpegEncoder::save_frame_as_jpeg(const FFmpeg
     jpeg_codec_ctx->pix_fmt = fmt;
     jpeg_codec_ctx->time_base = { 1, 1 };
 
-    ret = avcodec_open2(jpeg_codec_ctx.get(), jpeg_codec, NULL);
+    auto ret = avcodec_open2(jpeg_codec_ctx.get(), jpeg_codec, NULL);
     if (ret < 0) {
         ss << "Could not open JPEG codec, " << ffmpeg_err(ret);
-        DebugL << ss.str();
-        return { false, ss.str() };
+        DebugL << ss;
+        return { false, ss };
     }
 
-    std::unique_ptr<AVFrame, void (*)(AVFrame *)> jpeg_frame(av_frame_alloc(), [](AVFrame *ptr) { av_frame_free(&ptr); });
-    if (!jpeg_frame) {
-        ss << "Could not allocate JPEG frame\n";
-        DebugL << ss.str();
-        return { false, ss.str() };
-    }
-
-    jpeg_frame->format = fmt;
-    jpeg_frame->width = frame->get()->width;
-    jpeg_frame->height = frame->get()->height;
-    ret = av_frame_get_buffer(jpeg_frame.get(), 0);
-    if (ret < 0) {
-        ss << "Could not allocate the data buffers for JPEG frame, " << ffmpeg_err(ret);
-        DebugL << ss.str();
-        return { false, ss.str() };
-    }
-
-    struct SwsContext *sws_ctx = sws_getContext(
-        frame->get()->width, frame->get()->height, (enum AVPixelFormat)frame->get()->format, jpeg_frame->width, jpeg_frame->height, fmt,
-        SWS_BILINEAR, NULL, NULL, NULL);
-
-    if (!sws_ctx) {
-        ss << "Could not initialize the conversion context\n";
-        DebugL << ss.str();
-        return { false, ss.str() };
-    }
-
-    ret = sws_scale(sws_ctx, (const uint8_t *const *)frame->get()->data, frame->get()->linesize, 0, frame->get()->height, jpeg_frame->data, jpeg_frame->linesize);
-    if (ret < 0) {
-        ss << "Could not scale the frame," << ffmpeg_err(ret);
-        DebugL << ss.str();
-        return { false, ss.str() };
+    FFmpegSws sws(fmt, 0, 0);
+    auto new_frame = sws.inputFrame(frame);
+    if (!new_frame) {
+        ss << "Could not scale the frame: " << ffmpeg_err(ret);
+        DebugL << ss;
+        return { false, ss };
     }
 
     auto pkt = alloc_av_packet();
-    ret = avcodec_send_frame(jpeg_codec_ctx.get(), jpeg_frame.get());
+    ret = avcodec_send_frame(jpeg_codec_ctx.get(), new_frame->get());
     if (ret < 0) {
         ss << "Error sending a frame for encoding," << ffmpeg_err(ret);
-        DebugL << ss.str();
-        return { false, ss.str() };
+        DebugL << ss;
+        return { false, ss };
     }
 
     std::unique_ptr<FILE, void (*)(FILE *)> tmp_save_file_jpg(File::create_file(filename, "wb"), [](FILE *fp) {
@@ -822,21 +793,15 @@ std::tuple<bool, std::string> FFmpegJpegEncoder::save_frame_as_jpeg(const FFmpeg
 
     if (!tmp_save_file_jpg) {
         ss << "Could not open the file " << filename;
-        DebugL << ss.str();
-        return { false, ss.str() };
+        DebugL << ss;
+        return { false, ss };
     }
 
     while (avcodec_receive_packet(jpeg_codec_ctx.get(), pkt.get()) == 0) {
         fwrite(pkt.get()->data, pkt.get()->size, 1, tmp_save_file_jpg.get());
     }
-
-    fflush(tmp_save_file_jpg.get());
-    // tmp_save_file_jpg = nullptr;
-
-    sws_freeContext(sws_ctx);
     DebugL << "Screenshot successful: " << filename;
-
-    return result;
+    return { true, "" };
 }
 
 } // namespace mediakit
