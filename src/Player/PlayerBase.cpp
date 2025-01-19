@@ -37,7 +37,13 @@ PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &in_poller, cons
             delete ptr;
         }
     };
+
     string url = url_in;
+    trim(url);
+    if (url.empty()) {
+        throw std::invalid_argument("invalid play url: " + url_in);
+    }
+
     string prefix = findSubString(url.data(), NULL, "://");
     auto pos = url.find('?');
     if (pos != string::npos) {
