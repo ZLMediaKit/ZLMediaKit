@@ -377,21 +377,6 @@ public:
         assert(it.second);
         return server;
     }
-
-    template <class... _Args>
-    Pointer move(const std::string &key, bool check, _Args &&...__args) {
-        if (check) {
-            Pointer p = find(key);
-            if (p) {
-                return p;
-            }
-        }
-
-        std::lock_guard<std::recursive_mutex> lck(_mtx);
-        auto it = _map.emplace(key, std::forward<_Args>(__args)...);
-        assert(it.second);
-        return it.first->second;
-    }
 };
 
 // 拉流代理器列表  [AUTO-TRANSLATED:6dcfb11f]
@@ -410,10 +395,6 @@ static ServiceController<FFmpegSource> s_ffmpeg_src;
 // rtp服务器列表  [AUTO-TRANSLATED:2e362a8c]
 // RTP server list
 static ServiceController<RtpServer> s_rtp_server;
-#endif
-
-#if defined(ENABLE_FFMPEG)
-static ServiceController<MediaPlayer> s_media_jpgs;
 #endif
 
 static inline string getPusherKey(const string &schema, const string &vhost, const string &app, const string &stream, const string &dst_url) {

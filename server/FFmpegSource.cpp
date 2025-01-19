@@ -376,7 +376,7 @@ static void makeSnapAsync(const string &play_url, const string &save_path, float
                 return;
             }
             onceToken token(nullptr, [&]() { new_holder->player = nullptr; });
-            auto ret = FFmpegJpegEncoder::save_frame_as_jpeg(frame, save_path.data());
+            auto ret = FFmpegUtils::saveFrame(frame, save_path.data());
             success = std::get<0>(ret);
             cb(success, std::get<1>(ret));
         });

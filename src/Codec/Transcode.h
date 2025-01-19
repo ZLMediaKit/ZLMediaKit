@@ -162,13 +162,16 @@ private:
     toolkit::ResourcePool<FFmpegFrame> _sws_frame_pool;
 };
 
-class FFmpegJpegEncoder {
+class FFmpegUtils {
 public:
-    // using Ptr = std::shared_ptr<FFmpegJpegEncoder>;
-
-    // jpg --> AV_PIX_FMT_YUVJ420P
-    // PNG --> AV_PIX_FMT_RGB24
-    static std::tuple<bool, std::string> save_frame_as_jpeg(const FFmpegFrame::Ptr &frame, const char *filename, AVPixelFormat fmt = AV_PIX_FMT_YUVJ420P);
+    /**
+     * 保持图片为jpeg或png
+     * @param frame 解码后的帧
+     * @param filename 保存文件路径
+     * @param fmt jpg:AV_PIX_FMT_YUVJ420P，PNG:AV_PIX_FMT_RGB24
+     * @return
+     */
+    static std::tuple<bool, std::string> saveFrame(const FFmpegFrame::Ptr &frame, const char *filename, AVPixelFormat fmt = AV_PIX_FMT_YUVJ420P);
 };
 
 }//namespace mediakit
