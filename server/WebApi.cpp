@@ -198,7 +198,7 @@ void api_regist(const string &api_path, const function<void(API_ARGS_JSON_ASYNC)
     s_map_api.emplace(api_path, toApi(func));
 }
 
-void api_regist(const string &api_path, const function<void(API_ARGS_STRING)> &func) {
+void api_regist(const string &api_path, const function<void(API_ARGS_STRING)> &func){
     s_map_api.emplace(api_path, toApi(func));
 }
 
@@ -332,7 +332,7 @@ public:
         return _map.erase(key);
     }
 
-    size_t size() {
+    size_t size() { 
         std::lock_guard<std::recursive_mutex> lck(_mtx);
         return _map.size();
     }
@@ -346,7 +346,7 @@ public:
         return it->second;
     }
 
-    void for_each(const std::function<void(const std::string &, const Pointer &)> &cb) {
+    void for_each(const std::function<void(const std::string&, const Pointer&)>& cb) {
         std::lock_guard<std::recursive_mutex> lck(_mtx);
         auto it = _map.begin();
         while (it != _map.end()) {
@@ -355,8 +355,8 @@ public:
         }
     }
 
-    template <class... _Args>
-    Pointer make(const std::string &key, _Args &&...__args) {
+    template<class ..._Args>
+    Pointer make(const std::string &key, _Args&& ...__args) {
         // assert(!find(key));
 
         auto server = std::make_shared<Type>(std::forward<_Args>(__args)...);
@@ -366,8 +366,8 @@ public:
         return server;
     }
 
-    template <class... _Args>
-    Pointer makeWithAction(const std::string &key, function<void(Pointer)> action, _Args &&...__args) {
+    template<class ..._Args>
+    Pointer makeWithAction(const std::string &key, function<void(Pointer)> action, _Args&& ...__args) {
         // assert(!find(key));
 
         auto server = std::make_shared<Type>(std::forward<_Args>(__args)...);
@@ -397,7 +397,9 @@ static ServiceController<FFmpegSource> s_ffmpeg_src;
 static ServiceController<RtpServer> s_rtp_server;
 #endif
 
-static inline string getPusherKey(const string &schema, const string &vhost, const string &app, const string &stream, const string &dst_url) {
+
+static inline string getPusherKey(const string &schema, const string &vhost, const string &app, const string &stream,
+                                  const string &dst_url) {
     return schema + "/" + vhost + "/" + app + "/" + stream + "/" + MD5(dst_url).hexdigest();
 }
 
@@ -439,7 +441,7 @@ Value ToJson(const PlayerProxy::Ptr& p) {
     return item;
 }
 
-Value makeMediaSourceJson(MediaSource &media) {
+Value makeMediaSourceJson(MediaSource &media){
     Value item;
     item["schema"] = media.getSchema();
     dumpMediaTuple(media.getMediaTuple(), item);
@@ -750,7 +752,7 @@ void addStreamPusherProxy(const string &schema,
  */
 void installWebApi() {
     addHttpListener();
-    GET_CONFIG(string, api_secret, API::kSecret);
+    GET_CONFIG(string,api_secret,API::kSecret);
 
     // 获取线程负载  [AUTO-TRANSLATED:3b0ece5c]
     // Get thread load
@@ -798,11 +800,11 @@ void installWebApi() {
     // Get server configuration
     // 测试url http://127.0.0.1/index/api/getServerConfig  [AUTO-TRANSLATED:59cd0d71]
     // Test url http://127.0.0.1/index/api/getServerConfig
-    api_regist("/index/api/getServerConfig", [](API_ARGS_MAP) {
+    api_regist("/index/api/getServerConfig",[](API_ARGS_MAP){
         CHECK_SECRET();
         Value obj;
         for (auto &pr : mINI::Instance()) {
-            obj[pr.first] = (string &)pr.second;
+            obj[pr.first] = (string &) pr.second;
         }
         val["data"].append(obj);
     });
@@ -813,7 +815,7 @@ void installWebApi() {
     // Test url (e.g. disable http api debugging) http://127.0.0.1/index/api/setServerConfig?api.apiDebug=0
     // 你也可以通过http post方式传参，可以通过application/x-www-form-urlencoded或application/json方式传参  [AUTO-TRANSLATED:d493a7c0]
     // You can also pass parameters through http post method, you can pass parameters through application/x-www-form-urlencoded or application/json methods
-    api_regist("/index/api/setServerConfig", [](API_ARGS_MAP) {
+    api_regist("/index/api/setServerConfig",[](API_ARGS_MAP){
         CHECK_SECRET();
         auto &ini = mINI::Instance();
         int changed = API::Success;
@@ -851,9 +853,10 @@ void installWebApi() {
         val["changed"] = changed;
     });
 
-    static auto s_get_api_list = [](API_ARGS_MAP) {
+
+    static auto s_get_api_list = [](API_ARGS_MAP){
         CHECK_SECRET();
-        for (auto &pr : s_map_api) {
+        for(auto &pr : s_map_api){
             val["data"].append(pr.first);
         }
     };
@@ -862,16 +865,16 @@ void installWebApi() {
     // Get server api list
     // 测试url http://127.0.0.1/index/api/getApiList  [AUTO-TRANSLATED:df09e368]
     // Test url http://127.0.0.1/index/api/getApiList
-    api_regist("/index/api/getApiList", [](API_ARGS_MAP) { 
-        s_get_api_list(API_ARGS_VALUE); 
+    api_regist("/index/api/getApiList",[](API_ARGS_MAP){
+        s_get_api_list(API_ARGS_VALUE);
     });
 
     // 获取服务器api列表  [AUTO-TRANSLATED:e4c0dd9d]
     // Get server api list
     // 测试url http://127.0.0.1/index/  [AUTO-TRANSLATED:76934dd3]
     // Test url http://127.0.0.1/index/
-    api_regist("/index/", [](API_ARGS_MAP) { 
-        s_get_api_list(API_ARGS_VALUE); 
+    api_regist("/index/",[](API_ARGS_MAP){
+        s_get_api_list(API_ARGS_VALUE);
     });
 
 #if !defined(_WIN32)
@@ -879,16 +882,16 @@ void installWebApi() {
     // Restart server, only Daemon mode can restart, otherwise it will be closed directly!
     // 测试url http://127.0.0.1/index/api/restartServer  [AUTO-TRANSLATED:8beaaa8a]
     // Test url http://127.0.0.1/index/api/restartServer
-    api_regist("/index/api/restartServer", [](API_ARGS_MAP) {
+    api_regist("/index/api/restartServer",[](API_ARGS_MAP){
         CHECK_SECRET();
-        EventPollerPool::Instance().getPoller()->doDelayTask(1000, []() {
+        EventPollerPool::Instance().getPoller()->doDelayTask(1000,[](){
             // 尝试正常退出  [AUTO-TRANSLATED:93828d0f]
             // Try to exit normally
             ::kill(getpid(), SIGINT);
 
             // 3秒后强制退出  [AUTO-TRANSLATED:fdc82920]
             // Force exit after 3 seconds
-            EventPollerPool::Instance().getPoller()->doDelayTask(3000, []() {
+            EventPollerPool::Instance().getPoller()->doDelayTask(3000,[](){
                 exit(0);
                 return 0;
             });
@@ -963,7 +966,7 @@ void installWebApi() {
     // Test url1 (get streams with virtual host "__defaultVost__") http://127.0.0.1/index/api/getMediaList?vhost=__defaultVost__
     // 测试url2(获取rtsp类型的流) http://127.0.0.1/index/api/getMediaList?schema=rtsp  [AUTO-TRANSLATED:21c2c15d]
     // Test url2 (get rtsp type streams) http://127.0.0.1/index/api/getMediaList?schema=rtsp
-    api_regist("/index/api/getMediaList", [](API_ARGS_MAP) {
+    api_regist("/index/api/getMediaList",[](API_ARGS_MAP){
         CHECK_SECRET();
         // 获取所有MediaSource列表  [AUTO-TRANSLATED:7bf16dc2]
         // Get all MediaSource lists
@@ -974,17 +977,17 @@ void installWebApi() {
 
     // 测试url http://127.0.0.1/index/api/isMediaOnline?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs  [AUTO-TRANSLATED:126a75e8]
     // Test url http://127.0.0.1/index/api/isMediaOnline?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs
-    api_regist("/index/api/isMediaOnline", [](API_ARGS_MAP) {
+    api_regist("/index/api/isMediaOnline",[](API_ARGS_MAP){
         CHECK_SECRET();
-        CHECK_ARGS("schema", "vhost", "app", "stream");
-        val["online"] = (bool)(MediaSource::find(allArgs["schema"], allArgs["vhost"], allArgs["app"], allArgs["stream"]));
+        CHECK_ARGS("schema","vhost","app","stream");
+        val["online"] = (bool) (MediaSource::find(allArgs["schema"],allArgs["vhost"],allArgs["app"],allArgs["stream"]));
     });
 
     // 获取媒体流播放器列表  [AUTO-TRANSLATED:bcadf31c]
     // Get media stream player list
     // 测试url http://127.0.0.1/index/api/getMediaPlayerList?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs  [AUTO-TRANSLATED:2aab7522]
     // Test url http://127.0.0.1/index/api/getMediaPlayerList?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs
-    api_regist("/index/api/getMediaPlayerList", [](API_ARGS_MAP_ASYNC) {
+    api_regist("/index/api/getMediaPlayerList",[](API_ARGS_MAP_ASYNC){
         CHECK_SECRET();
         CHECK_ARGS("schema", "vhost", "app", "stream");
         auto src = MediaSource::find(allArgs["schema"], allArgs["vhost"], allArgs["app"], allArgs["stream"]);
@@ -1028,11 +1031,11 @@ void installWebApi() {
 
     // 测试url http://127.0.0.1/index/api/getMediaInfo?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs  [AUTO-TRANSLATED:9402e811]
     // Test url http://127.0.0.1/index/api/getMediaInfo?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs
-    api_regist("/index/api/getMediaInfo", [](API_ARGS_MAP_ASYNC) {
+    api_regist("/index/api/getMediaInfo",[](API_ARGS_MAP_ASYNC){
         CHECK_SECRET();
-        CHECK_ARGS("schema", "vhost", "app", "stream");
-        auto src = MediaSource::find(allArgs["schema"], allArgs["vhost"], allArgs["app"], allArgs["stream"]);
-        if (!src) {
+        CHECK_ARGS("schema","vhost","app","stream");
+        auto src = MediaSource::find(allArgs["schema"],allArgs["vhost"],allArgs["app"],allArgs["stream"]);
+        if(!src){
             throw ApiRetException("can not find the stream", API::NotFound);
         }
         src->getOwnerPoller()->async([=]() mutable {
@@ -1046,9 +1049,9 @@ void installWebApi() {
     // Actively close the stream, including closing the pull stream and push stream
     // 测试url http://127.0.0.1/index/api/close_stream?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs&force=1  [AUTO-TRANSLATED:c3831592]
     // Test url http://127.0.0.1/index/api/close_stream?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs&force=1
-    api_regist("/index/api/close_stream", [](API_ARGS_MAP_ASYNC) {
+    api_regist("/index/api/close_stream",[](API_ARGS_MAP_ASYNC){
         CHECK_SECRET();
-        CHECK_ARGS("schema", "vhost", "app", "stream");
+        CHECK_ARGS("schema","vhost","app","stream");
         // 踢掉推流器  [AUTO-TRANSLATED:61e39b14]
         // Kick out the pusher
         auto src = MediaSource::find(allArgs["schema"],
@@ -1073,7 +1076,7 @@ void installWebApi() {
     // Batch actively close the stream, including closing the pull stream and push stream
     // 测试url http://127.0.0.1/index/api/close_streams?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs&force=1  [AUTO-TRANSLATED:786933db]
     // Test url http://127.0.0.1/index/api/close_streams?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs&force=1
-    api_regist("/index/api/close_streams",[](API_ARGS_MAP) {
+    api_regist("/index/api/close_streams",[](API_ARGS_MAP){
         CHECK_SECRET();
         // 筛选命中个数  [AUTO-TRANSLATED:6db1e8c7]
         // Filter hit count
@@ -1101,17 +1104,17 @@ void installWebApi() {
     // You can filter by local port and remote ip
     // 测试url(筛选某端口下的tcp会话) http://127.0.0.1/index/api/getAllSession?local_port=1935  [AUTO-TRANSLATED:ef845193]
     // Test url (filter tcp session under a certain port) http://127.0.0.1/index/api/getAllSession?local_port=1935
-    api_regist("/index/api/getAllSession", [](API_ARGS_MAP) {
+    api_regist("/index/api/getAllSession",[](API_ARGS_MAP){
         CHECK_SECRET();
         Value jsession;
         uint16_t local_port = allArgs["local_port"].as<uint16_t>();
         string peer_ip = allArgs["peer_ip"];
 
-        SessionMap::Instance().for_each_session([&](const string &id, const Session::Ptr &session) {
-            if (local_port != 0 && local_port != session->get_local_port()) {
+        SessionMap::Instance().for_each_session([&](const string &id,const Session::Ptr &session){
+            if(local_port != 0 && local_port != session->get_local_port()){
                 return;
             }
-            if (!peer_ip.empty() && peer_ip != session->get_peer_ip()) {
+            if(!peer_ip.empty() && peer_ip != session->get_peer_ip()){
                 return;
             }
             fillSockInfo(jsession, session.get());
@@ -1125,14 +1128,14 @@ void installWebApi() {
     // Disconnect the tcp connection, for example, you can disconnect the rtsp, rtmp player, etc.
     // 测试url http://127.0.0.1/index/api/kick_session?id=123456  [AUTO-TRANSLATED:c2880cb5]
     // Test url http://127.0.0.1/index/api/kick_session?id=123456
-    api_regist("/index/api/kick_session", [](API_ARGS_MAP) {
+    api_regist("/index/api/kick_session",[](API_ARGS_MAP){
         CHECK_SECRET();
         CHECK_ARGS("id");
         // 踢掉tcp会话  [AUTO-TRANSLATED:f6f318bd]
         // Kick out the tcp session
         auto session = SessionMap::Instance().get(allArgs["id"]);
-        if (!session) {
-            throw ApiRetException("can not find the target", API::OtherFailed);
+        if(!session){
+            throw ApiRetException("can not find the target",API::OtherFailed);
         }
         session->safeShutdown();
     });
@@ -1216,7 +1219,6 @@ void installWebApi() {
         CHECK_ARGS("key");
         val["data"]["flag"] = s_pusher_proxy.erase(allArgs["key"]) == 1;
     });
-
     api_regist("/index/api/listStreamPusherProxy", [](API_ARGS_MAP) {
         CHECK_SECRET();
         s_pusher_proxy.for_each([&val](const std::string& key, const PusherProxy::Ptr& p) {
@@ -1225,7 +1227,6 @@ void installWebApi() {
             val["data"].append(item);
         });
     });
-
     api_regist("/index/api/listStreamProxy", [](API_ARGS_MAP) {
         CHECK_SECRET();
         s_player_proxy.for_each([&val](const std::string& key, const PlayerProxy::Ptr& p) {
@@ -1234,12 +1235,11 @@ void installWebApi() {
             val["data"].append(item);
         });
     });
-
     // 动态添加rtsp/rtmp拉流代理  [AUTO-TRANSLATED:2616537c]
     // Dynamically add rtsp/rtmp pull stream proxy
     // 测试url http://127.0.0.1/index/api/addStreamProxy?vhost=__defaultVhost__&app=proxy&enable_rtsp=1&enable_rtmp=1&stream=0&url=rtmp://127.0.0.1/live/obs  [AUTO-TRANSLATED:71ddce15]
     // Test url http://127.0.0.1/index/api/addStreamProxy?vhost=__defaultVhost__&app=proxy&enable_rtsp=1&enable_rtmp=1&stream=0&url=rtmp://127.0.0.1/live/obs
-    api_regist("/index/api/addStreamProxy",[](API_ARGS_MAP_ASYNC) {
+    api_regist("/index/api/addStreamProxy",[](API_ARGS_MAP_ASYNC){
         CHECK_SECRET();
         CHECK_ARGS("vhost","app","stream","url");
 
@@ -1278,7 +1278,7 @@ void installWebApi() {
     // Close the pull stream proxy
     // 测试url http://127.0.0.1/index/api/delStreamProxy?key=__defaultVhost__/proxy/0  [AUTO-TRANSLATED:2b0903ef]
     // Test url http://127.0.0.1/index/api/delStreamProxy?key=__defaultVhost__/proxy/0
-    api_regist("/index/api/delStreamProxy", [](API_ARGS_MAP) {
+    api_regist("/index/api/delStreamProxy",[](API_ARGS_MAP){
         CHECK_SECRET();
         CHECK_ARGS("key");
         val["data"]["flag"] = s_player_proxy.erase(allArgs["key"]) == 1;
@@ -1317,9 +1317,9 @@ void installWebApi() {
     // Dynamically add rtsp/rtmp pull stream proxy
     // 测试url http://127.0.0.1/index/api/addFFmpegSource?src_url=http://live.hkstv.hk.lxdns.com/live/hks2/playlist.m3u8&dst_url=rtmp://127.0.0.1/live/hks2&timeout_ms=10000  [AUTO-TRANSLATED:501cdd89]
     // // Test url http://127.0.0.1/index/api/addFFmpegSource?src_url=http://live.hkstv.hk.lxdns.com/live/hks2/playlist.m3u8&dst_url=rtmp://127.0.0.1/live/hks2&timeout_ms=10000
-    api_regist("/index/api/addFFmpegSource", [](API_ARGS_MAP_ASYNC) {
+    api_regist("/index/api/addFFmpegSource",[](API_ARGS_MAP_ASYNC){
         CHECK_SECRET();
-        CHECK_ARGS("src_url", "dst_url", "timeout_ms");
+        CHECK_ARGS("src_url","dst_url","timeout_ms");
         auto src_url = allArgs["src_url"];
         auto dst_url = allArgs["dst_url"];
         int timeout_ms = allArgs["timeout_ms"];
@@ -1327,30 +1327,29 @@ void installWebApi() {
         auto enable_mp4 = allArgs["enable_mp4"].as<int>();
 
         addFFmpegSource(allArgs["ffmpeg_cmd_key"], src_url, dst_url, timeout_ms, enable_hls, enable_mp4,
-            [invoker, val, headerOut](const SockException &ex, const string &key) mutable {
-                if (ex) {
-                    val["code"] = API::OtherFailed;
-                    val["msg"] = ex.what();
-                } else {
-                    val["data"]["key"] = key;
-                }
-                invoker(200, headerOut, val.toStyledString());
-            });
+                        [invoker, val, headerOut](const SockException &ex, const string &key) mutable{
+            if (ex) {
+                val["code"] = API::OtherFailed;
+                val["msg"] = ex.what();
+            } else {
+                val["data"]["key"] = key;
+            }
+            invoker(200, headerOut, val.toStyledString());
+        });
     });
 
     // 关闭拉流代理  [AUTO-TRANSLATED:5204f128]
     // Close the pull stream proxy
     // 测试url http://127.0.0.1/index/api/delFFmepgSource?key=key  [AUTO-TRANSLATED:ed6fa147]
     // Test url http://127.0.0.1/index/api/delFFmepgSource?key=key
-    api_regist("/index/api/delFFmpegSource", [](API_ARGS_MAP) {
+    api_regist("/index/api/delFFmpegSource",[](API_ARGS_MAP){
         CHECK_SECRET();
         CHECK_ARGS("key");
         val["data"]["flag"] = s_ffmpeg_src.erase(allArgs["key"]) == 1;
     });
-
     api_regist("/index/api/listFFmpegSource", [](API_ARGS_MAP) {
         CHECK_SECRET();
-        s_ffmpeg_src.for_each([&val](const std::string &key, const FFmpegSource::Ptr &src) {
+        s_ffmpeg_src.for_each([&val](const std::string& key, const FFmpegSource::Ptr& src) {
             Json::Value item;
             item["src_url"] = src->getSrcUrl();
             item["dst_url"] = src->getDstUrl();
@@ -1370,7 +1369,7 @@ void installWebApi() {
     });
 
 #if defined(ENABLE_RTPPROXY)
-    api_regist("/index/api/getRtpInfo", [](API_ARGS_MAP) {
+    api_regist("/index/api/getRtpInfo",[](API_ARGS_MAP){
         CHECK_SECRET();
         CHECK_ARGS("stream_id");
         std::string vhost = DEFAULT_VHOST;
@@ -1391,7 +1390,7 @@ void installWebApi() {
         fillSockInfo(val, process.get());
     });
 
-    api_regist("/index/api/openRtpServer", [](API_ARGS_MAP) {
+    api_regist("/index/api/openRtpServer",[](API_ARGS_MAP){
         CHECK_SECRET();
         CHECK_ARGS("port", "stream_id");
         std::string vhost = DEFAULT_VHOST;
@@ -1420,7 +1419,8 @@ void installWebApi() {
         if (!allArgs["local_ip"].empty()) {
             local_ip = allArgs["local_ip"];
         }
-        auto port = openRtpServer(allArgs["port"], tuple, tcp_mode, local_ip, allArgs["re_use_port"].as<bool>(), allArgs["ssrc"].as<uint32_t>(), only_track);
+        auto port = openRtpServer(allArgs["port"], tuple, tcp_mode, local_ip, allArgs["re_use_port"].as<bool>(),
+                                  allArgs["ssrc"].as<uint32_t>(), only_track);
         if (port == 0) {
             throw InvalidArgsException("This stream already exists");
         }
@@ -1497,7 +1497,7 @@ void installWebApi() {
         server->connectToServer(allArgs["dst_url"], allArgs["dst_port"], cb);
     });
 
-    api_regist("/index/api/closeRtpServer", [](API_ARGS_MAP) {
+    api_regist("/index/api/closeRtpServer",[](API_ARGS_MAP){
         CHECK_SECRET();
         CHECK_ARGS("stream_id");
 
@@ -1518,7 +1518,7 @@ void installWebApi() {
         val["hit"] = 1;
     });
 
-    api_regist("/index/api/updateRtpServerSSRC", [](API_ARGS_MAP) {
+    api_regist("/index/api/updateRtpServerSSRC",[](API_ARGS_MAP){
         CHECK_SECRET();
         CHECK_ARGS("stream_id", "ssrc");
 
@@ -1539,7 +1539,7 @@ void installWebApi() {
         server->updateSSRC(allArgs["ssrc"]);
     });
 
-    api_regist("/index/api/listRtpServer", [](API_ARGS_MAP) {
+    api_regist("/index/api/listRtpServer",[](API_ARGS_MAP){
         CHECK_SECRET();
 
         std::lock_guard<std::recursive_mutex> lck(s_rtp_server._mtx);
@@ -1549,7 +1549,7 @@ void installWebApi() {
             obj["vhost"] = vec[0];
             obj["app"] = vec[1];
             obj["stream_id"] = vec[2];
-            auto &rtps = pr.second;
+            auto& rtps = pr.second;
             obj["port"] = rtps->getPort();
             obj["ssrc"] = rtps->getSSRC();
             obj["tcp_mode"] = rtps->getTcpMode();
@@ -1608,19 +1608,19 @@ void installWebApi() {
         });
     };
 
-    api_regist("/index/api/startSendRtp", [](API_ARGS_MAP_ASYNC) {
+    api_regist("/index/api/startSendRtp",[](API_ARGS_MAP_ASYNC){
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream", "ssrc", "dst_url", "dst_port", "is_udp");
         start_send_rtp(false, API_ARGS_VALUE, invoker);
     });
 
-    api_regist("/index/api/startSendRtpPassive", [](API_ARGS_MAP_ASYNC) {
+    api_regist("/index/api/startSendRtpPassive",[](API_ARGS_MAP_ASYNC){
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream", "ssrc");
         start_send_rtp(true, API_ARGS_VALUE, invoker);
     });
 
-    api_regist("/index/api/startSendRtpTalk", [](API_ARGS_MAP_ASYNC) {
+    api_regist("/index/api/startSendRtpTalk",[](API_ARGS_MAP_ASYNC){
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream", "ssrc", "recv_stream_id");
         auto src = MediaSource::find(allArgs["vhost"], allArgs["app"], allArgs["stream"], allArgs["from_mp4"].as<int>());
@@ -1675,7 +1675,7 @@ void installWebApi() {
         });
     });
 
-    api_regist("/index/api/stopSendRtp", [](API_ARGS_MAP_ASYNC) {
+    api_regist("/index/api/stopSendRtp",[](API_ARGS_MAP_ASYNC){
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream");
 
@@ -1709,8 +1709,7 @@ void installWebApi() {
             app = allArgs["app"];
         }
         // 只是暂停流的检查，流媒体服务器做为流负载服务，收流就转发，RTSP/RTMP有自己暂停协议  [AUTO-TRANSLATED:dda6ee31]
-        // Only pause the stream check, the media server acts as a stream load balancing service, receiving the stream and forwarding it, RTSP/RTMP has its own
-        // pause protocol
+        // Only pause the stream check, the media server acts as a stream load balancing service, receiving the stream and forwarding it, RTSP/RTMP has its own pause protocol
         auto src = MediaSource::find(vhost, app, allArgs["stream_id"]);
         auto process = src ? src->getRtpProcess() : nullptr;
         if (process) {
@@ -1744,11 +1743,11 @@ void installWebApi() {
 
     // 开始录制hls或MP4  [AUTO-TRANSLATED:0818775e]
     // Start recording hls or MP4
-    api_regist("/index/api/startRecord", [](API_ARGS_MAP_ASYNC) {
+    api_regist("/index/api/startRecord",[](API_ARGS_MAP_ASYNC){
         CHECK_SECRET();
-        CHECK_ARGS("type", "vhost", "app", "stream");
+        CHECK_ARGS("type","vhost","app","stream");
 
-        auto src = MediaSource::find(allArgs["vhost"], allArgs["app"], allArgs["stream"]);
+        auto src = MediaSource::find(allArgs["vhost"], allArgs["app"], allArgs["stream"] );
         if (!src) {
             throw ApiRetException("can not find the stream", API::NotFound);
         }
@@ -1757,7 +1756,7 @@ void installWebApi() {
             auto result = src->setupRecord((Recorder::type)allArgs["type"].as<int>(), true, allArgs["customized_path"], allArgs["max_second"].as<size_t>());
             val["result"] = result;
             val["code"] = result ? API::Success : API::OtherFailed;
-            val["msg"] = result ? "success" : "start record failed";
+            val["msg"] = result ? "success" :  "start record failed";
             invoker(200, headerOut, val.toStyledString());
         });
     });
@@ -1767,7 +1766,10 @@ void installWebApi() {
     api_regist("/index/api/setRecordSpeed", [](API_ARGS_MAP_ASYNC) {
         CHECK_SECRET();
         CHECK_ARGS("schema", "vhost", "app", "stream", "speed");
-        auto src = MediaSource::find(allArgs["schema"], allArgs["vhost"], allArgs["app"], allArgs["stream"]);
+        auto src = MediaSource::find(allArgs["schema"],
+                                     allArgs["vhost"],
+                                     allArgs["app"],
+                                     allArgs["stream"]);
         if (!src) {
             throw ApiRetException("can not find the stream", API::NotFound);
         }
@@ -1785,7 +1787,10 @@ void installWebApi() {
     api_regist("/index/api/seekRecordStamp", [](API_ARGS_MAP_ASYNC) {
         CHECK_SECRET();
         CHECK_ARGS("schema", "vhost", "app", "stream", "stamp");
-        auto src = MediaSource::find(allArgs["schema"], allArgs["vhost"], allArgs["app"], allArgs["stream"]);
+        auto src = MediaSource::find(allArgs["schema"],
+                                     allArgs["vhost"],
+                                     allArgs["app"],
+                                     allArgs["stream"]);
         if (!src) {
             throw ApiRetException("can not find the stream", API::NotFound);
         }
@@ -1802,11 +1807,11 @@ void installWebApi() {
 
     // 停止录制hls或MP4  [AUTO-TRANSLATED:24d11a0c]
     // Stop recording hls or MP4
-    api_regist("/index/api/stopRecord", [](API_ARGS_MAP_ASYNC) {
+    api_regist("/index/api/stopRecord",[](API_ARGS_MAP_ASYNC){
         CHECK_SECRET();
-        CHECK_ARGS("type", "vhost", "app", "stream");
+        CHECK_ARGS("type","vhost","app","stream");
 
-        auto src = MediaSource::find(allArgs["vhost"], allArgs["app"], allArgs["stream"]);
+        auto src = MediaSource::find(allArgs["vhost"], allArgs["app"], allArgs["stream"] );
         if (!src) {
             throw ApiRetException("can not find the stream", API::NotFound);
         }
@@ -1909,8 +1914,8 @@ void installWebApi() {
 
     // 获取录像文件夹列表或mp4文件列表  [AUTO-TRANSLATED:f7e299bc]
     // Get the list of recording folders or mp4 files
-    // http://127.0.0.1/index/api/getMP4RecordFile?vhost=__defaultVhost__&app=live&stream=ss&period=2020-01
-    api_regist("/index/api/getMP4RecordFile", [](API_ARGS_MAP) {
+    //http://127.0.0.1/index/api/getMP4RecordFile?vhost=__defaultVhost__&app=live&stream=ss&period=2020-01
+    api_regist("/index/api/getMP4RecordFile", [](API_ARGS_MAP){
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream");
         auto tuple = MediaTuple{allArgs["vhost"], allArgs["app"], allArgs["stream"], ""};
@@ -1982,7 +1987,7 @@ void installWebApi() {
 
     // 获取截图缓存或者实时截图  [AUTO-TRANSLATED:78e2fe1e]
     // Get screenshot cache or real-time screenshot
-    // http://127.0.0.1/index/api/getSnap?url=rtmp://127.0.0.1/record/robot.mp4&timeout_sec=10&expire_sec=3
+    //http://127.0.0.1/index/api/getSnap?url=rtmp://127.0.0.1/record/robot.mp4&timeout_sec=10&expire_sec=3
     api_regist("/index/api/getSnap", [](API_ARGS_MAP_ASYNC){
         CHECK_SECRET();
         CHECK_ARGS("url", "timeout_sec", "expire_sec");
@@ -2057,9 +2062,9 @@ void installWebApi() {
         });
     });
 
-    api_regist("/index/api/getStatistic", [](API_ARGS_MAP_ASYNC) {
+    api_regist("/index/api/getStatistic",[](API_ARGS_MAP_ASYNC){
         CHECK_SECRET();
-        getStatisticJson([headerOut, val, invoker](const Value &data) mutable {
+        getStatisticJson([headerOut, val, invoker](const Value &data) mutable{
             val["data"] = data;
             invoker(200, headerOut, val.toStyledString());
         });
@@ -2081,7 +2086,7 @@ void installWebApi() {
         }
 
     private:
-        string getUrl() const {
+        string getUrl() const{
             auto &allArgs = _args;
             CHECK_ARGS("app", "stream");
 
@@ -2095,13 +2100,13 @@ void installWebApi() {
         std::string _session_id;
     };
 
-    api_regist("/index/api/webrtc", [](API_ARGS_STRING_ASYNC) {
+    api_regist("/index/api/webrtc",[](API_ARGS_STRING_ASYNC){
         CHECK_ARGS("type");
         auto type = allArgs["type"];
         auto offer = allArgs.args;
         CHECK(!offer.empty(), "http body(webrtc offer sdp) is empty");
 
-        auto &session = static_cast<Session &>(sender);
+        auto &session = static_cast<Session&>(sender);
         auto args = std::make_shared<WebRtcArgsImp>(allArgs, sender.getIdentifier());
         WebRtcPluginManager::Instance().negotiateSdp(session, type, *args, [invoker, val, offer, headerOut](const WebRtcInterface &exchanger) mutable {
             auto &handler = const_cast<WebRtcInterface &>(exchanger);
@@ -2118,12 +2123,12 @@ void installWebApi() {
         });
     });
 
-    static constexpr char delete_webrtc_url[] = "/index/api/delete_webrtc";
+    static constexpr char delete_webrtc_url [] = "/index/api/delete_webrtc";
     static auto whip_whep_func = [](const char *type, API_ARGS_STRING_ASYNC) {
         auto offer = allArgs.args;
         CHECK(!offer.empty(), "http body(webrtc offer sdp) is empty");
 
-        auto &session = static_cast<Session &>(sender);
+        auto &session = static_cast<Session&>(sender);
         auto location = std::string(session.overSsl() ? "https://" : "http://") + allArgs["host"] + delete_webrtc_url;
         auto args = std::make_shared<WebRtcArgsImp>(allArgs, sender.getIdentifier());
         WebRtcPluginManager::Instance().negotiateSdp(session, type, *args, [invoker, offer, headerOut, location](const WebRtcInterface &exchanger) mutable {
@@ -2162,7 +2167,7 @@ void installWebApi() {
 #endif
 
 #if defined(ENABLE_VERSION)
-    api_regist("/index/api/version", [](API_ARGS_MAP_ASYNC) {
+    api_regist("/index/api/version",[](API_ARGS_MAP_ASYNC){
         CHECK_SECRET();
         Value ver;
         ver["buildTime"] = BUILD_TIME;
@@ -2298,15 +2303,13 @@ void installWebApi() {
 #endif
 }
 
-void unInstallWebApi() {
+void unInstallWebApi(){
     s_player_proxy.clear();
     s_ffmpeg_src.clear();
     s_pusher_proxy.clear();
-
 #if defined(ENABLE_RTPPROXY)
     s_rtp_server.clear();
 #endif
-
 #if defined(ENABLE_VIDEOSTACK) && defined(ENABLE_FFMPEG) && defined(ENABLE_X264)
     VideoStackManager::Instance().clear();
 #endif
