@@ -358,10 +358,10 @@ static void makeSnapAsync(const string &play_url, const string &save_path, float
         MediaPlayer::Ptr player;
     };
     auto holder = std::make_shared<Holder>();
-    holder->player = std::make_shared<MediaPlayer>();
-    (*holder->player)[mediakit::Client::kTimeoutMS] = timeout_sec * 1000;
+    auto player = std::make_shared<MediaPlayer>();
+    (*player)[mediakit::Client::kTimeoutMS] = timeout_sec * 1000;
 
-    holder->player->setOnPlayResult([holder, save_path, cb, timeout_sec](const SockException &ex) mutable {
+    player->setOnPlayResult([holder, save_path, cb, timeout_sec](const SockException &ex) mutable {
         onceToken token(nullptr, [&]() { holder->player = nullptr; });
         auto video = ex ? nullptr : dynamic_pointer_cast<VideoTrack>(holder->player->getTrack(TrackVideo, false));
         if (!video) {
@@ -370,24 +370,25 @@ static void makeSnapAsync(const string &play_url, const string &save_path, float
         }
         auto decoder = std::make_shared<FFmpegDecoder>(video);
         auto new_holder = std::make_shared<Holder>(*holder);
-        auto timer = EventPollerPool::Instance().getPoller()->doDelayTask(1000 * timeout_sec, [new_holder]() {
+        auto timer = EventPollerPool::Instance().getPoller()->doDelayTask(1000 * timeout_sec, [cb, new_holder]() {
             // 防止解码失败导致播放器无法释放
             new_holder->player = nullptr;
+            cb(false, "decode frame timeout");
             return 0;
         });
-        auto success = false;
-        decoder->setOnDecode([save_path, new_holder, cb, success, timer](const FFmpegFrame::Ptr &frame) mutable {
-            if (success) {
+        auto done = false;
+        decoder->setOnDecode([save_path, new_holder, cb, done, timer](const FFmpegFrame::Ptr &frame) mutable {
+            if (done) {
                 return;
             }
-            onceToken token(nullptr, [&]() { new_holder->player = nullptr; timer->cancel(); });
+            onceToken token(nullptr, [&]() { new_holder->player = nullptr; timer->cancel(); done = true; });
             auto ret = FFmpegUtils::saveFrame(frame, save_path.data());
-            success = std::get<0>(ret);
-            cb(success, std::get<1>(ret));
+            cb(std::get<0>(ret), std::get<1>(ret));
         });
         video->addDelegate([decoder](const Frame::Ptr &frame) { return decoder->inputFrame(frame, false, true); });
     });
-    holder->player->play(play_url);
+    player->play(play_url);
+    holder->player = std::move(player);
 }
 
 #endif
