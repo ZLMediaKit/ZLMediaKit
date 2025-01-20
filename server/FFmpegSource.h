@@ -26,17 +26,20 @@ namespace FFmpeg {
 class FFmpegSnap {
 public:
     using onSnap = std::function<void(bool success, const std::string &err_msg)>;
-    // / 创建截图  [AUTO-TRANSLATED:6d334c49]
-    // / Create a screenshot
-    // / \param play_url 播放url地址，只要FFmpeg支持即可  [AUTO-TRANSLATED:609d4de4]
-    // / \param play_url The playback URL address, as long as FFmpeg supports it
-    // / \param save_path 截图jpeg文件保存路径  [AUTO-TRANSLATED:0fc0ac0d]
-    // / \param save_path The path to save the screenshot JPEG file
-    // / \param timeout_sec 生成截图超时时间(防止阻塞太久)  [AUTO-TRANSLATED:0dcc0095]
-    // / \param timeout_sec Timeout for generating the screenshot (to prevent blocking for too long)
-    // / \param cb 生成截图成功与否回调  [AUTO-TRANSLATED:5b4b93c9]
-    // / \param cb Callback for whether the screenshot was generated successfully
-    static void makeSnap(const std::string &play_url, const std::string &save_path, float timeout_sec, const onSnap &cb);
+    /**
+     * 创建截图  [AUTO-TRANSLATED:6d334c49]
+     * Create a screenshot
+     * @param async 是否使用异步截图方式(非ffmpeg命令行，而是使用zlm api，但是仅限于zlm播放器支持的拉流协议)
+     * @param play_url 播放url地址，只要FFmpeg支持即可  [AUTO-TRANSLATED:609d4de4]
+     * @param play_url The playback URL address, as long as FFmpeg supports it
+     * @param save_path 截图jpeg文件保存路径  [AUTO-TRANSLATED:0fc0ac0d]
+     * @param save_path The path to save the screenshot JPEG file
+     * @param timeout_sec 生成截图超时时间(防止阻塞太久)  [AUTO-TRANSLATED:0dcc0095]
+     * @param timeout_sec Timeout for generating the screenshot (to prevent blocking for too long)
+     * @param cb 生成截图成功与否回调  [AUTO-TRANSLATED:5b4b93c9]
+     * @param cb Callback for whether the screenshot was generated successfully
+     */
+    static void makeSnap(bool async, const std::string &play_url, const std::string &save_path, float timeout_sec, const onSnap &cb);
 
 private:
     FFmpegSnap() = delete;

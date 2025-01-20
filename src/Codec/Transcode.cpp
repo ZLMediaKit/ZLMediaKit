@@ -16,6 +16,7 @@
 #include "Util/uv_errno.h"
 #include "Transcode.h"
 #include "Common/config.h"
+
 #define MAX_DELAY_SECOND 3
 
 using namespace std;
@@ -29,13 +30,8 @@ static string ffmpeg_err(int errnum) {
     return errbuf;
 }
 
-std::shared_ptr<AVPacket> alloc_av_packet() {
-    auto pkt = std::shared_ptr<AVPacket>(av_packet_alloc(), [](AVPacket *pkt) {
-        av_packet_free(&pkt);
-    });
-    pkt->data = NULL;    // packet data will be allocated by the encoder
-    pkt->size = 0;
-    return pkt;
+std::unique_ptr<AVPacket, void (*)(AVPacket *)> alloc_av_packet() {
+    return std::unique_ptr<AVPacket, void (*)(AVPacket *)>(av_packet_alloc(), [](AVPacket *pkt) { av_packet_free(&pkt); });
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -317,6 +313,7 @@ static inline const AVCodec *getCodecByName(const std::vector<std::string> &code
 
 FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num, const std::vector<std::string> &codec_name) {
     setupFFmpeg();
+    _frame_pool.setSize(AV_NUM_DATA_POINTERS);
     const AVCodec *codec = nullptr;
     const AVCodec *codec_default = nullptr;
     if (!codec_name.empty()) {
@@ -414,15 +411,22 @@ FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num, const std:
         if (track->getTrackType() == TrackVideo) {
             _context->width = static_pointer_cast<VideoTrack>(track)->getVideoWidth();
             _context->height = static_pointer_cast<VideoTrack>(track)->getVideoHeight();
+            InfoL << "media source :" << _context->width << " X " << _context->height;
         }
 
         switch (track->getCodecId()) {
             case CodecG711A:
             case CodecG711U: {
                 AudioTrack::Ptr audio = static_pointer_cast<AudioTrack>(track);
+
+#if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
+                av_channel_layout_default(&_context->ch_layout, audio->getAudioChannel());
+#else
                 _context->channels = audio->getAudioChannel();
-                _context->sample_rate = audio->getAudioSampleRate();
                 _context->channel_layout = av_get_default_channel_layout(_context->channels);
+#endif
+
+                _context->sample_rate = audio->getAudioSampleRate();
                 break;
             }
             default:
@@ -479,7 +483,7 @@ FFmpegDecoder::~FFmpegDecoder() {
 
 void FFmpegDecoder::flush() {
     while (true) {
-        auto out_frame = std::make_shared<FFmpegFrame>();
+        auto out_frame = _frame_pool.obtain2();
         auto ret = avcodec_receive_frame(_context.get(), out_frame->get());
         if (ret == AVERROR(EAGAIN)) {
             avcodec_send_packet(_context.get(), nullptr);
@@ -526,7 +530,7 @@ bool FFmpegDecoder::inputFrame(const Frame::Ptr &frame, bool live, bool async, b
         inputFrame_l(frame_cache, live, enable_merge);
         // 此处模拟解码太慢导致的主动丢帧  [AUTO-TRANSLATED:fc8bea8a]
         // Here simulates decoding too slow, resulting in active frame dropping
-        //usleep(100 * 1000);
+        // usleep(100 * 1000);
     });
 }
 
@@ -534,7 +538,7 @@ bool FFmpegDecoder::decodeFrame(const char *data, size_t size, uint64_t dts, uin
     TimeTicker2(30, TraceL);
 
     auto pkt = alloc_av_packet();
-    pkt->data = (uint8_t *) data;
+    pkt->data = (uint8_t *)data;
     pkt->size = size;
     pkt->dts = dts;
     pkt->pts = pts;
@@ -550,8 +554,8 @@ bool FFmpegDecoder::decodeFrame(const char *data, size_t size, uint64_t dts, uin
         return false;
     }
 
-    while (true) {
-        auto out_frame = std::make_shared<FFmpegFrame>();
+    for (;;) {
+        auto out_frame = _frame_pool.obtain2();
         ret = avcodec_receive_frame(_context.get(), out_frame->get());
         if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
             break;
@@ -582,41 +586,75 @@ void FFmpegDecoder::onDecode(const FFmpegFrame::Ptr &frame) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+#if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
+FFmpegSwr::FFmpegSwr(AVSampleFormat output, AVChannelLayout *ch_layout, int samplerate) {
+    _target_format = output;
+    av_channel_layout_copy(&_target_ch_layout, ch_layout);
+    _target_samplerate = samplerate;
+}
+#else
 FFmpegSwr::FFmpegSwr(AVSampleFormat output, int channel, int channel_layout, int samplerate) {
     _target_format = output;
     _target_channels = channel;
     _target_channel_layout = channel_layout;
     _target_samplerate = samplerate;
+
+    _swr_frame_pool.setSize(AV_NUM_DATA_POINTERS);
 }
+#endif
 
 FFmpegSwr::~FFmpegSwr() {
     if (_ctx) {
         swr_free(&_ctx);
     }
+#if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
+    av_channel_layout_uninit(&_target_ch_layout);
+#endif
 }
 
 FFmpegFrame::Ptr FFmpegSwr::inputFrame(const FFmpegFrame::Ptr &frame) {
     if (frame->get()->format == _target_format &&
-        frame->get()->channels == _target_channels &&
-        frame->get()->channel_layout == (uint64_t)_target_channel_layout &&
+
+#if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
+        !av_channel_layout_compare(&(frame->get()->ch_layout), &_target_ch_layout) &&
+#else
+        frame->get()->channels == _target_channels && frame->get()->channel_layout == (uint64_t)_target_channel_layout &&
+#endif
+
         frame->get()->sample_rate == _target_samplerate) {
         // 不转格式  [AUTO-TRANSLATED:31dc6ae1]
         // Do not convert format
         return frame;
     }
     if (!_ctx) {
+
+#if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
+        _ctx = swr_alloc();
+        swr_alloc_set_opts2(&_ctx, 
+                    &_target_ch_layout, _target_format, _target_samplerate, 
+                    &frame->get()->ch_layout, (AVSampleFormat)frame->get()->format, frame->get()->sample_rate,
+                     0, nullptr);
+#else
         _ctx = swr_alloc_set_opts(nullptr, _target_channel_layout, _target_format, _target_samplerate,
                                   frame->get()->channel_layout, (AVSampleFormat) frame->get()->format,
                                   frame->get()->sample_rate, 0, nullptr);
+#endif
+
         InfoL << "swr_alloc_set_opts:" << av_get_sample_fmt_name((enum AVSampleFormat) frame->get()->format) << " -> "
               << av_get_sample_fmt_name(_target_format);
     }
     if (_ctx) {
-        auto out = std::make_shared<FFmpegFrame>();
+        auto out = _swr_frame_pool.obtain2();
         out->get()->format = _target_format;
+
+#if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
+        out->get()->ch_layout = _target_ch_layout;
+        av_channel_layout_copy(&(out->get()->ch_layout), &_target_ch_layout);
+#else
         out->get()->channel_layout = _target_channel_layout;
         out->get()->channels = _target_channels;
+#endif
+
         out->get()->sample_rate = _target_samplerate;
         out->get()->pkt_dts = frame->get()->pkt_dts;
         out->get()->pts = frame->get()->pts;
@@ -638,6 +676,8 @@ FFmpegSws::FFmpegSws(AVPixelFormat output, int width, int height) {
     _target_format = output;
     _target_width = width;
     _target_height = height;
+
+    _sws_frame_pool.setSize(AV_NUM_DATA_POINTERS);
 }
 
 FFmpegSws::~FFmpegSws() {
@@ -668,7 +708,7 @@ FFmpegFrame::Ptr FFmpegSws::inputFrame(const FFmpegFrame::Ptr &frame, int &ret, 
         // Do not convert format
         return frame;
     }
-    if (_ctx && (_src_width != frame->get()->width || _src_height != frame->get()->height || _src_format != (enum AVPixelFormat) frame->get()->format)) {
+    if (_ctx && (_src_width != frame->get()->width || _src_height != frame->get()->height || _src_format != (enum AVPixelFormat)frame->get()->format)) {
         // 输入分辨率发生变化了  [AUTO-TRANSLATED:0e4ea2e8]
         // Input resolution has changed
         sws_freeContext(_ctx);
@@ -682,7 +722,7 @@ FFmpegFrame::Ptr FFmpegSws::inputFrame(const FFmpegFrame::Ptr &frame, int &ret, 
         InfoL << "sws_getContext:" << av_get_pix_fmt_name((enum AVPixelFormat) frame->get()->format) << " -> " << av_get_pix_fmt_name(_target_format);
     }
     if (_ctx) {
-        auto out = std::make_shared<FFmpegFrame>();
+        auto out = _sws_frame_pool.obtain2();
         if (!out->get()->data[0]) {
             if (data) {
                 av_image_fill_arrays(out->get()->data, out->get()->linesize, data, _target_format, target_width, target_height, 32);
@@ -705,5 +745,64 @@ FFmpegFrame::Ptr FFmpegSws::inputFrame(const FFmpegFrame::Ptr &frame, int &ret, 
     return nullptr;
 }
 
-} //namespace mediakit
-#endif//ENABLE_FFMPEG
+std::tuple<bool, std::string> FFmpegUtils::saveFrame(const FFmpegFrame::Ptr &frame, const char *filename, AVPixelFormat fmt) {
+    _StrPrinter ss;
+    const AVCodec *jpeg_codec = avcodec_find_encoder(fmt == AV_PIX_FMT_YUVJ420P ? AV_CODEC_ID_MJPEG : AV_CODEC_ID_PNG);
+    std::unique_ptr<AVCodecContext, void (*)(AVCodecContext *)> jpeg_codec_ctx(
+        jpeg_codec ? avcodec_alloc_context3(jpeg_codec) : nullptr, [](AVCodecContext *ctx) { avcodec_free_context(&ctx); });
+
+    if (!jpeg_codec_ctx) {
+        ss << "Could not allocate JPEG/PNG codec context";
+        DebugL << ss;
+        return { false, ss };
+    }
+
+    jpeg_codec_ctx->width = frame->get()->width;
+    jpeg_codec_ctx->height = frame->get()->height;
+    jpeg_codec_ctx->pix_fmt = fmt;
+    jpeg_codec_ctx->time_base = { 1, 1 };
+
+    auto ret = avcodec_open2(jpeg_codec_ctx.get(), jpeg_codec, NULL);
+    if (ret < 0) {
+        ss << "Could not open JPEG codec, " << ffmpeg_err(ret);
+        DebugL << ss;
+        return { false, ss };
+    }
+
+    FFmpegSws sws(fmt, 0, 0);
+    auto new_frame = sws.inputFrame(frame);
+    if (!new_frame) {
+        ss << "Could not scale the frame: " << ffmpeg_err(ret);
+        DebugL << ss;
+        return { false, ss };
+    }
+
+    auto pkt = alloc_av_packet();
+    ret = avcodec_send_frame(jpeg_codec_ctx.get(), new_frame->get());
+    if (ret < 0) {
+        ss << "Error sending a frame for encoding," << ffmpeg_err(ret);
+        DebugL << ss;
+        return { false, ss };
+    }
+
+    std::unique_ptr<FILE, void (*)(FILE *)> tmp_save_file_jpg(File::create_file(filename, "wb"), [](FILE *fp) {
+        if (fp) {
+            fclose(fp);
+        }
+    });
+
+    if (!tmp_save_file_jpg) {
+        ss << "Could not open the file " << filename;
+        DebugL << ss;
+        return { false, ss };
+    }
+
+    while (avcodec_receive_packet(jpeg_codec_ctx.get(), pkt.get()) == 0) {
+        fwrite(pkt.get()->data, pkt.get()->size, 1, tmp_save_file_jpg.get());
+    }
+    DebugL << "Screenshot successful: " << filename;
+    return { true, "" };
+}
+
+} // namespace mediakit
+#endif // ENABLE_FFMPEG

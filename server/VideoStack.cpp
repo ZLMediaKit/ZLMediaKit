@@ -151,10 +151,10 @@ void StackPlayer::play() {
         // auto audioTrack = std::dynamic_pointer_cast<mediakit::AudioTrack>(strongPlayer->getTrack(mediakit::TrackAudio, false));
 
         if (videoTrack) {
+            // 如果每次不同 可以加个时间戳 time(NULL);
             // TODO:添加使用显卡还是cpu解码的判断逻辑  [AUTO-TRANSLATED:44bef37a]
             // TODO: Add logic to determine whether to use GPU or CPU decoding
-            auto decoder = std::make_shared<mediakit::FFmpegDecoder>(
-                videoTrack, 0, std::vector<std::string>{"h264", "hevc"});
+            auto decoder = std::make_shared<mediakit::FFmpegDecoder>(videoTrack, 0, std::vector<std::string> { "h264", "hevc" });
 
             decoder->setOnDecode([weakSelf](const mediakit::FFmpegFrame::Ptr& frame) mutable {
                 auto self = weakSelf.lock();

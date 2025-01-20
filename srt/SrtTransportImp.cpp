@@ -117,6 +117,7 @@ bool SrtTransportImp::parseStreamid(std::string &streamid) {
 
     _media_info.app = app;
     _media_info.stream = stream_name;
+    _media_info.full_url = _media_info.getUrl() + "?" + _media_info.params;
 
     TraceL << " mediainfo=" << _media_info.shortUrl() << " params=" << _media_info.params;
 
