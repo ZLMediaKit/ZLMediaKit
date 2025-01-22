@@ -18,7 +18,15 @@ using namespace mediakit;
 
 API_EXPORT mk_rtp_server API_CALL mk_rtp_server_create(uint16_t port, int tcp_mode, const char *stream_id) {
     RtpServer::Ptr *server = new RtpServer::Ptr(new RtpServer);
-    (*server)->start(port, stream_id, (RtpServer::TcpMode)tcp_mode);
+    GET_CONFIG(std::string, local_ip, General::kListenIP)
+    (*server)->start(port, local_ip.c_str(), MediaTuple { DEFAULT_VHOST, kRtpAppName, stream_id, "" }, (RtpServer::TcpMode)tcp_mode);
+    return (mk_rtp_server)server;
+}
+
+API_EXPORT mk_rtp_server API_CALL mk_rtp_server_create2(uint16_t port, int tcp_mode, const char *vhost, const char *app, const char *stream_id) {
+    RtpServer::Ptr *server = new RtpServer::Ptr(new RtpServer);
+    GET_CONFIG(std::string, local_ip, General::kListenIP)
+    (*server)->start(port, local_ip.c_str(), MediaTuple { vhost, app, stream_id, "" }, (RtpServer::TcpMode)tcp_mode);
     return (mk_rtp_server)server;
 }
 
@@ -56,7 +64,7 @@ API_EXPORT void API_CALL mk_rtp_server_set_on_detach2(mk_rtp_server ctx, on_mk_r
     RtpServer::Ptr *server = (RtpServer::Ptr *) ctx;
     if (cb) {
         std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
-        (*server)->setOnDetach([cb, ptr]() {
+        (*server)->setOnDetach([cb, ptr](const SockException &ex) {
             cb(ptr.get());
         });
     } else {
@@ -67,6 +75,11 @@ API_EXPORT void API_CALL mk_rtp_server_set_on_detach2(mk_rtp_server ctx, on_mk_r
 #else
 
 API_EXPORT mk_rtp_server API_CALL mk_rtp_server_create(uint16_t port, int enable_tcp, const char *stream_id) {
+    WarnL << "请打开ENABLE_RTPPROXY后再编译";
+    return nullptr;
+}
+
+API_EXPORT mk_rtp_server API_CALL mk_rtp_server_create2(uint16_t port, int tcp_mode, const char *vhost, const char *app, const char *stream_id) {
     WarnL << "请打开ENABLE_RTPPROXY后再编译";
     return nullptr;
 }

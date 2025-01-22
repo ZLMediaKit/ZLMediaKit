@@ -28,6 +28,10 @@ public:
     /**
      * 设置rtp环形缓存
      * @param ring
+     * Set the RTP ring buffer
+     * @param ring
+     
+     * [AUTO-TRANSLATED:283d737a]
      */
     void setRtpRing(RingType::Ptr ring) {
         _ring = std::move(ring);
@@ -38,6 +42,12 @@ public:
      * @param rtp rtp包
      * @param key_pos 是否为关键帧第一个rtp包
      * @return 是否为关键帧第一个rtp包
+     * Input RTP packet
+     * @param rtp RTP packet
+     * @param key_pos Whether it is the first RTP packet of the key frame
+     * @return Whether it is the first RTP packet of the key frame
+     
+     * [AUTO-TRANSLATED:05ccdd17]
      */
     virtual bool inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
         if (_ring) {
@@ -66,7 +76,8 @@ public:
         _track_index = track_index;
     }
 
-    //返回rtp负载最大长度
+    // 返回rtp负载最大长度  [AUTO-TRANSLATED:0a8ee7d9]
+    // Return the maximum length of the RTP payload
     size_t getMaxSize() const {
         return _mtu_size - RtpPacket::kRtpHeaderSize;
     }
@@ -101,6 +112,13 @@ public:
      *
      * @param opt 设置的选项
      * @param param 设置的参数
+     * @brief Set the parameters of the RTP packer and unpacker, mainly used for g711 RTP packer, the usage is similar to setsockopt
+     *
+     * @param opt Set options
+     * @param param Set parameters
+     
+     
+     * [AUTO-TRANSLATED:95859425]
      */
     virtual void setOpt(int opt, const toolkit::Any &param) {};
 

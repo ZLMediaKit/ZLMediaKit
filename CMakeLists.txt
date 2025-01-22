@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright (c) 2016-2022 The ZLMediaKit project authors. All Rights Reserved.
+# Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -193,7 +193,7 @@ if(UNIX)
     "-fPIC"
     "-Wall;-Wextra"
     "-Wno-unused-function;-Wno-unused-parameter;-Wno-unused-variable;-Wno-deprecated-declarations"
-    "-Wno-error=extra;-Wno-error=missing-field-initializers;-Wno-error=type-limits")
+    "-Wno-error=extra;-Wno-error=missing-field-initializers;-Wno-error=type-limits;-Wno-comment")
 
   if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     set(COMPILE_OPTIONS_DEFAULT ${COMPILE_OPTIONS_DEFAULT} "-g3")
@@ -208,8 +208,8 @@ elseif(WIN32)
             # warning C4530: C++ exception handler used, but unwind semantics are not enabled.
             "/EHsc")
     # disable Windows logo
-    list(APPEND COMPILE_OPTIONS_DEFAULT "/nologo")
-    list(APPEND CMAKE_STATIC_LINKER_FLAGS "/nologo")
+   string(REPLACE "/nologo" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+   set(CMAKE_STATIC_LINKER_FLAGS "")
   endif()
 endif()
 
@@ -403,6 +403,8 @@ if(OPENSSL_FOUND AND ENABLE_OPENSSL)
   update_cached_list(MK_LINK_LIBRARIES ${OPENSSL_LIBRARIES})
   if(CMAKE_SYSTEM_NAME MATCHES "Linux" AND OPENSSL_USE_STATIC_LIBS)
     update_cached_list(MK_LINK_LIBRARIES ${CMAKE_DL_LIBS})
+  elseif(CMAKE_SYSTEM_NAME MATCHES "Windows" AND OPENSSL_USE_STATIC_LIBS)
+    update_cached_list(MK_LINK_LIBRARIES Crypt32)
   endif()
 else()
   set(ENABLE_OPENSSL OFF)
@@ -446,8 +448,23 @@ endif()
 
 if(WIN32)
   update_cached_list(MK_LINK_LIBRARIES WS2_32 Iphlpapi shlwapi)
+elseif(ANDROID)
+  update_cached_list(MK_LINK_LIBRARIES log)
 elseif(NOT ANDROID OR IOS)
   update_cached_list(MK_LINK_LIBRARIES pthread)
+endif()
+
+if(ENABLE_VIDEOSTACK)
+  if(ENABLE_FFMPEG AND ENABLE_X264)
+    message(STATUS "ENABLE_VIDEOSTACK defined")
+    update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_VIDEOSTACK)
+  else()
+    message(WARNING "ENABLE_VIDEOSTACK requires ENABLE_FFMPEG and ENABLE_X264")
+  endif ()
+endif ()
+
+if(ENABLE_SRT)
+  update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_SRT)
 endif()
 
 # ----------------------------------------------------------------------------

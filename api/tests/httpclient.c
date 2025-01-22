@@ -52,7 +52,8 @@ int main(int argc, char *argv[]) {
     mk_http_requester_set_cb(requester, on_requester_complete, &ctx);
     mk_http_requester_start(requester, "http://www.baidu.com/baidu", 10);
 
-    //等待http请求完毕
+    // 等待http请求完毕  [AUTO-TRANSLATED:0c1d7dea]
+    // Wait for the HTTP request to complete
     mk_sem_wait(sem);
 
     mk_sem_release(sem);

@@ -9,6 +9,7 @@
  */
 
 #include <ctime>
+#include <iomanip> 
 #include <sys/stat.h>
 #include "HlsMakerImp.h"
 #include "Util/util.h"
@@ -43,10 +44,15 @@ HlsMakerImp::HlsMakerImp(bool is_fmp4, const string &m3u8_file, const string &pa
 
 HlsMakerImp::~HlsMakerImp() {
     try {
-        // 可能hls注册时导致抛异常
+        // 可能hls注册时导致抛异常  [AUTO-TRANSLATED:82add30d]
+        // Possible exception thrown during hls registration
         clearCache(false, true);
     } catch (std::exception &ex) {
         WarnL << ex.what();
+    }
+
+    if (!isLive() || isKeep()) {
+        saveCurrentDir();
     }
 }
 
@@ -62,7 +68,8 @@ static void clearHls(const std::list<std::string> &files) {
 }
 
 void HlsMakerImp::clearCache(bool immediately, bool eof) {
-    // 录制完了
+    // 录制完了  [AUTO-TRANSLATED:5d3bfbeb]
+    // Recording finished
     flushLastSegment(eof);
     if (!isLive() || isKeep()) {
         return;
@@ -79,7 +86,8 @@ void HlsMakerImp::clearCache(bool immediately, bool eof) {
             lst.emplace_back(std::move(pr.second));
         }
 
-        // hls直播才删除文件
+        // hls直播才删除文件  [AUTO-TRANSLATED:81d2aaa5]
+        // Delete file only after hls live streaming
         GET_CONFIG(uint32_t, delay, Hls::kDeleteDelaySec);
         if (!delay || immediately) {
             clearHls(lst);
@@ -96,21 +104,71 @@ void HlsMakerImp::clearCache(bool immediately, bool eof) {
     _segment_file_paths.clear();
 }
 
+/** 写入该目录的init.mp4文件以及m3u8文件 **/
+void HlsMakerImp::saveCurrentDir() {
+    if (_current_dir.empty() || _current_dir_seg_list.empty()) {
+        return;
+    }
+    if (isFmp4()) {
+        // 写入init.mp4文件
+        File::saveFile(_current_dir_init_file, _path_prefix + "/" + _current_dir + "init.mp4");
+    }
+
+    int maxSegmentDuration = 0;
+    for (auto &tp : _current_dir_seg_list) {
+        int dur = std::get<0>(tp);
+        if (dur > maxSegmentDuration) {
+            maxSegmentDuration = dur;
+        }
+    }
+
+    string index_str;
+    index_str.reserve(2048);
+    index_str += "#EXTM3U\n";
+    index_str += (isFmp4() ? "#EXT-X-VERSION:7\n" : "#EXT-X-VERSION:4\n");
+    index_str += "#EXT-X-ALLOW-CACHE:YES\n";
+    index_str += "#EXT-X-TARGETDURATION:" + std::to_string((maxSegmentDuration + 999) / 1000) + "\n";
+    index_str += "#EXT-X-MEDIA-SEQUENCE:0\n";
+    if (isFmp4()) {
+        index_str += "#EXT-X-MAP:URI=\"init.mp4\"\n";
+    }
+    stringstream ss;
+    for (auto &t : _current_dir_seg_list) {
+        ss << "#EXTINF:" << std::setprecision(3) << std::get<0>(t) / 1000.0 << ",\n" << std::get<1>(t) << "\n";
+    }
+    _current_dir_seg_list.clear();
+    index_str += ss.str();
+    index_str += "#EXT-X-ENDLIST\n";
+
+    /** 写入该目录的m3u8文件 **/
+    File::saveFile(index_str, _path_prefix + "/" + _current_dir + (isFmp4() ? "vod.fmp4.m3u8" : "vod.m3u8"));
+}
+
 string HlsMakerImp::onOpenSegment(uint64_t index) {
     string segment_name, segment_path;
     {
         auto strDate = getTimeStr("%Y-%m-%d");
         auto strHour = getTimeStr("%H");
         auto strTime = getTimeStr("%M-%S");
-        segment_name = StrPrinter << strDate + "/" + strHour + "/" + strTime << "_" << index << (isFmp4() ? ".mp4" : ".ts");
+        auto current_dir = strDate + "/" + strHour + "/";
+        segment_name = current_dir + strTime + "_" + std::to_string(index) + (isFmp4() ? ".mp4" : ".ts");
         segment_path = _path_prefix + "/" + segment_name;
         if (isLive()) {
+            // 直播
             _segment_file_paths.emplace(index, segment_path);
+        }
+        if (!isLive() || isKeep()) {
+            // 目录将发生变更，保留ts切片时，每个目录都生成一个m3u8文件
+            if (!_current_dir.empty() && current_dir != _current_dir) {
+                saveCurrentDir();
+            }
+            _current_dir = std::move(current_dir);
         }
     }
     _file = makeFile(segment_path, true);
 
-    // 保存本切片的元数据
+    // 保存本切片的元数据  [AUTO-TRANSLATED:64e6f692]
+    // Save metadata for this slice
     _info.start_time = ::time(NULL);
     _info.file_name = segment_name;
     _info.file_path = segment_path;
@@ -135,13 +193,14 @@ void HlsMakerImp::onDelSegment(uint64_t index) {
 }
 
 void HlsMakerImp::onWriteInitSegment(const char *data, size_t len) {
+    if (!isLive() || isKeep()) {
+        _current_dir_init_file.assign(data, len);
+    }
     string init_seg_path = _path_prefix + "/init.mp4";
-    _file = makeFile(init_seg_path);
-
-    if (_file) {
-        fwrite(data, len, 1, _file.get());
+    auto file = makeFile(init_seg_path);
+    if (file) {
+        fwrite(data, len, 1, file.get());
         _path_init = std::move(init_seg_path);
-        _file = nullptr;
     } else {
         WarnL << "Create file failed," << init_seg_path << " " << get_uv_errmsg();
     }
@@ -171,9 +230,12 @@ void HlsMakerImp::onWriteHls(const std::string &data, bool include_delay) {
 }
 
 void HlsMakerImp::onFlushLastSegment(uint64_t duration_ms) {
-    // 关闭并flush文件到磁盘
+    // 关闭并flush文件到磁盘  [AUTO-TRANSLATED:9798ec4d]
+    // Close and flush file to disk
     _file = nullptr;
-
+    if (!isLive() || isKeep()) {
+        _current_dir_seg_list.emplace_back(duration_ms, _info.file_name.erase(0, _current_dir.size()));
+    }
     GET_CONFIG(bool, broadcastRecordTs, Hls::kBroadcastRecordTs);
     if (broadcastRecordTs) {
         _info.time_len = duration_ms / 1000.0f;

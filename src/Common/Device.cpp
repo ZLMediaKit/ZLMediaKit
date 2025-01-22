@@ -39,7 +39,7 @@ bool DevChannel::inputYUV(char *yuv[3], int linesize[3], uint64_t cts) {
         int frames = _pH264Enc->inputData(yuv, linesize, cts, &out_frames);
         bool ret = false;
         for (int i = 0; i < frames; i++) {
-            ret = inputH264((char *) out_frames[i].pucData, out_frames[i].iLength, cts) ? true : ret;
+            ret = inputH264((char *) out_frames[i].pucData, out_frames[i].iLength, out_frames[i].dts, out_frames[i].pts) ? true : ret;
         }
         return ret;
     }
@@ -103,16 +103,19 @@ bool DevChannel::inputAAC(const char *data_without_adts, int len, uint64_t dts, 
     }
 
     if (!adts_header) {
-        //没有adts头
+        // 没有adts头  [AUTO-TRANSLATED:b9faaa83]
+        // No adts header
         return inputFrame(std::make_shared<FrameFromPtr>(CodecAAC, (char *) data_without_adts, len, dts, 0, 0));
     }
 
     if (adts_header + ADTS_HEADER_LEN == data_without_adts) {
-        //adts头和帧在一起
+        // adts头和帧在一起  [AUTO-TRANSLATED:76c4e678]
+        // adts header and frame together
         return inputFrame(std::make_shared<FrameFromPtr>(CodecAAC, (char *) data_without_adts - ADTS_HEADER_LEN, len + ADTS_HEADER_LEN, dts, 0, ADTS_HEADER_LEN));
     }
 
-    //adts头和帧不在一起
+    // adts头和帧不在一起  [AUTO-TRANSLATED:591dd07a]
+    // adts header and frame not together
     char *data_with_adts = new char[len + ADTS_HEADER_LEN];
     memcpy(data_with_adts, adts_header, ADTS_HEADER_LEN);
     memcpy(data_with_adts + ADTS_HEADER_LEN, data_without_adts, len);

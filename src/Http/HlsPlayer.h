@@ -56,12 +56,20 @@ public:
     /**
      * 开始播放
      * start play
+     * Start playing
+     * start play
+     
+     * [AUTO-TRANSLATED:03d41cf7]
      */
     void play(const std::string &url) override;
 
     /**
      * 停止播放
      * stop play
+     * Stop playing
+     * stop play
+     
+     * [AUTO-TRANSLATED:88068dac]
      */
     void teardown() override;
 
@@ -71,6 +79,12 @@ protected:
      * Received ts package
      * @param data ts数据负载 ts data payload
      * @param len ts包长度 ts package length
+     * Received ts package
+     * Received ts package
+     * @param data ts data payload
+     * @param len ts package length
+     
+     * [AUTO-TRANSLATED:159a6559]
      */
     virtual void onPacket(const char *data, size_t len) = 0;
 
@@ -90,7 +104,8 @@ private:
 
 private:
     struct UrlComp {
-        // url忽略？后面的参数
+        // url忽略？后面的参数  [AUTO-TRANSLATED:788784c3]
+        // url ignore? parameters after
         // Ignore the parameters after the url?
         bool operator()(const std::string& __x, const std::string& __y) const {
             return toolkit::split(__x,"?")[0] < toolkit::split(__y,"?")[0];

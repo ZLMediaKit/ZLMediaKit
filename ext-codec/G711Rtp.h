@@ -19,6 +19,9 @@ namespace mediakit {
 
 /**
  * G711 rtp编码类
+ * G711 rtp encoding class
+ 
+ * [AUTO-TRANSLATED:92aa6cf3]
  */
 class G711RtpEncoder : public RtpCodec {
 public:
@@ -26,22 +29,37 @@ public:
 
     /**
      * 构造函数
-     * @param codec 编码类型
+     * @param sample_rate 音频采样率
      * @param channels 通道数
+     * @param sample_bit 音频采样位数
+     * Constructor
+     * @param sample_rate audio sample rate
+     * @param channels Number of channels
+     * @param sample_bit audio sample bits
+
+     * [AUTO-TRANSLATED:dbbd593e]
      */
-    G711RtpEncoder(CodecId codec, uint32_t channels);
+    G711RtpEncoder(int sample_rate = 8000, int channels = 1, int sample_bit = 16);
 
     /**
      * 输入帧数据并编码成rtp
+     * Input frame data and encode it into rtp
+     
+     
+     * [AUTO-TRANSLATED:02bc9009]
      */
     bool inputFrame(const Frame::Ptr &frame) override;
 
     void setOpt(int opt, const toolkit::Any &param) override;
 
 private:
-    uint32_t _channels = 1;
+    int _channels;
+    int _sample_rate;
+    int _sample_bit;
+
     uint32_t _pkt_dur_ms = 20;
-    FrameImp::Ptr _cache_frame;
+    uint32_t _pkt_bytes = 0;
+    toolkit::BufferLikeString _buffer;
 };
 
 }//namespace mediakit

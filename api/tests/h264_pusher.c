@@ -69,23 +69,27 @@ void API_CALL on_regist(void *user_data, mk_media_source sender, int regist) {
     Context *ptr = (Context *)user_data;
     const char *schema = mk_media_source_get_schema(sender);
     if (strstr(ptr->url, schema) != ptr->url) {
-        // 协议匹配失败
+        // 协议匹配失败  [AUTO-TRANSLATED:436784d0]
+        // Protocol matching failed
         return;
     }
 
     if (!regist) {
-        // 注销
+        // 注销  [AUTO-TRANSLATED:ebc5be28]
+        // Log out
         if (ptr->pusher) {
             mk_pusher_release(ptr->pusher);
             ptr->pusher = NULL;
         }
     } else {
-        // 注册
+        // 注册  [AUTO-TRANSLATED:e2df30a6]
+        // Register
         if (!ptr->pusher) {
             ptr->pusher = mk_pusher_create_src(sender);
             mk_pusher_set_on_result2(ptr->pusher, on_push_result, ptr, NULL);
             mk_pusher_set_on_shutdown2(ptr->pusher, on_push_shutdown, ptr, NULL);
-            // 开始推流
+            // 开始推流  [AUTO-TRANSLATED:df3972ff]
+            // Start streaming
             mk_pusher_publish(ptr->pusher, ptr->url);
         }
     }
@@ -115,7 +119,8 @@ int main(int argc, char *argv[]) {
     }
 
     mk_media media = mk_media_create("__defaultVhost__", "live", "test", 0, 0, 0);
-    // h264的codec
+    // h264的codec  [AUTO-TRANSLATED:e840179e]
+    // h264 codec
     codec_args v_args = { 0 };
     mk_track v_track = mk_track_create(MKCodecH264, &v_args);
     mk_media_init_track(media, v_track);
@@ -128,7 +133,8 @@ int main(int argc, char *argv[]) {
 
     mk_media_set_on_regist2(media, on_regist, ctx, release_context);
 
-    // 创建h264分帧器
+    // 创建h264分帧器  [AUTO-TRANSLATED:72254159]
+    // Create h264 frame splitter
     mk_h264_splitter splitter = mk_h264_splitter_create(on_h264_frame, media, 0);
     signal(SIGINT, s_on_exit); // 设置退出信号
     signal(SIGTERM, s_on_exit); // 设置退出信号
@@ -139,7 +145,8 @@ int main(int argc, char *argv[]) {
         if (size > 0) {
             mk_h264_splitter_input_data(splitter, buf, size);
         } else {
-            // 文件读完了，重新开始
+            // 文件读完了，重新开始  [AUTO-TRANSLATED:ffffe75c]
+            // File read finished, start again
             fseek(fp, 0, SEEK_SET);
         }
     }

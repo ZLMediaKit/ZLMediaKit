@@ -26,9 +26,12 @@ extern "C" {
 #include "libswresample/swresample.h"
 #include "libavutil/audio_fifo.h"
 #include "libavutil/imgutils.h"
+#include "libavutil/frame.h"
 #ifdef __cplusplus
 }
 #endif
+
+#define FF_CODEC_VER_7_1 AV_VERSION_INT(61, 0, 0)
 
 namespace mediakit {
 
@@ -51,16 +54,29 @@ class FFmpegSwr {
 public:
     using Ptr = std::shared_ptr<FFmpegSwr>;
 
+# if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
+    FFmpegSwr(AVSampleFormat output, AVChannelLayout *ch_layout, int samplerate);
+#else
     FFmpegSwr(AVSampleFormat output, int channel, int channel_layout, int samplerate);
+#endif
+
     ~FFmpegSwr();
     FFmpegFrame::Ptr inputFrame(const FFmpegFrame::Ptr &frame);
 
 private:
+
+# if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
+    AVChannelLayout _target_ch_layout;
+#else
     int _target_channels;
     int _target_channel_layout;
+#endif
+
     int _target_samplerate;
     AVSampleFormat _target_format;
     SwrContext *_ctx = nullptr;
+
+    toolkit::ResourcePool<FFmpegFrame> _swr_frame_pool;
 };
 
 class TaskManager {
@@ -114,11 +130,13 @@ private:
     bool decodeFrame(const char *data, size_t size, uint64_t dts, uint64_t pts, bool live, bool key_frame);
 
 private:
-    bool _do_merger = false;
+    // default merge frame
+    bool _do_merger = true;
     toolkit::Ticker _ticker;
     onDec _cb;
     std::shared_ptr<AVCodecContext> _context;
     FrameMerger _merger{FrameMerger::h264_prefix};
+    toolkit::ResourcePool<FFmpegFrame> _frame_pool;
 };
 
 class FFmpegSws {
@@ -141,6 +159,19 @@ private:
     SwsContext *_ctx = nullptr;
     AVPixelFormat _src_format = AV_PIX_FMT_NONE;
     AVPixelFormat _target_format = AV_PIX_FMT_NONE;
+    toolkit::ResourcePool<FFmpegFrame> _sws_frame_pool;
+};
+
+class FFmpegUtils {
+public:
+    /**
+     * 保持图片为jpeg或png
+     * @param frame 解码后的帧
+     * @param filename 保存文件路径
+     * @param fmt jpg:AV_PIX_FMT_YUVJ420P，PNG:AV_PIX_FMT_RGB24
+     * @return
+     */
+    static std::tuple<bool, std::string> saveFrame(const FFmpegFrame::Ptr &frame, const char *filename, AVPixelFormat fmt = AV_PIX_FMT_YUVJ420P);
 };
 
 }//namespace mediakit

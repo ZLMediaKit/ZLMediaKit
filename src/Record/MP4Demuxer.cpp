@@ -9,7 +9,10 @@
  */
 
 #ifdef ENABLE_MP4
+
+#include <algorithm>
 #include "MP4Demuxer.h"
+#include "Util/File.h"
 #include "Util/logger.h"
 #include "Extension/Factory.h"
 
@@ -187,6 +190,91 @@ vector<Track::Ptr> MP4Demuxer::getTracks(bool ready) const {
 
 uint64_t MP4Demuxer::getDurationMS() const {
     return _duration_ms;
+}
+
+/////////////////////////////////////////////////////////////////////////////////
+
+void MultiMP4Demuxer::openMP4(const string &files_string) {
+    std::vector<std::string> files;
+    if (File::is_dir(files_string)) {
+        File::scanDir(files_string, [&](const string &path, bool is_dir) {
+            if (!is_dir) {
+                files.emplace_back(path);
+            }
+            return true;
+        });
+        std::sort(files.begin(), files.end());
+    } else {
+        files = split(files_string, ";");
+    }
+
+    uint64_t duration_ms = 0;
+    for (auto &file : files) {
+        auto demuxer = std::make_shared<MP4Demuxer>();
+        demuxer->openMP4(file);
+        _demuxers.emplace(duration_ms, demuxer);
+        duration_ms += demuxer->getDurationMS();
+    }
+    CHECK(!_demuxers.empty());
+    _it = _demuxers.begin();
+    for (auto &track : _it->second->getTracks(false)) {
+        _tracks.emplace(track->getIndex(), track->clone());
+    }
+}
+
+uint64_t MultiMP4Demuxer::getDurationMS() const {
+    return _demuxers.empty() ? 0 : _demuxers.rbegin()->first + _demuxers.rbegin()->second->getDurationMS();
+}
+
+void MultiMP4Demuxer::closeMP4() {
+    _demuxers.clear();
+    _it = _demuxers.end();
+    _tracks.clear();
+}
+
+int64_t MultiMP4Demuxer::seekTo(int64_t stamp_ms) {
+    if (stamp_ms >= (int64_t)getDurationMS()) {
+        return -1;
+    }
+    _it = std::prev(_demuxers.upper_bound(stamp_ms));
+    return _it->first + _it->second->seekTo(stamp_ms - _it->first);
+}
+
+Frame::Ptr MultiMP4Demuxer::readFrame(bool &keyFrame, bool &eof) {
+    for (;;) {
+        auto ret = _it->second->readFrame(keyFrame, eof);
+        if (ret) {
+            auto it = _tracks.find(ret->getIndex());
+            if (it != _tracks.end()) {
+                auto ret2 = std::make_shared<FrameStamp>(ret);
+                ret2->setStamp(_it->first + ret->dts(), _it->first + ret->pts());
+                ret = std::move(ret2);
+                it->second->inputFrame(ret);
+            }
+        }
+        if (eof && _it != _demuxers.end()) {
+            // 切换到下一个文件
+            if (++_it == _demuxers.end()) {
+                // 已经是最后一个文件了
+                eof = true;
+                return nullptr;
+            }
+            // 下一个文件从头开始播放
+            _it->second->seekTo(0);
+            continue;
+        }
+        return ret;
+    }
+}
+
+std::vector<Track::Ptr> MultiMP4Demuxer::getTracks(bool trackReady) const {
+    std::vector<Track::Ptr> ret;
+    for (auto &pr : _tracks) {
+        if (!trackReady || pr.second->ready()) {
+            ret.emplace_back(pr.second);
+        }
+    }
+    return ret;
 }
 
 }//namespace mediakit

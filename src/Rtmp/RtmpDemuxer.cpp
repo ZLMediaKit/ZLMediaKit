@@ -19,12 +19,14 @@ size_t RtmpDemuxer::trackCount(const AMFValue &metadata) {
     size_t ret = 0;
     metadata.object_for_each([&](const string &key, const AMFValue &val) {
         if (key == "videocodecid") {
-            // 找到视频
+            // 找到视频  [AUTO-TRANSLATED:e66249fc]
+            // Find video
             ++ret;
             return;
         }
         if (key == "audiocodecid") {
-            // 找到音频
+            // 找到音频  [AUTO-TRANSLATED:126ce656]
+            // Find audio
             ++ret;
             return;
         }
@@ -60,12 +62,14 @@ bool RtmpDemuxer::loadMetaData(const AMFValue &val) {
                 return;
             }
             if (key == "videocodecid") {
-                // 找到视频
+                // 找到视频  [AUTO-TRANSLATED:e66249fc]
+                // Find video
                 videocodecid = &val;
                 return;
             }
             if (key == "audiocodecid") {
-                // 找到音频
+                // 找到音频  [AUTO-TRANSLATED:126ce656]
+                // Find audio
                 audiocodecid = &val;
                 return;
             }
@@ -79,12 +83,14 @@ bool RtmpDemuxer::loadMetaData(const AMFValue &val) {
             }
         });
         if (videocodecid) {
-            // 有视频
+            // 有视频  [AUTO-TRANSLATED:8d6ad811]
+            // Has video
             ret = true;
             makeVideoTrack(*videocodecid, videodatarate * 1024);
         }
         if (audiocodecid) {
-            // 有音频
+            // 有音频  [AUTO-TRANSLATED:8f9ac7f1]
+            // Has audio
             ret = true;
             makeAudioTrack(*audiocodecid, audiosamplerate, audiochannels, audiosamplesize, audiodatarate * 1024);
         }
@@ -93,7 +99,8 @@ bool RtmpDemuxer::loadMetaData(const AMFValue &val) {
     }
 
     if (ret) {
-        // metadata中存在track相关的描述，那么我们根据metadata判断有多少个track
+        // metadata中存在track相关的描述，那么我们根据metadata判断有多少个track  [AUTO-TRANSLATED:47e02e95]
+        // If there is a track-related description in the metadata, we determine the number of tracks based on the metadata
         addTrackCompleted();
     }
     return ret;
@@ -140,15 +147,18 @@ void RtmpDemuxer::makeVideoTrack(const Track::Ptr &track, int bit_rate) {
     if (_video_rtmp_decoder) {
         return;
     }
-    // 生成Track对象
+    // 生成Track对象  [AUTO-TRANSLATED:8c7aee28]
+    // Generate Track object
     _video_track = dynamic_pointer_cast<VideoTrack>(track);
     if (!_video_track) {
         return;
     }
-    // 生成rtmpCodec对象以便解码rtmp
+    // 生成rtmpCodec对象以便解码rtmp  [AUTO-TRANSLATED:a3c81353]
+    // Generate rtmpCodec object to decode rtmp
     _video_rtmp_decoder = Factory::getRtmpDecoderByTrack(_video_track);
     if (!_video_rtmp_decoder) {
-        // 找不到相应的rtmp解码器，该track无效
+        // 找不到相应的rtmp解码器，该track无效  [AUTO-TRANSLATED:bbea0d74]
+        // Cannot find the corresponding rtmp decoder, the track is invalid
         _video_track.reset();
         return;
     }
@@ -161,15 +171,18 @@ void RtmpDemuxer::makeAudioTrack(const AMFValue &audioCodec, int sample_rate, in
     if (_audio_rtmp_decoder) {
         return;
     }
-    // 生成Track对象
+    // 生成Track对象  [AUTO-TRANSLATED:8c7aee28]
+    // Generate Track object
     _audio_track = dynamic_pointer_cast<AudioTrack>(Factory::getAudioTrackByAmf(audioCodec, sample_rate, channels, sample_bit));
     if (!_audio_track) {
         return;
     }
-    // 生成rtmpCodec对象以便解码rtmp
+    // 生成rtmpCodec对象以便解码rtmp  [AUTO-TRANSLATED:a3c81353]
+    // Generate rtmpCodec object to decode rtmp
     _audio_rtmp_decoder = Factory::getRtmpDecoderByTrack(_audio_track);
     if (!_audio_rtmp_decoder) {
-        // 找不到相应的rtmp解码器，该track无效
+        // 找不到相应的rtmp解码器，该track无效  [AUTO-TRANSLATED:bbea0d74]
+        // Cannot find the corresponding rtmp decoder, the track is invalid
         _audio_track.reset();
         return;
     }

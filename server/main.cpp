@@ -50,7 +50,8 @@ using namespace toolkit;
 using namespace mediakit;
 
 namespace mediakit {
-////////////HTTP配置///////////
+// //////////HTTP配置///////////  [AUTO-TRANSLATED:a281d694]
+// //////////HTTP configuration///////////
 namespace Http {
 #define HTTP_FIELD "http."
 const string kPort = HTTP_FIELD"port";
@@ -61,7 +62,8 @@ onceToken token1([](){
 },nullptr);
 }//namespace Http
 
-////////////SHELL配置///////////
+// //////////SHELL配置///////////  [AUTO-TRANSLATED:f023ec45]
+// //////////SHELL configuration///////////
 namespace Shell {
 #define SHELL_FIELD "shell."
 const string kPort = SHELL_FIELD"port";
@@ -70,7 +72,8 @@ onceToken token1([](){
 },nullptr);
 } //namespace Shell
 
-////////////RTSP服务器配置///////////
+// //////////RTSP服务器配置///////////  [AUTO-TRANSLATED:950e1981]
+// //////////RTSP server configuration///////////
 namespace Rtsp {
 #define RTSP_FIELD "rtsp."
 const string kPort = RTSP_FIELD"port";
@@ -82,7 +85,8 @@ onceToken token1([](){
 
 } //namespace Rtsp
 
-////////////RTMP服务器配置///////////
+// //////////RTMP服务器配置///////////  [AUTO-TRANSLATED:8de6f41f]
+// //////////RTMP server configuration///////////
 namespace Rtmp {
 #define RTMP_FIELD "rtmp."
 const string kPort = RTMP_FIELD"port";
@@ -93,7 +97,8 @@ onceToken token1([](){
 },nullptr);
 } //namespace RTMP
 
-////////////Rtp代理相关配置///////////
+// //////////Rtp代理相关配置///////////  [AUTO-TRANSLATED:7b285587]
+// //////////Rtp proxy related configuration///////////
 namespace RtpProxy {
 #define RTP_PROXY_FIELD "rtp_proxy."
 const string kPort = RTP_PROXY_FIELD"port";
@@ -171,7 +176,8 @@ public:
 #if defined(ENABLE_VERSION)
         (*_parser) << Option('v', "version", Option::ArgNone, nullptr, false, "显示版本号",
                              [](const std::shared_ptr<ostream> &stream, const string &arg) -> bool {
-                                 //版本信息
+                                 // 版本信息  [AUTO-TRANSLATED:d4cc59b2]
+                                 // Version information
                                  *stream << "编译日期: " << BUILD_TIME << std::endl;
                                  *stream << "代码日期: " << COMMIT_TIME << std::endl;
                                  *stream << "当前git分支: " << BRANCH_NAME << std::endl;
@@ -205,8 +211,12 @@ public:
     }
 };
 
-//全局变量，在WebApi中用于保存配置文件用
+// 全局变量，在WebApi中用于保存配置文件用  [AUTO-TRANSLATED:6d5585ca]
+// Global variable, used in WebApi to save configuration files
 string g_ini_file;
+
+// 加载ssl证书函数对象
+std::function<void()> g_reload_certificates;
 
 int start_main(int argc,char *argv[]) {
     {
@@ -228,11 +238,13 @@ int start_main(int argc,char *argv[]) {
         int threads = cmd_main["threads"];
         bool affinity = cmd_main["affinity"];
 
-        //设置日志
+        // 设置日志  [AUTO-TRANSLATED:50372045]
+        // Set log
         Logger::Instance().add(std::make_shared<ConsoleChannel>("ConsoleChannel", logLevel));
 #if !defined(ANDROID)
         auto fileChannel = std::make_shared<FileChannel>("FileChannel", cmd_main["log-dir"], logLevel);
-        // 日志最多保存天数
+        // 日志最多保存天数  [AUTO-TRANSLATED:9bfa8a9a]
+        // Maximum number of days to save logs
         fileChannel->setMaxDay(cmd_main["max_day"]);
         fileChannel->setFileMaxCount(cmd_main["log-slice"]);
         fileChannel->setFileMaxSize(cmd_main["log-size"]);
@@ -243,24 +255,29 @@ int start_main(int argc,char *argv[]) {
         pid_t pid = getpid();
         bool kill_parent_if_failed = true;
         if (bDaemon) {
-            //启动守护进程
+            // 启动守护进程  [AUTO-TRANSLATED:33b2c5be]
+            // Start daemon process
             System::startDaemon(kill_parent_if_failed);
         }
-        //开启崩溃捕获等
+        // 开启崩溃捕获等  [AUTO-TRANSLATED:9c7c759c]
+        // Enable crash capture, etc.
         System::systemSetup();
 #endif//!defined(_WIN32)
 
-        //启动异步日志线程
+        // 启动异步日志线程  [AUTO-TRANSLATED:c93cc6f4]
+        // Start asynchronous log thread
         Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 
         InfoL << kServerName;
 
-        //加载配置文件，如果配置文件不存在就创建一个
+        // 加载配置文件，如果配置文件不存在就创建一个  [AUTO-TRANSLATED:761e7479]
+        // Load configuration file, create one if it doesn't exist
         loadIniConfig(g_ini_file.data());
 
         auto &secret = mINI::Instance()[API::kSecret];
         if (secret == "035c73f7-bb6b-4889-a715-d9eb2d1925cc" || secret.empty()) {
-            // 使用默认secret被禁止启动
+            // 使用默认secret被禁止启动  [AUTO-TRANSLATED:6295164b]
+            // Starting with the default secret is prohibited
             secret = makeRandStr(32, true);
             mINI::Instance().dumpFile(g_ini_file);
             WarnL << "The " << API::kSecret << " is invalid, modified it to: " << secret
@@ -268,19 +285,28 @@ int start_main(int argc,char *argv[]) {
         }
 
         if (!File::is_dir(ssl_file)) {
-            // 不是文件夹，加载证书，证书包含公钥和私钥
-            SSL_Initor::Instance().loadCertificate(ssl_file.data());
+            // 不是文件夹，加载证书，证书包含公钥和私钥  [AUTO-TRANSLATED:5d3a5e49]
+            // Not a folder, load certificate, certificate contains public key and private key
+            g_reload_certificates = [ssl_file] () {
+                SSL_Initor::Instance().loadCertificate(ssl_file.data());
+            };
         } else {
-            //加载文件夹下的所有证书
-            File::scanDir(ssl_file,[](const string &path, bool isDir){
-                if (!isDir) {
-                    // 最后的一个证书会当做默认证书(客户端ssl握手时未指定主机)
-                    SSL_Initor::Instance().loadCertificate(path.data());
-                }
-                return true;
-            });
+            // 加载文件夹下的所有证书  [AUTO-TRANSLATED:0e1f9b20]
+            // Load all certificates under the folder
+            g_reload_certificates = [ssl_file]() {
+                File::scanDir(ssl_file, [](const string &path, bool isDir) {
+                    if (!isDir) {
+                        // 最后的一个证书会当做默认证书(客户端ssl握手时未指定主机)  [AUTO-TRANSLATED:b242685c]
+                        // The last certificate will be used as the default certificate (client ssl handshake does not specify the host)
+                        SSL_Initor::Instance().loadCertificate(path.data());
+                    }
+                    return true;
+                });
+            };
         }
+        g_reload_certificates();
 
+        std::string listen_ip = mINI::Instance()[General::kListenIP];
         uint16_t shellPort = mINI::Instance()[Shell::kPort];
         uint16_t rtspPort = mINI::Instance()[Rtsp::kPort];
         uint16_t rtspsPort = mINI::Instance()[Rtsp::kSSLPort];
@@ -290,37 +316,46 @@ int start_main(int argc,char *argv[]) {
         uint16_t httpsPort = mINI::Instance()[Http::kSSLPort];
         uint16_t rtpPort = mINI::Instance()[RtpProxy::kPort];
 
-        //设置poller线程数和cpu亲和性,该函数必须在使用ZLToolKit网络相关对象之前调用才能生效
-        //如果需要调用getSnap和addFFmpegSource接口，可以关闭cpu亲和性
+        // 设置poller线程数和cpu亲和性,该函数必须在使用ZLToolKit网络相关对象之前调用才能生效  [AUTO-TRANSLATED:7f03a1e5]
+        // Set the number of poller threads and CPU affinity. This function must be called before using ZLToolKit network related objects to take effect.
+        // 如果需要调用getSnap和addFFmpegSource接口，可以关闭cpu亲和性  [AUTO-TRANSLATED:7629f7bc]
+        // If you need to call the getSnap and addFFmpegSource interfaces, you can turn off CPU affinity
 
         EventPollerPool::setPoolSize(threads);
         WorkThreadPool::setPoolSize(threads);
         EventPollerPool::enableCpuAffinity(affinity);
 
-        //简单的telnet服务器，可用于服务器调试，但是不能使用23端口，否则telnet上了莫名其妙的现象
-        //测试方法:telnet 127.0.0.1 9000
+        // 简单的telnet服务器，可用于服务器调试，但是不能使用23端口，否则telnet上了莫名其妙的现象  [AUTO-TRANSLATED:f9324c6e]
+        // Simple telnet server, can be used for server debugging, but cannot use port 23, otherwise telnet will have inexplicable phenomena
+        // 测试方法:telnet 127.0.0.1 9000  [AUTO-TRANSLATED:de0ac883]
+        // Test method: telnet 127.0.0.1 9000
         auto shellSrv = std::make_shared<TcpServer>();
 
-        //rtsp[s]服务器, 可用于诸如亚马逊echo show这样的设备访问
+        // rtsp[s]服务器, 可用于诸如亚马逊echo show这样的设备访问  [AUTO-TRANSLATED:f28e54f7]
+        // rtsp[s] server, can be used for devices such as Amazon Echo Show to access
         auto rtspSrv = std::make_shared<TcpServer>();
         auto rtspSSLSrv = std::make_shared<TcpServer>();
 
-        //rtmp[s]服务器
+        // rtmp[s]服务器  [AUTO-TRANSLATED:3ac98bf5]
+        // rtmp[s] server
         auto rtmpSrv = std::make_shared<TcpServer>();
         auto rtmpsSrv = std::make_shared<TcpServer>();
 
-        //http[s]服务器
+        // http[s]服务器  [AUTO-TRANSLATED:5bbc8735]
+        // http[s] server
         auto httpSrv = std::make_shared<TcpServer>();
         auto httpsSrv = std::make_shared<TcpServer>();
 
 #if defined(ENABLE_RTPPROXY)
-        //GB28181 rtp推流端口，支持UDP/TCP
+        // GB28181 rtp推流端口，支持UDP/TCP  [AUTO-TRANSLATED:8a9b2872]
+        // GB28181 rtp push stream port, supports UDP/TCP
         auto rtpServer = std::make_shared<RtpServer>();
 #endif//defined(ENABLE_RTPPROXY)
 
 #if defined(ENABLE_WEBRTC)
         auto rtcSrv_tcp = std::make_shared<TcpServer>();
-        //webrtc udp服务器
+        // webrtc udp服务器  [AUTO-TRANSLATED:157a64e5]
+        // webrtc udp server
         auto rtcSrv_udp = std::make_shared<UdpServer>();
         rtcSrv_udp->setOnCreateSocket([](const EventPoller::Ptr &poller, const Buffer::Ptr &buf, struct sockaddr *, int) {
             if (!buf) {
@@ -328,7 +363,8 @@ int start_main(int argc,char *argv[]) {
             }
             auto new_poller = WebRtcSession::queryPoller(buf);
             if (!new_poller) {
-                //该数据对应的webrtc对象未找到，丢弃之
+                // 该数据对应的webrtc对象未找到，丢弃之  [AUTO-TRANSLATED:d401f8cb]
+                // The webrtc object corresponding to this data is not found, discard it
                 return Socket::Ptr();
             }
             return Socket::createSocket(new_poller, false);
@@ -346,7 +382,8 @@ int start_main(int argc,char *argv[]) {
             }
             auto new_poller = SRT::SrtSession::queryPoller(buf);
             if (!new_poller) {
-                //握手第一阶段
+                // 握手第一阶段  [AUTO-TRANSLATED:6b3abcd4]
+                // Handshake phase one
                 return Socket::createSocket(poller, false);
             }
             return Socket::createSocket(new_poller, false);
@@ -361,40 +398,50 @@ int start_main(int argc,char *argv[]) {
         InfoL << "已启动http hook 接口";
 
         try {
-            //rtsp服务器，端口默认554
-            if (rtspPort) { rtspSrv->start<RtspSession>(rtspPort); }
-            //rtsps服务器，端口默认322
-            if (rtspsPort) { rtspSSLSrv->start<RtspSessionWithSSL>(rtspsPort); }
+            // rtsp服务器，端口默认554  [AUTO-TRANSLATED:07937d81]
+            // rtsp server, default port 554
+            if (rtspPort) { rtspSrv->start<RtspSession>(rtspPort, listen_ip); }
+            // rtsps服务器，端口默认322  [AUTO-TRANSLATED:e8a9fd71]
+            // rtsps server, default port 322
+            if (rtspsPort) { rtspSSLSrv->start<RtspSessionWithSSL>(rtspsPort, listen_ip); }
 
-            //rtmp服务器，端口默认1935
-            if (rtmpPort) { rtmpSrv->start<RtmpSession>(rtmpPort); }
-            //rtmps服务器，端口默认19350
-            if (rtmpsPort) { rtmpsSrv->start<RtmpSessionWithSSL>(rtmpsPort); }
+            // rtmp服务器，端口默认1935  [AUTO-TRANSLATED:58324c74]
+            // rtmp server, default port 1935
+            if (rtmpPort) { rtmpSrv->start<RtmpSession>(rtmpPort, listen_ip); }
+            // rtmps服务器，端口默认19350  [AUTO-TRANSLATED:c565ff4e]
+            // rtmps server, default port 19350
+            if (rtmpsPort) { rtmpsSrv->start<RtmpSessionWithSSL>(rtmpsPort, listen_ip); }
 
-            //http服务器，端口默认80
-            if (httpPort) { httpSrv->start<HttpSession>(httpPort); }
-            //https服务器，端口默认443
-            if (httpsPort) { httpsSrv->start<HttpsSession>(httpsPort); }
+            // http服务器，端口默认80  [AUTO-TRANSLATED:8899e852]
+            // http server, default port 80
+            if (httpPort) { httpSrv->start<HttpSession>(httpPort, listen_ip); }
+            // https服务器，端口默认443  [AUTO-TRANSLATED:24999616]
+            // https server, default port 443
+            if (httpsPort) { httpsSrv->start<HttpsSession>(httpsPort, listen_ip); }
 
-            //telnet远程调试服务器
-            if (shellPort) { shellSrv->start<ShellSession>(shellPort); }
+            // telnet远程调试服务器  [AUTO-TRANSLATED:577cb7cf]
+            // telnet remote debug server
+            if (shellPort) { shellSrv->start<ShellSession>(shellPort, listen_ip); }
 
 #if defined(ENABLE_RTPPROXY)
-            //创建rtp服务器
-            if (rtpPort) { rtpServer->start(rtpPort); }
+            // 创建rtp服务器  [AUTO-TRANSLATED:873f7f52]
+            // create rtp server
+            if (rtpPort) { rtpServer->start(rtpPort, listen_ip.c_str()); }
 #endif//defined(ENABLE_RTPPROXY)
 
 #if defined(ENABLE_WEBRTC)
-            //webrtc udp服务器
-            if (rtcPort) { rtcSrv_udp->start<WebRtcSession>(rtcPort);}
+            // webrtc udp服务器  [AUTO-TRANSLATED:157a64e5]
+            // webrtc udp server
+            if (rtcPort) { rtcSrv_udp->start<WebRtcSession>(rtcPort, listen_ip);}
 
-            if (rtcTcpPort) { rtcSrv_tcp->start<WebRtcSession>(rtcTcpPort);}
+            if (rtcTcpPort) { rtcSrv_tcp->start<WebRtcSession>(rtcTcpPort, listen_ip);}
              
 #endif//defined(ENABLE_WEBRTC)
 
 #if defined(ENABLE_SRT)
-            // srt udp服务器
-            if (srtPort) { srtSrv->start<SRT::SrtSession>(srtPort); }
+            // srt udp服务器  [AUTO-TRANSLATED:06911727]
+            // srt udp server
+            if (srtPort) { srtSrv->start<SRT::SrtSession>(srtPort, listen_ip); }
 #endif//defined(ENABLE_SRT)
 
         } catch (std::exception &ex) {
@@ -402,14 +449,16 @@ int start_main(int argc,char *argv[]) {
             sleep(1);
 #if !defined(_WIN32)
             if (pid != getpid() && kill_parent_if_failed) {
-                //杀掉守护进程
+                // 杀掉守护进程  [AUTO-TRANSLATED:bee035e9]
+                // kill the daemon process
                 kill(pid, SIGINT);
             }
 #endif
             return -1;
         }
 
-        //设置退出信号处理函数
+        // 设置退出信号处理函数  [AUTO-TRANSLATED:4f047770]
+        // set exit signal handler
         static semaphore sem;
         signal(SIGINT, [](int) {
             InfoL << "SIGINT:exit";
@@ -424,7 +473,10 @@ int start_main(int argc,char *argv[]) {
         });
 
 #if !defined(_WIN32)
-        signal(SIGHUP, [](int) { mediakit::loadIniConfig(g_ini_file.data()); });
+        signal(SIGHUP, [](int) {
+            mediakit::loadIniConfig(g_ini_file.data());
+            g_reload_certificates();
+        });
 #endif
         sem.wait();
     }
@@ -432,7 +484,8 @@ int start_main(int argc,char *argv[]) {
     unInstallWebHook();
     onProcessExited();
 
-    //休眠1秒再退出，防止资源释放顺序错误
+    // 休眠1秒再退出，防止资源释放顺序错误  [AUTO-TRANSLATED:1b11a74f]
+    // sleep for 1 second before exiting, to prevent resource release order errors
     InfoL << "程序退出中,请等待...";
     sleep(1);
     InfoL << "程序退出完毕!";

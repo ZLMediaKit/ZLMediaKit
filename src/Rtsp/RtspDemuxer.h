@@ -23,6 +23,9 @@ public:
 
     /**
      * 加载sdp
+     * Load sdp
+     
+     * [AUTO-TRANSLATED:235be34f]
      */
     void loadSdp(const std::string &sdp);
 
@@ -30,12 +33,22 @@ public:
      * 开始解复用
      * @param rtp rtp包
      * @return true 代表是i帧第一个rtp包
+     * Start demultiplexing
+     * @param rtp rtp packet
+     * @return true represents the first rtp packet of the i-frame
+     
+     * [AUTO-TRANSLATED:116d3186]
      */
     bool inputRtp(const RtpPacket::Ptr &rtp);
 
     /**
      * 获取节目总时长
      * @return 节目总时长,单位秒
+     * Get the total duration of the program
+     * @return Total duration of the program, in seconds
+     
+     
+     * [AUTO-TRANSLATED:6b2ec56c]
      */
     float getDuration() const;
 

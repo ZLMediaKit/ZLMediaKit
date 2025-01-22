@@ -15,6 +15,9 @@
 #include "Rtmp/FlvPlayer.h"
 #include "Http/HlsPlayer.h"
 #include "Http/TsPlayerImp.h"
+#ifdef ENABLE_SRT
+#include "Srt/SrtPlayerImp.h"
+#endif // ENABLE_SRT
 
 using namespace std;
 using namespace toolkit;
@@ -24,7 +27,7 @@ namespace mediakit {
 PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &in_poller, const string &url_in) {
     auto poller = in_poller ? in_poller : EventPollerPool::Instance().getPoller();
     std::weak_ptr<EventPoller> weak_poller = poller;
-    static auto release_func = [weak_poller](PlayerBase *ptr) {
+    auto release_func = [weak_poller](PlayerBase *ptr) {
         if (auto poller = weak_poller.lock()) {
             poller->async([ptr]() {
                 onceToken token(nullptr, [&]() { delete ptr; });
@@ -34,11 +37,18 @@ PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &in_poller, cons
             delete ptr;
         }
     };
+
     string url = url_in;
+    trim(url);
+    if (url.empty()) {
+        throw std::invalid_argument("invalid play url: " + url_in);
+    }
+
     string prefix = findSubString(url.data(), NULL, "://");
     auto pos = url.find('?');
     if (pos != string::npos) {
-        //去除？后面的字符串
+        // 去除？后面的字符串  [AUTO-TRANSLATED:0ccb41c2]
+        // Remove the string after the question mark
         url = url.substr(0, pos);
     }
 
@@ -69,6 +79,12 @@ PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &in_poller, cons
         }
     }
 
+#ifdef ENABLE_SRT
+    if (strcasecmp("srt", prefix.data()) == 0) {
+        return PlayerBase::Ptr(new SrtPlayerImp(poller), release_func);
+    }
+#endif//ENABLE_SRT
+
     throw std::invalid_argument("not supported play schema:" + url_in);
 }
 
@@ -77,6 +93,8 @@ PlayerBase::PlayerBase() {
     this->mINI::operator[](Client::kMediaTimeoutMS) = 5000;
     this->mINI::operator[](Client::kBeatIntervalMS) = 5000;
     this->mINI::operator[](Client::kWaitTrackReady) = true;
+    this->mINI::operator[](Client::kLatency) = 0;
+    this->mINI::operator[](Client::kPassPhrase) = "";
 }
 
 } /* namespace mediakit */

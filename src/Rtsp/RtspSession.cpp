@@ -128,7 +128,7 @@ void RtspSession::onRecv(const Buffer::Ptr &buf) {
 void RtspSession::onWholeRtspPacket(Parser &parser) {
     string method = parser.method(); //提取出请求命令字
     _cseq = atoi(parser["CSeq"].data());
-    if (_content_base.empty() && method != "GET") {
+    if (_content_base.empty() && method != "GET" && method != "POST" ) {
         RtspUrl rtsp;
         rtsp.parse(parser.url());
         _content_base = rtsp._url;
@@ -742,7 +742,7 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
         break;
     case Rtsp::RTP_MULTICAST: {
         if(!_multicaster){
-            _multicaster = RtpMultiCaster::get(*this, get_local_ip(), _media_info.vhost, _media_info.app, _media_info.stream, _multicast_ip, _multicast_video_port, _multicast_audio_port);
+            _multicaster = RtpMultiCaster::get(*this, get_local_ip(), _media_info, _multicast_ip, _multicast_video_port, _multicast_audio_port);
             if (!_multicaster) {
                 send_NotAcceptable();
                 throw SockException(Err_shutdown, "can not get a available udp multicast socket");
@@ -833,7 +833,7 @@ void RtspSession::handleReq_Play(const Parser &parser) {
 
         rtp_info << "url=" << track->getControlUrl(_content_base) << ";"
                  << "seq=" << track->_seq << ";"
-                 << "rtptime=" << (int) (track->_time_stamp * (track->_samplerate / 1000)) << ",";
+                 << "rtptime=" << (int64_t)(track->_time_stamp) * (int64_t)(track->_samplerate/ 1000) << ",";
     }
 
     rtp_info.pop_back();
@@ -1136,7 +1136,7 @@ int RtspSession::getTrackIndexByTrackType(TrackType type) {
 
 int RtspSession::getTrackIndexByControlUrl(const string &control_url) {
     for (size_t i = 0; i < _sdp_track.size(); ++i) {
-        if (control_url == _sdp_track[i]->getControlUrl(_content_base)) {
+        if (control_url.find(_sdp_track[i]->getControlUrl(_content_base)) == 0) {
             return i;
         }
     }

@@ -30,7 +30,8 @@ void HlsCookieData::addReaderCount() {
             _ring_reader = src->getRing()->attach(EventPollerPool::Instance().getPoller());
             auto added = _added;
             _ring_reader->setDetachCB([added]() {
-                // HlsMediaSource已经销毁
+                // HlsMediaSource已经销毁  [AUTO-TRANSLATED:bedb0385]
+                // HlsMediaSource has been destroyed
                 *added = false;
             });
             auto info = _sock_info;
@@ -90,7 +91,8 @@ void HlsMediaSource::setIndexFile(std::string index_file)
         regist();
     }
 
-    //赋值m3u8索引文件内容
+    // 赋值m3u8索引文件内容  [AUTO-TRANSLATED:c11882b5]
+    // Assign m3u8 index file content
     std::lock_guard<std::mutex> lck(_mtx_index);
     _index_file = std::move(index_file);
 
@@ -107,7 +109,8 @@ void HlsMediaSource::getIndexFile(std::function<void(const std::string& str)> cb
         cb(_index_file);
         return;
     }
-    //等待生成m3u8文件
+    // 等待生成m3u8文件  [AUTO-TRANSLATED:c3ae3286]
+    // Waiting for m3u8 file generation
     _list_cb.emplace_back(std::move(cb));
 }
 

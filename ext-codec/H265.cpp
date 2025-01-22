@@ -66,7 +66,7 @@ H265Track::H265Track(const string &vps,const string &sps, const string &pps,int 
     _vps = vps.substr(vps_prefix_len);
     _sps = sps.substr(sps_prefix_len);
     _pps = pps.substr(pps_prefix_len);
-    update();
+    H265Track::update();
 }
 
 CodecId H265Track::getCodecId() const {
@@ -106,30 +106,35 @@ bool H265Track::inputFrame(const Frame::Ptr &frame) {
 }
 
 bool H265Track::inputFrame_l(const Frame::Ptr &frame) {
-    if (frame->keyFrame()) {
-        insertConfigFrame(frame);
-        _is_idr = true;
-        return VideoTrack::inputFrame(frame);
-    }
-
-    _is_idr = false;
+    int type = H265_TYPE(frame->data()[frame->prefixSize()]);
     bool ret = true;
-
-    //非idr帧
-    switch (H265_TYPE( frame->data()[frame->prefixSize()])) {
+    switch (type) {
         case H265Frame::NAL_VPS: {
             _vps = string(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
+            _latest_is_config_frame = true;
+            ret = VideoTrack::inputFrame(frame);
             break;
         }
         case H265Frame::NAL_SPS: {
             _sps = string(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
+            _latest_is_config_frame = true;
+            ret = VideoTrack::inputFrame(frame);
             break;
         }
         case H265Frame::NAL_PPS: {
             _pps = string(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
+            _latest_is_config_frame = true;
+            ret = VideoTrack::inputFrame(frame);
             break;
         }
         default: {
+            // 判断是否是I帧, 并且如果是,那判断前面是否插入过config帧, 如果插入过就不插入了
+            if (frame->keyFrame() && !_latest_is_config_frame) {
+                insertConfigFrame(frame);
+            }
+            if (!frame->dropAble()) {
+                _latest_is_config_frame = false;
+            }
             ret = VideoTrack::inputFrame(frame);
             break;
         }
@@ -185,41 +190,28 @@ bool H265Track::update() {
     return getHEVCInfo(_vps, _sps, _width, _height, _fps);
 }
 
+std::vector<Frame::Ptr> H265Track::getConfigFrames() const {
+    if (!ready()) {
+        return {};
+    }
+    return { createConfigFrame<H265Frame>(_vps, 0, getIndex()),
+             createConfigFrame<H265Frame>(_sps, 0, getIndex()),
+             createConfigFrame<H265Frame>(_pps, 0, getIndex()) };
+}
+
 Track::Ptr H265Track::clone() const {
     return std::make_shared<H265Track>(*this);
 }
 
 void H265Track::insertConfigFrame(const Frame::Ptr &frame) {
-    if (_is_idr) {
-        return;
-    }
     if (!_vps.empty()) {
-        auto vpsFrame = FrameImp::create<H265Frame>();
-        vpsFrame->_prefix_size = 4;
-        vpsFrame->_buffer.assign("\x00\x00\x00\x01", 4);
-        vpsFrame->_buffer.append(_vps);
-        vpsFrame->_dts = frame->dts();
-        vpsFrame->setIndex(frame->getIndex());
-        VideoTrack::inputFrame(vpsFrame);
+        VideoTrack::inputFrame(createConfigFrame<H265Frame>(_vps, frame->dts(), frame->getIndex()));
     }
     if (!_sps.empty()) {
-        auto spsFrame = FrameImp::create<H265Frame>();
-        spsFrame->_prefix_size = 4;
-        spsFrame->_buffer.assign("\x00\x00\x00\x01", 4);
-        spsFrame->_buffer.append(_sps);
-        spsFrame->_dts = frame->dts();
-        spsFrame->setIndex(frame->getIndex());
-        VideoTrack::inputFrame(spsFrame);
+        VideoTrack::inputFrame(createConfigFrame<H265Frame>(_sps, frame->dts(), frame->getIndex()));
     }
-
     if (!_pps.empty()) {
-        auto ppsFrame = FrameImp::create<H265Frame>();
-        ppsFrame->_prefix_size = 4;
-        ppsFrame->_buffer.assign("\x00\x00\x00\x01", 4);
-        ppsFrame->_buffer.append(_pps);
-        ppsFrame->_dts = frame->dts();
-        ppsFrame->setIndex(frame->getIndex());
-        VideoTrack::inputFrame(ppsFrame);
+        VideoTrack::inputFrame(createConfigFrame<H265Frame>(_pps, frame->dts(), frame->getIndex()));
     }
 }
 
@@ -227,6 +219,9 @@ void H265Track::insertConfigFrame(const Frame::Ptr &frame) {
 
 /**
  * h265类型sdp
+ * h265 type sdp
+ 
+ * [AUTO-TRANSLATED:4418a7df]
  */
 class H265Sdp : public Sdp {
 public:
@@ -236,9 +231,17 @@ public:
      * @param pps 265 pps,不带0x00000001头
      * @param payload_type  rtp payload type 默认96
      * @param bitrate 比特率
+     * Constructor
+     * @param sps 265 sps, without 0x00000001 header
+     * @param pps 265 pps, without 0x00000001 header
+     * @param payload_type  rtp payload type, default 96
+     * @param bitrate Bitrate
+     
+     * [AUTO-TRANSLATED:93f4ec48]
      */
     H265Sdp(const string &strVPS, const string &strSPS, const string &strPPS, int payload_type, int bitrate) : Sdp(90000, payload_type) {
-        //视频通道
+        // 视频通道  [AUTO-TRANSLATED:642ca881]
+        // Video channel
         _printer << "m=video 0 RTP/AVP " << payload_type << "\r\n";
         if (bitrate) {
             _printer << "b=AS:" << bitrate << "\r\n";
@@ -260,11 +263,7 @@ private:
 };
 
 Sdp::Ptr H265Track::getSdp(uint8_t payload_type) const {
-    if (!ready()) {
-        WarnL << getCodecName() << " Track未准备好";
-        return nullptr;
-    }
-    return std::make_shared<H265Sdp>(_vps, _sps, _pps, payload_type, getBitRate() / 1024);
+    return std::make_shared<H265Sdp>(_vps, _sps, _pps, payload_type, getBitRate() >> 10);
 }
 
 namespace {
@@ -284,7 +283,8 @@ Track::Ptr getTrackBySdp(const SdpTrack::Ptr &track) {
     auto sps = decodeBase64(map["sprop-sps"]);
     auto pps = decodeBase64(map["sprop-pps"]);
     if (sps.empty() || pps.empty()) {
-        // 如果sdp里面没有sps/pps,那么可能在后续的rtp里面恢复出sps/pps
+        // 如果sdp里面没有sps/pps,那么可能在后续的rtp里面恢复出sps/pps  [AUTO-TRANSLATED:9300510b]
+        // If there is no sps/pps in the sdp, then it may be possible to recover sps/pps from the subsequent rtp
         return std::make_shared<H265Track>();
     }
     return std::make_shared<H265Track>(vps, sps, pps, 0, 0, 0);

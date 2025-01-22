@@ -20,6 +20,19 @@
 
 namespace mediakit {
 
+// RTC配置项目  [AUTO-TRANSLATED:19940011]
+// RTC configuration project
+namespace Rtc {
+// ~ nack发送端，rtp接收端  [AUTO-TRANSLATED:bb169205]
+// ~ nack sender, rtp receiver
+// 最大保留的rtp丢包状态个数  [AUTO-TRANSLATED:70eee442]
+// Maximum number of retained rtp packet loss states
+extern const std::string kNackMaxSize;
+// rtp丢包状态最长保留时间  [AUTO-TRANSLATED:f9306375]
+// Maximum retention time for rtp packet loss states
+extern const std::string kNackMaxMS;
+} // namespace Rtc
+
 class NackList {
 public:
     void pushBack(RtpPacket::Ptr rtp);
@@ -28,7 +41,7 @@ public:
 private:
     void popFront();
     uint32_t getCacheMS();
-    int64_t getRtpStamp(uint16_t seq);
+    int64_t getNtpStamp(uint16_t seq);
     RtpPacket::Ptr *getRtp(uint16_t seq);
 
 private:
@@ -41,18 +54,6 @@ class NackContext {
 public:
     using Ptr = std::shared_ptr<NackContext>;
     using onNack = std::function<void(const FCI_NACK &nack)>;
-    //最大保留的rtp丢包状态个数
-    static constexpr auto kNackMaxSize = 2048;
-    // rtp丢包状态最长保留时间
-    static constexpr auto kNackMaxMS = 3 * 1000;
-    // nack最多请求重传10次
-    static constexpr auto kNackMaxCount = 15;
-    // nack重传频率，rtt的倍数
-    static constexpr auto kNackIntervalRatio = 1.0f;
-    // nack包中rtp个数，减小此值可以让nack包响应更灵敏
-    static constexpr auto kNackRtpSize = 8;
-
-    static_assert(kNackRtpSize >=0 && kNackRtpSize <= FCI_NACK::kBitSize, "NackContext::kNackRtpSize must between 0 and 16");
 
     NackContext();
 
@@ -72,13 +73,14 @@ private:
     int _rtt = 50;
     onNack _cb;
     std::set<uint16_t> _seq;
-    // 最新nack包中的rtp seq值
+    // 最新nack包中的rtp seq值  [AUTO-TRANSLATED:6984d95a]
+    // RTP seq value in the latest nack packet
     uint16_t _nack_seq = 0;
 
     struct NackStatus {
         uint64_t first_stamp;
         uint64_t update_stamp;
-        int nack_count = 0;
+        uint32_t nack_count = 0;
     };
     std::map<uint16_t /*seq*/, NackStatus> _nack_send_status;
 };

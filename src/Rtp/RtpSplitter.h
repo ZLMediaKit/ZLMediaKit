@@ -22,6 +22,12 @@ protected:
      * 收到rtp包回调
      * @param data RTP包数据指针
      * @param len RTP包数据长度
+     * RTP packet received callback
+     * @param data RTP packet data pointer
+     * @param len RTP packet data length
+     
+     
+     * [AUTO-TRANSLATED:18a85278]
      */
     virtual void onRtpPacket(const char *data, size_t len) = 0;
 
@@ -31,7 +37,8 @@ protected:
     const char *onSearchPacketTail_l(const char *data, size_t len);
 
 private:
-    bool _is_ehome = true;
+    bool _is_ehome = false;
+    int _check_ehome_count = 3;
     bool _is_rtsp_interleaved = true;
     size_t _offset = 0;
 };

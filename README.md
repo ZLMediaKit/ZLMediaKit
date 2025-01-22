@@ -30,13 +30,13 @@
 - 提供完整的[MediaServer](https://github.com/ZLMediaKit/ZLMediaKit/tree/master/server)服务器，可以免开发直接部署为商用服务器。
 - 提供完善的[restful api](https://github.com/ZLMediaKit/ZLMediaKit/wiki/MediaServer%E6%94%AF%E6%8C%81%E7%9A%84HTTP-API)以及[web hook](https://github.com/ZLMediaKit/ZLMediaKit/wiki/MediaServer%E6%94%AF%E6%8C%81%E7%9A%84HTTP-HOOK-API)，支持丰富的业务逻辑。
 - 打通了视频监控协议栈与直播协议栈，对RTSP/RTMP支持都很完善。
-- 全面支持H265/H264/AAC/G711/OPUS。
 - 功能完善，支持集群、按需转协议、按需推拉流、先播后推、断连续推等功能。
 - 极致性能，单机10W级别播放器，100Gb/s级别io带宽能力。
 - 极致体验，[独家特性](https://github.com/ZLMediaKit/ZLMediaKit/wiki/ZLMediakit%E7%8B%AC%E5%AE%B6%E7%89%B9%E6%80%A7%E4%BB%8B%E7%BB%8D)
 - [谁在使用zlmediakit?](https://github.com/ZLMediaKit/ZLMediaKit/issues/511)
 - 全面支持ipv6网络
 - 支持多轨道模式(一个流中多个视频/音频)
+- 全协议支持H264/H265/AAC/G711/OPUS/MP3，部分支持VP8/VP9/AV1/JPEG/MP3/H266/ADPCM/SVAC/G722/G723/G729
 
 ## 项目定位
 
@@ -57,7 +57,7 @@
   - 服务器/客户端完整支持Basic/Digest方式的登录鉴权，全异步可配置化的鉴权接口
   - 支持H265编码
   - 服务器支持RTSP推流(包括`rtp over udp` `rtp over tcp`方式)
-  - 支持H264/H265/AAC/G711/OPUS/MJPEG编码，其他编码能转发但不能转协议
+  - 支持H264/H265/AAC/G711/OPUS/MJPEG/MP3编码，其他编码能转发但不能转协议
 
 - RTMP[S]
   - RTMP[S] 播放服务器，支持RTSP/MP4/HLS转RTMP
@@ -67,7 +67,7 @@
   - 支持http[s]-flv直播服务器
   - 支持http[s]-flv直播播放器
   - 支持websocket-flv直播
-  - 支持H264/H265/AAC/G711/OPUS编码，其他编码能转发但不能转协议
+  - 支持H264/H265/AAC/G711/OPUS/MP3编码，其他编码能转发但不能转协议
   - 支持[RTMP-H265](https://github.com/ksvc/FFmpeg/wiki)
   - 支持[RTMP-OPUS](https://github.com/ZLMediaKit/ZLMediaKit/wiki/RTMP%E5%AF%B9H265%E5%92%8COPUS%E7%9A%84%E6%94%AF%E6%8C%81)
   - 支持[enhanced-rtmp(H265)](https://github.com/veovera/enhanced-rtmp)
@@ -76,19 +76,19 @@
   - 支持HLS文件(mpegts/fmp4)生成，自带HTTP文件服务器
   - 通过cookie追踪技术，可以模拟HLS播放为长连接，可以实现HLS按需拉流、播放统计等业务
   - 支持HLS播发器，支持拉流HLS转rtsp/rtmp/mp4
-  - 支持H264/H265/AAC/G711/OPUS编码
+  - 支持H264/H265/AAC/G711/OPUS/MP3编码
   - 支持多轨道模式
   
 - TS
   - 支持http[s]-ts直播
   - 支持ws[s]-ts直播
-  - 支持H264/H265/AAC/G711/OPUS编码
+  - 支持H264/H265/AAC/G711/OPUS/MP3编码
   - 支持多轨道模式
   
 - fMP4
   - 支持http[s]-fmp4直播
   - 支持ws[s]-fmp4直播
-  - 支持H264/H265/AAC/G711/OPUS/MJPEG编码
+  - 支持H264/H265/AAC/G711/OPUS/MJPEG/MP3编码
   - 支持多轨道模式
 
 - HTTP[S]与WebSocket
@@ -103,7 +103,7 @@
 - GB28181与RTP推流
   - 支持UDP/TCP RTP(PS/TS/ES)推流服务器，可以转换成RTSP/RTMP/HLS等协议
   - 支持RTSP/RTMP/HLS等协议转rtp推流客户端，支持TCP/UDP模式，提供相应restful api，支持主动被动方式
-  - 支持H264/H265/AAC/G711/OPUS编码
+  - 支持H264/H265/AAC/G711/OPUS/MP3编码
   - 支持es/ps/ts/ehome rtp推流
   - 支持es/ps rtp转推
   - 支持GB28181主动拉流模式
@@ -113,7 +113,7 @@
 - MP4点播与录制
   - 支持录制为FLV/HLS/MP4
   - RTSP/RTMP/HTTP-FLV/WS-FLV支持MP4文件点播，支持seek
-  - 支持H264/H265/AAC/G711/OPUS编码
+  - 支持H264/H265/AAC/G711/OPUS/MP3编码
   - 支持多轨道模式
   
 - WebRTC
@@ -159,12 +159,15 @@
  - 2、作为独立的流媒体服务器使用，不想做c/c++开发的，可以参考 [restful api](https://github.com/ZLMediaKit/ZLMediaKit/wiki/MediaServer支持的HTTP-API) 和 [web hook](https://github.com/ZLMediaKit/ZLMediaKit/wiki/MediaServer支持的HTTP-HOOK-API ).
  - 3、如果想做c/c++开发，添加业务逻辑增加功能，可以参考这里的[测试程序](https://github.com/ZLMediaKit/ZLMediaKit/tree/master/tests).
 
+## 二进制文件下载
+zlmediakit采用 github action 持续集成自动编译打包上传编译产出包，请在[issue列表](https://github.com/ZLMediaKit/ZLMediaKit/issues/483)下载最新sdk库文件以及可执行文件。
+
 ## Docker 镜像
 
 你可以从Docker Hub下载已经编译好的镜像并启动它：
 
 ```bash
-#此镜像为github持续集成自动编译推送，跟代码(master分支)保持最新状态
+#此镜像为github action 持续集成自动编译推送，跟代码(master分支)保持最新状态
 docker run -id -p 1935:1935 -p 8080:80 -p 8443:443 -p 8554:554 -p 10000:10000 -p 10000:10000/udp -p 8000:8000/udp -p 9000:9000/udp zlmediakit/zlmediakit:master
 ```
 
@@ -188,6 +191,7 @@ bash build_docker_images.sh
    - [jessibuca](https://github.com/langhuihui/jessibuca) 基于wasm支持H265的播放器
    - [wsPlayer](https://github.com/v354412101/wsPlayer) 基于MSE的websocket-fmp4播放器
    - [BXC_gb28181Player](https://github.com/any12345com/BXC_gb28181Player) C++开发的支持国标GB28181协议的视频流播放器
+   - [RTCPlayer](https://github.com/leo94666/RTCPlayer) 一个基于Android客户端的的RTC播放器
 
 - WEB管理网站
    - [zlm_webassist](https://github.com/1002victor/zlm_webassist) 本项目配套的前后端分离web管理项目
@@ -222,7 +226,7 @@ bash build_docker_images.sh
  - 请关注微信公众号获取最新消息推送：
  <img src=https://user-images.githubusercontent.com/11495632/232451702-4c50bc72-84d8-4c94-af2b-57290088ba7a.png width=15% />
  
- - 也可以自愿有偿加入知识星球咨询和获取资料：
+ - 也可以自愿有偿加入知识星球咨询、获取资料以及加入微信技术群：
  <img src= https://user-images.githubusercontent.com/11495632/231946329-aa8517b0-3cf5-49cf-8c75-a93ed58cb9d2.png width=30% />
   
 
@@ -363,6 +367,21 @@ bash build_docker_images.sh
 [jamesZHANG500](https://github.com/jamesZHANG500)
 [weidelong](https://github.com/wdl1697454803)
 [小强先生](https://github.com/linshangqiang)
+[李之阳](https://github.com/leo94666)
+[sgzed](https://github.com/sgzed)
+[gaoshan](https://github.com/foobra)
+[zhang2349](https://github.com/zhang2349)
+[benshi](https://github.com/BenLocal)
+[autoantwort](https://github.com/autoantwort)
+[u7ko4](https://github.com/u7ko4)
+[WengQiang](https://github.com/Tsubaki-01)
+[wEnchanters](https://github.com/wEnchanters)
+[sbkyy](https://github.com/sbkyy)
+[wuxingzhong](https://github.com/wuxingzhong)
+[286897655](https://github.com/286897655)
+[ss002012](https://github.com/ss002012)
+[a839419160](https://github.com/a839419160)
+[oldma3095](https://github.com/oldma3095)
 
 同时感谢JetBrains对开源项目的支持，本项目使用CLion开发与调试：
 

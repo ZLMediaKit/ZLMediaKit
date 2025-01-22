@@ -71,7 +71,8 @@ private:
     unsigned int _cseq = 1;
     Rtsp::eRtpType _rtp_type = Rtsp::RTP_TCP;
 
-    //rtsp鉴权相关
+    // rtsp鉴权相关  [AUTO-TRANSLATED:947dc6a3]
+    // RTSP authentication related
     std::string _nonce;
     std::string _realm;
     std::string _url;
@@ -79,21 +80,27 @@ private:
     std::string _content_base;
     SdpParser _sdp_parser;
     std::vector<SdpTrack::Ptr> _track_vec;
-    //RTP端口,trackid idx 为数组下标
+    // RTP端口,trackid idx 为数组下标  [AUTO-TRANSLATED:77c186bb]
+    // RTP port, trackid idx is the array index
     toolkit::Socket::Ptr _rtp_sock[2];
-    //RTCP端口,trackid idx 为数组下标
+    // RTCP端口,trackid idx 为数组下标  [AUTO-TRANSLATED:446a7861]
+    // RTCP port, trackid idx is the array index
     toolkit::Socket::Ptr _rtcp_sock[2];
-    //超时功能实现
+    // 超时功能实现  [AUTO-TRANSLATED:1d603b3a]
+    // Timeout function implementation
     toolkit::Timer::Ptr _publish_timer;
-    //心跳定时器
+    // 心跳定时器  [AUTO-TRANSLATED:536ec800]
+    // Heartbeat timer
     toolkit::Timer::Ptr _beat_timer;
     std::weak_ptr<RtspMediaSource> _push_src;
     RtspMediaSource::RingType::RingReader::Ptr _rtsp_reader;
     std::function<void(const Parser&)> _on_res_func;
     ////////// rtcp ////////////////
-    //rtcp发送时间,trackid idx 为数组下标
+    // rtcp发送时间,trackid idx 为数组下标  [AUTO-TRANSLATED:bf3248b1]
+    // RTCP send time, trackid idx is the array index
     toolkit::Ticker _rtcp_send_ticker[2];
-    //统计rtp并发送rtcp
+    // 统计rtp并发送rtcp  [AUTO-TRANSLATED:0ac2b665]
+    // Statistics RTP and send RTCP
     std::vector<RtcpContext::Ptr> _rtcp_context;
 };
 

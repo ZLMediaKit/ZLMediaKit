@@ -134,7 +134,8 @@ API_EXPORT void API_CALL mk_timer_release(mk_timer ctx){
 class WorkThreadPoolForC : public TaskExecutorGetterImp {
 public:
     WorkThreadPoolForC(const char *name, size_t n_thread, int priority) {
-        //最低优先级
+        // 最低优先级  [AUTO-TRANSLATED:cd1f0dbc]
+        // Lowest priority
         addPoller(name, n_thread, (ThreadPool::Priority) priority, false);
     }
 

@@ -19,7 +19,8 @@ using namespace std;
 
 namespace mediakit {
 
-//////////////////////////通用///////////////////////
+// ////////////////////////通用///////////////////////  [AUTO-TRANSLATED:758fb788]
+// ////////////////////////General///////////////////////
 void UTF8ToUnicode(wchar_t *pOut, const char *pText) {
     char *uchar = (char *) pOut;
     uchar[1] = ((pText[0] & 0x0F) << 4) + ((pText[1] >> 2) & 0x0F);
@@ -28,7 +29,8 @@ void UTF8ToUnicode(wchar_t *pOut, const char *pText) {
 }
 
 void UnicodeToUTF8(char *pOut, const wchar_t *pText) {
-    // 注意 WCHAR高低字的顺序,低字节在前，高字节在后 
+    // 注意 WCHAR高低字的顺序,低字节在前，高字节在后   [AUTO-TRANSLATED:95408ed0]
+    // Note the order of the high and low bytes of WCHAR, the low byte is in front, and the high byte is behind
     const char *pchar = (const char *) pText;
     pOut[0] = (0xE0 | ((pchar[1] & 0xF0) >> 4));
     pOut[1] = (0x80 | ((pchar[1] & 0x0F) << 2)) + ((pchar[0] & 0xC0) >> 6);
@@ -47,7 +49,8 @@ char HexStrToBin(const char *str) {
     auto high = HexCharToBin(str[0]);
     auto low = HexCharToBin(str[1]);
     if (high == -1 || low == -1) {
-        // 无法把16进制字符串转换为二进制
+        // 无法把16进制字符串转换为二进制  [AUTO-TRANSLATED:2c828a6f]
+        // Cannot convert hexadecimal string to binary
         return -1;
     }
     return (high << 4) | low;
@@ -73,13 +76,15 @@ static string UrlDecodeCommon(const string &str,const char* dont_unescape){
     while (i < len) {
         if (str[i] == '%') {
             if (i + 3 > len) {
-                // %后面必须还有两个字节才会反转义
+                // %后面必须还有两个字节才会反转义  [AUTO-TRANSLATED:c7c4299a]
+                // There must be two bytes after % to escape
                 output.append(str, i, len - i);
                 break;
             }
             char ch = HexStrToBin(&(str[i + 1]));
             if (ch == -1 || strchr(dont_unescape, (unsigned char)ch) != NULL) {
-                // %后面两个字节不是16进制字符串，转义失败；或者转义出来可能会造成url包含非path部分，比如#?，说明提交的是非法拼接的url；直接拼接3个原始字符
+                // %后面两个字节不是16进制字符串，转义失败；或者转义出来可能会造成url包含非path部分，比如#?，说明提交的是非法拼接的url；直接拼接3个原始字符  [AUTO-TRANSLATED:7c734054]
+                // The two bytes after % are not hexadecimal strings, the escape fails; or the escaped result may cause the url to contain non-path parts, such as #?, indicating that the submitted url is illegally spliced; directly splice the three original characters
                 output.append(str, i, 3);
             } else {
                 output += ch;
@@ -105,10 +110,13 @@ string strCoding::UrlEncodeComponent(const string &str) {
 
 std::string strCoding::UrlEncodeUserOrPass(const std::string &str) {
     // from rfc https://datatracker.ietf.org/doc/html/rfc3986
+    // §2.3 Unreserved characters (mark)  [AUTO-TRANSLATED:d9a6a1d3]
     // §2.3 Unreserved characters (mark)
     //'-', '_', '.', '~'  
-    //  §2.2 Reserved characters (reserved)
+    //  §2.2 Reserved characters (reserved)  [AUTO-TRANSLATED:4da0c164]
+    // §2.2 Reserved characters (reserved)
     // '$', '&', '+', ',', '/', ':', ';', '=', '?', '@', 
+    // §3.2.1  [AUTO-TRANSLATED:f282bdcd]
     // §3.2.1
     // The RFC allows ';', ':', '&', '=', '+', '$', and ',' in
     // userinfo, so we must escape only '@', '/', and '?'.
@@ -129,13 +137,15 @@ std::string strCoding::UrlDecodeComponent(const std::string &str) {
     while (i < len) {
         if (str[i] == '%') {
             if (i + 3 > len) {
-                // %后面必须还有两个字节才会反转义
+                // %后面必须还有两个字节才会反转义  [AUTO-TRANSLATED:c7c4299a]
+                // There must be two bytes after % to escape
                 output.append(str, i, len - i);
                 break;
             }
             char ch = HexStrToBin(&(str[i + 1]));
             if (ch == -1) {
-                // %后面两个字节不是16进制字符串，转义失败；直接拼接3个原始字符
+                // %后面两个字节不是16进制字符串，转义失败；直接拼接3个原始字符  [AUTO-TRANSLATED:10e614a4]
+                // The two bytes after % are not hexadecimal strings, the escape fails; directly splice the three original characters
                 output.append(str, i, 3);
             } else {
                 output += ch;
@@ -157,7 +167,8 @@ std::string strCoding::UrlDecodeUserOrPass(const std::string &str) {
     const char *dont_unescape = "";
     return UrlDecodeCommon(str,dont_unescape);
 }
-///////////////////////////////windows专用///////////////////////////////////
+// /////////////////////////////windows专用///////////////////////////////////  [AUTO-TRANSLATED:e6109cf5]
+// /////////////////////////////Windows Specific///////////////////////////////////
 #if defined(_WIN32)
 void UnicodeToGB2312(char* pOut, wchar_t uData)
 {
@@ -208,7 +219,8 @@ string strCoding::GB2312ToUTF8(const string &str) {
     size_t i = 0, j = 0;
     while (i < len)
     {
-        //如果是英文直接复制就可以   
+        // 如果是英文直接复制就可以     [AUTO-TRANSLATED:d6abdf68]
+        // If it is English, you can copy it directly
         if (*(pText + i) >= 0)
         {
             pOut[j++] = pText[i++];

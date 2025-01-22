@@ -63,7 +63,8 @@ public:
     }
 
     bool isEnabled() {
-        //缓存尚未清空时，还允许触发inputFrame函数，以便及时清空缓存
+        // 缓存尚未清空时，还允许触发inputFrame函数，以便及时清空缓存  [AUTO-TRANSLATED:7cfd4d49]
+        // Allow the inputFrame function to be triggered even when the cache is not yet cleared, so that the cache can be cleared in time.
         return _option.ts_demand ? (_clear_cache ? true : _enabled) : true;
     }
 

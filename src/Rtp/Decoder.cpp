@@ -85,14 +85,22 @@ DecoderImp::DecoderImp(const Decoder::Ptr &decoder, MediaSinkInterface *sink){
 #if defined(ENABLE_RTPPROXY) || defined(ENABLE_HLS)
 
 void DecoderImp::onStream(int stream, int codecid, const void *extra, size_t bytes, int finish) {
-    // G711传统只支持 8000/1/16的规格，FFmpeg貌似做了扩展，但是这里不管它了
-    auto track = Factory::getTrackByCodecId(getCodecByMpegId(codecid), 8000, 1, 16);
-    if (!track) {
+    if (_finished) {
         return;
     }
-    onTrack(stream, std::move(track));
-    // 防止未获取视频track提前complete导致忽略后续视频的问题，用于兼容一些不太规范的ps流
+    // G711传统只支持 8000/1/16的规格，FFmpeg貌似做了扩展，但是这里不管它了  [AUTO-TRANSLATED:851813f7]
+    // G711 traditionally only supports the 8000/1/16 specification. FFmpeg seems to have extended it, but we'll ignore that here.
+    auto codec = getCodecByMpegId(codecid);
+    if (codec != CodecInvalid) {
+        auto track = Factory::getTrackByCodecId(codec);
+        if (track) {
+            onTrack(stream, std::move(track));
+        }
+    }
+    // 防止未获取视频track提前complete导致忽略后续视频的问题，用于兼容一些不太规范的ps流  [AUTO-TRANSLATED:d6b349b5]
+    // Prevent the problem of ignoring subsequent video due to premature completion of the video track before it is obtained. This is used to be compatible with some non-standard PS streams.
     if (finish && _have_video) {
+        _finished = true;
         _sink->addTrackCompleted();
         InfoL << "Add track finished";
     }
@@ -108,7 +116,7 @@ void DecoderImp::onDecode(int stream, int codecid, int flags, int64_t pts, int64
     }
     auto &ref = _tracks[stream];
     if (!ref.first) {
-        onTrack(stream, Factory::getTrackByCodecId(codec, 8000, 1, 16));
+        onTrack(stream, Factory::getTrackByCodecId(codec));
     }
     if (!ref.first) {
         WarnL << "Unsupported codec :" << getCodecName(codec);

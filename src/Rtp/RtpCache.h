@@ -28,6 +28,11 @@ protected:
     /**
      * 输入rtp(目的是为了合并写)
      * @param buffer rtp数据
+     * Input rtp (for merging)
+     * @param buffer rtp data
+     
+     
+     * [AUTO-TRANSLATED:de9469b5]
      */
     void input(uint64_t stamp, toolkit::Buffer::Ptr buffer,bool is_key = false);
 
@@ -41,7 +46,7 @@ private:
 class RtpCachePS : public RtpCache, public PSEncoderImp {
 public:
     RtpCachePS(onFlushed cb, uint32_t ssrc, uint8_t payload_type = 96, bool ps_or_ts = true) :
-        RtpCache(std::move(cb)), PSEncoderImp(ssrc, ps_or_ts ? payload_type : Rtsp::PT_MP2T, ps_or_ts) {};
+        RtpCache(std::move(cb)), PSEncoderImp(ssrc, ps_or_ts ? payload_type : static_cast<int>(Rtsp::PT_MP2T), ps_or_ts) {};
 
     void flush() override;
 

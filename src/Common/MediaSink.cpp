@@ -24,9 +24,11 @@ bool MediaSink::addTrack(const Track::Ptr &track_in) {
         return false;
     }
     if (!_enable_audio) {
-        // 关闭音频时，加快单视频流注册速度
+        // 关闭音频时，加快单视频流注册速度  [AUTO-TRANSLATED:4d5a361d]
+        // Speed up single video stream registration when audio is off
         if (track_in->getTrackType() == TrackAudio) {
-            // 音频被全局忽略
+            // 音频被全局忽略  [AUTO-TRANSLATED:a8134a0b]
+            // Audio is globally ignored
             InfoL << "Audio disabled, audio track ignored";
             return false;
         }
@@ -35,7 +37,12 @@ bool MediaSink::addTrack(const Track::Ptr &track_in) {
         WarnL << "All track is ready, add track too late: " << track_in->getCodecName();
         return false;
     }
-    // 克隆Track，只拷贝其数据，不拷贝其数据转发关系
+    if (_track_map.size() >= _max_track_size) {
+        WarnL << "Max track size reached: " << _max_track_size << ", add track ignored:" << track_in->getCodecName();
+        return false;
+    }
+    // 克隆Track，只拷贝其数据，不拷贝其数据转发关系  [AUTO-TRANSLATED:09edaa31]
+    // Clone Track, only copy its data, not its data forwarding relationship
     auto track = track_in->clone();
     CHECK(track, "Clone track failed: ", track_in->getCodecName());
     auto index = track->getIndex();
@@ -55,11 +62,13 @@ bool MediaSink::addTrack(const Track::Ptr &track_in) {
 
         GET_CONFIG(uint32_t, kMaxUnreadyFrame, General::kUnreadyFrameCache);
         if (frame_unread.size() > kMaxUnreadyFrame) {
-            // 未就绪的的track，不能缓存太多的帧，否则可能内存溢出
+            // 未就绪的的track，不能缓存太多的帧，否则可能内存溢出  [AUTO-TRANSLATED:23958376]
+            // Unready tracks cannot cache too many frames, otherwise memory may overflow
             frame_unread.clear();
             WarnL << "Cached frame of unready track(" << frame->getCodecName() << ") is too much, now cleared";
         }
-        // 还有Track未就绪，先缓存之
+        // 还有Track未就绪，先缓存之  [AUTO-TRANSLATED:f96eadfa]
+        // There are still unready tracks, cache them first
         frame_unread.emplace_back(Frame::getCacheAbleFrame(frame));
         return true;
     });
@@ -86,7 +95,8 @@ bool MediaSink::inputFrame(const Frame::Ptr &frame) {
     it->second.second = true;
     auto ret = it->second.first->inputFrame(frame);
     if (_mute_audio_maker && frame->getTrackType() == TrackVideo) {
-        // 视频驱动产生静音音频
+        // 视频驱动产生静音音频  [AUTO-TRANSLATED:2a8c789c]
+        // Video driver generates silent audio
         _mute_audio_maker->inputFrame(frame);
     }
     checkTrackIfReady();
@@ -97,7 +107,8 @@ void MediaSink::checkTrackIfReady() {
     if (!_all_track_ready && !_track_ready_callback.empty()) {
         for (auto &pr : _track_map) {
             if (pr.second.second && pr.second.first->ready()) {
-                // Track由未就绪状态转换成就绪状态，我们就触发onTrackReady回调
+                // Track由未就绪状态转换成就绪状态，我们就触发onTrackReady回调  [AUTO-TRANSLATED:f8975e53]
+                // When a Track transitions from an unready state to a ready state, we trigger the onTrackReady callback
                 auto it = _track_ready_callback.find(pr.first);
                 if (it != _track_ready_callback.end()) {
                     it->second();
@@ -107,34 +118,57 @@ void MediaSink::checkTrackIfReady() {
         }
     }
 
+    // 等待音频超时时间
+    GET_CONFIG(uint32_t, kWaitAudioTrackDataMS, General::kWaitAudioTrackDataMS);
+    if (_max_track_size > 1) {
+        for (auto it = _track_map.begin(); it != _track_map.end();) {
+            if (it->second.first->getTrackType() == TrackAudio && _ticker.elapsedTime() > kWaitAudioTrackDataMS && !it->second.second) {
+                // 音频超时且完全没收到音频数据，忽略音频
+                auto index = it->second.first->getIndex();
+                WarnL << "Audio track index " << index << " codec " << it->second.first->getCodecName() << " receive no data for long "
+                      << _ticker.elapsedTime() << "ms. Ignore it!";
+                it = _track_map.erase(it);
+                _max_track_size -= 1;
+                _track_ready_callback.erase(index);
+            } else {
+                ++it;
+            }
+        }
+    }
+
     if (!_all_track_ready) {
         GET_CONFIG(uint32_t, kMaxWaitReadyMS, General::kWaitTrackReadyMS);
         if (_ticker.elapsedTime() > kMaxWaitReadyMS) {
-            // 如果超过规定时间，那么不再等待并忽略未准备好的Track
+            // 如果超过规定时间，那么不再等待并忽略未准备好的Track  [AUTO-TRANSLATED:fd089806]
+            // If it exceeds the specified time, then stop waiting and ignore unprepared Tracks
             emitAllTrackReady();
             return;
         }
 
         if (!_track_ready_callback.empty()) {
-            // 在超时时间内，如果存在未准备好的Track，那么继续等待
+            // 在超时时间内，如果存在未准备好的Track，那么继续等待  [AUTO-TRANSLATED:cfaf3b49]
+            // Within the timeout period, if there are unprepared Tracks, then continue waiting
             return;
         }
 
         if (_only_audio && _audio_add) {
-            // 只开启音频
+            // 只开启音频  [AUTO-TRANSLATED:bac07e47]
+            // Only enable audio
             emitAllTrackReady();
             return;
         }
 
         if (_track_map.size() == _max_track_size) {
-            // 如果已经添加了音视频Track，并且不存在未准备好的Track，那么说明所有Track都准备好了
+            // 如果已经添加了音视频Track，并且不存在未准备好的Track，那么说明所有Track都准备好了  [AUTO-TRANSLATED:6fce8779]
+            // If audio and video Tracks have been added, and there are no unprepared Tracks, then all Tracks are ready
             emitAllTrackReady();
             return;
         }
 
         GET_CONFIG(uint32_t, kMaxAddTrackMS, General::kWaitAddTrackMS);
         if (_track_map.size() == 1 && (_ticker.elapsedTime() > kMaxAddTrackMS || !_enable_audio)) {
-            // 如果只有一个Track，那么在该Track添加后，我们最多还等待若干时间(可能后面还会添加Track)
+            // 如果只有一个Track，那么在该Track添加后，我们最多还等待若干时间(可能后面还会添加Track)  [AUTO-TRANSLATED:5b4bd438]
+            // If there is only one Track, then after the Track is added, we wait for a certain amount of time at most (more Tracks may be added later)
             emitAllTrackReady();
             return;
         }
@@ -161,9 +195,11 @@ void MediaSink::emitAllTrackReady() {
 
     DebugL << "All track ready use " << _ticker.elapsedTime() << "ms";
     if (!_track_ready_callback.empty()) {
-        // 这是超时强制忽略未准备好的Track
+        // 这是超时强制忽略未准备好的Track  [AUTO-TRANSLATED:d4f57e00]
+        // This is a timeout forced ignore of unprepared Tracks
         _track_ready_callback.clear();
-        // 移除未准备好的Track
+        // 移除未准备好的Track  [AUTO-TRANSLATED:69965c62]
+        // Remove unprepared Tracks
         for (auto it = _track_map.begin(); it != _track_map.end();) {
             if (!it->second.second || !it->second.first->ready()) {
                 WarnL << "Track not ready for a long time, ignored: " << it->second.first->getCodecName();
@@ -175,13 +211,16 @@ void MediaSink::emitAllTrackReady() {
     }
 
     if (!_track_map.empty()) {
-        // 最少有一个有效的Track
+        // 最少有一个有效的Track  [AUTO-TRANSLATED:099adc94]
+        // There is at least one valid Track
         onAllTrackReady_l();
 
-        // 全部Track就绪，我们一次性把之前的帧输出
+        // 全部Track就绪，我们一次性把之前的帧输出  [AUTO-TRANSLATED:2431422b]
+        // All Tracks are ready, we output all the previous frames at once
         for (auto &pr : _frame_unread) {
             if (_track_map.find(pr.first) == _track_map.end()) {
-                // 该Track已经被移除
+                // 该Track已经被移除  [AUTO-TRANSLATED:d44bf74e]
+                // The Track has been removed
                 continue;
             }
             pr.second.for_each([&](const Frame::Ptr &frame) { MediaSink::inputFrame(frame); });
@@ -193,7 +232,8 @@ void MediaSink::emitAllTrackReady() {
 }
 
 void MediaSink::onAllTrackReady_l() {
-    // 是否添加静音音频
+    // 是否添加静音音频  [AUTO-TRANSLATED:bbfbfe73]
+    // Whether to add silent audio
     if (_add_mute_audio) {
         addMuteAudioTrack();
     }
@@ -243,11 +283,13 @@ static uint8_t ADTS_CONFIG[2] = { 0x15, 0x88 };
 
 bool MuteAudioMaker::inputFrame(const Frame::Ptr &frame) {
     if (_track_index == -1) {
-        // 锁定track
+        // 锁定track  [AUTO-TRANSLATED:41aff35e]
+        // Lock track
         _track_index = frame->getIndex();
     }
     if (frame->getIndex() != _track_index) {
-        // 不是锁定的track
+        // 不是锁定的track  [AUTO-TRANSLATED:496bd08b]
+        // Not a locked track
         return false;
     }
     auto audio_idx = frame->dts() / MUTE_ADTS_DATA_MS;

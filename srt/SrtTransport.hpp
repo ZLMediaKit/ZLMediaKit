@@ -13,6 +13,7 @@
 #include "Common.hpp"
 #include "NackContext.hpp"
 #include "Packet.hpp"
+#include "Crypto.hpp"
 #include "PacketQueue.hpp"
 #include "PacketSendQueue.hpp"
 #include "Statistic.hpp"
@@ -24,6 +25,7 @@ extern const std::string kPort;
 extern const std::string kTimeOutSec;
 extern const std::string kLatencyMul;
 extern const std::string kPktBufSize;
+extern const std::string kPassPhrase;
 
 class SrtTransport : public std::enable_shared_from_this<SrtTransport> {
 public:
@@ -60,6 +62,7 @@ protected:
     virtual int getLatencyMul() { return 4; };
     virtual int getPktBufSize() { return 8192; };
     virtual float getTimeOutSec(){return 5.0;};
+    virtual std::string getPassphrase() {return "";};
 
 private:
     void registerSelf();
@@ -79,15 +82,19 @@ private:
     void handleShutDown(uint8_t *buf, int len, struct sockaddr_storage *addr);
     void handleDropReq(uint8_t *buf, int len, struct sockaddr_storage *addr);
     void handleUserDefinedType(uint8_t *buf, int len, struct sockaddr_storage *addr);
+    void handleKeyMaterialReqPacket(uint8_t *buf, int len, struct sockaddr_storage *addr);
+    void handleKeyMaterialRspPacket(uint8_t *buf, int len, struct sockaddr_storage *addr);
     void handlePeerError(uint8_t *buf, int len, struct sockaddr_storage *addr);
     void handleDataPacket(uint8_t *buf, int len, struct sockaddr_storage *addr);
 
     void sendNAKPacket(std::list<PacketQueue::LostPair> &lost_list);
     void sendACKPacket();
+    void sendRejectPacket(SRT_REJECT_REASON reason, struct sockaddr_storage *addr);
     void sendLightACKPacket();
     void sendKeepLivePacket();
     void sendShutDown();
     void sendMsgDropReq(uint32_t first, uint32_t last);
+    void tryAnnounceKeyMaterial();
 
     size_t getPayloadSize() const;
 
@@ -159,6 +166,11 @@ private:
     Ticker _alive_ticker;
 
     bool _is_handleshake_finished = false;
+
+    // for encryption
+    Crypto::Ptr            _crypto;
+	Timer::Ptr             _announce_timer;
+	KeyMaterialPacket::Ptr _announce_req;
 };
 
 class SrtTransportManager {

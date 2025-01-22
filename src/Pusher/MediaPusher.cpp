@@ -46,6 +46,7 @@ void MediaPusher::publish(const string &url) {
     _delegate->setOnPublished(_on_publish);
     _delegate->mINI::operator=(*this);
     _delegate->publish(url);
+    _url = url;
 }
 
 EventPoller::Ptr MediaPusher::getPoller(){

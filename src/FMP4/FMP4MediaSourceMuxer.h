@@ -26,7 +26,13 @@ public:
         _media_src = std::make_shared<FMP4MediaSource>(tuple);
     }
 
-    ~FMP4MediaSourceMuxer() override { MP4MuxerMemory::flush(); };
+    ~FMP4MediaSourceMuxer() override {
+        try {
+            MP4MuxerMemory::flush();
+        } catch (std::exception &ex) {
+            WarnL << ex.what();
+        }
+    }
 
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
         setDelegate(listener);
@@ -57,7 +63,8 @@ public:
     }
 
     bool isEnabled() {
-        //缓存尚未清空时，还允许触发inputFrame函数，以便及时清空缓存
+        // 缓存尚未清空时，还允许触发inputFrame函数，以便及时清空缓存  [AUTO-TRANSLATED:7cfd4d49]
+        // The inputFrame function is still allowed to be triggered when the cache has not been cleared, so that the cache can be cleared in time.
         return _option.fmp4_demand ? (_clear_cache ? true : _enabled) : true;
     }
 

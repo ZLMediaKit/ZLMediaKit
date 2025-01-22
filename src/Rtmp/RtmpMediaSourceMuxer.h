@@ -76,7 +76,8 @@ public:
     }
 
     bool isEnabled() {
-        //缓存尚未清空时，还允许触发inputFrame函数，以便及时清空缓存
+        // 缓存尚未清空时，还允许触发inputFrame函数，以便及时清空缓存  [AUTO-TRANSLATED:7cfd4d49]
+        // The inputFrame function is still allowed to be triggered when the cache has not been cleared, so that the cache can be cleared in time.
         return _option.rtmp_demand ? (_clear_cache ? true : _enabled) : true;
     }
 

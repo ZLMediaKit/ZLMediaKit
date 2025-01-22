@@ -18,7 +18,8 @@ using namespace std;
 using namespace mediakit;
 
 void test_real() {
-    //这个是一次真实的rtp seq记录
+    // 这个是一次真实的rtp seq记录  [AUTO-TRANSLATED:a0cbaeff]
+    // This is a real rtp seq record
     list<uint16_t> input_list = {15125, 15126, 15127, 15128, 15129, 15130, 15131, 15132, 15133, 15134, 15135, 15136,
                                  15137, 15138, 15139, 15140, 15141, 15142, 15143, 15144, 15145, 15146, 15147, 15148,
                                  15149, 15150, 15151, 15152, 15153, 15154, 15155, 15156, 15157, 15158, 15159, 15160,
@@ -113,7 +114,8 @@ void test_real() {
     cout << "输入数据个数:" << input_list.size()
          << " 抖动缓冲区大小:" << sortor.getJitterSize();
 
-    //清空缓存
+    // 清空缓存  [AUTO-TRANSLATED:a7d8287a]
+    // Clear cache
     sortor.flush();
 
     cout << " 输出数据个数:" << sorted_list.size() << endl;
@@ -156,12 +158,14 @@ void test_rand(){
     });
 
     for (int i = 0; i < 1000;) {
-        //模拟乱序，count是连续倒序次数,最多连续乱序8次
+        // 模拟乱序，count是连续倒序次数,最多连续乱序8次  [AUTO-TRANSLATED:76bd8e43]
+        // Simulate out-of-order, count is the number of consecutive reverse orders, up to 8 consecutive out-of-orders
         int count = 1 + rand() % 10;
         for (int j = i + count; j >= i; --j) {
 
 #if 1
-            //模拟回环
+            // 模拟回环  [AUTO-TRANSLATED:c865877b]
+            // Simulate loopback
             uint16_t seq = 0xFFFF - 500 + j;
 #else
             uint16_t seq = j;
@@ -170,29 +174,35 @@ void test_rand(){
 #if 1
             int input = 0;
             if (seq != 0xFFFF && seq != 0) {
-                //模拟回环时丢包
+                // 模拟回环时丢包  [AUTO-TRANSLATED:b7a709cd]
+                // Simulate packet loss during loopback
                 if (seq % (1 + rand() % 100) == 0) {
-                    //模拟重复，概率5%左右
+                    // 模拟重复，概率5%左右  [AUTO-TRANSLATED:f096bdf1]
+                    // Simulate duplication, about 5% probability
                     sortor.sortPacket(seq, seq);
                     input_list.push_back(seq);
                     ++input;
                 }
                 if (seq % (1 + rand() % 100) != 0) {
-                    //模拟丢包，概率5%左右
+                    // 模拟丢包，概率5%左右  [AUTO-TRANSLATED:91a54869]
+                    // Simulate packet loss, about 5% probability
                     sortor.sortPacket(seq, seq);
                     input_list.push_back(seq);
                     ++input;
                 }
             }
             switch (input) {
-                //输入0次，丢包
+                // 输入0次，丢包  [AUTO-TRANSLATED:fb462a30]
+                // Input 0 times, packet loss
                 case 0 :
                     drop_list.push_back(seq);
                     break;
-                    //输入1次，正常
+                    // 输入1次，正常  [AUTO-TRANSLATED:ec648d0a]
+                    // Input 1 time, normal
                 case 1 :
                     break;
-                    //输入2+次，重复包
+                    // 输入2+次，重复包  [AUTO-TRANSLATED:fbc6549f]
+                    // Input 2+ times, duplicate packets
                 default:
                     repeat_list.push_back(seq);
                     break;
@@ -209,7 +219,8 @@ void test_rand(){
          << " 丢包个数:" << drop_list.size()
          << " 重复包个数:" << repeat_list.size();
 
-    //清空缓存
+    // 清空缓存  [AUTO-TRANSLATED:a7d8287a]
+    // Clear cache
     sortor.flush();
 
     cout << " 输出数据个数:" << sorted_list.size() << endl;
@@ -269,13 +280,16 @@ void test_rand(){
 #endif
 }
 
-//该测试程序用于检验rtp排序算法的正确性
+// 该测试程序用于检验rtp排序算法的正确性  [AUTO-TRANSLATED:251b9c45]
+// This test program is used to verify the correctness of the rtp sorting algorithm
 int main(int argc, char *argv[]) {
-    //测试真实的rtp seq
+    // 测试真实的rtp seq  [AUTO-TRANSLATED:d87b1d7a]
+    // Test real rtp seq
     cout << "###### 真实的rtp seq #####" << endl;
     test_real();
 
-    //模拟rtp乱序、回环、丢包、重复情况
+    // 模拟rtp乱序、回环、丢包、重复情况  [AUTO-TRANSLATED:cc92ba9d]
+    // Simulate rtp out-of-order, loopback, packet loss, and duplication scenarios
     cout << "###### 模拟的rtp seq #####" << endl;
     test_rand();
     return 0;

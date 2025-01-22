@@ -21,7 +21,8 @@ HttpTSPlayer::HttpTSPlayer(const EventPoller::Ptr &poller) {
 
 void HttpTSPlayer::onResponseHeader(const string &status, const HttpClient::HttpHeader &header) {
     if (status != "200" && status != "206") {
-        // http状态码不符合预期
+        // http状态码不符合预期  [AUTO-TRANSLATED:2b6996f7]
+        // HTTP status code is not as expected
         throw invalid_argument("bad http status code:" + status);
     }
 

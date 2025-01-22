@@ -25,13 +25,8 @@ RUN apt-get update && \
          ca-certificates \
          tzdata \
          libssl-dev \
-         libmysqlclient-dev \
-         libx264-dev \
-         libfaac-dev \
          gcc \
          g++ \
-         libavcodec-dev libavutil-dev libswscale-dev libresample-dev \
-         libsdl-dev libusrsctp-dev \
          gdb && \
          apt-get autoremove -y && \
          apt-get clean -y && \
@@ -43,7 +38,7 @@ WORKDIR /opt/media/ZLMediaKit
 
 # 3rdpart init
 WORKDIR /opt/media/ZLMediaKit/3rdpart
-RUN wget https://mirror.ghproxy.com/https://github.com/cisco/libsrtp/archive/v2.3.0.tar.gz -O libsrtp-2.3.0.tar.gz && \
+RUN wget https://github.com/cisco/libsrtp/archive/v2.3.0.tar.gz -O libsrtp-2.3.0.tar.gz && \
     tar xfv libsrtp-2.3.0.tar.gz && \
     mv libsrtp-2.3.0 libsrtp && \
     cd libsrtp && ./configure --enable-openssl && make -j $(nproc) && make install
@@ -69,13 +64,9 @@ RUN apt-get update && \
          tzdata \
          curl \
          libssl-dev \
-         libx264-dev \
-         libfaac-dev \
          ffmpeg \
          gcc \
          g++ \
-         libavcodec-dev libavutil-dev libswscale-dev libresample-dev \
-         libsdl-dev libusrsctp-dev \
          gdb && \
          apt-get autoremove -y && \
          apt-get clean -y && \

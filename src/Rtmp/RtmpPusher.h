@@ -68,7 +68,8 @@ private:
     std::deque<std::function<void(AMFValue &dec)> > _deque_on_status;
     std::unordered_map<int, std::function<void(AMFDecoder &dec)> > _map_on_result;
 
-    //推流超时定时器
+    // 推流超时定时器  [AUTO-TRANSLATED:7d2dcb86]
+    // Stream timeout timer
     std::shared_ptr<toolkit::Timer> _publish_timer;
     std::weak_ptr<RtmpMediaSource> _publish_src;
     RtmpMediaSource::RingType::RingReader::Ptr _rtmp_reader;

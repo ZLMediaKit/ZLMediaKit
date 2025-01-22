@@ -1,6 +1,6 @@
 ﻿# MIT License
 #
-# Copyright (c) 2016-2022 The ZLMediaKit project authors. All Rights Reserved.
+# Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -54,6 +54,15 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
   target_link_libraries(MediaServer -Wl,--start-group ${MK_LINK_LIBRARIES} -Wl,--end-group)
 else()
   target_link_libraries(MediaServer ${MK_LINK_LIBRARIES})
+endif()
+
+if(MSVC)
+  set(RESOURCE_FILE "${CMAKE_SOURCE_DIR}/resource.rc")
+  set_source_files_properties(${RESOURCE_FILE} PROPERTIES LANGUAGE RC)  
+  target_sources(MediaServer PRIVATE ${RESOURCE_FILE})
+else()
+  # Android, IOS, macOS ...
+  # CLion, GCC ...
 endif()
 
 install(TARGETS MediaServer DESTINATION ${INSTALL_PATH_RUNTIME})

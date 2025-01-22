@@ -42,14 +42,16 @@ WebRtcPusher::WebRtcPusher(const EventPoller::Ptr &poller,
 }
 
 bool WebRtcPusher::close(MediaSource &sender) {
-    //此回调在其他线程触发
+    // 此回调在其他线程触发  [AUTO-TRANSLATED:c98e7686]
+    // This callback is triggered in another thread
     string err = StrPrinter << "close media: " << sender.getUrl();
     weak_ptr<WebRtcPusher> weak_self = static_pointer_cast<WebRtcPusher>(shared_from_this());
     getPoller()->async([weak_self, err]() {
         auto strong_self = weak_self.lock();
         if (strong_self) {
             strong_self->onShutdown(SockException(Err_shutdown, err));
-            //主动关闭推流，那么不延时注销
+            // 主动关闭推流，那么不延时注销  [AUTO-TRANSLATED:ee7cc580]
+            // Actively close the stream, then do not delay the logout
             strong_self->_push_src = nullptr;
         }
     });
@@ -91,12 +93,14 @@ void WebRtcPusher::onRecvRtp(MediaTrack &track, const string &rid, RtpPacket::Pt
     }
 
     if (rtp->type == TrackAudio) {
-        //音频
+        // 音频  [AUTO-TRANSLATED:a577d8e1]
+        // Audio
         for (auto &pr : _push_src_sim) {
             pr.second->onWrite(rtp, false);
         }
     } else {
-        //视频
+        // 视频  [AUTO-TRANSLATED:904730ac]
+        // Video
         std::lock_guard<std::recursive_mutex> lock(_mtx);
         auto &src = _push_src_sim[rid];
         if (!src) {
@@ -121,7 +125,8 @@ void WebRtcPusher::onStartWebRTC() {
 void WebRtcPusher::onDestory() {
     auto duration = getDuration();
     auto bytes_usage = getBytesUsage();
-    //流量统计事件广播
+    // 流量统计事件广播  [AUTO-TRANSLATED:6b0b1234]
+    // Traffic statistics event broadcast
     GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
 
     if (getSession()) {
@@ -132,9 +137,11 @@ void WebRtcPusher::onDestory() {
     }
 
     if (_push_src && _continue_push_ms) {
-        //取消所有权
+        // 取消所有权  [AUTO-TRANSLATED:4895d8fa]
+        // Cancel ownership
         _push_src_ownership = nullptr;
-        //延时10秒注销流
+        // 延时10秒注销流  [AUTO-TRANSLATED:e1bb11f9]
+        // Delay 10 seconds to log out the stream
         auto push_src = std::move(_push_src);
         getPoller()->doDelayTask(_continue_push_ms, [push_src]() { return 0; });
     }
@@ -143,7 +150,8 @@ void WebRtcPusher::onDestory() {
 
 void WebRtcPusher::onRtcConfigure(RtcConfigure &configure) const {
     WebRtcTransportImp::onRtcConfigure(configure);
-    //这只是推流
+    // 这只是推流  [AUTO-TRANSLATED:f877bf98]
+    // This is just pushing the stream
     configure.audio.direction = configure.video.direction = RtpDirection::recvonly;
 }
 
@@ -152,7 +160,8 @@ float WebRtcPusher::getLossRate(MediaSource &sender,TrackType type) {
 }
 
 void WebRtcPusher::OnDtlsTransportClosed(const RTC::DtlsTransport *dtlsTransport) {
-   //主动关闭推流，那么不等待重推
+   // 主动关闭推流，那么不等待重推  [AUTO-TRANSLATED:1ff514d7]
+   // Actively close the stream, then do not wait for re-pushing
     _push_src = nullptr;
     WebRtcTransportImp::OnDtlsTransportClosed(dtlsTransport);
 }

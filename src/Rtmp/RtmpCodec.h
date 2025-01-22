@@ -26,6 +26,9 @@ public:
 
     /**
      * 设置rtmp环形缓存
+     * Set rtmp ring buffer
+     
+     * [AUTO-TRANSLATED:0a25f795]
      */
     void setRtmpRing(const RingType::Ptr &ring) {
         _ring = ring;
@@ -34,6 +37,11 @@ public:
     /**
      * 输入rtmp包
      * @param rtmp rtmp包
+     * Input rtmp packet
+     * @param rtmp rtmp packet
+     
+     
+     * [AUTO-TRANSLATED:3a0f0599]
      */
     virtual void inputRtmp(const RtmpPacket::Ptr &rtmp) {
         if (_ring) {

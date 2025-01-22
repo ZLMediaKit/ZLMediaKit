@@ -33,7 +33,8 @@ void HttpDownloader::startDownload(const string &url, const string &file_path, b
     if (append) {
         auto currentLen = ftell(_save_file);
         if (currentLen) {
-            //最少续传一个字节，怕遇到http 416的错误
+            // 最少续传一个字节，怕遇到http 416的错误  [AUTO-TRANSLATED:8a3c5303]
+            // Resume downloading at least one byte to avoid encountering a http 416 error
             currentLen -= 1;
             fseek(_save_file, -1, SEEK_CUR);
         }
@@ -45,7 +46,8 @@ void HttpDownloader::startDownload(const string &url, const string &file_path, b
 
 void HttpDownloader::onResponseHeader(const string &status, const HttpHeader &headers) {
     if (status != "200" && status != "206") {
-        //失败
+        // 失败  [AUTO-TRANSLATED:27ec5fb1]
+        // Failure
         throw std::invalid_argument("bad http status: " + status);
     }
 }
