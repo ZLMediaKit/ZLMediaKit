@@ -68,7 +68,13 @@ if(ENABLE_CXX_API)
   # 保留目录结构
   install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
     DESTINATION ${INSTALL_PATH_INCLUDE}/ZLMediaKit
+    REGEX ".*/Srt.*" EXCLUDE
     REGEX ".*[.](md|cpp)$" EXCLUDE)
+  if(ENABLE_SRT)
+    install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Srt
+      DESTINATION ${INSTALL_PATH_INCLUDE}/ZLMediaKit
+      REGEX ".*[.](md|cpp)$" EXCLUDE)
+  endif()
   install(TARGETS zlmediakit
     DESTINATION ${INSTALL_PATH_LIB})
 endif ()
