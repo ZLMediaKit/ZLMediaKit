@@ -127,6 +127,7 @@ bool RtpProcess::inputRtp(bool is_udp, const Socket::Ptr &sock, const char *data
         fwrite((uint8_t *) data, len, 1, _save_file_rtp.get());
     }
     if (!_process) {
+        _media_info.protocol = is_udp ? "udp" : "tcp";
         _process = std::make_shared<GB28181Process>(_media_info, this);
     }
 

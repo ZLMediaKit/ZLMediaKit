@@ -223,13 +223,13 @@ bool HttpSession::checkWebSocket() {
         headerOut["Sec-WebSocket-Protocol"] = _parser["Sec-WebSocket-Protocol"];
     }
 
+     _live_over_websocket = true;
+
     auto res_cb = [this, headerOut]() {
-        _live_over_websocket = true;
         sendResponse(101, false, nullptr, headerOut, nullptr, true);
     };
 
     auto res_cb_flv = [this, headerOut]() mutable {
-        _live_over_websocket = true;
         headerOut.emplace("Cache-Control", "no-store");
         sendResponse(101, false, nullptr, headerOut, nullptr, true);
     };
@@ -303,6 +303,12 @@ bool HttpSession::checkLiveStream(const string &schema, const string &url_suffix
         // url不合法  [AUTO-TRANSLATED:9aad134e]
         // URL is invalid
         return false;
+    }
+    
+    if (_live_over_websocket) {
+        _media_info.protocol = overSsl() ? "wss" : "ws";
+    } else {
+        _media_info.protocol = overSsl() ? "https" : "http";
     }
 
     bool close_flag = !strcasecmp(_parser["Connection"].data(), "close");

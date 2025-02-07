@@ -134,6 +134,7 @@ void RtspSession::onWholeRtspPacket(Parser &parser) {
         _content_base = rtsp._url;
         _media_info.parse(parser.fullUrl());
         _media_info.schema = RTSP_SCHEMA;
+        _media_info.protocol = overSsl() ? "rtsps" : "rtsp";
     }
 
     using rtsp_request_handler = void (RtspSession::*)(const Parser &parser);
@@ -206,6 +207,7 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
         //去除.sdp后缀，防止EasyDarwin推流器强制添加.sdp后缀
         full_url = full_url.substr(0, full_url.length() - 4);
         _media_info.parse(full_url);
+        _media_info.protocol = overSsl() ? "rtsps" : "rtsp";
     }
 
     if (_media_info.app.empty() || _media_info.stream.empty()) {

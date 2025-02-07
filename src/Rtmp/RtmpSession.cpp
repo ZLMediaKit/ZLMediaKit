@@ -96,6 +96,8 @@ void RtmpSession::onCmd_connect(AMFDecoder &dec) {
     // 赋值rtmp app
     _media_info.app = params["app"].as_string();
 
+    _media_info.protocol = overSsl() ? "rtmps" : "rtmp";
+
     bool ok = true; //(app == APP_NAME);
     AMFValue version(AMF_OBJECT);
     version.set("fmsVer", "FMS/3,0,1,123");
