@@ -213,6 +213,7 @@ bool HttpSession::checkWebSocket() {
     if (Sec_WebSocket_Key.empty()) {
         return false;
     }
+    _is_websocket = true;
     auto Sec_WebSocket_Accept = encodeBase64(SHA1::encode_bin(Sec_WebSocket_Key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"));
 
     KeyValue headerOut;
@@ -223,13 +224,13 @@ bool HttpSession::checkWebSocket() {
         headerOut["Sec-WebSocket-Protocol"] = _parser["Sec-WebSocket-Protocol"];
     }
 
-     _live_over_websocket = true;
-
     auto res_cb = [this, headerOut]() {
+        _live_over_websocket = true;
         sendResponse(101, false, nullptr, headerOut, nullptr, true);
     };
 
     auto res_cb_flv = [this, headerOut]() mutable {
+        _live_over_websocket = true;
         headerOut.emplace("Cache-Control", "no-store");
         sendResponse(101, false, nullptr, headerOut, nullptr, true);
     };
@@ -304,8 +305,8 @@ bool HttpSession::checkLiveStream(const string &schema, const string &url_suffix
         // URL is invalid
         return false;
     }
-    
-    if (_live_over_websocket) {
+
+    if (_is_websocket) {
         _media_info.protocol = overSsl() ? "wss" : "ws";
     } else {
         _media_info.protocol = overSsl() ? "https" : "http";
