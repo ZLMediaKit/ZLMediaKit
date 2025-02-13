@@ -152,7 +152,9 @@ void TaskManager::startThread(const string &name) {
     _thread.reset(new thread([this, name]() {
         onThreadRun(name);
     }), [](thread *ptr) {
-        ptr->join();
+        if (ptr->joinable()) {
+            ptr->join();
+        }
         delete ptr;
     });
 }
@@ -177,7 +179,7 @@ void TaskManager::stopThread(bool drop_task) {
 }
 
 TaskManager::~TaskManager() {
-    stopThread(true);
+
 }
 
 bool TaskManager::isEnabled() const {
