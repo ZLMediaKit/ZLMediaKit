@@ -5,7 +5,7 @@
 - 拉流只支持ts拉流
 - 协议实现 [参考](https://haivision.github.io/srt-rfc/draft-sharabayko-srt.html)
 - 版本支持(>=1.3.0)
-- fec与加密没有实现
+- fec没有实现
 
 ## 使用
 
