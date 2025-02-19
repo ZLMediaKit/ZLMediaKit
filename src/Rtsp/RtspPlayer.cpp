@@ -174,12 +174,12 @@ bool RtspPlayer::handleAuthenticationFailure(const string &paramsStr) {
     return false;
 }
 
-bool RtspPlayer::handleResponse(const string &cmd, const Parser &parser) {
+bool RtspPlayer::handleResponse(const std::string &cmd, const Parser &parser, send_method_handler handler) {
     string authInfo = parser["WWW-Authenticate"];
     // 发送DESCRIBE命令后的回复  [AUTO-TRANSLATED:39629cf0]
     // The response after sending the DESCRIBE command
     if ((parser.status() == "401") && handleAuthenticationFailure(authInfo)) {
-        sendOptions();
+        (this->*handler)();
         return false;
     }
     if (parser.status() == "302" || parser.status() == "301") {
@@ -197,7 +197,7 @@ bool RtspPlayer::handleResponse(const string &cmd, const Parser &parser) {
 }
 
 void RtspPlayer::handleResDESCRIBE(const Parser &parser) {
-    if (!handleResponse("DESCRIBE", parser)) {
+    if (!handleResponse("DESCRIBE", parser, &RtspPlayer::sendDescribe)) {
         return;
     }
     _content_base = parser["Content-Base"];
@@ -428,7 +428,7 @@ void RtspPlayer::sendDescribe() {
 
 void RtspPlayer::sendOptions() {
     _on_response = [this](const Parser &parser) {
-        if (!handleResponse("OPTIONS", parser)) {
+        if (!handleResponse("OPTIONS", parser, &RtspPlayer::sendOptions)) {
             return;
         }
         // 获取服务器支持的命令  [AUTO-TRANSLATED:8a6a12f1]
