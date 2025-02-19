@@ -14,7 +14,6 @@
 #include "Common/config.h"
 #include "Common/Parser.h"
 #include <random>
-#include <regex>
 
 using namespace toolkit;
 using namespace std;
@@ -97,17 +96,12 @@ SrtCaller::~SrtCaller(void) {
 	DebugL;
 }
 
-static bool isIPv4(const std::string &str) {
-    std::regex ipv4_regex(R"(^(\d{1,3}\.){3}\d{1,3}$)");
-    return std::regex_match(str, ipv4_regex);
-}
-
 void SrtCaller::onConnect() {
 	//DebugL;
 
 	auto peer_addr = SockUtil::make_sockaddr(_url._host.c_str(), (_url._port));
 	_socket = Socket::createSocket(_poller, false);
-        _socket->bindUdpSock(0, isIPv4(_url._host) ? "0.0.0.0" : "::");
+        _socket->bindUdpSock(0, SockUtil::is_ipv4(_url._host.data()) ? "0.0.0.0" : "::");
 	_socket->bindPeerAddr((struct sockaddr *)&peer_addr, 0, true);
 
     weak_ptr<SrtCaller> weak_self = shared_from_this();
