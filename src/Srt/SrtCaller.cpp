@@ -101,7 +101,7 @@ void SrtCaller::onConnect() {
 
 	auto peer_addr = SockUtil::make_sockaddr(_url._host.c_str(), (_url._port));
 	_socket = Socket::createSocket(_poller, false);
-	_socket->bindUdpSock(0);
+        _socket->bindUdpSock(0, SockUtil::is_ipv4(_url._host.data()) ? "0.0.0.0" : "::");
 	_socket->bindPeerAddr((struct sockaddr *)&peer_addr, 0, true);
 
     weak_ptr<SrtCaller> weak_self = shared_from_this();
