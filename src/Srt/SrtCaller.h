@@ -38,9 +38,7 @@ public:
     std::string _params;
     std::string _host;
     uint16_t _port;
-    std::string _vhost;
-    std::string _app;
-    std::string _stream;
+    std::string _streamid;
 
 public:
     void parse(const std::string &url);

@@ -21,8 +21,12 @@ using namespace SRT;
 
 namespace mediakit {
 
+//zlm play format
 //srt://127.0.0.1:9000?streamid=#!::r=live/test
 //srt://127.0.0.1:9000?streamid=#!::r=live/test,h=__defaultVhost__
+//zlm push format
+//srt://127.0.0.1:9000?streamid=#!::r=live/test,m=publish
+//srt://127.0.0.1:9000?streamid=#!::r=live/test,h=__defaultVhost__,m=publish
 void SrtUrl::parse(const string &strUrl) {
 	//DebugL << "url: " << strUrl;
     _full_url = strUrl;
@@ -40,37 +44,14 @@ void SrtUrl::parse(const string &strUrl) {
 		if (!toolkit::start_with(streamid, "#!::")) {
 			return;
 		}
-		std::string real_streamid = streamid.substr(4);
-
-		auto params = Parser::parseArgs(real_streamid, ",", "=");
-
-		for (auto iit : params) {
-			if (iit.first == "h") {
-				_vhost = iit.second;
-			} else if (iit.first == "r") {
-				auto tmps = toolkit::split(iit.second, "/");
-				if (tmps.size() < 2) {
-					continue;
-				}
-				_app = tmps[0];
-				_stream = tmps[1];
-			} else {
-				//nop
-			}
-		}
-
-		if (_vhost.empty()) {
-			_vhost = DEFAULT_VHOST;
-		}
+        _streamid = streamid;
 	}
 
 	//TraceL << "ip:      " << ip;
 	//TraceL << "_host:   " << _host;
 	//TraceL << "_port:   " << _port;
 	//TraceL << "_params: " << _params;
-	//TraceL << "_vhost:  " << _vhost;
-	//TraceL << "_app:    " << _app;
-	//TraceL << "_stream: " << _stream;
+	//TraceL << "_streamid: " << _streamid;
 	return;
 }
 
@@ -730,7 +711,9 @@ void SrtCaller::handleACK(uint8_t *buf, int len, struct sockaddr *addr) {
     pkt->timestamp = DurationCountMicroseconds(_now - _start_timestamp);
     pkt->ack_number = ack.ack_number;
     pkt->storeToData();
-    _send_buf->drop(ack.last_ack_pkt_seq_number);
+    if (_send_buf) {
+        _send_buf->drop(ack.last_ack_pkt_seq_number);
+    }
     sendControlPacket(pkt, true);
     // TraceL<<"ack number "<<ack.ack_number;
     return;
@@ -1008,14 +991,7 @@ float SrtCaller::getTimeOutSec() {
 };
 
 std::string SrtCaller::generateStreamId() { 
-    auto streamId = "#!::r=" + _url._app + "/" + _url._stream;
-    if (_url._vhost != DEFAULT_VHOST) {
-        streamId += ",h=" +_url._vhost;
-    }
-    if (!isPlayer()) {
-        streamId += ",m=publish";
-    }
-    return streamId;
+    return _url._streamid;
 };
 
 uint32_t SrtCaller::generateSocketId() {
