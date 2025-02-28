@@ -34,13 +34,11 @@ namespace mediakit {
 // 解析srt 信令url的工具类
 class SrtUrl {
 public:
-	std::string _full_url;
+    std::string _full_url;
     std::string _params;
     std::string _host;
     uint16_t _port;
-    std::string _vhost;
-    std::string _app;
-    std::string _stream;
+    std::string _streamid;
 
 public:
     void parse(const std::string &url);
@@ -51,8 +49,8 @@ class SrtCaller : public std::enable_shared_from_this<SrtCaller>{
 public:
     using Ptr = std::shared_ptr<SrtCaller>;
 
-	using SteadyClock = std::chrono::steady_clock;
-	using TimePoint = std::chrono::time_point<SteadyClock>;
+    using SteadyClock = std::chrono::steady_clock;
+    using TimePoint = std::chrono::time_point<SteadyClock>;
 
     SrtCaller(const toolkit::EventPoller::Ptr &poller);
     virtual ~SrtCaller();
@@ -68,7 +66,7 @@ protected:
     virtual void onHandShakeFinished();
     virtual void onResult(const toolkit::SockException &ex);
 
-	virtual void onSRTData(SRT::DataPacket::Ptr pkt);
+    virtual void onSRTData(SRT::DataPacket::Ptr pkt);
 
     virtual uint16_t getLatency() = 0;
     virtual int getLatencyMul();
@@ -78,10 +76,10 @@ protected:
     virtual bool isPlayer() = 0;
 
 private:
-	void doHandshake();
+    void doHandshake();
 
     void sendHandshakeInduction();
-	void sendHandshakeConclusion();
+    void sendHandshakeConclusion();
     void sendACKPacket();
     void sendLightACKPacket();
     void sendNAKPacket(std::list<SRT::PacketQueue::LostPair> &lost_list);
@@ -91,9 +89,9 @@ private:
     void tryAnnounceKeyMaterial();
     void sendControlPacket(SRT::ControlPacket::Ptr pkt, bool flush = true);
     void sendDataPacket(SRT::DataPacket::Ptr pkt, char *buf, int len, bool flush = false);
-	void sendPacket(toolkit::Buffer::Ptr pkt, bool flush);
+    void sendPacket(toolkit::Buffer::Ptr pkt, bool flush);
 
-	void handleHandshake(uint8_t *buf, int len, struct sockaddr *addr);
+    void handleHandshake(uint8_t *buf, int len, struct sockaddr *addr);
     void handleHandshakeInduction(SRT::HandshakePacket &pkt, struct sockaddr *addr);
     void handleHandshakeConclusion(SRT::HandshakePacket &pkt, struct sockaddr *addr);
     void handleACK(uint8_t *buf, int len, struct sockaddr *addr);
@@ -105,14 +103,14 @@ private:
     void handlePeerError(uint8_t *buf, int len, struct sockaddr *addr);
     void handleCongestionWarning(uint8_t *buf, int len, struct sockaddr *addr);
     void handleUserDefinedType(uint8_t *buf, int len, struct sockaddr *addr);
-	void handleDataPacket(uint8_t *buf, int len, struct sockaddr *addr);
+    void handleDataPacket(uint8_t *buf, int len, struct sockaddr *addr);
     void handleKeyMaterialReqPacket(uint8_t *buf, int len, struct sockaddr *addr);
     void handleKeyMaterialRspPacket(uint8_t *buf, int len, struct sockaddr *addr);
 
     void checkAndSendAckNak();
     void createTimerForCheckAlive();
 
-	std::string generateStreamId();
+    std::string generateStreamId();
     uint32_t generateSocketId();
     int32_t generateInitSeq();
     size_t  getPayloadSize();
@@ -126,7 +124,7 @@ protected:
     bool _is_handleshake_finished = false;
 
 private:
-	toolkit::Socket::Ptr _socket;
+    toolkit::Socket::Ptr _socket;
 
     TimePoint _now;
     TimePoint _start_timestamp;
@@ -138,35 +136,35 @@ private:
     uint32_t _rtt          = 100 * 1000;
     uint32_t _rtt_variance = 50 * 1000;
 
-	//local
+    //local
     uint32_t _socket_id            = 0;
     uint32_t _init_seq_number       = 0;
-	uint32_t _mtu                  = 1500;
+    uint32_t _mtu                  = 1500;
     uint32_t _max_flow_window_size = 8192;
-	uint16_t _delay                = 120;
+    uint16_t _delay                = 120;
 
-	//peer
+    //peer
     uint32_t _sync_cookie          = 0;
     uint32_t _peer_socket_id;
 
     // for handshake
-	SRT::Timer::Ptr _handleshake_timer;
-	SRT::HandshakePacket::Ptr _handleshake_req;
+    SRT::Timer::Ptr _handleshake_timer;
+    SRT::HandshakePacket::Ptr _handleshake_req;
 
     // for keeplive 
-	SRT::Ticker _send_ticker;
-	SRT::Timer::Ptr _keeplive_timer;
+    SRT::Ticker _send_ticker;
+    SRT::Timer::Ptr _keeplive_timer;
 
     // for alive
-	SRT::Ticker _alive_ticker;
+    SRT::Ticker _alive_ticker;
     SRT::Timer::Ptr _alive_timer;
 
-	// for recv
-	SRT::PacketQueueInterface::Ptr _recv_buf;
+    // for recv
+    SRT::PacketQueueInterface::Ptr _recv_buf;
     uint32_t _last_pkt_seq = 0;
 
     // Ack
-	SRT::UTicker _ack_ticker;
+    SRT::UTicker _ack_ticker;
     uint32_t _last_ack_pkt_seq    = 0;
     uint32_t _light_ack_pkt_count = 0;
     uint32_t _ack_number_count    = 0;
@@ -177,9 +175,9 @@ private:
     std::shared_ptr<SRT::EstimatedLinkCapacityContext> _estimated_link_capacity_context;
 
     // Nak
-	SRT::UTicker _nak_ticker;
+    SRT::UTicker _nak_ticker;
 
-	//for Send
+    //for Send
     SRT::PacketSendQueue::Ptr _send_buf;
     SRT::ResourcePool<SRT::BufferRaw> _packet_pool;
     uint32_t _send_packet_seq_number = 0;
@@ -190,8 +188,8 @@ private:
 
     // for encryption
     SRT::Crypto::Ptr _crypto;
-	SRT::Timer::Ptr _announce_timer;
-	SRT::KeyMaterialPacket::Ptr _announce_req;
+    SRT::Timer::Ptr _announce_timer;
+    SRT::KeyMaterialPacket::Ptr _announce_req;
 };
 
 } /* namespace mediakit */

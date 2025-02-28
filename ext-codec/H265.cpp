@@ -160,6 +160,7 @@ toolkit::Buffer::Ptr H265Track::getExtraData() const {
         WarnL << "生成H265 extra_data 失败";
         return nullptr;
     }
+    extra_data.resize(extra_data_size);
     return std::make_shared<BufferString>(std::move(extra_data));
 #else
     WarnL << "请开启MP4相关功能并使能\"ENABLE_MP4\",否则对H265的支持不完善";

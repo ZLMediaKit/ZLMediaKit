@@ -733,9 +733,9 @@ public:
      * [AUTO-TRANSLATED:a3e7e6db]
      */
     bool inputFrame(const Frame::Ptr &frame) override {
-        std::lock_guard<std::recursive_mutex> lck(_mtx);
         doStatistics(frame);
         bool ret = false;
+        std::lock_guard<std::recursive_mutex> lck(_mtx);
         for (auto &pr : _delegates) {
             if (pr.second->inputFrame(frame)) {
                 ret = true;
@@ -767,7 +767,6 @@ public:
      * [AUTO-TRANSLATED:73cb2ab0]
      */
     uint64_t getVideoKeyFrames() const {
-        std::lock_guard<std::recursive_mutex> lck(_mtx);
         return _video_key_frames;
     }
 
@@ -778,22 +777,18 @@ public:
      * [AUTO-TRANSLATED:118b395e]
      */
     uint64_t getFrames() const {
-        std::lock_guard<std::recursive_mutex> lck(_mtx);
         return _frames;
     }
 
     size_t getVideoGopSize() const {
-        std::lock_guard<std::recursive_mutex> lck(_mtx);
         return _gop_size;
     }
 
     size_t getVideoGopInterval() const {
-        std::lock_guard<std::recursive_mutex> lck(_mtx);
         return _gop_interval_ms;
     }
 
     int64_t getDuration() const {
-        std::lock_guard<std::recursive_mutex> lck(_mtx);
         return _stamp.getRelativeStamp();
     }
 

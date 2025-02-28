@@ -11,6 +11,7 @@
 #include "mk_frame.h"
 #include "Record/MPEG.h"
 #include "Extension/Factory.h"
+#include "Rtp/PSDecoder.h"
 
 using namespace mediakit;
 
@@ -224,3 +225,35 @@ API_EXPORT int API_CALL mk_mpeg_muxer_input_frame(mk_mpeg_muxer ctx, mk_frame fr
     auto ptr = reinterpret_cast<MpegMuxerForC *>(ctx);
     return ptr->inputFrame(*((Frame::Ptr *) frame));
 }
+
+
+//////////////////////////////////////////////////////////////////////
+#if defined(ENABLE_RTPPROXY)
+
+API_EXPORT mk_ps_decoder API_CALL mk_ps_decoder_create(on_mk_ps_decoder_stream scb, on_mk_ps_decoder_frame dcb, void * user_data) {
+    assert(dcb);
+    auto ps_decoder = new PSDecoder();
+    std::shared_ptr<void> ptr(user_data, [](void *) {});
+    if (scb) {
+        ps_decoder->setOnStream([ptr,scb](int stream, int codecid, const void *extra, size_t bytes, int finish) {
+            scb(ptr.get(), stream, getCodecByMpegId(codecid), extra, bytes, finish);
+        });
+    }
+    ps_decoder->setOnDecode([ptr,dcb](int stream, int codecid, int flags, int64_t pts, int64_t dts, const void *data, size_t bytes) {
+       dcb(ptr.get(), stream,getCodecByMpegId(codecid),flags,pts,dts,data,bytes);
+    });
+    return reinterpret_cast<mk_ps_decoder>(ps_decoder);
+}
+
+API_EXPORT void API_CALL mk_ps_decoder_release(mk_ps_decoder ctx) {
+    assert(ctx);
+    auto ptr = reinterpret_cast<PSDecoder *>(ctx);
+    delete ptr;
+}
+
+API_EXPORT void API_CALL mk_ps_decoder_input(mk_ps_decoder ctx, const char * data, size_t bytes) {
+    assert(ctx && data);
+    auto ptr = reinterpret_cast<PSDecoder *>(ctx);
+    ptr->input(reinterpret_cast<const uint8_t *>(data), bytes);
+}
+#endif

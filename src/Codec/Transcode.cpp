@@ -152,7 +152,9 @@ void TaskManager::startThread(const string &name) {
     _thread.reset(new thread([this, name]() {
         onThreadRun(name);
     }), [](thread *ptr) {
-        ptr->join();
+        if (ptr->joinable()) {
+            ptr->join();
+        }
         delete ptr;
     });
 }
@@ -754,7 +756,7 @@ std::tuple<bool, std::string> FFmpegUtils::saveFrame(const FFmpegFrame::Ptr &fra
     if (!jpeg_codec_ctx) {
         ss << "Could not allocate JPEG/PNG codec context";
         DebugL << ss;
-        return { false, ss };
+        return make_tuple<bool, std::string>(false, ss.data());
     }
 
     jpeg_codec_ctx->width = frame->get()->width;
@@ -764,9 +766,9 @@ std::tuple<bool, std::string> FFmpegUtils::saveFrame(const FFmpegFrame::Ptr &fra
 
     auto ret = avcodec_open2(jpeg_codec_ctx.get(), jpeg_codec, NULL);
     if (ret < 0) {
-        ss << "Could not open JPEG codec, " << ffmpeg_err(ret);
+        ss << "Could not open JPEG/PNG codec, " << ffmpeg_err(ret);
         DebugL << ss;
-        return { false, ss };
+        return make_tuple<bool, std::string>(false, ss.data());
     }
 
     FFmpegSws sws(fmt, 0, 0);
@@ -774,15 +776,15 @@ std::tuple<bool, std::string> FFmpegUtils::saveFrame(const FFmpegFrame::Ptr &fra
     if (!new_frame) {
         ss << "Could not scale the frame: " << ffmpeg_err(ret);
         DebugL << ss;
-        return { false, ss };
+        return make_tuple<bool, std::string>(false, ss.data());
     }
 
     auto pkt = alloc_av_packet();
     ret = avcodec_send_frame(jpeg_codec_ctx.get(), new_frame->get());
     if (ret < 0) {
-        ss << "Error sending a frame for encoding," << ffmpeg_err(ret);
+        ss << "Error sending a frame for encoding, " << ffmpeg_err(ret);
         DebugL << ss;
-        return { false, ss };
+        return make_tuple<bool, std::string>(false, ss.data());
     }
 
     std::unique_ptr<FILE, void (*)(FILE *)> tmp_save_file_jpg(File::create_file(filename, "wb"), [](FILE *fp) {
@@ -794,14 +796,14 @@ std::tuple<bool, std::string> FFmpegUtils::saveFrame(const FFmpegFrame::Ptr &fra
     if (!tmp_save_file_jpg) {
         ss << "Could not open the file " << filename;
         DebugL << ss;
-        return { false, ss };
+        return make_tuple<bool, std::string>(false, ss.data());
     }
 
     while (avcodec_receive_packet(jpeg_codec_ctx.get(), pkt.get()) == 0) {
         fwrite(pkt.get()->data, pkt.get()->size, 1, tmp_save_file_jpg.get());
     }
     DebugL << "Screenshot successful: " << filename;
-    return { true, "" };
+    return make_tuple<bool, std::string>(true, "");
 }
 
 } // namespace mediakit

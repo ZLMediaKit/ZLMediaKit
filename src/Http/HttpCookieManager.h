@@ -128,7 +128,6 @@ public:
 
     /*
      * 获取附加数据
-     /*
      * Get additional data
      
      * [AUTO-TRANSLATED:e277d75d]

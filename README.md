@@ -146,7 +146,33 @@
   - 支持按需解复用、转协议，当有人观看时才开启转协议，降低cpu占用率
   - 支持溯源模式的集群部署，溯源方式支持rtsp/rtmp/hls/http-ts, 边沿站支持hls, 源站支持多个(采用round robin方式溯源)
   - rtsp/rtmp/webrtc推流异常断开后，可以在超时时间内重连推流，播放器无感知
-  
+
+## 闭源专业版
+在最新开源代码的基础，新增以下闭源专业版，详询邮箱：<1213642868@qq.com>
+- 转码版本
+  - 1、音视频间任意转码(包括h265/h264/opus/g711/aac/g722/g722.1/mp3/svac等。
+  - 2、基于配置文件的转码，支持设置比特率，codec类型等参数。
+  - 3、基于http api的动态增减转码，支持设置比特率，分辨率倍数，codec类型、滤镜等参数。
+  - 4、支持硬件、软件自适应转码。
+  - 5、支持按需转码，有人观看才转码，支持透明转码模式，业务无需感知转码的存在，业务代码无需做任何调整。
+  - 6、支持负载过高时，转码主动降低帧率且不花屏。
+  - 7、支持滤镜，支持添加osd文本以及logo角标等能力。
+  - 8、支持全GPU硬件编解码与滤镜，防止显存与内存频繁拷贝。
+  - 9、支持视频全GPU(cuda)推理插件，支持人员、车辆等目标AI识别。
+    
+- JT1078部标版本
+  - 1、支持接收jt1078推流转其他协议；自适应音视频共享seq和单独seq模式。
+  - 2、新增支持jt1078级联，支持jt1078对讲。
+  - 3、jt1078相关接口和用法与GB28181用法一致，保持兼容。
+  - 4、支持h264/h265/g711/aac/mp3/g721/g722/g723/g729/g726/adpcm等编码。
+
+- IPTV版本
+  - 1、支持rtsp-ts/hls/http-ts/rtp组播/udp组播拉流转协议，支持ts透传模式，无需解复用转rtsp-ts/hls/http-ts/srt协议。
+  - 2、支持接收rtsp-ts/srt推流，支持ts透传模式，无需解复用转rtsp-ts/hls/http-ts/srt协议。
+  - 3、上述功能同时支持解复用ts为es流再转rtsp/rtmp/flv/http-ts/hls/hls-fmp4/mp4/fmp4/webrtc等协议。
+ 
+- VP9/AV1版本
+  - 全面新增支持av1/vp9编码，rtmp/rtsp/ts/ps/hls/mp4/fmp4等协议全面支持av1/vp9。
 
 ## 编译以及测试
 **编译前务必仔细参考wiki:[快速开始](https://github.com/ZLMediaKit/ZLMediaKit/wiki/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B)操作!!!**
@@ -382,6 +408,9 @@ bash build_docker_images.sh
 [ss002012](https://github.com/ss002012)
 [a839419160](https://github.com/a839419160)
 [oldma3095](https://github.com/oldma3095)
+[Dary](https://github.com/watersounds)
+[N.z](https://github.com/neesonqk)
+[yanggs](https://github.com/callinglove)
 
 同时感谢JetBrains对开源项目的支持，本项目使用CLion开发与调试：
 

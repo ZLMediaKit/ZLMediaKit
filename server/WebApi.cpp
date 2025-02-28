@@ -293,22 +293,24 @@ static inline void addHttpListener(){
             };
             ((HttpSession::HttpResponseInvoker &) invoker) = newInvoker;
         }
-
-        try {
-            it->second(parser, invoker, sender);
-        } catch (ApiRetException &ex) {
-            responseApi(ex.code(), ex.what(), invoker);
-            auto helper = static_cast<SocketHelper &>(sender).shared_from_this();
-            helper->getPoller()->async([helper, ex]() { helper->shutdown(SockException(Err_shutdown, ex.what())); }, false);
-        }
+        auto helper = static_cast<SocketHelper &>(sender).shared_from_this();
+        // 在本poller线程下一次事件循环时执行http api，防止占用NoticeCenter的锁
+        helper->getPoller()->async([it, parser, invoker, helper]() {
+            try {
+                it->second(parser, invoker, *helper);
+            } catch (ApiRetException &ex) {
+                responseApi(ex.code(), ex.what(), invoker);
+                helper->getPoller()->async([helper, ex]() { helper->shutdown(SockException(Err_shutdown, ex.what())); }, false);
+            }
 #ifdef ENABLE_MYSQL
-        catch(SqlException &ex){
-            responseApi(API::SqlFailed, StrPrinter << "操作数据库失败:" << ex.what() << ":" << ex.getSql(), invoker);
-        }
-#endif// ENABLE_MYSQL
-        catch (std::exception &ex) {
-            responseApi(API::Exception, ex.what(), invoker);
-        }
+            catch (SqlException &ex) {
+                responseApi(API::SqlFailed, StrPrinter << "操作数据库失败:" << ex.what() << ":" << ex.getSql(), invoker);
+            }
+#endif // ENABLE_MYSQL
+            catch (std::exception &ex) {
+                responseApi(API::Exception, ex.what(), invoker);
+            }
+        },false);
     });
 }
 

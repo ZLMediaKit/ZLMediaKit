@@ -213,6 +213,7 @@ bool HttpSession::checkWebSocket() {
     if (Sec_WebSocket_Key.empty()) {
         return false;
     }
+    _is_websocket = true;
     auto Sec_WebSocket_Accept = encodeBase64(SHA1::encode_bin(Sec_WebSocket_Key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"));
 
     KeyValue headerOut;
@@ -303,6 +304,12 @@ bool HttpSession::checkLiveStream(const string &schema, const string &url_suffix
         // url不合法  [AUTO-TRANSLATED:9aad134e]
         // URL is invalid
         return false;
+    }
+
+    if (_is_websocket) {
+        _media_info.protocol = overSsl() ? "wss" : "ws";
+    } else {
+        _media_info.protocol = overSsl() ? "https" : "http";
     }
 
     bool close_flag = !strcasecmp(_parser["Connection"].data(), "close");

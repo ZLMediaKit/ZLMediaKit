@@ -37,12 +37,14 @@ static bool checkMediaSourceAndUrlMatch(const MediaSource::Ptr &src, const std::
         }
     }
 
+#ifdef ENABLE_SRT
     if (strcasecmp("srt", prefix.data()) == 0) {
         auto ts_src = std::dynamic_pointer_cast<TSMediaSource>(src);
         if (!ts_src) {
             return false;
         }
     }
+#endif // ENABLE_SRT
     return true;
 }
 

@@ -229,6 +229,11 @@ void dumpMediaTuple(const MediaTuple &tuple, Json::Value& item);
 static ArgsType make_json(const MediaInfo &args) {
     ArgsType body;
     body["schema"] = args.schema;
+    if(!args.protocol.empty()){
+        body["protocol"] = args.protocol;
+    }else{
+        body["protocol"] = args.schema;
+    }
     dumpMediaTuple(args, body);
     body["params"] = args.params;
     return body;

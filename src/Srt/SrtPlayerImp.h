@@ -27,7 +27,7 @@ public:
 
 private:
     //// SrtPlayer override////
-	void onSRTData(SRT::DataPacket::Ptr pkt) override;
+    void onSRTData(SRT::DataPacket::Ptr pkt) override;
 
     //// PlayerBase override////
     void onPlayResult(const toolkit::SockException &ex) override;
