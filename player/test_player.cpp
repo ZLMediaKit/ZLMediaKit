@@ -103,7 +103,7 @@ int main(int argc, char *argv[]) {
                         chs = (&frame->get()->ch_layout)->nb_channels;
 #else
                         swr = std::make_shared<FFmpegSwr>(AV_SAMPLE_FMT_S16, frame->get()->channels, frame->get()->channel_layout, frame->get()->sample_rate);
-                        chs = pcm->get()->channels;
+                        chs = frame->get()->channels;
 #endif
                     }
                     auto pcm = swr->inputFrame(frame);
