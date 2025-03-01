@@ -11,10 +11,116 @@
 #ifndef ZLMEDIAKIT_WEBRTCPLAYER_H
 #define ZLMEDIAKIT_WEBRTCPLAYER_H
 
-#include "WebRtcTransport.h"
 #include "Rtsp/RtspMediaSource.h"
+#include "WebRtcTransport.h"
 
 namespace mediakit {
+/**
+ * @brief H.264 B 帧过滤器
+ * 用于从 H.264 RTP 流中移除 B 帧
+ */
+class H264BFrameFilter {
+public:
+    /**
+     * ISO_IEC_14496-10-AVC-2012
+     * Table 7-6 – Name association to slice_type
+     */
+    enum H264SliceType {
+        H264SliceTypeP = 0,
+        H264SliceTypeB = 1,
+        H264SliceTypeI = 2,
+        H264SliceTypeSP = 3,
+        H264SliceTypeSI = 4,
+        H264SliceTypeP1 = 5,
+        H264SliceTypeB1 = 6,
+        H264SliceTypeI1 = 7,
+        H264SliceTypeSP1 = 8,
+        H264SliceTypeSI1 = 9,
+    };
+
+    enum H264NALUType {
+        NAL_NIDR = 1,
+        NAL_PARTITION_A = 2,
+        NAL_PARTITION_B = 3,
+        NAL_PARTITION_C = 4,
+        NAL_IDR = 5,
+    };
+
+    H264BFrameFilter();
+
+    ~H264BFrameFilter() = default;
+
+    /**
+     * @brief 处理单个 RTP 包，移除 B 帧
+     * @param packet 输入的 RTP 包
+     * @return 如果不是 B 帧则返回原包，否则返回 nullptr
+     */
+    RtpPacket::Ptr processPacket(const RtpPacket::Ptr &packet);
+
+private:
+    /**
+     * @brief 判断 RTP 包是否包含 H.264 的 B 帧
+     * @param packet RTP 包
+     * @return 如果是 B 帧返回 true，否则返回 false
+     */
+    bool isH264BFrame(const RtpPacket::Ptr &packet) const;
+
+    /**
+     * @brief 根据 NAL 类型和数据判断是否是 B 帧
+     * @param nal_type NAL 单元类型
+     * @param data NAL 单元数据（不含 NAL 头）
+     * @param size 数据大小
+     * @return 如果是 B 帧返回 true，否则返回 false
+     */
+    bool isBFrameByNalType(uint8_t nal_type, const uint8_t *data, size_t size) const;
+
+    /**
+     * @brief 解析指数哥伦布编码
+     * @param data 数据缓冲区
+     * @param size 缓冲区大小
+     * @param bits_offset 位偏移量
+     * @return 解析出的数值
+     */
+    int decodeExpGolomb(const uint8_t *data, size_t size, size_t &bitPos) const;
+
+    /**
+     * @brief 从比特流中读取位
+     * @param data 数据缓冲区
+     * @param size 缓冲区大小
+     * @return 读取的位值（0 或 1）
+     */
+    int getBit(const uint8_t *data, size_t size) const;
+
+    /**
+     * @brief 提取切片类型值
+     * @param data 数据缓冲区
+     * @param size 缓冲区大小
+     * @return 切片类型值
+     */
+    uint8_t extractSliceType(const uint8_t *data, size_t size) const;
+
+    /**
+     * @brief 处理FU-A分片
+     * @param payload 数据缓冲区
+     * @param payload_size 缓冲区大小
+     * @return 如果是 B 帧返回 true，否则返回 false
+     */
+    bool handleFua(const uint8_t *payload, size_t payload_size) const;
+
+    /**
+   * @brief 处理 STAP-A 组合包
+   * @param payload 数据缓冲区
+   * @param payload_size 缓冲区大小
+   * @return 如果是 B 帧返回 true，否则返回 false
+   */
+    bool handleStapA(const uint8_t *payload, size_t payload_size) const;
+
+
+private:
+    uint16_t _last_seq; // 维护输出流的序列号
+    uint32_t _last_stamp; // 维护输出流的时间戳
+    bool _first_packet; // 是否是第一个包的标记
+};
 
 class WebRtcPlayer : public WebRtcTransportImp {
 public:
@@ -48,6 +154,10 @@ private:
     // 播放rtsp源的reader对象  [AUTO-TRANSLATED:7b305055]
     // Reader object for playing rtsp source
     RtspMediaSource::RingType::RingReader::Ptr _reader;
+
+    bool _is_h264 { false };
+    bool _bfliter_flag { false };
+    std::shared_ptr<H264BFrameFilter> _bfilter;
 };
 
 }// namespace mediakit
