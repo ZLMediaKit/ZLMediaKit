@@ -231,7 +231,7 @@ protected:
     bool onTrackFrame_l(const Frame::Ptr &frame);
 
 private:
-    void createGopCacheIfNeed();
+    void createGopCacheIfNeed(size_t gop_count);
     std::shared_ptr<MediaSinkInterface> makeRecorder(MediaSource &sender, Recorder::type type);
 
 private:
