@@ -47,7 +47,7 @@
 
 ## 功能清单
 ### 功能一览
-<img width="800" alt="功能一览" src="https://github.com/ZLMediaKit/ZLMediaKit/assets/11495632/481ea769-5b27-495e-bf7d-31191e6af9d2">
+<img width="749" alt="image" src="https://github.com/user-attachments/assets/8cf5911b-4603-4aa0-8e24-0acb0c616a82" />
 
 - RTSP[S]
   - RTSP[S] 服务器，支持RTMP/MP4/HLS转RTSP[S],支持亚马逊echo show这样的设备
@@ -146,7 +146,7 @@
   - 支持按需解复用、转协议，当有人观看时才开启转协议，降低cpu占用率
   - 支持溯源模式的集群部署，溯源方式支持rtsp/rtmp/hls/http-ts, 边沿站支持hls, 源站支持多个(采用round robin方式溯源)
   - rtsp/rtmp/webrtc推流异常断开后，可以在超时时间内重连推流，播放器无感知
-
+ 
 ## 闭源专业版
 在最新开源代码的基础，新增以下闭源专业版，详询邮箱：<1213642868@qq.com>
 - 转码版本

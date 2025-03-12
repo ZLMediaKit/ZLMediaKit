@@ -400,7 +400,7 @@ bool MultiMediaSourceMuxer::isRecording(MediaSource &sender, Recorder::type type
 
 void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const MediaSourceEvent::SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb) {
 #if defined(ENABLE_RTPPROXY)
-    createGopCacheIfNeed();
+    createGopCacheIfNeed(1);
 
     auto ring = _ring;
     auto ssrc = args.ssrc;
@@ -576,9 +576,9 @@ void MultiMediaSourceMuxer::onAllTrackReady() {
     }
 
 #if defined(ENABLE_RTPPROXY)
-    GET_CONFIG(bool, gop_cache, RtpProxy::kGopCache);
-    if (gop_cache) {
-        createGopCacheIfNeed();
+    GET_CONFIG(size_t, gop_cache, RtpProxy::kGopCache);
+    if (gop_cache > 0) {
+        createGopCacheIfNeed(gop_cache);
     }
 #endif
 
@@ -593,7 +593,7 @@ void MultiMediaSourceMuxer::onAllTrackReady() {
     InfoL << "stream: " << shortUrl() << " , codec info: " << getTrackInfoStr(this);
 }
 
-void MultiMediaSourceMuxer::createGopCacheIfNeed() {
+void MultiMediaSourceMuxer::createGopCacheIfNeed(size_t gop_count) {
     if (_ring) {
         return;
     }
@@ -607,7 +607,7 @@ void MultiMediaSourceMuxer::createGopCacheIfNeed() {
                 strong_self->onReaderChanged(*src, strong_self->totalReaderCount());
             });
         }
-    });
+    }, gop_count);
 }
 
 void MultiMediaSourceMuxer::resetTracks() {

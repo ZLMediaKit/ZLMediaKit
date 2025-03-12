@@ -553,8 +553,8 @@ extern const std::string kPSPT;
 // rtp server opus 的pt  [AUTO-TRANSLATED:9f91f85a]
 // Rtp server opus pt
 extern const std::string kOpusPT;
-// RtpSender相关功能是否提前开启gop缓存优化级联秒开体验，默认开启  [AUTO-TRANSLATED:40c37c77]
-// Whether to enable gop cache optimization cascade second-open experience for RtpSender related functions, enabled by default
+// startSendRtp、startRecord相关功能是否提前开启gop缓存优化级联秒开体验，默认开启, 并缓存1个GOP  [AUTO-TRANSLATED:40c37c77]
+// Whether to enable gop cache optimization cascade second-open experience for startSendRtp/startRecord related functions, enabled by default, and cached 1 GOP
 extern const std::string kGopCache;
 // 国标发送g711 rtp 打包时，每个包的语音时长是多少，默认是100 ms，范围为20~180ms (gb28181-2016，c.2.4规定)，  [AUTO-TRANSLATED:3b3916a3]
 // When sending g711 rtp packets in national standard, what is the duration of each packet, the default is 100 ms, the range is 20~180ms (gb28181-2016, c.2.4),
