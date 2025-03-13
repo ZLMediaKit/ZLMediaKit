@@ -265,7 +265,7 @@ void RtspPlayer::sendSetup(unsigned int track_idx) {
         case Rtsp::RTP_TCP: {
             sendRtspRequest(
                 "SETUP", control_url,
-                { "Transport", StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track->_type * 2 << "-" << track->_type * 2 + 1 << ";mode=play" });
+                { "Transport", StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track_idx * 2 << "-" << track_idx * 2 + 1 << ";mode=play" });
         } break;
         case Rtsp::RTP_MULTICAST: {
             sendRtspRequest("SETUP", control_url, { "Transport", "RTP/AVP;multicast;mode=play" });
@@ -552,7 +552,9 @@ void RtspPlayer::onRtpPacket(const char *data, size_t len) {
     int trackIdx = -1;
     uint8_t interleaved = data[1];
     if (interleaved % 2 == 0) {
-        trackIdx = getTrackIndexByInterleaved(interleaved);
+        CHECK(len > RtpPacket::kRtpHeaderSize + RtpPacket::kRtpTcpHeaderSize);
+        RtpHeader *header = (RtpHeader *)(data + RtpPacket::kRtpTcpHeaderSize);
+        trackIdx = getTrackIndexByPT(header->pt);
         if (trackIdx == -1) {
             return;
         }
@@ -802,6 +804,19 @@ void RtspPlayer::onPlayResult_l(const SockException &ex, bool handshake_done) {
     } else {
         sendTeardown();
     }
+}
+
+int RtspPlayer::getTrackIndexByPT(int pt) const {
+    for (size_t i = 0; i < _sdp_track.size(); ++i) {
+        if (_sdp_track[i]->_pt == pt) {
+            return i;
+        }
+    }
+    if (_sdp_track.size() == 1) {
+        return 0;
+    }
+    WarnL << "no such track with pt:" << pt;
+    return -1;
 }
 
 int RtspPlayer::getTrackIndexByInterleaved(int interleaved) const {

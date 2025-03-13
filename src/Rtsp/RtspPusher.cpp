@@ -277,8 +277,8 @@ void RtspPusher::sendSetup(unsigned int track_idx) {
     switch (_rtp_type) {
         case Rtsp::RTP_TCP: {
             sendRtspRequest("SETUP", control_url, {"Transport",
-                                                   StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track->_type * 2
-                                                           << "-" << track->_type * 2 + 1 << ";mode=record"});
+                                                   StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track_idx * 2
+                                                           << "-" << track_idx * 2 + 1 << ";mode=record"});
         }
             break;
         case Rtsp::RTP_UDP: {
