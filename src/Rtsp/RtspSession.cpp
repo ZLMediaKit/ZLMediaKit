@@ -167,7 +167,9 @@ void RtspSession::onWholeRtspPacket(Parser &parser) {
 void RtspSession::onRtpPacket(const char *data, size_t len) {
     uint8_t interleaved = data[1];
     if (interleaved % 2 == 0) {
-        auto track_idx = getTrackIndexByInterleaved(interleaved);
+        CHECK(len > RtpPacket::kRtpHeaderSize + RtpPacket::kRtpTcpHeaderSize);
+        RtpHeader *header = (RtpHeader *)(data + RtpPacket::kRtpTcpHeaderSize);
+        auto track_idx = getTrackIndexByPT(header->pt);
         handleOneRtp(track_idx, _sdp_track[track_idx]->_type, _sdp_track[track_idx]->_samplerate, (uint8_t *) data + RtpPacket::kRtpTcpHeaderSize, len - RtpPacket::kRtpTcpHeaderSize);
     } else {
         auto track_idx = getTrackIndexByInterleaved(interleaved - 1);
@@ -1122,6 +1124,18 @@ bool RtspSession::sendRtspResponse(const string &res_code, const std::initialize
         }
     }
     return sendRtspResponse(res_code,header_map,sdp,protocol);
+}
+
+int RtspSession::getTrackIndexByPT(int pt) const {
+    for (size_t i = 0; i < _sdp_track.size(); ++i) {
+        if (pt == _sdp_track[i]->_pt) {
+            return i;
+        }
+    }
+    if (_sdp_track.size() == 1) {
+        return 0;
+    }
+    throw SockException(Err_shutdown, StrPrinter << "no such track with type:" << pt);
 }
 
 int RtspSession::getTrackIndexByTrackType(TrackType type) {

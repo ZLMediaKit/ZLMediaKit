@@ -117,6 +117,7 @@ protected:
 private:
     void onPlayResult_l(const toolkit::SockException &ex , bool handshake_done);
 
+    int getTrackIndexByPT(int pt) const;
     int getTrackIndexByInterleaved(int interleaved) const;
     int getTrackIndexByTrackType(TrackType track_type) const;
 
