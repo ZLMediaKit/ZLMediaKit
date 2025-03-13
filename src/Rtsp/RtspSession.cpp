@@ -1135,7 +1135,7 @@ int RtspSession::getTrackIndexByPT(int pt) const {
     if (_sdp_track.size() == 1) {
         return 0;
     }
-    throw SockException(Err_shutdown, StrPrinter << "no such track with type:" << pt);
+    throw SockException(Err_shutdown, StrPrinter << "no such track with pt:" << pt);
 }
 
 int RtspSession::getTrackIndexByTrackType(TrackType type) {
