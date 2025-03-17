@@ -62,11 +62,17 @@ protected:
 
     void copyData(const mediakit::FFmpegFrame::Ptr& buf, const Param::Ptr& p);
 
+    void resizeFrame(const mediakit::FFmpegFrame::Ptr &frame);
+
 private:
     std::string _id;
     int _width;
     int _height;
     AVPixelFormat _pixfmt;
+
+    bool _keepAspectRatio;
+    int _offsetX;
+    int _offsetY;
 
     mediakit::FFmpegFrame::Ptr _tmp;
 
