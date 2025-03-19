@@ -394,7 +394,7 @@ bool HttpSession::checkLiveStreamFMP4(const function<void()> &cb) {
         _fmp4_reader = fmp4_src->getRing()->attach(getPoller());
         _fmp4_reader->setGetInfoCB([weak_self]() {
             Any ret;
-            ret.set(static_pointer_cast<SockInfo>(weak_self.lock()));
+            ret.set(static_pointer_cast<Session>(weak_self.lock()));
             return ret;
         });
         _fmp4_reader->setDetachCB([weak_self]() {
@@ -444,7 +444,7 @@ bool HttpSession::checkLiveStreamTS(const function<void()> &cb) {
         _ts_reader = ts_src->getRing()->attach(getPoller());
         _ts_reader->setGetInfoCB([weak_self]() {
             Any ret;
-            ret.set(static_pointer_cast<SockInfo>(weak_self.lock()));
+            ret.set(static_pointer_cast<Session>(weak_self.lock()));
             return ret;
         });
         _ts_reader->setDetachCB([weak_self]() {
