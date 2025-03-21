@@ -315,37 +315,6 @@ static bool emitHlsPlayed(const Parser &parser, const MediaInfo &media_info, con
     return flag;
 }
 
-class SockInfoImp : public SockInfo{
-public:
-    using Ptr = std::shared_ptr<SockInfoImp>;
-
-    string get_local_ip() override {
-        return _local_ip;
-    }
-
-    uint16_t get_local_port() override {
-        return _local_port;
-    }
-
-    string get_peer_ip() override {
-        return _peer_ip;
-    }
-
-    uint16_t get_peer_port() override {
-        return _peer_port;
-    }
-
-    string getIdentifier() const override {
-        return _identifier;
-    }
-
-    string _local_ip;
-    string _peer_ip;
-    string _identifier;
-    uint16_t _local_port;
-    uint16_t _peer_port;
-};
-
 /**
  * 判断http客户端是否有权限访问文件的逻辑步骤
  * 1、根据http请求头查找cookie，找到进入步骤3
@@ -415,17 +384,18 @@ static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo
 
     bool is_hls = media_info.schema == HLS_SCHEMA || media_info.schema == HLS_FMP4_SCHEMA;
 
-    SockInfoImp::Ptr info = std::make_shared<SockInfoImp>();
-    info->_identifier = sender.getIdentifier();
-    info->_peer_ip = sender.get_peer_ip();
-    info->_peer_port = sender.get_peer_port();
-    info->_local_ip = sender.get_local_ip();
-    info->_local_port = sender.get_local_port();
+    weak_ptr<Session> weak_session = static_pointer_cast<Session>(sender.shared_from_this());
 
     // 该用户从来未获取过cookie，这个时候我们广播是否允许该用户访问该http目录  [AUTO-TRANSLATED:8f4b3dd2]
     // This user has never obtained a cookie, at this time we broadcast whether to allow this user to access this http directory
-    HttpSession::HttpAccessPathInvoker accessPathInvoker = [callback, uid, path, is_dir, is_hls, media_info, info]
+    HttpSession::HttpAccessPathInvoker accessPathInvoker = [callback, uid, path, is_dir, is_hls, media_info, weak_session]
             (const string &err_msg, const string &cookie_path_in, int life_second) {
+        auto strong_session = weak_session.lock();
+        if (!strong_session) {
+            // http客户端已经断开，不需要回复  [AUTO-TRANSLATED:9a252e21]
+            // The http client has disconnected and does not need to reply
+            return;
+        }
         HttpServerCookie::Ptr cookie;
         if (life_second) {
             // 本次鉴权设置了有效期，我们把鉴权结果缓存在cookie中  [AUTO-TRANSLATED:5a12f48e]
@@ -447,7 +417,7 @@ static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo
             if (is_hls) {
                 // hls相关信息  [AUTO-TRANSLATED:37893a71]
                 // hls related information
-                attach->_hls_data = std::make_shared<HlsCookieData>(media_info, info);
+                attach->_hls_data = std::make_shared<HlsCookieData>(media_info, strong_session);
             }
            toolkit::Any any;
            any.set(std::move(attach));

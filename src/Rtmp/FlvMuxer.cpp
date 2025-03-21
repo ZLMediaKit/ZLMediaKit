@@ -49,7 +49,7 @@ void FlvMuxer::start(const EventPoller::Ptr &poller, const RtmpMediaSource::Ptr 
     _ring_reader = media->getRing()->attach(poller);
     _ring_reader->setGetInfoCB([weak_self]() {
         Any ret;
-        ret.set(dynamic_pointer_cast<SockInfo>(weak_self.lock()));
+        ret.set(dynamic_pointer_cast<Session>(weak_self.lock()));
         return ret;
     });
     _ring_reader->setDetachCB([weak_self]() {

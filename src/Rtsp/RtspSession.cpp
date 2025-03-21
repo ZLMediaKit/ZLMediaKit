@@ -863,7 +863,7 @@ void RtspSession::handleReq_Play(const Parser &parser) {
         _play_reader = play_src->getRing()->attach(getPoller(), use_gop);
         _play_reader->setGetInfoCB([weak_self]() {
             Any ret;
-            ret.set(static_pointer_cast<SockInfo>(weak_self.lock()));
+            ret.set(static_pointer_cast<Session>(weak_self.lock()));
             return ret;
         });
         _play_reader->setDetachCB([weak_self]() {

@@ -205,7 +205,7 @@ void WebRtcPlayer::onStartWebRTC() {
         weak_ptr<Session> weak_session = static_pointer_cast<Session>(getSession());
         _reader->setGetInfoCB([weak_session]() {
             Any ret;
-            ret.set(static_pointer_cast<SockInfo>(weak_session.lock()));
+            ret.set(static_pointer_cast<Session>(weak_session.lock()));
             return ret;
         });
         _reader->setReadCB([weak_self](const RtspMediaSource::RingDataType &pkt) {
