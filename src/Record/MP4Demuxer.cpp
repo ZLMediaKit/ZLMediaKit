@@ -202,7 +202,7 @@ void MultiMP4Demuxer::openMP4(const string &files_string) {
                 files.emplace_back(path);
             }
             return true;
-        });
+        }, true);
         std::sort(files.begin(), files.end());
     } else {
         files = split(files_string, ";");

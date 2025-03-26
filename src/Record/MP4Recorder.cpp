@@ -44,7 +44,7 @@ MP4Recorder::~MP4Recorder() {
 void MP4Recorder::createFile() {
     closeFile();
     auto date = getTimeStr("%Y-%m-%d");
-    auto file_name = getTimeStr("%H-%M-%S") + "-" + std::to_string(_file_index++) + ".mp4";
+    auto file_name = date + "-" + getTimeStr("%H-%M-%S") + "-" + std::to_string(_file_index++) + ".mp4";
     auto full_path = _folder_path + date + "/" + file_name;
     auto full_path_tmp = _folder_path + date + "/." + file_name;
 
