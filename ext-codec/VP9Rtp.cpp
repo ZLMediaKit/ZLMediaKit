@@ -134,7 +134,7 @@ int RTPPayloadVP9::parse(unsigned char *data, int dataLength) {
     this->isSwitchingUp = (*dataPtr & 0x10);  // U bit
     this->spatialID = (*dataPtr & 0x0E) >> 1;  // S bits
     this->isInterLayeredDepUsed = (*dataPtr & 0x01);  // D bit
-    if (this->flexibleMode) {
+    if (this->flexibleMode) { // marked in webrtc code
       do {
         dataPtr++;
         this->referenceIdx = (*dataPtr & 0xFE) >> 1;
@@ -147,24 +147,28 @@ int RTPPayloadVP9::parse(unsigned char *data, int dataLength) {
     dataPtr++;
   }
 
+  if (this->flexibleMode && this->interPicturePrediction) {
+      /* Skip reference indices */
+      uint8_t nbit;
+      do {
+          uint8_t p_diff = (*dataPtr & 0xFE) >> 1;
+          nbit = (*dataPtr & 0x01);
+          dataPtr++;
+      } while (nbit);
+  }
   if (this->hasScalabilityStructure) {
     this->spatialLayers = (*dataPtr & 0xE0) >> 5;  // N_S bits
     this->hasResolution = (*dataPtr & 0x10);  // Y bit
-    this->hasGof = (*dataPtr & 0x08);  // Y bit
+    this->hasGof = (*dataPtr & 0x08);  // G bit
     dataPtr++;
     if (this->hasResolution) {
       for (int i = 0; i <= this->spatialLayers; i++) {
-        int width = *dataPtr & 0xFF;
-        dataPtr++;
-        width = (width << 8) + (*dataPtr & 0xFF);
-        dataPtr++;
-        int height = *dataPtr & 0xFF;
-        dataPtr++;
-        height = (height << 8) + (*dataPtr & 0xFF);
-        dataPtr++;
+        int width = (dataPtr[0] << 8) + dataPtr[1];
+        dataPtr += 2;
+        int height = (dataPtr[0] << 8) + dataPtr[1];
+        dataPtr += 2;
         // InfoL << "got vp9 " << width << "x" << height;
-        VP9ResolutionLayer res = {width, height};
-        this->resolutions.push_back(res);
+        this->resolutions.push_back({ width, height });
       }
     }
     if (this->hasGof) {
@@ -279,7 +283,7 @@ bool VP9RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     bool key = frame->keyFrame();
     if (!key)
         header[0] |= kPBit;
-#if 0
+#if 1
     header[0] |= kIBit;
     if (++_pic_id > 0x7FFF) {
         _pic_id = 0;
