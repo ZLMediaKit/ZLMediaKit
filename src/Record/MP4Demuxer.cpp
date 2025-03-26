@@ -198,7 +198,7 @@ void MultiMP4Demuxer::openMP4(const string &files_string) {
     std::vector<std::string> files;
     if (File::is_dir(files_string)) {
         File::scanDir(files_string, [&](const string &path, bool is_dir) {
-            if (!is_dir && end_with(path, ".mp4") && !start_with(path, ".")) {
+            if (!is_dir && end_with(path, ".mp4")) {
                 files.emplace_back(path);
             }
             return true;
