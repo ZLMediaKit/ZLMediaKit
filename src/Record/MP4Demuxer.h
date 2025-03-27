@@ -96,7 +96,7 @@ private:
     int getAllTracks();
     void onVideoTrack(uint32_t track_id, uint8_t object, int width, int height, const void *extra, size_t bytes);
     void onAudioTrack(uint32_t track_id, uint8_t object, int channel_count, int bit_per_sample, int sample_rate, const void *extra, size_t bytes);
-    Frame::Ptr makeFrame(uint32_t track_id, const toolkit::Buffer::Ptr &buf, int64_t pts, int64_t dts);
+    Frame::Ptr makeFrame(uint32_t track_id, toolkit::Buffer::Ptr buf, int64_t pts, int64_t dts);
 
 private:
     MP4FileDisk::Ptr _mp4_file;

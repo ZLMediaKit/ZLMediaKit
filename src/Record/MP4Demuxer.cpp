@@ -138,7 +138,7 @@ Frame::Ptr MP4Demuxer::readFrame(bool &keyFrame, bool &eof) {
     }
 }
 
-Frame::Ptr MP4Demuxer::makeFrame(uint32_t track_id, const Buffer::Ptr &buf, int64_t pts, int64_t dts) {
+Frame::Ptr MP4Demuxer::makeFrame(uint32_t track_id, Buffer::Ptr buf, int64_t pts, int64_t dts) {
     auto it = _tracks.find(track_id);
     if (it == _tracks.end()) {
         return nullptr;
