@@ -72,8 +72,6 @@ private:
     size_t _max_second;
     uint64_t _last_dts = 0;
     uint64_t _file_index = 0;
-    std::string _folder_path;
-    std::string _full_path;
     std::string _full_path_tmp;
     RecordInfo _info;
     MP4Muxer::Ptr _muxer;
