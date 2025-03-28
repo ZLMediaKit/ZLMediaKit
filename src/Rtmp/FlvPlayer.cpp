@@ -46,6 +46,11 @@ void FlvPlayer::teardown() {
     HttpClientImp::shutdown();
 }
 
+void FlvPlayer::onRecv(const Buffer::Ptr &buf) {
+    onFlushRecvBytes(getIdentifier(), getSock()->getRecvTotalBytes());
+    TcpClientWithSSL<HttpClient>::onRecv(buf);
+}
+
 void FlvPlayer::onResponseCompleted(const SockException &ex) {
     if (!_play_result) {
         _play_result = true;

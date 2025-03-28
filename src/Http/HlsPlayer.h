@@ -89,6 +89,10 @@ protected:
     virtual void onPacket(const char *data, size_t len) = 0;
 
 private:
+    //// TcpClient override////
+    void onRecv(const toolkit::Buffer::Ptr &buf) override;
+
+private:
     bool onParsed(bool is_m3u8_inner, int64_t sequence, const map<int, ts_segment> &ts_map) override;
     void onResponseHeader(const std::string &status, const HttpHeader &headers) override;
     void onResponseBody(const char *buf, size_t size) override;

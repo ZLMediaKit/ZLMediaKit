@@ -112,6 +112,10 @@ public:
     // Get RtpProcess object
     virtual std::shared_ptr<RtpProcess> getRtpProcess(MediaSource &sender) const { return nullptr; }
 
+    // 获取接收流量总字节数
+    // Get recv flow total bytes
+    virtual size_t getRecvTotalBytes(MediaSource &sender) const { return 0; }
+
     class SendRtpArgs {
     public:
         enum DataType {
@@ -368,6 +372,7 @@ public:
     toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;
     std::shared_ptr<MultiMediaSourceMuxer> getMuxer(MediaSource &sender) const override;
     std::shared_ptr<RtpProcess> getRtpProcess(MediaSource &sender) const override;
+    size_t getRecvTotalBytes(MediaSource &sender) const override;
 
 private:
     std::weak_ptr<MediaSourceEvent> _listener;
@@ -449,6 +454,12 @@ public:
     // 获取流上线时间，单位秒  [AUTO-TRANSLATED:a087d56a]
     // Get the stream online time, unit seconds
     uint64_t getAliveSecond() const;
+    // 更新接收流量总字节数
+    // Update recv flow total bytes
+    void updateRecvTotalBytes(const std::string &tag, size_t bytes);
+    // 获取接收流量总字节数
+    // Get recv flow total bytes
+    size_t getRecvTotalBytes();
 
     // //////////////MediaSourceEvent相关接口实现////////////////  [AUTO-TRANSLATED:aa63d949]
     // //////////////MediaSourceEvent related interface implementation////////////////
@@ -573,6 +584,8 @@ private:
     toolkit::Ticker _ticker;
     std::string _schema;
     std::weak_ptr<MediaSourceEvent> _listener;
+    // 接收流量统计
+    std::unordered_map<std::string, size_t> _recv_bytes_stat;
     // 对象个数统计  [AUTO-TRANSLATED:f4a012d0]
     // Object count statistics
     toolkit::ObjectStatistic<MediaSource> _statistic;

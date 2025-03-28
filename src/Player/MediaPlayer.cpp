@@ -42,6 +42,7 @@ void MediaPlayer::play(const string &url) {
     _delegate->setOnShutdown(_on_shutdown);
     _delegate->setOnPlayResult(_on_play_result);
     _delegate->setOnResume(_on_resume);
+    _delegate->setOnFlushRecvBytes(_on_flush_bytes);
     _delegate->setMediaSource(_media_src);
     for (auto &pr : *this) {
         (*_delegate)[pr.first] = pr.second;

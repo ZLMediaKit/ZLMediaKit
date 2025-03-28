@@ -65,6 +65,9 @@ void RtmpSession::onManager() {
 }
 
 void RtmpSession::onRecv(const Buffer::Ptr &buf) {
+    if (_push_src) {
+        _push_src->updateRecvTotalBytes(getIdentifier(), getSock()->getRecvTotalBytes());
+    }
     _ticker.resetTime();
     _total_bytes += buf->size();
     onParseRtmp(buf->data(), buf->size());
@@ -615,6 +618,10 @@ std::shared_ptr<SockInfo> RtmpSession::getOriginSock(MediaSource &sender) const 
 
 toolkit::EventPoller::Ptr RtmpSession::getOwnerPoller(MediaSource &sender) {
     return getPoller();
+}
+
+size_t RtmpSession::getRecvTotalBytes(MediaSource &sender) const {
+    return _push_src ? _push_src->getRecvTotalBytes() : 0;
 }
 
 void RtmpSession::setSocketFlags(){

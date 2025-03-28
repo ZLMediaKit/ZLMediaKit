@@ -84,6 +84,8 @@ private:
     // 由于支持断连续推，存在OwnerPoller变更的可能  [AUTO-TRANSLATED:1c863b40]
     // Due to support for discontinuous pushing, there may be changes in OwnerPoller
     toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;
+    // 获取接收流量总字节数
+    size_t getRecvTotalBytes(mediakit::MediaSource &sender) const override;
 
     void setSocketFlags();
     std::string getStreamId(const std::string &str);

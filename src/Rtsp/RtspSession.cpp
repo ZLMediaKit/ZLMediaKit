@@ -115,6 +115,9 @@ void RtspSession::onManager() {
 }
 
 void RtspSession::onRecv(const Buffer::Ptr &buf) {
+    if (_push_src) {
+        _push_src->updateRecvTotalBytes(getIdentifier(), getSock()->getRecvTotalBytes());
+    }
     _alive_ticker.resetTime();
     _bytes_usage += buf->size();
     if (_on_recv) {
@@ -1199,6 +1202,10 @@ std::shared_ptr<SockInfo> RtspSession::getOriginSock(MediaSource &sender) const 
 
 toolkit::EventPoller::Ptr RtspSession::getOwnerPoller(MediaSource &sender) {
     return getPoller();
+}
+
+size_t RtspSession::getRecvTotalBytes(MediaSource &sender) const {
+    return _push_src ? _push_src->getRecvTotalBytes() : 0;
 }
 
 void RtspSession::onBeforeRtpSorted(const RtpPacket::Ptr &rtp, int track_index){

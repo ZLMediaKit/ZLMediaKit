@@ -42,6 +42,7 @@ public:
 protected:
 
     //// SrtCaller override////
+    void inputSockData(uint8_t *buf, int len, struct sockaddr *addr) override;
     void onHandShakeFinished() override;
     void onSRTData(SRT::DataPacket::Ptr pkt) override;
     void onResult(const toolkit::SockException &ex) override;

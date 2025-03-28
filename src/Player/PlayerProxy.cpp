@@ -184,6 +184,9 @@ void PlayerProxy::play(const string &strUrlTmp) {
             strongSelf->_on_close(err);
         }
     });
+    setOnFlushRecvBytes([this](const std::string &tag, size_t bytes) {
+        _recv_bytes_stat[tag] = bytes;
+    });
     try {
         MediaPlayer::play(strUrlTmp);
     } catch (std::exception &ex) {
@@ -291,6 +294,13 @@ std::shared_ptr<SockInfo> PlayerProxy::getOriginSock(MediaSource &sender) const 
 
 float PlayerProxy::getLossRate(MediaSource &sender, TrackType type) {
     return getPacketLossRate(type);
+}
+
+size_t PlayerProxy::getRecvTotalBytes(MediaSource &sender) const {
+    size_t total_bytes = 0;
+    for (auto &p : _recv_bytes_stat)
+        total_bytes += p.second;
+    return total_bytes;
 }
 
 TranslationInfo PlayerProxy::getTranslationInfo() {

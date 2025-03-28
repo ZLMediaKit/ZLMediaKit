@@ -32,6 +32,11 @@ void TsPlayer::teardown() {
     shutdown(SockException(Err_shutdown, "teardown"));
 }
 
+void TsPlayer::onRecv(const Buffer::Ptr &buf) {
+    onFlushRecvBytes(getIdentifier(), getSock()->getRecvTotalBytes());
+    TcpClientWithSSL<HttpClient>::onRecv(buf);
+}
+
 void TsPlayer::onResponseCompleted(const SockException &ex) {
     if (!_play_result) {
         _play_result = true;

@@ -120,6 +120,7 @@ void RtspPlayer::onConnect(const SockException &err) {
 }
 
 void RtspPlayer::onRecv(const Buffer::Ptr &buf) {
+    onFlushRecvBytes(getIdentifier(), getSock()->getRecvTotalBytes());
     if (_benchmark_mode && !_play_check_timer) {
         // 在性能测试模式下，如果rtsp握手完毕后，不再解析rtp包  [AUTO-TRANSLATED:747b5399]
         // In performance test mode, if the RTSP handshake is complete, no RTP packets will be parsed

@@ -57,6 +57,8 @@ protected:
     // 获取丢包率  [AUTO-TRANSLATED:ec61b378]
     // Get packet loss rate
     float getLossRate(MediaSource &sender,TrackType type) override;
+    // 获取接收流量总字节数
+    size_t getRecvTotalBytes(MediaSource &sender) const override;
 
 private:
     WebRtcPusher(const EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src,

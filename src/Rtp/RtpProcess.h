@@ -118,6 +118,7 @@ protected:
     float getLossRate(MediaSource &sender, TrackType type) override;
     Ptr getRtpProcess(mediakit::MediaSource &sender) const override;
     bool close(mediakit::MediaSource &sender) override;
+    size_t getRecvTotalBytes(MediaSource &sender) const override;
 
 private:
     RtpProcess(const MediaTuple &tuple);

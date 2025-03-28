@@ -37,6 +37,10 @@ public:
      */
     void teardown() override;
 
+private:
+    //// TcpClient override////
+    void onRecv(const toolkit::Buffer::Ptr &buf) override;
+
 protected:
     void onResponseBody(const char *buf, size_t size) override;
     void onResponseCompleted(const toolkit::SockException &ex) override;
