@@ -123,6 +123,22 @@ uint64_t MediaSource::getAliveSecond() const {
     return _ticker.createdTime() / 1000;
 }
 
+void MediaSource::updateRecvTotalBytes(const std::string &tag, size_t bytes) {
+    _recv_bytes_stat[tag] = bytes;
+}
+
+size_t MediaSource::getRecvTotalBytes() {
+    if (!_recv_bytes_stat.empty()) {
+        size_t total_bytes = 0;
+        for (auto &p : _recv_bytes_stat)
+            total_bytes += p.second;
+        return total_bytes;
+    }
+
+    auto listener = _listener.lock();
+    return listener ? listener->getRecvTotalBytes(const_cast<MediaSource &>(*this)) : 0;
+}
+
 vector<Track::Ptr> MediaSource::getTracks(bool ready) const {
     auto listener = _listener.lock();
     if(!listener){
@@ -814,6 +830,14 @@ std::shared_ptr<RtpProcess> MediaSourceEventInterceptor::getRtpProcess(MediaSour
         return MediaSourceEvent::getRtpProcess(sender);
     }
     return listener->getRtpProcess(sender);
+}
+
+size_t MediaSourceEventInterceptor::getRecvTotalBytes(MediaSource &sender) const {
+    auto listener = _listener.lock();
+    if (!listener) {
+        return MediaSourceEvent::getRecvTotalBytes(sender);
+    }
+    return listener->getRecvTotalBytes(sender);
 }
 
 bool MediaSourceEventInterceptor::setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path, size_t max_second) {

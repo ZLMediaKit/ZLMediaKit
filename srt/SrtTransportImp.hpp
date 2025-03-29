@@ -59,6 +59,8 @@ protected:
     std::string getOriginUrl(mediakit::MediaSource &sender) const override;
     // 获取媒体源客户端相关信息
     std::shared_ptr<SockInfo> getOriginSock(mediakit::MediaSource &sender) const override;
+    // 获取接收流量总字节数
+    size_t getRecvTotalBytes(mediakit::MediaSource &sender) const override;
 
     ///////MediaSinkInterface override///////
     void resetTracks() override {};

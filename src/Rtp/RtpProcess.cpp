@@ -327,6 +327,10 @@ RtpProcess::Ptr RtpProcess::getRtpProcess(mediakit::MediaSource &sender) const {
     return const_cast<RtpProcess *>(this)->shared_from_this();
 }
 
+size_t RtpProcess::getRecvTotalBytes(MediaSource &sender) const {
+    return _total_bytes;
+}
+
 bool RtpProcess::close(mediakit::MediaSource &sender) {
     onDetach(SockException(Err_shutdown, "close media"));
     return true;

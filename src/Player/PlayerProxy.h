@@ -151,6 +151,7 @@ private:
     std::string getOriginUrl(MediaSource &sender) const override;
     std::shared_ptr<toolkit::SockInfo> getOriginSock(MediaSource &sender) const override;
     float getLossRate(MediaSource &sender, TrackType type) override;
+    size_t getRecvTotalBytes(MediaSource &sender) const override;
 
     void rePlay(const std::string &strUrl, int iFailedCnt);
     void onPlaySuccess();
@@ -180,6 +181,9 @@ private:
     std::atomic<uint64_t> _live_secs;
 
     std::atomic<uint64_t> _repull_count;
+
+    // 接收流量统计
+    std::unordered_map<std::string, size_t> _recv_bytes_stat;
 };
 
 } /* namespace mediakit */

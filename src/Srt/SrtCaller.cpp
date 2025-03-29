@@ -77,6 +77,17 @@ SrtCaller::~SrtCaller(void) {
     DebugL;
 }
 
+Socket::Ptr SrtCaller::getSock() const {
+    return _socket;
+}
+
+std::string SrtCaller::getIdentifier() const {
+    if (_id.empty()) {
+        _id = toolkit::demangle(typeid(*this).name()) + "-" + to_string(_socket_id);
+    }
+    return _id;
+}
+
 void SrtCaller::onConnect() {
     //DebugL;
 

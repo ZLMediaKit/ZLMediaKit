@@ -76,6 +76,8 @@ protected:
     // 由于支持断连续推，存在OwnerPoller变更的可能  [AUTO-TRANSLATED:1c863b40]
     // Due to support for continuous pushing, there is a possibility of OwnerPoller changes
     toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;
+    // 获取接收流量总字节数
+    size_t getRecvTotalBytes(mediakit::MediaSource &sender) const override;
 
     /////Session override////
     ssize_t send(toolkit::Buffer::Ptr pkt) override;

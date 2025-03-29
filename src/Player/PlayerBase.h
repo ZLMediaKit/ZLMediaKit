@@ -166,10 +166,20 @@ public:
      */
     virtual void setOnResume(const std::function<void()> &cb) = 0;
 
+    /**
+     * 设置刷新接收字节数回调
+     * Set flush recv bytes callback
+
+
+     * [AUTO-TRANSLATED:8fb31d43]
+     */
+    virtual void setOnFlushRecvBytes(const std::function<void(const std::string &, size_t)> &cb) = 0;
+
 protected:
     virtual void onResume() = 0;
     virtual void onShutdown(const toolkit::SockException &ex) = 0;
     virtual void onPlayResult(const toolkit::SockException &ex) = 0;
+    virtual void onFlushRecvBytes(const std::string &tag, size_t bytes) = 0;
 };
 
 template<typename Parent, typename Delegate>
@@ -256,6 +266,13 @@ public:
         _on_resume = cb;
     }
 
+    void setOnFlushRecvBytes(const std::function<void(const std::string &, size_t)> &cb) override {
+        if (_delegate) {
+            _delegate->setOnFlushRecvBytes(cb);
+        }
+        _on_flush_bytes = cb;
+    }
+
 protected:
     void onShutdown(const toolkit::SockException &ex) override {
         if (_on_shutdown) {
@@ -277,7 +294,14 @@ protected:
         }
     }
 
+    void onFlushRecvBytes(const std::string& tag, size_t bytes) override {
+        if (_on_flush_bytes) {
+            _on_flush_bytes(tag, bytes);
+        }
+    }
+
 protected:
+    std::function<void(const std::string &, size_t)> _on_flush_bytes;
     std::function<void()> _on_resume;
     PlayerBase::Event _on_shutdown;
     PlayerBase::Event _on_play_result;
