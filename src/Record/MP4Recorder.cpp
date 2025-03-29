@@ -23,7 +23,6 @@ using namespace toolkit;
 namespace mediakit {
 
 MP4Recorder::MP4Recorder(const MediaTuple &tuple, const string &path, size_t max_second) {
-    _folder_path = path;
     // ///record 业务逻辑//////  [AUTO-TRANSLATED:2e78931a]
     // ///record Business Logic//////
     static_cast<MediaTuple &>(_info) = tuple;
@@ -44,9 +43,9 @@ MP4Recorder::~MP4Recorder() {
 void MP4Recorder::createFile() {
     closeFile();
     auto date = getTimeStr("%Y-%m-%d");
-    auto file_name = getTimeStr("%H-%M-%S") + "-" + std::to_string(_file_index++) + ".mp4";
-    auto full_path = _folder_path + date + "/" + file_name;
-    auto full_path_tmp = _folder_path + date + "/." + file_name;
+    auto file_name = date + "-" + getTimeStr("%H-%M-%S") + "-" + std::to_string(_file_index++) + ".mp4";
+    auto full_path = _info.folder + date + "/" + file_name;
+    auto full_path_tmp = _info.folder + date + "/." + file_name;
 
     // ///record 业务逻辑//////  [AUTO-TRANSLATED:2e78931a]
     // ///record Business Logic//////
@@ -66,7 +65,6 @@ void MP4Recorder::createFile() {
             _muxer->addTrack(track);
         }
         _full_path_tmp = full_path_tmp;
-        _full_path = full_path;
     } catch (std::exception &ex) {
         WarnL << ex.what();
     }
@@ -75,10 +73,9 @@ void MP4Recorder::createFile() {
 void MP4Recorder::asyncClose() {
     auto muxer = _muxer;
     auto full_path_tmp = _full_path_tmp;
-    auto full_path = _full_path;
     auto info = _info;
     TraceL << "Start close tmp mp4 file: " << full_path_tmp;
-    WorkThreadPool::Instance().getExecutor()->async([muxer, full_path_tmp, full_path, info]() mutable {
+    WorkThreadPool::Instance().getExecutor()->async([muxer, full_path_tmp, info]() mutable {
         info.time_len = muxer->getDuration() / 1000.0f;
         // 关闭mp4可能非常耗时，所以要放在后台线程执行  [AUTO-TRANSLATED:a7378a11]
         // Closing mp4 can be very time-consuming, so it should be executed in the background thread
@@ -97,9 +94,9 @@ void MP4Recorder::asyncClose() {
             }
             // 临时文件名改成正式文件名，防止mp4未完成时被访问  [AUTO-TRANSLATED:541a6f00]
             // Change the temporary file name to the official file name to prevent access to the mp4 before it is completed
-            rename(full_path_tmp.data(), full_path.data());
+            rename(full_path_tmp.data(), info.file_path.data());
         }
-        TraceL << "Emit mp4 record event: " << full_path;
+        TraceL << "Emit mp4 record event: " << info.file_path;
         // 触发mp4录制切片生成事件  [AUTO-TRANSLATED:9959dcd4]
         // Trigger mp4 recording slice generation event
         NOTICE_EMIT(BroadcastRecordMP4Args, Broadcast::kBroadcastRecordMP4, info);

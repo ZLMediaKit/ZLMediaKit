@@ -13,7 +13,6 @@
 #include "Rtmp/utils.h"
 #include "Http/HttpSession.h"
 
-#define FILE_BUF_SIZE (64 * 1024)
 
 using namespace std;
 using namespace toolkit;
@@ -168,11 +167,12 @@ void FlvRecorder::startRecord(const EventPoller::Ptr &poller, const string &vhos
 
 void FlvRecorder::startRecord(const EventPoller::Ptr &poller, const RtmpMediaSource::Ptr &media,
                               const string &file_path) {
+    GET_CONFIG(uint32_t, flvBufSize, Record::kFileBufSize);
     stop();
     lock_guard<recursive_mutex> lck(_file_mtx);
     // 开辟文件写缓存  [AUTO-TRANSLATED:22d1c17f]
     // Allocate file write cache.
-    std::shared_ptr<char> fileBuf(new char[FILE_BUF_SIZE], [](char *ptr) {
+    std::shared_ptr<char> fileBuf(new char[flvBufSize], [](char *ptr) {
         if (ptr) {
             delete[] ptr;
         }
@@ -191,7 +191,7 @@ void FlvRecorder::startRecord(const EventPoller::Ptr &poller, const RtmpMediaSou
 
     // 设置文件写缓存  [AUTO-TRANSLATED:a767e55c]
     // Set the file write cache.
-    setvbuf(_file.get(), fileBuf.get(), _IOFBF, FILE_BUF_SIZE);
+    setvbuf(_file.get(), fileBuf.get(), _IOFBF, flvBufSize);
     start(poller, media);
 }
 
