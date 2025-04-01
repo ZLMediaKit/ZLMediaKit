@@ -159,6 +159,10 @@ float WebRtcPusher::getLossRate(MediaSource &sender,TrackType type) {
     return WebRtcTransportImp::getLossRate(type);
 }
 
+size_t WebRtcPusher::getRecvTotalBytes(MediaSource &sender) const {
+    return getBytesUsage();
+}
+
 void WebRtcPusher::OnDtlsTransportClosed(const RTC::DtlsTransport *dtlsTransport) {
    // 主动关闭推流，那么不等待重推  [AUTO-TRANSLATED:1ff514d7]
    // Actively close the stream, then do not wait for re-pushing

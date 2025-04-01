@@ -166,6 +166,7 @@ void RtmpPlayer::onConnect(const SockException &err) {
 }
 
 void RtmpPlayer::onRecv(const Buffer::Ptr &buf){
+    onFlushRecvBytes(getIdentifier(), getSock()->getRecvTotalBytes());
     try {
         if (_benchmark_mode && !_play_timer) {
             // 在性能测试模式下，如果rtmp握手完毕后，不再解析rtmp包  [AUTO-TRANSLATED:a39356cc]

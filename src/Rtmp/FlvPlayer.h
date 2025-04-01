@@ -24,6 +24,10 @@ public:
     void play(const std::string &url) override;
     void teardown() override;
 
+private:
+    //// TcpClient override////
+    void onRecv(const toolkit::Buffer::Ptr &buf) override;
+
 protected:
     void onResponseHeader(const std::string &status, const HttpHeader &header) override;
     void onResponseCompleted(const toolkit::SockException &ex) override;

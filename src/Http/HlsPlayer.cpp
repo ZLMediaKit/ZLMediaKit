@@ -195,6 +195,11 @@ void HlsPlayer::fetchSegment() {
     _http_ts_player->sendRequest(url);
 }
 
+void HlsPlayer::onRecv(const Buffer::Ptr &buf) {
+    onFlushRecvBytes(getIdentifier(), getSock()->getRecvTotalBytes());
+    TcpClientWithSSL<HttpClient>::onRecv(buf);
+}
+
 bool HlsPlayer::onParsed(bool is_m3u8_inner, int64_t sequence, const map<int, ts_segment> &ts_map) {
     if (!is_m3u8_inner) {
         // 这是ts播放列表  [AUTO-TRANSLATED:7ce3d81b]

@@ -75,6 +75,9 @@ protected:
 
     virtual bool isPlayer() = 0;
 
+    toolkit::Socket::Ptr getSock() const;
+    std::string getIdentifier() const;
+
 private:
     void doHandshake();
 
@@ -190,6 +193,9 @@ private:
     SRT::Crypto::Ptr _crypto;
     SRT::Timer::Ptr _announce_timer;
     SRT::KeyMaterialPacket::Ptr _announce_req;
+
+    // for player
+    mutable std::string _id;
 };
 
 } /* namespace mediakit */
