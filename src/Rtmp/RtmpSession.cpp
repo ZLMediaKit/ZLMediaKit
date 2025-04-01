@@ -308,7 +308,7 @@ void RtmpSession::sendPlayResponse(const string &err, const RtmpMediaSource::Ptr
     weak_ptr<RtmpSession> weak_self = static_pointer_cast<RtmpSession>(shared_from_this());
     _ring_reader->setGetInfoCB([weak_self]() {
         Any ret;
-        ret.set(static_pointer_cast<SockInfo>(weak_self.lock()));
+        ret.set(static_pointer_cast<Session>(weak_self.lock()));
         return ret;
     });
     _ring_reader->setReadCB([weak_self](const RtmpMediaSource::RingDataType &pkt) {

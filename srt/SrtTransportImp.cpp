@@ -253,7 +253,7 @@ void SrtTransportImp::doPlay() {
             weak_ptr<Session> weak_session = strong_self->getSession();
             strong_self->_ts_reader->setGetInfoCB([weak_session]() {
                 Any ret;
-                ret.set(static_pointer_cast<SockInfo>(weak_session.lock()));
+                ret.set(static_pointer_cast<Session>(weak_session.lock()));
                 return ret;
             });
             strong_self->_ts_reader->setDetachCB([weak_self]() {

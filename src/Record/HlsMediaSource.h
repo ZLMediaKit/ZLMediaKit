@@ -14,6 +14,7 @@
 #include "Common/MediaSource.h"
 #include "Util/TimeTicker.h"
 #include "Util/RingBuffer.h"
+#include "Network/Session.h"
 #include <atomic>
 
 namespace mediakit {
@@ -89,7 +90,7 @@ class HlsCookieData {
 public:
     using Ptr = std::shared_ptr<HlsCookieData>;
 
-    HlsCookieData(const MediaInfo &info, const std::shared_ptr<toolkit::SockInfo> &sock_info);
+    HlsCookieData(const MediaInfo &info, const std::shared_ptr<toolkit::Session> &session);
     ~HlsCookieData();
 
     void addByteUsage(size_t bytes);
@@ -106,6 +107,7 @@ private:
     toolkit::Ticker _ticker;
     std::weak_ptr<HlsMediaSource> _src;
     std::shared_ptr<toolkit::SockInfo> _sock_info;
+    std::weak_ptr<toolkit::Session> _session;
     HlsMediaSource::RingType::RingReader::Ptr _ring_reader;
 };
 

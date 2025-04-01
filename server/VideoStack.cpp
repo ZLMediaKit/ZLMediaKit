@@ -21,6 +21,14 @@
 #define RGB_TO_U(R, G, B) (((-26 * (R) - 87 * (G) + 112 * (B) + 128) >> 8) + 128)
 #define RGB_TO_V(R, G, B) (((112 * (R) - 102 * (G) - 10 * (B) + 128) >> 8) + 128)
 
+static void fill_yuv_func(const mediakit::FFmpegFrame::Ptr &frame, int y, int u, int v) {
+    const auto& yuv = frame->get();
+    memset(yuv->data[0], y, yuv->linesize[0] * yuv->height);
+    memset(yuv->data[1], u, yuv->linesize[1] * ((yuv->height + 1) / 2));
+    memset(yuv->data[2], v, yuv->linesize[2] * ((yuv->height + 1) / 2));
+}
+
+
 INSTANCE_IMP(VideoStackManager)
 
 Param::~Param() {
@@ -31,6 +39,13 @@ Param::~Param() {
 
 Channel::Channel(const std::string& id, int width, int height, AVPixelFormat pixfmt)
     : _id(id), _width(width), _height(height), _pixfmt(pixfmt) {
+#if defined(VIDEOSTACK_KEEP_ASPECT_RATIO)
+    _keepAspectRatio = true;
+#else
+    _keepAspectRatio = false;
+#endif
+    _lastWidht = 0;
+    _lastHeight = 0;
     _tmp = std::make_shared<mediakit::FFmpegFrame>();
 
     _tmp->get()->width = _width;
@@ -39,14 +54,9 @@ Channel::Channel(const std::string& id, int width, int height, AVPixelFormat pix
 
     av_frame_get_buffer(_tmp->get(), 32);
 
-    memset(_tmp->get()->data[0], 0, _tmp->get()->linesize[0] * _height);
-    memset(_tmp->get()->data[1], 0, _tmp->get()->linesize[1] * _height / 2);
-    memset(_tmp->get()->data[2], 0, _tmp->get()->linesize[2] * _height / 2);
-
     auto frame = VideoStackManager::Instance().getBgImg();
-    _sws = std::make_shared<mediakit::FFmpegSws>(_pixfmt, _width, _height);
 
-    _tmp = _sws->inputFrame(frame);
+    resizeFrame(frame);
 }
 
 void Channel::addParam(const std::weak_ptr<Param>& p) {
@@ -60,8 +70,7 @@ void Channel::onFrame(const mediakit::FFmpegFrame::Ptr& frame) {
     _poller->async([weakSelf, frame]() {
         auto self = weakSelf.lock();
         if (!self) { return; }
-        self->_tmp = self->_sws->inputFrame(frame);
-
+        self->resizeFrame(frame);
         self->forEachParam([self](const Param::Ptr& p) { self->fillBuffer(p); });
     });
 }
@@ -110,6 +119,78 @@ void Channel::copyData(const mediakit::FFmpegFrame::Ptr& buf, const Param::Ptr& 
         default: WarnL << "No support pixformat: " << av_get_pix_fmt_name(p->pixfmt); break;
     }
 }
+
+void Channel::resizeFrame(const mediakit::FFmpegFrame::Ptr &frame) {
+    if (_keepAspectRatio) {
+        resizeFrameImplWithAspectRatio(frame);
+    } else {
+        resizeFrameImplWithoutAspectRatio(frame);
+    }
+}
+
+void Channel::resizeFrameImplWithAspectRatio(const mediakit::FFmpegFrame::Ptr &frame) {
+    int srcWidth = frame->get()->width;
+    int srcHeight = frame->get()->height;
+    if (srcWidth <= 0 || srcHeight <= 0) {
+        return;
+    }
+
+    // 当新frame宽高变化时，重新初始化sws
+    if (srcWidth != _lastWidht || srcHeight != _lastHeight) {
+        _lastWidht = srcWidth;
+        _lastHeight = srcHeight;
+        fill_yuv_func(_tmp, 16, 128, 128);
+
+        int dstWidth = _width;
+        int dstHeight = _height;
+
+        float srcAspectRatio = static_cast<float>(srcWidth) / srcHeight;
+        float dstAspectRatio = static_cast<float>(dstWidth) / dstHeight;
+
+        int scaledWidth, scaledHeight;
+        if (srcAspectRatio > dstAspectRatio) {
+            scaledWidth = dstWidth;
+            scaledHeight = static_cast<int>(dstWidth / srcAspectRatio);
+        } else {
+            scaledHeight = dstHeight;
+            scaledWidth = static_cast<int>(dstHeight * srcAspectRatio);
+        }
+
+        _offsetX = (dstWidth - scaledWidth) / 2;
+        _offsetY = (dstHeight - scaledHeight) / 2;
+        _sws = std::make_shared<mediakit::FFmpegSws>(_pixfmt, scaledWidth, scaledHeight);
+    }
+
+    auto scaledFrame = _sws->inputFrame(frame);
+
+    int copyWidth = ((_width) < (scaledFrame->get()->width) ? (_width) : (scaledFrame->get()->width));
+    int copyHeight = ((_height) < (scaledFrame->get()->height) ? (_height) : (scaledFrame->get()->height));
+
+    for (int i = 0; i < copyHeight; i++) {
+        memcpy(
+            _tmp->get()->data[0] + (i + _offsetY) * _tmp->get()->linesize[0] + _offsetX, scaledFrame->get()->data[0] + i * scaledFrame->get()->linesize[0],
+            copyWidth);
+    }
+
+    for (int i = 0; i < (copyHeight + 1) / 2; i++) {
+        memcpy(
+            _tmp->get()->data[1] + (i + _offsetY / 2) * _tmp->get()->linesize[1] + _offsetX / 2,
+            scaledFrame->get()->data[1] + i * scaledFrame->get()->linesize[1], copyWidth / 2);
+        memcpy(
+            _tmp->get()->data[2] + (i + _offsetY / 2) * _tmp->get()->linesize[2] + _offsetX / 2,
+            scaledFrame->get()->data[2] + i * scaledFrame->get()->linesize[2], copyWidth / 2);
+    }
+
+}
+
+void Channel::resizeFrameImplWithoutAspectRatio(const mediakit::FFmpegFrame::Ptr &frame) {
+    if (!_sws) {
+        fill_yuv_func(_tmp, 16, 128, 128);
+        _sws = std::make_shared<mediakit::FFmpegSws>(_pixfmt, _width, _height);
+    }
+    _tmp = _sws->inputFrame(frame);
+}
+
 void StackPlayer::addChannel(const std::weak_ptr<Channel>& chn) {
     std::lock_guard<std::recursive_mutex> lock(_mx);
     _channels.push_back(chn);
@@ -300,9 +381,7 @@ void VideoStack::initBgColor() {
     double U = RGB_TO_U(R, G, B);
     double V = RGB_TO_V(R, G, B);
 
-    memset(_buffer->get()->data[0], Y, _buffer->get()->linesize[0] * _height);
-    memset(_buffer->get()->data[1], U, _buffer->get()->linesize[1] * _height / 2);
-    memset(_buffer->get()->data[2], V, _buffer->get()->linesize[2] * _height / 2);
+    fill_yuv_func(_buffer, Y, U, V);
 }
 
 Channel::Ptr VideoStackManager::getChannel(const std::string& id, int width, int height,
