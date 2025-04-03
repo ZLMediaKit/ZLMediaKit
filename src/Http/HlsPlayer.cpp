@@ -133,6 +133,10 @@ void HlsPlayer::fetchSegment() {
         if (!(*this)[Client::kNetAdapter].empty()) {
             _http_ts_player->setNetAdapter((*this)[Client::kNetAdapter]);
         }
+    } else {
+        // 每次请求新的ts片段时重置HttpTSPlayer状态
+        _http_ts_player->clear();
+        _http_ts_player->setProxyUrl((*this)[Client::kProxyUrl]);
     }
 
     Ticker ticker;
