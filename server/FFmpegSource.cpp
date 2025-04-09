@@ -341,10 +341,14 @@ void FFmpegSource::onGetMediaSource(const MediaSource::Ptr &src) {
         setDelegate(listener);
         muxer->setDelegate(shared_from_this());
         if (_enable_hls) {
-            src->setupRecord(Recorder::type_hls, true, "", 0);
+            src->getOwnerPoller()->async([=]() mutable {
+                 src->setupRecord(Recorder::type_hls, true, "", 0);
+            });
         }
         if (_enable_mp4) {
-            src->setupRecord(Recorder::type_mp4, true, "", 0);
+            src->getOwnerPoller()->async([=]() mutable {
+                src->setupRecord(Recorder::type_mp4, true, "", 0);
+            });
         }
     }
 }
