@@ -228,6 +228,9 @@ bash build_docker_images.sh
    - [java sdk](https://github.com/lidaofu-hub/j_zlm_sdk) 本项目c sdk完整java包装库
    - [c# sdk](https://github.com/malegend/ZLMediaKit.Autogen) 本项目c sdk完整c#包装库
    - [metaRTC](https://github.com/metartc/metaRTC) 全国产纯c webrtc sdk
+
+- 监控与运维
+   - [ZLMediaKit_exporter](https://github.com/guohuachan/ZLMediaKit_exporter) 一个用于采集 ZLMediaKit 核心指标的 Prometheus Exporter，搭配 Grafana 即可快速构建实时监控面板
    
  - 其他项目(已停止更新)
    - [NodeJS实现的GB28181平台](https://gitee.com/hfwudao/GB28181_Node_Http)
