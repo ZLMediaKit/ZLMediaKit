@@ -425,7 +425,10 @@ Value ToJson(const PusherProxy::Ptr& p) {
     item["url"] = p->getUrl();
     item["status"] = p->getStatus();
     item["liveSecs"] = p->getLiveSecs();
-    item["rePublishCount"] = p->getRePublishCount();
+    item["rePublishCount"] = p->getRePublishCount();    
+    item["bytesSpeed"] = p->getSendSpeed();
+    item["totalBytes"] = p->getSendTotalByte();
+
     if (auto src = p->getSrc()) {
         dumpMediaTuple(src->getMediaTuple(), item["src"]);
     }
@@ -439,6 +442,9 @@ Value ToJson(const PlayerProxy::Ptr& p) {
     item["liveSecs"] = p->getLiveSecs();
     item["rePullCount"] = p->getRePullCount();
     item["totalReaderCount"] = p->totalReaderCount();
+    item["bytesSpeed"] = p->getRecSpeed();
+    item["totalBytes"] = p->getRecTotalByte();
+
     dumpMediaTuple(p->getMediaTuple(), item["src"]);
     return item;
 }
@@ -450,6 +456,7 @@ Value makeMediaSourceJson(MediaSource &media){
     item["createStamp"] = (Json::UInt64) media.getCreateStamp();
     item["aliveSecond"] = (Json::UInt64) media.getAliveSecond();
     item["bytesSpeed"] = media.getBytesSpeed();
+    item["totalBytes"] = media.getTotalBytes();
     item["readerCount"] = media.readerCount();
     item["totalReaderCount"] = media.totalReaderCount();
     item["originType"] = (int) media.getOriginType();

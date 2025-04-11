@@ -77,4 +77,10 @@ vector<Track::Ptr> TsPlayerImp::getTracks(bool ready) const {
     return static_pointer_cast<HlsDemuxer>(_demuxer)->getTracks(ready);
 }
 
+size_t TsPlayerImp::getRecSpeed() {
+    return TcpClient::getRecvSpeed();
+}
+size_t TsPlayerImp::getRecTotalByte() {
+    return getRecvTotalBytes();
+}
 }//namespace mediakit

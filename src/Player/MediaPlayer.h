@@ -26,6 +26,8 @@ public:
     void play(const std::string &url) override;
     toolkit::EventPoller::Ptr getPoller();
     void setOnCreateSocket(toolkit::Socket::onCreateSocket cb);
+    size_t getRecSpeed() override;
+    size_t getRecTotalByte() override;
 
 private:
     toolkit::EventPoller::Ptr _poller;

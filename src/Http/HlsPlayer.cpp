@@ -357,6 +357,12 @@ void HlsPlayer::playDelay(float delay_sec) {
         }, getPoller()));
 }
 
+size_t HlsPlayer::getRecSpeed() {
+    return TcpClient::getRecvSpeed();
+}
+size_t HlsPlayer::getRecTotalByte() {
+    return getRecvTotalBytes();
+}
 //////////////////////////////////////////////////////////////////////////
 
 void HlsDemuxer::start(const EventPoller::Ptr &poller, TrackListener *listener) {
@@ -531,4 +537,10 @@ vector<Track::Ptr> HlsPlayerImp::getTracks(bool ready) const {
     return static_pointer_cast<HlsDemuxer>(_demuxer)->getTracks(ready);
 }
 
+size_t HlsPlayerImp::getRecSpeed() {
+    return TcpClient::getRecvSpeed();
+}
+size_t HlsPlayerImp::getRecTotalByte() {
+    return TcpClient::getRecvSpeed();
+}
 }//namespace mediakit
