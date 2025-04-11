@@ -121,12 +121,13 @@ std::string SrtPlayer::getPassphrase() {
 }
 
 size_t SrtPlayer::getRecSpeed() {
-    return getRecUdpSpeed();
+    return SrtCaller::getRecSpeed();
 }
 
 size_t SrtPlayer::getRecTotalByte() {
-    return getRecUdpTotalBytes();
+    return SrtCaller::getRecTotalBytes();
 }
+
 ///////////////////////////////////////////////////
 // SrtPlayerImp
 
@@ -172,11 +173,11 @@ void SrtPlayerImp::onSRTData(SRT::DataPacket::Ptr pkt) {
 }
 
 size_t SrtPlayerImp::getRecSpeed() {
-    return getRecUdpSpeed();
+    return SrtCaller::getRecSpeed();
 }
 
 size_t SrtPlayerImp::getRecTotalByte() {
-    return getRecUdpTotalBytes();
+    return SrtCaller::getRecTotalBytes();
 }
 } /* namespace mediakit */
 

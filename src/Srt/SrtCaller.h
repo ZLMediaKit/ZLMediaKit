@@ -60,11 +60,11 @@ public:
     virtual void inputSockData(uint8_t *buf, int len, struct sockaddr *addr);
     virtual void onSendTSData(const SRT::Buffer::Ptr &buffer, bool flush);
 
-    size_t getRecUdpSpeed() const;
-    size_t getRecUdpTotalBytes() const;
-    size_t getSendUdpSpeed() const;
-    size_t getSendUdpTotalBytes() const;
-	
+    size_t getRecSpeed() const;
+    size_t getRecTotalBytes() const;
+    size_t getSendSpeed() const;
+    size_t getSendTotalBytes() const;
+
 protected:
 
     virtual void onConnect();

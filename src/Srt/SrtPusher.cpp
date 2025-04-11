@@ -113,11 +113,11 @@ void SrtPusher::doPublish() {
 }
 
 size_t SrtPusher::getSendSpeed() {
-    return getSendUdpSpeed();
+    return SrtCaller::getSendSpeed();
 }
 
 size_t SrtPusher::getSendTotalByte() {
-    return getSendUdpTotalBytes();
+    return SrtCaller::getSendTotalBytes();
 }
 } /* namespace mediakit */
 

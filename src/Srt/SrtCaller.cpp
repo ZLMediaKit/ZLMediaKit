@@ -82,7 +82,7 @@ void SrtCaller::onConnect() {
 
     auto peer_addr = SockUtil::make_sockaddr(_url._host.c_str(), (_url._port));
     _socket = Socket::createSocket(_poller, false);
-        _socket->bindUdpSock(0, SockUtil::is_ipv4(_url._host.data()) ? "0.0.0.0" : "::");
+    _socket->bindUdpSock(0, SockUtil::is_ipv4(_url._host.data()) ? "0.0.0.0" : "::");
     _socket->bindPeerAddr((struct sockaddr *)&peer_addr, 0, true);
 
     weak_ptr<SrtCaller> weak_self = shared_from_this();
@@ -1018,37 +1018,20 @@ size_t SrtCaller::getPayloadSize() {
     return ret;
 }
 
-
-size_t SrtCaller::getRecUdpSpeed() const {
-    if (_socket) {
-        _socket->getRecvSpeed();
-    } else {
-        return 10000;
-    } 
+size_t SrtCaller::getRecSpeed() const {
+    return _socket ? _socket->getRecvSpeed() : 0;
 }
 
-size_t SrtCaller::getRecUdpTotalBytes() const {
-    if (_socket) {
-        _socket->getRecvTotalBytes();
-    } else {
-        return 10000;
-    }
+size_t SrtCaller::getRecTotalBytes() const {
+    return _socket ? _socket->getRecvTotalBytes() : 0;
 }
 
-size_t SrtCaller::getSendUdpSpeed() const {
-    if (_socket) {
-        _socket->getSendSpeed();
-    } else {
-        return 10000;
-    }
+size_t SrtCaller::getSendSpeed() const {
+    return _socket ? _socket->getSendSpeed() : 0;
 }
 
-size_t SrtCaller::getSendUdpTotalBytes() const {
-    if (_socket) {
-        _socket->getSendTotalBytes();
-    } else {
-        return 10000;
-    }
+size_t SrtCaller::getSendTotalBytes() const {
+    return _socket ? _socket->getSendTotalBytes() : 0;
 }
 } /* namespace mediakit */
 
