@@ -72,8 +72,8 @@ using namespace Json;
 using namespace toolkit;
 using namespace mediakit;
 
-#define BYTESSPEED "bytesSpeed"
-#define TOTALBYTES "totalBytes"
+static const string s_bytesSpeed = "bytesSpeed";
+static const string s_totalBytes = "totalBytes";
 
 namespace API {
 #define API_FIELD "api."
@@ -430,9 +430,8 @@ Value ToJson(const PusherProxy::Ptr& p) {
     item["liveSecs"] = p->getLiveSecs();
     item["rePublishCount"] = p->getRePublishCount();
     
-    // todo
-    // item[BYTESSPEED] = p->getBytesSpeed();
-    // item[TOTALBYTES] = p->getTotalBytes();
+    item[s_bytesSpeed] = p->getSendSpeed();
+    item[s_totalBytes] = p->getSendTotalByte();
 
     if (auto src = p->getSrc()) {
         dumpMediaTuple(src->getMediaTuple(), item["src"]);
@@ -447,10 +446,8 @@ Value ToJson(const PlayerProxy::Ptr& p) {
     item["liveSecs"] = p->getLiveSecs();
     item["rePullCount"] = p->getRePullCount();
     item["totalReaderCount"] = p->totalReaderCount();
-
-    // todo
-    // item[BYTESSPEED] = p->getBytesSpeed();
-    // item[TOTALBYTES] = p->getTotalBytes();
+    item[s_bytesSpeed] = p->getRecSpeed();
+    item[s_totalBytes] = p->getRecTotalByte();
 
     dumpMediaTuple(p->getMediaTuple(), item["src"]);
     return item;
@@ -462,8 +459,8 @@ Value makeMediaSourceJson(MediaSource &media){
     dumpMediaTuple(media.getMediaTuple(), item);
     item["createStamp"] = (Json::UInt64) media.getCreateStamp();
     item["aliveSecond"] = (Json::UInt64) media.getAliveSecond();
-    item[BYTESSPEED] = media.getBytesSpeed();
-    item[TOTALBYTES] = media.getTotalBytes();
+    item[s_bytesSpeed] = media.getBytesSpeed();
+    item[s_totalBytes] = media.getTotalBytes();
     item["readerCount"] = media.readerCount();
     item["totalReaderCount"] = media.totalReaderCount();
     item["originType"] = (int) media.getOriginType();

@@ -76,4 +76,11 @@ void FlvPlayer::onRecvRtmpPacket(RtmpPacket::Ptr packet) {
     onRtmpPacket(std::move(packet));
 }
 
+size_t FlvPlayer::getRecSpeed() {
+    return TcpClient::getRecvSpeed();
+}
+
+size_t FlvPlayer::getRecTotalByte() {
+    return getRecvTotalBytes();
+}
 }//mediakit

@@ -73,6 +73,9 @@ public:
      */
     void teardown() override;
 
+    size_t getRecSpeed() override;
+    size_t getRecTotalByte() override;
+
 protected:
     /**
      * 收到ts包
@@ -129,10 +132,12 @@ private:
     int _ts_download_failed_count = 0;
 };
 
-class HlsPlayerImp : public PlayerImp<HlsPlayer, PlayerBase>, private TrackListener {
+class HlsPlayerImp final: public PlayerImp<HlsPlayer, PlayerBase>, private TrackListener {
 public:
     using Ptr = std::shared_ptr<HlsPlayerImp>;
     HlsPlayerImp(const toolkit::EventPoller::Ptr &poller = nullptr);
+    size_t getRecSpeed() override;
+    size_t getRecTotalByte() override;
 
 private:
     //// HlsPlayer override////

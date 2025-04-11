@@ -21,6 +21,8 @@ public:
     using Ptr = std::shared_ptr<TsPlayerImp>;
 
     TsPlayerImp(const toolkit::EventPoller::Ptr &poller = nullptr);
+    size_t getRecSpeed() override;
+    size_t getRecTotalByte() override;
 
 private:
     //// TsPlayer override////

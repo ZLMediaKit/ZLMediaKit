@@ -1019,5 +1019,36 @@ size_t SrtCaller::getPayloadSize() {
 }
 
 
+size_t SrtCaller::getRecUdpSpeed() const {
+    if (_socket) {
+        _socket->getRecvSpeed();
+    } else {
+        return 10000;
+    } 
+}
+
+size_t SrtCaller::getRecUdpTotalBytes() const {
+    if (_socket) {
+        _socket->getRecvTotalBytes();
+    } else {
+        return 10000;
+    }
+}
+
+size_t SrtCaller::getSendUdpSpeed() const {
+    if (_socket) {
+        _socket->getSendSpeed();
+    } else {
+        return 10000;
+    }
+}
+
+size_t SrtCaller::getSendUdpTotalBytes() const {
+    if (_socket) {
+        _socket->getSendTotalBytes();
+    } else {
+        return 10000;
+    }
+}
 } /* namespace mediakit */
 

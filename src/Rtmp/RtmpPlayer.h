@@ -37,6 +37,9 @@ public:
     void speed(float speed) override;
     void teardown() override;
 
+    size_t getRecSpeed() override;
+    size_t getRecTotalByte() override;
+	
 protected:
     virtual bool onMetadata(const AMFValue &val) = 0;
     virtual void onRtmpPacket(RtmpPacket::Ptr chunk_data) = 0;
