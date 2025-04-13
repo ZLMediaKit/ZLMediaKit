@@ -358,9 +358,11 @@ void HlsPlayer::playDelay(float delay_sec) {
 }
 
 size_t HlsPlayer::getRecSpeed() {
+    // todo
     return TcpClient::getRecvSpeed();
 }
 size_t HlsPlayer::getRecTotalByte() {
+    // todo
     return getRecvTotalBytes();
 }
 //////////////////////////////////////////////////////////////////////////
@@ -538,9 +540,11 @@ vector<Track::Ptr> HlsPlayerImp::getTracks(bool ready) const {
 }
 
 size_t HlsPlayerImp::getRecSpeed() {
+    // todo
     return TcpClient::getRecvSpeed();
 }
 size_t HlsPlayerImp::getRecTotalByte() {
-    return TcpClient::getRecvSpeed();
+    // todo
+    return TcpClient::getRecTotalBytes();
 }
 }//namespace mediakit
