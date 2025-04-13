@@ -59,8 +59,8 @@ public:
 
     std::vector<Track::Ptr> getTracks(bool ready = true) const override;
 
-    size_t getRecSpeed() override { return _rtp_type == Rtsp::RTP_TCP ? TcpClient::getRecvSpeed() : _rtp_sock[0]->getRecvSpeed(); }
-    size_t getRecTotalByte() override { return _rtp_type == Rtsp::RTP_TCP ? getRecvTotalBytes() : _rtp_sock[0]->getRecvTotalBytes(); }
+    size_t getRecSpeed() override { return _rtp_type == Rtsp::RTP_TCP ? TcpClient::getRecvSpeed() : TcpClient::getRecvSpeed() + _rtp_sock[0]->getRecvSpeed(); }
+    size_t getRecTotalByte() override { return _rtp_type == Rtsp::RTP_TCP ? getRecvTotalBytes() : getRecvTotalBytes() + _rtp_sock[0]->getRecvTotalBytes(); }
 	
 private:
     // 派生类回调函数  [AUTO-TRANSLATED:61e20903]

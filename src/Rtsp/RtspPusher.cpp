@@ -596,10 +596,10 @@ void RtspPusher::sendRtspRequest(const string &cmd, const string &url,const StrC
 }
 
 size_t RtspPusher::getSendSpeed() {
-    return _rtp_type == Rtsp::RTP_TCP ? TcpClient::getSendSpeed() : _rtp_sock[0]->getSendSpeed();
+    return _rtp_type == Rtsp::RTP_TCP ? TcpClient::getSendSpeed() : TcpClient::getSendSpeed() + _rtp_sock[0]->getSendSpeed();
 }
 
 size_t RtspPusher::getSendTotalByte() {
-    return _rtp_type == Rtsp::RTP_TCP ? TcpClient::getSendTotalBytes() : _rtp_sock[0]->getSendTotalBytes();
+    return _rtp_type == Rtsp::RTP_TCP ? TcpClient::getSendTotalBytes() : TcpClient::getSendTotalBytes() + _rtp_sock[0]->getSendTotalBytes();
 }
 } /* namespace mediakit */
