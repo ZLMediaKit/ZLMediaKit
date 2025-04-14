@@ -1191,7 +1191,7 @@ void installWebApi() {
 
         auto dst_url = allArgs["dst_url"];
         auto retry_count = allArgs["retry_count"].empty() ? -1 : allArgs["retry_count"].as<int>();
-        EventPollerPool::Instance().getPoller(false)->async([=](){
+        EventPollerPool::Instance().getPoller(false)->async([=]() mutable {
             addStreamPusherProxy(allArgs["schema"],
                                  allArgs["vhost"],
                                  allArgs["app"],
@@ -1260,7 +1260,7 @@ void installWebApi() {
             vhost = allArgs["vhost"];
         }
         auto tuple = MediaTuple { vhost, allArgs["app"], allArgs["stream"], "" };
-        EventPollerPool::Instance().getPoller(false)->async([=]() {
+        EventPollerPool::Instance().getPoller(false)->async([=]() mutable {
             addStreamProxy(tuple,
                            allArgs["url"],
                            retry_count,
@@ -1268,7 +1268,7 @@ void installWebApi() {
                            allArgs["rtp_type"],
                            allArgs["timeout_sec"],
                            args,
-                           [invoker,val,headerOut](const SockException &ex,const string &key) mutable{
+                           [invoker,val,headerOut](const SockException &ex,const string &key) mutable {
                                if (ex) {
                                    val["code"] = API::OtherFailed;
                                    val["msg"] = ex.what();
