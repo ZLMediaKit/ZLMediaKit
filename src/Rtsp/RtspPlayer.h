@@ -164,10 +164,10 @@ private:
  protected:   
     // RTP端口,trackid idx 为数组下标  [AUTO-TRANSLATED:77c186bb]
     // RTP port, trackid idx is the array subscript
-    toolkit::Socket::Ptr _rtp_sock[2];
+    toolkit::Socket::Ptr _rtp_sock[2] = { nullptr, nullptr };
     // RTCP端口,trackid idx 为数组下标  [AUTO-TRANSLATED:446a7861]
     // RTCP port, trackid idx is the array subscript
-    toolkit::Socket::Ptr _rtcp_sock[2];
+    toolkit::Socket::Ptr _rtcp_sock[2] { nullptr, nullptr };
 
 private:
     // rtsp鉴权相关  [AUTO-TRANSLATED:947dc6a3]

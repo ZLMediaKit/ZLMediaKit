@@ -84,10 +84,10 @@ private:
     std::vector<SdpTrack::Ptr> _track_vec;
     // RTP端口,trackid idx 为数组下标  [AUTO-TRANSLATED:77c186bb]
     // RTP port, trackid idx is the array index
-    toolkit::Socket::Ptr _rtp_sock[2];
+    toolkit::Socket::Ptr _rtp_sock[2] = { nullptr, nullptr };
     // RTCP端口,trackid idx 为数组下标  [AUTO-TRANSLATED:446a7861]
     // RTCP port, trackid idx is the array index
-    toolkit::Socket::Ptr _rtcp_sock[2];
+    toolkit::Socket::Ptr _rtcp_sock[2] = { nullptr, nullptr };
     // 超时功能实现  [AUTO-TRANSLATED:1d603b3a]
     // Timeout function implementation
     toolkit::Timer::Ptr _publish_timer;
