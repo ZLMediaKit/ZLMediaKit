@@ -363,8 +363,8 @@ size_t HlsPlayer::getRecSpeed() {
 }
 
 size_t HlsPlayer::getRecTotalByte() {
-    // todo
-    return getRecvTotalBytes() + _http_ts_player->getRecvTotalBytes();
+    // ts size
+    return _http_ts_player->getRecvTotalBytes();
 }
 //////////////////////////////////////////////////////////////////////////
 
@@ -490,6 +490,7 @@ void HlsPlayerImp::onPacket(const char *data, size_t len) {
         _decoder->input((uint8_t *) data, len);
     }
 
+     //_recvtotalbytes +=  len;
     _recvtotalbytes += HlsPlayer::getRecvTotalBytes();
 }
 
