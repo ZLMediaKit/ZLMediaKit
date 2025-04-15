@@ -80,6 +80,7 @@ vector<Track::Ptr> TsPlayerImp::getTracks(bool ready) const {
 size_t TsPlayerImp::getRecSpeed() {
     return TcpClient::getRecvSpeed();
 }
+
 size_t TsPlayerImp::getRecTotalByte() {
     return getRecvTotalBytes();
 }

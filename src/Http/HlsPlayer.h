@@ -49,7 +49,7 @@ private:
     std::deque<std::pair<int64_t, std::function<void()> > > _frame_cache;
 };
 
-class HlsPlayer : public  HttpClientImp , public PlayerBase , public HlsParser{
+class HlsPlayer: public  HttpClientImp, public PlayerBase, public HlsParser {
 public:
     HlsPlayer(const toolkit::EventPoller::Ptr &poller);
 
@@ -130,6 +130,9 @@ private:
     int _timeout_multiple = MIN_TIMEOUT_MULTIPLE;
     int _try_fetch_index_times = 0;
     int _ts_download_failed_count = 0;
+
+protected:
+    size_t _recvtotalbytes;
 };
 
 class HlsPlayerImp final: public PlayerImp<HlsPlayer, PlayerBase>, private TrackListener {
