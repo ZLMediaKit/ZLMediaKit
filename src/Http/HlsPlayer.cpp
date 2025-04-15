@@ -359,12 +359,12 @@ void HlsPlayer::playDelay(float delay_sec) {
 }
 
 size_t HlsPlayer::getRecSpeed() {
-    return TcpClient::getRxSpeed() + _http_ts_player->getRxSpeed();
+    return TcpClient::getRecvSpeed() + _http_ts_player->getRecvSpeed();
 }
 
 size_t HlsPlayer::getRecTotalByte() {
     // ts size
-    return _http_ts_player->getRxTotalBytes();
+    return _http_ts_player->getRecvTotalBytes();
 }
 //////////////////////////////////////////////////////////////////////////
 
@@ -491,7 +491,7 @@ void HlsPlayerImp::onPacket(const char *data, size_t len) {
     }
 
      //_recvtotalbytes +=  len;
-    _recvtotalbytes += HlsPlayer::getRecTotalByte();
+    _recvtotalbytes += HlsPlayer::getRecvTotalBytes();
 }
 
 void HlsPlayerImp::addTrackCompleted() {

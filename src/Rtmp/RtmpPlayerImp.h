@@ -42,8 +42,8 @@ public:
         return _demuxer ? _demuxer->getTracks(ready) : Super::getTracks(ready);
     }
 
-    size_t getRecSpeed() override { return Super::getRxSpeed(); }
-    size_t getRecTotalByte() override { return Super::getRxTotalBytes(); }
+    size_t getRecSpeed() override { return Super::getRecvSpeed(); }
+    size_t getRecTotalByte() override { return Super::getRecvSpeed(); }
 	
 private:
     // 派生类回调函数  [AUTO-TRANSLATED:61e20903]
@@ -132,8 +132,8 @@ public:
         seekToMilliSecond(pos);
     }
 	
-    size_t getRecSpeed() override { return TcpClient::getRxSpeed(); }
-    size_t getRecTotalByte() override { return TcpClient::getRxTotalBytes(); }
+    size_t getRecSpeed() override { return TcpClient::getRecvSpeed(); }
+    size_t getRecTotalByte() override { return getRecvTotalBytes(); }
 };
 
 
