@@ -845,7 +845,7 @@ int RtspPlayer::getTrackIndexByTrackType(TrackType track_type) const {
 }
 
 size_t RtspPlayer::getRecSpeed() {
-    size_t tmp_speed = TcpClient::getRecvSpeed();
+    size_t tmp_speed = TcpClient::getRxSpeed();
 
     if (_rtp_type != Rtsp::RTP_TCP) {
         for (auto &rtp : _rtp_sock) {
@@ -864,7 +864,7 @@ size_t RtspPlayer::getRecSpeed() {
 }
 
 size_t RtspPlayer::getRecTotalByte() {
-    size_t tmp_totals = TcpClient::getRecvTotalBytes();
+    size_t tmp_totals = TcpClient::getRxTotalBytes();
 
     if (_rtp_type != Rtsp::RTP_TCP) {
         for (auto &rtp : _rtp_sock) {

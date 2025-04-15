@@ -333,11 +333,11 @@ void RtmpPusher::onRtmpChunk(RtmpPacket::Ptr packet) {
 }
 
 size_t RtmpPusher::getSendSpeed() {
-    return TcpClient::getSendSpeed();
+    return TcpClient::getTxSpeed();
 }
 
 size_t RtmpPusher::getSendTotalByte() {
-    return TcpClient::getSendTotalBytes();
+    return TcpClient::getTxTotalBytes();
 }
 } /* namespace mediakit */
 

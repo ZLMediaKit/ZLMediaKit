@@ -77,10 +77,10 @@ void FlvPlayer::onRecvRtmpPacket(RtmpPacket::Ptr packet) {
 }
 
 size_t FlvPlayer::getRecSpeed() {
-    return TcpClient::getRecvSpeed();
+    return TcpClient::getRxSpeed();
 }
 
 size_t FlvPlayer::getRecTotalByte() {
-    return getRecvTotalBytes();
+    return getRxTotalBytes();
 }
 }//mediakit

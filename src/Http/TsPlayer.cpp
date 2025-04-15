@@ -58,10 +58,10 @@ void TsPlayer::onResponseBody(const char *buf, size_t size) {
 }
 
 size_t TsPlayer::getRecSpeed() {
-    return TcpClient::getRecvSpeed();
+    return TcpClient::getRxSpeed();
 }
 
 size_t TsPlayer::getRecTotalByte() {
-    return getRecvTotalBytes();
+    return getRxTotalBytes();
 }
 } // namespace mediakit

@@ -60,7 +60,7 @@ public:
     std::vector<Track::Ptr> getTracks(bool ready = true) const override;
 
     size_t getRecSpeed() override {
-        size_t tmp_speed = TcpClient::getRecvSpeed();
+        size_t tmp_speed = TcpClient::getRxSpeed();
 
         if (_rtp_type != Rtsp::RTP_TCP) {
             for (auto &rtp : _rtp_sock) {
@@ -79,7 +79,7 @@ public:
     }
 
     size_t getRecTotalByte() override {
-        size_t tmp_totals = TcpClient::getRecvTotalBytes();
+        size_t tmp_totals = TcpClient::getRxTotalBytes();
 
         if (_rtp_type != Rtsp::RTP_TCP) {
             for (auto &rtp : _rtp_sock) {

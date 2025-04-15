@@ -596,7 +596,7 @@ void RtspPusher::sendRtspRequest(const string &cmd, const string &url,const StrC
 }
 
 size_t RtspPusher::getSendSpeed() {
-    size_t tmp_speed = TcpClient::getSendSpeed();
+    size_t tmp_speed = TcpClient::getTxSpeed();
 
     if (_rtp_type != Rtsp::RTP_TCP) {
         for (auto &rtp : _rtp_sock) {
@@ -616,7 +616,7 @@ size_t RtspPusher::getSendSpeed() {
 }
 
 size_t RtspPusher::getSendTotalByte() {
-    size_t tmp_totals = TcpClient::getSendTotalBytes();
+    size_t tmp_totals = TcpClient::getTxTotalBytes();
 
     if (_rtp_type != Rtsp::RTP_TCP) {
         for (auto &rtp : _rtp_sock) {
