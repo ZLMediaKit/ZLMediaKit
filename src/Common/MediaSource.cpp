@@ -110,11 +110,18 @@ std::shared_ptr<void> MediaSource::getOwnership() {
     });
 }
 
-int MediaSource::getBytesSpeed(TrackType type){
+size_t MediaSource::getBytesSpeed(TrackType type) {
     if(type == TrackInvalid || type == TrackMax){
         return _speed[TrackVideo].getSpeed() + _speed[TrackAudio].getSpeed();
     }
     return _speed[type].getSpeed();
+}
+
+size_t MediaSource::getTotalBytes(TrackType type) {
+    if (type == TrackInvalid || type == TrackMax) {
+        return _speed[TrackVideo].getTotalBytes() + _speed[TrackAudio].getTotalBytes();
+    }
+    return _speed[type].getTotalBytes();
 }
 
 uint64_t MediaSource::getAliveSecond() const {
