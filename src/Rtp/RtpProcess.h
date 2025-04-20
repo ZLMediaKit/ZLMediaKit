@@ -122,7 +122,7 @@ protected:
 private:
     RtpProcess(const MediaTuple &tuple);
 
-    void emitOnPublish();
+    void emitOnPublish(uint32_t ssrc);
     void doCachedFunc();
     bool alive();
     void onManager();
