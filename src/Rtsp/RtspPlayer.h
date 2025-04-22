@@ -158,16 +158,16 @@ private:
     std::string _play_url;
     // rtsp开始倍速  [AUTO-TRANSLATED:9ab84508]
     // Rtsp start speed
-    float _speed= 0.0f;
+    float _speed = 0.0f;
     std::vector<SdpTrack::Ptr> _sdp_track;
     std::function<void(const Parser&)> _on_response;
  protected:   
     // RTP端口,trackid idx 为数组下标  [AUTO-TRANSLATED:77c186bb]
     // RTP port, trackid idx is the array subscript
-    toolkit::Socket::Ptr _rtp_sock[2] = { nullptr, nullptr };
+    toolkit::Socket::Ptr _rtp_sock[2];
     // RTCP端口,trackid idx 为数组下标  [AUTO-TRANSLATED:446a7861]
     // RTCP port, trackid idx is the array subscript
-    toolkit::Socket::Ptr _rtcp_sock[2] { nullptr, nullptr };
+    toolkit::Socket::Ptr _rtcp_sock[2];
 
 private:
     // rtsp鉴权相关  [AUTO-TRANSLATED:947dc6a3]
