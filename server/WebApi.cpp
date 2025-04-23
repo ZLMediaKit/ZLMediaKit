@@ -2207,7 +2207,7 @@ void installWebApi() {
         // sample_ms设置为0，从配置文件加载；file_repeat可以指定，如果配置文件也指定循环解复用，那么强制开启  [AUTO-TRANSLATED:23e826b4]
         // sample_ms is set to 0, loaded from the configuration file; file_repeat can be specified, if the configuration file also specifies loop demultiplexing, then force it to be enabled
         reader->startReadMP4(0, true, allArgs["file_repeat"]);
-        val["durations"] = reader->getDemuxer()->getDurationMS();
+        val["durations"] = (Json::UInt64)reader->getDemuxer()->getDurationMS();
     });
 #endif
 
