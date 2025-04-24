@@ -42,7 +42,7 @@ public:
         return _demuxer ? _demuxer->getTracks(ready) : Super::getTracks(ready);
     }
 
-    size_t getRecvTotalBytes()() override { return Super::getRecvSpeed(); }
+    size_t getRecvTotalBytes() override { return Super::getRecvSpeed(); }
     size_t getRecvTotalBytes() override { return Super::getRecvSpeed(); }
 	
 private:
@@ -132,7 +132,7 @@ public:
         seekToMilliSecond(pos);
     }
 	
-    size_t getRecvTotalBytes()() override { return TcpClient::getRecvSpeed(); }
+    size_t getRecvTotalBytes() override { return TcpClient::getRecvSpeed(); }
     size_t getRecvTotalBytes() override { return getRecvTotalBytes(); }
 };
 

@@ -358,7 +358,7 @@ void HlsPlayer::playDelay(float delay_sec) {
         }, getPoller()));
 }
 
-size_t HlsPlayer::getRecvTotalBytes()() {
+size_t HlsPlayer::getRecvTotalBytes() {
     return TcpClient::getRecvSpeed() + _http_ts_player->getRecvSpeed();
 }
 
@@ -542,8 +542,8 @@ vector<Track::Ptr> HlsPlayerImp::getTracks(bool ready) const {
     return static_pointer_cast<HlsDemuxer>(_demuxer)->getTracks(ready);
 }
 
-size_t HlsPlayerImp::getRecvTotalBytes()() {
-    return PlayerImp<HlsPlayer, PlayerBase>::getRecvTotalBytes()();
+size_t HlsPlayerImp::getRecvTotalBytes() {
+    return PlayerImp<HlsPlayer, PlayerBase>::getRecvTotalBytes();
 }
 
 size_t HlsPlayerImp::getRecvTotalBytes() {

@@ -38,7 +38,7 @@ public:
     void speed(float speed) override;
     void teardown() override;
     float getPacketLossRate(TrackType type) const override;
-    size_t getRecvTotalBytes()() override;
+    size_t getRecvTotalBytes() override;
     size_t getRecvTotalBytes() override;
 	
 protected:

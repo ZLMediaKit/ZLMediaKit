@@ -442,7 +442,7 @@ Value ToJson(const PlayerProxy::Ptr& p) {
     item["liveSecs"] = p->getLiveSecs();
     item["rePullCount"] = p->getRePullCount();
     item["totalReaderCount"] = p->totalReaderCount();
-    item["bytesSpeed"] =(Json::UInt64) p->getRecvTotalBytes()();
+    item["bytesSpeed"] =(Json::UInt64) p->getRecvTotalBytes();
     item["totalBytes"] =(Json::UInt64) p->getRecvTotalBytes();
 
     dumpMediaTuple(p->getMediaTuple(), item["src"]);

@@ -58,9 +58,9 @@ void MediaPlayer::setOnCreateSocket(Socket::onCreateSocket cb){
     _on_create_socket = std::move(cb);
 }
 
-size_t MediaPlayer::getRecvTotalBytes()() {
+size_t MediaPlayer::getRecvTotalBytes() {
     assert(_delegate);
-    return _delegate->getRecvTotalBytes()();
+    return _delegate->getRecvTotalBytes();
 }
 
 size_t MediaPlayer::getRecvTotalBytes() {

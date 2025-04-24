@@ -452,7 +452,7 @@ void RtmpPlayer::seekToMilliSecond(uint32_t seekMS){
     });
 }
 
-size_t RtmpPlayer::getRecvTotalBytes()() {
+size_t RtmpPlayer::getRecvTotalBytes() {
     return TcpClient::getRecvSpeed();
 }
 

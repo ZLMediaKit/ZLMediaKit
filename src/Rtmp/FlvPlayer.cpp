@@ -76,7 +76,7 @@ void FlvPlayer::onRecvRtmpPacket(RtmpPacket::Ptr packet) {
     onRtmpPacket(std::move(packet));
 }
 
-size_t FlvPlayer::getRecvTotalBytes()() {
+size_t FlvPlayer::getRecvTotalBytes() {
     return TcpClient::getRecvSpeed();
 }
 
