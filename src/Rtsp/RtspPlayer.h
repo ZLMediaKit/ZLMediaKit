@@ -38,9 +38,10 @@ public:
     void speed(float speed) override;
     void teardown() override;
     float getPacketLossRate(TrackType type) const override;
+
+    size_t getRecvSpeed() override;
     size_t getRecvTotalBytes() override;
-    size_t getRecvTotalBytes() override;
-	
+
 protected:
     // 派生类回调函数  [AUTO-TRANSLATED:61e20903]
     // Derived class callback function

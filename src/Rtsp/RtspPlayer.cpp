@@ -844,7 +844,7 @@ int RtspPlayer::getTrackIndexByTrackType(TrackType track_type) const {
     throw SockException(Err_other, StrPrinter << "no such track with type:" << getTrackString(track_type));
 }
 
-size_t RtspPlayer::getRecvTotalBytes() {
+size_t RtspPlayer::getRecvSpeed() {
     size_t tmp_speed = TcpClient::getRecvSpeed();
 
     if (_rtp_type != Rtsp::RTP_TCP) {

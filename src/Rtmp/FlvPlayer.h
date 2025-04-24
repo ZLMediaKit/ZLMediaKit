@@ -23,7 +23,7 @@ public:
 
     void play(const std::string &url) override;
     void teardown() override;
-    size_t getRecvTotalBytes() override;
+    size_t getRecvSpeed() override;
     size_t getRecvTotalBytes() override;
 
 protected:

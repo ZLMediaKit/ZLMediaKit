@@ -165,7 +165,9 @@ public:
      * [AUTO-TRANSLATED:8fb31d43]
      */
     virtual void setOnResume(const std::function<void()> &cb) = 0;
-    virtual size_t getRecvTotalBytes() { return 0; }
+   
+    virtual size_t getRecvSpeed() { return 0; }
+
     virtual size_t getRecvTotalBytes() { return 0; }
 
 protected:
@@ -258,19 +260,20 @@ public:
         _on_resume = cb;
     }
 
+    size_t getRecvSpeed() override {
+        if (_delegate) {
+            return _delegate->getRecvSpeed();
+        }
+        return Parent::getRecvSpeed();
+    }
+
     size_t getRecvTotalBytes() override {
         if (_delegate) {
             return _delegate->getRecvTotalBytes();
         }
         return Parent::getRecvTotalBytes();
     }
-	
-    size_t getRecvTotalBytes() override {
-        if (_delegate) {
-            return _delegate->getRecvTotalBytes();
-        }
-        return Parent::getRecvTotalBytes();
-    }
+
 protected:
     void onShutdown(const toolkit::SockException &ex) override {
         if (_on_shutdown) {

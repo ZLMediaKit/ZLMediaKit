@@ -73,7 +73,7 @@ public:
      */
     void teardown() override;
 
-    size_t getRecvTotalBytes() override;
+    size_t getRecvSpeed() override;
     size_t getRecvTotalBytes() override;
 
 protected:
@@ -139,7 +139,7 @@ class HlsPlayerImp final: public PlayerImp<HlsPlayer, PlayerBase>, private Track
 public:
     using Ptr = std::shared_ptr<HlsPlayerImp>;
     HlsPlayerImp(const toolkit::EventPoller::Ptr &poller = nullptr);
-    size_t getRecvTotalBytes() override;
+    size_t getRecvSpeed() override;
     size_t getRecvTotalBytes() override;
 
 private:
