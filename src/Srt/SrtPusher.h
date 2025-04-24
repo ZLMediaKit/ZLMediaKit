@@ -53,7 +53,7 @@ protected:
     TSMediaSource::RingType::RingReader::Ptr _ts_reader;
 
     size_t getSendSpeed() override;
-    size_t getSendTotalByte() override;
+    size_t getSendTotalBytes() override;
 };
 
 using SrtPusherImp = PusherImp<SrtPusher, PusherBase>;

@@ -116,7 +116,7 @@ size_t SrtPusher::getSendSpeed() {
     return SrtCaller::getSendSpeed();
 }
 
-size_t SrtPusher::getSendTotalByte() {
+size_t SrtPusher::getSendTotalBytes() {
     return SrtCaller::getSendTotalBytes();
 }
 } /* namespace mediakit */

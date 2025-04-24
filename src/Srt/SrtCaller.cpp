@@ -1018,7 +1018,7 @@ size_t SrtCaller::getPayloadSize() {
     return ret;
 }
 
-size_t SrtCaller::getRecSpeed() const {
+size_t SrtCaller::getRecvTotalBytes()() const {
     return _socket ? _socket->getRecvSpeed() : 0;
 }
 

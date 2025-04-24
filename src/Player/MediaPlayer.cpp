@@ -58,13 +58,13 @@ void MediaPlayer::setOnCreateSocket(Socket::onCreateSocket cb){
     _on_create_socket = std::move(cb);
 }
 
-size_t MediaPlayer::getRecSpeed() {
+size_t MediaPlayer::getRecvTotalBytes()() {
     assert(_delegate);
-    return _delegate->getRecSpeed();
+    return _delegate->getRecvTotalBytes()();
 }
 
-size_t MediaPlayer::getRecTotalByte() {
+size_t MediaPlayer::getRecvTotalBytes() {
     assert(_delegate);
-    return _delegate->getRecTotalByte();
+    return _delegate->getRecvTotalBytes();
 }
 } /* namespace mediakit */

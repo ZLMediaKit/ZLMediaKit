@@ -28,7 +28,7 @@ public:
     void teardown() override;
 
     size_t getSendSpeed() override;
-    size_t getSendTotalByte() override;
+    size_t getSendTotalBytes() override;
 	
 protected:
     //for Tcpclient override

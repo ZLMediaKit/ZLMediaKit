@@ -37,8 +37,8 @@ public:
     void speed(float speed) override;
     void teardown() override;
 
-    size_t getRecSpeed() override;
-    size_t getRecTotalByte() override;
+    size_t getRecvTotalBytes()() override;
+    size_t getRecvTotalBytes() override;
 	
 protected:
     virtual bool onMetadata(const AMFValue &val) = 0;

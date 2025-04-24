@@ -38,8 +38,8 @@ public:
     void teardown() override;
     void pause(bool pause) override;
     void speed(float speed) override;
-    size_t getRecSpeed() override;
-    size_t getRecTotalByte() override;
+    size_t getRecvTotalBytes()() override;
+    size_t getRecvTotalBytes() override;
 
 protected:
 

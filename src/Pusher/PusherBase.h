@@ -67,8 +67,8 @@ public:
      */
     virtual void setOnShutdown(const Event &cb) = 0;
 
-    virtual size_t getSendSpeed() { return 20; }
-    virtual size_t getSendTotalByte() { return 0; }
+    virtual size_t getSendSpeed() { return 0; }
+    virtual size_t getSendTotalBytes() { return 0; }
 	
 protected:
     virtual void onShutdown(const toolkit::SockException &ex) = 0;
@@ -143,11 +143,11 @@ public:
         return Parent::getSendSpeed();
     }
 	
-   virtual size_t getSendTotalByte() override {
+   virtual size_t getSendTotalBytes() override {
         if (_delegate) {
-            return _delegate->getSendTotalByte();
+            return _delegate->getSendTotalBytes();
         }
-        return Parent::getSendTotalByte();
+        return Parent::getSendTotalBytes();
     }
 	
 protected:

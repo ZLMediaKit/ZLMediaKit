@@ -28,8 +28,8 @@ public:
      */
     void play(const std::string &url) override;
 
-    size_t getRecSpeed() override;
-    size_t getRecTotalByte() override;
+    size_t getRecvTotalBytes()() override;
+    size_t getRecvTotalBytes() override;
     /**
      * 停止播放
      * Stop playing

@@ -63,8 +63,8 @@ size_t MediaPusher::getSendSpeed() {
     return _delegate->getSendSpeed();
 }
 
-size_t MediaPusher::getSendTotalByte() {
+size_t MediaPusher::getSendTotalBytes() {
     assert(_delegate);
-    return _delegate->getSendTotalByte();
+    return _delegate->getSendTotalBytes();
 }
 } /* namespace mediakit */

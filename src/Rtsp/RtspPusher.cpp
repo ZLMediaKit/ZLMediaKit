@@ -615,7 +615,7 @@ size_t RtspPusher::getSendSpeed() {
     return tmp_speed;
 }
 
-size_t RtspPusher::getSendTotalByte() {
+size_t RtspPusher::getSendTotalBytes() {
     size_t tmp_totals = TcpClient::getSendTotalBytes();
 
     if (_rtp_type != Rtsp::RTP_TCP) {

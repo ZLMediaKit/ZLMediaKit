@@ -427,7 +427,7 @@ Value ToJson(const PusherProxy::Ptr& p) {
     item["liveSecs"] = p->getLiveSecs();
     item["rePublishCount"] = p->getRePublishCount();    
     item["bytesSpeed"] = (Json::UInt64) p->getSendSpeed();
-    item["totalBytes"] =(Json::UInt64) p->getSendTotalByte();
+    item["totalBytes"] =(Json::UInt64) p->getSendTotalBytes();
 
     if (auto src = p->getSrc()) {
         dumpMediaTuple(src->getMediaTuple(), item["src"]);
@@ -442,8 +442,8 @@ Value ToJson(const PlayerProxy::Ptr& p) {
     item["liveSecs"] = p->getLiveSecs();
     item["rePullCount"] = p->getRePullCount();
     item["totalReaderCount"] = p->totalReaderCount();
-    item["bytesSpeed"] =(Json::UInt64) p->getRecSpeed();
-    item["totalBytes"] =(Json::UInt64) p->getRecTotalByte();
+    item["bytesSpeed"] =(Json::UInt64) p->getRecvTotalBytes()();
+    item["totalBytes"] =(Json::UInt64) p->getRecvTotalBytes();
 
     dumpMediaTuple(p->getMediaTuple(), item["src"]);
     return item;

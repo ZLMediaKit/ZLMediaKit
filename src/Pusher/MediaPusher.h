@@ -36,7 +36,7 @@ public:
     std::shared_ptr<MediaSource> getSrc() { return _src.lock(); }
     const std::string& getUrl() const { return _url; }
     size_t getSendSpeed() override;
-    size_t getSendTotalByte() override;
+    size_t getSendTotalBytes() override;
 	
 private:
     std::weak_ptr<MediaSource> _src;
