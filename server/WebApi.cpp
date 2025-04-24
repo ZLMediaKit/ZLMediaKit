@@ -442,8 +442,8 @@ Value ToJson(const PlayerProxy::Ptr& p) {
     item["liveSecs"] = p->getLiveSecs();
     item["rePullCount"] = p->getRePullCount();
     item["totalReaderCount"] = p->totalReaderCount();
-    item["bytesSpeed"] =(Json::UInt64) p->getRecvTotalBytes();
-    item["totalBytes"] =(Json::UInt64) p->getRecvTotalBytes();
+    item["bytesSpeed"] = (Json::UInt64) p->getRecvSpeed();
+    item["totalBytes"] = (Json::UInt64) p->getRecvTotalBytes();
 
     dumpMediaTuple(p->getMediaTuple(), item["src"]);
     return item;
@@ -456,7 +456,7 @@ Value makeMediaSourceJson(MediaSource &media){
     item["createStamp"] = (Json::UInt64) media.getCreateStamp();
     item["aliveSecond"] = (Json::UInt64) media.getAliveSecond();
     item["bytesSpeed"] = (Json::UInt64) media.getBytesSpeed();
-    item["totalBytes"] =(Json::UInt64) media.getTotalBytes();
+    item["totalBytes"] = (Json::UInt64) media.getTotalBytes();
     item["readerCount"] = media.readerCount();
     item["totalReaderCount"] = media.totalReaderCount();
     item["originType"] = (int) media.getOriginType();
