@@ -136,14 +136,14 @@ public:
         _on_shutdown = cb;
     }
 
-    virtual size_t getSendSpeed() override {
+    size_t getSendSpeed() override {
         if (_delegate) {
             return _delegate->getSendSpeed();
         }
         return Parent::getSendSpeed();
     }
 	
-   virtual size_t getSendTotalBytes() override {
+   size_t getSendTotalBytes() override {
         if (_delegate) {
             return _delegate->getSendTotalBytes();
         }
