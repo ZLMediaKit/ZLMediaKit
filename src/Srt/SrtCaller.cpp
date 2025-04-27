@@ -1022,7 +1022,7 @@ size_t SrtCaller::getRecvSpeed() const {
     return _socket ? _socket->getRecvSpeed() : 0;
 }
 
-size_t SrtCaller::getRecTotalBytes() const {
+size_t SrtCaller::getRecvTotalBytes() const {
     return _socket ? _socket->getRecvTotalBytes() : 0;
 }
 

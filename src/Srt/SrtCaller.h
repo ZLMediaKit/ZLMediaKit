@@ -61,7 +61,7 @@ public:
     virtual void onSendTSData(const SRT::Buffer::Ptr &buffer, bool flush);
 
     size_t getRecvSpeed() const;
-    size_t getRecTotalBytes() const;
+    size_t getRecvTotalBytes() const;
     size_t getSendSpeed() const;
     size_t getSendTotalBytes() const;
 

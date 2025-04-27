@@ -125,7 +125,7 @@ size_t SrtPlayer::getRecvSpeed() {
 }
 
 size_t SrtPlayer::getRecvTotalBytes() {
-    return SrtCaller::getRecTotalBytes();
+    return SrtCaller::getRecvTotalBytes();
 }
 
 ///////////////////////////////////////////////////
@@ -177,7 +177,7 @@ size_t SrtPlayerImp::getRecvSpeed() {
 }
 
 size_t SrtPlayerImp::getRecvTotalBytes() {
-    return SrtCaller::getRecTotalBytes();
+    return SrtCaller::getRecvTotalBytes();
 }
 } /* namespace mediakit */
 
