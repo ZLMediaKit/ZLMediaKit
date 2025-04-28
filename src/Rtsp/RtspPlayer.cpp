@@ -785,7 +785,7 @@ void RtspPlayer::onPlayResult_l(const SockException &ex, bool handshake_done) {
         _rtp_recv_ticker.resetTime();
         auto timeoutMS = (*this)[Client::kMediaTimeoutMS].as<uint64_t>();
         weak_ptr<RtspPlayer> weakSelf = static_pointer_cast<RtspPlayer>(shared_from_this());
-        auto&& lam = [weakSelf, timeoutMS]() {
+        auto lam = [weakSelf, timeoutMS]() {
             auto strongSelf = weakSelf.lock();
             if (!strongSelf) {
                 return false;
@@ -800,7 +800,7 @@ void RtspPlayer::onPlayResult_l(const SockException &ex, bool handshake_done) {
         };
         // 创建rtp数据接收超时检测定时器  [AUTO-TRANSLATED:edbffc19]
         // Create RTP data receive timeout detection timer
-        _rtp_check_timer = std::make_shared<Timer>(timeoutMS / 2000.0f, move(lam), getPoller());
+        _rtp_check_timer = std::make_shared<Timer>(timeoutMS / 2000.0f, std::move(lam), getPoller());
     } else {
         sendTeardown();
     }
