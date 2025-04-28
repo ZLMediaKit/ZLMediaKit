@@ -103,6 +103,8 @@ void HttpClient::clear() {
     _user_set_header.clear();
     _body.reset();
     _method.clear();
+    // 重置代理连接状态
+    _proxy_connected = false;
     clearResponse();
 }
 
@@ -182,6 +184,8 @@ void HttpClient::onConnect_l(const SockException &ex) {
         _path.clear();
     } else {
         printer << "CONNECT " << _last_host << " HTTP/1.1\r\n";
+        printer << "Host: " << _last_host << "\r\n";
+        printer << "User-Agent: " << kServerName << "\r\n";
         printer << "Proxy-Connection: keep-alive\r\n";
         if (!_proxy_auth.empty()) {
             printer << "Proxy-Authorization: Basic " << _proxy_auth << "\r\n";
@@ -482,9 +486,14 @@ void HttpClient::setProxyUrl(string proxy_url) {
 }
 
 bool HttpClient::checkProxyConnected(const char *data, size_t len) {
-    auto ret = strstr(data, "HTTP/1.1 200 Connection established");
-    _proxy_connected = ret != nullptr;
-    return _proxy_connected;
+    string response(data, len);
+    if (response.find("HTTP/1.1 200") != string::npos || response.find("HTTP/1.0 200") != string::npos) {
+        _proxy_connected = true;
+        return true;
+    }
+
+    _proxy_connected = false;
+    return false;
 }
 
 void HttpClient::setAllowResendRequest(bool allow) {

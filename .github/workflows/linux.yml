@@ -5,7 +5,7 @@ on: [push, pull_request]
 jobs:
   build:
 
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
 
     steps:
     - uses: actions/checkout@v1
@@ -18,7 +18,7 @@ jobs:
       with:
         repository: cisco/libsrtp
         fetch-depth: 1
-        ref: v2.3.0
+        ref: v2.7.0
         path: 3rdpart/libsrtp
 
     - name: 下载 openssl

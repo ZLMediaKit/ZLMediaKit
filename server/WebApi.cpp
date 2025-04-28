@@ -1191,25 +1191,27 @@ void installWebApi() {
 
         auto dst_url = allArgs["dst_url"];
         auto retry_count = allArgs["retry_count"].empty() ? -1 : allArgs["retry_count"].as<int>();
-        addStreamPusherProxy(allArgs["schema"],
-                             allArgs["vhost"],
-                             allArgs["app"],
-                             allArgs["stream"],
-                             allArgs["dst_url"],
-                             retry_count,
-                             allArgs["rtp_type"],
-                             allArgs["timeout_sec"],
-                             args,
-                             [invoker, val, headerOut, dst_url](const SockException &ex, const string &key) mutable {
-                                 if (ex) {
-                                     val["code"] = API::OtherFailed;
-                                     val["msg"] = ex.what();
-                                 } else {
-                                     val["data"]["key"] = key;
-                                     InfoL << "Publish success, please play with player:" << dst_url;
-                                 }
-                                 invoker(200, headerOut, val.toStyledString());
-                             });
+        EventPollerPool::Instance().getPoller(false)->async([=]() mutable {
+            addStreamPusherProxy(allArgs["schema"],
+                                 allArgs["vhost"],
+                                 allArgs["app"],
+                                 allArgs["stream"],
+                                 allArgs["dst_url"],
+                                 retry_count,
+                                 allArgs["rtp_type"],
+                                 allArgs["timeout_sec"],
+                                 args,
+                                 [invoker, val, headerOut, dst_url](const SockException &ex, const string &key) mutable {
+                                     if (ex) {
+                                         val["code"] = API::OtherFailed;
+                                         val["msg"] = ex.what();
+                                     } else {
+                                         val["data"]["key"] = key;
+                                         InfoL << "Publish success, please play with player:" << dst_url;
+                                     }
+                                     invoker(200, headerOut, val.toStyledString());
+                                 });
+        });
     });
 
     // 关闭推流代理  [AUTO-TRANSLATED:91602b75]
@@ -1258,22 +1260,24 @@ void installWebApi() {
             vhost = allArgs["vhost"];
         }
         auto tuple = MediaTuple { vhost, allArgs["app"], allArgs["stream"], "" };
-        addStreamProxy(tuple,
-                       allArgs["url"],
-                       retry_count,
-                       option,
-                       allArgs["rtp_type"],
-                       allArgs["timeout_sec"],
-                       args,
-                       [invoker,val,headerOut](const SockException &ex,const string &key) mutable{
-                           if (ex) {
-                               val["code"] = API::OtherFailed;
-                               val["msg"] = ex.what();
-                           } else {
-                               val["data"]["key"] = key;
-                           }
-                           invoker(200, headerOut, val.toStyledString());
-                       });
+        EventPollerPool::Instance().getPoller(false)->async([=]() mutable {
+            addStreamProxy(tuple,
+                           allArgs["url"],
+                           retry_count,
+                           option,
+                           allArgs["rtp_type"],
+                           allArgs["timeout_sec"],
+                           args,
+                           [invoker,val,headerOut](const SockException &ex,const string &key) mutable {
+                               if (ex) {
+                                   val["code"] = API::OtherFailed;
+                                   val["msg"] = ex.what();
+                               } else {
+                                   val["data"]["key"] = key;
+                               }
+                               invoker(200, headerOut, val.toStyledString());
+                           });
+        });
     });
 
     // 关闭拉流代理  [AUTO-TRANSLATED:5204f128]
@@ -2203,6 +2207,7 @@ void installWebApi() {
         // sample_ms设置为0，从配置文件加载；file_repeat可以指定，如果配置文件也指定循环解复用，那么强制开启  [AUTO-TRANSLATED:23e826b4]
         // sample_ms is set to 0, loaded from the configuration file; file_repeat can be specified, if the configuration file also specifies loop demultiplexing, then force it to be enabled
         reader->startReadMP4(0, true, allArgs["file_repeat"]);
+        val["data"]["duration_ms"] = (Json::UInt64)reader->getDemuxer()->getDurationMS();
     });
 #endif
 

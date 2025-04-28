@@ -188,8 +188,14 @@ private:
     }
 
     iterator popIterator(iterator it) {
-        output(it->first, std::move(it->second));
-        return _pkt_sort_cache_map.erase(it);
+        try {
+            output(it->first, std::move(it->second));
+            return _pkt_sort_cache_map.erase(it);
+        } catch (...) {
+            // 防止抛异常未移除迭代器，导致rtp包为空
+            _pkt_sort_cache_map.erase(it);
+            throw;
+        }
     }
 
     void output(SEQ seq, T packet) {

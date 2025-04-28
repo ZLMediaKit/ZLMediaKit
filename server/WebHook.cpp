@@ -339,6 +339,10 @@ static mINI jsonToMini(const Value &obj) {
     mINI ret;
     if (obj.isObject()) {
         for (auto it = obj.begin(); it != obj.end(); ++it) {
+            if (it->isNull()) {
+                // 忽略null，修复wvp传null覆盖Protocol配置的问题
+                continue;
+            }
             try {
                 auto str = (*it).asString();
                 ret[it.name()] = std::move(str);

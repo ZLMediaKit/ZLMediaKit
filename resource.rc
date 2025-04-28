@@ -1,5 +1,5 @@
-﻿#ifdef APSTUDIO_INVOKED
-#error This file is not editable by Visual C++.
+#ifdef APSTUDIO_INVOKED
+#error "This file is not editable by Visual C++."
 #endif //APSTUDIO_INVOKED
 
 #include "winres.h"

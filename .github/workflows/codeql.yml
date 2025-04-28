@@ -5,7 +5,7 @@ on: [push, pull_request]
 jobs:
   analyze:
     name: Analyze
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     permissions:
       actions: read
       contents: read
@@ -43,7 +43,7 @@ jobs:
       with:
         repository: cisco/libsrtp
         fetch-depth: 1
-        ref: v2.3.0
+        ref: v2.7.0
         path: 3rdpart/libsrtp
 
     - name: 编译 SRTP
