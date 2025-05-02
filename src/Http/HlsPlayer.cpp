@@ -15,7 +15,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-HlsPlayer::HlsPlayer(const EventPoller::Ptr &poller): _recvtotalbytes(0) {
+HlsPlayer::HlsPlayer(const EventPoller::Ptr &poller) {
     setPoller(poller ? poller : EventPollerPool::Instance().getPoller());
 }
 

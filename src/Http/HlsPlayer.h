@@ -132,7 +132,7 @@ private:
     int _ts_download_failed_count = 0;
 
 protected:
-    size_t _recvtotalbytes;
+    size_t _recvtotalbytes = 0;
 };
 
 class HlsPlayerImp final: public PlayerImp<HlsPlayer, PlayerBase>, private TrackListener {
