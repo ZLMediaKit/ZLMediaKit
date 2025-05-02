@@ -51,6 +51,9 @@ protected:
 protected:
     std::weak_ptr<TSMediaSource> _push_src;
     TSMediaSource::RingType::RingReader::Ptr _ts_reader;
+
+    size_t getSendSpeed() override;
+    size_t getSendTotalBytes() override;
 };
 
 using SrtPusherImp = PusherImp<SrtPusher, PusherBase>;

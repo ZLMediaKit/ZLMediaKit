@@ -425,7 +425,10 @@ Value ToJson(const PusherProxy::Ptr& p) {
     item["url"] = p->getUrl();
     item["status"] = p->getStatus();
     item["liveSecs"] = p->getLiveSecs();
-    item["rePublishCount"] = p->getRePublishCount();
+    item["rePublishCount"] = p->getRePublishCount();    
+    item["bytesSpeed"] = (Json::UInt64) p->getSendSpeed();
+    item["totalBytes"] =(Json::UInt64) p->getSendTotalBytes();
+
     if (auto src = p->getSrc()) {
         dumpMediaTuple(src->getMediaTuple(), item["src"]);
     }
@@ -439,6 +442,9 @@ Value ToJson(const PlayerProxy::Ptr& p) {
     item["liveSecs"] = p->getLiveSecs();
     item["rePullCount"] = p->getRePullCount();
     item["totalReaderCount"] = p->totalReaderCount();
+    item["bytesSpeed"] = (Json::UInt64) p->getRecvSpeed();
+    item["totalBytes"] = (Json::UInt64) p->getRecvTotalBytes();
+
     dumpMediaTuple(p->getMediaTuple(), item["src"]);
     return item;
 }
@@ -449,7 +455,8 @@ Value makeMediaSourceJson(MediaSource &media){
     dumpMediaTuple(media.getMediaTuple(), item);
     item["createStamp"] = (Json::UInt64) media.getCreateStamp();
     item["aliveSecond"] = (Json::UInt64) media.getAliveSecond();
-    item["bytesSpeed"] = media.getBytesSpeed();
+    item["bytesSpeed"] = (Json::UInt64) media.getBytesSpeed();
+    item["totalBytes"] = (Json::UInt64) media.getTotalBytes();
     item["readerCount"] = media.readerCount();
     item["totalReaderCount"] = media.totalReaderCount();
     item["originType"] = (int) media.getOriginType();
@@ -1674,8 +1681,10 @@ void installWebApi() {
         CHECK(muxer, "get muxer from media source failed");
 
         src->getOwnerPoller()->async([=]() mutable {
-            muxer->forEachRtpSender([&](const std::string &ssrc) mutable {
+            muxer->forEachRtpSender([&](const std::string &ssrc, const RtpSender &sender) mutable {
                 val["data"].append(ssrc);
+                val["bytesSpeed"] = (Json::UInt64)sender.getSendSpeed();
+                val["totalBytes"] = (Json::UInt64)sender.getSendTotalBytes();
             });
             invoker(200, headerOut, val.toStyledString());
         });

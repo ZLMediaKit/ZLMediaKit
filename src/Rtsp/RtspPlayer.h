@@ -39,6 +39,9 @@ public:
     void teardown() override;
     float getPacketLossRate(TrackType type) const override;
 
+    size_t getRecvSpeed() override;
+    size_t getRecvTotalBytes() override;
+
 protected:
     // 派生类回调函数  [AUTO-TRANSLATED:61e20903]
     // Derived class callback function
@@ -156,9 +159,10 @@ private:
     std::string _play_url;
     // rtsp开始倍速  [AUTO-TRANSLATED:9ab84508]
     // Rtsp start speed
-    float _speed= 0.0f;
+    float _speed = 0.0f;
     std::vector<SdpTrack::Ptr> _sdp_track;
     std::function<void(const Parser&)> _on_response;
+ protected:   
     // RTP端口,trackid idx 为数组下标  [AUTO-TRANSLATED:77c186bb]
     // RTP port, trackid idx is the array subscript
     toolkit::Socket::Ptr _rtp_sock[2];
@@ -166,6 +170,7 @@ private:
     // RTCP port, trackid idx is the array subscript
     toolkit::Socket::Ptr _rtcp_sock[2];
 
+private:
     // rtsp鉴权相关  [AUTO-TRANSLATED:947dc6a3]
     // Rtsp authentication related
     std::string _md5_nonce;
@@ -175,8 +180,10 @@ private:
     uint32_t _cseq_send = 1;
     std::string _content_base;
     std::string _control_url;
+protected:   
     Rtsp::eRtpType _rtp_type = Rtsp::RTP_TCP;
 
+private:
     // 当前rtp时间戳  [AUTO-TRANSLATED:410f2691]
     // Current rtp timestamp
     uint32_t _stamp[2] = {0, 0};
