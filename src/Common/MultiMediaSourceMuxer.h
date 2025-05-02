@@ -194,7 +194,7 @@ public:
     const MediaTuple &getMediaTuple() const;
     std::string shortUrl() const;
 
-    void forEachRtpSender(const std::function<void(const std::string &ssrc, size_t totalsendbytes, size_t sendspeed)> &cb) const;
+    void forEachRtpSender(const std::function<void(const std::string &ssrc, const RtpSender &sender)> &cb) const;
 
 protected:
     /////////////////////////////////MediaSink override/////////////////////////////////

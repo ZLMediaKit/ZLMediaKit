@@ -1681,10 +1681,10 @@ void installWebApi() {
         CHECK(muxer, "get muxer from media source failed");
 
         src->getOwnerPoller()->async([=]() mutable {
-            muxer->forEachRtpSender([&](const std::string &ssrc, size_t totalsendbytes, size_t sendspeed) mutable {
+            muxer->forEachRtpSender([&](const std::string &ssrc, const RtpSender &sender) mutable {
                 val["data"].append(ssrc);
-                val["totalBytes"] = (Json::UInt64)totalsendbytes;
-                val["bytesSpeed"] = (Json::UInt64)sendspeed;
+                val["totalBytes"] = (Json::UInt64)sender.getSendTotalBytes();
+                val["bytesSpeed"] = (Json::UInt64)sender.getSendSpeed();
             });
             invoker(200, headerOut, val.toStyledString());
         });

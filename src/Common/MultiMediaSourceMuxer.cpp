@@ -183,16 +183,12 @@ std::string MultiMediaSourceMuxer::shortUrl() const {
     return _tuple.shortUrl();
 }
 
-void MultiMediaSourceMuxer::forEachRtpSender(const std::function<void(const std::string &ssrc, size_t totalsendbytes, size_t sendspeed)> &cb) const {
-    size_t tmp_totalsendbytes = 0, tmp_sendspeed = 0;
+void MultiMediaSourceMuxer::forEachRtpSender(const std::function<void(const std::string &ssrc, const RtpSender &sender)> &cb) const {
     for (auto &pr : _rtp_sender) {
-        auto rtpsok = get<1>(pr.second).lock();
-        if (rtpsok) {
-            tmp_totalsendbytes = rtpsok->getSendTotalBytes();
-            tmp_sendspeed = rtpsok->getSendSpeed();
+        auto sender = std::get<1>(pr.second).lock();
+        if (sender) {
+            cb(pr.first, *sender);
         }
-
-        cb(pr.first, tmp_totalsendbytes, tmp_sendspeed);
     }
 }
 
