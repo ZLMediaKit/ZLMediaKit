@@ -457,5 +457,56 @@ void RtpSender::setOnClose(std::function<void(const toolkit::SockException &ex)>
     _on_close = std::move(on_close);
 }
 
+size_t RtpSender::getSendSpeed() const {
+    size_t tmp_speed = 0;
+    if (_socket_rtp) {
+        tmp_speed += _socket_rtp->getSendSpeed();
+
+        if (_socket_rtcp && (SockNum::Sock_UDP == _socket_rtp->sockType())) {
+            tmp_speed += _socket_rtcp->getSendSpeed();
+        }
+    }
+
+    return tmp_speed;
+}
+
+size_t RtpSender::getRecvSpeed() const {
+    size_t tmp_speed = 0;
+    if (_socket_rtp) {
+        tmp_speed += _socket_rtp->getRecvSpeed();
+
+        if (_socket_rtcp && (SockNum::Sock_UDP == _socket_rtp->sockType())) {
+            tmp_speed += _socket_rtcp->getRecvSpeed();
+        }
+    }
+
+    return tmp_speed;
+}
+
+size_t RtpSender::getRecvTotalBytes() const {
+    size_t tmp_totalBytes = 0;
+    if (_socket_rtp) {
+        tmp_totalBytes += _socket_rtp->getRecvTotalBytes();
+
+        if (_socket_rtcp && (SockNum::Sock_UDP == _socket_rtp->sockType())) {
+            tmp_totalBytes += _socket_rtcp->getRecvTotalBytes();
+        }
+    }
+
+    return tmp_totalBytes;
+}
+
+size_t RtpSender::getSendTotalBytes() const {
+    size_t tmp_totalBytes = 0;
+    if (_socket_rtp) {
+        tmp_totalBytes += _socket_rtp->getSendTotalBytes();
+
+        if (_socket_rtcp && (SockNum::Sock_UDP == _socket_rtp->sockType())) {
+            tmp_totalBytes += _socket_rtcp->getSendTotalBytes();
+        }
+    }
+
+    return tmp_totalBytes;
+}
 } // namespace mediakit
 #endif // defined(ENABLE_RTPPROXY)

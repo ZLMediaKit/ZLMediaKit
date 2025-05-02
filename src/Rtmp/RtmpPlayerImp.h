@@ -42,6 +42,9 @@ public:
         return _demuxer ? _demuxer->getTracks(ready) : Super::getTracks(ready);
     }
 
+    size_t getRecvSpeed() override { return Super::getRecvSpeed(); }
+    size_t getRecvTotalBytes() override { return Super::getRecvSpeed(); }
+
 private:
     // 派生类回调函数  [AUTO-TRANSLATED:61e20903]
     // Derived class callback function
@@ -128,6 +131,10 @@ public:
         uint32_t pos = MAX(float(0), MIN(seekPos, getDuration())) * 1000;
         seekToMilliSecond(pos);
     }
+
+    size_t getRecvSpeed() override { return TcpClient::getRecvSpeed(); }
+
+    size_t getRecvTotalBytes() override { return getRecvTotalBytes(); }
 };
 
 

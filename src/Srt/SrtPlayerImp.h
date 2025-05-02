@@ -25,6 +25,9 @@ public:
     SrtPlayerImp(const toolkit::EventPoller::Ptr &poller) : Super(poller) {}
     ~SrtPlayerImp() override { DebugL; }
 
+    size_t getRecvSpeed() override;
+    size_t getRecvTotalBytes() override;
+	
 private:
     //// SrtPlayer override////
     void onSRTData(SRT::DataPacket::Ptr pkt) override;

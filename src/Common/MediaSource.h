@@ -442,7 +442,9 @@ public:
 
     // 获取数据速率，单位bytes/s  [AUTO-TRANSLATED:c70465c1]
     // Get data rate, unit bytes/s
-    int getBytesSpeed(TrackType type = TrackInvalid);
+    size_t getBytesSpeed(TrackType type = TrackInvalid);
+    size_t getTotalBytes(TrackType type = TrackInvalid);
+
     // 获取流创建GMT unix时间戳，单位秒  [AUTO-TRANSLATED:0bbe145e]
     // Get the stream creation GMT unix timestamp, unit seconds
     uint64_t getCreateStamp() const { return _create_stamp; }

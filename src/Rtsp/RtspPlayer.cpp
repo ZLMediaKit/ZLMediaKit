@@ -800,7 +800,7 @@ void RtspPlayer::onPlayResult_l(const SockException &ex, bool handshake_done) {
         };
         // 创建rtp数据接收超时检测定时器  [AUTO-TRANSLATED:edbffc19]
         // Create RTP data receive timeout detection timer
-        _rtp_check_timer = std::make_shared<Timer>(timeoutMS / 2000.0f, lam, getPoller());
+        _rtp_check_timer = std::make_shared<Timer>(timeoutMS / 2000.0f, std::move(lam), getPoller());
     } else {
         sendTeardown();
     }
@@ -842,6 +842,44 @@ int RtspPlayer::getTrackIndexByTrackType(TrackType track_type) const {
         return 0;
     }
     throw SockException(Err_other, StrPrinter << "no such track with type:" << getTrackString(track_type));
+}
+
+size_t RtspPlayer::getRecvSpeed() {
+    size_t tmp_speed = TcpClient::getRecvSpeed();
+
+    if (_rtp_type != Rtsp::RTP_TCP) {
+        for (auto &rtp : _rtp_sock) {
+            if (rtp) {
+                tmp_speed += rtp->getRecvSpeed();
+            }
+        }
+    }
+
+    for (auto &rtcp : _rtcp_sock) {
+        if (rtcp) {
+            tmp_speed += rtcp->getRecvSpeed();
+        }
+    }
+    return tmp_speed;
+}
+
+size_t RtspPlayer::getRecvTotalBytes() {
+    size_t tmp_totals = TcpClient::getRecvTotalBytes();
+
+    if (_rtp_type != Rtsp::RTP_TCP) {
+        for (auto &rtp : _rtp_sock) {
+            if (rtp) {
+                tmp_totals += rtp->getRecvTotalBytes();
+            }
+        }
+    }
+
+    for (auto &rtcp : _rtcp_sock) {
+        if (rtcp) {
+            tmp_totals += rtcp->getRecvTotalBytes();
+        }
+    }
+    return tmp_totals;
 }
 
 ///////////////////////////////////////////////////

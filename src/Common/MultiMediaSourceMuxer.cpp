@@ -183,9 +183,16 @@ std::string MultiMediaSourceMuxer::shortUrl() const {
     return _tuple.shortUrl();
 }
 
-void MultiMediaSourceMuxer::forEachRtpSender(const std::function<void(const std::string &ssrc)> &cb) const {
+void MultiMediaSourceMuxer::forEachRtpSender(const std::function<void(const std::string &ssrc, size_t totalsendbytes, size_t sendspeed)> &cb) const {
+    size_t tmp_totalsendbytes = 0, tmp_sendspeed = 0;
     for (auto &pr : _rtp_sender) {
-        cb(pr.first);
+        auto rtpsok = get<1>(pr.second).lock();
+        if (rtpsok) {
+            tmp_totalsendbytes = rtpsok->getSendTotalBytes();
+            tmp_sendspeed = rtpsok->getSendSpeed();
+        }
+
+        cb(pr.first, tmp_totalsendbytes, tmp_sendspeed);
     }
 }
 
@@ -443,10 +450,11 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const MediaSourceE
         // 可能归属线程发生变更  [AUTO-TRANSLATED:2b379e30]
         // The owning thread may change
         strong_self->getOwnerPoller(MediaSource::NullMediaSource())->async([=]() {
-            if(!ssrc_multi_send) {
+            if (!ssrc_multi_send) {
                 strong_self->_rtp_sender.erase(ssrc);
             }
-            strong_self->_rtp_sender.emplace(ssrc,reader);
+            std::weak_ptr<RtpSender> _rtpsok = rtp_sender;
+            strong_self->_rtp_sender.emplace(ssrc, make_tuple(reader, _rtpsok));
         });
     });
 #else
