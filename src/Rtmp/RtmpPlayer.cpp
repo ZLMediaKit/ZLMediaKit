@@ -457,7 +457,7 @@ size_t RtmpPlayer::getRecvSpeed() {
 }
 
 size_t RtmpPlayer::getRecvTotalBytes() {
-    return getRecvTotalBytes();
+    return TcpClient::getRecvTotalBytes();
 }
 
 } /* namespace mediakit */

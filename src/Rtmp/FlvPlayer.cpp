@@ -81,7 +81,7 @@ size_t FlvPlayer::getRecvSpeed() {
 }
 
 size_t FlvPlayer::getRecvTotalBytes() {
-    return getRecvTotalBytes();
+    return TcpClient::getRecvTotalBytes();
 }
 
 }//mediakit

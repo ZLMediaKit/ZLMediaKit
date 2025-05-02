@@ -172,12 +172,5 @@ void SrtPlayerImp::onSRTData(SRT::DataPacket::Ptr pkt) {
     return;
 }
 
-size_t SrtPlayerImp::getRecvSpeed() {
-    return SrtCaller::getRecvSpeed();
-}
-
-size_t SrtPlayerImp::getRecvTotalBytes() {
-    return SrtCaller::getRecvTotalBytes();
-}
 } /* namespace mediakit */
 

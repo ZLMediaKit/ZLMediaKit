@@ -458,55 +458,48 @@ void RtpSender::setOnClose(std::function<void(const toolkit::SockException &ex)>
 }
 
 size_t RtpSender::getSendSpeed() const {
-    size_t tmp_speed = 0;
+    size_t ret = 0;
     if (_socket_rtp) {
-        tmp_speed += _socket_rtp->getSendSpeed();
-
-        if (_socket_rtcp && (SockNum::Sock_UDP == _socket_rtp->sockType())) {
-            tmp_speed += _socket_rtcp->getSendSpeed();
-        }
+        ret += _socket_rtp->getSendSpeed();
     }
-
-    return tmp_speed;
+    if (_socket_rtcp) {
+        ret += _socket_rtcp->getSendSpeed();
+    }
+    return ret;
 }
 
 size_t RtpSender::getRecvSpeed() const {
-    size_t tmp_speed = 0;
+    size_t ret = 0;
     if (_socket_rtp) {
-        tmp_speed += _socket_rtp->getRecvSpeed();
-
-        if (_socket_rtcp && (SockNum::Sock_UDP == _socket_rtp->sockType())) {
-            tmp_speed += _socket_rtcp->getRecvSpeed();
-        }
+        ret += _socket_rtp->getRecvSpeed();
     }
-
-    return tmp_speed;
+    if (_socket_rtcp) {
+        ret += _socket_rtcp->getRecvSpeed();
+    }
+    return ret;
 }
 
 size_t RtpSender::getRecvTotalBytes() const {
-    size_t tmp_totalBytes = 0;
+    size_t ret = 0;
     if (_socket_rtp) {
-        tmp_totalBytes += _socket_rtp->getRecvTotalBytes();
-
-        if (_socket_rtcp && (SockNum::Sock_UDP == _socket_rtp->sockType())) {
-            tmp_totalBytes += _socket_rtcp->getRecvTotalBytes();
-        }
+        ret += _socket_rtp->getRecvTotalBytes();
     }
-
-    return tmp_totalBytes;
+    if (_socket_rtcp) {
+        ret += _socket_rtcp->getRecvTotalBytes();
+    }
+    return ret;
 }
 
 size_t RtpSender::getSendTotalBytes() const {
-    size_t tmp_totalBytes = 0;
+    size_t ret = 0;
     if (_socket_rtp) {
-        tmp_totalBytes += _socket_rtp->getSendTotalBytes();
-
-        if (_socket_rtcp && (SockNum::Sock_UDP == _socket_rtp->sockType())) {
-            tmp_totalBytes += _socket_rtcp->getSendTotalBytes();
-        }
+        ret += _socket_rtp->getSendTotalBytes();
     }
-
-    return tmp_totalBytes;
+    if (_socket_rtcp) {
+        ret += _socket_rtcp->getSendTotalBytes();
+    }
+    return ret;
 }
+
 } // namespace mediakit
 #endif // defined(ENABLE_RTPPROXY)

@@ -1683,8 +1683,8 @@ void installWebApi() {
         src->getOwnerPoller()->async([=]() mutable {
             muxer->forEachRtpSender([&](const std::string &ssrc, const RtpSender &sender) mutable {
                 val["data"].append(ssrc);
-                val["totalBytes"] = (Json::UInt64)sender.getSendTotalBytes();
                 val["bytesSpeed"] = (Json::UInt64)sender.getSendSpeed();
+                val["totalBytes"] = (Json::UInt64)sender.getSendTotalBytes();
             });
             invoker(200, headerOut, val.toStyledString());
         });

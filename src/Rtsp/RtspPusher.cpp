@@ -596,41 +596,33 @@ void RtspPusher::sendRtspRequest(const string &cmd, const string &url,const StrC
 }
 
 size_t RtspPusher::getSendSpeed() {
-    size_t tmp_speed = TcpClient::getSendSpeed();
-
-    if (_rtp_type != Rtsp::RTP_TCP) {
-        for (auto &rtp : _rtp_sock) {
-            if (rtp) {
-                tmp_speed += rtp->getSendSpeed();
-            }
+    size_t ret = TcpClient::getSendSpeed();
+    for (auto &rtp : _rtp_sock) {
+        if (rtp) {
+            ret += rtp->getSendSpeed();
         }
     }
-
     for (auto &rtcp : _rtcp_sock) {
         if (rtcp) {
-            tmp_speed += rtcp->getSendSpeed();
+            ret += rtcp->getSendSpeed();
         }
     }
 
-    return tmp_speed;
+    return ret;
 }
 
 size_t RtspPusher::getSendTotalBytes() {
-    size_t tmp_totals = TcpClient::getSendTotalBytes();
-
-    if (_rtp_type != Rtsp::RTP_TCP) {
-        for (auto &rtp : _rtp_sock) {
-            if (rtp) {
-                tmp_totals += rtp->getSendTotalBytes();
-            }
+    size_t ret = TcpClient::getSendTotalBytes();
+    for (auto &rtp : _rtp_sock) {
+        if (rtp) {
+            ret += rtp->getSendTotalBytes();
         }
     }
-
     for (auto &rtcp : _rtcp_sock) {
         if (rtcp) {
-            tmp_totals += rtcp->getSendTotalBytes();
+            ret += rtcp->getSendTotalBytes();
         }
     }
-    return tmp_totals;
+    return ret;
 }
 } /* namespace mediakit */

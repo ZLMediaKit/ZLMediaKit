@@ -359,11 +359,11 @@ void HlsPlayer::playDelay(float delay_sec) {
 }
 
 size_t HlsPlayer::getRecvSpeed() {
-    return TcpClient::getRecvSpeed() + _http_ts_player->getRecvSpeed();
+    return TcpClient::getRecvSpeed() + (_http_ts_player ? _http_ts_player->getRecvSpeed() : 0);
 }
 
 size_t HlsPlayer::getRecvTotalBytes() {
-    return _http_ts_player->getRecvTotalBytes();
+    return TcpClient::getRecvTotalBytes() + (_http_ts_player ? _http_ts_player->getRecvTotalBytes() : 0);
 }
 //////////////////////////////////////////////////////////////////////////
 
@@ -488,8 +488,6 @@ void HlsPlayerImp::onPacket(const char *data, size_t len) {
     if (_decoder && _demuxer) {
         _decoder->input((uint8_t *) data, len);
     }
-
-     //_recvtotalbytes +=  len;
     _recvtotalbytes += HlsPlayer::getRecvTotalBytes();
 }
 

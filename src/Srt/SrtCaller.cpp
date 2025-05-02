@@ -1033,5 +1033,6 @@ size_t SrtCaller::getSendSpeed() const {
 size_t SrtCaller::getSendTotalBytes() const {
     return _socket ? _socket->getSendTotalBytes() : 0;
 }
+
 } /* namespace mediakit */
 

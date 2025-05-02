@@ -58,13 +58,4 @@ void MediaPusher::setOnCreateSocket(Socket::onCreateSocket cb){
     _on_create_socket = std::move(cb);
 }
 
-size_t MediaPusher::getSendSpeed() {
-    assert(_delegate);
-    return _delegate->getSendSpeed();
-}
-
-size_t MediaPusher::getSendTotalBytes() {
-    assert(_delegate);
-    return _delegate->getSendTotalBytes();
-}
 } /* namespace mediakit */

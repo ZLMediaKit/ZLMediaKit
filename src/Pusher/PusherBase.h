@@ -137,17 +137,11 @@ public:
     }
 
     size_t getSendSpeed() override {
-        if (_delegate) {
-            return _delegate->getSendSpeed();
-        }
-        return Parent::getSendSpeed();
+        return _delegate ?  _delegate->getSendSpeed() : Parent::getSendSpeed();
     }
 	
    size_t getSendTotalBytes() override {
-        if (_delegate) {
-            return _delegate->getSendTotalBytes();
-        }
-        return Parent::getSendTotalBytes();
+        return _delegate ? _delegate->getSendTotalBytes() : Parent::getSendTotalBytes();
     }
 	
 protected:

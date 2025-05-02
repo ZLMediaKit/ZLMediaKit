@@ -449,8 +449,8 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const MediaSourceE
             if (!ssrc_multi_send) {
                 strong_self->_rtp_sender.erase(ssrc);
             }
-            std::weak_ptr<RtpSender> _rtpsok = rtp_sender;
-            strong_self->_rtp_sender.emplace(ssrc, make_tuple(reader, _rtpsok));
+            std::weak_ptr<RtpSender> sender = rtp_sender;
+            strong_self->_rtp_sender.emplace(ssrc, make_tuple(reader, sender));
         });
     });
 #else

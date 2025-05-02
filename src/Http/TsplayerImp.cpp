@@ -82,6 +82,6 @@ size_t TsPlayerImp::getRecvSpeed() {
 }
 
 size_t TsPlayerImp::getRecvTotalBytes() {
-    return getRecvTotalBytes();
+    return TcpClient::getRecvTotalBytes();
 }
 }//namespace mediakit

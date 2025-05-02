@@ -261,17 +261,11 @@ public:
     }
 
     size_t getRecvSpeed() override {
-        if (_delegate) {
-            return _delegate->getRecvSpeed();
-        }
-        return Parent::getRecvSpeed();
+        return _delegate ? _delegate->getRecvSpeed() : Parent::getRecvSpeed();
     }
 
     size_t getRecvTotalBytes() override {
-        if (_delegate) {
-            return _delegate->getRecvTotalBytes();
-        }
-        return Parent::getRecvTotalBytes();
+        return _delegate ? _delegate->getRecvTotalBytes() : Parent::getRecvTotalBytes();
     }
 
 protected:

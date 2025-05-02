@@ -845,41 +845,33 @@ int RtspPlayer::getTrackIndexByTrackType(TrackType track_type) const {
 }
 
 size_t RtspPlayer::getRecvSpeed() {
-    size_t tmp_speed = TcpClient::getRecvSpeed();
-
-    if (_rtp_type != Rtsp::RTP_TCP) {
-        for (auto &rtp : _rtp_sock) {
-            if (rtp) {
-                tmp_speed += rtp->getRecvSpeed();
-            }
+    size_t ret = TcpClient::getRecvSpeed();
+    for (auto &rtp : _rtp_sock) {
+        if (rtp) {
+            ret += rtp->getRecvSpeed();
         }
     }
-
     for (auto &rtcp : _rtcp_sock) {
         if (rtcp) {
-            tmp_speed += rtcp->getRecvSpeed();
+            ret += rtcp->getRecvSpeed();
         }
     }
-    return tmp_speed;
+    return ret;
 }
 
 size_t RtspPlayer::getRecvTotalBytes() {
-    size_t tmp_totals = TcpClient::getRecvTotalBytes();
-
-    if (_rtp_type != Rtsp::RTP_TCP) {
-        for (auto &rtp : _rtp_sock) {
-            if (rtp) {
-                tmp_totals += rtp->getRecvTotalBytes();
-            }
+    size_t ret = TcpClient::getRecvTotalBytes();
+    for (auto &rtp : _rtp_sock) {
+        if (rtp) {
+            ret += rtp->getRecvTotalBytes();
         }
     }
-
     for (auto &rtcp : _rtcp_sock) {
         if (rtcp) {
-            tmp_totals += rtcp->getRecvTotalBytes();
+            ret += rtcp->getRecvTotalBytes();
         }
     }
-    return tmp_totals;
+    return ret;
 }
 
 ///////////////////////////////////////////////////
