@@ -118,12 +118,14 @@ void MediaSink::checkTrackIfReady() {
         }
     }
 
-    // 等待音频超时时间
+    // 等待音频超时时间  [AUTO-TRANSLATED:5ec16b26]
+    // Wait for audio timeout time
     GET_CONFIG(uint32_t, kWaitAudioTrackDataMS, General::kWaitAudioTrackDataMS);
     if (_max_track_size > 1) {
         for (auto it = _track_map.begin(); it != _track_map.end();) {
             if (it->second.first->getTrackType() == TrackAudio && _ticker.elapsedTime() > kWaitAudioTrackDataMS && !it->second.second) {
-                // 音频超时且完全没收到音频数据，忽略音频
+                // 音频超时且完全没收到音频数据，忽略音频  [AUTO-TRANSLATED:0d0fbb13]
+                // Audio timeout and did not receive any audio data, ignore audio
                 auto index = it->second.first->getIndex();
                 WarnL << "Audio track index " << index << " codec " << it->second.first->getCodecName() << " receive no data for long "
                       << _ticker.elapsedTime() << "ms. Ignore it!";
