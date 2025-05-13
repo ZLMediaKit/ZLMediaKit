@@ -282,6 +282,7 @@ void HlsPlayer::onResponseHeader(const string &status, const HttpClient::HttpHea
 
 void HlsPlayer::onResponseBody(const char *buf, size_t size) {
     _m3u8.append(buf, size);
+    _recvtotalbytes += getRecvTotalBytes();
 }
 
 void HlsPlayer::onResponseCompleted(const SockException &ex) {
@@ -357,6 +358,13 @@ void HlsPlayer::playDelay(float delay_sec) {
         }, getPoller()));
 }
 
+size_t HlsPlayer::getRecvSpeed() {
+    return TcpClient::getRecvSpeed() + (_http_ts_player ? _http_ts_player->getRecvSpeed() : 0);
+}
+
+size_t HlsPlayer::getRecvTotalBytes() {
+    return TcpClient::getRecvTotalBytes() + (_http_ts_player ? _http_ts_player->getRecvTotalBytes() : 0);
+}
 //////////////////////////////////////////////////////////////////////////
 
 void HlsDemuxer::start(const EventPoller::Ptr &poller, TrackListener *listener) {
@@ -480,6 +488,7 @@ void HlsPlayerImp::onPacket(const char *data, size_t len) {
     if (_decoder && _demuxer) {
         _decoder->input((uint8_t *) data, len);
     }
+    _recvtotalbytes += HlsPlayer::getRecvTotalBytes();
 }
 
 void HlsPlayerImp::addTrackCompleted() {
@@ -531,4 +540,11 @@ vector<Track::Ptr> HlsPlayerImp::getTracks(bool ready) const {
     return static_pointer_cast<HlsDemuxer>(_demuxer)->getTracks(ready);
 }
 
+size_t HlsPlayerImp::getRecvSpeed() {
+    return PlayerImp<HlsPlayer, PlayerBase>::getRecvSpeed();
+}
+
+size_t HlsPlayerImp::getRecvTotalBytes() {
+     return _recvtotalbytes;
+}
 }//namespace mediakit

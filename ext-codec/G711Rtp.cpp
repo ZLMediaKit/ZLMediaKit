@@ -38,7 +38,8 @@ bool G711RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     _buffer.append(ptr, size);
 
     while (_buffer.size() >= _pkt_bytes) {
-        RtpCodec::inputRtp(getRtpInfo().makeRtp(TrackAudio, _buffer.data(), _pkt_bytes, false, in_pts), false);
+        auto tmp = (in_pts+_pkt_dur_ms-1)/_pkt_dur_ms*_pkt_dur_ms;
+        RtpCodec::inputRtp(getRtpInfo().makeRtp(TrackAudio, _buffer.data(), _pkt_bytes, false, tmp), false);
          in_pts += _pkt_dur_ms;
         _buffer.erase(0, _pkt_bytes);
     }

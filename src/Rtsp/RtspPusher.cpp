@@ -595,5 +595,34 @@ void RtspPusher::sendRtspRequest(const string &cmd, const string &url,const StrC
     SockSender::send(std::move(printer));
 }
 
+size_t RtspPusher::getSendSpeed() {
+    size_t ret = TcpClient::getSendSpeed();
+    for (auto &rtp : _rtp_sock) {
+        if (rtp) {
+            ret += rtp->getSendSpeed();
+        }
+    }
+    for (auto &rtcp : _rtcp_sock) {
+        if (rtcp) {
+            ret += rtcp->getSendSpeed();
+        }
+    }
 
+    return ret;
+}
+
+size_t RtspPusher::getSendTotalBytes() {
+    size_t ret = TcpClient::getSendTotalBytes();
+    for (auto &rtp : _rtp_sock) {
+        if (rtp) {
+            ret += rtp->getSendTotalBytes();
+        }
+    }
+    for (auto &rtcp : _rtcp_sock) {
+        if (rtcp) {
+            ret += rtcp->getSendTotalBytes();
+        }
+    }
+    return ret;
+}
 } /* namespace mediakit */

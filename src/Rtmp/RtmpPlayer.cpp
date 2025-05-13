@@ -452,4 +452,12 @@ void RtmpPlayer::seekToMilliSecond(uint32_t seekMS){
     });
 }
 
+size_t RtmpPlayer::getRecvSpeed() {
+    return TcpClient::getRecvSpeed();
+}
+
+size_t RtmpPlayer::getRecvTotalBytes() {
+    return TcpClient::getRecvTotalBytes();
+}
+
 } /* namespace mediakit */

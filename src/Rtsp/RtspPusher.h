@@ -30,6 +30,8 @@ public:
     ~RtspPusher() override;
     void publish(const std::string &url) override;
     void teardown() override;
+    size_t getSendSpeed() override;
+    size_t getSendTotalBytes() override;
 
 protected:
     //for Tcpclient override

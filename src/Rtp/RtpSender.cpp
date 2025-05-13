@@ -457,5 +457,49 @@ void RtpSender::setOnClose(std::function<void(const toolkit::SockException &ex)>
     _on_close = std::move(on_close);
 }
 
+size_t RtpSender::getSendSpeed() const {
+    size_t ret = 0;
+    if (_socket_rtp) {
+        ret += _socket_rtp->getSendSpeed();
+    }
+    if (_socket_rtcp) {
+        ret += _socket_rtcp->getSendSpeed();
+    }
+    return ret;
+}
+
+size_t RtpSender::getRecvSpeed() const {
+    size_t ret = 0;
+    if (_socket_rtp) {
+        ret += _socket_rtp->getRecvSpeed();
+    }
+    if (_socket_rtcp) {
+        ret += _socket_rtcp->getRecvSpeed();
+    }
+    return ret;
+}
+
+size_t RtpSender::getRecvTotalBytes() const {
+    size_t ret = 0;
+    if (_socket_rtp) {
+        ret += _socket_rtp->getRecvTotalBytes();
+    }
+    if (_socket_rtcp) {
+        ret += _socket_rtcp->getRecvTotalBytes();
+    }
+    return ret;
+}
+
+size_t RtpSender::getSendTotalBytes() const {
+    size_t ret = 0;
+    if (_socket_rtp) {
+        ret += _socket_rtp->getSendTotalBytes();
+    }
+    if (_socket_rtcp) {
+        ret += _socket_rtcp->getSendTotalBytes();
+    }
+    return ret;
+}
+
 } // namespace mediakit
 #endif // defined(ENABLE_RTPPROXY)

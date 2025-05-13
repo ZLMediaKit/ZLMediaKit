@@ -18,7 +18,7 @@ jobs:
       with:
         repository: cisco/libsrtp
         fetch-depth: 1
-        ref: v2.7.0
+        ref: v2.3.0
         path: 3rdpart/libsrtp
 
     - name: 下载 openssl

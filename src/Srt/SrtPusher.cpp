@@ -112,5 +112,13 @@ void SrtPusher::doPublish() {
     });
 }
 
+size_t SrtPusher::getSendSpeed() {
+    return SrtCaller::getSendSpeed();
+}
+
+size_t SrtPusher::getSendTotalBytes() {
+    return SrtCaller::getSendTotalBytes();
+}
+
 } /* namespace mediakit */
 

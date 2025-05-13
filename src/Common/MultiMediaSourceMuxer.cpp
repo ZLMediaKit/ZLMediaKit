@@ -183,9 +183,12 @@ std::string MultiMediaSourceMuxer::shortUrl() const {
     return _tuple.shortUrl();
 }
 
-void MultiMediaSourceMuxer::forEachRtpSender(const std::function<void(const std::string &ssrc)> &cb) const {
+void MultiMediaSourceMuxer::forEachRtpSender(const std::function<void(const std::string &ssrc, const RtpSender &sender)> &cb) const {
     for (auto &pr : _rtp_sender) {
-        cb(pr.first);
+        auto sender = std::get<1>(pr.second).lock();
+        if (sender) {
+            cb(pr.first, *sender);
+        }
     }
 }
 
@@ -443,10 +446,11 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const MediaSourceE
         // 可能归属线程发生变更  [AUTO-TRANSLATED:2b379e30]
         // The owning thread may change
         strong_self->getOwnerPoller(MediaSource::NullMediaSource())->async([=]() {
-            if(!ssrc_multi_send) {
+            if (!ssrc_multi_send) {
                 strong_self->_rtp_sender.erase(ssrc);
             }
-            strong_self->_rtp_sender.emplace(ssrc,reader);
+            std::weak_ptr<RtpSender> sender = rtp_sender;
+            strong_self->_rtp_sender.emplace(ssrc, make_tuple(reader, sender));
         });
     });
 #else
