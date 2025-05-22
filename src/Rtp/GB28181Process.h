@@ -59,10 +59,10 @@ private:
 
 private:
     MediaInfo _media_info;
-    DecoderImp::Ptr _decoder;
+    DecoderImp::Ptr _decoder;  //DecoderImp
     MediaSinkInterface *_interface;
     std::shared_ptr<FILE> _save_file_ps;
-    std::unordered_map<uint8_t, RtpCodec::Ptr> _rtp_decoder;
+    std::unordered_map<uint8_t, RtpCodec::Ptr> _rtp_decoder;  //
     std::unordered_map<uint8_t, std::shared_ptr<RtpReceiverImp> > _rtp_receiver;
 };
 

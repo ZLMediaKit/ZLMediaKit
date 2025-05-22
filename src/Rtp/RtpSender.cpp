@@ -300,6 +300,11 @@ bool RtpSender::addTrack(const Track::Ptr &track) {
         // Ignore video if only audio is sent
         return false;
     }
+
+    // if(track->getCodecId()==CodecG711ToAAC) {
+    //     InfoL << "getCodecId " << track->getCodecId() << " Name" << getCodecName(track->getCodecId());
+    // }
+
     return _interface->addTrack(track);
 }
 

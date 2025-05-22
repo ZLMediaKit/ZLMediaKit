@@ -76,13 +76,12 @@ Track::Ptr G711ToAACTrack::clone() const {
     return std::make_shared<G711ToAACTrack>(*this);
 }
 
-CodecId G711ToAACTrack::getCodec() {
+CodecId G711ToAACTrack::getCodecId() const {
 
-     InfoL << "CodecG711ToAAC codecid: CodecG711ToAAC " << getCodecId() 
-        << " getTrackType:" << getTrackType() 
-        << " getCodecName:" << getCodecName() 
-        << " getTrackTypeStr:" << getTrackTypeStr()
-        << " getBitRate:" << getBitRate();
+    // InfoL << "codecid: CodecG711ToAAC getTrackType:" << getTrackType();
+    //     << " getCodecName:" << getCodecName() 
+    //     << " getTrackTypeStr:" << getTrackTypeStr()
+    //     << " getBitRate:" << getBitRate();
 
      return CodecG711ToAAC;
 }
@@ -103,7 +102,7 @@ bool G711ToAACTrack::inputFrame(const Frame::Ptr &frame) {
     #define tempbuffer_size 4096
 
     auto frame_aac = FrameImp::create();
-    frame_aac->_codec_id = CodecAAC;
+    frame_aac->_codec_id = CodecG711ToAAC;
     frame_aac->_prefix_size = ADTS_HEADER_LEN;
     frame_aac->_dts = frame->dts();
     frame_aac->setIndex(frame->getIndex());
@@ -121,12 +120,12 @@ bool G711ToAACTrack::inputFrame(const Frame::Ptr &frame) {
         delete[] G711ABuffer_;
     }
 
-    InfoL<< "G711ToAACTrack::inputFrame frame size:" << frame->size() 
-        << " prefixSize:" << frame->prefixSize() 
-        << " dts:" << frame->dts() 
-        << " pts:" << frame->pts()
-        << " outlen:" << outlen
-        << " ret:" << ret;
+    // InfoL<< "G711ToAACTrack::inputFrame frame size:" << frame->size() 
+    //     << " prefixSize:" << frame->prefixSize() 
+    //     << " dts:" << frame->dts() 
+    //     << " pts:" << frame->pts()
+    //     << " outlen:" << outlen
+    //     << " ret:" << ret;
 
     auto ptr = reinterpret_cast<const uint8_t *>(frame_aac->data());
 

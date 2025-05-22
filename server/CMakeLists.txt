@@ -51,9 +51,13 @@ target_compile_options(MediaServer
   PRIVATE ${COMPILE_OPTIONS_DEFAULT})
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-  target_link_libraries(MediaServer -Wl,--start-group ${MK_LINK_LIBRARIES} -Wl,--end-group)
+  # update_cached_list(MK_LINK_LIBRARIES )
+  # message(STATUS "MK_LINK_LIBRARIES  : ${MK_LINK_LIBRARIES}")
+  target_link_libraries(MediaServer -Wl,--start-group ${MK_LINK_LIBRARIES} -Wl,--end-group   )
+  get_filename_component(EasyAACEncoder ../3rdpart/EasyAACEncoder/${CMAKE_SYSTEM_PROCESSOR}/libEasyAACEncoder.a ABSOLUTE)
+  target_link_libraries(MediaServer ${EasyAACEncoder}) 
 else()
-  target_link_libraries(MediaServer ${MK_LINK_LIBRARIES})
+  target_link_libraries(MediaServer ${MK_LINK_LIBRARIES} )
 endif()
 
 install(TARGETS MediaServer DESTINATION ${INSTALL_PATH_RUNTIME})

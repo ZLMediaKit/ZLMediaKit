@@ -545,7 +545,7 @@ void RtspPusher::sendRtspRequest(const string &cmd, const string &url,const StrC
                 response = md5( password:nonce:md5(public_method:url)  );
             (2)当password为ANSI字符串,则
                 response= md5( md5(username:realm:password):nonce:md5(public_method:url) );
-             /*
+             
              The response calculation method is as follows:
              The RTSP client should use username + password and calculate the response as follows:
              (1) When password is MD5 encoded, then

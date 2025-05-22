@@ -336,7 +336,9 @@ public:
      
      * [AUTO-TRANSLATED:d46c6fc2]
      */
-    bool inputFrame(const Frame::Ptr &frame) override { return _callback(frame); }
+    bool inputFrame(const Frame::Ptr &frame) override { 
+        return _callback(frame); 
+    }
 
 private:
     onWriteFrame _callback;

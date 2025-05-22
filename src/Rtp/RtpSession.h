@@ -61,7 +61,7 @@ private:
     toolkit::Ticker _ticker;
     MediaTuple _tuple;
     struct sockaddr_storage _addr;
-    RtpProcess::Ptr _process;
+    RtpProcess::Ptr _process; //GB28181Process
 };
 
 }//namespace mediakit

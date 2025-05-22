@@ -56,11 +56,15 @@ protected:
 class RtmpCodec : public RtmpRing, public FrameWriterInterface {
 public:
     using Ptr = std::shared_ptr<RtmpCodec>;
-    RtmpCodec(Track::Ptr track) { _track = std::move(track); }
+    RtmpCodec(Track::Ptr track) { 
+        _track = std::move(track); 
+    }
 
     virtual void makeConfigPacket() {}
 
-    bool inputFrame(const Frame::Ptr &frame) override { return _track->inputFrame(frame); }
+    bool inputFrame(const Frame::Ptr &frame) override { return 
+        _track->inputFrame(frame); 
+    }
 
     const Track::Ptr &getTrack() const { return _track; }
 

@@ -115,7 +115,7 @@ private:
     toolkit::Socket::Ptr _socket_rtp;
     toolkit::Socket::Ptr _socket_rtcp;
     toolkit::EventPoller::Ptr _poller;
-    MediaSinkInterface::Ptr _interface;
+    MediaSinkInterface::Ptr _interface;  //
     std::shared_ptr<RtcpContext> _rtcp_context;
     toolkit::Ticker _rtcp_send_ticker;
     toolkit::Ticker _rtcp_recv_ticker;

@@ -52,8 +52,20 @@ bool RtmpMuxer::addTrack(const Track::Ptr &track) {
 }
 
 bool RtmpMuxer::inputFrame(const Frame::Ptr &frame) {
+
+    // if(frame->getIndex()==192) {
+        //C0 
+        // WarnL << "frame->getIndex(): " << frame->getIndex();
+    // } 
+
     auto &encoder = _encoders[frame->getIndex()];
-    return encoder ? encoder->inputFrame(frame) : false;
+    if(encoder) {
+        return encoder->inputFrame(frame);
+    } else {
+        return false;
+    }
+
+    // return encoder ? encoder->inputFrame(frame) : false;
 }
 
 void RtmpMuxer::flush() {

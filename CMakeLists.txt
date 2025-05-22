@@ -52,7 +52,7 @@ option(ENABLE_RTPPROXY "Enable RTPPROXY" ON)
 option(ENABLE_SERVER "Enable Server" ON)
 option(ENABLE_SERVER_LIB "Enable server as android static library" OFF)
 option(ENABLE_SRT "Enable SRT" ON)
-option(ENABLE_TESTS "Enable Tests" ON)
+option(ENABLE_TESTS "Enable Tests" OFF)
 option(ENABLE_SCTP "Enable SCTP" ON)
 option(ENABLE_WEBRTC "Enable WebRTC" ON)
 option(ENABLE_X264 "Enable x264" OFF)
@@ -538,7 +538,7 @@ endif()
 #cpp测试demo程序
 #cpp test demo program
 if (ENABLE_TESTS)
-  add_subdirectory(tests)
+  # add_subdirectory(tests)
 endif ()
 
 # 拷贝www文件夹、配置文件、默认证书

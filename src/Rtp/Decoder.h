@@ -25,7 +25,7 @@ public:
     using onStream = std::function<void(int stream, int codecid, const void *extra, size_t bytes, int finish)>;
 
     virtual ssize_t input(const uint8_t *data, size_t bytes) = 0;
-    void setOnDecode(onDecode cb);
+    void setOnDecode(onDecode cb);   //DecoderImp::onDecode
     void setOnStream(onStream cb);
 
 protected:
@@ -33,7 +33,7 @@ protected:
     virtual ~Decoder() = default;
 
 protected:
-    onDecode _on_decode;
+    onDecode _on_decode;  //
     onStream _on_stream;
 };
 
@@ -59,8 +59,8 @@ private:
 private:
     bool _finished = false;
     bool _have_video = false;
-    Decoder::Ptr _decoder;
-    MediaSinkInterface *_sink;
+    Decoder::Ptr _decoder;   // PSDecoder
+    MediaSinkInterface *_sink;  //RtpProcess
 
     class FrameMergerImp : public FrameMerger {
     public:

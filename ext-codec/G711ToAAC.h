@@ -34,7 +34,7 @@ public:
 
     ~G711ToAACTrack();
 
-    CodecId getCodec();
+    CodecId getCodecId() const override;
 
     bool inputFrame(const Frame::Ptr &frame) override;
 };

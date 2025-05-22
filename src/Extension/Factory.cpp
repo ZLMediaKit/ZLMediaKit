@@ -27,6 +27,8 @@ extern CodecPlugin opus_plugin;
 extern CodecPlugin g711a_plugin;
 extern CodecPlugin g711u_plugin;
 extern CodecPlugin l16_plugin;
+extern CodecPlugin g711_to_aac_plugin;
+
 
 REGISTER_CODEC(h264_plugin);
 REGISTER_CODEC(h265_plugin);
@@ -36,6 +38,7 @@ REGISTER_CODEC(opus_plugin);
 REGISTER_CODEC(g711a_plugin)
 REGISTER_CODEC(g711u_plugin);
 REGISTER_CODEC(l16_plugin);
+REGISTER_CODEC(g711_to_aac_plugin);
 
 void Factory::registerPlugin(const CodecPlugin &plugin) {
     InfoL << "Load codec: " << getCodecName(plugin.getCodec());
@@ -192,6 +195,8 @@ AMFValue Factory::getAmfByCodecId(CodecId codecId) {
         case CodecOpus: return AMFValue((int)RtmpAudioCodec::opus);
         case CodecAV1: return AMFValue((int)RtmpVideoCodec::fourcc_av1);
         case CodecVP9: return AMFValue((int)RtmpVideoCodec::fourcc_vp9);
+        case CodecG711ToAAC: return AMFValue((int)RtmpAudioCodec::aac);
+        
         default: return AMFValue(AMF_NULL);
     }
 }

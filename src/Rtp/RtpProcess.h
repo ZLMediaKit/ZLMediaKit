@@ -139,7 +139,7 @@ private:
     std::shared_ptr<FILE> _save_file_rtp;
     std::shared_ptr<FILE> _save_file_video;
     ProcessInterface::Ptr _process;
-    MultiMediaSourceMuxer::Ptr _muxer;
+    MultiMediaSourceMuxer::Ptr _muxer;  //MultiMediaSourceMuxer
     std::atomic_bool _stop_rtp_check{false};
     toolkit::Timer::Ptr _timer;
     toolkit::Ticker _last_check_alive;

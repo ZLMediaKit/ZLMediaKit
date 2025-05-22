@@ -28,6 +28,8 @@ PSDecoder::PSDecoder() {
                                        size_t bytes){
         PSDecoder *thiz = (PSDecoder *)param;
         if(thiz->_on_decode){
+            
+            // InfoL<< "_on_decode codecid" << codecid;
             thiz->_on_decode(stream, codecid, flags, pts, dts, data, bytes);
         }
         return 0;
@@ -37,6 +39,8 @@ PSDecoder::PSDecoder() {
             [](void *param, int stream, int codecid, const void *extra, int bytes, int finish) {
                 PSDecoder *thiz = (PSDecoder *) param;
                 if (thiz->_on_stream) {
+
+                    InfoL<< "_on_stream codecid" << codecid;
                     thiz->_on_stream(stream, codecid, extra, bytes, finish);
                 }
             }

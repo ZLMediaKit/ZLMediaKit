@@ -77,6 +77,11 @@ MediaSource &MediaSource::NullMediaSource() {
 }
 
 MediaSource::MediaSource(const string &schema, const MediaTuple& tuple): _tuple(tuple) {
+
+    WarnL << "MediaSource schema: " << schema;
+    WarnL << "MediaSource app: " << tuple.app;
+    WarnL << "MediaSource stream: " << tuple.stream;
+
     GET_CONFIG(bool, enableVhost, General::kEnableVhost);
     if (!enableVhost || _tuple.vhost.empty()) {
         _tuple.vhost = DEFAULT_VHOST;
