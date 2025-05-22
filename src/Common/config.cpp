@@ -396,6 +396,8 @@ const string kWaitTrackReady = "wait_track_ready";
 const string kPlayTrack = "play_track";
 const string kProxyUrl = "proxy_url";
 const string kRtspSpeed = "rtsp_speed";
+const string kLatency = "latency";
+const string kPassPhrase = "passPhrase";
 } // namespace Client
 
 } // namespace mediakit

@@ -84,7 +84,7 @@ static bool loadFile(const char *path){
         }
         timeStamp_last = timeStamp;
     }
-    WarnL << total_size / 1024 << "KB";
+    WarnL << (total_size >> 10) << "KB";
     fclose(fp);
     return true;
 }

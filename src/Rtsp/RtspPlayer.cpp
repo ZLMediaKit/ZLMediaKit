@@ -174,12 +174,12 @@ bool RtspPlayer::handleAuthenticationFailure(const string &paramsStr) {
     return false;
 }
 
-bool RtspPlayer::handleResponse(const string &cmd, const Parser &parser) {
+bool RtspPlayer::handleResponse(const std::string &cmd, const Parser &parser, send_method_handler handler) {
     string authInfo = parser["WWW-Authenticate"];
     // 发送DESCRIBE命令后的回复  [AUTO-TRANSLATED:39629cf0]
     // The response after sending the DESCRIBE command
     if ((parser.status() == "401") && handleAuthenticationFailure(authInfo)) {
-        sendOptions();
+        (this->*handler)();
         return false;
     }
     if (parser.status() == "302" || parser.status() == "301") {
@@ -197,7 +197,7 @@ bool RtspPlayer::handleResponse(const string &cmd, const Parser &parser) {
 }
 
 void RtspPlayer::handleResDESCRIBE(const Parser &parser) {
-    if (!handleResponse("DESCRIBE", parser)) {
+    if (!handleResponse("DESCRIBE", parser, &RtspPlayer::sendDescribe)) {
         return;
     }
     _content_base = parser["Content-Base"];
@@ -265,7 +265,7 @@ void RtspPlayer::sendSetup(unsigned int track_idx) {
         case Rtsp::RTP_TCP: {
             sendRtspRequest(
                 "SETUP", control_url,
-                { "Transport", StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track->_type * 2 << "-" << track->_type * 2 + 1 << ";mode=play" });
+                { "Transport", StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track_idx * 2 << "-" << track_idx * 2 + 1 << ";mode=play" });
         } break;
         case Rtsp::RTP_MULTICAST: {
             sendRtspRequest("SETUP", control_url, { "Transport", "RTP/AVP;multicast;mode=play" });
@@ -428,7 +428,7 @@ void RtspPlayer::sendDescribe() {
 
 void RtspPlayer::sendOptions() {
     _on_response = [this](const Parser &parser) {
-        if (!handleResponse("OPTIONS", parser)) {
+        if (!handleResponse("OPTIONS", parser, &RtspPlayer::sendOptions)) {
             return;
         }
         // 获取服务器支持的命令  [AUTO-TRANSLATED:8a6a12f1]
@@ -552,7 +552,9 @@ void RtspPlayer::onRtpPacket(const char *data, size_t len) {
     int trackIdx = -1;
     uint8_t interleaved = data[1];
     if (interleaved % 2 == 0) {
-        trackIdx = getTrackIndexByInterleaved(interleaved);
+        CHECK(len > RtpPacket::kRtpHeaderSize + RtpPacket::kRtpTcpHeaderSize);
+        RtpHeader *header = (RtpHeader *)(data + RtpPacket::kRtpTcpHeaderSize);
+        trackIdx = getTrackIndexByPT(header->pt);
         if (trackIdx == -1) {
             return;
         }
@@ -798,10 +800,23 @@ void RtspPlayer::onPlayResult_l(const SockException &ex, bool handshake_done) {
         };
         // 创建rtp数据接收超时检测定时器  [AUTO-TRANSLATED:edbffc19]
         // Create RTP data receive timeout detection timer
-        _rtp_check_timer = std::make_shared<Timer>(timeoutMS / 2000.0f, lam, getPoller());
+        _rtp_check_timer = std::make_shared<Timer>(timeoutMS / 2000.0f, std::move(lam), getPoller());
     } else {
         sendTeardown();
     }
+}
+
+int RtspPlayer::getTrackIndexByPT(int pt) const {
+    for (size_t i = 0; i < _sdp_track.size(); ++i) {
+        if (_sdp_track[i]->_pt == pt) {
+            return i;
+        }
+    }
+    if (_sdp_track.size() == 1) {
+        return 0;
+    }
+    WarnL << "no such track with pt:" << pt;
+    return -1;
 }
 
 int RtspPlayer::getTrackIndexByInterleaved(int interleaved) const {
@@ -827,6 +842,36 @@ int RtspPlayer::getTrackIndexByTrackType(TrackType track_type) const {
         return 0;
     }
     throw SockException(Err_other, StrPrinter << "no such track with type:" << getTrackString(track_type));
+}
+
+size_t RtspPlayer::getRecvSpeed() {
+    size_t ret = TcpClient::getRecvSpeed();
+    for (auto &rtp : _rtp_sock) {
+        if (rtp) {
+            ret += rtp->getRecvSpeed();
+        }
+    }
+    for (auto &rtcp : _rtcp_sock) {
+        if (rtcp) {
+            ret += rtcp->getRecvSpeed();
+        }
+    }
+    return ret;
+}
+
+size_t RtspPlayer::getRecvTotalBytes() {
+    size_t ret = TcpClient::getRecvTotalBytes();
+    for (auto &rtp : _rtp_sock) {
+        if (rtp) {
+            ret += rtp->getRecvTotalBytes();
+        }
+    }
+    for (auto &rtcp : _rtcp_sock) {
+        if (rtcp) {
+            ret += rtcp->getRecvTotalBytes();
+        }
+    }
+    return ret;
 }
 
 ///////////////////////////////////////////////////

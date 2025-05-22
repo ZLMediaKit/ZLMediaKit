@@ -343,6 +343,40 @@ API_EXPORT void API_CALL mk_mpeg_muxer_init_complete(mk_mpeg_muxer ctx);
  */
 API_EXPORT int API_CALL mk_mpeg_muxer_input_frame(mk_mpeg_muxer ctx, mk_frame frame);
 
+//////////////////////////////////////////////////////////////////////
+#if defined(ENABLE_RTPPROXY)
+
+typedef struct mk_ps_decoder_t *mk_ps_decoder;
+
+typedef void (API_CALL *on_mk_ps_decoder_stream)(void *user_data, int stream, int codecid, const void *ext, size_t ext_len, int finish);
+typedef void(API_CALL *on_mk_ps_decoder_frame)(void *user_data, int stream, int codecid, int flags, int64_t pts, int64_t dts, const void *data, size_t bytes);
+
+/**
+ * 创建一个ps解析器
+ * @param scb stream 回调; 可选, 如果明确知道数据类型也许不需要此回调创建track?
+ * @param dcb 数据回调；必填
+ * @param user_data 用户自定义数据
+ * @return
+ */
+API_EXPORT mk_ps_decoder API_CALL mk_ps_decoder_create(on_mk_ps_decoder_stream scb, on_mk_ps_decoder_frame dcb, void * user_data);
+
+/**
+ * 释放ps解析器
+ * @param ctx
+ */
+API_EXPORT void API_CALL mk_ps_decoder_release(mk_ps_decoder ctx);
+
+/**
+ * 输入ps数据
+ * @param ctx ps解析器指针
+ * @param data ps数据指针
+ * @param bytes 数据长度
+ */
+API_EXPORT void API_CALL mk_ps_decoder_input(mk_ps_decoder ctx, const char * data, size_t bytes);
+
+
+# endif
+
 #ifdef __cplusplus
 }
 #endif

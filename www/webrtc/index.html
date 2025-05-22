@@ -240,10 +240,13 @@
               console.log('ICE 协商出错');
             });
     
-            player.on(ZLMRTCClient.Events.WEBRTC_ON_REMOTE_STREAMS,function(e)
+            player.on(ZLMRTCClient.Events.WEBRTC_ON_REMOTE_STREAMS,function(s)
             {
-              //获取到了远端流，可以播放
-              console.log('播放成功',e.streams);
+              //获取到了远端流，可以播放,如果element 为null 或者不传,可以在这里播放(如下注释代码)
+              /*
+                document.getElementById('video').srcObject=s;
+              */
+              console.log('播放成功',s);
             });
     
             player.on(ZLMRTCClient.Events.WEBRTC_OFFER_ANWSER_EXCHANGE_FAILED,function(e)

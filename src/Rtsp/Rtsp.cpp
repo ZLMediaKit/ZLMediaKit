@@ -12,9 +12,10 @@
 #include <cinttypes>
 #include <random>
 #include "Rtsp.h"
+#include "Network/Socket.h"
 #include "Common/Parser.h"
 #include "Common/config.h"
-#include "Network/Socket.h"
+#include "Extension/Track.h"
 #include "Extension/Factory.h"
 
 using namespace std;
@@ -24,50 +25,84 @@ namespace mediakit {
 
 int RtpPayload::getClockRate(int pt) {
     switch (pt) {
-#define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id)                                                                                          \
+#define XX(name, type, value, clock_rate, channel, codec_id)                                                                                          \
     case value: return clock_rate;
-        RTP_PT_MAP(SWITCH_CASE)
-#undef SWITCH_CASE
+        RTP_PT_MAP(XX)
+#undef XX
         default: return 90000;
     }
 }
 
+int RtpPayload::getClockRateByCodec(CodecId codec) {
+#define XX(name, type, value, clock_rate, channel, codec_id) { codec_id, clock_rate },
+    static map<CodecId, int> s_map = { RTP_PT_MAP(XX) };
+#undef XX
+    auto it = s_map.find(codec);
+    if (it == s_map.end()) {
+        WarnL << "Unsupported codec: " << getCodecName(codec);
+        return 90000;
+    }
+    return it->second;
+}
+
+int RtpPayload::getPayloadType(const Track &track) {
+#define XX(name, type, value, clock_rate, channel, codec_id) { codec_id, info { clock_rate, channel, value } },
+    struct info {
+        int clock_rate;
+        int channels;
+        int pt;
+    };
+    static map<CodecId, info> s_map = { RTP_PT_MAP(XX) };
+#undef XX
+    auto it = s_map.find(track.getCodecId());
+    if (it == s_map.end()) {
+        return -1;
+    }
+    if (track.getTrackType() == TrackAudio) {
+        if (static_cast<const AudioTrack &>(track).getAudioSampleRate() != it->second.clock_rate
+            || static_cast<const AudioTrack &>(track).getAudioChannel() != it->second.channels) {
+            return -1;
+        }
+    }
+    return it->second.pt;
+}
+
 TrackType RtpPayload::getTrackType(int pt) {
     switch (pt) {
-#define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id)                                                                                          \
+#define XX(name, type, value, clock_rate, channel, codec_id)                                                                                          \
     case value: return type;
-        RTP_PT_MAP(SWITCH_CASE)
-#undef SWITCH_CASE
+        RTP_PT_MAP(XX)
+#undef XX
         default: return TrackInvalid;
     }
 }
 
 int RtpPayload::getAudioChannel(int pt) {
     switch (pt) {
-#define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id)                                                                                          \
+#define XX(name, type, value, clock_rate, channel, codec_id)                                                                                          \
     case value: return channel;
-        RTP_PT_MAP(SWITCH_CASE)
-#undef SWITCH_CASE
+        RTP_PT_MAP(XX)
+#undef XX
         default: return 1;
     }
 }
 
 const char *RtpPayload::getName(int pt) {
     switch (pt) {
-#define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id)                                                                                          \
+#define XX(name, type, value, clock_rate, channel, codec_id)                                                                                          \
     case value: return #name;
-        RTP_PT_MAP(SWITCH_CASE)
-#undef SWITCH_CASE
+        RTP_PT_MAP(XX)
+#undef XX
         default: return "unknown payload type";
     }
 }
 
 CodecId RtpPayload::getCodecId(int pt) {
     switch (pt) {
-#define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id)                                                                                          \
+#define XX(name, type, value, clock_rate, channel, codec_id)                                                                                          \
     case value: return codec_id;
-        RTP_PT_MAP(SWITCH_CASE)
-#undef SWITCH_CASE
+        RTP_PT_MAP(XX)
+#undef XX
         default: return CodecInvalid;
     }
 }
@@ -91,13 +126,7 @@ static void getAttrSdp(const multimap<string, string> &attr, _StrPrinter &printe
 }
 
 string SdpTrack::getName() const {
-    switch (_pt) {
-#define SWITCH_CASE(name, type, value, clock_rate, channel, codec_id)                                                                                          \
-    case value: return #name;
-        RTP_PT_MAP(SWITCH_CASE)
-#undef SWITCH_CASE
-        default: return _codec;
-    }
+    return RtpPayload::getName(_pt);
 }
 
 string SdpTrack::getControlUrl(const string &base_url) const {
@@ -713,6 +742,23 @@ TitleSdp::TitleSdp(float dur_sec, const std::map<std::string, std::string> &head
         _printer << "a=range:npt=0-" << dur_sec << "\r\n";
     }
     _printer << "a=control:*\r\n";
+}
+
+DefaultSdp::DefaultSdp(int payload_type, const Track &track)
+    : Sdp(track.getTrackType() == TrackVideo ? 9000 : static_cast<const AudioTrack &>(track).getAudioSampleRate(), payload_type) {
+    _printer << "m=" << track.getTrackTypeStr() << " 0 RTP/AVP " << payload_type << "\r\n";
+    auto bitrate = track.getBitRate() >> 10;
+    if (bitrate) {
+        _printer << "b=AS:" << bitrate << "\r\n";
+    }
+    if (payload_type < 96) {
+        return;
+    }
+    _printer << "a=rtpmap:" << payload_type << " " << track.getCodecName() << "/" << getSampleRate();
+    if (track.getTrackType() == TrackAudio) {
+        _printer << "/" << static_cast<const AudioTrack &>(track).getAudioChannel();
+    }
+    _printer << "\r\n";
 }
 
 } // namespace mediakit

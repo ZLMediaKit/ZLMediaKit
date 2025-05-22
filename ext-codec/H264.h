@@ -146,8 +146,11 @@ private:
     bool inputFrame_l(const Frame::Ptr &frame);
     void insertConfigFrame(const Frame::Ptr &frame);
 
+    bool latestIsConfigFrame();
+
 private:
-    bool _latest_is_config_frame = false;
+    bool _latest_is_pps = false;
+    bool _latest_is_sps = false;
     int _width = 0;
     int _height = 0;
     float _fps = 0;

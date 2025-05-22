@@ -213,6 +213,7 @@ bool HttpSession::checkWebSocket() {
     if (Sec_WebSocket_Key.empty()) {
         return false;
     }
+    _is_websocket = true;
     auto Sec_WebSocket_Accept = encodeBase64(SHA1::encode_bin(Sec_WebSocket_Key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"));
 
     KeyValue headerOut;
@@ -305,6 +306,12 @@ bool HttpSession::checkLiveStream(const string &schema, const string &url_suffix
         return false;
     }
 
+    if (_is_websocket) {
+        _media_info.protocol = overSsl() ? "wss" : "ws";
+    } else {
+        _media_info.protocol = overSsl() ? "https" : "http";
+    }
+
     bool close_flag = !strcasecmp(_parser["Connection"].data(), "close");
     weak_ptr<HttpSession> weak_self = static_pointer_cast<HttpSession>(shared_from_this());
 
@@ -387,7 +394,7 @@ bool HttpSession::checkLiveStreamFMP4(const function<void()> &cb) {
         _fmp4_reader = fmp4_src->getRing()->attach(getPoller());
         _fmp4_reader->setGetInfoCB([weak_self]() {
             Any ret;
-            ret.set(static_pointer_cast<SockInfo>(weak_self.lock()));
+            ret.set(static_pointer_cast<Session>(weak_self.lock()));
             return ret;
         });
         _fmp4_reader->setDetachCB([weak_self]() {
@@ -437,7 +444,7 @@ bool HttpSession::checkLiveStreamTS(const function<void()> &cb) {
         _ts_reader = ts_src->getRing()->attach(getPoller());
         _ts_reader->setGetInfoCB([weak_self]() {
             Any ret;
-            ret.set(static_pointer_cast<SockInfo>(weak_self.lock()));
+            ret.set(static_pointer_cast<Session>(weak_self.lock()));
             return ret;
         });
         _ts_reader->setDetachCB([weak_self]() {

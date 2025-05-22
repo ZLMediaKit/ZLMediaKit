@@ -15,8 +15,8 @@ var ZLMRTCClient = (function (exports) {
 	  CAPTURE_STREAM_FAILED: 'CAPTURE_STREAM_FAILED'
 	};
 
-	const VERSION$1 = '1.1.0';
-	const BUILD_DATE = 'Thu Jun 20 2024 16:15:41 GMT+0800 (China Standard Time)';
+	const VERSION$1 = '1.1.2';
+	const BUILD_DATE = 'Fri Dec 20 2024 19:12:10 GMT+0800 (China Standard Time)';
 
 	// Copyright (C) <2018> Intel Corporation
 	//
@@ -8984,7 +8984,7 @@ var ZLMRTCClient = (function (exports) {
 	    super('RTCPusherPlayer');
 	    this.TAG = '[RTCPusherPlayer]';
 	    let defaults = {
-	      element: '',
+	      element: null,
 	      // html video element
 	      debug: false,
 	      // if output debug log
@@ -9090,6 +9090,12 @@ var ZLMRTCClient = (function (exports) {
 	    if (this.options.useCamera) {
 	      if (this.options.videoEnable) videoConstraints = new VideoTrackConstraints(VideoSourceInfo.CAMERA);
 	      if (this.options.audioEnable) audioConstraints = new AudioTrackConstraints(AudioSourceInfo.MIC);
+	      if (typeof videoConstraints == 'object' && this.options.videoId != '') {
+	        videoConstraints.deviceId = this.options.videoId;
+	      }
+	      if (typeof audioConstraints == 'object' && this.options.audioId != '') {
+	        audioConstraints.deviceId = this.options.audioId;
+	      }
 	    } else {
 	      if (this.options.videoEnable) {
 	        videoConstraints = new VideoTrackConstraints(VideoSourceInfo.SCREENCAST);
@@ -9099,16 +9105,13 @@ var ZLMRTCClient = (function (exports) {
 	          // error shared display media not only audio
 	          error(this.TAG, 'error paramter');
 	        }
+	        if (typeof audioConstraints == 'object' && this.options.audioId != '') {
+	          audioConstraints.deviceId = this.options.audioId;
+	        }
 	      }
 	    }
 	    if (this.options.resolution.w != 0 && this.options.resolution.h != 0 && typeof videoConstraints == 'object') {
 	      videoConstraints.resolution = new Resolution(this.options.resolution.w, this.options.resolution.h);
-	    }
-	    if (typeof videoConstraints == 'object' && this.options.videoId != '') {
-	      videoConstraints.deviceId = this.options.videoId;
-	    }
-	    if (typeof audioConstraints == 'object' && this.options.audioId != '') {
-	      audioConstraints.deviceId = this.options.audioId;
 	    }
 	    MediaStreamFactory.createMediaStream(new StreamConstraints(audioConstraints, videoConstraints)).then(stream => {
 	      this._localStream = stream;
@@ -9195,7 +9198,7 @@ var ZLMRTCClient = (function (exports) {
 	      });
 	    }).catch(e => {
 	      this.dispatch(Events$1.CAPTURE_STREAM_FAILED);
-	      //debug.error(this.TAG,e);
+	      error(this.TAG, e);
 	    });
 
 	    //const offerOptions = {};
@@ -9221,12 +9224,15 @@ var ZLMRTCClient = (function (exports) {
 	    if (this.options.element && event.streams && event.streams.length > 0) {
 	      this.options.element.srcObject = event.streams[0];
 	      this._remoteStream = event.streams[0];
-	      this.dispatch(Events$1.WEBRTC_ON_REMOTE_STREAMS, event);
+	      this.dispatch(Events$1.WEBRTC_ON_REMOTE_STREAMS, this._remoteStream);
 	    } else {
 	      if (this.pc.getReceivers().length == this._tracks.length) {
 	        log(this.TAG, 'play remote stream ');
 	        this._remoteStream = new MediaStream(this._tracks);
-	        this.options.element.srcObject = this._remoteStream;
+	        if (this.options.element) {
+	          this.options.element.srcObject = this._remoteStream;
+	        }
+	        this.dispatch(Events$1.WEBRTC_ON_REMOTE_STREAMS, this._remoteStream);
 	      } else {
 	        error(this.TAG, 'wait stream track finish');
 	      }

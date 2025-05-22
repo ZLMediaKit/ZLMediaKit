@@ -7,7 +7,7 @@
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
-
+#ifdef ENABLE_MP4
 #include <signal.h>
 #include <atomic>
 #include <iostream>
@@ -261,3 +261,4 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
+#endif

@@ -139,6 +139,10 @@ public:
     // Using this only makes sense after a successful connection to the server
     TranslationInfo getTranslationInfo();
 
+    const std::string& getUrl() const { return _pull_url; }
+    const MediaTuple& getMediaTuple() const { return _tuple; }
+    const ProtocolOption& getOption() const { return _option; }
+
 private:
     // MediaSourceEvent override
     bool close(MediaSource &sender) override;

@@ -23,6 +23,8 @@ public:
 
     void play(const std::string &url) override;
     void teardown() override;
+    size_t getRecvSpeed() override;
+    size_t getRecvTotalBytes() override;
 
 protected:
     void onResponseHeader(const std::string &status, const HttpHeader &header) override;

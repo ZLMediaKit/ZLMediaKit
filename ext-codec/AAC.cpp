@@ -373,11 +373,7 @@ Track::Ptr AACTrack::clone() const {
 }
 
 Sdp::Ptr AACTrack::getSdp(uint8_t payload_type) const {
-    if (!ready()) {
-        WarnL << getCodecName() << " Track未准备好";
-        return nullptr;
-    }
-    return std::make_shared<AACSdp>(getExtraData()->toString(), payload_type, getAudioSampleRate(), getAudioChannel(), getBitRate() / 1024);
+    return std::make_shared<AACSdp>(getExtraData()->toString(), payload_type, getAudioSampleRate(), getAudioChannel(), getBitRate() >> 10);
 }
 
 namespace {

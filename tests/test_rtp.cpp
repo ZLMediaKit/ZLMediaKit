@@ -89,7 +89,7 @@ static bool loadFile(const char *path, const EventPoller::Ptr &poller) {
     poller->doDelayTask(1, [do_read, total_size, process]() mutable {
         auto ret = do_read();
         if (!ret) {
-            WarnL << *total_size / 1024 << "KB";
+            WarnL << (*total_size >> 10) << "KB";
         }
         return ret;
     });

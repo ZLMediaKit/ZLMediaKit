@@ -267,31 +267,32 @@ bool H264Track::inputFrame_l(const Frame::Ptr &frame) {
     switch (type) {
         case H264Frame::NAL_SPS: {
             _sps = string(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
-            _latest_is_config_frame = true;
+            _latest_is_sps = true;
             ret = VideoTrack::inputFrame(frame);
             break;
         }
         case H264Frame::NAL_PPS: {
             _pps = string(frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize());
-            _latest_is_config_frame = true;
+            _latest_is_pps = true;
             ret = VideoTrack::inputFrame(frame);
             break;
         }
         default:
             // 避免识别不出关键帧  [AUTO-TRANSLATED:8eb84679]
             // Avoid not being able to recognize keyframes
-            if (_latest_is_config_frame && !frame->dropAble()) {
+            if (latestIsConfigFrame() && !frame->dropAble()) {
                 if (!frame->keyFrame()) {
                     const_cast<Frame::Ptr &>(frame) = std::make_shared<FrameCacheAble>(frame, true);
                 }
             }
             // 判断是否是I帧, 并且如果是,那判断前面是否插入过config帧, 如果插入过就不插入了  [AUTO-TRANSLATED:40733cd8]
             // Determine if it is an I frame, and if it is, determine if a config frame has been inserted before, and if it has been inserted, do not insert it
-            if (frame->keyFrame() && !_latest_is_config_frame) {
+            if (frame->keyFrame() && !latestIsConfigFrame()) {
                 insertConfigFrame(frame);
             }
             if(!frame->dropAble()){
-                _latest_is_config_frame = false;
+                _latest_is_pps = false;
+                _latest_is_sps = false;
             }
             ret = VideoTrack::inputFrame(frame);
             break;
@@ -311,6 +312,10 @@ void H264Track::insertConfigFrame(const Frame::Ptr &frame) {
     if (!_pps.empty()) {
         VideoTrack::inputFrame(createConfigFrame<H264Frame>(_pps, frame->dts(), frame->getIndex()));
     }
+}
+
+bool H264Track::latestIsConfigFrame(){
+    return _latest_is_sps && _latest_is_pps;
 }
 
 class H264Sdp : public Sdp {
@@ -357,11 +362,7 @@ private:
 };
 
 Sdp::Ptr H264Track::getSdp(uint8_t payload_type) const {
-    if (!ready()) {
-        WarnL << getCodecName() << " Track未准备好";
-        return nullptr;
-    }
-    return std::make_shared<H264Sdp>(_sps, _pps, payload_type, getBitRate() / 1024);
+    return std::make_shared<H264Sdp>(_sps, _pps, payload_type, getBitRate() >> 10);
 }
 
 namespace {

@@ -42,11 +42,15 @@ public:
     // Set the maximum allowed rollback or jump amplitude
     void setMaxDelta(size_t max_delta);
 
+    // 重置
+    void reset();
+
 protected:
     virtual void needSync() {}
 
 protected:
     int _max_delta;
+    int _last_delta = 1;
     int64_t _last_stamp = 0;
     int64_t _relative_stamp = 0;
 };
@@ -122,6 +126,11 @@ public:
      * [AUTO-TRANSLATED:1d32f7e3]
      */
     void enableRollback(bool flag);
+
+    /**
+     * 重置
+     */
+    void reset();
 
 private:
     // 主要实现音视频时间戳同步功能  [AUTO-TRANSLATED:45863fce]

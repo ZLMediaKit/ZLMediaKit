@@ -44,7 +44,18 @@ typedef enum {
     XX(CodecVP9,   TrackVideo, 8, "VP9", PSI_STREAM_VP9, MOV_OBJECT_VP9)             \
     XX(CodecAV1,   TrackVideo, 9, "AV1", PSI_STREAM_AV1, MOV_OBJECT_AV1)             \
     XX(CodecJPEG,  TrackVideo, 10, "JPEG", PSI_STREAM_JPEG_2000, MOV_OBJECT_JPEG)    \
-    XX(CodecG711ToAAC,  TrackAudio, 11, "G711ToAAC", PSI_STREAM_AAC, MOV_OBJECT_AAC)  
+    XX(CodecH266,  TrackVideo, 11, "H266", PSI_STREAM_H266, MOV_OBJECT_H266)         \
+    XX(CodecTS,    TrackVideo, 12, "MP2T", PSI_STREAM_RESERVED, MOV_OBJECT_NONE)     \
+    XX(CodecPS,    TrackVideo, 13, "MPEG", PSI_STREAM_RESERVED, MOV_OBJECT_NONE)     \
+    XX(CodecMP3,   TrackAudio, 14, "MP3",  PSI_STREAM_MP3, MOV_OBJECT_MP3)           \
+    XX(CodecADPCM, TrackAudio, 15, "ADPCM", PSI_STREAM_RESERVED, MOV_OBJECT_NONE)    \
+    XX(CodecSVACV, TrackVideo, 16, "SVACV", PSI_STREAM_VIDEO_SVAC, MOV_OBJECT_NONE)  \
+    XX(CodecSVACA, TrackAudio, 17, "SVACA", PSI_STREAM_AUDIO_SVAC, MOV_OBJECT_NONE)  \
+    XX(CodecG722,  TrackAudio, 18, "G722", PSI_STREAM_AUDIO_G722, MOV_OBJECT_NONE)   \
+    XX(CodecG723,  TrackAudio, 19, "G723", PSI_STREAM_AUDIO_G723, MOV_OBJECT_NONE)   \
+    XX(CodecG728,  TrackAudio, 20, "G728", PSI_STREAM_RESERVED, MOV_OBJECT_NONE)     \
+    XX(CodecG729,  TrackAudio, 21, "G729", PSI_STREAM_AUDIO_G729, MOV_OBJECT_NONE)   \
+    XX(CodecG711ToAAC,  TrackAudio, 22, "G711ToAAC", PSI_STREAM_AAC, MOV_OBJECT_AAC)  
 
 typedef enum {
     CodecInvalid = -1,
@@ -525,6 +536,7 @@ private:
 class FrameStamp : public Frame {
 public:
     using Ptr = std::shared_ptr<FrameStamp>;
+    FrameStamp(Frame::Ptr frame);
     FrameStamp(Frame::Ptr frame, Stamp &stamp, int modify_stamp);
     ~FrameStamp() override {}
 
@@ -539,6 +551,7 @@ public:
     char *data() const override { return _frame->data(); }
     size_t size() const override { return _frame->size(); }
     CodecId getCodecId() const override { return _frame->getCodecId(); }
+    void setStamp(int64_t dts, int64_t pts);
 
 private:
     int64_t _dts;
@@ -721,9 +734,9 @@ public:
      * [AUTO-TRANSLATED:a3e7e6db]
      */
     bool inputFrame(const Frame::Ptr &frame) override {
-        std::lock_guard<std::recursive_mutex> lck(_mtx);
         doStatistics(frame);
         bool ret = false;
+        std::lock_guard<std::recursive_mutex> lck(_mtx);
         for (auto &pr : _delegates) {
             if (pr.second->inputFrame(frame)) {
                 ret = true;
@@ -755,7 +768,6 @@ public:
      * [AUTO-TRANSLATED:73cb2ab0]
      */
     uint64_t getVideoKeyFrames() const {
-        std::lock_guard<std::recursive_mutex> lck(_mtx);
         return _video_key_frames;
     }
 
@@ -766,22 +778,18 @@ public:
      * [AUTO-TRANSLATED:118b395e]
      */
     uint64_t getFrames() const {
-        std::lock_guard<std::recursive_mutex> lck(_mtx);
         return _frames;
     }
 
     size_t getVideoGopSize() const {
-        std::lock_guard<std::recursive_mutex> lck(_mtx);
         return _gop_size;
     }
 
     size_t getVideoGopInterval() const {
-        std::lock_guard<std::recursive_mutex> lck(_mtx);
         return _gop_interval_ms;
     }
 
     int64_t getDuration() const {
-        std::lock_guard<std::recursive_mutex> lck(_mtx);
         return _stamp.getRelativeStamp();
     }
 
