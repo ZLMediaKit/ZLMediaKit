@@ -96,11 +96,18 @@ int main(int argc, char *argv[]) {
                 FFmpegSwr::Ptr swr;
 
                 decoder->setOnDecode([audio_player, swr](const FFmpegFrame::Ptr &frame) mutable {
+                    int chs = 0;
                     if (!swr) {
+# if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
+                        swr = std::make_shared<FFmpegSwr>(AV_SAMPLE_FMT_S16, &(frame->get()->ch_layout), frame->get()->sample_rate);
+                        chs = (&frame->get()->ch_layout)->nb_channels;
+#else
                         swr = std::make_shared<FFmpegSwr>(AV_SAMPLE_FMT_S16, frame->get()->channels, frame->get()->channel_layout, frame->get()->sample_rate);
+                        chs = frame->get()->channels;
+#endif
                     }
                     auto pcm = swr->inputFrame(frame);
-                    auto len = pcm->get()->nb_samples * pcm->get()->channels * av_get_bytes_per_sample((enum AVSampleFormat)pcm->get()->format);
+                    auto len = pcm->get()->nb_samples * chs * av_get_bytes_per_sample((enum AVSampleFormat)pcm->get()->format);
                     audio_player->playPCM((const char *)(pcm->get()->data[0]), MIN(len, frame->get()->linesize[0]));
                 });
                 audioTrack->addDelegate([decoder](const Frame::Ptr &frame) { return decoder->inputFrame(frame, false, true); });

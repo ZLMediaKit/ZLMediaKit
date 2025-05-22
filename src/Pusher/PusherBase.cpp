@@ -12,17 +12,48 @@
 #include "PusherBase.h"
 #include "Rtsp/RtspPusher.h"
 #include "Rtmp/RtmpPusher.h"
+#ifdef ENABLE_SRT
+#include "Srt/SrtPusher.h"
+#endif // ENABLE_SRT
 
 using namespace toolkit;
 
 namespace mediakit {
+
+static bool checkMediaSourceAndUrlMatch(const MediaSource::Ptr &src, const std::string &url) {
+    std::string prefix = findSubString(url.data(), NULL, "://");
+
+    if (strcasecmp("rtsps", prefix.data()) == 0 || strcasecmp("rtsp", prefix.data()) == 0) {
+        auto rtsp_src = std::dynamic_pointer_cast<RtspMediaSource>(src);
+        if (!rtsp_src) {
+            return false;
+        }
+    }
+
+    if (strcasecmp("rtmp", prefix.data()) == 0 || strcasecmp("rtmps", prefix.data()) == 0) {
+        auto rtmp_src = std::dynamic_pointer_cast<RtmpMediaSource>(src);
+        if (!rtmp_src) {
+            return false;
+        }
+    }
+
+#ifdef ENABLE_SRT
+    if (strcasecmp("srt", prefix.data()) == 0) {
+        auto ts_src = std::dynamic_pointer_cast<TSMediaSource>(src);
+        if (!ts_src) {
+            return false;
+        }
+    }
+#endif // ENABLE_SRT
+    return true;
+}
 
 PusherBase::Ptr PusherBase::createPusher(const EventPoller::Ptr &in_poller,
                                          const MediaSource::Ptr &src,
                                          const std::string & url) {
     auto poller = in_poller ? in_poller : EventPollerPool::Instance().getPoller();
     std::weak_ptr<EventPoller> weak_poller = poller;
-    static auto release_func = [weak_poller](PusherBase *ptr) {
+    auto release_func = [weak_poller](PusherBase *ptr) {
         if (auto poller = weak_poller.lock()) {
             poller->async([ptr]() {
                 onceToken token(nullptr, [&]() { delete ptr; });
@@ -32,6 +63,10 @@ PusherBase::Ptr PusherBase::createPusher(const EventPoller::Ptr &in_poller,
             delete ptr;
         }
     };
+    if (!checkMediaSourceAndUrlMatch(src, url)) {
+        throw std::invalid_argument(" media source (schema) and  push url not match");
+    }
+
     std::string prefix = findSubString(url.data(), NULL, "://");
 
     if (strcasecmp("rtsps",prefix.data()) == 0) {
@@ -49,6 +84,13 @@ PusherBase::Ptr PusherBase::createPusher(const EventPoller::Ptr &in_poller,
     if (strcasecmp("rtmp",prefix.data()) == 0) {
         return PusherBase::Ptr(new RtmpPusherImp(poller, std::dynamic_pointer_cast<RtmpMediaSource>(src)), release_func);
     }
+
+#ifdef ENABLE_SRT
+    if (strcasecmp("srt", prefix.data()) == 0) {
+        return PusherBase::Ptr(new SrtPusherImp(poller, std::dynamic_pointer_cast<TSMediaSource>(src)), release_func);
+    }
+#endif//ENABLE_SRT
+
 
     throw std::invalid_argument("not supported push schema:" + url);
 }

@@ -122,20 +122,15 @@ void HlsMaker::inputData(const char *data, size_t len, uint64_t timestamp, bool 
 
 void HlsMaker::delOldSegment() {
     GET_CONFIG(uint32_t, segDelay, Hls::kSegmentDelay);
-    if (_seg_number == 0) {
-        // 如果设置为保留0个切片，则认为是保存为点播  [AUTO-TRANSLATED:5bf20108]
-        // If set to keep 0 slices, it is considered to be saved as on-demand
+    if (_seg_number == 0 || _seg_keep) {
+        // 如果设置为保留0个切片，则认为是保存为点播；或者设置为一直保存，就不删除  [AUTO-TRANSLATED:5bf20108]
+        // If set to keep 0 or all slices, it is considered to be saved as on-demand
         return;
     }
     // 在hls m3u8索引文件中,我们保存的切片个数跟_seg_number相关设置一致  [AUTO-TRANSLATED:b14b5b98]
     // In the hls m3u8 index file, the number of slices we save is consistent with the _seg_number setting
     if (_file_index > _seg_number + segDelay) {
         _seg_dur_list.pop_front();
-    }
-    // 如果设置为一直保存，就不删除  [AUTO-TRANSLATED:7c622e24]
-    // If set to always save, it will not be deleted
-    if (_seg_keep) {
-        return;
     }
     GET_CONFIG(uint32_t, segRetain, Hls::kSegmentRetain);
     // 但是实际保存的切片个数比m3u8所述多若干个,这样做的目的是防止播放器在切片删除前能下载完毕  [AUTO-TRANSLATED:1688f857]

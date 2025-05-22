@@ -59,6 +59,36 @@ public:
 
     std::vector<Track::Ptr> getTracks(bool ready = true) const override;
 
+    size_t getRecvSpeed() override {
+        size_t ret = TcpClient::getRecvSpeed();
+        for (auto &rtp : _rtp_sock) {
+            if (rtp) {
+                ret += rtp->getRecvSpeed();
+            }
+        }
+        for (auto &rtcp : _rtcp_sock) {
+            if (rtcp) {
+                ret += rtcp->getRecvSpeed();
+            }
+        }
+        return ret;
+    }
+
+    size_t getRecvTotalBytes() override {
+        size_t ret = TcpClient::getRecvTotalBytes();
+        for (auto &rtp : _rtp_sock) {
+            if (rtp) {
+                ret += rtp->getRecvTotalBytes();
+            }
+        }
+        for (auto &rtcp : _rtcp_sock) {
+            if (rtcp) {
+                ret += rtcp->getRecvTotalBytes();
+            }
+        }
+        return ret;
+    }
+
 private:
     // 派生类回调函数  [AUTO-TRANSLATED:61e20903]
     // Derived class callback function

@@ -158,6 +158,7 @@ protected:
 private:
     bool _is_live_stream = false;
     bool _live_over_websocket = false;
+    bool _is_websocket = false;
     // 超时时间  [AUTO-TRANSLATED:f15e2672]
     // Timeout
     size_t _keep_alive_sec = 0;

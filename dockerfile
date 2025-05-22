@@ -25,13 +25,8 @@ RUN apt-get update && \
          ca-certificates \
          tzdata \
          libssl-dev \
-         libmysqlclient-dev \
-         libx264-dev \
-         libfaac-dev \
          gcc \
          g++ \
-         libavcodec-dev libavutil-dev libswscale-dev libresample-dev \
-         libsdl-dev libusrsctp-dev \
          gdb && \
          apt-get autoremove -y && \
          apt-get clean -y && \
@@ -69,13 +64,9 @@ RUN apt-get update && \
          tzdata \
          curl \
          libssl-dev \
-         libx264-dev \
-         libfaac-dev \
          ffmpeg \
          gcc \
          g++ \
-         libavcodec-dev libavutil-dev libswscale-dev libresample-dev \
-         libsdl-dev libusrsctp-dev \
          gdb && \
          apt-get autoremove -y && \
          apt-get clean -y && \

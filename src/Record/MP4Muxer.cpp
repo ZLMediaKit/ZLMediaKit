@@ -247,7 +247,8 @@ bool MP4MuxerMemory::inputFrame(const Frame::Ptr &frame) {
         _key_frame = false;
     }
 
-    if (frame->keyFrame()) {
+    // only audio all frame is key frame
+    if (frame->keyFrame() || !haveVideo()) {
         _key_frame = true;
     }
     if (frame->getTrackType() == TrackVideo || !haveVideo()) {

@@ -1,4 +1,4 @@
-#include <atomic>
+﻿#include <atomic>
 
 static int test()
 {

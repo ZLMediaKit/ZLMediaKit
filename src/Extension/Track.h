@@ -201,7 +201,7 @@ public:
     bool ready() const override { return true; }
 
     Track::Ptr clone() const override { return std::make_shared<VideoTrackImp>(*this); }
-    Sdp::Ptr getSdp(uint8_t payload_type) const override { return nullptr; }
+    Sdp::Ptr getSdp(uint8_t payload_type) const override;
     CodecId getCodecId() const override { return _codec_id; }
 
 private:
@@ -298,7 +298,7 @@ public:
      * [AUTO-TRANSLATED:9af5a0a4]
      */
     int getAudioSampleRate() const override{
-        return _sample_rate;
+        return _sample_rate ? _sample_rate : RtpPayload::getClockRateByCodec(_codecid);
     }
 
     /**
@@ -308,7 +308,7 @@ public:
      * [AUTO-TRANSLATED:5fedc65d]
      */
     int getAudioSampleBit() const override{
-        return _sample_bit;
+        return _sample_bit ? _sample_bit : 16;
     }
 
     /**
@@ -318,11 +318,11 @@ public:
      * [AUTO-TRANSLATED:2613b317]
      */
     int getAudioChannel() const override{
-        return _channels;
+        return _channels ? _channels : 1;
     }
 
     Track::Ptr clone() const override { return std::make_shared<AudioTrackImp>(*this); }
-    Sdp::Ptr getSdp(uint8_t payload_type) const override { return nullptr; }
+    Sdp::Ptr getSdp(uint8_t payload_type) const override;
 
 private:
     CodecId _codecid;

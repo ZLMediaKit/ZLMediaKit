@@ -371,6 +371,8 @@ enum class RtmpAudioCodec : uint8_t {
     14 = MP3 8 kHz
     15 = Device-specific sound
      */
+    adpcm = 1,
+    mp3 = 2,
     g711a = 7,
     g711u = 8,
     aac = 10,

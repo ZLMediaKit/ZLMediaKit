@@ -139,7 +139,36 @@
   - Supports on-demand demultiplexing and protocol conversion, reducing CPU usage by only enabling it when someone is watching
   - Supports cluster deployment in traceable mode, with RTSP/RTMP/HLS/HTTP-TS support for traceable mode and HLS support for edge stations and multiple sources for source stations (using round-robin tracing)
   - Can reconnect to streaming after abnormal disconnection in RTSP/RTMP/WebRTC pushing within a timeout period, with no impact on the player.
- 
+
+## Closed-Source Professional Edition
+Based on the latest open-source code, the following closed-source professional editions have been added. For details, please contact: 1213642868@qq.com
+
+- Transcoding Version
+  - Supports arbitrary audio and video transcoding, including H.265/H.264/Opus/G.711/AAC/G.722/G.722.1/MP3/SVAC, etc.
+  - Configuration file-based transcoding, allowing customization of bitrate, codec type, and other parameters.
+  - Dynamic transcoding management via HTTP API, supporting settings for bitrate, resolution scaling, codec type, filters, etc.
+  - Supports adaptive hardware and software transcoding.
+  - Supports on-demand transcoding, only transcoding when a viewer is present. It also supports transparent transcoding mode, requiring no modifications to business logic.
+  - Supports automatic frame rate reduction under high load conditions to prevent video artifacts.
+  - Supports filters, including OSD text overlay and logo watermarking.
+  - Supports full GPU hardware encoding/decoding and filtering, minimizing frequent memory transfers between VRAM and RAM.
+  - Supports full GPU (CUDA) inference plugins, enabling AI-based object detection for people, vehicles, and other targets.
+
+- JT1078 Version
+  - Supports JT1078 stream ingestion and protocol conversion, with adaptive audio-video shared sequence and individual sequence modes.
+  - Adds JT1078 cascading support and JT1078 intercom support.
+  - JT1078 APIs and usage remain consistent with GB28181, ensuring compatibility.
+  - Supports H.264/H.265/G.711/AAC/MP3/G.721/G.722/G.723/G.729/G.726/ADPCM encoding.
+
+- IPTV Version
+  - Supports RTSP-TS/HLS/HTTP-TS/RTP multicast/UDP multicast stream ingestion and protocol conversion. Supports TS passthrough mode, eliminating the need for demuxing when converting to RTSP-TS/HLS/HTTP-TS/SRT.
+  - Supports RTSP-TS/SRT stream ingestion and TS passthrough mode, avoiding the need for demuxing when converting to RTSP-TS/HLS/HTTP-TS/SRT.
+  - All the above features also support demuxing TS into ES streams and converting them to RTSP/RTMP/FLV/HTTP-TS/HLS/HLS-FMP4/MP4/FMP4/WebRTC.
+  
+- VP9/AV1 Version
+  Fully supports AV1/VP9 encoding, with RTMP/RTSP/TS/PS/HLS/MP4/FMP4 protocol compatibility for AV1/VP9.
+
+
 ## System Requirements
 
 - Compiler with c++11 support, such as GCC 4.8+, Clang 3.3+, or VC2015+.
@@ -375,6 +404,8 @@ bash build_docker_images.sh
   - [GB28181 player implemented in C++](https://github.com/any12345com/BXC_gb28181Player)
   - [Android RTCPlayer](https://github.com/leo94666/RTCPlayer)
 
+- Monitor
+  - [Prometheus Exporter for ZLMediaKit](https://github.com/guohuachan/ZLMediaKit_exporter)
 
 ## License
 
@@ -528,6 +559,23 @@ Thanks to all those who have supported this project in various ways, including b
 [weidelong](https://github.com/wdl1697454803)
 [小强先生](https://github.com/linshangqiang)
 [李之阳](https://github.com/leo94666)
+[sgzed](https://github.com/sgzed)
+[gaoshan](https://github.com/foobra)
+[zhang2349](https://github.com/zhang2349)
+[benshi](https://github.com/BenLocal)
+[autoantwort](https://github.com/autoantwort)
+[u7ko4](https://github.com/u7ko4)
+[WengQiang](https://github.com/Tsubaki-01)
+[wEnchanters](https://github.com/wEnchanters)
+[sbkyy](https://github.com/sbkyy)
+[wuxingzhong](https://github.com/wuxingzhong)
+[286897655](https://github.com/286897655)
+[ss002012](https://github.com/ss002012)
+[a839419160](https://github.com/a839419160)
+[oldma3095](https://github.com/oldma3095)
+[Dary](https://github.com/watersounds)
+[N.z](https://github.com/neesonqk)
+[yanggs](https://github.com/callinglove)
 
 Also thank to JetBrains for their support for open source project, we developed and debugged zlmediakit with CLion:
 

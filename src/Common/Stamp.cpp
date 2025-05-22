@@ -27,6 +27,12 @@ DeltaStamp::DeltaStamp() {
     _max_delta = 300;
 }
 
+void DeltaStamp::reset() {
+    _last_stamp = 0;
+    _relative_stamp = 0;
+    _last_delta = 1;
+}
+
 int64_t DeltaStamp::relativeStamp(int64_t stamp, bool enable_rollback) {
     _relative_stamp += deltaStamp(stamp, enable_rollback);
     return _relative_stamp;
@@ -55,8 +61,9 @@ int64_t DeltaStamp::deltaStamp(int64_t stamp, bool enable_rollback) {
         // In the live broadcast case, the timestamp increment must not be greater than MAX_DELTA_STAMP, otherwise the relative timestamp is forced to add 1
         if (ret > _max_delta) {
             needSync();
-            return 1;
+            return _last_delta;
         }
+        _last_delta = ret;
         return ret;
     }
 
@@ -67,7 +74,7 @@ int64_t DeltaStamp::deltaStamp(int64_t stamp, bool enable_rollback) {
         // 不允许回退或者回退太多了, 强制时间戳加1  [AUTO-TRANSLATED:152f5ffa]
         // Not allowed to retreat or retreat too much, force the timestamp to add 1
         needSync();
-        return 1;
+        return _last_delta;
     }
     return ret;
 }
@@ -91,6 +98,14 @@ void Stamp::needSync() {
 
 void Stamp::enableRollback(bool flag) {
     _enable_rollback = flag;
+}
+
+void Stamp::reset() {
+    DeltaStamp::reset();
+    _relative_stamp = 0;
+    _last_dts_in = 0;
+    _last_dts_out = 0;
+    _last_pts_out = 0;
 }
 
 // 限制dts回退  [AUTO-TRANSLATED:6bc53b31]

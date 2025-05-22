@@ -57,6 +57,7 @@ public:
     static bool isDataPacket(uint8_t *buf, size_t len);
     static uint32_t getSocketID(uint8_t *buf, size_t len);
     bool loadFromData(uint8_t *buf, size_t len);
+    bool reloadPayload(uint8_t *buf, size_t len);
     bool storeToData(uint8_t *buf, size_t len);
     bool storeToHeader();
 
@@ -105,6 +106,7 @@ public:
     static const size_t HEADER_SIZE = 16;
     static bool isControlPacket(uint8_t *buf, size_t len);
     static uint16_t getControlType(uint8_t *buf, size_t len);
+    static uint16_t getSubType(uint8_t *buf, size_t len);
     static uint32_t getSocketID(uint8_t *buf, size_t len);
 
     ControlPacket() = default;
@@ -180,6 +182,37 @@ protected:
     Figure 5: Handshake packet structure
     https://haivision.github.io/srt-rfc/draft-sharabayko-srt.html#name-handshake
  */
+
+// REJ code,from libsrt
+#define REJ_MAP(XX) \
+XX(SRT_REJ_UNKNOWN,    1000, "Unknown or erroneous")                    \
+XX(SRT_REJ_SYSTEM,     1001, "Error in system calls")                   \
+XX(SRT_REJ_PEER,       1002, "Peer rejected connection")                \
+XX(SRT_REJ_RESOURCE,   1003, "Resource allocation failure")             \
+XX(SRT_REJ_ROGUE,      1004, "Rogue peer or incorrect parameters")      \
+XX(SRT_REJ_BACKLOG,    1005, "Listener's backlog exceeded")             \
+XX(SRT_REJ_IPE,        1006, "Internal Program Error")                  \
+XX(SRT_REJ_CLOSE,      1007, "Socket is being closed")                  \
+XX(SRT_REJ_VERSION,    1008, "Peer version too old")                    \
+XX(SRT_REJ_RDVCOOKIE,  1009, "Rendezvous-mode cookie collision")        \
+XX(SRT_REJ_BADSECRET,  1010, "Incorrect passphrase")                    \
+XX(SRT_REJ_UNSECURE,   1011, "Password required or unexpected")         \
+XX(SRT_REJ_MESSAGEAPI, 1012, "MessageAPI/StreamAPI collision")          \
+XX(SRT_REJ_CONGESTION, 1013, "Congestion controller type collision")    \
+XX(SRT_REJ_FILTER,     1014, "Packet Filter settings error")            \
+XX(SRT_REJ_GROUP,      1015, "Group settings collision")                \
+XX(SRT_REJ_TIMEOUT,    1016, "Connection timeout")                      \
+XX(SRT_REJ_CRYPTO,     1017, "Crypto mode")
+
+typedef enum {
+#define XX(name, value, str) name = value,
+    REJ_MAP(XX)
+#undef XX
+    SRT_REJ_E_SIZE
+} SRT_REJECT_REASON;
+
+std::string getRejectReason(SRT_REJECT_REASON code);
+
 class HandshakePacket : public ControlPacket {
 public:
     using Ptr = std::shared_ptr<HandshakePacket>;
@@ -205,6 +238,10 @@ public:
     generateSynCookie(struct sockaddr_storage *addr, TimePoint ts, uint32_t current_cookie = 0, int correction = 0);
     std::string dump();
     void assignPeerIP(struct sockaddr_storage *addr);
+    void assignPeerIPBE(struct sockaddr_storage *addr);
+    bool isReject() {
+        return (handshake_type >= SRT_REJ_UNKNOWN && handshake_type < SRT_REJ_E_SIZE);
+    }
     ///////ControlPacket override///////
     bool loadFromData(uint8_t *buf, size_t len) override;
     bool storeToData() override;
@@ -364,6 +401,56 @@ public:
         _data->setCapacity(HEADER_SIZE);
         _data->setSize(HEADER_SIZE);
         return storeToHeader();
+    }
+};
+
+/*
+ 0                   1                   2                   3
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+- SRT Header +-+-+-+-+-+-+-+-+-+-+-+-+-+
+|1|    Control Type = 0x7FFF    |            Subtype = 3/4      |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                   Type-specific Information                   |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                           Timestamp                           |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                     Destination Socket ID                     |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+the Control Type field of the SRT packet header is set to User-Defined Type (see Table 1), 
+the Subtype field of the header is set to SRT_CMD_KMREQ for key-refresh request 
+and SRT_CMD_KMRSP for key-refresh response (Table 5). The KM Refresh mechanism is described in Section 6.1.6.
+https://haivision.github.io/srt-rfc/draft-sharabayko-srt.html#name-key-material
+*/
+
+class KeyMaterialPacket : public ControlPacket, public KeyMaterial {
+public:
+    using Ptr = std::shared_ptr<KeyMaterialPacket>;
+    KeyMaterialPacket() = default;
+    ~KeyMaterialPacket() = default;
+
+    ///////ControlPacket override///////
+    bool loadFromData(uint8_t *buf, size_t len) override {
+        if (len < HEADER_SIZE) {
+            WarnL << "data size" << len << " less " << HEADER_SIZE;
+            return false;
+        }
+        _data = BufferRaw::create();
+        _data->assign((char *)buf, len);
+        loadHeader();
+        assert(sub_type == HSExt::SRT_CMD_KMREQ || sub_type == HSExt::SRT_CMD_KMRSP);
+        return KeyMaterial::loadFromData(buf + HEADER_SIZE, len - HEADER_SIZE);
+    }
+
+    bool storeToData() override {
+        size_t content_size = ((KeyMaterial::getContentSize() + HEADER_SIZE) + 3) / 4 * 4;
+        control_type = ControlPacket::USERDEFINEDTYPE;
+        /* sub_type = HSExt::SRT_CMD_KMREQ; */
+        /* sub_type = HSExt::SRT_CMD_KMRSP; */
+        _data = BufferRaw::create();
+        _data->setCapacity(content_size);
+        _data->setSize(content_size);
+        storeToHeader();
+        return KeyMaterial::storeToData((uint8_t*)_data->data() + HEADER_SIZE, content_size - HEADER_SIZE);
     }
 };
 

@@ -28,6 +28,9 @@ public:
      */
     void play(const std::string &url) override;
 
+    size_t getRecvSpeed() override;
+    size_t getRecvTotalBytes() override;
+
     /**
      * 停止播放
      * Stop playing

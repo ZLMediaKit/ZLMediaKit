@@ -122,12 +122,17 @@ private:
     std::list<std::pair<uint64_t, Frame::Ptr>> _cache;
 };
 
-static std::shared_ptr<MediaSinkInterface> makeRecorder(MediaSource &sender, const vector<Track::Ptr> &tracks, Recorder::type type, const ProtocolOption &option){
-    auto recorder = Recorder::createRecorder(type, sender.getMediaTuple(), option);
-    for (auto &track : tracks) {
+std::shared_ptr<MediaSinkInterface> MultiMediaSourceMuxer::makeRecorder(MediaSource &sender, Recorder::type type) {
+    auto recorder = Recorder::createRecorder(type, sender.getMediaTuple(), _option);
+    for (auto &track : getTracks()) {
         recorder->addTrack(track);
     }
     recorder->addTrackCompleted();
+    if (_ring) {
+        _ring->flushGop([&](const Frame::Ptr &frame) {
+            recorder->inputFrame(frame);
+        });
+    }
     return recorder;
 }
 
@@ -178,9 +183,12 @@ std::string MultiMediaSourceMuxer::shortUrl() const {
     return _tuple.shortUrl();
 }
 
-void MultiMediaSourceMuxer::forEachRtpSender(const std::function<void(const std::string &ssrc)> &cb) const {
+void MultiMediaSourceMuxer::forEachRtpSender(const std::function<void(const std::string &ssrc, const RtpSender &sender)> &cb) const {
     for (auto &pr : _rtp_sender) {
-        cb(pr.first);
+        auto sender = std::get<1>(pr.second).lock();
+        if (sender) {
+            cb(pr.first, *sender);
+        }
     }
 }
 
@@ -305,7 +313,7 @@ bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type
                 // 开始录制  [AUTO-TRANSLATED:36d99250]
                 // Start recording
                 _option.hls_save_path = custom_path;
-                auto hls = dynamic_pointer_cast<HlsRecorder>(makeRecorder(sender, getTracks(), type, _option));
+                auto hls = dynamic_pointer_cast<HlsRecorder>(makeRecorder(sender, type));
                 if (hls) {
                     // 设置HlsMediaSource的事件监听器  [AUTO-TRANSLATED:69990c92]
                     // Set the event listener for HlsMediaSource
@@ -325,7 +333,7 @@ bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type
                 // Start recording
                 _option.mp4_save_path = custom_path;
                 _option.mp4_max_second = max_second;
-                _mp4 = makeRecorder(sender, getTracks(), type, _option);
+                _mp4 = makeRecorder(sender, type);
             } else if (!start && _mp4) {
                 // 停止录制  [AUTO-TRANSLATED:3dee9292]
                 // Stop recording
@@ -338,7 +346,7 @@ bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type
                 // 开始录制  [AUTO-TRANSLATED:36d99250]
                 // Start recording
                 _option.hls_save_path = custom_path;
-                auto hls = dynamic_pointer_cast<HlsFMP4Recorder>(makeRecorder(sender, getTracks(), type, _option));
+                auto hls = dynamic_pointer_cast<HlsFMP4Recorder>(makeRecorder(sender, type));
                 if (hls) {
                     // 设置HlsMediaSource的事件监听器  [AUTO-TRANSLATED:69990c92]
                     // Set the event listener for HlsMediaSource
@@ -354,7 +362,7 @@ bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type
         }
         case Recorder::type_fmp4: {
             if (start && !_fmp4) {
-                auto fmp4 = dynamic_pointer_cast<FMP4MediaSourceMuxer>(makeRecorder(sender, getTracks(), type, _option));
+                auto fmp4 = dynamic_pointer_cast<FMP4MediaSourceMuxer>(makeRecorder(sender, type));
                 if (fmp4) {
                     fmp4->setListener(shared_from_this());
                 }
@@ -366,7 +374,7 @@ bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type
         }
         case Recorder::type_ts: {
             if (start && !_ts) {
-                auto ts = dynamic_pointer_cast<TSMediaSourceMuxer>(makeRecorder(sender, getTracks(), type, _option));
+                auto ts = dynamic_pointer_cast<TSMediaSourceMuxer>(makeRecorder(sender, type));
                 if (ts) {
                     ts->setListener(shared_from_this());
                 }
@@ -395,7 +403,7 @@ bool MultiMediaSourceMuxer::isRecording(MediaSource &sender, Recorder::type type
 
 void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const MediaSourceEvent::SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb) {
 #if defined(ENABLE_RTPPROXY)
-    createGopCacheIfNeed();
+    createGopCacheIfNeed(1);
 
     auto ring = _ring;
     auto ssrc = args.ssrc;
@@ -438,10 +446,11 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const MediaSourceE
         // 可能归属线程发生变更  [AUTO-TRANSLATED:2b379e30]
         // The owning thread may change
         strong_self->getOwnerPoller(MediaSource::NullMediaSource())->async([=]() {
-            if(!ssrc_multi_send) {
+            if (!ssrc_multi_send) {
                 strong_self->_rtp_sender.erase(ssrc);
             }
-            strong_self->_rtp_sender.emplace(ssrc,reader);
+            std::weak_ptr<RtpSender> sender = rtp_sender;
+            strong_self->_rtp_sender.emplace(ssrc, make_tuple(reader, sender));
         });
     });
 #else
@@ -571,9 +580,9 @@ void MultiMediaSourceMuxer::onAllTrackReady() {
     }
 
 #if defined(ENABLE_RTPPROXY)
-    GET_CONFIG(bool, gop_cache, RtpProxy::kGopCache);
-    if (gop_cache) {
-        createGopCacheIfNeed();
+    GET_CONFIG(size_t, gop_cache, RtpProxy::kGopCache);
+    if (gop_cache > 0) {
+        createGopCacheIfNeed(gop_cache);
     }
 #endif
 
@@ -588,7 +597,7 @@ void MultiMediaSourceMuxer::onAllTrackReady() {
     InfoL << "stream: " << shortUrl() << " , codec info: " << getTrackInfoStr(this);
 }
 
-void MultiMediaSourceMuxer::createGopCacheIfNeed() {
+void MultiMediaSourceMuxer::createGopCacheIfNeed(size_t gop_count) {
     if (_ring) {
         return;
     }
@@ -602,7 +611,7 @@ void MultiMediaSourceMuxer::createGopCacheIfNeed() {
                 strong_self->onReaderChanged(*src, strong_self->totalReaderCount());
             });
         }
-    });
+    }, gop_count);
 }
 
 void MultiMediaSourceMuxer::resetTracks() {

@@ -100,7 +100,10 @@ void DecoderImp::onStream(int stream, int codecid, const void *extra, size_t byt
         track = Factory::getTrackByCodecId(CodecG711ToAAC, 8000, 1, 16);
         // track = Factory::getTrackByCodecId(getCodecByMpegId(codecid), 8000, 1, 16);
     } else {
-        track = Factory::getTrackByCodecId(getCodecByMpegId(codecid), 8000, 1, 16);
+        auto codec = getCodecByMpegId(codecid);
+        if (codec != CodecInvalid) {
+            track = Factory::getTrackByCodecId(codec);
+        }
     }
 
     if (track) {
@@ -126,7 +129,7 @@ void DecoderImp::onDecode(int stream, int codecid, int flags, int64_t pts, int64
     }
     auto &ref = _tracks[stream];
     if (!ref.first) {
-        onTrack(stream, Factory::getTrackByCodecId(codec, 8000, 1, 16));
+        onTrack(stream, Factory::getTrackByCodecId(codec));
     }
     if (!ref.first) {
         WarnL << "Unsupported codec :" << getCodecName(codec);

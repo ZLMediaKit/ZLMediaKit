@@ -94,6 +94,11 @@ public:
      */
     void setOnClose(std::function<void(const toolkit::SockException &ex)> on_close);
 
+    size_t getSendSpeed() const;
+    size_t getRecvSpeed() const;
+    size_t getRecvTotalBytes() const;
+    size_t getSendTotalBytes() const;
+
 private:
     // 合并写输出  [AUTO-TRANSLATED:23544836]
     // Merge write output

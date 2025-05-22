@@ -194,6 +194,13 @@ static std::shared_ptr<char> getSharedMmap(const string &file_path, int64_t &fil
 }
 
 HttpFileBody::HttpFileBody(const string &file_path, bool use_mmap) {
+
+    // 判断是否为目录，避免对目录进行mmap操作，导致程序崩溃。
+    if (File::is_dir(file_path)) {
+        _read_to = -1;
+        return;
+    }
+
     if (use_mmap ) {
         _map_addr = getSharedMmap(file_path, _read_to);       
     }

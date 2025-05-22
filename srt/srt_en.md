@@ -5,7 +5,7 @@
 - pull stream payload is ts
 - protocol impliment [reference](https://haivision.github.io/srt-rfc/draft-sharabayko-srt.html)
 - version support (>=1.3.0)
-- fec and encriyped not support 
+- fec not support 
 
 ## usage 
 
@@ -40,4 +40,9 @@ like：
 
     `ffplay -i srt://192.168.1.105:9000?streamid=#!::r=live/test`
 
-- vlc not support ,because can't set stream id [reference](https://github.com/Haivision/srt/issues/1015)
+- vlc pull , Tools->Preferences->All->Inputs/Codecs->Access Modules->SRT，then input Stream ID like below:
+
+  `#!::r=live/test`
+
+  then play `srt://192.168.1.105:9000`
+
