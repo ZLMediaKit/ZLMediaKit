@@ -21,6 +21,7 @@ class G711ToAACTrack : public AACTrack {
 	unsigned int	_u32AudioSamplerate;		//8000
 	unsigned int	_u32PCMBitSize;			//16
 
+    Track::Ptr _originTrack;
 private:
     Track::Ptr clone() const override;
 public:
@@ -37,6 +38,12 @@ public:
     CodecId getCodecId() const override;
 
     bool inputFrame(const Frame::Ptr &frame) override;
+
+    void addOriginTrack(Track::Ptr) override;
+
+    virtual Track::Ptr getOriginTrack() override;
+
+    virtual void setIndex(int index) override; //{ _index = index; }
 };
 
 }//namespace mediakit

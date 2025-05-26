@@ -95,12 +95,17 @@ void DecoderImp::onStream(int stream, int codecid, const void *extra, size_t byt
     // G711传统只支持 8000/1/16的规格，FFmpeg貌似做了扩展，但是这里不管它了  [AUTO-TRANSLATED:851813f7]
     // G711 traditionally only supports the 8000/1/16 specification. FFmpeg seems to have extended it, but we'll ignore that here.
 
+    bool enable = 1;
+    auto codec = getCodecByMpegId(codecid);
     Track::Ptr track;
-    if(codecid==PSI_STREAM_AUDIO_G711A|| codecid==PSI_STREAM_AUDIO_G711U){
+    if(enable&&(codecid==PSI_STREAM_AUDIO_G711A || codecid==PSI_STREAM_AUDIO_G711U)){
         track = Factory::getTrackByCodecId(CodecG711ToAAC, 8000, 1, 16);
+        auto origintrack = Factory::getTrackByCodecId(codec);
+
+        track->addOriginTrack(origintrack);
         // track = Factory::getTrackByCodecId(getCodecByMpegId(codecid), 8000, 1, 16);
     } else {
-        auto codec = getCodecByMpegId(codecid);
+        // auto codec = getCodecByMpegId(codecid);
         if (codec != CodecInvalid) {
             track = Factory::getTrackByCodecId(codec);
         }

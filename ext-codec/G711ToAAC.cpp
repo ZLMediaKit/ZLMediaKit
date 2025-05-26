@@ -107,6 +107,8 @@ bool G711ToAACTrack::inputFrame(const Frame::Ptr &frame) {
     frame_aac->_dts = frame->dts();
     frame_aac->setIndex(frame->getIndex());
 
+    frame_aac->addOriginFrame(frame);
+    
     int ret = 0;
     unsigned int outlen = 0;
     if(frame->size()<tempbuffer_size) {
@@ -147,6 +149,21 @@ bool G711ToAACTrack::inputFrame(const Frame::Ptr &frame) {
     return AACTrack::inputFrame(frame_aac);
 }
 
+void G711ToAACTrack::addOriginTrack(Track::Ptr track) {
+    _originTrack = track;
+}
+
+Track::Ptr G711ToAACTrack::getOriginTrack() {
+    return _originTrack;
+}
+
+void G711ToAACTrack::setIndex(int index) { 
+    if (_originTrack) {
+        _originTrack->setIndex(index);
+    }
+
+    CodecInfo::setIndex(index);
+}
 
 namespace {
 

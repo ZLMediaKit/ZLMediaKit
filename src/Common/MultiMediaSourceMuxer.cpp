@@ -518,7 +518,15 @@ bool MultiMediaSourceMuxer::onTrackReady(const Track::Ptr &track) {
         ret = _rtmp->addTrack(track) ? true : ret;
     }
     if (_rtsp) {
-        ret = _rtsp->addTrack(track) ? true : ret;
+
+        if(CodecG711ToAAC==track->getCodecId()) {
+            InfoL << "CodecG711ToAAC ready, stream:" << shortUrl();
+            auto origintrack = track->getOriginTrack();
+
+            ret = _rtsp->addTrack(origintrack) ? true : ret;
+        } else {
+            ret = _rtsp->addTrack(track) ? true : ret;
+        }
     }
     if (_ts) {
         ret = _ts->addTrack(track) ? true : ret;
@@ -657,7 +665,14 @@ bool MultiMediaSourceMuxer::onTrackFrame_l(const Frame::Ptr &frame_in) {
         ret = _rtmp->inputFrame(frame) ? true : ret;
     }
     if (_rtsp) {
-        ret = _rtsp->inputFrame(frame) ? true : ret;
+        if(CodecG711ToAAC==frame->getCodecId()) {
+            // InfoL << "G711转AAC, stream:" << shortUrl() << ", frame:" << frame->getCodecName() << ", dts:" << frame->dts() << ", pts:" << frame->pts();
+            auto originframe = frame->getOriginFrame();
+
+            ret = _rtsp->inputFrame(originframe) ? true : ret;
+        } else {
+            ret = _rtsp->inputFrame(frame) ? true : ret;
+        }        
     }
     if (_ts) {
         ret = _ts->inputFrame(frame) ? true : ret;

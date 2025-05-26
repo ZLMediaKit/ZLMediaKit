@@ -191,7 +191,7 @@ public:
      
      * [AUTO-TRANSLATED:da5bdb91]
      */
-    void setIndex(int index) { _index = index; }
+    virtual void setIndex(int index) { _index = index; }
 
     /**
      * 获取track index, 用于支持多track
@@ -304,10 +304,20 @@ public:
      */
     static Ptr getCacheAbleFrame(const Ptr &frame);
 
+    virtual void addOriginFrame(const Frame::Ptr &frame) {
+        _origin_frame = frame;
+    }
+
+    virtual Frame::Ptr getOriginFrame() const {
+        return _origin_frame;
+    }
+
 private:
     // 对象个数统计  [AUTO-TRANSLATED:3b43e8c2]
     // Object count statistics
     toolkit::ObjectStatistic<Frame> _statistic;
+
+    Frame::Ptr _origin_frame;
 };
 
 class FrameImp : public Frame {
@@ -552,6 +562,10 @@ public:
     size_t size() const override { return _frame->size(); }
     CodecId getCodecId() const override { return _frame->getCodecId(); }
     void setStamp(int64_t dts, int64_t pts);
+
+    virtual Frame::Ptr getOriginFrame() const override {
+        return _frame->getOriginFrame();
+    }
 
 private:
     int64_t _dts;

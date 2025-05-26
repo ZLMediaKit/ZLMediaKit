@@ -69,7 +69,7 @@ bool RtspMuxer::addTrack(const Track::Ptr &track) {
         WarnL << track->getCodecName() << " unready!";
         return false;
     }
-
+    
     auto &ref = _tracks[track->getIndex()];
     auto &encoder = ref.encoder;
     CHECK(!encoder);
@@ -127,6 +127,9 @@ bool RtspMuxer::addTrack(const Track::Ptr &track) {
     // 添加其sdp  [AUTO-TRANSLATED:80958925]
     // Add its SDP
     _sdp.append(str);
+
+    // WarnL<< "_sdp " << _sdp;
+
     trySyncTrack();
 
     // rtp的时间戳是pts，允许回退  [AUTO-TRANSLATED:f4a977fc]
@@ -150,7 +153,15 @@ void RtspMuxer::trySyncTrack() {
 }
 
 bool RtspMuxer::inputFrame(const Frame::Ptr &frame) {
+
+    // InfoL << "RtspMuxer::inputFrame getIndex " << frame->getIndex();
+
     auto &encoder = _tracks[frame->getIndex()].encoder;
+    // if(encoder==nullptr) {
+    //     WarnL << "No encoder for track index: " << frame->getIndex() << ", codec: " << frame->getCodecName();
+    //     return false;
+    // }
+
     return encoder ? encoder->inputFrame(frame) : false;
 }
 

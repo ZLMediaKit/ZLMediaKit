@@ -123,6 +123,9 @@ public:
      */
     virtual void setBitRate(int bit_rate) { _bit_rate = bit_rate; }
 
+    virtual void addOriginTrack(Track::Ptr) {}
+
+    virtual Track::Ptr getOriginTrack() { return nullptr; }
 private:
     int _bit_rate = 0;
 };

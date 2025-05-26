@@ -156,7 +156,7 @@ bool RtpProcess::inputFrame(const Frame::Ptr &frame) {
     }
     if (_muxer) {
         _last_frame_time.resetTime();
-        return _muxer->inputFrame(frame);
+        return _muxer->inputFrame(frame);  //MultiMediaSourceMuxer
     }
     if (_cache_ticker.elapsedTime() > kMaxCachedFrameMS) {
         WarnL << "Cached frame of stream(" << _media_info.stream << ") is too much, your on_publish hook responded too late!";
