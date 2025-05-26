@@ -141,7 +141,7 @@ void RtpTrackImp::setBeforeSorted(BeforeSorted cb) {
 }
 
 void RtpTrackImp::onRtpSorted(RtpPacket::Ptr rtp) {
-    if (_on_sorted) {
+    if (_on_sorted && rtp != nullptr) {
         _on_sorted(std::move(rtp));
     }
 }

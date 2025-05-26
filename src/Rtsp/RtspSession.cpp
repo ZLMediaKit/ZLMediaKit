@@ -970,7 +970,7 @@ void RtspSession::send_NotAcceptable() {
 }
 
 void RtspSession::onRtpSorted(RtpPacket::Ptr rtp, int track_idx) {
-    if (_push_src) {
+    if (_push_src && rtp != nullptr) {
         _push_src->onWrite(std::move(rtp), false);
     } else {
         WarnL << "Not a rtsp push!";

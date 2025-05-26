@@ -586,6 +586,7 @@ void RtspPlayer::onRtcpPacket(int track_idx, SdpTrack::Ptr &track, uint8_t *data
 }
 
 void RtspPlayer::onRtpSorted(RtpPacket::Ptr rtppt, int trackidx) {
+    if (rtppt == nullptr) return;
     _stamp[trackidx] = rtppt->getStampMS();
     _rtp_recv_ticker.resetTime();
     onRecvRTP(std::move(rtppt), _sdp_track[trackidx]);
