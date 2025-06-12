@@ -22,6 +22,9 @@ class G711ToAACTrack : public AACTrack {
 	unsigned int	_u32PCMBitSize;			//16
 
     Track::Ptr _originTrack;
+
+    #define tempbuffer_size 4096
+    unsigned char _ToAAcBuffer[tempbuffer_size] = {0}; // 临时缓存区  [AUTO-TRANSLATED:3f8b6c1d]
 private:
     Track::Ptr clone() const override;
 public:

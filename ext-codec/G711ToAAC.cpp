@@ -99,7 +99,7 @@ bool G711ToAACTrack::inputFrame(const Frame::Ptr &frame) {
         _AACEncoderHandle = Easy_AACEncoder_Init(initParam);
     }
 
-    #define tempbuffer_size 4096
+    // #define tempbuffer_size 4096
 
     auto frame_aac = FrameImp::create();
     frame_aac->_codec_id = CodecG711ToAAC;
@@ -109,43 +109,29 @@ bool G711ToAACTrack::inputFrame(const Frame::Ptr &frame) {
 
     frame_aac->addOriginFrame(frame);
     
-    int ret = 0;
-    unsigned int outlen = 0;
-    if(frame->size()<tempbuffer_size) {
-        char tempbuffer[frame->size()];
-        int ret = Easy_AACEncoder_Encode(_AACEncoderHandle, (unsigned char*)frame->data(), frame->size(), (unsigned char*)tempbuffer, &outlen);
-        frame_aac->_buffer.assign(tempbuffer, outlen);
-    } else {
-        char* G711ABuffer_ = new char[frame->size()];
-        int ret = Easy_AACEncoder_Encode(_AACEncoderHandle, (unsigned char*)frame->data(), frame->size(), (unsigned char*)G711ABuffer_, &outlen);
-        frame_aac->_buffer.assign(G711ABuffer_, outlen);
-        delete[] G711ABuffer_;
+    assert(frame->size());
+
+    if(frame->size()>tempbuffer_size) {
+        // 如果G711帧过大，直接丢弃  [AUTO-TRANSLATED:3c0b1f2d]
+        // If the G711 frame is too large, discard it directly
+        WarnL << "G711帧过大" << frame->size() << ", dts:" << frame->dts() << ", pts:" << frame->pts();
+        // return false;
     }
 
-    // InfoL<< "G711ToAACTrack::inputFrame frame size:" << frame->size() 
-    //     << " prefixSize:" << frame->prefixSize() 
-    //     << " dts:" << frame->dts() 
-    //     << " pts:" << frame->pts()
-    //     << " outlen:" << outlen
-    //     << " ret:" << ret;
+    unsigned int outlen = tempbuffer_size;
+
+    int ret = Easy_AACEncoder_Encode(_AACEncoderHandle, (unsigned char*)frame->data(), frame->size(), (unsigned char*)_ToAAcBuffer, &outlen);
+    if(ret<=0||outlen==0) {
+        // WarnL << "Easy_AACEncoder_Encode ret:" << ret << ", outlen:" << outlen;
+        return false;
+    }
+
+    frame_aac->_buffer.assign((char* )_ToAAcBuffer, outlen);
+    frame_aac->_prefix_size = ADTS_HEADER_LEN;
 
     auto ptr = reinterpret_cast<const uint8_t *>(frame_aac->data());
-
-    if ((ptr[0] == 0xFF && (ptr[1] & 0xF0) == 0xF0) && frame->size() > ADTS_HEADER_LEN) {
-        // adts头打入了rtp包，不符合规范，兼容EasyPusher的bug  [AUTO-TRANSLATED:203a5ee9]
-        // The adts header is inserted into the rtp packet, which is not compliant with the specification, compatible with the bug of EasyPusher
-        frame_aac->_prefix_size = ADTS_HEADER_LEN;
-        // InfoL << "G711ToAACTrack ADTS_HEADER_LEN" << ADTS_HEADER_LEN << ", frame->size() " << frame->size() 
-        //     << " prefixSize:" << frame->prefixSize() 
-        //     << " dts:" << frame->dts() 
-        //     << " pts:" << frame->pts();
-    } else {
-        // InfoL << "G711ToAACTrack::inputFrame frame size:" << frame->size() 
-        //     << " prefixSize:" << frame->prefixSize() 
-        //     << " dts:" << frame->dts() 
-        //     << " pts:" << frame->pts();
-    }
-
+    assert ((ptr[0] == 0xFF && (ptr[1] & 0xF0) == 0xF0) );
+    
     return AACTrack::inputFrame(frame_aac);
 }
 

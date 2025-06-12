@@ -40,7 +40,7 @@ PSDecoder::PSDecoder() {
                 PSDecoder *thiz = (PSDecoder *) param;
                 if (thiz->_on_stream) {
 
-                    InfoL<< "_on_stream codecid" << codecid;
+                    // InfoL<< "_on_stream codecid" << codecid;
                     thiz->_on_stream(stream, codecid, extra, bytes, finish);
                 }
             }

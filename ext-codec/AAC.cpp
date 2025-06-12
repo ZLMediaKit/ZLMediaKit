@@ -341,6 +341,7 @@ bool AACTrack::inputFrame_l(const Frame::Ptr &frame) {
     if (_cfg.empty() && frame->prefixSize()) {
         // 未获取到aac_cfg信息，根据7个字节的adts头生成aac config  [AUTO-TRANSLATED:1b80f562]
         // Unable to get aac_cfg information, generate aac config based on the 7-byte adts header
+        WarnL << "未获取到aac_cfg信息，根据adts头生成aac config";
         _cfg = makeAacConfig((uint8_t *)(frame->data()), frame->prefixSize());
         update();
     }
