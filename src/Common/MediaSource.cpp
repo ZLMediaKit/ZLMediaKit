@@ -626,6 +626,7 @@ void MediaInfo::parse(const std::string &url_in){
 
 MediaSource::Ptr MediaSource::createFromMP4(const string &schema, const string &vhost, const string &app, const string &stream, const string &file_path , bool check_app){
     GET_CONFIG(string, appName, Record::kAppName);
+    GET_CONFIG(bool, file_repeat, Record::kFileRepeat);        
     if (check_app && app != appName) {
         return nullptr;
     }
@@ -633,7 +634,7 @@ MediaSource::Ptr MediaSource::createFromMP4(const string &schema, const string &
     try {
         MediaTuple tuple = {vhost, app, stream, ""};
         auto reader = std::make_shared<MP4Reader>(tuple, file_path);
-        reader->startReadMP4();
+        reader->startReadMP4(0, true, file_repeat);
         return MediaSource::find(schema, vhost, app, stream);
     } catch (std::exception &ex) {
         WarnL << ex.what();
