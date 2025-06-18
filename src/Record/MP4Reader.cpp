@@ -98,8 +98,7 @@ bool MP4Reader::readSample() {
         }
     }
 
-    GET_CONFIG(bool, file_repeat, Record::kFileRepeat);
-    if (eof && (file_repeat || _file_repeat)) {
+    if (eof && _file_repeat) {
         // 需要从头开始看  [AUTO-TRANSLATED:5b563a35]
         // Need to start from the beginning
         seekTo(0);
