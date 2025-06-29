@@ -80,21 +80,23 @@ SrtCaller::~SrtCaller(void) {
 void SrtCaller::onConnect() {
     //DebugL;
 
-    auto peer_addr = SockUtil::make_sockaddr(_url._host.c_str(), (_url._port));
-    _socket = Socket::createSocket(_poller, false);
-    _socket->bindUdpSock(0, SockUtil::is_ipv4(_url._host.data()) ? "0.0.0.0" : "::");
-    _socket->bindPeerAddr((struct sockaddr *)&peer_addr, 0, true);
+    getPoller()->async([&]() {
+        auto peer_addr = SockUtil::make_sockaddr(_url._host.c_str(), (_url._port));
+        _socket = Socket::createSocket(_poller, false);
+        _socket->bindUdpSock(0, SockUtil::is_ipv4(_url._host.data()) ? "0.0.0.0" : "::");
+        _socket->bindPeerAddr((struct sockaddr *)&peer_addr, 0, true);
 
-    weak_ptr<SrtCaller> weak_self = shared_from_this();
-    _socket->setOnRead([weak_self](const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len) mutable {
-        auto strong_self = weak_self.lock();
-        if (!strong_self) {
-            return;
-        }
-        strong_self->inputSockData((uint8_t*)buf->data(), buf->size(), addr);
+        weak_ptr<SrtCaller> weak_self = shared_from_this();
+        _socket->setOnRead([weak_self](const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len) mutable {
+            auto strong_self = weak_self.lock();
+            if (!strong_self) {
+                return;
+            }
+            strong_self->inputSockData((uint8_t*)buf->data(), buf->size(), addr);
+        });
+
+        doHandshake();
     });
-
-    doHandshake();
 }
 
 void SrtCaller::onResult(const SockException &ex) {
@@ -218,8 +220,8 @@ void SrtCaller::inputSockData(uint8_t *buf, int len, struct sockaddr *addr) {
 
     // 处理srt数据
     if (DataPacket::isDataPacket(buf, len)) {
-        uint32_t socketId = DataPacket::getSocketID(buf, len);
-        if (isPlayer()) {
+        if (_is_handleshake_finished && isPlayer()) {
+            uint32_t socketId = DataPacket::getSocketID(buf, len);
             if (socketId == _socket_id) {
                 _pkt_recv_rate_context->inputPacket(_now, len + UDP_HDR_SIZE);
                 handleDataPacket(buf, len, addr);
@@ -702,6 +704,11 @@ void SrtCaller::handleHandshakeConclusion(SRT::HandshakePacket &pkt, struct sock
 void SrtCaller::handleACK(uint8_t *buf, int len, struct sockaddr *addr) {
     // TraceL;
     //Acknowledgement of Acknowledgement (ACKACK) control packets are sent to acknowledge the reception of a Full ACK
+ 
+    if (!_is_handleshake_finished) {
+        return;
+    }
+
     ACKPacket ack;
     if (!ack.loadFromData(buf, len)) {
         return;
@@ -722,6 +729,10 @@ void SrtCaller::handleACK(uint8_t *buf, int len, struct sockaddr *addr) {
 
 void SrtCaller::handleACKACK(uint8_t *buf, int len, struct sockaddr *addr) {
     // TraceL;
+
+    if (!_is_handleshake_finished) {
+        return;
+    }
     ACKACKPacket::Ptr pkt = std::make_shared<ACKACKPacket>();
     pkt->loadFromData(buf, len);
 
@@ -757,6 +768,15 @@ void SrtCaller::handleACKACK(uint8_t *buf, int len, struct sockaddr *addr) {
 }
 
 void SrtCaller::handleNAK(uint8_t *buf, int len, struct sockaddr *addr) {
+    if (!_is_handleshake_finished) {
+        return;
+    }
+
+    if (isPlayer()) {
+        //player should not handle nak 
+        return;
+    }
+
     //TraceL;
     NAKPacket pkt;
     pkt.loadFromData(buf, len);
@@ -783,6 +803,15 @@ void SrtCaller::handleNAK(uint8_t *buf, int len, struct sockaddr *addr) {
 }
 
 void SrtCaller::handleDropReq(uint8_t *buf, int len, struct sockaddr *addr) {
+    if (!_is_handleshake_finished) {
+        return;
+    }
+
+    if (!isPlayer()) {
+        //pusher should not handle drop req
+        return;
+    }
+
     MsgDropReqPacket pkt;
     pkt.loadFromData(buf, len);
     std::list<DataPacket::Ptr> list;
