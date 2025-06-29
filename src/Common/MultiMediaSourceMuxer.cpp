@@ -513,6 +513,18 @@ EventPoller::Ptr MultiMediaSourceMuxer::getOwnerPoller(MediaSource &sender) {
     }
 }
 
+bool MultiMediaSourceMuxer::close(MediaSource &sender) {
+    _rtmp = nullptr;
+    _rtsp = nullptr;
+    _fmp4 = nullptr;
+    _ts = nullptr;
+    _mp4 = nullptr;
+    _hls = nullptr;
+    _hls_fmp4 = nullptr;
+    _rtp_sender.clear();
+    return true;
+}
+
 std::shared_ptr<MultiMediaSourceMuxer> MultiMediaSourceMuxer::getMuxer(MediaSource &sender) const {
     return const_cast<MultiMediaSourceMuxer*>(this)->shared_from_this();
 }
