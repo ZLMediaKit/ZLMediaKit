@@ -151,7 +151,7 @@ void DecoderImp::onTrack(int index, const Track::Ptr &track) {
     track->setIndex(index);
     auto &ref = _tracks[index];
     if (ref.first) {
-        WarnL << "Already existed a same track: " << index << ", codec: " << track->getCodecName();
+        // WarnL << "Already existed a same track: " << index << ", codec: " << track->getCodecName();
         return;
     }
     ref.first = track;

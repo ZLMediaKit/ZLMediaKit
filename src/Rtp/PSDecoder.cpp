@@ -56,7 +56,7 @@ ssize_t PSDecoder::input(const uint8_t *data, size_t bytes) {
 const char *PSDecoder::onSearchPacketTail(const char *data, size_t len) {
     try {
         auto ret = ps_demuxer_input(static_cast<struct ps_demuxer_t *>(_ps_demuxer), reinterpret_cast<const uint8_t *>(data), len);
-        if (ret >= 0) {
+        if (ret >= 0 && ret <= (ssize_t)len) {
             // 解析成功全部或部分  [AUTO-TRANSLATED:a8085d34]
             // Parse successful, all or part
             return data + ret;
