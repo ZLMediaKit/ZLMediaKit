@@ -117,33 +117,19 @@ void MP4Recorder::flush() {
 }
 
 bool MP4Recorder::inputFrame(const Frame::Ptr &frame) {
-    if (!(_have_video && frame->getTrackType() == TrackAudio)) {
-        // 如果有视频且输入的是音频，那么应该忽略切片逻辑  [AUTO-TRANSLATED:fbb15d93]
-        // If there is video and the input is audio, then the slice logic should be ignored
-        if (_last_dts == 0) {
-            // first frame assign dts
-            _last_dts = frame->dts();
-        } else if (_last_dts > frame->dts()) {
-            // b帧情况下dts时间戳可能回退  [AUTO-TRANSLATED:1de38f77]
-            // In the case of b-frames, the dts timestamp may regress
-            _last_dts = MIN(frame->dts(), _last_dts);
-        }
-        
-        auto duration = 5u; // 默认至少一帧5ms
-        if (frame->dts() > 0 && frame->dts() > _last_dts) {
-            duration = MAX(duration, frame->dts() - _last_dts);
-        }
-        if (!_muxer || ((duration > _max_second * 1000) && (!_have_video || (_have_video && frame->keyFrame())))) {
-            // 成立条件  [AUTO-TRANSLATED:8c9c6083]
-            // Conditions for establishment
-            // 1、_muxer为空  [AUTO-TRANSLATED:fa236097]
-            // 1. _muxer is empty
-            // 2、到了切片时间，并且只有音频  [AUTO-TRANSLATED:212e9d23]
-            // 2. It's time to slice, and there is only audio
-            // 3、到了切片时间，有视频并且遇到视频的关键帧  [AUTO-TRANSLATED:fa4a71ad]
-            // 3. It's time to slice, there is video and a video keyframe is encountered
-            _last_dts = 0;
-            createFile();
+    auto stamp_inc = _delta_stamp[frame->getTrackType()].relativeStamp(frame->pts(), false);
+    if (!_muxer || (stamp_inc > int64_t(_max_second) * 1000 && (!_have_video || frame->keyFrame()))) {
+        // 成立条件  [AUTO-TRANSLATED:8c9c6083]
+        // Conditions for establishment
+        // 1、_muxer为空  [AUTO-TRANSLATED:fa236097]
+        // 1. _muxer is empty
+        // 2、到了切片时间，并且只有音频  [AUTO-TRANSLATED:212e9d23]
+        // 2. It's time to slice, and there is only audio
+        // 3、到了切片时间，有视频并且遇到视频的关键帧  [AUTO-TRANSLATED:fa4a71ad]
+        // 3. It's time to slice, there is video and a video keyframe is encountered
+        createFile();
+        for (auto &ref : _delta_stamp) {
+            ref.reset();
         }
     }
 
