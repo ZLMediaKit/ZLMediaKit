@@ -442,7 +442,7 @@ namespace RTC
         }
         MS_DUMP("  size: %zu bytes", this->size);
 
-        static char transactionId[25];
+        thread_local static char transactionId[25];
 
         for (int i{ 0 }; i < 12; ++i)
         {

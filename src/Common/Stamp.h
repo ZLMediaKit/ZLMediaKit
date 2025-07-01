@@ -117,7 +117,7 @@ public:
      
      * [AUTO-TRANSLATED:7ac41a76]
      */
-    void syncTo(Stamp &other);
+    void syncTo(Stamp &other, int count = 1);
 
     /**
      * 是否允许时间戳回退
@@ -145,7 +145,7 @@ private:
 
 private:
     bool _playback = false;
-    bool _need_sync = false;
+    int _need_sync = 0;
     // 默认不允许时间戳回滚  [AUTO-TRANSLATED:0163ff03]
     // Default does not allow timestamp rollback
     bool _enable_rollback = false;

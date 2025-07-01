@@ -181,6 +181,12 @@ public:
      * [AUTO-TRANSLATED:a4dc847e]
      */
     toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;
+    
+    /**
+     * 关闭流
+     * @return 是否成功
+     */
+    bool close(MediaSource &sender) override;
 
     /**
      * 获取本对象

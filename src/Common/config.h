@@ -563,6 +563,8 @@ extern const std::string kGopCache;
 extern const std::string kRtpG711DurMs;
 // udp recv socket buffer size
 extern const std::string kUdpRecvSocketBuffer;
+// ps/ts解析后是否等待下一帧以判断本帧是否完整，开启后提高兼容性，但是可能增加延时
+extern const std::string kMergeFrame;
 } // namespace RtpProxy
 
 /**

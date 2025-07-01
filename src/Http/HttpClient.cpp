@@ -264,7 +264,7 @@ ssize_t HttpClient::onRecvHeader(const char *data, size_t len) {
         _total_body_size = -1;
     }
 
-    if (_total_body_size == 0) {
+    if (_total_body_size == 0 || _method == "HEAD") {
         // 后续没content，本次http请求结束  [AUTO-TRANSLATED:8532172f]
         // There is no content afterwards, this http request ends
         onResponseCompleted_l(SockException(Err_success, "The request is successful but has no body"));
