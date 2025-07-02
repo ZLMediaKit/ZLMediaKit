@@ -514,6 +514,7 @@ EventPoller::Ptr MultiMediaSourceMuxer::getOwnerPoller(MediaSource &sender) {
 }
 
 bool MultiMediaSourceMuxer::close(MediaSource &sender) {
+    MediaSourceEventInterceptor::close(sender);
     _rtmp = nullptr;
     _rtsp = nullptr;
     _fmp4 = nullptr;
