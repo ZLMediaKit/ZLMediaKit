@@ -84,10 +84,6 @@ void FFmpegSource::play(const string &ffmpeg_cmd_key, const string &src_url, con
 
     try {
         _media_info.parse(dst_url);
-    } catch (std::exception &ex) {
-        cb(SockException(Err_other, ex.what()));
-        return;
-    }
 
     auto ffmpeg_cmd = ffmpeg_cmd_default;
     if (!ffmpeg_cmd_key.empty()) {
@@ -98,7 +94,9 @@ void FFmpegSource::play(const string &ffmpeg_cmd_key, const string &src_url, con
             WarnL << "配置文件中,ffmpeg命令模板(" << ffmpeg_cmd_key << ")不存在,已采用默认模板(" << ffmpeg_cmd_default << ")";
         }
     }
-
+        if (!toolkit::start_with(ffmpeg_cmd, "%s")) {
+            throw std::invalid_argument("ffmpeg cmd template must start with '%s'");
+        }
     char cmd[2048] = { 0 };
     snprintf(cmd, sizeof(cmd), ffmpeg_cmd.data(), File::absolutePath("", ffmpeg_bin).data(), src_url.data(), dst_url.data());
     auto log_file = ffmpeg_log.empty() ? "" : File::absolutePath("", ffmpeg_log);
@@ -164,6 +162,10 @@ void FFmpegSource::play(const string &ffmpeg_cmd_key, const string &src_url, con
             cb(SockException(Err_other, StrPrinter << "ffmpeg已经退出,exit code = " << strongSelf->_process.exit_code()));
             return false;
         }, _poller);
+        }
+    } catch (std::exception &ex) {
+        WarnL << ex.what();
+        cb(SockException(Err_other, ex.what()));
     }
 }
 
