@@ -84,86 +84,92 @@ void FFmpegSource::play(const string &ffmpeg_cmd_key, const string &src_url, con
 
     try {
         _media_info.parse(dst_url);
-    } catch (std::exception &ex) {
-        cb(SockException(Err_other, ex.what()));
-        return;
-    }
 
-    auto ffmpeg_cmd = ffmpeg_cmd_default;
-    if (!ffmpeg_cmd_key.empty()) {
-        auto cmd_it = mINI::Instance().find(ffmpeg_cmd_key);
-        if (cmd_it != mINI::Instance().end()) {
-            ffmpeg_cmd = cmd_it->second;
+        auto ffmpeg_cmd = ffmpeg_cmd_default;
+        if (!ffmpeg_cmd_key.empty()) {
+            auto cmd_it = mINI::Instance().find(ffmpeg_cmd_key);
+            if (cmd_it != mINI::Instance().end()) {
+                ffmpeg_cmd = cmd_it->second;
+            } else {
+                WarnL << "配置文件中,ffmpeg命令模板(" << ffmpeg_cmd_key << ")不存在,已采用默认模板(" << ffmpeg_cmd_default << ")";
+            }
+        }
+        if (!toolkit::start_with(ffmpeg_cmd, "%s")) {
+            throw std::invalid_argument("ffmpeg cmd template must start with '%s'");
+        }
+
+        char cmd[2048] = { 0 };
+        snprintf(cmd, sizeof(cmd), ffmpeg_cmd.data(), File::absolutePath("", ffmpeg_bin).data(), src_url.data(), dst_url.data());
+        auto log_file = ffmpeg_log.empty() ? "" : File::absolutePath("", ffmpeg_log);
+        _process.run(cmd, log_file);
+        _cmd = cmd;
+        InfoL << cmd;
+
+        if (is_local_ip(_media_info.host)) {
+            // 推流给自己的，通过判断流是否注册上来判断是否正常  [AUTO-TRANSLATED:423f2be6]
+            // Push stream to yourself, judge whether the stream is registered to determine whether it is normal
+            if (_media_info.schema != RTSP_SCHEMA && _media_info.schema != RTMP_SCHEMA && _media_info.schema != "srt") {
+                cb(SockException(Err_other, "本服务只支持rtmp/rtsp/srt推流"));
+                return;
+            }
+            weak_ptr<FFmpegSource> weakSelf = shared_from_this();
+            findAsync(timeout_ms, [cb, weakSelf, timeout_ms](const MediaSource::Ptr &src) {
+                auto strongSelf = weakSelf.lock();
+                if (!strongSelf) {
+                    // 自己已经销毁  [AUTO-TRANSLATED:3d45c3b0]
+                    // Self has been destroyed
+                    return;
+                }
+                if (src) {
+                    // 推流给自己成功  [AUTO-TRANSLATED:65dba71b]
+                    // Push stream to yourself successfully
+                    cb(SockException());
+                    strongSelf->onGetMediaSource(src);
+                    strongSelf->startTimer(timeout_ms);
+                    return;
+                }
+                // 推流失败  [AUTO-TRANSLATED:4d8d226a]
+                // Push stream failed
+                if (!strongSelf->_process.wait(false)) {
+                    // ffmpeg进程已经退出  [AUTO-TRANSLATED:04193893]
+                    // ffmpeg process has exited
+                    cb(SockException(Err_other, StrPrinter << "ffmpeg已经退出,exit code = " << strongSelf->_process.exit_code()));
+                    return;
+                }
+                // ffmpeg进程还在线，但是等待推流超时  [AUTO-TRANSLATED:9f71f17b]
+                // ffmpeg process is still online, but waiting for the stream to timeout
+                cb(SockException(Err_other, "等待超时"));
+            });
         } else {
-            WarnL << "配置文件中,ffmpeg命令模板(" << ffmpeg_cmd_key << ")不存在,已采用默认模板(" << ffmpeg_cmd_default << ")";
+            // 推流给其他服务器的，通过判断FFmpeg进程是否在线判断是否成功  [AUTO-TRANSLATED:9b963da5]
+            // Push stream to other servers, judge whether it is successful by judging whether the FFmpeg process is online
+            weak_ptr<FFmpegSource> weakSelf = shared_from_this();
+            _timer = std::make_shared<Timer>(
+                timeout_ms / 1000.0f,
+                [weakSelf, cb, timeout_ms]() {
+                    auto strongSelf = weakSelf.lock();
+                    if (!strongSelf) {
+                        // 自身已经销毁  [AUTO-TRANSLATED:5f954f8a]
+                        // Self has been destroyed
+                        return false;
+                    }
+                    // FFmpeg还在线，那么我们认为推流成功  [AUTO-TRANSLATED:4330df49]
+                    // FFmpeg is still online, so we think the push stream is successful
+                    if (strongSelf->_process.wait(false)) {
+                        cb(SockException());
+                        strongSelf->startTimer(timeout_ms);
+                        return false;
+                    }
+                    // ffmpeg进程已经退出  [AUTO-TRANSLATED:04193893]
+                    // ffmpeg process has exited
+                    cb(SockException(Err_other, StrPrinter << "ffmpeg已经退出,exit code = " << strongSelf->_process.exit_code()));
+                    return false;
+                },
+                _poller);
         }
-    }
-
-    char cmd[2048] = { 0 };
-    snprintf(cmd, sizeof(cmd), ffmpeg_cmd.data(), File::absolutePath("", ffmpeg_bin).data(), src_url.data(), dst_url.data());
-    auto log_file = ffmpeg_log.empty() ? "" : File::absolutePath("", ffmpeg_log);
-    _process.run(cmd, log_file);
-    _cmd = cmd;
-    InfoL << cmd;
-
-    if (is_local_ip(_media_info.host)) {
-        // 推流给自己的，通过判断流是否注册上来判断是否正常  [AUTO-TRANSLATED:423f2be6]
-        // Push stream to yourself, judge whether the stream is registered to determine whether it is normal
-        if (_media_info.schema != RTSP_SCHEMA && _media_info.schema != RTMP_SCHEMA) {
-            cb(SockException(Err_other, "本服务只支持rtmp/rtsp推流"));
-            return;
-        }
-        weak_ptr<FFmpegSource> weakSelf = shared_from_this();
-        findAsync(timeout_ms, [cb, weakSelf, timeout_ms](const MediaSource::Ptr &src) {
-            auto strongSelf = weakSelf.lock();
-            if (!strongSelf) {
-                // 自己已经销毁  [AUTO-TRANSLATED:3d45c3b0]
-                // Self has been destroyed
-                return;
-            }
-            if (src) {
-                // 推流给自己成功  [AUTO-TRANSLATED:65dba71b]
-                // Push stream to yourself successfully
-                cb(SockException());
-                strongSelf->onGetMediaSource(src);
-                strongSelf->startTimer(timeout_ms);
-                return;
-            }
-            // 推流失败  [AUTO-TRANSLATED:4d8d226a]
-            // Push stream failed
-            if (!strongSelf->_process.wait(false)) {
-                // ffmpeg进程已经退出  [AUTO-TRANSLATED:04193893]
-                // ffmpeg process has exited
-                cb(SockException(Err_other, StrPrinter << "ffmpeg已经退出,exit code = " << strongSelf->_process.exit_code()));
-                return;
-            }
-            // ffmpeg进程还在线，但是等待推流超时  [AUTO-TRANSLATED:9f71f17b]
-            // ffmpeg process is still online, but waiting for the stream to timeout
-            cb(SockException(Err_other, "等待超时"));
-        });
-    } else{
-        // 推流给其他服务器的，通过判断FFmpeg进程是否在线判断是否成功  [AUTO-TRANSLATED:9b963da5]
-        // Push stream to other servers, judge whether it is successful by judging whether the FFmpeg process is online
-        weak_ptr<FFmpegSource> weakSelf = shared_from_this();
-        _timer = std::make_shared<Timer>(timeout_ms / 1000.0f, [weakSelf, cb, timeout_ms]() {
-            auto strongSelf = weakSelf.lock();
-            if (!strongSelf) {
-                // 自身已经销毁  [AUTO-TRANSLATED:5f954f8a]
-                // Self has been destroyed
-                return false;
-            }
-            // FFmpeg还在线，那么我们认为推流成功  [AUTO-TRANSLATED:4330df49]
-            // FFmpeg is still online, so we think the push stream is successful
-            if (strongSelf->_process.wait(false)) {
-                cb(SockException());
-                strongSelf->startTimer(timeout_ms);
-                return false;
-            }
-            // ffmpeg进程已经退出  [AUTO-TRANSLATED:04193893]
-            // ffmpeg process has exited
-            cb(SockException(Err_other, StrPrinter << "ffmpeg已经退出,exit code = " << strongSelf->_process.exit_code()));
-            return false;
-        }, _poller);
+    } catch (std::exception &ex) {
+        WarnL << ex.what();
+        cb(SockException(Err_other, ex.what()));
     }
 }
 
