@@ -89,11 +89,11 @@ std::string getValue(Args &args, const Key &key) {
 
 template<typename Key>
 std::string getValue(Json::Value &args, const Key &key) {
-    auto it = args.find(key);
-    if (it == args.end()) {
+    auto value = args.find(key);
+    if (value == nullptr) {
         return "";
     }
-    return it->second.asString();
+    return value->asString();
 }
 
 template<typename Key>
