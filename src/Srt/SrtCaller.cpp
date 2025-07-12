@@ -80,23 +80,21 @@ SrtCaller::~SrtCaller(void) {
 void SrtCaller::onConnect() {
     //DebugL;
 
-    getPoller()->async([&]() {
-        auto peer_addr = SockUtil::make_sockaddr(_url._host.c_str(), (_url._port));
-        _socket = Socket::createSocket(_poller, false);
-        _socket->bindUdpSock(0, SockUtil::is_ipv4(_url._host.data()) ? "0.0.0.0" : "::");
-        _socket->bindPeerAddr((struct sockaddr *)&peer_addr, 0, true);
+    auto peer_addr = SockUtil::make_sockaddr(_url._host.c_str(), (_url._port));
+    _socket = Socket::createSocket(_poller, false);
+    _socket->bindUdpSock(0, SockUtil::is_ipv4(_url._host.data()) ? "0.0.0.0" : "::");
+    _socket->bindPeerAddr((struct sockaddr *)&peer_addr, 0, true);
 
-        weak_ptr<SrtCaller> weak_self = shared_from_this();
-        _socket->setOnRead([weak_self](const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len) mutable {
-            auto strong_self = weak_self.lock();
-            if (!strong_self) {
-                return;
-            }
-            strong_self->inputSockData((uint8_t*)buf->data(), buf->size(), addr);
-        });
-
-        doHandshake();
+    weak_ptr<SrtCaller> weak_self = shared_from_this();
+    _socket->setOnRead([weak_self](const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len) mutable {
+        auto strong_self = weak_self.lock();
+        if (!strong_self) {
+            return;
+        }
+        strong_self->inputSockData((uint8_t*)buf->data(), buf->size(), addr);
     });
+
+    doHandshake();
 }
 
 void SrtCaller::onResult(const SockException &ex) {
