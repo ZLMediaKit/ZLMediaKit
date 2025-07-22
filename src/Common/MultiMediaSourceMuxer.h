@@ -181,6 +181,12 @@ public:
      * [AUTO-TRANSLATED:a4dc847e]
      */
     toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;
+    
+    /**
+     * 关闭流
+     * @return 是否成功
+     */
+    bool close(MediaSource &sender) override;
 
     /**
      * 获取本对象
@@ -194,7 +200,7 @@ public:
     const MediaTuple &getMediaTuple() const;
     std::string shortUrl() const;
 
-    void forEachRtpSender(const std::function<void(const std::string &ssrc)> &cb) const;
+    void forEachRtpSender(const std::function<void(const std::string &ssrc, const RtpSender &sender)> &cb) const;
 
 protected:
     /////////////////////////////////MediaSink override/////////////////////////////////
@@ -231,7 +237,7 @@ protected:
     bool onTrackFrame_l(const Frame::Ptr &frame);
 
 private:
-    void createGopCacheIfNeed();
+    void createGopCacheIfNeed(size_t gop_count);
     std::shared_ptr<MediaSinkInterface> makeRecorder(MediaSource &sender, Recorder::type type);
 
 private:
@@ -245,7 +251,7 @@ private:
     toolkit::Ticker _last_check;
     std::unordered_map<int, Stamp> _stamps;
     std::weak_ptr<Listener> _track_listener;
-    std::unordered_multimap<std::string, RingType::RingReader::Ptr> _rtp_sender;
+    std::unordered_multimap<std::string, std::tuple<RingType::RingReader::Ptr, std::weak_ptr<RtpSender>>> _rtp_sender;
     FMP4MediaSourceMuxer::Ptr _fmp4;
     RtmpMediaSourceMuxer::Ptr _rtmp;
     RtspMediaSourceMuxer::Ptr _rtsp;

@@ -18,12 +18,14 @@ const std::string kTimeOutSec = SRT_FIELD "timeoutSec";
 const std::string kPort = SRT_FIELD "port";
 const std::string kLatencyMul = SRT_FIELD "latencyMul";
 const std::string kPktBufSize = SRT_FIELD "pktBufSize";
+const std::string kPassPhrase = SRT_FIELD "passPhrase";
 
 static onceToken token([]() {
     mINI::Instance()[kTimeOutSec] = 5;
     mINI::Instance()[kPort] = 9000;
     mINI::Instance()[kLatencyMul] = 4;
     mINI::Instance()[kPktBufSize] = 8192;
+    mINI::Instance()[kPassPhrase] = "";
 });
 
 static std::atomic<uint32_t> s_srt_socket_id_generate { 125 };
@@ -228,6 +230,8 @@ void SrtTransport::handleHandshakeConclusion(HandshakePacket &pkt, struct sockad
         // first
         HSExtMessage::Ptr req;
         HSExtStreamID::Ptr sid;
+        HSExtKeyMaterial::Ptr keyMaterial;
+
         uint32_t srt_flag = 0xbf;
         uint16_t delay = DurationCountMicroseconds(_now - _induction_ts) * getLatencyMul() / 1000;
         if (delay <= 120) {
@@ -241,6 +245,9 @@ void SrtTransport::handleHandshakeConclusion(HandshakePacket &pkt, struct sockad
             if (!sid) {
                 sid = std::dynamic_pointer_cast<HSExtStreamID>(ext);
             }
+            if (!keyMaterial) {
+                keyMaterial = std::dynamic_pointer_cast<HSExtKeyMaterial>(ext);
+            }
         }
         if (sid) {
             _stream_id = sid->streamid;
@@ -252,6 +259,22 @@ void SrtTransport::handleHandshakeConclusion(HandshakePacket &pkt, struct sockad
             srt_flag = req->srt_flag;
             delay = delay <= req->recv_tsbpd_delay ? req->recv_tsbpd_delay : delay;
         }
+
+        if (!keyMaterial && getPassphrase().empty()) {
+            //nop
+        } else if (keyMaterial && !getPassphrase().empty()) {
+            _crypto = std::make_shared<SRT::Crypto>(getPassphrase());
+            if (!_crypto->loadFromKeyMaterial(keyMaterial)) {
+                sendRejectPacket(SRT_REJ_BADSECRET, addr);
+                onShutdown(SockException(Err_other, StrPrinter << "handshake fail, reject resaon: " << SRT::getRejectReason(SRT_REJ_BADSECRET)));
+                return;
+            }
+        } else {
+            sendRejectPacket(SRT_REJ_UNSECURE, addr);
+            onShutdown(SockException(Err_other, StrPrinter << "handshake fail, reject resaon: " << SRT::getRejectReason(SRT_REJ_UNSECURE)));
+            return;
+        }
+
         TraceL << getIdentifier() << " CONCLUSION Phase from"<<SockUtil::inet_ntoa((struct sockaddr *)addr) << ":" << SockUtil::inet_port((struct sockaddr *)addr);;
         HandshakePacket::Ptr res = std::make_shared<HandshakePacket>();
         res->dst_socket_id = _peer_socket_id;
@@ -262,6 +285,12 @@ void SrtTransport::handleHandshakeConclusion(HandshakePacket &pkt, struct sockad
         res->version = 5;
         res->encryption_field = HandshakePacket::NO_ENCRYPTION;
         res->extension_field = HandshakePacket::HS_EXT_FILED_HSREQ;
+        if (_crypto) {
+            //The default value is 0 (no encryption advertised). 
+            //If neither peer advertises encryption, AES-128 is selected by default 
+            /* req->encryption_field = SRT::HandshakePacket::AES_128; */
+            res->extension_field |= HandshakePacket::HS_EXT_FILED_KMREQ;
+        }
         res->handshake_type = HandshakePacket::HS_TYPE_CONCLUSION;
         res->srt_socket_id = _socket_id;
         res->syn_cookie = 0;
@@ -272,6 +301,10 @@ void SrtTransport::handleHandshakeConclusion(HandshakePacket &pkt, struct sockad
         ext->srt_flag = srt_flag;
         ext->recv_tsbpd_delay = ext->send_tsbpd_delay = delay;
         res->ext_list.push_back(std::move(ext));
+        if (keyMaterial) {
+            keyMaterial->extension_type = HSExt::SRT_CMD_KMRSP;
+            res->ext_list.push_back(std::move(keyMaterial));
+        }
         res->storeToData();
         _handleshake_res = res;
         unregisterSelfHandshake();
@@ -366,6 +399,42 @@ void SrtTransport::sendMsgDropReq(uint32_t first, uint32_t last) {
     sendControlPacket(pkt, true);
 }
 
+void SrtTransport::tryAnnounceKeyMaterial() {
+	//TraceL;
+
+    if (!_crypto) {
+        return;
+    }
+
+    auto pkt = _crypto->takeAwayAnnouncePacket();
+    if (!pkt) {
+        return;
+    }
+
+    auto now = SteadyClock::now();
+    pkt->dst_socket_id = _peer_socket_id;
+    pkt->timestamp = SRT::DurationCountMicroseconds(now - _start_timestamp);
+    pkt->storeToData();
+    _announce_req = pkt;
+    sendControlPacket(pkt, true);
+
+    std::weak_ptr<SrtTransport> weak_self = std::static_pointer_cast<SrtTransport>(shared_from_this());
+    _announce_timer = std::make_shared<Timer>(0.2, [weak_self]()->bool{
+        auto strong_self = weak_self.lock();
+        if (!strong_self) {
+            return false;
+        }
+        if (!strong_self->_announce_req) {
+            return false;
+        }
+
+        strong_self->sendControlPacket(strong_self->_announce_req, true);
+        return true;
+    }, getPoller());
+
+    return;
+}
+
 void SrtTransport::handleNAK(uint8_t *buf, int len, struct sockaddr_storage *addr) {
     // TraceL;
     NAKPacket pkt;
@@ -433,6 +502,8 @@ void SrtTransport::handleDropReq(uint8_t *buf, int len, struct sockaddr_storage 
     */
 }
 void SrtTransport::checkAndSendAckNak(){
+    //SRT Periodic NAK reports are sent with a period of (RTT + 4 * RTTVar) / 2 (so called NAKInterval), 
+    //with a 20 milliseconds floor
     auto nak_interval = (_rtt + _rtt_variance * 4) / 2;
     if (nak_interval <= 20 * 1000) {
         nak_interval = 20 * 1000;
@@ -468,7 +539,52 @@ void SrtTransport::checkAndSendAckNak(){
     _light_ack_pkt_count++;
 }
 void SrtTransport::handleUserDefinedType(uint8_t *buf, int len, struct sockaddr_storage *addr) {
-    TraceL;
+    /* TraceL; */
+
+    using srt_userd_defined_handler = void (SrtTransport::*)(uint8_t * buf, int len, struct sockaddr_storage *addr);
+    static std::unordered_map<uint16_t /*sub_type*/, srt_userd_defined_handler> s_userd_defined_functions;
+    static onceToken token([]() {
+        s_userd_defined_functions.emplace(SRT::HSExt::SRT_CMD_KMREQ, &SrtTransport::handleKeyMaterialReqPacket);
+        s_userd_defined_functions.emplace(SRT::HSExt::SRT_CMD_KMRSP, &SrtTransport::handleKeyMaterialRspPacket);
+    });
+
+    uint16_t subtype = ControlPacket::getSubType(buf, len);
+    auto it = s_userd_defined_functions.find(subtype);
+    if (it == s_userd_defined_functions.end()) {
+        WarnL << " not support subtype in user defined msg ignore: " << subtype;
+        return;
+    } else {
+        (this->*(it->second))(buf, len, addr);
+    }
+
+    return;
+}
+
+void SrtTransport::handleKeyMaterialReqPacket(uint8_t *buf, int len, struct sockaddr_storage *addr) {
+    /* TraceL; */
+
+    if (!_crypto) {
+        WarnL << " not enable crypto, ignore";
+        return;
+    }
+
+    KeyMaterialPacket::Ptr pkt = std::make_shared<KeyMaterialPacket>();
+    pkt->loadFromData(buf, len);
+    _crypto->loadFromKeyMaterial(pkt);
+
+    //rsp
+    pkt->sub_type = SRT::HSExt::SRT_CMD_KMRSP;
+    pkt->dst_socket_id = _peer_socket_id;
+    pkt->timestamp = DurationCountMicroseconds(_now - _start_timestamp);
+    pkt->storeToData();
+    sendControlPacket(pkt, true);
+    return;
+}
+
+void SrtTransport::handleKeyMaterialRspPacket(uint8_t *buf, int len, struct sockaddr_storage *addr) {
+    /* TraceL; */
+    _announce_req = nullptr;
+    return;
 }
 
 void SrtTransport::handleACKACK(uint8_t *buf, int len, struct sockaddr_storage *addr) {
@@ -603,6 +719,25 @@ void SrtTransport::sendNAKPacket(std::list<PacketQueue::LostPair> &lost_list) {
     // TraceL<<"send NAK "<<pkt->dump();
 }
 
+void SrtTransport::sendRejectPacket(SRT_REJECT_REASON reason, struct sockaddr_storage *addr) {
+    HandshakePacket::Ptr res = std::make_shared<HandshakePacket>();
+    res->dst_socket_id = _peer_socket_id;
+    res->timestamp = DurationCountMicroseconds(_now - _start_timestamp);
+    res->mtu = _mtu;
+    res->max_flow_window_size = _max_window_size;
+    res->initial_packet_sequence_number = _init_seq_number;
+    res->version = 5;
+    res->encryption_field = HandshakePacket::NO_ENCRYPTION;
+    res->extension_field = HandshakePacket::HS_EXT_FILED_HSREQ;
+    res->handshake_type = reason;
+    res->srt_socket_id = _socket_id;
+    res->syn_cookie = 0;
+    res->assignPeerIP(addr);
+    res->storeToData();
+    sendControlPacket(res, true);
+    return;
+}
+
 void SrtTransport::sendShutDown() {
     ShutDownPacket::Ptr pkt = std::make_shared<ShutDownPacket>();
     pkt->dst_socket_id = _peer_socket_id;
@@ -614,6 +749,16 @@ void SrtTransport::sendShutDown() {
 void SrtTransport::handleDataPacket(uint8_t *buf, int len, struct sockaddr_storage *addr) {
     DataPacket::Ptr pkt = std::make_shared<DataPacket>();
     pkt->loadFromData(buf, len);
+
+    if (_crypto) {
+        auto payload = _crypto->decrypt(pkt, pkt->payloadData(), pkt->payloadSize());
+        if (!payload) {
+            WarnL << "decrypt pkt->packet_seq_number: " << pkt->packet_seq_number << ", timestamp: " << "pkt->timestamp " << " fail";
+            return;
+        }
+
+        pkt->reloadPayload((uint8_t*)payload->data(), payload->size());
+    }
 
     _estimated_link_capacity_context->inputPacket(_now,pkt);
 
@@ -684,9 +829,26 @@ void SrtTransport::handleDataPacket(uint8_t *buf, int len, struct sockaddr_stora
 }
 
 void SrtTransport::sendDataPacket(DataPacket::Ptr pkt, char *buf, int len, bool flush) {
-    pkt->storeToData((uint8_t *)buf, len);
+    auto data = buf;
+    auto size = len;
+    BufferLikeString::Ptr payload;
+    if (_crypto) {
+        payload = _crypto->encrypt(pkt, const_cast<char*>(buf), len);
+        if (!payload) {
+            WarnL << "encrypt pkt->packet_seq_number: " << pkt->packet_seq_number << ", timestamp: " << "pkt->timestamp " << " fail";
+            return;
+        }
+
+        data = payload->data();
+        size = payload->size();
+
+        tryAnnounceKeyMaterial();
+    }
+
+    pkt->storeToData((uint8_t *)data, size);
     sendPacket(pkt, flush);
     _send_buf->inputPacket(pkt);
+    return;
 }
 
 void SrtTransport::sendControlPacket(ControlPacket::Ptr pkt, bool flush) {

@@ -134,6 +134,7 @@ void RtspSession::onWholeRtspPacket(Parser &parser) {
         _content_base = rtsp._url;
         _media_info.parse(parser.fullUrl());
         _media_info.schema = RTSP_SCHEMA;
+        _media_info.protocol = overSsl() ? "rtsps" : "rtsp";
     }
 
     using rtsp_request_handler = void (RtspSession::*)(const Parser &parser);
@@ -166,7 +167,9 @@ void RtspSession::onWholeRtspPacket(Parser &parser) {
 void RtspSession::onRtpPacket(const char *data, size_t len) {
     uint8_t interleaved = data[1];
     if (interleaved % 2 == 0) {
-        auto track_idx = getTrackIndexByInterleaved(interleaved);
+        CHECK(len > RtpPacket::kRtpHeaderSize + RtpPacket::kRtpTcpHeaderSize);
+        RtpHeader *header = (RtpHeader *)(data + RtpPacket::kRtpTcpHeaderSize);
+        auto track_idx = getTrackIndexByPT(header->pt);
         handleOneRtp(track_idx, _sdp_track[track_idx]->_type, _sdp_track[track_idx]->_samplerate, (uint8_t *) data + RtpPacket::kRtpTcpHeaderSize, len - RtpPacket::kRtpTcpHeaderSize);
     } else {
         auto track_idx = getTrackIndexByInterleaved(interleaved - 1);
@@ -206,6 +209,7 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
         //去除.sdp后缀，防止EasyDarwin推流器强制添加.sdp后缀
         full_url = full_url.substr(0, full_url.length() - 4);
         _media_info.parse(full_url);
+        _media_info.protocol = overSsl() ? "rtsps" : "rtsp";
     }
 
     if (_media_info.app.empty() || _media_info.stream.empty()) {
@@ -859,7 +863,7 @@ void RtspSession::handleReq_Play(const Parser &parser) {
         _play_reader = play_src->getRing()->attach(getPoller(), use_gop);
         _play_reader->setGetInfoCB([weak_self]() {
             Any ret;
-            ret.set(static_pointer_cast<SockInfo>(weak_self.lock()));
+            ret.set(static_pointer_cast<Session>(weak_self.lock()));
             return ret;
         });
         _play_reader->setDetachCB([weak_self]() {
@@ -1120,6 +1124,18 @@ bool RtspSession::sendRtspResponse(const string &res_code, const std::initialize
         }
     }
     return sendRtspResponse(res_code,header_map,sdp,protocol);
+}
+
+int RtspSession::getTrackIndexByPT(int pt) const {
+    for (size_t i = 0; i < _sdp_track.size(); ++i) {
+        if (pt == _sdp_track[i]->_pt) {
+            return i;
+        }
+    }
+    if (_sdp_track.size() == 1) {
+        return 0;
+    }
+    throw SockException(Err_shutdown, StrPrinter << "no such track with pt:" << pt);
 }
 
 int RtspSession::getTrackIndexByTrackType(TrackType type) {

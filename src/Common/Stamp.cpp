@@ -87,13 +87,13 @@ void Stamp::setPlayBack(bool playback) {
     _playback = playback;
 }
 
-void Stamp::syncTo(Stamp &other) {
-    _need_sync = true;
+void Stamp::syncTo(Stamp &other, int count) {
+    _need_sync += count;
     _sync_master = &other;
 }
 
 void Stamp::needSync() {
-    _need_sync = true;
+    ++_need_sync;
 }
 
 void Stamp::enableRollback(bool flag) {
@@ -145,25 +145,42 @@ void Stamp::revise_l(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_ou
         // 音视频dts当前时间差  [AUTO-TRANSLATED:716468a6]
         // Audio and video dts current time difference
         int64_t dts_diff = _last_dts_in - _sync_master->_last_dts_in;
-        if (ABS(dts_diff) < 5000) {
+        if (ABS(dts_diff) < 5000 || _need_sync > 3) {
+            // 两种时间戳相差不得大于300ms
+            dts_diff = _relative_stamp - _sync_master->_relative_stamp;
+            if (dts_diff > 300) {
+                dts_diff = 300;
+            } else if (dts_diff < -300) {
+                dts_diff = -300;
+            }
             // 如果绝对时间戳小于5秒，那么说明他们的起始时间戳是一致的，那么强制同步  [AUTO-TRANSLATED:5d11ef6a]
             // If the absolute timestamp is less than 5 seconds, then it means that their starting timestamps are consistent, then force synchronization
             auto target_stamp = _sync_master->_relative_stamp + dts_diff;
             if (target_stamp > _relative_stamp || _enable_rollback) {
                 // 强制同步后，时间戳增加跳跃了，或允许回退  [AUTO-TRANSLATED:805424a9]
                 // After forced synchronization, the timestamp increases jump, or allows rollback
+                if (_relative_stamp == target_stamp) {
+                    return;
+                }
                 TraceL << "Relative stamp changed: " << _relative_stamp << " -> " << target_stamp;
                 _relative_stamp = target_stamp;
             } else {
                 // 不允许回退, 则让另外一个Track的时间戳增长  [AUTO-TRANSLATED:428e8ce2]
                 // Not allowed to rollback, then let the timestamp of the other Track increase
                 target_stamp = _relative_stamp - dts_diff;
+                if (_sync_master->_relative_stamp == target_stamp) {
+                    return;
+                }
                 TraceL << "Relative stamp changed: " << _sync_master->_relative_stamp << " -> " << target_stamp;
                 _sync_master->_relative_stamp = target_stamp;
             }
         }
-        _need_sync = false;
-        _sync_master->_need_sync = false;
+        if (_need_sync) {
+            --_need_sync;
+        }
+        if (_sync_master->_need_sync) {
+            --_sync_master->_need_sync;
+        }
     }
 }
 

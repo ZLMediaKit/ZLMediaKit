@@ -78,42 +78,45 @@ public:
 
 using ApiArgsType = std::map<std::string, std::string, mediakit::StrCaseCompare>;
 
-template<typename Args, typename First>
-std::string getValue(Args &args, const First &first) {
-    return args[first];
+template<typename Args, typename Key>
+std::string getValue(Args &args, const Key &key) {
+    auto it = args.find(key);
+    if (it == args.end()) {
+        return "";
+    }
+    return it->second;
 }
 
-template<typename First>
-std::string getValue(Json::Value &args, const First &first) {
-    return args[first].asString();
+template<typename Key>
+std::string getValue(Json::Value &args, const Key &key) {
+    auto value = args.find(key);
+    if (value == nullptr) {
+        return "";
+    }
+    return value->asString();
 }
 
-template<typename First>
-std::string getValue(std::string &args, const First &first) {
+template<typename Key>
+std::string getValue(std::string &args, const Key &key) {
     return "";
 }
 
-template<typename First>
-std::string getValue(const mediakit::Parser &parser, const First &first) {
-    auto ret = parser.getUrlArgs()[first];
+template <typename Key>
+std::string getValue(const mediakit::Parser &parser, const Key &key) {
+    auto ret = getValue(parser.getUrlArgs(), key);
     if (!ret.empty()) {
         return ret;
     }
-    return parser.getHeader()[first];
+    return getValue(parser.getHeader(), key);
 }
 
-template<typename First>
-std::string getValue(mediakit::Parser &parser, const First &first) {
-    return getValue((const mediakit::Parser &) parser, first);
-}
-
-template<typename Args, typename First>
-std::string getValue(const mediakit::Parser &parser, Args &args, const First &first) {
-    auto ret = getValue(args, first);
+template<typename Args, typename Key>
+std::string getValue(const mediakit::Parser &parser, Args &args, const Key &key) {
+    auto ret = getValue(args, key);
     if (!ret.empty()) {
         return ret;
     }
-    return getValue(parser, first);
+    return getValue(parser, key);
 }
 
 template<typename Args>
@@ -177,14 +180,14 @@ void api_regist(const std::string &api_path, const std::function<void(API_ARGS_S
 // Register http request parameters as http original request information asynchronous reply http api
 void api_regist(const std::string &api_path, const std::function<void(API_ARGS_STRING_ASYNC)> &func);
 
-template<typename Args, typename First>
-bool checkArgs(Args &args, const First &first) {
-    return !args[first].empty();
+template<typename Args, typename Key>
+bool checkArgs(Args &args, const Key &key) {
+    return !args[key].empty();
 }
 
-template<typename Args, typename First, typename ...KeyTypes>
-bool checkArgs(Args &args, const First &first, const KeyTypes &...keys) {
-    return checkArgs(args, first) && checkArgs(args, keys...);
+template<typename Args, typename Key, typename ...KeyTypes>
+bool checkArgs(Args &args, const Key &key, const KeyTypes &...keys) {
+    return checkArgs(args, key) && checkArgs(args, keys...);
 }
 
 // 检查http url中或body中或http header参数是否为空的宏  [AUTO-TRANSLATED:9de001a4]

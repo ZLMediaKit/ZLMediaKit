@@ -62,7 +62,12 @@ public:
     RtpProcess::Ptr getProcess() const { return _process; }
 
     void onRecvRtp(const Socket::Ptr &sock, const Buffer::Ptr &buf, struct sockaddr *addr) {
-        _process->inputRtp(true, sock, buf->data(), buf->size(), addr);
+        try {
+            _process->inputRtp(true, sock, buf->data(), buf->size(), addr);
+        } catch (std::exception &ex) {
+            _process->onDetach(SockException(Err_shutdown, ex.what()));
+            return;
+        }
         // 统计rtp接受情况，用于发送rr包  [AUTO-TRANSLATED:bd2fbe7e]
         // Count RTP reception status, used to send RR packets
         auto header = (RtpHeader *)buf->data();

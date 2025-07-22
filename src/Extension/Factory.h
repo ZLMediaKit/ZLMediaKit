@@ -23,6 +23,7 @@
 #define REGISTER_STATIC_VAR(var_name, line) REGISTER_STATIC_VAR_INNER(var_name, line)
 
 #define REGISTER_CODEC(plugin) \
+extern CodecPlugin plugin;     \
 static toolkit::onceToken REGISTER_STATIC_VAR(s_token, __LINE__) ([]() { \
     Factory::registerPlugin(plugin); \
 });
@@ -64,7 +65,7 @@ public:
      
      * [AUTO-TRANSLATED:397b982e]
      */
-    static Track::Ptr getTrackByCodecId(CodecId codecId, int sample_rate = 0, int channels = 0, int sample_bit = 0);
+    static Track::Ptr getTrackByCodecId(CodecId codecId, int sample_rate = 0, int channels = 1, int sample_bit = 16);
 
     // //////////////////////////////rtsp相关//////////////////////////////////  [AUTO-TRANSLATED:884055ec]
     // //////////////////////////////rtsp相关//////////////////////////////////

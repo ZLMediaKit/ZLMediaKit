@@ -41,9 +41,7 @@
 #include "ZLMVersion.h"
 #endif
 
-#if !defined(_WIN32)
 #include "System.h"
-#endif//!defined(_WIN32)
 
 using namespace std;
 using namespace toolkit;
@@ -259,10 +257,11 @@ int start_main(int argc,char *argv[]) {
             // Start daemon process
             System::startDaemon(kill_parent_if_failed);
         }
+#endif //! defined(_WIN32)
+
         // 开启崩溃捕获等  [AUTO-TRANSLATED:9c7c759c]
         // Enable crash capture, etc.
         System::systemSetup();
-#endif//!defined(_WIN32)
 
         // 启动异步日志线程  [AUTO-TRANSLATED:c93cc6f4]
         // Start asynchronous log thread

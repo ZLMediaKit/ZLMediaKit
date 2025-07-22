@@ -125,7 +125,7 @@ public:
             kUdpActive = 1, // udp主动模式，主动发送数据给对方
             kTcpPassive = 2, // tcp被动模式，tcp服务器，等待对方连接并回复rtp
             kUdpPassive = 3, // udp被动方式，等待对方发送nat打洞包，然后回复rtp至打洞包源地址
-            kVoiceTalk = 4,  // 语音对讲模式，对方必须想推流上来，通过他的推流链路再回复rtp数据
+            kVoiceTalk = 4,  // 语音对讲模式，对方必须先推流上来，通过他的推流链路再回复rtp数据
         };
 
         // rtp类型  [AUTO-TRANSLATED:acca40ab]
@@ -388,6 +388,7 @@ public:
 
 public:
     uint16_t port = 0;
+    std::string protocol;
     std::string full_url;
     std::string schema;
     std::string host;
@@ -441,7 +442,9 @@ public:
 
     // 获取数据速率，单位bytes/s  [AUTO-TRANSLATED:c70465c1]
     // Get data rate, unit bytes/s
-    int getBytesSpeed(TrackType type = TrackInvalid);
+    size_t getBytesSpeed(TrackType type = TrackInvalid);
+    size_t getTotalBytes(TrackType type = TrackInvalid);
+
     // 获取流创建GMT unix时间戳，单位秒  [AUTO-TRANSLATED:0bbe145e]
     // Get the stream creation GMT unix timestamp, unit seconds
     uint64_t getCreateStamp() const { return _create_stamp; }
