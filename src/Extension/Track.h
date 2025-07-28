@@ -329,7 +329,7 @@ public:
     Track::Ptr clone() const override { return std::make_shared<AudioTrackImp>(*this); }
     Sdp::Ptr getSdp(uint8_t payload_type) const override;
 
-private:
+protected:
     CodecId _codecid;
     int _sample_rate;
     int _channels;

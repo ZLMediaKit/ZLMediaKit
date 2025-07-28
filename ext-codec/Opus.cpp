@@ -12,15 +12,31 @@
 #include "Extension/Factory.h"
 #include "Extension/CommonRtp.h"
 #include "Extension/CommonRtmp.h"
-
+#include "opus-head.h"
 using namespace std;
 using namespace toolkit;
 
 namespace mediakit {
 
+void OpusTrack::setExtraData(const uint8_t *data, size_t size) {
+    opus_head_t header;
+    if (opus_head_load(data, size, &header) > 0) {
+        // Successfully parsed Opus header
+        _sample_rate = header.input_sample_rate;
+        _channels = header.channels;
+    }
+}
 
-Sdp::Ptr OpusTrack::getSdp(uint8_t payload_type) const {
-    return std::make_shared<DefaultSdp>(payload_type, *this);
+Buffer::Ptr OpusTrack::getExtraData() const {
+    struct opus_head_t opus = { 0 };
+    opus.version = 1;
+    opus.channels = getAudioChannel();
+    opus.input_sample_rate = getAudioSampleRate();
+    // opus.pre_skip = 120;
+    opus.channel_mapping_family = 0;
+    auto ret = BufferRaw::create(29);
+    ret->setSize(opus_head_save(&opus, (uint8_t *)ret->data(), ret->getCapacity()));
+    return ret;
 }
 
 namespace {
