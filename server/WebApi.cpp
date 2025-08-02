@@ -1927,6 +1927,15 @@ void installWebApi() {
         File::deleteEmptyDir(record_path);
     });
 
+    api_regist("/index/api/deleteSnapDirectory", [](API_ARGS_MAP) {
+        CHECK_SECRET();
+        CHECK_ARGS("vhost", "app", "stream");
+        GET_CONFIG(std::string, root, API::kSnapRoot);
+        auto path = File::absolutePath(allArgs["vhost"] + "/" + allArgs["app"] + "/" + allArgs["stream"] + "/" + allArgs["file"], root);
+        InfoL << "delete " << path;
+        File::delete_file(path, true);
+    });
+
     // 获取录像文件夹列表或mp4文件列表  [AUTO-TRANSLATED:f7e299bc]
     // Get the list of recording folders or mp4 files
     //http://127.0.0.1/index/api/getMP4RecordFile?vhost=__defaultVhost__&app=live&stream=ss&period=2020-01

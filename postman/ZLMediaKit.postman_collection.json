@@ -311,6 +311,53 @@
 			"response": []
 		},
 		{
+			"name": "删除截图(deleteSnapDirectory)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/deleteSnapDirectory?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=live&stream=test&file=71_1740828613.jpg",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"deleteSnapDirectory"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "筛选虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "live",
+							"description": "筛选应用名，例如 live"
+						},
+						{
+							"key": "stream",
+							"value": "test",
+							"description": "筛选流id，例如 test"
+						},
+						{
+							"key": "file",
+							"value": "",
+							"disabled": true,
+							"description": "文件名，非必选"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "关断单个流(close_stream)",
 			"request": {
 				"method": "GET",
@@ -522,7 +569,7 @@
 			"response": []
 		},
 		{
-			"name": "添加rtsp/rtmp/hls/srt拉流代理(addStreamProxy)",
+			"name": "添加拉流代理(addStreamProxy)",
 			"request": {
 				"method": "GET",
 				"header": [],
@@ -560,7 +607,7 @@
 						{
 							"key": "url",
 							"value": "rtmp://live.hkstv.hk.lxdns.com/live/hks2",
-							"description": "拉流地址，例如rtmp://live.hkstv.hk.lxdns.com/live/hks2"
+							"description": "拉流地址，支持rtsp/rtmp/hls/srt/http-flv/http-ts协议"
 						},
 						{
 							"key": "rtp_type",
