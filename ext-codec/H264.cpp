@@ -157,7 +157,6 @@ bool H264Track::inputFrame(const Frame::Ptr &frame) {
         // AUD帧丢弃
         return false;
     }
-
     if ((type == H264Frame::NAL_B_P || type == H264Frame::NAL_IDR) && ready()) {
         return inputFrame_l(frame);
     }

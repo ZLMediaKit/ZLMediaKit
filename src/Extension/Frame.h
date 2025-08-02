@@ -660,8 +660,6 @@ private:
 private:
     int _type;
     bool _have_decode_able_frame = false;
-    bool _have_drop_able_frame = false;
-    bool _have_config_frame = false;
     onOutput _cb;
     toolkit::List<Frame::Ptr> _frame_cache;
 };
