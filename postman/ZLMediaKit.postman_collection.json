@@ -1381,6 +1381,62 @@
 			"response": []
 		},
 		{
+			"name": "开始事件视频录制(startRecordTask)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/startRecordTask?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=live&stream=test&path=1.mp4&back_ms=10000&forward_ms=10000",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"startRecordTask"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "live",
+							"description": "应用名，例如 live"
+						},
+						{
+							"key": "stream",
+							"value": "test",
+							"description": "流id，例如 obs"
+						},
+						{
+							"key": "path",
+							"value": "1.mp4",
+							"description": "录像文件保存相对路径，包括名称"
+						},
+						{
+							"key": "back_ms",
+							"value": "10000",
+							"description": "回溯录制时长"
+						},
+						{
+							"key": "forward_ms",
+							"value": "10000",
+							"description": "后续录制时长"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "设置录像速度(setRecordSpeed)",
 			"request": {
 				"method": "GET",
