@@ -1603,6 +1603,7 @@ void installWebApi() {
         // Record the app and vhost of the sending stream
         args.recv_stream_app = allArgs["app"];
         args.recv_stream_vhost = allArgs["vhost"];
+        args.enable_origin_recv_limit = allArgs["enable_origin_recv_limit"];
         src->getOwnerPoller()->async([=]() mutable {
             try {
                 src->startSendRtp(args, [val, headerOut, invoker](uint16_t local_port, const SockException &ex) mutable {
@@ -1649,6 +1650,7 @@ void installWebApi() {
         args.recv_stream_id = allArgs["recv_stream_id"];
         args.recv_stream_app = allArgs["app"];
         args.recv_stream_vhost = allArgs["vhost"];
+        args.enable_origin_recv_limit = allArgs["enable_origin_recv_limit"];
 
         src->getOwnerPoller()->async([=]() mutable {
             try {
