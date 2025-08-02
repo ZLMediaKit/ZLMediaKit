@@ -207,8 +207,8 @@ void RtpServer::start(uint16_t local_port, const char *local_ip, const MediaTupl
     TcpServer::Ptr tcp_server;
     if (tcp_mode == PASSIVE || tcp_mode == ACTIVE) {
         auto processor = helper ? helper->getProcess() : nullptr;
-        // 如果共享同一个processor对象，那么tcp server深圳为单线程模式确保线程安全  [AUTO-TRANSLATED:68bdd877]
-        // If the same processor object is shared, then the TCP server Shenzhen is in single-threaded mode to ensure thread safety
+        // 如果共享同一个processor对象，那么tcp server声明为单线程模式确保线程安全  [AUTO-TRANSLATED:68bdd877]
+        // If the same processor object is shared, declare the TCP server in single-threaded mode to ensure thread safety.
         tcp_server = std::make_shared<TcpServer>(processor ? poller : nullptr);
         (*tcp_server)[RtpSession::kVhost] = tuple.vhost;
         (*tcp_server)[RtpSession::kApp] = tuple.app;
