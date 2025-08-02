@@ -148,10 +148,11 @@ void Stamp::revise_l(int64_t dts, int64_t pts, int64_t &dts_out, int64_t &pts_ou
         if (ABS(dts_diff) < 5000 || _need_sync > 3) {
             // 两种时间戳相差不得大于300ms
             dts_diff = _relative_stamp - _sync_master->_relative_stamp;
+            // 强制同步音视频
             if (dts_diff > 300) {
-                dts_diff = 300;
+                dts_diff = 0;
             } else if (dts_diff < -300) {
-                dts_diff = -300;
+                dts_diff = 0;
             }
             // 如果绝对时间戳小于5秒，那么说明他们的起始时间戳是一致的，那么强制同步  [AUTO-TRANSLATED:5d11ef6a]
             // If the absolute timestamp is less than 5 seconds, then it means that their starting timestamps are consistent, then force synchronization
