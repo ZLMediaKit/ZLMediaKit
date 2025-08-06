@@ -205,11 +205,7 @@ bool FrameMerger::willFlush(const Frame::Ptr &frame) const{
 
         case mp4_nal_size:
         case h264_prefix: {
-            if (frame->dropAble() && !_have_config_frame) {
-                // 遇到SEI帧且未缓存配置帧，flush之前的帧
-                return true;
-            }
-            if (!_have_decode_able_frame && !_have_drop_able_frame) {
+            if (!_have_decode_able_frame) {
                 // 缓存中没有有效的能解码的帧，所以这次不flush  [AUTO-TRANSLATED:5d860722]
                 // There are no valid frames that can be decoded in the cache, so no flush this time.
                 return _frame_cache.size() > kMaxFrameCacheSize;
@@ -294,8 +290,6 @@ bool FrameMerger::inputFrame(const Frame::Ptr &frame, onOutput cb, BufferLikeStr
         cb(back->dts(), back->pts(), merged_frame, have_key_frame);
         _frame_cache.clear();
         _have_decode_able_frame = false;
-        _have_drop_able_frame = false;
-        _have_config_frame = false;
     }
 
     if (!frame) {
@@ -304,12 +298,6 @@ bool FrameMerger::inputFrame(const Frame::Ptr &frame, onOutput cb, BufferLikeStr
 
     if (frame->decodeAble()) {
         _have_decode_able_frame = true;
-    }
-    if (frame->dropAble()) {
-        _have_drop_able_frame = true;
-    }
-    if (frame->configFrame()) {
-        _have_config_frame = true;
     }
     _cb = std::move(cb);
     _frame_cache.emplace_back(Frame::getCacheAbleFrame(frame));

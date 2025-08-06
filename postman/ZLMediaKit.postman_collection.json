@@ -311,6 +311,53 @@
 			"response": []
 		},
 		{
+			"name": "删除截图(deleteSnapDirectory)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/deleteSnapDirectory?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=live&stream=test&file=71_1740828613.jpg",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"deleteSnapDirectory"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "筛选虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "live",
+							"description": "筛选应用名，例如 live"
+						},
+						{
+							"key": "stream",
+							"value": "test",
+							"description": "筛选流id，例如 test"
+						},
+						{
+							"key": "file",
+							"value": "",
+							"disabled": true,
+							"description": "文件名，非必选"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "关断单个流(close_stream)",
 			"request": {
 				"method": "GET",
@@ -522,7 +569,7 @@
 			"response": []
 		},
 		{
-			"name": "添加rtsp/rtmp/hls/srt拉流代理(addStreamProxy)",
+			"name": "添加拉流代理(addStreamProxy)",
 			"request": {
 				"method": "GET",
 				"header": [],
@@ -560,7 +607,7 @@
 						{
 							"key": "url",
 							"value": "rtmp://live.hkstv.hk.lxdns.com/live/hks2",
-							"description": "拉流地址，例如rtmp://live.hkstv.hk.lxdns.com/live/hks2"
+							"description": "拉流地址，支持rtsp/rtmp/hls/srt/http-flv/http-ts协议"
 						},
 						{
 							"key": "rtp_type",
@@ -1334,6 +1381,62 @@
 			"response": []
 		},
 		{
+			"name": "开始事件视频录制(startRecordTask)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/startRecordTask?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=live&stream=test&path=1.mp4&back_ms=10000&forward_ms=10000",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"startRecordTask"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "live",
+							"description": "应用名，例如 live"
+						},
+						{
+							"key": "stream",
+							"value": "test",
+							"description": "流id，例如 obs"
+						},
+						{
+							"key": "path",
+							"value": "1.mp4",
+							"description": "录像文件保存相对路径，包括名称"
+						},
+						{
+							"key": "back_ms",
+							"value": "10000",
+							"description": "回溯录制时长"
+						},
+						{
+							"key": "forward_ms",
+							"value": "10000",
+							"description": "后续录制时长"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "设置录像速度(setRecordSpeed)",
 			"request": {
 				"method": "GET",
@@ -2092,6 +2195,12 @@
 							"value": "",
 							"description": "发送rtp同时接收，一般用于双向语言对讲, 如果不为空，说明开启接收，值为接收流的id",
 							"disabled": true
+						},
+						{
+							"key": "enable_origin_recv_limit",
+							"value": "1",
+							"description": "转发rtp(tcp模式)时，如果发送不出去，是否限制源端收流速度，此参数在多倍速rtp转发时作用较大",
+							"disabled": true
 						}
 					]
 				}
@@ -2186,6 +2295,12 @@
 							"value": "5000",
 							"description": "等待tcp连接超时时间，单位毫秒，默认5000毫秒",
 							"disabled": true
+						},
+						{
+							"key": "enable_origin_recv_limit",
+							"value": "1",
+							"description": "转发rtp(tcp模式)时，如果发送不出去，是否限制源端收流速度，此参数在多倍速rtp转发时作用较大",
+							"disabled": true
 						}
 					]
 				}
@@ -2260,6 +2375,12 @@
 							"key": "only_audio",
 							"value": "1",
 							"description": "rtp es方式打包时，是否只打包音频；该参数非必选参数",
+							"disabled": true
+						},
+						{
+							"key": "enable_origin_recv_limit",
+							"value": "1",
+							"description": "转发rtp(tcp模式)时，如果发送不出去，是否限制源端收流速度，此参数在多倍速rtp转发时作用较大",
 							"disabled": true
 						}
 					]

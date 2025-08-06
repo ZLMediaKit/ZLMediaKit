@@ -175,6 +175,9 @@ public:
 
         std::string recv_stream_app;
         std::string recv_stream_vhost;
+
+        // rtp tcp模式发送时busy时, origin 接收限流, 默认不启用
+        bool enable_origin_recv_limit = false;
     };
 
     // 开始发送ps-rtp  [AUTO-TRANSLATED:a51796fa]

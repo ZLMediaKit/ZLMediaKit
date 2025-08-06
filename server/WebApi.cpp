@@ -1603,6 +1603,7 @@ void installWebApi() {
         // Record the app and vhost of the sending stream
         args.recv_stream_app = allArgs["app"];
         args.recv_stream_vhost = allArgs["vhost"];
+        args.enable_origin_recv_limit = allArgs["enable_origin_recv_limit"];
         src->getOwnerPoller()->async([=]() mutable {
             try {
                 src->startSendRtp(args, [val, headerOut, invoker](uint16_t local_port, const SockException &ex) mutable {
@@ -1649,6 +1650,7 @@ void installWebApi() {
         args.recv_stream_id = allArgs["recv_stream_id"];
         args.recv_stream_app = allArgs["app"];
         args.recv_stream_vhost = allArgs["vhost"];
+        args.enable_origin_recv_limit = allArgs["enable_origin_recv_limit"];
 
         src->getOwnerPoller()->async([=]() mutable {
             try {
@@ -1776,6 +1778,30 @@ void installWebApi() {
         });
     });
 
+    api_regist("/index/api/startRecordTask",[](API_ARGS_MAP_ASYNC){
+        CHECK_SECRET();
+        CHECK_ARGS("vhost", "app", "stream", "path", "back_ms", "forward_ms");
+
+        auto src = MediaSource::find(allArgs["vhost"], allArgs["app"], allArgs["stream"]);
+        if (!src) {
+            throw ApiRetException("can not find the stream", API::NotFound);
+        }
+
+        src->getOwnerPoller()->async([=]() mutable {
+            std::string err;
+            std::string path;
+            try {
+                path = src->getMuxer()->startRecord(allArgs["path"], allArgs["back_ms"], allArgs["forward_ms"]);
+            } catch (std::exception &ex) {
+                err = ex.what();
+            }
+            val["code"] = err.empty() ? API::Success : API::OtherFailed;
+            val["data"]["path"] = path;
+            val["msg"] = err;
+            invoker(200, headerOut, val.toStyledString());
+        });
+    });
+
     // 设置录像流播放速度  [AUTO-TRANSLATED:a8d82298]
     // Set the playback speed of the recording stream
     api_regist("/index/api/setRecordSpeed", [](API_ARGS_MAP_ASYNC) {
@@ -1888,11 +1914,13 @@ void installWebApi() {
     // http://127.0.0.1/index/api/deleteRecordDirectroy?vhost=__defaultVhost__&app=live&stream=ss&period=2020-01-01
     api_regist("/index/api/deleteRecordDirectory", [](API_ARGS_MAP) {
         CHECK_SECRET();
-        CHECK_ARGS("vhost", "app", "stream", "period");
+        CHECK_ARGS("vhost", "app", "stream");
         auto tuple = MediaTuple{allArgs["vhost"], allArgs["app"], allArgs["stream"], ""};
         auto record_path = Recorder::getRecordPath(Recorder::type_mp4, tuple, allArgs["customized_path"]);
         auto period = allArgs["period"];
-        record_path = record_path + period + "/";
+        if (!period.empty()) {
+            record_path = record_path + period + "/";
+        }
 
         bool recording = false;
         auto name = allArgs["name"];
@@ -1925,6 +1953,15 @@ void installWebApi() {
             return true;
         }, true, true);
         File::deleteEmptyDir(record_path);
+    });
+
+    api_regist("/index/api/deleteSnapDirectory", [](API_ARGS_MAP) {
+        CHECK_SECRET();
+        CHECK_ARGS("vhost", "app", "stream");
+        GET_CONFIG(std::string, root, API::kSnapRoot);
+        auto path = File::absolutePath(allArgs["vhost"] + "/" + allArgs["app"] + "/" + allArgs["stream"] + "/" + allArgs["file"], root);
+        InfoL << "delete " << path;
+        File::delete_file(path, true);
     });
 
     // 获取录像文件夹列表或mp4文件列表  [AUTO-TRANSLATED:f7e299bc]

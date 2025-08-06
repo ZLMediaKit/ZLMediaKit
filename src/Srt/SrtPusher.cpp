@@ -32,7 +32,15 @@ void SrtPusher::publish(const string &strUrl) {
         onResult(SockException(Err_other, StrPrinter << "illegal srt url:" << ex.what()));
         return;
     }
-    onConnect();
+
+    weak_ptr<SrtPusher> weak_self = static_pointer_cast<SrtPusher>(shared_from_this());
+    getPoller()->async([weak_self]() {
+        auto strong_self = weak_self.lock();
+        if (!strong_self) {
+            return;
+        }
+        strong_self->onConnect();
+    });
     return;
 }
 
