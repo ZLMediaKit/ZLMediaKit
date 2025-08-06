@@ -125,6 +125,21 @@ API_EXPORT int API_CALL mk_recorder_start(int type, const char *vhost, const cha
  */
 API_EXPORT int API_CALL mk_recorder_stop(int type, const char *vhost, const char *app, const char *stream);
 
+
+
+/**
+ * 开始事件视频录制
+ * @param vhost 虚拟主机
+ * @param app 应用名
+ * @param stream 流id
+ * @param path 录像文件保存相对路径，包括名称
+ * @param back_ms 回溯录制时长
+ * @param forward_ms 后续录制时长
+ * @return 1:成功，0：失败
+ * */
+API_EXPORT int API_CALL mk_recorder_start_task(const char *vhost, const char *app, const char *stream, const char *path, uint32_t back_ms, uint32_t forward_ms);
+
+
 /**
  * 加载mp4列表
  * @param vhost 虚拟主机

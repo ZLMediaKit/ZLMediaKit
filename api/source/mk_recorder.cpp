@@ -85,6 +85,27 @@ API_EXPORT int API_CALL mk_recorder_stop(int type, const char *vhost, const char
     return stopRecord((Recorder::type)type,vhost,app,stream);
 }
 
+API_EXPORT int API_CALL mk_recorder_start_task(const char *vhost, const char *app, const char *stream, const char *path, uint32_t back_ms, uint32_t forward_ms) {
+    assert(vhost && app && stream);
+    auto src = MediaSource::find(vhost, app, stream);
+    if (!src) {
+        WarnL << "未找到相关的MediaSource,startRecordTask失败:" << vhost << "/" << app << "/" << stream;
+        return false;
+    }
+    bool ret;
+    src->getOwnerPoller()->async([=]() mutable {
+        std::string err;
+        try {
+             src->getMuxer()->startRecord(path, back_ms, forward_ms);
+        } catch (std::exception &ex) {
+            err = ex.what();
+            WarnL << "MediaSource开启startRecordTask失败:" << vhost << "/" << app << "/" << stream << " what: " << err;
+        }
+        ret = err.empty();
+    });
+    return ret;
+}
+
 API_EXPORT void API_CALL mk_load_mp4_file(const char *vhost, const char *app, const char *stream, const char *file_path, int file_repeat) {
     mINI ini;
     mk_load_mp4_file2(vhost, app, stream, file_path, file_repeat, (mk_ini)&ini);

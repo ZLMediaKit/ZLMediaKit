@@ -30,6 +30,13 @@ API_EXPORT mk_rtp_server API_CALL mk_rtp_server_create2(uint16_t port, int tcp_m
     return (mk_rtp_server)server;
 }
 
+API_EXPORT mk_rtp_server API_CALL mk_rtp_server_create3(uint16_t port, int tcp_mode, const char *vhost, const char *app, const char *stream_id, int multiplex) {
+    RtpServer::Ptr *server = new RtpServer::Ptr(new RtpServer);
+    GET_CONFIG(std::string, local_ip, General::kListenIP)
+    (*server)->start(port, local_ip.c_str(), MediaTuple { vhost, app, stream_id, "" }, (RtpServer::TcpMode)tcp_mode,multiplex);
+    return (mk_rtp_server)server;
+}
+
 API_EXPORT void API_CALL mk_rtp_server_connect(mk_rtp_server ctx, const char *dst_url, uint16_t dst_port, on_mk_rtp_server_connected cb, void *user_data) {
     mk_rtp_server_connect2(ctx, dst_url, dst_port, cb, user_data, nullptr);
 }
@@ -69,6 +76,41 @@ API_EXPORT void API_CALL mk_rtp_server_set_on_detach2(mk_rtp_server ctx, on_mk_r
         });
     } else {
         (*server)->setOnDetach(nullptr);
+    }
+}
+
+API_EXPORT void API_CALL mk_rtp_server_update_ssrc(mk_rtp_server ctx, uint32_t ssrc) {
+    assert(ctx);
+    RtpServer::Ptr *server = (RtpServer::Ptr *)ctx;
+    (*server)->updateSSRC(ssrc);
+}
+
+
+API_EXPORT void API_CALL mk_rtp_get_info(const char *app, const char *stream, on_mk_rtp_get_info cb) {
+    assert(cb);
+    auto src = MediaSource::find(DEFAULT_VHOST, app, stream);
+    auto process = src ? src->getRtpProcess() : nullptr;
+    if (!process) {
+        cb(0, nullptr, 0, nullptr, 0, nullptr);
+        return;
+    }
+    SockInfo *info = process.get();
+    cb(1, info->get_local_ip().c_str(), info->get_peer_port(), info->get_local_ip().c_str(), info->get_local_port(), info->getIdentifier().c_str());
+}
+
+API_EXPORT void API_CALL mk_rtp_pause_check(const char *app, const char *stream) {
+    auto src = MediaSource::find(DEFAULT_VHOST, app, stream);
+    auto process = src ? src->getRtpProcess() : nullptr;
+    if (process) {
+        process->setStopCheckRtp(true);
+    }
+}
+
+API_EXPORT void API_CALL mk_rtp_resume_check(const char *app, const char *stream) {
+    auto src = MediaSource::find(DEFAULT_VHOST, app, stream);
+    auto process = src ? src->getRtpProcess() : nullptr;
+    if (process) {
+        process->setStopCheckRtp(false);
     }
 }
 
