@@ -195,7 +195,7 @@ std::string MultiMediaSourceMuxer::shortUrl() const {
     }
     return _tuple.shortUrl();
 }
-
+#if defined(ENABLE_RTPPROXY)
 void MultiMediaSourceMuxer::forEachRtpSender(const std::function<void(const std::string &ssrc, const RtpSender &sender)> &cb) const {
     for (auto &pr : _rtp_sender) {
         auto sender = std::get<1>(pr.second).lock();
@@ -204,7 +204,7 @@ void MultiMediaSourceMuxer::forEachRtpSender(const std::function<void(const std:
         }
     }
 }
-
+#endif // ENABLE_RTPPROXY
 MultiMediaSourceMuxer::MultiMediaSourceMuxer(const MediaTuple& tuple, float dur_sec, const ProtocolOption &option): _tuple(tuple) {
     if (!option.stream_replace.empty()) {
         // 支持在on_publish hook中替换stream_id  [AUTO-TRANSLATED:375eb2ff]
@@ -605,7 +605,9 @@ bool MultiMediaSourceMuxer::close(MediaSource &sender) {
     _mp4 = nullptr;
     _hls = nullptr;
     _hls_fmp4 = nullptr;
+#if defined(ENABLE_RTPPROXY)
     _rtp_sender.clear();
+#endif // ENABLE_RTPPROXY
     return true;
 }
 
