@@ -700,7 +700,7 @@ void MediaSourceEvent::onReaderChanged(MediaSource &sender, int size){
             strong_sender->close(false);
         }
         return false;
-    }, nullptr);
+    }, this->getOwnerPoller(sender));
 }
 
 string MediaSourceEvent::getOriginUrl(MediaSource &sender) const {
