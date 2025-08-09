@@ -279,7 +279,7 @@ std::string HandshakePacket::dump(){
     for(size_t i=0;i<ext_list.size();++i){
         printer<<ext_list[i]->dump()<<"\r\n";
     }
-    return std::move(printer);
+    return printer;
 }
 bool HandshakePacket::loadFromData(uint8_t *buf, size_t len) {
     if (HEADER_SIZE + HS_CONTENT_MIN_SIZE > len) {
@@ -627,7 +627,7 @@ std::string NAKPacket::dump() {
     for (auto it : lost_list) {
         printer << "[ " << it.first << " , " << it.second - 1 << " ]";
     }
-    return std::move(printer);
+    return printer;
 }
 
 bool MsgDropReqPacket::loadFromData(uint8_t *buf, size_t len) {

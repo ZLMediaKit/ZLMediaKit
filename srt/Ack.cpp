@@ -80,6 +80,6 @@ std::string ACKPacket::dump() {
             << " rtt_variance=" << rtt_variance << " pkt_recv_rate=" << pkt_recv_rate
             << " available_buf_size=" << available_buf_size << " estimated_link_capacity=" << estimated_link_capacity
             << " recv_rate=" << recv_rate;
-    return std::move(printer);
+    return printer;
 }
 } // namespace SRT

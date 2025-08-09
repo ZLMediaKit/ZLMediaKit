@@ -177,7 +177,7 @@ static string getTrackInfoStr(const TrackSource *track_src){
                 break;
         }
     }
-    return std::move(codec_info);
+    return codec_info;
 }
 
 const ProtocolOption &MultiMediaSourceMuxer::getOption() const {

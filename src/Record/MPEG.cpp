@@ -68,7 +68,7 @@ bool MpegMuxer::inputFrame(const Frame::Ptr &frame) {
         }
 
         case CodecAAC: {
-            CHECK(frame->prefixSize(), "Mpeg muxer required aac frame with adts heade");
+            CHECK(frame->prefixSize(), "Mpeg muxer required aac frame with adts header");
         }
 
         default: {

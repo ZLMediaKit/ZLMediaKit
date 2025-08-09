@@ -174,7 +174,7 @@ string RtcSdpBase::toString() const {
     for (auto &item : items) {
         printer << item->getKey() << "=" << item->toString() << "\r\n";
     }
-    return std::move(printer);
+    return printer;
 }
 
 RtpDirection RtcSdpBase::getDirection() const {
@@ -307,7 +307,7 @@ string RtcSessionSdp::toString() const {
         printer << media.toString();
     }
 
-    return std::move(printer);
+    return printer;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
