@@ -150,30 +150,11 @@ public:
      * @return 文件总长度，单位毫秒
      */
     uint64_t getDurationMS() const;
-private:
-    struct DemuxerContext {
-        MP4Demuxer::Ptr demuxer;
-        std::unordered_map<int /*track_id in demuxer*/, int /*trans to*/> mapTrackIndex;
 
-        DemuxerContext(MP4Demuxer::Ptr dx) : demuxer(std::move(dx)) {}
-        void MapTrackIndex(int src, int dst) {
-            if (mapTrackIndex.find(src) == mapTrackIndex.end()) {
-                mapTrackIndex.emplace(src, dst);
-            }
-        }
-        bool GetTrackIndex(int src, int &dst) {
-            auto it = mapTrackIndex.find(src);
-            if (it == mapTrackIndex.end()) {
-                return false;
-            }
-            dst = it->second;
-            return true;
-        }
-    };
 private:
     std::map<int, Track::Ptr> _tracks;
-    std::map<uint64_t, DemuxerContext>::iterator _it;
-    std::map<uint64_t, DemuxerContext> _demuxers;
+    std::map<uint64_t, MP4Demuxer::Ptr>::iterator _it;
+    std::map<uint64_t, MP4Demuxer::Ptr> _demuxers;
 };
 
 }//namespace mediakit
