@@ -153,10 +153,6 @@ bool H264Track::ready() const {
 bool H264Track::inputFrame(const Frame::Ptr &frame) {
     using H264FrameInternal = FrameInternal<H264FrameNoCacheAble>;
     int type = H264_TYPE(frame->data()[frame->prefixSize()]);
-    if (type == H264Frame::NAL_AUD) {
-        // AUD帧丢弃
-        return false;
-    }
     if ((type == H264Frame::NAL_B_P || type == H264Frame::NAL_IDR) && ready()) {
         return inputFrame_l(frame);
     }
@@ -266,6 +262,10 @@ Track::Ptr H264Track::clone() const {
 
 bool H264Track::inputFrame_l(const Frame::Ptr &frame) {
     int type = H264_TYPE(frame->data()[frame->prefixSize()]);
+    if (type == H264Frame::NAL_AUD) {
+        // AUD帧丢弃
+        return false;
+    }
     bool ret = true;
     switch (type) {
         case H264Frame::NAL_SPS: {
