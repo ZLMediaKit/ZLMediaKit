@@ -21,6 +21,7 @@ typedef struct mk_rtp_server_t *mk_rtp_server;
  * @param port 监听端口，0则为随机
  * @param tcp_mode tcp模式(0: 不监听端口 1: 监听端口 2: 主动连接到服务端)
  * @param stream_id 该端口绑定的流id
+ * @param multiple 多路复用RTP服务器 1: 开启 0: 不开启
  * @return
  * Create GB28181 RTP server
  * @param port Listening port, 0 for random
@@ -32,6 +33,7 @@ typedef struct mk_rtp_server_t *mk_rtp_server;
  */
 API_EXPORT mk_rtp_server API_CALL mk_rtp_server_create(uint16_t port, int tcp_mode, const char *stream_id);
 API_EXPORT mk_rtp_server API_CALL mk_rtp_server_create2(uint16_t port, int tcp_mode, const char *vhost, const char *app, const char *stream_id);
+API_EXPORT mk_rtp_server API_CALL mk_rtp_server_create3(uint16_t port, int tcp_mode, const char *vhost, const char *app, const char *stream_id, int multiplex);
 
 /**
  * TCP 主动模式时连接到服务器是否成功的回调
@@ -109,6 +111,53 @@ typedef void(API_CALL *on_mk_rtp_server_detach)(void *user_data);
  */
 API_EXPORT void API_CALL mk_rtp_server_set_on_detach(mk_rtp_server ctx, on_mk_rtp_server_detach cb, void *user_data);
 API_EXPORT void API_CALL mk_rtp_server_set_on_detach2(mk_rtp_server ctx, on_mk_rtp_server_detach cb, void *user_data, on_user_data_free user_data_free);
+
+/**
+ * 更新RTP服务器过滤SSRC
+ * @param ctx 服务器对象
+ * @param ssrc 十进制ssrc
+ * 
+ */
+API_EXPORT void API_CALL mk_rtp_server_update_ssrc(mk_rtp_server ctx, uint32_t ssrc);
+
+
+/**
+ * rtp信息获取回调
+ * @param exist 存在rtp信息 0: 不存在 1: 存在
+ * @param peer_ip 连接ip
+ * @param peer_port 连接端口
+ * @param local_ip 本地ip
+ * @param local_port 本地端口
+ * @param identifier 身份信息
+ * 
+ */
+typedef void(API_CALL *on_mk_rtp_get_info)(int exist, const char *peer_ip, uint16_t peer_port, const char *local_ip, uint16_t local_port, const char *identifier);
+
+/**
+ *  获取rtp推流信息
+ * @param app 应用名
+ * @param stream 流id
+ * @param cb rtp信息获取回调
+ *
+ */
+API_EXPORT void API_CALL mk_rtp_get_info(const char *app, const char *stream, on_mk_rtp_get_info cb);
+
+
+/**
+ * 暂停RTP超时检查
+ * @param app 应用名
+ * @param stream 流id
+ *
+ */
+API_EXPORT void API_CALL mk_rtp_pause_check(const char *app, const char *stream);
+
+/**
+ * 恢复RTP超时检查
+ * @param app 应用名
+ * @param stream 流id
+ *
+ */
+API_EXPORT void API_CALL mk_rtp_resume_check(const char *app, const char *stream);
 
 #ifdef __cplusplus
 }

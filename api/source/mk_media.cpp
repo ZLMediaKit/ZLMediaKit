@@ -342,6 +342,7 @@ API_EXPORT void API_CALL mk_media_start_send_rtp4(mk_media ctx, const char *dst_
     args.close_delay_ms = (*ini_ptr)["close_delay_ms"].empty() ? 30000 : (*ini_ptr)["close_delay_ms"].as<int>();
     args.rtcp_timeout_ms = (*ini_ptr)["rtcp_timeout_ms"].empty() ? 30000 : (*ini_ptr)["rtcp_timeout_ms"].as<int>();
     args.rtcp_send_interval_ms = (*ini_ptr)["rtcp_send_interval_ms"].empty() ? 5000 : (*ini_ptr)["rtcp_send_interval_ms"].as<int>();
+    args.enable_origin_recv_limit = (*ini_ptr)["enable_origin_recv_limit"].empty() ? false : (*ini_ptr)["enable_origin_recv_limit"].as<bool>();
     // sender参数无用  [AUTO-TRANSLATED:21590ae5]
     // The sender parameter is useless
     auto ref = *obj;
