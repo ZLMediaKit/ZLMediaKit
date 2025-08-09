@@ -212,18 +212,50 @@ void MultiMP4Demuxer::openMP4(const string &files_string) {
     for (auto &file : files) {
         auto demuxer = std::make_shared<MP4Demuxer>();
         demuxer->openMP4(file);
-        _demuxers.emplace(duration_ms, demuxer);
+        _demuxers.emplace(duration_ms, DemuxerContext(demuxer));
         duration_ms += demuxer->getDurationMS();
     }
     CHECK(!_demuxers.empty());
     _it = _demuxers.begin();
-    for (auto &track : _it->second->getTracks(false)) {
+    for (auto &track : _it->second.demuxer->getTracks(false)) {
         _tracks.emplace(track->getIndex(), track->clone());
+        _it->second.MapTrackIndex(track->getIndex(), track->getIndex());
+    }
+    for (auto itr = _demuxers.begin(); itr != _demuxers.end(); ++itr) {
+        if (itr == this->_it) continue;
+        auto tracks(itr->second.demuxer->getTracks(false));
+        for (auto &track : tracks) {
+            bool bFound(false);
+            std::shared_ptr<int> dst_track_index;
+            for (auto &tr : this->_tracks) {
+                if (tr.second->getCodecId() == track->getCodecId()) {
+                    DebugL << "find track by codec_id:" << track->getIndex() << "->" << tr.second->getIndex();
+                    itr->second.MapTrackIndex(track->getIndex(), tr.second->getIndex());
+                    bFound = true;
+                    break;
+                }
+                else if (tr.second->getTrackType() == track->getTrackType()) {
+                    dst_track_index = std::make_shared<int>(tr.second->getIndex());
+                }
+            }
+            if (!bFound && dst_track_index) {
+                DebugL << "find track by track_type:" << track->getIndex() << "->" << *dst_track_index;
+                itr->second.MapTrackIndex(track->getIndex(), *dst_track_index);
+            }
+        }
+    }
+    for (auto &dex : this->_demuxers) {
+        DebugL << "demuxer-" << dex.first;
+        for (auto &track : dex.second.demuxer->getTracks(false)) {
+            int dst_track_index(-1);
+            (void)dex.second.GetTrackIndex(track->getIndex(), dst_track_index);
+            DebugL << "track:" << track->getIndex() << "->" << dst_track_index << ", " << track->getTrackTypeStr() << ", " << track->getCodecName();
+        }
     }
 }
 
 uint64_t MultiMP4Demuxer::getDurationMS() const {
-    return _demuxers.empty() ? 0 : _demuxers.rbegin()->first + _demuxers.rbegin()->second->getDurationMS();
+    return _demuxers.empty() ? 0 : _demuxers.rbegin()->first + _demuxers.rbegin()->second.demuxer->getDurationMS();
 }
 
 void MultiMP4Demuxer::closeMP4() {
@@ -237,19 +269,23 @@ int64_t MultiMP4Demuxer::seekTo(int64_t stamp_ms) {
         return -1;
     }
     _it = std::prev(_demuxers.upper_bound(stamp_ms));
-    return _it->first + _it->second->seekTo(stamp_ms - _it->first);
+    return _it->first + _it->second.demuxer->seekTo(stamp_ms - _it->first);
 }
 
 Frame::Ptr MultiMP4Demuxer::readFrame(bool &keyFrame, bool &eof) {
     for (;;) {
-        auto ret = _it->second->readFrame(keyFrame, eof);
+        auto ret = _it->second.demuxer->readFrame(keyFrame, eof);
         if (ret) {
-            auto it = _tracks.find(ret->getIndex());
-            if (it != _tracks.end()) {
-                auto ret2 = std::make_shared<FrameStamp>(ret);
-                ret2->setStamp(_it->first + ret->dts(), _it->first + ret->pts());
-                ret = std::move(ret2);
-                it->second->inputFrame(ret);
+            int dst_index;
+            if (_it->second.GetTrackIndex(ret->getIndex(), dst_index)) {
+                auto it = _tracks.find(dst_index);
+                if (it != _tracks.end()) {
+                    auto ret2 = std::make_shared<FrameStamp>(ret);
+                    ret2->setStamp(_it->first + ret->dts(), _it->first + ret->pts());
+                    ret2->setIndex(dst_index);
+                    ret = std::move(ret2);
+                    it->second->inputFrame(ret);
+                }
             }
         }
         if (eof && _it != _demuxers.end()) {
@@ -260,7 +296,7 @@ Frame::Ptr MultiMP4Demuxer::readFrame(bool &keyFrame, bool &eof) {
                 return nullptr;
             }
             // 下一个文件从头开始播放
-            _it->second->seekTo(0);
+            _it->second.demuxer->seekTo(0);
             continue;
         }
         return ret;
