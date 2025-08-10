@@ -293,6 +293,10 @@ float PlayerProxy::getLossRate(MediaSource &sender, TrackType type) {
     return getPacketLossRate(type);
 }
 
+toolkit::EventPoller::Ptr PlayerProxy::getOwnerPoller(MediaSource &sender) { 
+    return getPoller();
+}
+
 TranslationInfo PlayerProxy::getTranslationInfo() {
     return _transtalion_info;
 }

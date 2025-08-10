@@ -11,10 +11,11 @@
 #ifndef ZLMEDIAKIT_WEBRTCPLAYER_H
 #define ZLMEDIAKIT_WEBRTCPLAYER_H
 
-#include "Rtsp/RtspMediaSource.h"
 #include "WebRtcTransport.h"
+#include "Rtsp/RtspMediaSource.h"
 
 namespace mediakit {
+
 /**
  * @brief H.264 B 帧过滤器
  * 用于从 H.264 RTP 流中移除 B 帧
@@ -125,7 +126,8 @@ private:
 class WebRtcPlayer : public WebRtcTransportImp {
 public:
     using Ptr = std::shared_ptr<WebRtcPlayer>;
-    static Ptr create(const EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src, const MediaInfo &info);
+    static Ptr create(const EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src, const MediaInfo &info, 
+                      WebRtcTransport::Role role, WebRtcTransport::SignalingProtocols signaling_protocols);
     MediaInfo getMediaInfo() { return _media_info; }
 
 protected:

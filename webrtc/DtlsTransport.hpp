@@ -35,6 +35,7 @@ namespace RTC
     class DtlsTransport : public std::enable_shared_from_this<DtlsTransport>
     {
     public:
+        using Ptr = std::shared_ptr<DtlsTransport>;
         enum class DtlsState
         {
             NEW = 1,
