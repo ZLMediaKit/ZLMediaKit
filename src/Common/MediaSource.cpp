@@ -667,6 +667,14 @@ void MediaSourceEvent::onReaderChanged(MediaSource &sender, int size){
     bool is_mp4_vod = sender.getMediaTuple().app == record_app;
     weak_ptr<MediaSource> weak_sender = sender.shared_from_this();
 
+    EventPoller::Ptr specified_poller;
+    try {
+        specified_poller = this->getOwnerPoller(sender);
+    }
+    catch (std::exception &ex) {
+        // 尝试获取 OwnerPoller，没有实现则使用默认 nullptr
+        // WarnL << ex.what();
+    }
     _async_close_timer = std::make_shared<Timer>(stream_none_reader_delay / 1000.0f, [weak_sender, is_mp4_vod]() {
         auto strong_sender = weak_sender.lock();
         if (!strong_sender) {
@@ -700,7 +708,7 @@ void MediaSourceEvent::onReaderChanged(MediaSource &sender, int size){
             strong_sender->close(false);
         }
         return false;
-    }, this->getOwnerPoller(sender));
+    }, specified_poller);
 }
 
 string MediaSourceEvent::getOriginUrl(MediaSource &sender) const {
