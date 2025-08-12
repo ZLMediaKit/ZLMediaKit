@@ -296,7 +296,7 @@ Buffer::Ptr HttpFileBody::readData(size_t size) {
             // Data is read
             ret->setSize(iRead);
             _file_offset += iRead;
-            return std::move(ret);
+            return ret;
         }
         // 读取文件异常，文件真实长度小于声明长度  [AUTO-TRANSLATED:89d09f9b]
         // File reading exception, the actual length of the file is less than the declared length
@@ -385,7 +385,7 @@ string HttpMultiFormBody::multiFormBodyPrefix(const HttpArgs &args, const string
          << "file"
          << "\"; filename=\"" << fileName << "\"\r\n";
     body << "Content-Type: application/octet-stream\r\n\r\n";
-    return std::move(body);
+    return body;
 }
 
 HttpBufferBody::HttpBufferBody(Buffer::Ptr buffer) {

@@ -748,6 +748,26 @@ void addStreamPusherProxy(const string &schema,
     pusher->publish(url);
 }
 
+void getThreadsLoad(TaskExecutorGetterImp &getter, API_ARGS_MAP_ASYNC) {
+    getter.getExecutorDelay([&getter, invoker, headerOut](const vector<int> &vecDelay) {
+        Value val;
+        auto vec = getter.getExecutorLoad();
+        std::vector<EventPoller::Ptr> pollers;
+        getter.for_each([&](const TaskExecutor::Ptr &exe) { pollers.emplace_back(std::static_pointer_cast<EventPoller>(exe)); });
+        int i = API::Success;
+        for (auto load : vec) {
+            Value obj(objectValue);
+            obj["load"] = load;
+            auto &poller = pollers[i];
+            obj["name"] = poller->getThreadName();
+            obj["fd_count"] = static_cast<Json::UInt64>(poller->fdCount());
+            obj["delay"] = vecDelay[i++];
+            val["data"].append(obj);
+        }
+        val["code"] = API::Success;
+        invoker(200, headerOut, val.toStyledString());
+    });
+}
 
 /**
  * 安装api接口
@@ -769,19 +789,7 @@ void installWebApi() {
     // Test url http://127.0.0.1/index/api/getThreadsLoad
     api_regist("/index/api/getThreadsLoad", [](API_ARGS_MAP_ASYNC) {
         CHECK_SECRET();
-        EventPollerPool::Instance().getExecutorDelay([invoker, headerOut](const vector<int> &vecDelay) {
-            Value val;
-            auto vec = EventPollerPool::Instance().getExecutorLoad();
-            int i = API::Success;
-            for (auto load : vec) {
-                Value obj(objectValue);
-                obj["load"] = load;
-                obj["delay"] = vecDelay[i++];
-                val["data"].append(obj);
-            }
-            val["code"] = API::Success;
-            invoker(200, headerOut, val.toStyledString());
-        });
+        getThreadsLoad(EventPollerPool::Instance(), API_ARGS_VALUE, invoker);
     });
 
     // 获取后台工作线程负载  [AUTO-TRANSLATED:6166e265]
@@ -790,19 +798,7 @@ void installWebApi() {
     // Test url http://127.0.0.1/index/api/getWorkThreadsLoad
     api_regist("/index/api/getWorkThreadsLoad", [](API_ARGS_MAP_ASYNC) {
         CHECK_SECRET();
-        WorkThreadPool::Instance().getExecutorDelay([invoker, headerOut](const vector<int> &vecDelay) {
-            Value val;
-            auto vec = WorkThreadPool::Instance().getExecutorLoad();
-            int i = 0;
-            for (auto load : vec) {
-                Value obj(objectValue);
-                obj["load"] = load;
-                obj["delay"] = vecDelay[i++];
-                val["data"].append(obj);
-            }
-            val["code"] = API::Success;
-            invoker(200, headerOut, val.toStyledString());
-        });
+        getThreadsLoad(WorkThreadPool::Instance(), API_ARGS_VALUE, invoker);
     });
 
     // 获取服务器配置  [AUTO-TRANSLATED:7dd2f3da]

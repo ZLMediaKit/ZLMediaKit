@@ -218,7 +218,10 @@ void MultiMP4Demuxer::openMP4(const string &files_string) {
     CHECK(!_demuxers.empty());
     _it = _demuxers.begin();
     for (auto &track : _it->second->getTracks(false)) {
-        _tracks.emplace(track->getIndex(), track->clone());
+        auto clone_track(track->clone());
+        clone_track->setIndex(clone_track->getTrackType());
+        _tracks.emplace(clone_track->getIndex(), clone_track);
+        DebugL << "track index: " << track->getIndex() << " -> " << clone_track->getIndex();
     }
 }
 
@@ -244,6 +247,7 @@ Frame::Ptr MultiMP4Demuxer::readFrame(bool &keyFrame, bool &eof) {
     for (;;) {
         auto ret = _it->second->readFrame(keyFrame, eof);
         if (ret) {
+            ret->setIndex(ret->getTrackType());
             auto it = _tracks.find(ret->getIndex());
             if (it != _tracks.end()) {
                 auto ret2 = std::make_shared<FrameStamp>(ret);

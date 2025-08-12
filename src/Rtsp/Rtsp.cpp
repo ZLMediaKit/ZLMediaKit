@@ -161,7 +161,7 @@ string SdpTrack::toString(uint16_t port) const {
         }
         default: break;
     }
-    return std::move(_printer);
+    return _printer;
 }
 
 static TrackType toTrackType(const string &str) {
@@ -644,7 +644,7 @@ string RtpHeader::dumpString(size_t rtp_size) const {
     printer << "rtp size:" << rtp_size << "\r\n";
     printer << "payload offset:" << getPayloadOffset() << "\r\n";
     printer << "payload size:" << getPayloadSize(rtp_size) << "\r\n";
-    return std::move(printer);
+    return printer;
 }
 
 ///////////////////////////////////////////////////////////////////////

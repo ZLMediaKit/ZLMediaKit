@@ -298,7 +298,7 @@ string RtpExt::dumpString() const {
             break;
         }
     }
-    return std::move(printer);
+    return printer;
 }
 
 //https://tools.ietf.org/html/rfc6464

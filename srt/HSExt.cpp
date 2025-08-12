@@ -34,7 +34,7 @@ std::string HSExtMessage::dump() {
     _StrPrinter printer;
     printer << "srt version : " << std::hex << srt_version << " srt flag : " << std::hex << srt_flag
             << " recv_tsbpd_delay=" << recv_tsbpd_delay << " send_tsbpd_delay = " << send_tsbpd_delay;
-    return std::move(printer);
+    return printer;
 }
 
 bool HSExtMessage::storeToData() {
@@ -130,7 +130,7 @@ bool HSExtStreamID::storeToData() {
 std::string HSExtStreamID::dump() {
     _StrPrinter printer;
     printer << " streamid : " << streamid;
-    return std::move(printer);
+    return printer;
 }
 
 size_t KeyMaterial::getContentSize() {
@@ -263,7 +263,7 @@ std::string KeyMaterial::dump() {
         << " sLen : " << _slen 
         << " salt : " << std::hex << _salt.data()
         << " kLen : " << _klen;
-    return std::move(printer);
+    return printer;
 }
 
 bool HSExtKeyMaterial::loadFromData(uint8_t *buf, size_t len) {
