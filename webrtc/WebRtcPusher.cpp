@@ -20,13 +20,18 @@ WebRtcPusher::Ptr WebRtcPusher::create(const EventPoller::Ptr &poller,
                                        const RtspMediaSource::Ptr &src,
                                        const std::shared_ptr<void> &ownership,
                                        const MediaInfo &info,
-                                       const ProtocolOption &option) {
-    WebRtcPusher::Ptr ret(new WebRtcPusher(poller, src, ownership, info, option), [](WebRtcPusher *ptr) {
+                                       const ProtocolOption &option,
+                                       WebRtcTransport::Role role, 
+                                       WebRtcTransport::SignalingProtocols signaling_protocols) {
+    WebRtcPusher::Ptr pusher(new WebRtcPusher(poller, src, ownership, info, option), [](WebRtcPusher *ptr) {
         ptr->onDestory();
         delete ptr;
     });
-    ret->onCreate();
-    return ret;
+
+    pusher->setRole(role);
+    pusher->setSignalingProtocols(signaling_protocols);
+    pusher->onCreate();
+    return pusher;
 }
 
 WebRtcPusher::WebRtcPusher(const EventPoller::Ptr &poller,
@@ -38,7 +43,7 @@ WebRtcPusher::WebRtcPusher(const EventPoller::Ptr &poller,
     _push_src = src;
     _push_src_ownership = ownership;
     _continue_push_ms = option.continue_push_ms;
-    CHECK(_push_src);
+    // CHECK(_push_src);
 }
 
 bool WebRtcPusher::close(MediaSource &sender) {
@@ -86,9 +91,13 @@ toolkit::EventPoller::Ptr WebRtcPusher::getOwnerPoller(MediaSource &sender) {
 }
 
 void WebRtcPusher::onRecvRtp(MediaTrack &track, const string &rid, RtpPacket::Ptr rtp) {
+
+    auto key_pos = _demuxer->inputRtp(rtp);
+
     if (!_simulcast) {
-        assert(_push_src);
-        _push_src->onWrite(rtp, false);
+        if (_push_src) {
+            _push_src->onWrite(rtp, key_pos);
+        }
         return;
     }
 
@@ -96,7 +105,7 @@ void WebRtcPusher::onRecvRtp(MediaTrack &track, const string &rid, RtpPacket::Pt
         // 音频  [AUTO-TRANSLATED:a577d8e1]
         // Audio
         for (auto &pr : _push_src_sim) {
-            pr.second->onWrite(rtp, false);
+            pr.second->onWrite(rtp, key_pos);
         }
     } else {
         // 视频  [AUTO-TRANSLATED:904730ac]
@@ -110,16 +119,32 @@ void WebRtcPusher::onRecvRtp(MediaTrack &track, const string &rid, RtpPacket::Pt
             src_imp->setListener(static_pointer_cast<WebRtcPusher>(shared_from_this()));
             src = src_imp;
         }
-        src->onWrite(std::move(rtp), false);
+        src->onWrite(std::move(rtp), key_pos);
+    }
+}
+
+void WebRtcPusher::setAnswerSdp(const std::string &answer) {
+    WebRtcTransport::setAnswerSdp(answer);
+
+    if (canRecvRtp()) {
+        if (_push_src) {
+            _push_src->setSdp(_answer_sdp->toRtspSdp());
+        }
+        _demuxer = std::make_shared<RtspDemuxer>();
+        _demuxer->loadSdp(_answer_sdp->toRtspSdp());
     }
 }
 
 void WebRtcPusher::onStartWebRTC() {
     WebRtcTransportImp::onStartWebRTC();
     _simulcast = _answer_sdp->supportSimulcast();
+#if 0
     if (canRecvRtp()) {
-        _push_src->setSdp(_answer_sdp->toRtspSdp());
+        if (_push_src) {
+            _push_src->setSdp(_answer_sdp->toRtspSdp());
+        }
     }
+#endif
 }
 
 void WebRtcPusher::onDestory() {
@@ -159,7 +184,18 @@ float WebRtcPusher::getLossRate(MediaSource &sender,TrackType type) {
     return WebRtcTransportImp::getLossRate(type);
 }
 
+vector<Track::Ptr> WebRtcPusher::getTracks(bool ready) const {
+    if (_demuxer) {
+        DebugL << "_demuxer track: " << _demuxer->getTracks(ready).size();
+        return _demuxer->getTracks(ready);
+    }
+
+    vector<Track::Ptr> ret;
+    return ret;
+}
+
 void WebRtcPusher::OnDtlsTransportClosed(const RTC::DtlsTransport *dtlsTransport) {
+    DebugL;
    // 主动关闭推流，那么不等待重推  [AUTO-TRANSLATED:1ff514d7]
    // Actively close the stream, then do not wait for re-pushing
     _push_src = nullptr;
@@ -171,8 +207,9 @@ void WebRtcPusher::onRtcpBye() {
 }
 
 void WebRtcPusher::onShutdown(const SockException &ex) {
-     _push_src = nullptr;
-     WebRtcTransportImp::onShutdown(ex);
+    DebugL;
+    _push_src = nullptr;
+    WebRtcTransportImp::onShutdown(ex);
 }
 
 }// namespace mediakit

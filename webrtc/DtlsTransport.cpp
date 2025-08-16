@@ -650,6 +650,8 @@ namespace RTC
 
     void DtlsTransport::Run(Role localRole)
     {
+        DebugL << ((localRole == RTC::DtlsTransport::Role::SERVER)? "Server" : "Client");
+
         MS_TRACE();
 
         MS_ASSERT(

@@ -28,6 +28,35 @@ static onceToken token([]() {
 });
 } // namespace Rtc
 
+// rtpmap
+struct EnumHash {
+    template<typename T>
+    std::size_t operator()(T t) const {
+        return static_cast<std::size_t>(t);
+    }
+};
+static std::unordered_map<TrackType, std::multimap<CodecId, RtpMap::Ptr>, EnumHash> s_rtpmap_preferred_list;
+static toolkit::onceToken token([]() {
+    RtpMap::Ptr rtpmap = nullptr;
+    auto &audio_list_ref = s_rtpmap_preferred_list[TrackAudio];
+    audio_list_ref.emplace(CodecG711U, make_shared<AudioRtpMap>("PCMU", 0, 8000));
+    audio_list_ref.emplace(CodecG711A, make_shared<AudioRtpMap>("PCMA", 8, 8000));
+    audio_list_ref.emplace(CodecOpus, make_shared<AudioRtpMap>("opus", 111, 48000));
+    audio_list_ref.emplace(CodecAAC, make_shared<AudioRtpMap>("mpeg4-generic", 96, 48000));
+
+    auto &video_list_ref = s_rtpmap_preferred_list[TrackVideo];
+    video_list_ref.emplace(CodecH264, make_shared<H264RtpMap>(102, 90000, PROFILE_H264_BASELINE));
+    video_list_ref.emplace(CodecH264, make_shared<H264RtpMap>(124, 90000, PROFILE_H264_MAIN));
+    video_list_ref.emplace(CodecH264, make_shared<H264RtpMap>(123, 90000, PROFILE_H264_HIGH));
+    video_list_ref.emplace(CodecH265, make_shared<H265RtpMap>(102, 90000, PROFILE_H264_BASELINE));
+    video_list_ref.emplace(CodecH265, make_shared<H265RtpMap>(124, 90000, PROFILE_H264_MAIN));
+    video_list_ref.emplace(CodecH265, make_shared<H265RtpMap>(123, 90000, PROFILE_H264_HIGH));
+    video_list_ref.emplace(CodecAV1, make_shared<VideoRtpMap>("AV1", 35, 90000));
+    video_list_ref.emplace(CodecVP8, make_shared<VideoRtpMap>("VP8", 96, 90000));
+    video_list_ref.emplace(CodecVP9, make_shared<VP9RtpMap>(98, 90000, 0));
+    video_list_ref.emplace(CodecVP9, make_shared<VP9RtpMap>(100, 90000, 2));
+});
+
 using onCreateSdpItem = function<SdpItem::Ptr(const string &key, const string &value)>;
 static map<string, onCreateSdpItem, StrCaseCompare> sdpItemCreator;
 
@@ -1083,6 +1112,7 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const {
         sdp.addItem(std::make_shared<SdpConnection>(connection));
     }
     sdp.addAttr(std::make_shared<SdpAttrGroup>(group));
+    sdp.addAttr(std::make_shared<SdpAttrExtmapAllowMixed>());
     sdp.addAttr(std::make_shared<SdpAttrMsidSemantic>(msid_semantic));
 
     bool ice_lite = false;
@@ -1329,6 +1359,10 @@ void RtcMedia::checkValid() const {
         // 非simulcast时，检查有没有指定rtp ssrc  [AUTO-TRANSLATED:e2d53f8a]
         // When not simulcast, check if the RTP SSRC is specified
         CHECK(!rtp_rtx_ssrc.empty() || !send_rtp);
+
+        for (auto ssrc : rtp_rtx_ssrc) {
+            InfoL << "ssrc:" << ssrc.cname << "," << ssrc.msid;
+        }
     }
 
 #if 0
@@ -1573,6 +1607,26 @@ void RtcConfigure::enableREMB(bool enable, TrackType type) {
     }
 }
 
+shared_ptr<RtcSession> RtcConfigure::createOffer() const {
+    shared_ptr<RtcSession> ret = std::make_shared<RtcSession>();
+    ret->version = 0;
+    ret->origin.session_id = to_string(makeRandNum());
+    ret->origin.session_version = to_string(1);
+    ret->session_name = "-";
+
+    createMediaOffer(ret);
+    // 设置音视频端口复用  [AUTO-TRANSLATED:ffe27d17]
+    // Set audio and video port multiplexing
+    for (auto &m : ret->media) {
+        // The remote end has rejected (port 0) the m-section, so it should not be putting its mid in the group attribute.
+        if (m.port) {
+            ret->group.mids.emplace_back(m.mid);
+        }
+    }
+
+    return ret;
+}
+
 shared_ptr<RtcSession> RtcConfigure::createAnswer(const RtcSession &offer) const {
     shared_ptr<RtcSession> ret = std::make_shared<RtcSession>();
     ret->version = offer.version;
@@ -1632,6 +1686,128 @@ static DtlsRole mathDtlsRole(DtlsRole role) {
         case DtlsRole::passive: return DtlsRole::active;
         default: CHECK(0, "invalid role:", getDtlsRoleString(role)); return DtlsRole::passive;
     }
+}
+
+void RtcConfigure::createMediaOffer(const std::shared_ptr<RtcSession> &ret) const {
+    int index = 0;
+    if (video.direction != RtpDirection::sendonly || _rtsp_video_plan)  {
+        createMediaOfferEach(ret, TrackVideo, index++);
+    }
+
+    if (audio.direction != RtpDirection::sendonly || _rtsp_audio_plan)  {
+        createMediaOfferEach(ret, TrackAudio, index++);
+    }
+    // createMediaOfferEach(ret, TrackApplication, index++);
+}
+
+void RtcConfigure::createMediaOfferEach(const std::shared_ptr<RtcSession> &ret, TrackType type, int index) const {
+    bool check_profile = true;
+    bool check_codec = true;
+    const RtcTrackConfigure *cfg_ptr = nullptr;
+
+    switch (type) {
+        case TrackAudio: cfg_ptr = &audio; break;
+        case TrackVideo: cfg_ptr = &video; break;
+        case TrackApplication: cfg_ptr = &application; break;
+        default: return;
+    }
+    auto &configure = *cfg_ptr;
+
+    if (type == TrackApplication) {
+        RtcMedia media;
+        media.role = DtlsRole::active;
+        media.ice_ufrag = configure.ice_ufrag;
+        media.ice_pwd = configure.ice_pwd;
+        media.fingerprint = configure.fingerprint;
+        // media.ice_lite = configure.ice_lite;
+        media.ice_lite = false;
+#ifdef ENABLE_SCTP
+        media.candidate = configure.candidate;
+#else
+        media.port = 9; //占位符，表示后续协商分配
+        WarnL << "answer sdp忽略application mline, 请安装usrsctp后再测试datachannel功能";
+#endif
+        ret->media.emplace_back(media);
+        return;
+    }
+
+    RtcMedia media;
+    media.type = type;
+    media.mid = to_string(index);
+    media.proto = "UDP/TLS/RTP/SAVPF";
+    media.port = 9;//占位符，表示后续协商分配
+    // media.addr = ;
+    // media.bandwidth = ;
+    // media.rtcp_addr = ;
+    media.rtcp_mux = true;
+    media.rtcp_rsize = true;
+    media.ice_trickle = true;
+    media.ice_renomination = configure.ice_renomination;
+    media.ice_ufrag = configure.ice_ufrag;
+    media.ice_pwd = configure.ice_pwd;
+    media.fingerprint = configure.fingerprint;
+    // media.ice_lite = configure.ice_lite;
+    media.ice_lite = false;
+    media.candidate = configure.candidate;
+    // copy simulicast setting
+    // media.rtp_rids =;
+    // media.rtp_ssrc_sim = ;
+
+    media.role = DtlsRole::active;
+
+    // 如果codec匹配失败，那么禁用该track  [AUTO-TRANSLATED:037de9a8]
+    // If the codec matching fails, then disable the track
+    media.direction = configure.direction;
+
+    //extmap
+    for (auto extmap : cfg_ptr->extmap) {
+#if 0
+        if (extmap.second != media.direction) {
+            continue;
+        }
+#endif
+        SdpAttrExtmap attrExtmap;
+        attrExtmap.direction = extmap.second;
+        attrExtmap.id = (uint8_t)extmap.first;
+        attrExtmap.ext = RtpExt::getExtUrl(extmap.first);
+
+        media.extmap.push_back(attrExtmap);
+    }
+
+    //rtpmap
+    auto &list_ref = s_rtpmap_preferred_list[type];
+    for (auto codec : cfg_ptr->preferred_codec) {
+        auto range = list_ref.equal_range(codec);
+        for (auto it = range.first; it != range.second; ++it) { 
+            auto rtpmap = it->second;
+            media.plan.emplace_back();
+            auto &plan = media.plan.back();
+            plan.codec = rtpmap->getCodeName();
+            plan.pt = rtpmap->getPayload();
+            plan.sample_rate = rtpmap->getClockRate();
+            plan.rtcp_fb = cfg_ptr->rtcp_fb;
+            auto fmtp = rtpmap->getFmtp();
+            for (const auto& pair : fmtp) {
+                plan.fmtp.emplace(pair);
+            }
+        }
+    }
+
+    //candidate
+    media.candidate = cfg_ptr->candidate;
+
+    //msid
+    if (media.direction != RtpDirection::recvonly) {
+        RtcSSRC ssrc;
+        ssrc.ssrc = (uint32_t)makeRandNum();
+        ssrc.rtx_ssrc = (uint32_t)makeRandNum();
+        ssrc.cname = makeRandStr(16);
+        ssrc.msid = makeRandStr(36) + " " + makeUuidStr();
+        media.rtp_rtx_ssrc.push_back(ssrc);
+    }
+ 
+    ret->media.emplace_back(media);
+    return;
 }
 
 void RtcConfigure::matchMedia(const std::shared_ptr<RtcSession> &ret, const RtcMedia &offer_media) const {
