@@ -2079,7 +2079,7 @@ Json::Value IceAgent::getChecklistInfo() const {
         local_candidates_array.append(candidate_info);
     }
     result["local_candidates"] = local_candidates_array;
-    result["local_candidates_count"] = all_local_candidates.size();
+    result["local_candidates_count"] = static_cast<Json::UInt64>(all_local_candidates.size());
     
     Json::Value remote_candidates_array(Json::arrayValue);
     for (const auto& remote_candidate : _remote_candidates) {
@@ -2095,7 +2095,7 @@ Json::Value IceAgent::getChecklistInfo() const {
         remote_candidates_array.append(candidate_info);
     }
     result["remote_candidates"] = remote_candidates_array;
-    result["remote_candidates_count"] = _remote_candidates.size();
+    result["remote_candidates_count"] = static_cast<Json::UInt64>(_remote_candidates.size());
 
     Json::Value checklist_array(Json::arrayValue);
     auto build_candidate = [](const CandidateInfo& candidate) -> std::string {
