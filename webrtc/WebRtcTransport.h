@@ -432,7 +432,7 @@ private:
         auto &allArgs = _args;
         CHECK_ARGS("app", "stream");
 
-        return StrPrinter << RTC_SCHEMA << "://" << (_args["Host"].empty()? DEFAULT_VHOST : _args["Host"]) << "/" << _args["app"] << "/"
+        return StrPrinter << RTC_SCHEMA << "://" << (_args["Host"].empty()? DEFAULT_VHOST : _args["Host"].data()) << "/" << _args["app"] << "/"
         << _args["stream"] << "?" << _args.getParser().params() + "&session=" + _session_id;
     }
 
