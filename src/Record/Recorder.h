@@ -28,9 +28,9 @@ struct MediaTuple {
         return vhost + '/' + app + '/' + stream;
     }
 
-    MediaTuple() {};
-    MediaTuple(const std::string& vhost, const std::string& app, const std::string& stream, const std::string& params = "")
-        : vhost(vhost), app(app), stream(stream), params(params) {
+    MediaTuple() = default;
+    MediaTuple(std::string vhost, std::string app, std::string stream, std::string params = "")
+        : vhost(std::move(vhost)), app(std::move(app)), stream(std::move(stream)), params(std::move(params)) {
     }
 };
 
