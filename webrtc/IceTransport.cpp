@@ -417,7 +417,7 @@ void IceTransport::handleBindingRequest(const StunPacket::Ptr packet, Pair::Ptr 
     }
 
     // Add XOR-MAPPED-ADDRESS.
-	auto attr_xor_mapped_address = std::make_shared<StunAttrXorMappedAddress>(response->getTransactionId());
+    auto attr_xor_mapped_address = std::make_shared<StunAttrXorMappedAddress>(response->getTransactionId());
     attr_xor_mapped_address->setAddr(peer_addr);
     response->addAttribute(std::move(attr_xor_mapped_address));
 
@@ -803,18 +803,18 @@ void IceServer::handleAllocateRequest(const StunPacket::Ptr packet, Pair::Ptr pa
     sockaddr_storage peer_addr;
     pair->get_peer_addr(peer_addr);
 
-	auto attr_xor_mapped_address = std::make_shared<StunAttrXorMappedAddress>(response->getTransactionId());
+    auto attr_xor_mapped_address = std::make_shared<StunAttrXorMappedAddress>(response->getTransactionId());
     attr_xor_mapped_address->setAddr(peer_addr);
     response->addAttribute(std::move(attr_xor_mapped_address));
 
     // Add XOR-RELAYED-ADDRESS.
     auto socket = allocateRealyed(pair);
     sockaddr_storage relayed_addr = SockUtil::make_sockaddr(socket->get_local_ip().data(), socket->get_local_port());
-	auto attr_xor_relayed_address = std::make_shared<StunAttrXorRelayedAddress>(response->getTransactionId());
+    auto attr_xor_relayed_address = std::make_shared<StunAttrXorRelayedAddress>(response->getTransactionId());
     attr_xor_relayed_address->setAddr(relayed_addr);
     response->addAttribute(std::move(attr_xor_relayed_address));
 
-	auto attr_lifetime = std::make_shared<StunAttrLifeTime>();
+    auto attr_lifetime = std::make_shared<StunAttrLifeTime>();
     attr_lifetime->setLifetime(600);
     response->addAttribute(std::move(attr_lifetime));
  
@@ -1321,7 +1321,7 @@ void IceAgent::sendAllocateRequest(Pair::Ptr pair) {
     packet->setPassword(_password);
     packet->setPeerUfrag(_ice_server->_ufrag);
     packet->setPeerPassword(_ice_server->_pwd);
-	auto attr_requested_transport = std::make_shared<StunAttrRequestedTransport>();
+    auto attr_requested_transport = std::make_shared<StunAttrRequestedTransport>();
     attr_requested_transport->setProtocol(StunAttrRequestedTransport::Protocol::UDP);
     packet->addAttribute(std::move(attr_requested_transport));
 
@@ -1432,7 +1432,7 @@ void IceAgent::handleBindingRequest(const StunPacket::Ptr packet, Pair::Ptr pair
     }
 
     // Add XOR-MAPPED-ADDRESS.
-	auto attr_xor_mapped_address = std::make_shared<StunAttrXorMappedAddress>(response->getTransactionId());
+    auto attr_xor_mapped_address = std::make_shared<StunAttrXorMappedAddress>(response->getTransactionId());
     attr_xor_mapped_address->setAddr(peer_addr);
     response->addAttribute(std::move(attr_xor_mapped_address));
 

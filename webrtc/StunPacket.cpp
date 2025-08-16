@@ -980,7 +980,7 @@ ErrorResponsePacket::ErrorResponsePacket(Method method, toolkit::BufferLikeStrin
     DebugL;
 
     _transaction_id = transaction_id;
-	auto attr = std::make_shared<StunAttrErrorCode>();
+    auto attr = std::make_shared<StunAttrErrorCode>();
     attr->setErrorCode(error_code);
     addAttribute(std::move(attr));
 }
