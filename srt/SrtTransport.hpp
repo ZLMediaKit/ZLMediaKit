@@ -169,8 +169,8 @@ private:
 
     // for encryption
     Crypto::Ptr            _crypto;
-	Timer::Ptr             _announce_timer;
-	KeyMaterialPacket::Ptr _announce_req;
+    Timer::Ptr             _announce_timer;
+    KeyMaterialPacket::Ptr _announce_req;
 };
 
 class SrtTransportManager {

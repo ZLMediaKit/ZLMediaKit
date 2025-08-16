@@ -167,17 +167,24 @@ uint8_t H264BFrameFilter::extractSliceType(const uint8_t *data, size_t size) con
     return -1;
 }
 
-WebRtcPlayer::Ptr WebRtcPlayer::create(const EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src, const MediaInfo &info) {
+WebRtcPlayer::Ptr WebRtcPlayer::create(const EventPoller::Ptr &poller,
+                                       const RtspMediaSource::Ptr &src,
+                                       const MediaInfo &info,
+                                       WebRtcTransport::Role role,
+                                       WebRtcTransport::SignalingProtocols signaling_protocols) {
     WebRtcPlayer::Ptr ret(new WebRtcPlayer(poller, src, info), [](WebRtcPlayer *ptr) {
         ptr->onDestory();
         delete ptr;
     });
+    ret->setRole(role);
+    ret->setSignalingProtocols(signaling_protocols);
     ret->onCreate();
     return ret;
 }
 
-WebRtcPlayer::WebRtcPlayer(const EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src, const MediaInfo &info)
-    : WebRtcTransportImp(poller) {
+WebRtcPlayer::WebRtcPlayer(const EventPoller::Ptr &poller,
+                           const RtspMediaSource::Ptr &src,
+                           const MediaInfo &info) : WebRtcTransportImp(poller) {
     _media_info = info;
     _play_src = src;
     CHECK(src);
@@ -193,9 +200,9 @@ WebRtcPlayer::WebRtcPlayer(const EventPoller::Ptr &poller, const RtspMediaSource
 
 void WebRtcPlayer::onStartWebRTC() {
     auto playSrc = _play_src.lock();
-    if (!playSrc) {
+    if(!playSrc){
         onShutdown(SockException(Err_shutdown, "rtsp media source was shutdown"));
-        return;
+        return ;
     }
     WebRtcTransportImp::onStartWebRTC();
     if (canSendRtp()) {
@@ -205,7 +212,7 @@ void WebRtcPlayer::onStartWebRTC() {
         weak_ptr<Session> weak_session = static_pointer_cast<Session>(getSession());
         _reader->setGetInfoCB([weak_session]() {
             Any ret;
-            ret.set(static_pointer_cast<Session>(weak_session.lock()));
+            ret.set(static_pointer_cast<SockInfo>(weak_session.lock()));
             return ret;
         });
         _reader->setReadCB([weak_self](const RtspMediaSource::RingDataType &pkt) {
@@ -244,7 +251,7 @@ void WebRtcPlayer::onStartWebRTC() {
             strong_self->onShutdown(SockException(Err_shutdown, "rtsp ring buffer detached"));
         });
 
-        _reader->setMessageCB([weak_self](const toolkit::Any &data) {
+        _reader->setMessageCB([weak_self] (const toolkit::Any &data) {
             auto strong_self = weak_self.lock();
             if (!strong_self) {
                 return;
@@ -279,8 +286,8 @@ void WebRtcPlayer::onDestory() {
 
 void WebRtcPlayer::onRtcConfigure(RtcConfigure &configure) const {
     auto playSrc = _play_src.lock();
-    if (!playSrc) {
-        return;
+    if(!playSrc){
+        return ;
     }
     WebRtcTransportImp::onRtcConfigure(configure);
     // 这是播放  [AUTO-TRANSLATED:d93c019e]

@@ -12,6 +12,7 @@
 #define ZLMEDIAKIT_WEBRTCPUSHER_H
 
 #include "WebRtcTransport.h"
+#include "Rtsp/RtspDemuxer.h"
 #include "Rtsp/RtspMediaSource.h"
 
 namespace mediakit {
@@ -20,10 +21,21 @@ class WebRtcPusher : public WebRtcTransportImp, public MediaSourceEvent {
 public:
     using Ptr = std::shared_ptr<WebRtcPusher>;
     static Ptr create(const EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src,
-                      const std::shared_ptr<void> &ownership, const MediaInfo &info, const ProtocolOption &option);
+                      const std::shared_ptr<void> &ownership, const MediaInfo &info, const ProtocolOption &option, 
+                      WebRtcTransport::Role role, WebRtcTransport::SignalingProtocols signaling_protocols);
+
+    void setMediaSource(const RtspMediaSource::Ptr src) override {
+        _push_src = src;
+        if (_push_src && canRecvRtp()) {
+            _push_src->setSdp(_answer_sdp->toRtspSdp());
+        }
+    }
+
+    std::vector<Track::Ptr> getTracks(bool ready) const;
 
 protected:
     ///////WebRtcTransportImp override///////
+    void setAnswerSdp(const std::string &answer) override;
     void onStartWebRTC() override;
     void onDestory() override;
     void onRtcConfigure(RtcConfigure &configure) const override;
@@ -73,6 +85,8 @@ private:
     // 推流的rtsp源  [AUTO-TRANSLATED:4f976bca]
     // Rtsp source of the stream
     RtspMediaSource::Ptr _push_src;
+    // for mk_api
+    RtspDemuxer::Ptr _demuxer;
     // 推流所有权  [AUTO-TRANSLATED:d0ddf5c7]
     // Stream ownership
     std::shared_ptr<void> _push_src_ownership;

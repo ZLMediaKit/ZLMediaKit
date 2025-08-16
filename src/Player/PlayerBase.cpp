@@ -18,7 +18,9 @@
 #ifdef ENABLE_SRT
 #include "Srt/SrtPlayerImp.h"
 #endif // ENABLE_SRT
-
+#ifdef ENABLE_WEBRTC
+#include "WebRTC/WebRtcProxyPlayerImp.h"
+#endif // ENABLE_WEBRTC
 using namespace std;
 using namespace toolkit;
 
@@ -84,6 +86,11 @@ PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &in_poller, cons
         return PlayerBase::Ptr(new SrtPlayerImp(poller), release_func);
     }
 #endif//ENABLE_SRT
+#ifdef ENABLE_WEBRTC
+    if ((strcasecmp("webrtc", prefix.data()) == 0 || strcasecmp("webrtcs", prefix.data()) == 0)) {
+        return PlayerBase::Ptr(new WebRtcProxyPlayerImp(poller), release_func);
+    }
+#endif//ENABLE_WEBRTC
 
     throw std::invalid_argument("not supported play schema:" + url_in);
 }

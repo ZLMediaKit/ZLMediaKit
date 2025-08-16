@@ -353,7 +353,7 @@ bool HandshakePacket::loadExtMessage(uint8_t *buf, size_t len) {
             case HSExt::SRT_CMD_SID: ext = std::make_shared<HSExtStreamID>(); break;
             case HSExt::SRT_CMD_KMREQ:
             case HSExt::SRT_CMD_KMRSP: 
-				ext = std::make_shared<HSExtKeyMaterial>(); break;
+                ext = std::make_shared<HSExtKeyMaterial>(); break;
             default: WarnL << "not support ext " << type; break;
         }
         if (ext) {
