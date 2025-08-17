@@ -10,7 +10,7 @@
 
 #include "WebRtcProxyPlayer.h"
 #include "WebRtcProxyPlayerImp.h"
-#include "webrtc/WebRtcPusher.h"
+#include "WebRtcPusher.h"
 #include "Common/config.h"
 #include "Http/HlsPlayer.h"
 #include "Rtsp/RtspMediaSourceImp.h"

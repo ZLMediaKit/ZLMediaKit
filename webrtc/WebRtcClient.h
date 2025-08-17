@@ -15,9 +15,9 @@
 #include "Poller/Timer.h"
 #include "Util/TimeTicker.h"
 #include "Http/HttpRequester.h"
-#include "webrtc/Sdp.h"
-#include "webrtc/WebRtcTransport.h"
-#include "webrtc/WebRtcSignalingPeer.h"
+#include "Sdp.h"
+#include "WebRtcTransport.h"
+#include "WebRtcSignalingPeer.h"
 #include <memory>
 #include <string>
 

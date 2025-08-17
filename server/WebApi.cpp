@@ -59,8 +59,8 @@
 #include "../webrtc/WebRtcEchoTest.h"
 #include "../webrtc/WebRtcSignalingPeer.h"
 #include "../webrtc/WebRtcSignalingSession.h"
-#include "WebRTC/WebRtcProxyPlayer.h"
-#include "WebRTC/WebRtcProxyPlayerImp.h"
+#include "../webrtc/WebRtcProxyPlayer.h"
+#include "../webrtc/WebRtcProxyPlayerImp.h"
 #endif
 
 #if defined(ENABLE_VERSION)

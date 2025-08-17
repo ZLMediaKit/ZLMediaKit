@@ -19,7 +19,7 @@
 #include "Srt/SrtPlayerImp.h"
 #endif // ENABLE_SRT
 #ifdef ENABLE_WEBRTC
-#include "WebRTC/WebRtcProxyPlayerImp.h"
+#include "../webrtc/WebRtcProxyPlayerImp.h"
 #endif // ENABLE_WEBRTC
 using namespace std;
 using namespace toolkit;
