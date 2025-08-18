@@ -11,17 +11,17 @@
 #ifndef FFMPEG_SOURCE_H
 #define FFMPEG_SOURCE_H
 
-#include <mutex>
-#include <memory>
-#include <functional>
+#include "Common/MediaSource.h"
 #include "Process.h"
 #include "Util/TimeTicker.h"
-#include "Common/MediaSource.h"
+#include <functional>
+#include <memory>
+#include <mutex>
 
 namespace FFmpeg {
-    extern const std::string kSnap;
-    extern const std::string kBin;
-}
+extern const std::string kSnap;
+extern const std::string kBin;
+} // namespace FFmpeg
 
 class FFmpegSnap {
 public:
@@ -46,7 +46,9 @@ private:
     ~FFmpegSnap() = delete;
 };
 
-class FFmpegSource : public std::enable_shared_from_this<FFmpegSource> , public mediakit::MediaSourceEventInterceptor{
+class FFmpegSource
+    : public std::enable_shared_from_this<FFmpegSource>
+    , public mediakit::MediaSourceEventInterceptor {
 public:
     using Ptr = std::shared_ptr<FFmpegSource>;
     using onPlay = std::function<void(const toolkit::SockException &ex)>;
@@ -57,7 +59,7 @@ public:
     /**
      * 设置主动关闭回调
      * Set the active close callback
-     
+
      * [AUTO-TRANSLATED:2134a5b3]
      */
     void setOnClose(const std::function<void()> &cb);
@@ -70,21 +72,22 @@ public:
      * @param timeout_ms 等待结果超时时间，单位毫秒
      * @param cb 成功与否回调
      * Start playing the URL
-     * @param ffmpeg_cmd_key FFmpeg stream command configuration item key, users can set multiple command parameter templates in the configuration file at the same time
+     * @param ffmpeg_cmd_key FFmpeg stream command configuration item key, users can set multiple command parameter templates in the configuration file at the
+     same time
      * @param src_url FFmpeg stream address
      * @param dst_url FFmpeg push stream address
      * @param timeout_ms Timeout for waiting for the result, in milliseconds
      * @param cb Success or failure callback
-     
+
      * [AUTO-TRANSLATED:2c35789e]
      */
     void play(const std::string &ffmpeg_cmd_key, const std::string &src_url, const std::string &dst_url, int timeout_ms, const onPlay &cb);
 
-    const std::string& getSrcUrl() const { return _src_url; }
-    const std::string& getDstUrl() const { return _dst_url; }
-    const std::string& getCmd() const { return _cmd; }
-    const std::string& getCmdKey() const { return _ffmpeg_cmd_key; }
-    const mediakit::MediaInfo& getMediaInfo() const { return _media_info; }
+    const std::string &getSrcUrl() const { return _src_url; }
+    const std::string &getDstUrl() const { return _dst_url; }
+    const std::string &getCmd() const { return _cmd; }
+    const std::string &getCmdKey() const { return _ffmpeg_cmd_key; }
+    const mediakit::MediaInfo &getMediaInfo() const { return _media_info; }
 
     /**
      * 设置录制
@@ -93,13 +96,19 @@ public:
      * Set recording
      * @param enable_hls Whether to enable HLS live streaming or recording
      * @param enable_mp4 Whether to record MP4
-     
+
      * [AUTO-TRANSLATED:9f28d5c2]
      */
     void setupRecordFlag(bool enable_hls, bool enable_mp4);
 
+    /**
+     * 设置用户调用时保存的上下文数据
+     * @param userdata 用户调用保存的上下文数据
+     */
+    void setMediaInfoUserdata(const std::string &userdata);
+
 private:
-    void findAsync(int maxWaitMS ,const std::function<void(const mediakit::MediaSource::Ptr &src)> &cb);
+    void findAsync(int maxWaitMS, const std::function<void(const mediakit::MediaSource::Ptr &src)> &cb);
     void startTimer(int timeout_ms);
     void onGetMediaSource(const mediakit::MediaSource::Ptr &src);
 
@@ -129,5 +138,4 @@ private:
     toolkit::Ticker _replay_ticker;
 };
 
-
-#endif //FFMPEG_SOURCE_H
+#endif // FFMPEG_SOURCE_H
