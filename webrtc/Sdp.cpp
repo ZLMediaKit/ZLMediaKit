@@ -28,35 +28,6 @@ static onceToken token([]() {
 });
 } // namespace Rtc
 
-// rtpmap
-struct EnumHash {
-    template<typename T>
-    std::size_t operator()(T t) const {
-        return static_cast<std::size_t>(t);
-    }
-};
-static std::unordered_map<TrackType, std::multimap<CodecId, RtpMap::Ptr>, EnumHash> s_rtpmap_preferred_list;
-static toolkit::onceToken token([]() {
-    RtpMap::Ptr rtpmap = nullptr;
-    auto &audio_list_ref = s_rtpmap_preferred_list[TrackAudio];
-    audio_list_ref.emplace(CodecG711U, make_shared<AudioRtpMap>("PCMU", 0, 8000));
-    audio_list_ref.emplace(CodecG711A, make_shared<AudioRtpMap>("PCMA", 8, 8000));
-    audio_list_ref.emplace(CodecOpus, make_shared<AudioRtpMap>("opus", 111, 48000));
-    audio_list_ref.emplace(CodecAAC, make_shared<AudioRtpMap>("mpeg4-generic", 96, 48000));
-
-    auto &video_list_ref = s_rtpmap_preferred_list[TrackVideo];
-    video_list_ref.emplace(CodecH264, make_shared<H264RtpMap>(102, 90000, PROFILE_H264_BASELINE));
-    video_list_ref.emplace(CodecH264, make_shared<H264RtpMap>(124, 90000, PROFILE_H264_MAIN));
-    video_list_ref.emplace(CodecH264, make_shared<H264RtpMap>(123, 90000, PROFILE_H264_HIGH));
-    video_list_ref.emplace(CodecH265, make_shared<H265RtpMap>(102, 90000, PROFILE_H264_BASELINE));
-    video_list_ref.emplace(CodecH265, make_shared<H265RtpMap>(124, 90000, PROFILE_H264_MAIN));
-    video_list_ref.emplace(CodecH265, make_shared<H265RtpMap>(123, 90000, PROFILE_H264_HIGH));
-    video_list_ref.emplace(CodecAV1, make_shared<VideoRtpMap>("AV1", 35, 90000));
-    video_list_ref.emplace(CodecVP8, make_shared<VideoRtpMap>("VP8", 96, 90000));
-    video_list_ref.emplace(CodecVP9, make_shared<VP9RtpMap>(98, 90000, 0));
-    video_list_ref.emplace(CodecVP9, make_shared<VP9RtpMap>(100, 90000, 2));
-});
-
 using onCreateSdpItem = function<SdpItem::Ptr(const string &key, const string &value)>;
 static map<string, onCreateSdpItem, StrCaseCompare> sdpItemCreator;
 
@@ -1701,13 +1672,33 @@ void RtcConfigure::createMediaOffer(const std::shared_ptr<RtcSession> &ret) cons
 }
 
 void RtcConfigure::createMediaOfferEach(const std::shared_ptr<RtcSession> &ret, TrackType type, int index) const {
+    // rtpmap
+    static std::multimap<CodecId, RtpMap::Ptr> audio_list_ref, video_list_ref;
+    static toolkit::onceToken token([]() {
+        audio_list_ref.emplace(CodecG711U, make_shared<AudioRtpMap>("PCMU", 0, 8000));
+        audio_list_ref.emplace(CodecG711A, make_shared<AudioRtpMap>("PCMA", 8, 8000));
+        audio_list_ref.emplace(CodecOpus, make_shared<AudioRtpMap>("opus", 111, 48000));
+        audio_list_ref.emplace(CodecAAC, make_shared<AudioRtpMap>("mpeg4-generic", 96, 48000));
+
+        video_list_ref.emplace(CodecH264, make_shared<H264RtpMap>(102, 90000, PROFILE_H264_BASELINE));
+        video_list_ref.emplace(CodecH264, make_shared<H264RtpMap>(104, 90000, PROFILE_H264_MAIN));
+        video_list_ref.emplace(CodecH264, make_shared<H264RtpMap>(106, 90000, PROFILE_H264_HIGH));
+        video_list_ref.emplace(CodecH265, make_shared<H265RtpMap>(120, 90000, PROFILE_H265_MAIN));
+        video_list_ref.emplace(CodecH265, make_shared<H265RtpMap>(124, 90000, PROFILE_H265_MAIN10));
+        video_list_ref.emplace(CodecH265, make_shared<H265RtpMap>(126, 90000, PROFILE_H265_SCREEN));
+        video_list_ref.emplace(CodecAV1, make_shared<AV1RtpMap>(35, 90000, 0));
+        video_list_ref.emplace(CodecVP8, make_shared<VideoRtpMap>("VP8", 96, 90000));
+        video_list_ref.emplace(CodecVP9, make_shared<VP9RtpMap>(98, 90000, 0));
+        video_list_ref.emplace(CodecVP9, make_shared<VP9RtpMap>(100, 90000, 2));
+    });
+
     bool check_profile = true;
     bool check_codec = true;
     const RtcTrackConfigure *cfg_ptr = nullptr;
-
+    std::multimap<CodecId, RtpMap::Ptr>* rtpMap = nullptr; 
     switch (type) {
-        case TrackAudio: cfg_ptr = &audio; break;
-        case TrackVideo: cfg_ptr = &video; break;
+        case TrackAudio: cfg_ptr = &audio; rtpMap = &audio_list_ref; break;
+        case TrackVideo: cfg_ptr = &video; rtpMap = &video_list_ref; break;
         case TrackApplication: cfg_ptr = &application; break;
         default: return;
     }
@@ -1748,7 +1739,8 @@ void RtcConfigure::createMediaOfferEach(const std::shared_ptr<RtcSession> &ret, 
     media.fingerprint = configure.fingerprint;
     // media.ice_lite = configure.ice_lite;
     media.ice_lite = false;
-    media.candidate = configure.candidate;
+    // candidate offer不生成candidate，反正也是错的
+    // media.candidate = configure.candidate;
     // copy simulicast setting
     // media.rtp_rids =;
     // media.rtp_ssrc_sim = ;
@@ -1775,13 +1767,12 @@ void RtcConfigure::createMediaOfferEach(const std::shared_ptr<RtcSession> &ret, 
     }
 
     //rtpmap
-    auto &list_ref = s_rtpmap_preferred_list[type];
     for (auto codec : cfg_ptr->preferred_codec) {
-        auto range = list_ref.equal_range(codec);
+        if (!rtpMap) continue;
+        auto range = rtpMap->equal_range(codec);
         for (auto it = range.first; it != range.second; ++it) {
             auto rtpmap = it->second;
-            media.plan.emplace_back();
-            auto &plan = media.plan.back();
+            RtcCodecPlan plan;
             plan.codec = rtpmap->getCodeName();
             plan.pt = rtpmap->getPayload();
             plan.sample_rate = rtpmap->getClockRate();
@@ -1790,11 +1781,20 @@ void RtcConfigure::createMediaOfferEach(const std::shared_ptr<RtcSession> &ret, 
             for (const auto& pair : fmtp) {
                 plan.fmtp.emplace(pair);
             }
+            media.plan.push_back(plan);
+            // add video rtx plan
+            if (rtpmap->getType() == TrackVideo) {
+                // a=rtpmap:108 rtx/90000
+                // a=fmtp:108 apt=107
+                RtcCodecPlan rtx;
+                rtx.codec = "rtx";
+                rtx.pt = rtpmap->getPayload() + 1;
+                rtx.sample_rate = rtpmap->getClockRate();
+                rtx.fmtp["apt"] = std::to_string(rtpmap->getPayload());
+                media.plan.push_back(rtx);
+            }
         }
     }
-
-    //candidate
-    media.candidate = cfg_ptr->candidate;
 
     //msid
     if (media.direction != RtpDirection::recvonly) {
