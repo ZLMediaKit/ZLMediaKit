@@ -216,6 +216,108 @@ void H265Track::insertConfigFrame(const Frame::Ptr &frame) {
     }
 }
 
+class BitReader {
+public:
+    BitReader(const uint8_t* data, size_t size) : _data(data), _size(size), _bitPos(0) {}
+
+    uint32_t readBits(int n) {
+        uint32_t result = 0;
+        for (int i = 0; i < n; i++) {
+            if (_bitPos >= _size * 8) throw std::runtime_error("Out of range");
+            int bytePos = _bitPos / 8;
+            int bitOffset = 7 - (_bitPos % 8);
+            result = (result << 1) | ((_data[bytePos] >> bitOffset) & 0x01);
+            _bitPos++;
+        }
+        return result;
+    }
+
+    void skipBits(int n) {
+        _bitPos += n;
+        if (_bitPos > _size * 8) throw std::runtime_error("Skip out of range");
+    }
+
+private:
+    const uint8_t* _data;
+    size_t _size;
+    size_t _bitPos;
+};
+
+struct HevcProfileInfo {
+    int profile_id = -1; // profile-id
+    int level_id   = -1; // level-id
+    int tier_flag  = -1; // tier-flag
+};
+
+// 移除 00 00 03 防竞争字节
+std::vector<uint8_t> removeEmulationPrevention(const uint8_t *data, size_t size) {
+    std::vector<uint8_t> out;
+    out.reserve(size);
+    for (size_t i = 0; i < size; i++) {
+        if (i + 2 < size && data[i] == 0x00 && data[i + 1] == 0x00 && data[i + 2] == 0x03) {
+            out.push_back(0x00);
+            out.push_back(0x00);
+            i += 2; // skip 0x00 0x00 0x03
+        } else {
+            out.push_back(data[i]);
+        }
+    }
+    return out;
+}
+
+// 从 VPS 或 SPS 里提取 profile/level/tier 信息
+HevcProfileInfo parse_hevc_profile_tier_level(const uint8_t *nalu, size_t size) {
+    // 去掉起始码 (00 00 01 或 00 00 00 01)
+    size_t offset = 0;
+    if (size > 4 && nalu[0] == 0x00 && nalu[1] == 0x00) {
+        if (nalu[2] == 0x01)
+            offset = 3;
+        else if (nalu[2] == 0x00 && nalu[3] == 0x01)
+            offset = 4;
+    }
+
+    auto rbsp = removeEmulationPrevention(nalu + offset, size - offset);
+    BitReader br(rbsp.data(), rbsp.size());
+
+    // ---- NALU header ----
+    br.skipBits(1 + 6 + 6 + 3); // forbidden_zero_bit + nal_unit_type + nuh_layer_id + nuh_temporal_id_plus1
+
+    // VPS 和 SPS 都包含 profile_tier_level()
+    // 先解析最少需要的部分
+
+    // vps_video_parameter_set_id 或 sps_video_parameter_set_id (略过)
+    br.readBits(4);
+
+    // sps 里还有 sps_max_sub_layers_minus1
+    uint32_t max_sub_layers_minus1 = br.readBits(3);
+    // temporal_id_nesting_flag
+    br.readBits(1);
+
+    // ---- profile_tier_level ----
+    HevcProfileInfo info;
+    uint32_t profile_space = br.readBits(2); // general_profile_space
+    info.tier_flag = br.readBits(1); // general_tier_flag
+    info.profile_id = br.readBits(5); // general_profile_idc
+
+    // general_profile_compatibility_flag[32]
+    for (int i = 0; i < 32; i++)
+        br.readBits(1);
+
+    // general_progressive_source_flag 等 (跳过)
+    br.readBits(1); // progressive_source_flag
+    br.readBits(1); // interlaced_source_flag
+    br.readBits(1); // non_packed_constraint_flag
+    br.readBits(1); // frame_only_constraint_flag
+
+    // general_reserved_zero_44bits
+    br.skipBits(44);
+
+    // general_level_idc (8 bits)
+    info.level_id = br.readBits(8);
+
+    return info;
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
@@ -248,7 +350,9 @@ public:
             _printer << "b=AS:" << bitrate << "\r\n";
         }
         _printer << "a=rtpmap:" << payload_type << " " << getCodecName(CodecH265) << "/" << 90000 << "\r\n";
-        _printer << "a=fmtp:" << payload_type << " ";
+
+        auto info = parse_hevc_profile_tier_level((uint8_t *)strSPS.data(), strSPS.size());
+        _printer << "a=fmtp:" << payload_type << " level-id=" << info.level_id << "; profile-id=" << info.profile_id << "; tier-flag=" << info.tier_flag << "; ";
         _printer << "sprop-vps=";
         _printer << encodeBase64(strVPS) << "; ";
         _printer << "sprop-sps=";
