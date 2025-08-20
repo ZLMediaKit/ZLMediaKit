@@ -268,12 +268,12 @@ void H265RtpEncoder::packRtpFu(const char *ptr, size_t len, uint64_t pts, bool i
     auto nal_type = H265_TYPE(ptr[0]); //获取NALU的5bit 帧类型
     unsigned char s_e_flags;
     bool fu_start = true;
-    bool mark_bit = false;
+    bool fu_end = false;
     size_t offset = 2;
-    while (!mark_bit) {
+    while (!fu_end) {
         if (len <= offset + max_size) {
             // FU end
-            mark_bit = true;
+            fu_end = true;
             max_size = len - offset;
             s_e_flags = (1 << 6) | nal_type;
         } else if (fu_start) {
@@ -287,6 +287,8 @@ void H265RtpEncoder::packRtpFu(const char *ptr, size_t len, uint64_t pts, bool i
         {
             // 传入nullptr先不做payload的内存拷贝  [AUTO-TRANSLATED:7ed49f0a]
             // Pass in nullptr first, do not copy the payload memory
+            // 只有FU的最后一个分片且整个帧需要设置mark时才设置mark位
+            bool mark_bit = fu_end && is_mark;
             auto rtp = getRtpInfo().makeRtp(TrackVideo, nullptr, max_size + 3, mark_bit, pts);
             // rtp payload 负载部分  [AUTO-TRANSLATED:03a5ef9b]
             // rtp payload load part
@@ -367,9 +369,11 @@ bool H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     GET_CONFIG(int,lowLatency,Rtp::kLowLatency);
     if (lowLatency) { // 低延迟模式
         if (_last_frame) {
-            flush();
+            // 先输出上一帧，并根据时间戳决定是否设置mark位
+            inputFrame_l(_last_frame, _last_frame->pts() != frame->pts());
         }
-        inputFrame_l(frame, true);
+        // 当前帧缓存起来，等下一帧或flush时再输出
+        _last_frame = Frame::getCacheAbleFrame(frame);
     } else {
         if (_last_frame) {
             // 如果时间戳发生了变化，那么markbit才置true  [AUTO-TRANSLATED:19b68429]
