@@ -169,7 +169,6 @@ void IceServerInfo::parse(const std::string &url_in) {
     } else {
         _transport = CandidateTuple::TransportType::UDP;
     }
-    return;
 }
 
 ////////////  IceTransport //////////////////////////
@@ -337,7 +336,6 @@ void IceTransport::processResponse(const StunPacket::Ptr packet, Pair::Ptr pair)
     }
 
     handle(packet, pair);
-    return;
 }
 
 // TODO pair是否改成引用传递更好？
@@ -499,7 +497,6 @@ void IceTransport::sendPacket(const StunPacket::Ptr packet, Pair::Ptr pair) {
     packet->serialize();
     toolkit::Buffer::Ptr buffer = std::static_pointer_cast<toolkit::Buffer>(packet);
     sendSocketData(buffer, pair);
-    return;
 }
 
 bool IceTransport::hasPermission(const sockaddr_storage& addr) {
@@ -1196,7 +1193,6 @@ void IceAgent::gatheringCandidate(CandidateTuple::Ptr candidate_tuple, bool gath
             WarnL << ex.what();
         }
     }
-    return;
 }
 
 // TODO candidate使用引用？
@@ -1295,7 +1291,6 @@ void IceAgent::sendBindRequest(Pair::Ptr pair, MsgHandler handler) {
     packet->setNeedFingerprint(false);
     packet->setNeedMessageIntegrity(false);
     sendRequest(packet, pair, handler);
-    return;
 }
 
 // TODO pair, candidate, handler 使用引用？
@@ -1888,7 +1883,6 @@ void IceAgent::onCompleted(IceTransport::Pair::Ptr pair) {
         _nominated_response = nullptr;
         _nominated_pair = nullptr;
     }
-    return;
 }
 
 void IceAgent::refreshPermissions() {

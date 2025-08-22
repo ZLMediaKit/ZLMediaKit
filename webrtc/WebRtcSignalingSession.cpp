@@ -82,19 +82,16 @@ void WebRtcSignalingSession::onRecv(const Buffer::Ptr &buffer) {
     } catch (std::exception &ex) {
         ErrorL << "process msg fail: " << ex.what();
     }
-    return;
 }
 
 void WebRtcSignalingSession::onError(const SockException &err) {
     WarnL << "room_id: " << _room_id;
     notifyByeIndication();
     s_rooms.erase(_room_id);
-    return;
 }
 
 void WebRtcSignalingSession::onManager() {
     //Websocket会话会自行定时发送PING/PONG 消息，并进行超时自己管理，该对象暂时不需要心跳超时处理
-    return;
 }
 
 void WebRtcSignalingSession::handleRegisterRequest(SIGNALING_MSG_ARGS) {
@@ -123,7 +120,6 @@ void WebRtcSignalingSession::handleRegisterRequest(SIGNALING_MSG_ARGS) {
     _room_id = room_id;
     s_rooms.emplace(_room_id, shared_from_this());
     sendRegisterAccept(body, allArgs[TRANSACTION_ID_KEY]);
-    return;
 };
 
 void WebRtcSignalingSession::handleUnregisterRequest(SIGNALING_MSG_ARGS) {
@@ -151,7 +147,6 @@ void WebRtcSignalingSession::handleUnregisterRequest(SIGNALING_MSG_ARGS) {
     if (s_rooms.find(allArgs[ROOM_ID_KEY])) {
         s_rooms.erase(_room_id);
     }
-    return;
 };
 
 void WebRtcSignalingSession::handleCallRequest(SIGNALING_MSG_ARGS) {
@@ -179,8 +174,7 @@ void WebRtcSignalingSession::handleCallRequest(SIGNALING_MSG_ARGS) {
     // forwardOffer
     weak_ptr<WebRtcSignalingSession> sender_ptr = static_pointer_cast<WebRtcSignalingSession>(shared_from_this());
     session->forwardCallRequest(sender_ptr, allArgs);
-    return;
-};
+}
 
 void WebRtcSignalingSession::handleCallAccept(SIGNALING_MSG_ARGS) {
     DebugL;
@@ -205,7 +199,6 @@ void WebRtcSignalingSession::handleCallAccept(SIGNALING_MSG_ARGS) {
     }
 
     session->forwardCallAccept(allArgs);
-    return;
 }
 
 void WebRtcSignalingSession::handleByeIndication(SIGNALING_MSG_ARGS) {
@@ -245,8 +238,6 @@ void WebRtcSignalingSession::handleByeIndication(SIGNALING_MSG_ARGS) {
         _tours.erase(allArgs[GUEST_ID_KEY]);
         session->forwardBye(allArgs);
     }
-
-    return;
 }
 
 void WebRtcSignalingSession::handleCandidateIndication(SIGNALING_MSG_ARGS) {
@@ -290,7 +281,6 @@ void WebRtcSignalingSession::handleOtherMsg(SIGNALING_MSG_ARGS) {
         }
         session->forwardPacket(allArgs);
     }
-    return;
 }
 
 void WebRtcSignalingSession::notifyByeIndication() {
@@ -323,8 +313,6 @@ void WebRtcSignalingSession::notifyByeIndication() {
             session->forwardBye(allArgs);
         }
     }
-
-    return;
 }
 
 void WebRtcSignalingSession::forwardCallRequest(WebRtcSignalingSession::WeakPtr sender, SIGNALING_MSG_ARGS) {
@@ -333,7 +321,6 @@ void WebRtcSignalingSession::forwardCallRequest(WebRtcSignalingSession::WeakPtr 
         _guests.emplace(allArgs[GUEST_ID_KEY], sender);
         sendPacket(allArgs.getArgs());
     });
-    return;
 }
 
 void WebRtcSignalingSession::forwardCallAccept(SIGNALING_MSG_ARGS) {
@@ -341,7 +328,6 @@ void WebRtcSignalingSession::forwardCallAccept(SIGNALING_MSG_ARGS) {
     getPoller()->async([=] (){
         sendPacket(allArgs.getArgs());
     });
-    return;
 }
 
 void WebRtcSignalingSession::forwardBye(SIGNALING_MSG_ARGS) {
@@ -356,7 +342,6 @@ void WebRtcSignalingSession::forwardBye(SIGNALING_MSG_ARGS) {
         }
         sendPacket(allArgs.getArgs());
     });
-    return;
 }
 
 void WebRtcSignalingSession::forwardBye(Json::Value allArgs) {
@@ -371,14 +356,12 @@ void WebRtcSignalingSession::forwardBye(Json::Value allArgs) {
         }
         sendPacket(allArgs);
     });
-    return;
 }
 
 void WebRtcSignalingSession::forwardPacket(SIGNALING_MSG_ARGS) {
     getPoller()->async([=]() {
         sendPacket(allArgs.getArgs());
     });
-    return;
 }
 
 void WebRtcSignalingSession::sendRegisterAccept(Json::Value& body, const std::string& transaction_id) {
@@ -465,7 +448,6 @@ void WebRtcSignalingSession::sendPacket(const Json::Value &body) {
     auto msg = body.toStyledString();
     TraceL << "send msg: " << msg;
     SockSender::send(msg);
-    return;
 }
 
 Json::Value WebRtcSignalingSession::makeInfoJson() {

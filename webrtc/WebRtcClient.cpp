@@ -115,7 +115,6 @@ WebRtcClient::~WebRtcClient(void) {
 void WebRtcClient::startConnect() {
     DebugL;
     doNegotiate();
-    return;
 }
 
 void WebRtcClient::connectivityCheck() {
@@ -133,7 +132,6 @@ void WebRtcClient::onNegotiateFinish() {
         //SFU模式不会存在IP不通的情况， answer中就携带了candidates, 直接进行connectiviryCheck
         connectivityCheck();
     }
-    return;
 }
 
 void WebRtcClient::doNegotiate() {
@@ -143,7 +141,6 @@ void WebRtcClient::doNegotiate() {
         case WebRtcTransport::SignalingProtocols::WEBSOCKET: return doNegotiateWebsocket();
         default: throw std::invalid_argument(StrPrinter << "not support signaling_protocols: " << (int)_url._signaling_protocols);
     }
-    return;
 }
 
 void WebRtcClient::doNegotiateWhepOrWhip() {
@@ -182,8 +179,6 @@ void WebRtcClient::doNegotiateWhepOrWhip() {
         }
 
     }, getTimeOutSec());
-
-    return;
 }
 
 void WebRtcClient::doNegotiateWebsocket() {
@@ -221,7 +216,6 @@ void WebRtcClient::doNegotiateWebsocket() {
         return;
     });
     _peer->connect();
-    return;
 }
 
 void WebRtcClient::checkIn() {
@@ -244,7 +238,6 @@ void WebRtcClient::checkIn() {
        strong_self->onNegotiateFinish();
        return true;
     }, getTimeOutSec());
-    return;
 }
 
 void WebRtcClient::checkOut() {
@@ -254,12 +247,10 @@ void WebRtcClient::checkOut() {
         _peer->checkOut(_url._peer_room_id);
         _peer->unregist([](const SockException &ex){});
     }
-    return;
 }
 
 void WebRtcClient::candidate(const std::string& candidate, const std::string& ufrag, const std::string pwd) {
     _peer->candidate(_transport->getIdentifier(), candidate, ufrag, pwd);
-    return;
 }
 
 void WebRtcClient::gatheringCandidate(IceServerInfo::Ptr ice_server) {
@@ -273,7 +264,6 @@ void WebRtcClient::gatheringCandidate(IceServerInfo::Ptr ice_server) {
         }
         strong_self->candidate(candidate, ufrag, pwd);
     });
-    return;
 }
 
 void WebRtcClient::doBye() {
@@ -288,7 +278,6 @@ void WebRtcClient::doBye() {
         default: throw std::invalid_argument(StrPrinter << "not support signaling_protocols: " << (int)_url._signaling_protocols);
     }
     _is_negotiate_finished = false;
-    return;
 }
 
 void WebRtcClient::doByeWhepOrWhip() {
@@ -306,7 +295,6 @@ void WebRtcClient::doByeWhepOrWhip() {
         DebugL << "status:" << response.status();
         return true;
     }, getTimeOutSec());
-    return;
 }
 
 void WebRtcClient::onResult(const SockException &ex) {
@@ -318,7 +306,6 @@ void WebRtcClient::onResult(const SockException &ex) {
             return;
         }
     }
-    return;
 }
 
 float WebRtcClient::getTimeOutSec() {

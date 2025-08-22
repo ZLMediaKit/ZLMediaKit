@@ -48,7 +48,6 @@ void addWebrtcRoomKeeper(const string &host, uint16_t port, const std::string& r
         peer->regist(cb);
     });
     peer->connect();
-    return;
 };
 
 void delWebrtcRoomKeeper(const std::string &key, const std::function<void(const SockException &ex)> &cb) {
@@ -58,12 +57,10 @@ void delWebrtcRoomKeeper(const std::string &key, const std::function<void(const 
     }
     peer->unregist(cb);
     s_room_keepers.erase(key);
-    return;
 }
 
 void listWebrtcRoomKeepers(const std::function<void(const std::string& key, const WebRtcSignalingPeer::Ptr& p)> &cb) {
     s_room_keepers.for_each(cb);
-    return;
 }
 
 Json::Value ToJson(const WebRtcSignalingPeer::Ptr& p) {
@@ -99,7 +96,6 @@ void WebRtcSignalingPeer::regist(const function<void(const SockException &ex, co
     getPoller()->async([=] () {
         sendRegisterRequest(cb);
     });
-    return;
 }
 
 void WebRtcSignalingPeer::unregist(const function<void(const SockException &ex)> cb) {
@@ -110,7 +106,6 @@ void WebRtcSignalingPeer::unregist(const function<void(const SockException &ex)>
         });
         sendUnregisterRequest(trggier);
     });
-    return;
 }
 
 void WebRtcSignalingPeer::checkIn(const std::string& peer_room_id, const MediaTuple &tuple, const std::string& identifier,
@@ -181,7 +176,6 @@ void WebRtcSignalingPeer::processOffer(SIGNALING_MSG_ARGS, WebRtcInterface &tran
         body[TYPE_KEY] = allArgs[TYPE_KEY];
         sendRefusesResponse(body, allArgs[TRANSACTION_ID_KEY], ex.what());
     }
-    return;
 }
 
 void WebRtcSignalingPeer::answer(const std::string& guest_id, const MediaTuple &tuple, const std::string& identifier, const std::string& sdp, bool is_play, const std::string& transaction_id) {
@@ -198,7 +192,6 @@ void WebRtcSignalingPeer::onConnect(const SockException &ex) {
     if (_on_connect) {
         return _on_connect(ex);
     }
-    return;
 }
 
 void WebRtcSignalingPeer::setOnShutdown(function<void(const SockException &ex)> cb) {
@@ -210,7 +203,6 @@ void WebRtcSignalingPeer::onShutdown(const SockException &ex) {
     if (_on_shutdown) {
         return _on_shutdown(ex);
     }
-    return;
 };
 
 void WebRtcSignalingPeer::onRecv(const Buffer::Ptr &buffer) {
@@ -249,7 +241,6 @@ void WebRtcSignalingPeer::onRecv(const Buffer::Ptr &buffer) {
     return (this->*(it->second))(allArgs);
 
     WarnL << " not process msg, method: " << allArgs[METHOD_KEY] << ", transcation_id: " << allArgs[TRANSACTION_ID_KEY];
-    return;
 }
 
 void WebRtcSignalingPeer::onError(const SockException &err) {
@@ -292,7 +283,6 @@ void WebRtcSignalingPeer::sendRegisterRequest(ResponseTrigger trigger) {
     body[METHOD_KEY]  = METHOD_VALUE_REGISTER;
     body[ROOM_ID_KEY] = getRoomId();
     sendRequest(body, trigger);
-    return;
 }
 
 void WebRtcSignalingPeer::handleRegisterAccept(SIGNALING_MSG_ARGS) {
@@ -329,7 +319,6 @@ void WebRtcSignalingPeer::handleRegisterAccept(SIGNALING_MSG_ARGS) {
     }
 
     trigger(SockException(Err_success), getRoomKey());
-    return;
 }
 
 void WebRtcSignalingPeer::handleRegisterReject(SIGNALING_MSG_ARGS) {
@@ -342,7 +331,6 @@ void WebRtcSignalingPeer::handleRegisterReject(SIGNALING_MSG_ARGS) {
     auto ex = SockException(Err_other, StrPrinter << "register refuses by server, reason: " << allArgs[REASON_KEY]);
     trigger(ex, getRoomKey());
     onShutdown(ex);
-    return;
 }
 
 void WebRtcSignalingPeer::sendUnregisterRequest(ResponseTrigger trigger) {
@@ -352,7 +340,6 @@ void WebRtcSignalingPeer::sendUnregisterRequest(ResponseTrigger trigger) {
     body[METHOD_KEY]  = METHOD_VALUE_UNREGISTER;
     body[ROOM_ID_KEY] = _room_id;
     sendRequest(body, trigger);
-    return;
 }
 
 void WebRtcSignalingPeer::handleUnregisterAccept(SIGNALING_MSG_ARGS) {
@@ -362,7 +349,6 @@ void WebRtcSignalingPeer::handleUnregisterAccept(SIGNALING_MSG_ARGS) {
     }
 
     trigger(SockException(Err_success), getRoomKey());
-    return;
 }
 
 void WebRtcSignalingPeer::handleUnregisterReject(SIGNALING_MSG_ARGS) {
@@ -373,7 +359,6 @@ void WebRtcSignalingPeer::handleUnregisterReject(SIGNALING_MSG_ARGS) {
 
     auto ex = SockException(Err_other, StrPrinter << "unregister refuses by server, reason: " << allArgs[REASON_KEY]);
     trigger(ex, getRoomKey());
-    return;
 }
 
 void WebRtcSignalingPeer::sendCallRequest(const std::string& peer_room_id, const std::string& guest_id, const MediaTuple &tuple, const std::string& sdp, bool is_play, ResponseTrigger trigger) {
@@ -389,7 +374,6 @@ void WebRtcSignalingPeer::sendCallRequest(const std::string& peer_room_id, const
     body[CALL_STREAM_KEY] = tuple.stream;
     body[SDP_KEY]         = sdp;
     sendRequest(body, trigger);
-    return;
 }
 
 void WebRtcSignalingPeer::sendCallAccept(const std::string& peer_guest_id, const MediaTuple &tuple, const std::string& sdp, bool is_play, const std::string& transaction_id) {
@@ -428,8 +412,6 @@ void WebRtcSignalingPeer::handleCallRequest(SIGNALING_MSG_ARGS) {
 
             return strong_self->processOffer(allArgs, const_cast<WebRtcInterface&>(exchanger));
         });
-
-    return;
 };
 
 void WebRtcSignalingPeer::handleCallAccept(SIGNALING_MSG_ARGS) {
@@ -455,7 +437,6 @@ void WebRtcSignalingPeer::handleCallAccept(SIGNALING_MSG_ARGS) {
     }
 
     trigger(SockException(Err_success), allArgs[SDP_KEY]);
-    return;
 };
 
 void WebRtcSignalingPeer::handleCallReject(SIGNALING_MSG_ARGS) {
@@ -484,7 +465,6 @@ void WebRtcSignalingPeer::handleCallReject(SIGNALING_MSG_ARGS) {
     _tours.erase(room_id);
     InfoL;
     trigger(SockException(Err_other, StrPrinter << "call refuses by server, reason: " << allArgs[REASON_KEY]), "");
-    return;
 }
 
 void WebRtcSignalingPeer::handleCandidateIndication(SIGNALING_MSG_ARGS) {
@@ -534,7 +514,6 @@ void WebRtcSignalingPeer::handleCandidateIndication(SIGNALING_MSG_ARGS) {
     SdpAttrCandidate candidate_attr;
     candidate_attr.parse(allArgs[CANDIDATE_KEY]);
     transport->connectivityCheck(candidate_attr, allArgs[UFRAG_KEY], allArgs[PWD_KEY]);
-    return;
 };
 
 void WebRtcSignalingPeer::handleByeIndication(SIGNALING_MSG_ARGS) {
@@ -561,7 +540,6 @@ void WebRtcSignalingPeer::handleByeIndication(SIGNALING_MSG_ARGS) {
         return;
     }
     obj->safeShutdown(SockException(Err_shutdown, "deleted by websocket signaling server"));
-    return;
 };
 
 void WebRtcSignalingPeer::sendByeIndication(const std::string& peer_room_id, const std::string &guest_id) {
@@ -572,7 +550,6 @@ void WebRtcSignalingPeer::sendByeIndication(const std::string& peer_room_id, con
     body[GUEST_ID_KEY] = guest_id; //our guest id
     body[ROOM_ID_KEY]  = peer_room_id;
     sendIndication(body);
-    return;
 }
 
 void WebRtcSignalingPeer::sendCandidateIndication(const std::string& transport_identifier, const std::string& candidate, const std::string& ice_ufrag, const std::string& ice_pwd) {
@@ -602,8 +579,6 @@ void WebRtcSignalingPeer::sendCandidateIndication(const std::string& transport_i
             return sendIndication(body);
         }
     }
-
-    return;
 }
 
 void WebRtcSignalingPeer::sendRefusesResponse(Json::Value &body, const std::string& transaction_id, const std::string& reason) {
@@ -621,7 +596,6 @@ void WebRtcSignalingPeer::sendRequest(Json::Value& body, ResponseTrigger trigger
     auto tuple = std::make_tuple(SteadyClock::now() + overtime, body[METHOD_KEY].asString(), trigger);
     _response_list.emplace(transaction_id, tuple);
     sendPacket(body);
-    return;
 }
 
 void WebRtcSignalingPeer::sendIndication(Json::Value &body) {
@@ -639,7 +613,6 @@ void WebRtcSignalingPeer::sendPacket(Json::Value& body) {
     auto msg = body.toStyledString();
     DebugL << "send msg: " << msg;
     SockSender::send(msg);
-    return;
 }
 
 Json::Value WebRtcSignalingPeer::makeInfoJson() {
@@ -682,8 +655,6 @@ void WebRtcSignalingPeer::createResponseExpireTimer() {
                                             strong_self->checkResponseExpire();
                                             return true;
                                             }, getPoller());
-
-    return;
 }
 
 void WebRtcSignalingPeer::checkResponseExpire() {

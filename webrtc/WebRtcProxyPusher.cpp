@@ -39,7 +39,6 @@ void WebRtcProxyPusher::publish(const string &strUrl) {
     }
 
     startConnect();
-    return;
 }
 
 void WebRtcProxyPusher::teardown() {
@@ -66,7 +65,6 @@ void WebRtcProxyPusher::onResult(const SockException &ex) {
             onShutdown(ex);
         }
     }
-    return;
 }
 
 float WebRtcProxyPusher::getTimeOutSec() {
