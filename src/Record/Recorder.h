@@ -11,9 +11,9 @@
 #ifndef SRC_MEDIAFILE_RECORDER_H_
 #define SRC_MEDIAFILE_RECORDER_H_
 
+#include <cstdint>
 #include <memory>
 #include <string>
-#include <cstdint>
 
 namespace mediakit {
 class MediaSinkInterface;
@@ -24,23 +24,22 @@ struct MediaTuple {
     std::string app;
     std::string stream;
     std::string params;
-    std::string shortUrl() const {
-        return vhost + '/' + app + '/' + stream;
-    }
+    std::string userdata;
+    std::string shortUrl() const { return vhost + '/' + app + '/' + stream; }
 };
 
-class RecordInfo: public MediaTuple {
+class RecordInfo : public MediaTuple {
 public:
-    time_t start_time;  // GMT 标准时间，单位秒
-    float time_len;     // 录像长度，单位秒
-    uint64_t file_size;    // 文件大小，单位 BYTE
-    std::string file_path;   // 文件路径
-    std::string file_name;   // 文件名称
-    std::string folder;      // 文件夹路径
-    std::string url;         // 播放路径
+    time_t start_time; // GMT 标准时间，单位秒
+    float time_len; // 录像长度，单位秒
+    uint64_t file_size; // 文件大小，单位 BYTE
+    std::string file_path; // 文件路径
+    std::string file_name; // 文件名称
+    std::string folder; // 文件夹路径
+    std::string url; // 播放路径
 };
 
-class Recorder{
+class Recorder {
 public:
     typedef enum {
         // 录制hls  [AUTO-TRANSLATED:24a50dff]
@@ -75,10 +74,10 @@ public:
      * @param stream_id stream id
      * @param customized_path custom root directory for saving recording files, empty means using configuration file settings
      * @return  absolute path of the recording file
-     
+
      * [AUTO-TRANSLATED:2fd57fcd]
      */
-    static std::string getRecordPath(type type, const MediaTuple& tuple, const std::string &customized_path = "");
+    static std::string getRecordPath(type type, const MediaTuple &tuple, const std::string &customized_path = "");
 
     /**
      * 创建录制器对象
@@ -97,11 +96,11 @@ public:
      * @param customized_path custom root directory for saving recording files, empty means using configuration file settings
      * @param max_second maximum slice time for mp4 recording, in seconds, 0 means using configuration file settings
      * @return object pointer, may be nullptr
-     
-     
+
+
      * [AUTO-TRANSLATED:e0b6e43b]
      */
-    static std::shared_ptr<MediaSinkInterface> createRecorder(type type, const MediaTuple& tuple, const ProtocolOption &option);
+    static std::shared_ptr<MediaSinkInterface> createRecorder(type type, const MediaTuple &tuple, const ProtocolOption &option);
 
 private:
     Recorder() = delete;

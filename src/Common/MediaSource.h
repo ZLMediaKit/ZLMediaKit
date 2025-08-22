@@ -11,14 +11,14 @@
 #ifndef ZLMEDIAKIT_MEDIASOURCE_H
 #define ZLMEDIAKIT_MEDIASOURCE_H
 
-#include <string>
-#include <atomic>
-#include <memory>
-#include <functional>
-#include "Util/mini.h"
-#include "Network/Socket.h"
 #include "Extension/Track.h"
+#include "Network/Socket.h"
 #include "Record/Recorder.h"
+#include "Util/mini.h"
+#include <atomic>
+#include <functional>
+#include <memory>
+#include <string>
 
 namespace toolkit {
 class Session;
@@ -26,18 +26,7 @@ class Session;
 
 namespace mediakit {
 
-enum class MediaOriginType : uint8_t {
-    unknown = 0,
-    rtmp_push ,
-    rtsp_push,
-    rtp_push,
-    pull,
-    ffmpeg_pull,
-    mp4_vod,
-    device_chn,
-    rtc_push,
-    srt_push
-};
+enum class MediaOriginType : uint8_t { unknown = 0, rtmp_push, rtsp_push, rtp_push, pull, ffmpeg_pull, mp4_vod, device_chn, rtc_push, srt_push };
 
 std::string getOriginTypeString(MediaOriginType type);
 
@@ -50,8 +39,9 @@ public:
 
     class NotImplemented : public std::runtime_error {
     public:
-        template<typename ...T>
-        NotImplemented(T && ...args) : std::runtime_error(std::forward<T>(args)...) {}
+        template <typename... T>
+        NotImplemented(T &&...args)
+            : std::runtime_error(std::forward<T>(args)...) {}
     };
 
     virtual ~MediaSourceEvent() = default;
@@ -92,7 +82,9 @@ public:
     virtual float getLossRate(MediaSource &sender, TrackType type) { return -1; }
     // 获取所在线程, 此函数一般强制重载  [AUTO-TRANSLATED:71c99afb]
     // Get the current thread, this function is generally forced to overload
-    virtual toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) { throw NotImplemented(toolkit::demangle(typeid(*this).name()) + "::getOwnerPoller not implemented"); }
+    virtual toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) {
+        throw NotImplemented(toolkit::demangle(typeid(*this).name()) + "::getOwnerPoller not implemented");
+    }
 
     // //////////////////////仅供MultiMediaSourceMuxer对象继承////////////////////////  [AUTO-TRANSLATED:6e810d1f]
     // //////////////////////Only for MultiMediaSourceMuxer object inheritance////////////////////////
@@ -125,7 +117,7 @@ public:
             kUdpActive = 1, // udp主动模式，主动发送数据给对方
             kTcpPassive = 2, // tcp被动模式，tcp服务器，等待对方连接并回复rtp
             kUdpPassive = 3, // udp被动方式，等待对方发送nat打洞包，然后回复rtp至打洞包源地址
-            kVoiceTalk = 4,  // 语音对讲模式，对方必须先推流上来，通过他的推流链路再回复rtp数据
+            kVoiceTalk = 4, // 语音对讲模式，对方必须先推流上来，通过他的推流链路再回复rtp数据
         };
 
         // rtp类型  [AUTO-TRANSLATED:acca40ab]
@@ -182,15 +174,16 @@ public:
 
     // 开始发送ps-rtp  [AUTO-TRANSLATED:a51796fa]
     // Start sending ps-rtp
-    virtual void startSendRtp(MediaSource &sender, const SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb) { cb(0, toolkit::SockException(toolkit::Err_other, "not implemented"));};
+    virtual void startSendRtp(MediaSource &sender, const SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb) {
+        cb(0, toolkit::SockException(toolkit::Err_other, "not implemented"));
+    };
     // 停止发送ps-rtp  [AUTO-TRANSLATED:952d2b35]
     // Stop sending ps-rtp
-    virtual bool stopSendRtp(MediaSource &sender, const std::string &ssrc) {return false; }
+    virtual bool stopSendRtp(MediaSource &sender, const std::string &ssrc) { return false; }
 
 private:
     toolkit::Timer::Ptr _async_close_timer;
 };
-
 
 template <typename MAP, typename KEY, typename TYPE>
 static void getArgsValue(const MAP &allArgs, const KEY &key, TYPE &value) {
@@ -268,7 +261,8 @@ public:
     bool enable_fmp4;
 
     // hls协议是否按需生成，如果hls.segNum配置为0(意味着hls录制)，那么hls将一直生成(不管此开关)  [AUTO-TRANSLATED:4653b411]
-    // Whether to generate hls protocol on demand, if hls.segNum is configured to 0 (meaning hls recording), then hls will always be generated (regardless of this switch)
+    // Whether to generate hls protocol on demand, if hls.segNum is configured to 0 (meaning hls recording), then hls will always be generated (regardless of
+    // this switch)
     bool hls_demand;
     // rtsp[s]协议是否按需生成  [AUTO-TRANSLATED:1c3237b0]
     // Whether to generate rtsp[s] protocol on demand
@@ -305,8 +299,12 @@ public:
     // Maximum number of tracks
     size_t max_track = 2;
 
+    // 用于保存用户的上下文数据，在回调时回传给用户
+    std::string userdata;
+
     template <typename MAP>
-    ProtocolOption(const MAP &allArgs) : ProtocolOption() {
+    ProtocolOption(const MAP &allArgs)
+        : ProtocolOption() {
         load(allArgs);
     }
 
@@ -341,6 +339,7 @@ public:
         GET_OPT_VALUE(hls_save_path);
         GET_OPT_VALUE(stream_replace);
         GET_OPT_VALUE(max_track);
+        GET_OPT_VALUE(userdata);
     }
 };
 
@@ -356,7 +355,7 @@ public:
     std::shared_ptr<toolkit::SockInfo> getOriginSock(MediaSource &sender) const override;
 
     bool seekTo(MediaSource &sender, uint32_t stamp) override;
-    bool pause(MediaSource &sender,  bool pause) override;
+    bool pause(MediaSource &sender, bool pause) override;
     bool speed(MediaSource &sender, float speed) override;
     bool close(MediaSource &sender) override;
     int totalReaderCount(MediaSource &sender) override;
@@ -379,10 +378,10 @@ private:
 /**
  * 解析url获取媒体相关信息
  * Parse the url to get media information
- 
+
  * [AUTO-TRANSLATED:3b3cfde7]
  */
-class MediaInfo: public MediaTuple {
+class MediaInfo : public MediaTuple {
 public:
     MediaInfo() = default;
     MediaInfo(const std::string &url) { parse(url); }
@@ -397,20 +396,22 @@ public:
     std::string host;
 };
 
-bool equalMediaTuple(const MediaTuple& a, const MediaTuple& b);
+bool equalMediaTuple(const MediaTuple &a, const MediaTuple &b);
 
 /**
  * 媒体源，任何rtsp/rtmp的直播流都源自该对象
  * Media source, any rtsp/rtmp live stream originates from this object
- 
+
  * [AUTO-TRANSLATED:658077ad]
  */
-class MediaSource: public TrackSource, public std::enable_shared_from_this<MediaSource> {
+class MediaSource
+    : public TrackSource
+    , public std::enable_shared_from_this<MediaSource> {
 public:
-    static MediaSource& NullMediaSource();
+    static MediaSource &NullMediaSource();
     using Ptr = std::shared_ptr<MediaSource>;
 
-    MediaSource(const std::string &schema, const MediaTuple& tuple);
+    MediaSource(const std::string &schema, const MediaTuple &tuple);
     virtual ~MediaSource();
 
     // //////////////获取MediaSource相关信息////////////////  [AUTO-TRANSLATED:4a520f1f]
@@ -418,13 +419,9 @@ public:
 
     // 获取协议类型  [AUTO-TRANSLATED:d6b50c14]
     // Get protocol type
-    const std::string& getSchema() const {
-        return _schema;
-    }
+    const std::string &getSchema() const { return _schema; }
 
-    const MediaTuple& getMediaTuple() const {
-        return _tuple;
-    }
+    const MediaTuple &getMediaTuple() const { return _tuple; }
 
     std::string getUrl() const { return _schema + "://" + _tuple.shortUrl(); }
 
@@ -473,8 +470,8 @@ public:
     virtual int totalReaderCount();
     // 获取播放器列表  [AUTO-TRANSLATED:e7691d2b]
     // Get the player list
-    virtual void getPlayerList(const std::function<void(const std::list<toolkit::Any> &info_list)> &cb,
-                               const std::function<toolkit::Any(toolkit::Any &&info)> &on_change) {
+    virtual void
+    getPlayerList(const std::function<void(const std::list<toolkit::Any> &info_list)> &cb, const std::function<toolkit::Any(toolkit::Any &&info)> &on_change) {
         assert(cb);
         cb(std::list<toolkit::Any>());
     }
@@ -537,9 +534,7 @@ public:
     // 同步查找流  [AUTO-TRANSLATED:97048f1e]
     // Synchronously find the stream
     static Ptr find(const std::string &schema, const std::string &vhost, const std::string &app, const std::string &id, bool from_mp4 = false);
-    static Ptr find(const MediaInfo &info, bool from_mp4 = false) {
-        return find(info.schema, info.vhost, info.app, info.stream, from_mp4);
-    }
+    static Ptr find(const MediaInfo &info, bool from_mp4 = false) { return find(info.schema, info.vhost, info.app, info.stream, from_mp4); }
 
     // 忽略schema，同步查找流，可能返回rtmp/rtsp/hls类型  [AUTO-TRANSLATED:8c061cac]
     // Ignore schema, synchronously find the stream, may return rtmp/rtsp/hls type
@@ -550,10 +545,14 @@ public:
     static void findAsync(const MediaInfo &info, const std::shared_ptr<toolkit::Session> &session, const std::function<void(const Ptr &src)> &cb);
     // 遍历所有流  [AUTO-TRANSLATED:a39b2399]
     // Traverse all streams
-    static void for_each_media(const std::function<void(const Ptr &src)> &cb, const std::string &schema = "", const std::string &vhost = "", const std::string &app = "", const std::string &stream = "");
+    static void for_each_media(
+        const std::function<void(const Ptr &src)> &cb, const std::string &schema = "", const std::string &vhost = "", const std::string &app = "",
+        const std::string &stream = "");
     // 从mp4文件生成MediaSource  [AUTO-TRANSLATED:7df9762e]
     // Generate MediaSource from mp4 file
-    static MediaSource::Ptr createFromMP4(const std::string &schema, const std::string &vhost, const std::string &app, const std::string &stream, const std::string &file_path = "", bool check_app = true);
+    static MediaSource::Ptr createFromMP4(
+        const std::string &schema, const std::string &vhost, const std::string &app, const std::string &stream, const std::string &file_path = "",
+        bool check_app = true);
 
 protected:
     // 媒体注册  [AUTO-TRANSLATED:dbf5c730]
@@ -584,4 +583,4 @@ private:
 };
 
 } /* namespace mediakit */
-#endif //ZLMEDIAKIT_MEDIASOURCE_H
+#endif // ZLMEDIAKIT_MEDIASOURCE_H
