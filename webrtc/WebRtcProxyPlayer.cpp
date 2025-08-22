@@ -39,7 +39,6 @@ void WebRtcProxyPlayer::play(const string &strUrl) {
     }
 
     startConnect();
-    return;
 }
 
 void WebRtcProxyPlayer::teardown() {
@@ -75,7 +74,6 @@ void WebRtcProxyPlayer::onResult(const SockException &ex) {
             onShutdown(ex);
         }
     }
-    return;
 }
 
 float WebRtcProxyPlayer::getTimeOutSec() {
@@ -121,7 +119,6 @@ void WebRtcProxyPlayerImp::onResult(const SockException &ex) {
 void WebRtcProxyPlayerImp::onPlayResult(const toolkit::SockException &ex) {
     DebugL;
     Super::onPlayResult(ex);
-    return;
 }
 
 std::vector<Track::Ptr> WebRtcProxyPlayerImp::getTracks(bool ready /*= true*/) const {

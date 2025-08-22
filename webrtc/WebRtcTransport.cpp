@@ -577,7 +577,6 @@ void WebRtcTransport::onShutdown(const SockException &ex) {
     if (_on_shutdown) {
         return _on_shutdown(ex);
     }
-    return;
 };
 
 void WebRtcTransport::sendRtcpRemb(uint32_t ssrc, size_t bit_rate) {
@@ -694,7 +693,6 @@ void WebRtcTransport::setAnswerSdp(const std::string &answer) {
         onShutdown(SockException(Err_shutdown, ex.what()));
         throw;
     }
-    return;
 }
 
 static bool isDtls(char *buf) {

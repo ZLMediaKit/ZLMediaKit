@@ -27,7 +27,6 @@ static ServiceController<WebRtcSignalingSession> s_rooms;
 
 void listWebrtcRooms(const std::function<void(const std::string& key, const WebRtcSignalingSession::Ptr& p)> &cb) {
     s_rooms.for_each(cb);
-    return;
 }
 
 Json::Value ToJson(const WebRtcSignalingSession::Ptr& p) {

@@ -98,7 +98,6 @@ void WebRTCUrl::parse(const string &strUrl, bool isPlayer) {
     } else {
         _negotiate_url = StrPrinter << "http://" << suffix << endl;
     }
-    return;
 }
 
 ////////////  WebRtcClient //////////////////////////

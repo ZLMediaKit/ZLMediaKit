@@ -1807,7 +1807,6 @@ void RtcConfigure::createMediaOfferEach(const std::shared_ptr<RtcSession> &ret, 
     }
  
     ret->media.emplace_back(media);
-    return;
 }
 
 void RtcConfigure::matchMedia(const std::shared_ptr<RtcSession> &ret, const RtcMedia &offer_media) const {

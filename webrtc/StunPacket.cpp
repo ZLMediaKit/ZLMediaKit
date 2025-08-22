@@ -801,8 +801,6 @@ void StunPacket::serialize() {
         attr_fingerprint->storeToData();
         memcpy((unsigned char*)_data->data() + HEADER_SIZE + attr_size + message_integrity_size, attr_fingerprint->data(), attr_fingerprint->size());
     }
-
-    return;
 }
 
 StunPacket::Ptr StunPacket::createSuccessResponse()
