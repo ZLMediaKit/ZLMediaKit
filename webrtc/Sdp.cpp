@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
@@ -1778,7 +1778,7 @@ void RtcConfigure::createMediaOfferEach(const std::shared_ptr<RtcSession> &ret, 
     auto &list_ref = s_rtpmap_preferred_list[type];
     for (auto codec : cfg_ptr->preferred_codec) {
         auto range = list_ref.equal_range(codec);
-        for (auto it = range.first; it != range.second; ++it) { 
+        for (auto it = range.first; it != range.second; ++it) {
             auto rtpmap = it->second;
             media.plan.emplace_back();
             auto &plan = media.plan.back();
@@ -1805,7 +1805,7 @@ void RtcConfigure::createMediaOfferEach(const std::shared_ptr<RtcSession> &ret, 
         ssrc.msid = makeRandStr(36) + " " + makeUuidStr();
         media.rtp_rtx_ssrc.push_back(ssrc);
     }
- 
+
     ret->media.emplace_back(media);
 }
 
@@ -2020,7 +2020,8 @@ void RtcConfigure::setPlayRtspInfo(const string &sdp) {
     }
 }
 
-static const string kProfile { "profile-level-id" };
+static const string kH264Profile { "profile-level-id" };
+static const string kH265Profile { "profile-id" };
 static const string kMode { "packetization-mode" };
 
 bool RtcConfigure::onCheckCodecProfile(const RtcCodecPlan &plan, CodecId codec) const {
@@ -2035,9 +2036,18 @@ bool RtcConfigure::onCheckCodecProfile(const RtcCodecPlan &plan, CodecId codec) 
     if (_rtsp_video_plan && codec == CodecH264 && getCodecId(_rtsp_video_plan->codec) == CodecH264) {
         // h264时，profile-level-id  [AUTO-TRANSLATED:94a5f360]
         // When h264, profile-level-id
-        if (strcasecmp(_rtsp_video_plan->fmtp[kProfile].data(), const_cast<RtcCodecPlan &>(plan).fmtp[kProfile].data())) {
+        if (strcasecmp(_rtsp_video_plan->fmtp[kH264Profile].data(), const_cast<RtcCodecPlan &>(plan).fmtp[kH264Profile].data())) {
             // profile-level-id 不匹配  [AUTO-TRANSLATED:814ec4c4]
             // profile-level-id does not match
+            return false;
+        }
+        return true;
+    }
+
+    if (_rtsp_video_plan && codec == CodecH265 && getCodecId(_rtsp_video_plan->codec) == CodecH265) {
+        // h265时，profile-id
+        if (strcasecmp(_rtsp_video_plan->fmtp[kH265Profile].data(), const_cast<RtcCodecPlan &>(plan).fmtp[kH265Profile].data())) {
+            // profile-id 不匹配
             return false;
         }
         return true;
