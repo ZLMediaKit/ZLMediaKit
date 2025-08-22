@@ -369,11 +369,9 @@ bool H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     GET_CONFIG(int,lowLatency,Rtp::kLowLatency);
     if (lowLatency) { // 低延迟模式
         if (_last_frame) {
-            // 先输出上一帧，并根据时间戳决定是否设置mark位
-            inputFrame_l(_last_frame, _last_frame->pts() != frame->pts());
+            flush();
         }
-        // 当前帧缓存起来，等下一帧或flush时再输出
-        _last_frame = Frame::getCacheAbleFrame(frame);
+        inputFrame_l(frame, true);
     } else {
         if (_last_frame) {
             // 如果时间戳发生了变化，那么markbit才置true  [AUTO-TRANSLATED:19b68429]
