@@ -46,7 +46,7 @@ WebRtcSignalingSession::WebRtcSignalingSession(const Socket::Ptr &sock) : Sessio
 
 WebRtcSignalingSession::~WebRtcSignalingSession() {
     DebugL << "room_id: " << _room_id;
-};
+}
 
 void WebRtcSignalingSession::onRecv(const Buffer::Ptr &buffer) {
     DebugL << "recv msg:\r\n" << buffer->data();
@@ -120,7 +120,7 @@ void WebRtcSignalingSession::handleRegisterRequest(SIGNALING_MSG_ARGS) {
     _room_id = room_id;
     s_rooms.emplace(_room_id, shared_from_this());
     sendRegisterAccept(body, allArgs[TRANSACTION_ID_KEY]);
-};
+}
 
 void WebRtcSignalingSession::handleUnregisterRequest(SIGNALING_MSG_ARGS) {
     DebugL;
@@ -147,7 +147,7 @@ void WebRtcSignalingSession::handleUnregisterRequest(SIGNALING_MSG_ARGS) {
     if (s_rooms.find(allArgs[ROOM_ID_KEY])) {
         s_rooms.erase(_room_id);
     }
-};
+}
 
 void WebRtcSignalingSession::handleCallRequest(SIGNALING_MSG_ARGS) {
     DebugL;

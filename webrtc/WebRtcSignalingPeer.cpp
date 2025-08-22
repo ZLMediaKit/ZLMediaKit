@@ -48,7 +48,7 @@ void addWebrtcRoomKeeper(const string &host, uint16_t port, const std::string& r
         peer->regist(cb);
     });
     peer->connect();
-};
+}
 
 void delWebrtcRoomKeeper(const std::string &key, const std::function<void(const SockException &ex)> &cb) {
     auto peer = s_room_keepers.find(key);
@@ -203,7 +203,7 @@ void WebRtcSignalingPeer::onShutdown(const SockException &ex) {
     if (_on_shutdown) {
         return _on_shutdown(ex);
     }
-};
+}
 
 void WebRtcSignalingPeer::onRecv(const Buffer::Ptr &buffer) {
     TraceL << "recv msg:\r\n" << buffer->data();
@@ -412,7 +412,7 @@ void WebRtcSignalingPeer::handleCallRequest(SIGNALING_MSG_ARGS) {
 
             return strong_self->processOffer(allArgs, const_cast<WebRtcInterface&>(exchanger));
         });
-};
+}
 
 void WebRtcSignalingPeer::handleCallAccept(SIGNALING_MSG_ARGS) {
     DebugL;
@@ -437,7 +437,7 @@ void WebRtcSignalingPeer::handleCallAccept(SIGNALING_MSG_ARGS) {
     }
 
     trigger(SockException(Err_success), allArgs[SDP_KEY]);
-};
+}
 
 void WebRtcSignalingPeer::handleCallReject(SIGNALING_MSG_ARGS) {
     DebugL;
@@ -514,7 +514,7 @@ void WebRtcSignalingPeer::handleCandidateIndication(SIGNALING_MSG_ARGS) {
     SdpAttrCandidate candidate_attr;
     candidate_attr.parse(allArgs[CANDIDATE_KEY]);
     transport->connectivityCheck(candidate_attr, allArgs[UFRAG_KEY], allArgs[PWD_KEY]);
-};
+}
 
 void WebRtcSignalingPeer::handleByeIndication(SIGNALING_MSG_ARGS) {
     DebugL;
@@ -540,7 +540,7 @@ void WebRtcSignalingPeer::handleByeIndication(SIGNALING_MSG_ARGS) {
         return;
     }
     obj->safeShutdown(SockException(Err_shutdown, "deleted by websocket signaling server"));
-};
+}
 
 void WebRtcSignalingPeer::sendByeIndication(const std::string& peer_room_id, const std::string &guest_id) {
     DebugL;

@@ -1801,7 +1801,7 @@ float WebRtcTransport::getTimeOutSec() {
         return 5 * 1000;
     }
     return (float)timeout * (float)1000;
-};
+}
 
 static onceToken s_rtc_auto_register([]() {
 #if !defined (NDEBUG)

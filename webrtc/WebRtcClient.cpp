@@ -315,6 +315,6 @@ float WebRtcClient::getTimeOutSec() {
         return 5 * 1000;
     }
     return (float)timeout * (float)1000;
-};
+}
 
 } /* namespace mediakit */
