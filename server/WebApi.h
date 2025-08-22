@@ -19,6 +19,10 @@
 #include "Http/HttpSession.h"
 #include "Common/MultiMediaSourceMuxer.h"
 
+#if defined(ENABLE_WEBRTC)
+#include "webrtc/WebRtcTransport.h"
+#endif
+
 // 配置文件路径  [AUTO-TRANSLATED:8a373c2f]
 // Configuration file path
 extern std::string g_ini_file;
@@ -316,5 +320,36 @@ public:
         return server;
     }
 };
+
+#if defined(ENABLE_WEBRTC)
+template <typename Args>
+class WebRtcArgsImp : public mediakit::WebRtcArgs {
+public:
+    WebRtcArgsImp(const HttpAllArgs<Args> &args, std::string session_id)
+        : _args(args)
+        , _session_id(std::move(session_id)) {}
+    ~WebRtcArgsImp() override = default;
+
+    toolkit::variant operator[](const std::string &key) const override {
+        if (key == "url") {
+            return getUrl();
+        }
+        return _args[key];
+    }
+
+private:
+    std::string getUrl() const {
+        auto &allArgs = _args;
+        CHECK_ARGS("app", "stream");
+
+        return StrPrinter << RTC_SCHEMA << "://" << (_args["Host"].empty() ? DEFAULT_VHOST : _args["Host"].data()) << "/" << _args["app"] << "/"
+                          << _args["stream"] << "?" << _args.getParser().params() + "&session=" + _session_id;
+    }
+
+private:
+    HttpAllArgs<Args> _args;
+    std::string _session_id;
+};
+#endif
 
 #endif //ZLMEDIAKIT_WEBAPI_H

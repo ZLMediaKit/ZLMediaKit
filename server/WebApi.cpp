@@ -2058,35 +2058,6 @@ void installWebApi() {
     });
 
 #ifdef ENABLE_WEBRTC
-    class WebRtcArgsImp : public WebRtcArgs {
-    public:
-        WebRtcArgsImp(const ArgsString &args, std::string session_id)
-            : _args(args)
-            , _session_id(std::move(session_id)) {}
-        ~WebRtcArgsImp() override = default;
-
-        toolkit::variant operator[](const string &key) const override {
-            if (key == "url") {
-                return getUrl();
-            }
-            return _args[key];
-        }
-
-    private:
-        string getUrl() const{
-            auto &allArgs = _args;
-            CHECK_ARGS("app", "stream");
-
-            string auth = _args["Authorization"]; // Authorization  Bearer
-            return StrPrinter << "rtc://" << _args["Host"] << "/" << _args["app"] << "/" << _args["stream"] << "?"
-                              << _args.parser.params() + "&session=" + _session_id + (auth.empty() ? "" : ("&Authorization=" + auth));
-        }
-
-    private:
-        ArgsString _args;
-        std::string _session_id;
-    };
-
     api_regist("/index/api/webrtc",[](API_ARGS_STRING_ASYNC){
         CHECK_ARGS("type");
         auto type = allArgs["type"];
@@ -2094,7 +2065,7 @@ void installWebApi() {
         CHECK(!offer.empty(), "http body(webrtc offer sdp) is empty");
 
         auto &session = static_cast<Session&>(sender);
-        auto args = std::make_shared<WebRtcArgsImp>(allArgs, sender.getIdentifier());
+        auto args = std::make_shared<WebRtcArgsImp<std::string>>(allArgs, sender.getIdentifier());
         WebRtcPluginManager::Instance().negotiateSdp(session, type, *args, [invoker, val, offer, headerOut](const WebRtcInterface &exchanger) mutable {
             auto &handler = const_cast<WebRtcInterface &>(exchanger);
             try {
@@ -2117,7 +2088,7 @@ void installWebApi() {
 
         auto &session = static_cast<Session&>(sender);
         auto location = std::string(session.overSsl() ? "https://" : "http://") + allArgs["host"] + delete_webrtc_url;
-        auto args = std::make_shared<WebRtcArgsImp>(allArgs, sender.getIdentifier());
+        auto args = std::make_shared<WebRtcArgsImp<std::string>>(allArgs, sender.getIdentifier());
         WebRtcPluginManager::Instance().negotiateSdp(session, type, *args, [invoker, offer, headerOut, location](const WebRtcInterface &exchanger) mutable {
             auto &handler = const_cast<WebRtcInterface &>(exchanger);
             try {

@@ -11,7 +11,6 @@
 #include "IceSession.hpp"
 #include "Util/util.h"
 #include "Common/config.h"
-#include "server/WebApi.h"
 #include "WebRtcTransport.h"
 
 using namespace std;
