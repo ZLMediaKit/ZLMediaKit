@@ -624,13 +624,22 @@ void installWebHook() {
     });
 
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastStreamNoneReader, [](BroadcastStreamNoneReaderArgs) {
+        auto auto_close = false;
+        auto muxer = sender.getMuxer();
+        if (muxer && muxer->getOption().auto_close) {
+            auto_close = true;
+        }
+
         if (!origin_urls.empty() && sender.getOriginType() == MediaOriginType::pull) {
             // 边沿站无人观看时如果是拉流的则立即停止溯源  [AUTO-TRANSLATED:a1429c77]
             // If no one is watching at the edge station, stop tracing immediately if it is pulling
-            sender.close(false);
-            WarnL << "无人观看主动关闭流:" << sender.getOriginUrl();
+            if (!auto_close) {
+                sender.close(false);
+                WarnL << "Auto close stream when none reader: " << sender.getOriginUrl();
+            }
             return;
         }
+
         GET_CONFIG(string, hook_stream_none_reader, Hook::kOnStreamNoneReader);
         if (!hook_enable || hook_stream_none_reader.empty()) {
             return;
@@ -642,7 +651,11 @@ void installWebHook() {
         weak_ptr<MediaSource> weakSrc = sender.shared_from_this();
         // 执行hook  [AUTO-TRANSLATED:1df68201]
         // Execute hook
-        do_http_hook(hook_stream_none_reader, body, [weakSrc](const Value &obj, const string &err) {
+        do_http_hook(hook_stream_none_reader, body, [weakSrc, auto_close](const Value &obj, const string &err) {
+            if (auto_close) {
+                // 在上层已经关闭了
+                return;
+            }
             bool flag = obj["close"].asBool();
             auto strongSrc = weakSrc.lock();
             if (!flag || !err.empty() || !strongSrc) {
