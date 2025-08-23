@@ -132,7 +132,7 @@ public:
     void connectivityCheckForSFU();
 
     std::string createOfferSdp() override;
-    std::string getAnswerSdp(const std::string &offer) override final;
+    std::string getAnswerSdp(const std::string &offer) override;
     void setAnswerSdp(const std::string &answer) override;
 
     virtual RtcSession::Ptr answerSdp() {

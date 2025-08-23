@@ -123,6 +123,19 @@ void WebRtcPusher::onRecvRtp(MediaTrack &track, const string &rid, RtpPacket::Pt
     }
 }
 
+std::string WebRtcPusher::getAnswerSdp(const string &offer) {
+    auto answer = WebRtcTransport::getAnswerSdp(offer);
+
+    if (canRecvRtp()) {
+        if (_push_src) {
+            _push_src->setSdp(_answer_sdp->toRtspSdp());
+        }
+        _demuxer = std::make_shared<RtspDemuxer>();
+        _demuxer->loadSdp(_answer_sdp->toRtspSdp());
+    }
+    return answer;
+}
+
 void WebRtcPusher::setAnswerSdp(const std::string &answer) {
     WebRtcTransport::setAnswerSdp(answer);
 

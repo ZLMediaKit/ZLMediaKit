@@ -35,6 +35,7 @@ public:
 
 protected:
     ///////WebRtcTransportImp override///////
+    std::string getAnswerSdp(const std::string &offer)override final;
     void setAnswerSdp(const std::string &answer) override;
     void onStartWebRTC() override;
     void onDestory() override;
