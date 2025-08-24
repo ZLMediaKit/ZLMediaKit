@@ -90,7 +90,7 @@ void WebRtcSession::onRecv_l(const char *data, size_t len) {
     _ticker.resetTime();
     CHECK(_transport);
     auto self = static_pointer_cast<WebRtcSession>(shared_from_this());
-    _transport->inputSockData((char *)data, len, self);
+    _transport->inputSockData(data, len, self);
 }
 
 void WebRtcSession::onRecv(const Buffer::Ptr &buffer) {

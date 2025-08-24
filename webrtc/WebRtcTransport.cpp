@@ -402,7 +402,7 @@ void WebRtcTransport::onIceTransportDisconnected() {
     InfoL << getIdentifier();
 }
 
-void WebRtcTransport::onIceTransportGatheringCandidate(IceTransport::Pair::Ptr pair, CandidateInfo candidate) {
+void WebRtcTransport::onIceTransportGatheringCandidate(const IceTransport::Pair::Ptr& pair, CandidateInfo candidate) {
     InfoL << getIdentifier() << " get local candidate type "  << candidate.getAddressTypeStr() << " : " << candidate._addr._host << ":" << candidate._addr._port;
 
     if (_on_gathering_candidate) {
@@ -695,11 +695,11 @@ void WebRtcTransport::setAnswerSdp(const std::string &answer) {
     }
 }
 
-static bool isDtls(char *buf) {
+static bool isDtls(const char *buf) {
     return ((*buf > 19) && (*buf < 64));
 }
 
-void WebRtcTransport::inputSockData(char *buf, int len, SocketHelper::Ptr socket, struct sockaddr *addr, int addr_len) {
+void WebRtcTransport::inputSockData(const char *buf, int len, const SocketHelper::Ptr& socket, struct sockaddr *addr, int addr_len) {
     IceTransport::Pair::Ptr pair;
     if (addr != nullptr) {
         auto peer_host = SockUtil::inet_ntoa(addr);
@@ -711,7 +711,7 @@ void WebRtcTransport::inputSockData(char *buf, int len, SocketHelper::Ptr socket
     return inputSockData(buf, len, pair);
 }
 
-void WebRtcTransport::inputSockData(char *buf, int len, IceTransport::Pair::Ptr pair) {
+void WebRtcTransport::inputSockData(const char *buf, int len, const IceTransport::Pair::Ptr& pair) {
     // DebugL;
     _recv_ticker.resetTime();
     if (_ice_agent->processSocketData((const uint8_t *)buf, len, pair)) {
@@ -1816,7 +1816,7 @@ static onceToken s_rtc_auto_register([]() {
     });
 });
 
-void WebRtcTransport::onIceTransportRecvData(const toolkit::Buffer::Ptr& buffer, IceTransport::Pair::Ptr pair) {
+void WebRtcTransport::onIceTransportRecvData(const toolkit::Buffer::Ptr& buffer, const IceTransport::Pair::Ptr& pair) {
     return inputSockData(buffer->data(), buffer->size(), pair);
 }
 

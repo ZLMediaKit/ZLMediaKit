@@ -143,8 +143,8 @@ public:
     const std::string& deleteRandStr() const override;
 
 
-    void inputSockData(char *buf, int len, SocketHelper::Ptr socket, struct sockaddr *addr = nullptr, int addr_len = 0);
-    void inputSockData(char *buf, int len, IceTransport::Pair::Ptr pair);
+    void inputSockData(const char *buf, int len, const SocketHelper::Ptr& socket, struct sockaddr *addr = nullptr, int addr_len = 0);
+    void inputSockData(const char *buf, int len, const IceTransport::Pair::Ptr& pair);
     void sendRtpPacket(const char *buf, int len, bool flush, void *ctx = nullptr);
     void sendRtcpPacket(const char *buf, int len, bool flush, void *ctx = nullptr);
     void sendDatachannel(uint16_t streamId, uint32_t ppid, const char *msg, size_t len);
@@ -167,8 +167,8 @@ public:
 protected:
     // for ICE
     // IceTransport::Listener.
-    void onIceTransportRecvData(const toolkit::Buffer::Ptr& buffer, IceTransport::Pair::Ptr pair) override;
-    void onIceTransportGatheringCandidate(IceTransport::Pair::Ptr pair, CandidateInfo candidate) override;
+    void onIceTransportRecvData(const toolkit::Buffer::Ptr& buffer, const IceTransport::Pair::Ptr& pair) override;
+    void onIceTransportGatheringCandidate(const IceTransport::Pair::Ptr& pair, CandidateInfo candidate) override;
     void onIceTransportDisconnected() override;
     void onIceTransportCompleted() override;
 

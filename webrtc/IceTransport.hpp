@@ -42,6 +42,16 @@ uint64_t calCandidatePairPriority(uint32_t G, uint32_t D);
 
 class CandidateAddr {
 public:
+
+    bool operator==(const CandidateAddr& rhs) const {
+        return ((_host == rhs._host) && (_port == rhs._port));
+    }
+    
+    bool operator!=(const CandidateAddr& rhs) const {
+        return !(*this == rhs);
+    }
+
+public:
     std::string _host;
     uint16_t    _port = 0;
 };
@@ -75,9 +85,9 @@ public:
     }
 
     bool operator==(const CandidateTuple& rhs) const {
-        return ((_addr._host == rhs._addr._host) && (_addr._port == rhs._addr._port)
-        && (_priority == rhs._priority)
-        && (_transport == rhs._transport) && (_secure == rhs._secure));
+        return ((_addr == rhs._addr)
+            && (_priority == rhs._priority)
+            && (_transport == rhs._transport) && (_secure == rhs._secure));
     }
 
     struct ClassHash {
@@ -90,10 +100,7 @@ public:
 
     struct ClassEqual {
         bool operator()(const CandidateTuple& a, const CandidateTuple& b) const {
-            return ((a._addr._host == b._addr._host)
-                    && (a._addr._port == b._addr._port)
-                    &&(a._transport == b._transport)
-                    &&(a._secure == b._secure));
+            return a == b;
         }
     };
 
@@ -129,10 +136,9 @@ public:
     };
 
     bool operator==(const CandidateInfo& rhs) const {
-        return ((_addr._host == rhs._addr._host) && (_addr._port == rhs._addr._port)
-        && (_type == rhs._type) && (_priority == rhs._priority)
-        && (_transport == rhs._transport) && (_secure == rhs._secure));
+        return CandidateTuple::operator==(rhs) && (_type == rhs._type);
     }
+
     std::string getAddressTypeStr() {
         switch (_type) {
             case AddressType::HOST: return "host";
@@ -190,20 +196,18 @@ public:
         using Ptr = std::shared_ptr<Pair>;
 
         Pair() = default;
-        Pair(toolkit::SocketHelper::Ptr socket) : _socket(socket) {;}
-        Pair(toolkit::SocketHelper::Ptr socket, std::string peer_host, uint16_t peer_port,
+        Pair(toolkit::SocketHelper::Ptr socket) : _socket(socket) {}
+        Pair(toolkit::SocketHelper::Ptr socket, const std::string& peer_host, uint16_t peer_port,
              std::shared_ptr<sockaddr_storage> realyed_addr = nullptr) : 
             _socket(socket), _peer_host(peer_host), _peer_port(peer_port), _realyed_addr(realyed_addr) {
         }
 
         Pair(Pair &that) {
-            // DebugL;
             _socket = that._socket;
             _peer_host = that._peer_host;
             _peer_port = that._peer_port;
             _realyed_addr = nullptr;
             if (that._realyed_addr) {
-                // DebugL;
                 _realyed_addr = std::make_shared<sockaddr_storage>();
                 memcpy(_realyed_addr.get(), that._realyed_addr.get(), sizeof(sockaddr_storage));
             }
@@ -279,10 +283,14 @@ public:
             return false;
         }
 
+    public:
+
         toolkit::SocketHelper::Ptr _socket;
+        //对端host:port 地址，因为多个pair会复用一个socket对象，因此可能会和_socket的创建bind信息不一致
         std::string _peer_host;
         uint16_t _peer_port;
 
+        //转发地址，用于实现TURN转发地址
         std::shared_ptr<sockaddr_storage> _realyed_addr = nullptr;
     };
 
@@ -291,14 +299,14 @@ public:
         virtual ~Listener() = default;
 
     public:
-        virtual void onIceTransportRecvData(const toolkit::Buffer::Ptr& buffer, Pair::Ptr pair) = 0;
-        virtual void onIceTransportGatheringCandidate(Pair::Ptr, CandidateInfo) = 0;
+        virtual void onIceTransportRecvData(const toolkit::Buffer::Ptr& buffer, const Pair::Ptr& pair) = 0;
+        virtual void onIceTransportGatheringCandidate(const Pair::Ptr&, CandidateInfo) = 0;
         virtual void onIceTransportDisconnected() = 0;
         virtual void onIceTransportCompleted() = 0;
     };
 
 public:
-    using MsgHandler = std::function<void(StunPacket::Ptr, Pair::Ptr)>;
+    using MsgHandler = std::function<void(const StunPacket::Ptr&, const Pair::Ptr&)>;
     
     struct RequestInfo {
         StunPacket::Ptr _request;        // 原始请求包
@@ -312,7 +320,7 @@ public:
         static const uint32_t INITIAL_RTO = 500;    // 初始RTO 500ms
         static const uint32_t MAX_RETRIES = 7;      // 最大重传次数
         
-        RequestInfo(StunPacket::Ptr req, MsgHandler h, Pair::Ptr p)
+        RequestInfo(const StunPacket::Ptr& req, const MsgHandler& h, const Pair::Ptr& p)
             : _request(req), _handler(h), _pair(p), _retry_count(0), _rto(INITIAL_RTO) {
             _send_time = toolkit::getCurrentMillisecond();
             _next_timeout = _send_time + _rto;
@@ -322,7 +330,6 @@ public:
     IceTransport(Listener* listener, const std::string& ufrag, const std::string& password, const toolkit::EventPoller::Ptr &poller);
     virtual ~IceTransport() {}
     
-    // 初始化方法，必须在构造完成后调用
     virtual void initialize();
 
     const toolkit::EventPoller::Ptr& getPoller() const { return _poller; }
@@ -333,26 +340,26 @@ public:
     void setUFrag(const std::string& ufrag) { _ufrag = ufrag; }
     void setPassword(const std::string& password) { _password = password; }
 
-    virtual bool processSocketData(const uint8_t* data, size_t len, Pair::Ptr pair);
-    virtual void sendSocketData(toolkit::Buffer::Ptr buf, Pair::Ptr pair, bool flush = true);
-    void sendSocketData_l(toolkit::Buffer::Ptr buf, Pair::Ptr pair, bool flush = true);
+    virtual bool processSocketData(const uint8_t* data, size_t len, const Pair::Ptr& pair);
+    virtual void sendSocketData(const toolkit::Buffer::Ptr& buf, const Pair::Ptr& pair, bool flush = true);
+    void sendSocketData_l(const toolkit::Buffer::Ptr& buf, const Pair::Ptr& pair, bool flush = true);
 
 protected:
-    virtual void processStunPacket(const StunPacket::Ptr packet, Pair::Ptr pair);
-    virtual void processRequest(const StunPacket::Ptr packet, Pair::Ptr pair);
-    virtual void processResponse(const StunPacket::Ptr packet, Pair::Ptr pair);
-    virtual bool processChannelData(const uint8_t* data, size_t len, Pair::Ptr pair);
-    virtual StunPacket::Authentication checkRequestAuthentication(const StunPacket::Ptr packet, Pair::Ptr pair);
-    StunPacket::Authentication checkResponseAuthentication(const StunPacket::Ptr request, const StunPacket::Ptr packet, Pair::Ptr pair);
-    void processUnauthorizedResponse(const StunPacket::Ptr response, StunPacket::Ptr request, Pair::Ptr pair, MsgHandler handler);
-    virtual void handleBindingRequest(const StunPacket::Ptr packet, Pair::Ptr pair);
-    virtual void handleChannelData(uint16_t channel_number, const char* data, size_t len, Pair::Ptr pair) {};
+    virtual void processStunPacket(const StunPacket::Ptr& packet, const Pair::Ptr& pair);
+    virtual void processRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair);
+    virtual void processResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair);
+    virtual bool processChannelData(const uint8_t* data, size_t len, const Pair::Ptr& pair);
+    virtual StunPacket::Authentication checkRequestAuthentication(const StunPacket::Ptr& packet, const Pair::Ptr& pair);
+    StunPacket::Authentication checkResponseAuthentication(const StunPacket::Ptr& request, const StunPacket::Ptr& packet, const Pair::Ptr& pair);
+    void processUnauthorizedResponse(const StunPacket::Ptr& response, const StunPacket::Ptr& request, const Pair::Ptr& pair, MsgHandler handler);
+    virtual void handleBindingRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair);
+    virtual void handleChannelData(uint16_t channel_number, const char* data, size_t len, const Pair::Ptr& pair) {};
 
-    void sendChannelData(uint16_t channel_number, const toolkit::Buffer::Ptr &buffer, Pair::Ptr pair);
-    virtual void sendUnauthorizedResponse(const StunPacket::Ptr packet, Pair::Ptr pair);
-    void sendErrorResponse(const StunPacket::Ptr packet, Pair::Ptr pair, StunAttrErrorCode::Code errorCode);
-    void sendRequest(const StunPacket::Ptr packet, Pair::Ptr pair, MsgHandler handler);
-    void sendPacket(const StunPacket::Ptr packet, Pair::Ptr pair);
+    void sendChannelData(uint16_t channel_number, const toolkit::Buffer::Ptr &buffer, const Pair::Ptr& pair);
+    virtual void sendUnauthorizedResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair);
+    void sendErrorResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair, StunAttrErrorCode::Code errorCode);
+    void sendRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair, MsgHandler handler);
+    void sendPacket(const StunPacket::Ptr& packet, const Pair::Ptr& pair);
 
     // For permissions
     bool hasPermission(const sockaddr_storage& addr);
@@ -400,25 +407,25 @@ public:
     virtual ~IceServer() {}
     
     void initialize() override;
-    bool processSocketData(const uint8_t* data, size_t len, Pair::Ptr pair) override;
+    bool processSocketData(const uint8_t* data, size_t len, const Pair::Ptr& pair) override;
     void relayForwordingData(const toolkit::Buffer::Ptr& buffer, struct sockaddr_storage peer_addr);
-    void relayBackingData(const toolkit::Buffer::Ptr& buffer, Pair::Ptr pair, struct sockaddr_storage peer_addr);
+    void relayBackingData(const toolkit::Buffer::Ptr& buffer, const Pair::Ptr& pair, struct sockaddr_storage peer_addr);
 
 protected:
-    void processRealyPacket(const toolkit::Buffer::Ptr &buffer, Pair::Ptr pair);
-    void handleAllocateRequest(const StunPacket::Ptr packet, Pair::Ptr pair);
-    void handleRefreshRequest(const StunPacket::Ptr packet, Pair::Ptr pair);
-    void handleCreatePermissionRequest(const StunPacket::Ptr packet, Pair::Ptr pair);
-    void handleChannelbindRequest(const StunPacket::Ptr packet, Pair::Ptr pair);
-    void handleSendIndication(const StunPacket::Ptr packet, Pair::Ptr pair);
-    void handleChannelData(uint16_t channel_number, const char* data, size_t len, Pair::Ptr pair) override;
+    void processRealyPacket(const toolkit::Buffer::Ptr &buffer, const Pair::Ptr& pair);
+    void handleAllocateRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair);
+    void handleRefreshRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair);
+    void handleCreatePermissionRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair);
+    void handleChannelbindRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair);
+    void handleSendIndication(const StunPacket::Ptr& packet, const Pair::Ptr& pair);
+    void handleChannelData(uint16_t channel_number, const char* data, size_t len, const Pair::Ptr& pair) override;
 
-    StunPacket::Authentication checkRequestAuthentication(const StunPacket::Ptr packet, Pair::Ptr pair) override;
+    StunPacket::Authentication checkRequestAuthentication(const StunPacket::Ptr& packet, const Pair::Ptr& pair) override;
 
-    void sendDataIndication(const sockaddr_storage& peer_addr, const toolkit::Buffer::Ptr &buffer, Pair::Ptr pair);
-    void sendUnauthorizedResponse(const StunPacket::Ptr packet, Pair::Ptr pair) override;
+    void sendDataIndication(const sockaddr_storage& peer_addr, const toolkit::Buffer::Ptr &buffer, const Pair::Ptr& pair);
+    void sendUnauthorizedResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair) override;
 
-    toolkit::SocketHelper::Ptr allocateRealyed(Pair::Ptr pair);
+    toolkit::SocketHelper::Ptr allocateRealyed(const Pair::Ptr& pair);
     toolkit::SocketHelper::Ptr createRealyedUdpSocket(const std::string &peer_host, uint16_t peer_port, const std::string &local_ip, uint16_t local_port);
 
 protected:
@@ -494,9 +501,9 @@ public:
     void gatheringCandidate(CandidateTuple::Ptr candidate_tuple, bool gathering_rflx, bool gathering_realy);
     void connectivityCheck(CandidateInfo candidate);
     void Checks(CandidateInfo candidate);
-    void nominated(Pair::Ptr pair, CandidateTuple candidate);
+    void nominated(const Pair::Ptr& pair, CandidateTuple candidate);
 
-    void sendSocketData(toolkit::Buffer::Ptr buf, Pair::Ptr pair, bool flush = true) override;
+    void sendSocketData(const toolkit::Buffer::Ptr& buf, const Pair::Ptr& pair, bool flush = true) override;
 
     IceAgent::Implementation getImplementation() const {
         return _implementation;
@@ -528,50 +535,50 @@ public:
     Pair::Ptr getSelectedPair(bool try_last = false) const {
         return try_last ?  _last_selected_pair.lock() : _selected_pair;
     }
-    void setSelectedPair(Pair::Ptr pair);
+    void setSelectedPair(const Pair::Ptr& pair);
 
     // 获取checklist信息，用于API查询
     Json::Value getChecklistInfo() const;
 
 protected:
-    void gatheringSrflxCandidate(Pair::Ptr pair);
+    void gatheringSrflxCandidate(const Pair::Ptr& pair);
     void gatheringRealyCandidate(Pair::Ptr pair);
     void localRealyedConnectivityCheck(CandidateInfo candidate);
     void connectivityCheck(Pair::Ptr pair, CandidateTuple candidate);
-    void tryTriggerredCheck(Pair::Ptr pair);
+    void tryTriggerredCheck(const Pair::Ptr& pair);
 
-    void sendBindRequest(Pair::Ptr pair, MsgHandler handler);
-    void sendBindRequest(Pair::Ptr pair, CandidateTuple candidate, bool use_candidate, MsgHandler handler);
-    void sendAllocateRequest(Pair::Ptr pair);
-    void sendCreatePermissionRequest(Pair::Ptr pair, const sockaddr_storage& peer_addr);
-    void sendChannelBindRequest(Pair::Ptr pair, uint16_t channel_number, const sockaddr_storage& peer_addr);
+    void sendBindRequest(const Pair::Ptr& pair, MsgHandler&& handler);
+    void sendBindRequest(const Pair::Ptr& pair, CandidateTuple candidate, bool use_candidate, MsgHandler&& handler);
+    void sendAllocateRequest(const Pair::Ptr& pair);
+    void sendCreatePermissionRequest(const Pair::Ptr& pair, const sockaddr_storage& peer_addr);
+    void sendChannelBindRequest(const Pair::Ptr& pair, uint16_t channel_number, const sockaddr_storage& peer_addr);
 
-    void processRequest(const StunPacket::Ptr packet, Pair::Ptr pair) override;
+    void processRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair) override;
 
-    void handleBindingRequest(const StunPacket::Ptr packet, Pair::Ptr pair) override;
-    void handleGatheringCandidateResponse(const StunPacket::Ptr packet, Pair::Ptr pair);
-    void handleConnectivityCheckResponse(const StunPacket::Ptr packet, Pair::Ptr pair, CandidateTuple candidate);
-    void handleNominatedResponse(const StunPacket::Ptr packet, Pair::Ptr pair, CandidateTuple candidate);
-    void handleAllocateResponse(const StunPacket::Ptr packet, Pair::Ptr pair);
-    void handleCreatePermissionResponse(const StunPacket::Ptr packet, Pair::Ptr pair, const sockaddr_storage peer_addr);
-    void handleChannelBindResponse(const StunPacket::Ptr packet, Pair::Ptr pair, uint16_t channel_number, const sockaddr_storage peer_addr);
-    void handleDataIndication(const StunPacket::Ptr packet, Pair::Ptr pair);
-    void handleChannelData(uint16_t channel_number, const char* data, size_t len, Pair::Ptr pair) override;
+    void handleBindingRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair) override;
+    void handleGatheringCandidateResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair);
+    void handleConnectivityCheckResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair, CandidateTuple candidate);
+    void handleNominatedResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair, CandidateTuple candidate);
+    void handleAllocateResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair);
+    void handleCreatePermissionResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair, const sockaddr_storage peer_addr);
+    void handleChannelBindResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair, uint16_t channel_number, const sockaddr_storage peer_addr);
+    void handleDataIndication(const StunPacket::Ptr& packet, const Pair::Ptr& pair);
+    void handleChannelData(uint16_t channel_number, const char* data, size_t len, const Pair::Ptr& pair) override;
 
-    void onGatheringCandidate(Pair::Ptr pair, CandidateInfo candidate);
-    void onConnected(Pair::Ptr pair);
-    void onCompleted(Pair::Ptr pair);
+    void onGatheringCandidate(const Pair::Ptr& pair, CandidateInfo candidate);
+    void onConnected(const Pair::Ptr& pair);
+    void onCompleted(const Pair::Ptr& pair);
 
     void refreshPermissions();
     void refreshChannelBindings();
 
-    void sendSendIndication(const sockaddr_storage& peer_addr, toolkit::Buffer::Ptr buffer, Pair::Ptr pair);
-    void sendRealyPacket(toolkit::Buffer::Ptr buffer, Pair::Ptr pair, bool flush);
+    void sendSendIndication(const sockaddr_storage& peer_addr, toolkit::Buffer::Ptr buffer, const Pair::Ptr& pair);
+    void sendRealyPacket(const toolkit::Buffer::Ptr& buffer, const Pair::Ptr& pair, bool flush);
 
 private:
 
-    CandidateInfo getLocalCandidateInfo(Pair::Ptr local_pair);
-    void addToChecklist(Pair::Ptr local_pair, CandidateInfo& remote_candidate);
+    CandidateInfo getLocalCandidateInfo(const Pair::Ptr& local_pair);
+    void addToChecklist(const Pair::Ptr& local_pair, CandidateInfo& remote_candidate);
 
 protected:
     IceServerInfo::Ptr _ice_server;

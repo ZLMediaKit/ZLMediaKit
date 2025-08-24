@@ -85,12 +85,12 @@ void IceSessionManager::removeItem(const std::string& key) {
 }
 
 // TODO 改成 const IceTransport::Pair::Ptr &pair ？
-void IceSession::onIceTransportRecvData(const toolkit::Buffer::Ptr& buffer, IceTransport::Pair::Ptr pair) {
+void IceSession::onIceTransportRecvData(const toolkit::Buffer::Ptr& buffer, const IceTransport::Pair::Ptr& pair) {
     _ice_transport->processSocketData((const uint8_t *)buffer->data(), buffer->size(), pair);
 }
 
 // TODO 改成 const IceTransport::Pair::Ptr &pair, const CandidateInfo &candidate ？
-void IceSession::onIceTransportGatheringCandidate(IceTransport::Pair::Ptr pair, CandidateInfo candidate) {
+void IceSession::onIceTransportGatheringCandidate(const IceTransport::Pair::Ptr& pair, CandidateInfo candidate) {
     DebugL;
 }
 
