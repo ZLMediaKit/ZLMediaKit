@@ -35,7 +35,7 @@ IceSession::IceSession(const Socket::Ptr &sock) : Session(sock) {
 
     GET_CONFIG(string, iceUfrag, Rtc::kIceUfrag);
     GET_CONFIG(string, icePwd, Rtc::kIcePwd);
-    _ice_transport = std::make_shared<IceServer>(this, iceUfrag, icePwd, getPoller());
+    _ice_transport = std::make_shared<IceServer>(this, std::move(iceUfrag), std::move(icePwd), getPoller());
     _ice_transport->initialize();
 }
 
@@ -46,8 +46,10 @@ EventPoller::Ptr IceSession::queryPoller(const Buffer::Ptr &buffer) {
 
 void IceSession::onRecv(const Buffer::Ptr &buffer) {
     // TraceL;
-    auto pair = std::make_shared<IceTransport::Pair>(shared_from_this()); // TODO 性能是否需要优化？
-    _ice_transport->processSocketData((const uint8_t *)buffer->data(), buffer->size(), pair);
+    if (!_session_pair) {
+        _session_pair = std::make_shared<IceTransport::Pair>(shared_from_this());
+    }
+    _ice_transport->processSocketData((const uint8_t *)buffer->data(), buffer->size(), _session_pair);
 }
 
 void IceSession::onError(const SockException &err) {
@@ -84,13 +86,11 @@ void IceSessionManager::removeItem(const std::string& key) {
     _map.erase(key);
 }
 
-// TODO 改成 const IceTransport::Pair::Ptr &pair ？
 void IceSession::onIceTransportRecvData(const toolkit::Buffer::Ptr& buffer, const IceTransport::Pair::Ptr& pair) {
     _ice_transport->processSocketData((const uint8_t *)buffer->data(), buffer->size(), pair);
 }
 
-// TODO 改成 const IceTransport::Pair::Ptr &pair, const CandidateInfo &candidate ？
-void IceSession::onIceTransportGatheringCandidate(const IceTransport::Pair::Ptr& pair, CandidateInfo candidate) {
+void IceSession::onIceTransportGatheringCandidate(const IceTransport::Pair::Ptr& pair, CandidateInfo& candidate) {
     DebugL;
 }
 

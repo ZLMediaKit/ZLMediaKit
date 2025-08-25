@@ -402,7 +402,7 @@ void WebRtcTransport::onIceTransportDisconnected() {
     InfoL << getIdentifier();
 }
 
-void WebRtcTransport::onIceTransportGatheringCandidate(const IceTransport::Pair::Ptr& pair, CandidateInfo candidate) {
+void WebRtcTransport::onIceTransportGatheringCandidate(const IceTransport::Pair::Ptr& pair, CandidateInfo& candidate) {
     InfoL << getIdentifier() << " get local candidate type "  << candidate.getAddressTypeStr() << " : " << candidate._addr._host << ":" << candidate._addr._port;
 
     if (_on_gathering_candidate) {

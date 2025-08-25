@@ -300,7 +300,7 @@ public:
 
     public:
         virtual void onIceTransportRecvData(const toolkit::Buffer::Ptr& buffer, const Pair::Ptr& pair) = 0;
-        virtual void onIceTransportGatheringCandidate(const Pair::Ptr&, CandidateInfo) = 0;
+        virtual void onIceTransportGatheringCandidate(const Pair::Ptr&, CandidateInfo&) = 0;
         virtual void onIceTransportDisconnected() = 0;
         virtual void onIceTransportCompleted() = 0;
     };
@@ -327,7 +327,7 @@ public:
         }
     };
 
-    IceTransport(Listener* listener, const std::string& ufrag, const std::string& password, const toolkit::EventPoller::Ptr &poller);
+    IceTransport(Listener* listener, std::string ufrag, std::string password, const toolkit::EventPoller::Ptr &poller);
     virtual ~IceTransport() {}
     
     virtual void initialize();
@@ -403,13 +403,12 @@ class IceServer : public IceTransport {
 public:
     using Ptr = std::shared_ptr<IceServer>;
     using WeakPtr = std::weak_ptr<IceServer>;
-    IceServer(Listener* listener, const std::string& ufrag, const std::string& password, const toolkit::EventPoller::Ptr &poller);
+    IceServer(Listener* listener, std::string ufrag, std::string password, const toolkit::EventPoller::Ptr &poller);
     virtual ~IceServer() {}
     
-    void initialize() override;
     bool processSocketData(const uint8_t* data, size_t len, const Pair::Ptr& pair) override;
-    void relayForwordingData(const toolkit::Buffer::Ptr& buffer, struct sockaddr_storage peer_addr);
-    void relayBackingData(const toolkit::Buffer::Ptr& buffer, const Pair::Ptr& pair, struct sockaddr_storage peer_addr);
+    void relayForwordingData(const toolkit::Buffer::Ptr& buffer, const sockaddr_storage& peer_addr);
+    void relayBackingData(const toolkit::Buffer::Ptr& buffer, const Pair::Ptr& pair, const sockaddr_storage& peer_addr);
 
 protected:
     void processRealyPacket(const toolkit::Buffer::Ptr &buffer, const Pair::Ptr& pair);
@@ -488,20 +487,17 @@ public:
     };
 
     IceAgent(Listener* listener, Implementation implementation, Role role, 
-             const std::string& ufrag, const std::string& password, 
+             std::string ufrag, std::string password, 
              const toolkit::EventPoller::Ptr &poller);
     virtual ~IceAgent() {}
     
-    void initialize() override;
-
     void setIceServer(IceServerInfo::Ptr ice_server) {
         _ice_server = ice_server;
     }
 
     void gatheringCandidate(CandidateTuple::Ptr candidate_tuple, bool gathering_rflx, bool gathering_realy);
-    void connectivityCheck(CandidateInfo candidate);
-    void Checks(CandidateInfo candidate);
-    void nominated(const Pair::Ptr& pair, CandidateTuple candidate);
+    void connectivityCheck(CandidateInfo& candidate);
+    void nominated(const Pair::Ptr& pair, CandidateTuple& candidate);
 
     void sendSocketData(const toolkit::Buffer::Ptr& buf, const Pair::Ptr& pair, bool flush = true) override;
 
@@ -543,12 +539,12 @@ public:
 protected:
     void gatheringSrflxCandidate(const Pair::Ptr& pair);
     void gatheringRealyCandidate(Pair::Ptr pair);
-    void localRealyedConnectivityCheck(CandidateInfo candidate);
-    void connectivityCheck(Pair::Ptr pair, CandidateTuple candidate);
+    void localRealyedConnectivityCheck(CandidateInfo& candidate);
+    void connectivityCheck(Pair::Ptr pair, CandidateTuple& candidate);
     void tryTriggerredCheck(const Pair::Ptr& pair);
 
-    void sendBindRequest(const Pair::Ptr& pair, MsgHandler&& handler);
-    void sendBindRequest(const Pair::Ptr& pair, CandidateTuple candidate, bool use_candidate, MsgHandler&& handler);
+    void sendBindRequest(const Pair::Ptr& pair, MsgHandler handler);
+    void sendBindRequest(const Pair::Ptr& pair, CandidateTuple& candidate, bool use_candidate, MsgHandler handler);
     void sendAllocateRequest(const Pair::Ptr& pair);
     void sendCreatePermissionRequest(const Pair::Ptr& pair, const sockaddr_storage& peer_addr);
     void sendChannelBindRequest(const Pair::Ptr& pair, uint16_t channel_number, const sockaddr_storage& peer_addr);
@@ -557,22 +553,22 @@ protected:
 
     void handleBindingRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair) override;
     void handleGatheringCandidateResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair);
-    void handleConnectivityCheckResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair, CandidateTuple candidate);
-    void handleNominatedResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair, CandidateTuple candidate);
+    void handleConnectivityCheckResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair, CandidateTuple& candidate);
+    void handleNominatedResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair, CandidateTuple& candidate);
     void handleAllocateResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair);
-    void handleCreatePermissionResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair, const sockaddr_storage peer_addr);
-    void handleChannelBindResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair, uint16_t channel_number, const sockaddr_storage peer_addr);
+    void handleCreatePermissionResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair, const sockaddr_storage& peer_addr);
+    void handleChannelBindResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair, uint16_t channel_number, const sockaddr_storage& peer_addr);
     void handleDataIndication(const StunPacket::Ptr& packet, const Pair::Ptr& pair);
     void handleChannelData(uint16_t channel_number, const char* data, size_t len, const Pair::Ptr& pair) override;
 
-    void onGatheringCandidate(const Pair::Ptr& pair, CandidateInfo candidate);
+    void onGatheringCandidate(const Pair::Ptr& pair, CandidateInfo& candidate);
     void onConnected(const Pair::Ptr& pair);
     void onCompleted(const Pair::Ptr& pair);
 
     void refreshPermissions();
     void refreshChannelBindings();
 
-    void sendSendIndication(const sockaddr_storage& peer_addr, toolkit::Buffer::Ptr buffer, const Pair::Ptr& pair);
+    void sendSendIndication(const sockaddr_storage& peer_addr, const toolkit::Buffer::Ptr& buffer, const Pair::Ptr& pair);
     void sendRealyPacket(const toolkit::Buffer::Ptr& buffer, const Pair::Ptr& pair, bool flush);
 
 private:

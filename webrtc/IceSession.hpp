@@ -36,11 +36,12 @@ public:
 
     // ice related callbacks ///
     void onIceTransportRecvData(const toolkit::Buffer::Ptr& buffer, const IceTransport::Pair::Ptr& pair) override;
-    void onIceTransportGatheringCandidate(const IceTransport::Pair::Ptr& pair, CandidateInfo candidate) override;
+    void onIceTransportGatheringCandidate(const IceTransport::Pair::Ptr& pair, CandidateInfo& candidate) override;
     void onIceTransportDisconnected() override;
     void onIceTransportCompleted() override;
 
 protected:
+    IceTransport::Pair::Ptr _session_pair = nullptr;
     IceServer::Ptr _ice_transport;
 };
 

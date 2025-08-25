@@ -173,9 +173,8 @@ void IceServerInfo::parse(const std::string &url_in) {
 
 ////////////  IceTransport //////////////////////////
 
-// TODO 如果是需要copy的变量，那么改成值传递并std::move拷贝
-IceTransport::IceTransport(Listener* listener, const std::string& ufrag, const std::string& password, const EventPoller::Ptr &poller)
-: _poller(poller), _listener(listener), _ufrag(ufrag), _password(password) {
+IceTransport::IceTransport(Listener* listener, std::string ufrag, std::string password, const EventPoller::Ptr &poller)
+: _poller(poller), _listener(listener), _ufrag(std::move(ufrag)), _password(std::move(password)) {
     TraceL;
     _identifier = makeRandStr(32);
     _request_handlers.emplace(std::make_pair(StunPacket::Class::REQUEST, StunPacket::Method::BINDING), 
@@ -218,19 +217,15 @@ void IceTransport::sendSocketData_l(const Buffer::Ptr& buf, const Pair::Ptr& pai
         pair->_socket->SockSender::send(tcp_len, 2);
     }
 
-    sockaddr_storage peer_addr;
-    pair->get_peer_addr(peer_addr);
-
 #if 0
     TraceL << "send data_len=" << buf->size()
            << ", " << pair->get_local_ip() << ":" << pair->get_local_port() 
-           << " -> " << pair->get_peer_ip() << ":" << pair->get_peer_port() 
-           << " peer_addr:  " << SockUtil::inet_ntoa((const struct sockaddr*)&peer_addr) << ":" 
-        << SockUtil::inet_port((const struct sockaddr*)&peer_addr);
-
+           << " -> " << pair->get_peer_ip() << ":" << pair->get_peer_port();
     TraceL << "data: " << hexdump(buf->data(), buf->size());
 #endif
 
+    sockaddr_storage peer_addr;
+    pair->get_peer_addr(peer_addr);
     auto addr_len = SockUtil::get_sock_len((const struct sockaddr*)&peer_addr);
     pair->_socket->sendto(std::move(buf), (struct sockaddr*)&peer_addr, addr_len);
     if (flush) {
@@ -309,13 +304,13 @@ void IceTransport::processResponse(const StunPacket::Ptr& packet, const Pair::Pt
     }
 
     auto request = it->second._request;
-    auto handle = it->second._handler;
+    auto handle = std::move(it->second._handler);
     // 收到响应后立即清理请求信息
     _response_handlers.erase(packet->getTransactionId().data());
 
     if (packet->getClass() == StunPacket::Class::ERROR_RESPONSE) {
         if (StunAttrErrorCode::Code::Unauthorized == packet->getErrorCode()) {
-            return processUnauthorizedResponse(packet, request, pair, handle);
+            return processUnauthorizedResponse(packet, request, pair, std::move(handle));
         }
         return;
     }
@@ -363,7 +358,6 @@ bool IceTransport::processChannelData(const uint8_t* data, size_t len, const Pai
     return true;
 }
 
-// TODO response, request, pair, handler是否改成引用传递更好？
 void IceTransport::processUnauthorizedResponse(const StunPacket::Ptr& response, const StunPacket::Ptr& request, const Pair::Ptr& pair, MsgHandler handler) {
     // TraceL;
     auto attr_nonce = dynamic_pointer_cast<StunAttrNonce>(response->getAttribute(StunAttribute::Type::NONCE));
@@ -376,7 +370,7 @@ void IceTransport::processUnauthorizedResponse(const StunPacket::Ptr& response, 
     request->addAttribute(attr_nonce);
     request->addAttribute(attr_realm);
     request->setNeedMessageIntegrity(true);
-    sendRequest(request, pair, handler);
+    sendRequest(request, pair, std::move(handler));
 }
 
 void IceTransport::processRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair) {
@@ -412,7 +406,6 @@ void IceTransport::handleBindingRequest(const StunPacket::Ptr& packet, const Pai
     attr_xor_mapped_address->setAddr(peer_addr);
     response->addAttribute(std::move(attr_xor_mapped_address));
 
-    // Send back.
     sendPacket(response, pair);
 }
 
@@ -452,7 +445,6 @@ void IceTransport::sendChannelData(uint16_t channel_number, const Buffer::Ptr& b
 
 void IceTransport::sendUnauthorizedResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair) {
     // TraceL;
-
     auto response = packet->createErrorResponse(StunAttrErrorCode::Code::Unauthorized);
     sendPacket(response, pair);
 }
@@ -463,10 +455,9 @@ void IceTransport::sendErrorResponse(const StunPacket::Ptr& packet, const Pair::
     sendPacket(response, pair);
 }
 
-// TODO packet, pair, handler 是否改成引用传递更好？
 void IceTransport::sendRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair, MsgHandler handler) {
     // TraceL;
-    _response_handlers.emplace(packet->getTransactionId().data(), RequestInfo(packet, handler, pair));
+    _response_handlers.emplace(packet->getTransactionId().data(), RequestInfo(packet, std::move(handler), pair));
     sendPacket(packet, pair);
 }
 
@@ -716,7 +707,7 @@ private:
     uint16_t _min_port = 0;
     uint16_t _max_port = 0;
     recursive_mutex _pool_mtx;
-    deque<uint16_t> _port_pool; // 修改：从_port_pair_pool改为_port_pool
+    deque<uint16_t> _port_pool;
 };
 
 //注册端口管理监听配置重载
@@ -727,8 +718,8 @@ onceToken PortManager_token([](){
 
 std::unordered_map<sockaddr_storage /*peer ip:port*/, IceServer::WeakPtr, toolkit::SockUtil::SockAddrHash, toolkit::SockUtil::SockAddrEqual> _realyed_session;
 
-IceServer::IceServer(Listener* listener, const std::string& ufrag, const std::string& password, const toolkit::EventPoller::Ptr &poller) 
-    : IceTransport(listener, ufrag, password, poller) {
+IceServer::IceServer(Listener* listener, std::string ufrag, std::string password, const toolkit::EventPoller::Ptr &poller) 
+    : IceTransport(listener, std::move(ufrag), std::move(password), poller) {
     DebugL;
 
     GET_CONFIG(bool, enable_turn, Rtc::kEnableTurn);
@@ -745,10 +736,6 @@ IceServer::IceServer(Listener* listener, const std::string& ufrag, const std::st
                                   std::bind(&IceServer::handleSendIndication, this, placeholders::_1, placeholders::_2));
     }
 
-}
-
-void IceServer::initialize() {
-    IceTransport::initialize();
 }
 
 bool IceServer::processSocketData(const uint8_t* data, size_t len, const Pair::Ptr& pair) {
@@ -778,7 +765,6 @@ void IceServer::processRealyPacket(const Buffer::Ptr &buffer, const Pair::Ptr& p
     }
 }
 
-// TODO packet， pair使用引用？
 void IceServer::handleAllocateRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair) {
     // TraceL;
     auto response = packet->createSuccessResponse();
@@ -807,7 +793,6 @@ void IceServer::handleAllocateRequest(const StunPacket::Ptr& packet, const Pair:
     sendPacket(response, pair);
 }
 
-// TODO packet， pair使用引用？
 void IceServer::handleRefreshRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair) {
     // TraceL
 }
@@ -831,7 +816,6 @@ void IceServer::handleCreatePermissionRequest(const StunPacket::Ptr& packet, con
     sendPacket(response, pair);
 }
 
-// TODO packet， pair使用引用？
 void IceServer::handleChannelbindRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair) {
     // TraceL
 
@@ -869,7 +853,6 @@ void IceServer::handleChannelbindRequest(const StunPacket::Ptr& packet, const Pa
     sendPacket(response, pair);
 }
 
-// TODO packet， pair使用引用？
 void IceServer::handleSendIndication(const StunPacket::Ptr& packet, const Pair::Ptr& pair) {
     // TraceL
 
@@ -895,7 +878,6 @@ void IceServer::handleSendIndication(const StunPacket::Ptr& packet, const Pair::
     return relayBackingData(send_buffer, pair, addr);
 }
 
-// TODO pair使用引用？
 void IceServer::handleChannelData(uint16_t channel_number, const char* data, size_t len, const Pair::Ptr& pair) {
     // TraceL << "Received ChannelData message, channel number: " << channel_number;
 
@@ -917,7 +899,6 @@ void IceServer::handleChannelData(uint16_t channel_number, const char* data, siz
     return relayBackingData(buffer, pair, peer_addr);
 }
 
-// TODO packet, pair使用引用？
 void IceServer::sendUnauthorizedResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair) {
     // TraceL
 
@@ -939,7 +920,6 @@ void IceServer::sendUnauthorizedResponse(const StunPacket::Ptr& packet, const Pa
     return IceTransport::sendUnauthorizedResponse(packet, pair);
 }
 
-// TODO packet, pair使用引用？
 StunPacket::Authentication IceServer::checkRequestAuthentication(const StunPacket::Ptr& packet, const Pair::Ptr& pair) {
     // TraceL
 
@@ -951,7 +931,6 @@ StunPacket::Authentication IceServer::checkRequestAuthentication(const StunPacke
     return IceTransport::checkRequestAuthentication(packet, pair);
 }
 
-// TODO pair使用引用？
 void IceServer::sendDataIndication(const sockaddr_storage& peer_addr, const Buffer::Ptr& buffer, const Pair::Ptr& pair) {
     // TraceL
 
@@ -1010,8 +989,7 @@ SocketHelper::Ptr IceServer::allocateRealyed(const Pair::Ptr& pair) {
     return socket;
 }
 
-// TODO peer_addr使用引用？
-void IceServer::relayForwordingData(const toolkit::Buffer::Ptr& buffer, struct sockaddr_storage peer_addr) {
+void IceServer::relayForwordingData(const toolkit::Buffer::Ptr& buffer, const sockaddr_storage& peer_addr) {
     TraceL;
     getPoller()->async([=]() {
         auto it = _realyed_pairs.find(peer_addr);
@@ -1056,8 +1034,7 @@ void IceServer::relayForwordingData(const toolkit::Buffer::Ptr& buffer, struct s
     });
 }
 
-// TODO pair, peer_addr使用引用？
-void IceServer::relayBackingData(const toolkit::Buffer::Ptr& buffer, const Pair::Ptr& pair, struct sockaddr_storage peer_addr) {
+void IceServer::relayBackingData(const toolkit::Buffer::Ptr& buffer, const Pair::Ptr& pair, const sockaddr_storage& peer_addr) {
     // TraceL;
 
     sockaddr_storage addr;
@@ -1112,8 +1089,8 @@ SocketHelper::Ptr IceServer::createRealyedUdpSocket(const std::string &peer_host
 
 ////////////  IceAgent //////////////////////////
 
-IceAgent::IceAgent(Listener* listener, Implementation implementation, Role role, const std::string& ufrag, const std::string& password, const toolkit::EventPoller::Ptr &poller) 
-: IceTransport(listener, ufrag, password, poller), _implementation(implementation) ,_role(role) {
+IceAgent::IceAgent(Listener* listener, Implementation implementation, Role role, std::string ufrag, std::string password, const toolkit::EventPoller::Ptr &poller) 
+: IceTransport(listener, std::move(ufrag), std::move(password), poller), _implementation(implementation) ,_role(role) {
     DebugL;
     _tiebreaker = makeRandNum();
     // 创建定时器，每分钟检查一次权限和通道绑定是否需要刷新
@@ -1124,10 +1101,6 @@ IceAgent::IceAgent(Listener* listener, Implementation implementation, Role role,
             return true;
         }, getPoller()
     );
-}
-
-void IceAgent::initialize() {
-    IceTransport::initialize();
 }
 
 void IceAgent::gatheringCandidate(CandidateTuple::Ptr candidate_tuple, bool gathering_rflx, bool gathering_realy) {
@@ -1173,8 +1146,7 @@ void IceAgent::gatheringCandidate(CandidateTuple::Ptr candidate_tuple, bool gath
     }
 }
 
-// TODO candidate使用引用？
-void IceAgent::connectivityCheck(CandidateInfo candidate) {
+void IceAgent::connectivityCheck(CandidateInfo& candidate) {
     TraceL;
 
     setState(IceAgent::State::Running);
@@ -1192,8 +1164,7 @@ void IceAgent::connectivityCheck(CandidateInfo candidate) {
 
 }
 
-// TODO candidate使用引用？
-void IceAgent::localRealyedConnectivityCheck(CandidateInfo candidate) {
+void IceAgent::localRealyedConnectivityCheck(CandidateInfo& candidate) {
     TraceL;
     for (auto socket: _socket_candidate_manager._relay_sockets) {
         auto local_realy_pair = std::make_shared<Pair>(socket, _ice_server->_addr._host, _ice_server->_addr._port);
@@ -1206,15 +1177,13 @@ void IceAgent::localRealyedConnectivityCheck(CandidateInfo candidate) {
     }
 }
 
-// TODO pair, candidate使用引用？
-void IceAgent::nominated(const Pair::Ptr& pair, CandidateTuple candidate) {
+void IceAgent::nominated(const Pair::Ptr& pair, CandidateTuple& candidate) {
     // TraceL;
     auto handler = std::bind(&IceAgent::handleNominatedResponse, this, placeholders::_1, placeholders::_2, candidate);
     sendBindRequest(pair, candidate, true, std::move(handler));
 }
 
-// TODO buffer, pair使用引用？
-void IceAgent::sendSendIndication(const sockaddr_storage& peer_addr, toolkit::Buffer::Ptr buffer, const Pair::Ptr& pair) {
+void IceAgent::sendSendIndication(const sockaddr_storage& peer_addr, const Buffer::Ptr& buffer, const Pair::Ptr& pair) {
     // TraceL;
     auto packet = std::make_shared<SendIndicationPacket>();
 
@@ -1231,34 +1200,29 @@ void IceAgent::sendSendIndication(const sockaddr_storage& peer_addr, toolkit::Bu
     sendPacket(packet, pair);
 }
 
-// TODO pair使用引用？
 void IceAgent::gatheringSrflxCandidate(const Pair::Ptr& pair) {
     // TraceL;
     auto handle = std::bind(&IceAgent::handleGatheringCandidateResponse, this, placeholders::_1, placeholders::_2);
-    sendBindRequest(pair, handle);
+    sendBindRequest(pair, std::move(handle));
 }
 
-// TODO pair使用引用？
 void IceAgent::gatheringRealyCandidate(Pair::Ptr pair) {
     // TraceL;
     sendAllocateRequest(pair);
 }
 
-// TODO pair, candidate使用引用？
-void IceAgent::connectivityCheck(Pair::Ptr pair, CandidateTuple candidate) {
+void IceAgent::connectivityCheck(Pair::Ptr pair, CandidateTuple& candidate) {
     // TraceL;
     auto handler = std::bind(&IceAgent::handleConnectivityCheckResponse, this, placeholders::_1, placeholders::_2, candidate);
     sendBindRequest(pair, candidate, false, std::move(handler));
 }
 
-// TODO pair 使用引用？
 void IceAgent::tryTriggerredCheck(const Pair::Ptr& pair) {
     DebugL;
     //FIXME 暂不实现,因为当前实现基本收到candidate就会发起check
 }
 
-// TODO pair, handler 使用引用？
-void IceAgent::sendBindRequest(const Pair::Ptr& pair, MsgHandler&& handler) {
+void IceAgent::sendBindRequest(const Pair::Ptr& pair, MsgHandler handler) {
     // TraceL;
     auto packet = std::make_shared<BindingPacket>();
     packet->setUfrag(_ufrag);
@@ -1268,11 +1232,10 @@ void IceAgent::sendBindRequest(const Pair::Ptr& pair, MsgHandler&& handler) {
 
     packet->setNeedFingerprint(false);
     packet->setNeedMessageIntegrity(false);
-    sendRequest(packet, pair, handler);
+    sendRequest(packet, pair, std::move(handler));
 }
 
-// TODO pair, candidate, handler 使用引用？
-void IceAgent::sendBindRequest(const Pair::Ptr& pair, CandidateTuple candidate, bool use_candidate, MsgHandler&& handler) {
+void IceAgent::sendBindRequest(const Pair::Ptr& pair, CandidateTuple& candidate, bool use_candidate, MsgHandler handler) {
     // TraceL;
     auto packet = std::make_shared<BindingPacket>();
     packet->setUfrag(_ufrag);
@@ -1305,10 +1268,9 @@ void IceAgent::sendBindRequest(const Pair::Ptr& pair, CandidateTuple candidate, 
         packet->addAttribute(std::move(attr_priority));
     }
 
-    sendRequest(packet, pair, handler);
+    sendRequest(packet, pair, std::move(handler));
 }
 
-// TODO pair使用引用？
 void IceAgent::sendAllocateRequest(const Pair::Ptr& pair) {
     // TraceL;
     auto packet = std::make_shared<AllocatePacket>();
@@ -1322,10 +1284,9 @@ void IceAgent::sendAllocateRequest(const Pair::Ptr& pair) {
     packet->addAttribute(std::move(attr_requested_transport));
 
     auto handler = std::bind(&IceAgent::handleAllocateResponse, this, placeholders::_1,  placeholders::_2);
-    sendRequest(packet, pair, handler);
+    sendRequest(packet, pair, std::move(handler));
 }
 
-// TODO pair使用引用？
 void IceAgent::sendCreatePermissionRequest(const Pair::Ptr& pair, const sockaddr_storage& peer_addr) {
     // TraceL;
 
@@ -1345,10 +1306,9 @@ void IceAgent::sendCreatePermissionRequest(const Pair::Ptr& pair, const sockaddr
     packet->addAttribute(std::move(attr_peer_address));
 
     auto handler = std::bind(&IceAgent::handleCreatePermissionResponse, this, placeholders::_1, placeholders::_2, peer_addr);
-    sendRequest(packet, pair, handler);
+    sendRequest(packet, pair, std::move(handler));
 }
 
-// TODO pair使用引用？
 void IceAgent::sendChannelBindRequest(const Pair::Ptr& pair, uint16_t channel_number, const sockaddr_storage& peer_addr) {
     // TraceL;
     auto packet = std::make_shared<ChannelBindPacket>();
@@ -1370,7 +1330,7 @@ void IceAgent::sendChannelBindRequest(const Pair::Ptr& pair, uint16_t channel_nu
     packet->addAttribute(std::move(attr_peer_address));
 
     auto handler = std::bind(&IceAgent::handleChannelBindResponse, this, placeholders::_1, placeholders::_2, channel_number, peer_addr);
-    sendRequest(packet, pair, handler);
+    sendRequest(packet, pair, std::move(handler));
 }
 
 void IceAgent::processRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair) {
@@ -1380,7 +1340,6 @@ void IceAgent::processRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pa
     return IceTransport::processRequest(packet, pair);
 }
 
-// TODO packet, pair使用引用？
 void IceAgent::handleBindingRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair) {
     // TraceL;
     auto controlling = static_pointer_cast<StunAttrIceControlling>(packet->getAttribute(StunAttribute::Type::ICE_CONTROLLING));
@@ -1444,7 +1403,6 @@ void IceAgent::handleBindingRequest(const StunPacket::Ptr& packet, const Pair::P
 
 }
 
-// TODO packet, pair使用引用？
 void IceAgent::handleGatheringCandidateResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair) {
     // TraceL; 
 
@@ -1470,8 +1428,7 @@ void IceAgent::handleGatheringCandidateResponse(const StunPacket::Ptr& packet, c
     onGatheringCandidate(pair, candidate);
 }
 
-// TODO packet, pair, candidate使用引用？
-void IceAgent::handleConnectivityCheckResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair, CandidateTuple candidate) {
+void IceAgent::handleConnectivityCheckResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair, CandidateTuple& candidate) {
     // TraceL; 
 
     if (RTC::StunPacket::Class::SUCCESS_RESPONSE != packet->getClass()) {
@@ -1524,8 +1481,7 @@ void IceAgent::handleConnectivityCheckResponse(const StunPacket::Ptr& packet, co
     onConnected(pair);
 }
 
-// TODO packet, pair, candidate使用引用？
-void IceAgent::handleNominatedResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair, CandidateTuple candidate) {
+void IceAgent::handleNominatedResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair, CandidateTuple& candidate) {
     // TraceL; 
 
     if (RTC::StunPacket::Class::SUCCESS_RESPONSE != packet->getClass()) {
@@ -1567,7 +1523,6 @@ void IceAgent::handleNominatedResponse(const StunPacket::Ptr& packet, const Pair
     onCompleted(pair);
 }
 
-// TODO packet, pair使用引用？
 void IceAgent::handleAllocateResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair) {
     // TraceL; 
 
@@ -1619,8 +1574,7 @@ void IceAgent::handleAllocateResponse(const StunPacket::Ptr& packet, const Pair:
     onGatheringCandidate(pair, candidate);
 }
 
-// TODO packet, pair, peer_addr使用引用？
-void IceAgent::handleCreatePermissionResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair, const sockaddr_storage peer_addr) {
+void IceAgent::handleCreatePermissionResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair, const sockaddr_storage& peer_addr) {
     // TraceL; 
 
     if (RTC::StunPacket::Class::SUCCESS_RESPONSE != packet->getClass()) {
@@ -1639,8 +1593,7 @@ void IceAgent::handleCreatePermissionResponse(const StunPacket::Ptr& packet, con
     sendChannelBindRequest(pair, channel_number, peer_addr);
 }
 
-// TODO packet, peer_addr使用引用？
-void IceAgent::handleChannelBindResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair, uint16_t channel_number, const sockaddr_storage peer_addr) {
+void IceAgent::handleChannelBindResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair, uint16_t channel_number, const sockaddr_storage& peer_addr) {
     // TraceL;
 
     if (RTC::StunPacket::Class::SUCCESS_RESPONSE != packet->getClass()) {
@@ -1657,7 +1610,6 @@ void IceAgent::handleChannelBindResponse(const StunPacket::Ptr& packet, const Pa
     addChannelBind(channel_number, peer_addr);
 }
 
-// TODO packet, pair使用引用？
 void IceAgent::handleDataIndication(const StunPacket::Ptr& packet, const Pair::Ptr& pair) {
     // TraceL;
 
@@ -1697,7 +1649,6 @@ void IceAgent::handleDataIndication(const StunPacket::Ptr& packet, const Pair::P
     _listener->onIceTransportRecvData(recv_buffer, pair);
 }
 
-// TODO pair使用引用？
 void IceAgent::handleChannelData(uint16_t channel_number, const char* data, size_t len, const Pair::Ptr& pair) {
     // TraceL << "Received ChannelData message, channel number: " << channel_number;
 
@@ -1715,14 +1666,13 @@ void IceAgent::handleChannelData(uint16_t channel_number, const char* data, size
     auto buffer = BufferRaw::create(len);
     buffer->assign(data, len);
 
-    // 通知上层收到数据
-    pair->_realyed_addr = std::make_shared<sockaddr_storage>();
-    memcpy(pair->_realyed_addr.get(), &addr, sizeof(addr));
-    _listener->onIceTransportRecvData(buffer, pair);
+    auto channel_pair = std::make_shared<Pair>(*pair);
+    channel_pair->_realyed_addr = std::make_shared<sockaddr_storage>();
+    memcpy(channel_pair->_realyed_addr.get(), &addr, sizeof(addr));
+    _listener->onIceTransportRecvData(buffer, channel_pair);
 }
 
-// TODO pair, candidate使用引用？
-void IceAgent::onGatheringCandidate(const Pair::Ptr& pair, CandidateInfo candidate) {
+void IceAgent::onGatheringCandidate(const Pair::Ptr& pair, CandidateInfo& candidate) {
     candidate._priority = calIceCandidatePriority(candidate._type);
     InfoL << "get local candidate type "  << candidate.getAddressTypeStr() << " : " << candidate._addr._host << ":" << candidate._addr._port;
 
@@ -1743,7 +1693,6 @@ void IceAgent::onGatheringCandidate(const Pair::Ptr& pair, CandidateInfo candida
     }
 }
 
-// TODO pair使用引用？
 void IceAgent::onConnected(const IceTransport::Pair::Ptr& pair) {
     DebugL << "get connectivity check pair: " 
         << pair->get_local_ip() << ":" << pair->get_local_port()
