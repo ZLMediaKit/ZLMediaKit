@@ -472,6 +472,17 @@ if(ENABLE_SRT)
   update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_SRT)
 endif()
 
+if(ENABLE_WEBRTC)
+  # 查找 srtp 是否安装
+  find_package(SRTP QUIET)
+  if(SRTP_FOUND AND ENABLE_OPENSSL)
+    message(STATUS "found library: ${SRTP_LIBRARIES}, ENABLE_WEBRTC defined")
+    update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_WEBRTC)
+  else()
+    set(ENABLE_WEBRTC OFF)
+    message(WARNING "srtp 未找到, WebRTC 相关功能打开失败")
+  endif()
+endif()
 # ----------------------------------------------------------------------------
 # Solution folders:
 # ----------------------------------------------------------------------------

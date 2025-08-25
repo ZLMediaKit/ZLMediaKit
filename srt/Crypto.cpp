@@ -49,11 +49,11 @@ inline const EVP_CIPHER* aes_key_len_mapping_ctr_cipher(int key_len) {
 static bool aes_wrap(const uint8_t* in, int in_len, uint8_t* out, int* outLen, uint8_t* key, int key_len) {
 
 #if defined(ENABLE_OPENSSL)
-	EVP_CIPHER_CTX* ctx = NULL;
+    EVP_CIPHER_CTX* ctx = NULL;
 
    *outLen = 0;
 
-	do {
+    do {
         if (!(ctx = EVP_CIPHER_CTX_new())) {
             WarnL << "EVP_CIPHER_CTX_new fail";
             break;
@@ -62,29 +62,29 @@ static bool aes_wrap(const uint8_t* in, int in_len, uint8_t* out, int* outLen, u
 
         if (1 != EVP_EncryptInit_ex(ctx, aes_key_len_mapping_wrap_cipher(key_len), NULL, key, NULL)) {
             WarnL << "EVP_EncryptInit_ex fail";
-			break;
-		}
+            break;
+        }
 
-		int len1 = 0;
-		if (1 != EVP_EncryptUpdate(ctx, (uint8_t*)out, &len1, (uint8_t*)in, in_len)) {
+        int len1 = 0;
+        if (1 != EVP_EncryptUpdate(ctx, (uint8_t*)out, &len1, (uint8_t*)in, in_len)) {
             WarnL << "EVP_EncryptUpdate fail";
-			break;
-		}
+            break;
+        }
 
-		int len2 = 0;
-		if (1 != EVP_EncryptFinal_ex(ctx, (uint8_t*)out + len1, &len2)) {
+        int len2 = 0;
+        if (1 != EVP_EncryptFinal_ex(ctx, (uint8_t*)out + len1, &len2)) {
             WarnL << "EVP_EncryptFinal_ex fail";
-			break;
-		}
+            break;
+        }
 
-		*outLen = len1 + len2;
-	} while (0);
+        *outLen = len1 + len2;
+    } while (0);
 
-	if (ctx != NULL) {
-		EVP_CIPHER_CTX_free(ctx);
-	}
+    if (ctx != NULL) {
+        EVP_CIPHER_CTX_free(ctx);
+    }
 
-	return *outLen != 0;
+    return *outLen != 0;
 #else
     return false;
 #endif
@@ -103,11 +103,11 @@ static bool aes_wrap(const uint8_t* in, int in_len, uint8_t* out, int* outLen, u
 static bool aes_unwrap(const uint8_t* in, int in_len, uint8_t* out, int* outLen, uint8_t* key, int key_len) {
 
 #if defined(ENABLE_OPENSSL)
-	EVP_CIPHER_CTX* ctx = NULL;
+    EVP_CIPHER_CTX* ctx = NULL;
 
     *outLen = 0;
 
-	do {
+    do {
 
         if (!(ctx = EVP_CIPHER_CTX_new())) {
             WarnL << "EVP_CIPHER_CTX_new fail";
@@ -117,8 +117,8 @@ static bool aes_unwrap(const uint8_t* in, int in_len, uint8_t* out, int* outLen,
 
         if (1 != EVP_DecryptInit_ex(ctx, aes_key_len_mapping_wrap_cipher(key_len), NULL, key, NULL)) {
             WarnL << "EVP_DecryptInit_ex fail";
-			break;
-		}
+            break;
+        }
 
         //设置pkcs7padding
         if (1 != EVP_CIPHER_CTX_set_padding(ctx, 1)) {
@@ -126,26 +126,26 @@ static bool aes_unwrap(const uint8_t* in, int in_len, uint8_t* out, int* outLen,
             break;
         }
 
-		int len1 = 0;
-		if (1 != EVP_DecryptUpdate(ctx, (uint8_t*)out, &len1, (uint8_t*)in, in_len)) {
+        int len1 = 0;
+        if (1 != EVP_DecryptUpdate(ctx, (uint8_t*)out, &len1, (uint8_t*)in, in_len)) {
             WarnL << "EVP_DecryptUpdate fail";
-			break;
-		}
+            break;
+        }
 
-		int len2 = 0;
-		if (1 != EVP_DecryptFinal_ex(ctx, (uint8_t*)out + len1, &len2)) {
+        int len2 = 0;
+        if (1 != EVP_DecryptFinal_ex(ctx, (uint8_t*)out + len1, &len2)) {
             WarnL << "EVP_DecryptFinal_ex fail";
-			break;
-		}
+            break;
+        }
 
-		*outLen = len1 + len2;
-	} while (0);
+        *outLen = len1 + len2;
+    } while (0);
 
-	if (ctx != NULL) {
-		EVP_CIPHER_CTX_free(ctx);
-	}
+    if (ctx != NULL) {
+        EVP_CIPHER_CTX_free(ctx);
+    }
 
-	return *outLen != 0;
+    return *outLen != 0;
 
 #else
     return false;
@@ -166,11 +166,11 @@ static bool aes_unwrap(const uint8_t* in, int in_len, uint8_t* out, int* outLen,
 static bool aes_ctr_encrypt(const uint8_t* in, int in_len, uint8_t* out, int* outLen, uint8_t* key, int key_len, uint8_t* iv) {
 
 #if defined(ENABLE_OPENSSL)
-	EVP_CIPHER_CTX* ctx = NULL;
+    EVP_CIPHER_CTX* ctx = NULL;
 
    *outLen = 0;
 
-	do {
+    do {
         if (!(ctx = EVP_CIPHER_CTX_new())) {
             WarnL << "EVP_CIPHER_CTX_new fail";
             break;
@@ -178,29 +178,29 @@ static bool aes_ctr_encrypt(const uint8_t* in, int in_len, uint8_t* out, int* ou
 
         if (1 != EVP_EncryptInit_ex(ctx, aes_key_len_mapping_ctr_cipher(key_len), NULL, key, iv)) {
             WarnL << "EVP_EncryptInit_ex fail";
-			break;
-		}
+            break;
+        }
 
-		int len1 = 0;
-		if (1 != EVP_EncryptUpdate(ctx, (uint8_t*)out, &len1, (uint8_t*)in, in_len)) {
+        int len1 = 0;
+        if (1 != EVP_EncryptUpdate(ctx, (uint8_t*)out, &len1, (uint8_t*)in, in_len)) {
             WarnL << "EVP_EncryptUpdate fail";
-			break;
-		}
+            break;
+        }
 
-		int len2 = 0;
-		if (1 != EVP_EncryptFinal_ex(ctx, (uint8_t*)out + len1, &len2)) {
+        int len2 = 0;
+        if (1 != EVP_EncryptFinal_ex(ctx, (uint8_t*)out + len1, &len2)) {
             WarnL << "EVP_EncryptFinal_ex fail";
-			break;
-		}
+            break;
+        }
 
-		*outLen = len1 + len2;
-	} while (0);
+        *outLen = len1 + len2;
+    } while (0);
 
-	if (ctx != NULL) {
-		EVP_CIPHER_CTX_free(ctx);
-	}
+    if (ctx != NULL) {
+        EVP_CIPHER_CTX_free(ctx);
+    }
 
-	return *outLen != 0;
+    return *outLen != 0;
 #else
     return false;
 #endif
@@ -221,42 +221,42 @@ static bool aes_ctr_encrypt(const uint8_t* in, int in_len, uint8_t* out, int* ou
 static bool aes_ctr_decrypt(const uint8_t* in, int in_len, uint8_t* out, int* outLen, uint8_t* key, int key_len, uint8_t* iv) {
 
 #if defined(ENABLE_OPENSSL)
-	EVP_CIPHER_CTX* ctx = NULL;
+    EVP_CIPHER_CTX* ctx = NULL;
 
     *outLen = 0;
 
-	do {
+    do {
 
         if (!(ctx = EVP_CIPHER_CTX_new())) {
             WarnL << "EVP_CIPHER_CTX_new fail";
             break;
         }
 
-		if (1 != EVP_DecryptInit_ex(ctx, aes_key_len_mapping_ctr_cipher(key_len), NULL, key, iv)) {
+        if (1 != EVP_DecryptInit_ex(ctx, aes_key_len_mapping_ctr_cipher(key_len), NULL, key, iv)) {
             WarnL << "EVP_DecryptInit_ex fail";
-			break;
-		}
+            break;
+        }
 
-		int len1 = 0;
-		if (1 != EVP_DecryptUpdate(ctx, (uint8_t*)out, &len1, (uint8_t*)in, in_len)) {
+        int len1 = 0;
+        if (1 != EVP_DecryptUpdate(ctx, (uint8_t*)out, &len1, (uint8_t*)in, in_len)) {
             WarnL << "EVP_DecryptUpdate fail";
-			break;
-		}
+            break;
+        }
 
-		int len2 = 0;
-		if (1 != EVP_DecryptFinal_ex(ctx, (uint8_t*)out + len1, &len2)) {
+        int len2 = 0;
+        if (1 != EVP_DecryptFinal_ex(ctx, (uint8_t*)out + len1, &len2)) {
             WarnL << "EVP_DecryptFinal_ex fail";
-			break;
-		}
+            break;
+        }
 
-		*outLen = len1 + len2;
-	} while (0);
+        *outLen = len1 + len2;
+    } while (0);
 
-	if (ctx != NULL) {
-		EVP_CIPHER_CTX_free(ctx);
-	}
+    if (ctx != NULL) {
+        EVP_CIPHER_CTX_free(ctx);
+    }
 
-	return *outLen != 0;
+    return *outLen != 0;
 
 #else
     return false;

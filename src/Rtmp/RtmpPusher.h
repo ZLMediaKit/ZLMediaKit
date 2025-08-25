@@ -29,7 +29,7 @@ public:
 
     size_t getSendSpeed() override;
     size_t getSendTotalBytes() override;
-	
+    
 protected:
     //for Tcpclient override
     void onRecv(const toolkit::Buffer::Ptr &buf) override;
