@@ -173,8 +173,8 @@ void IceServerInfo::parse(const std::string &url_in) {
 
 ////////////  IceTransport //////////////////////////
 
-IceTransport::IceTransport(Listener* listener, std::string ufrag, std::string password, const EventPoller::Ptr &poller)
-: _poller(poller), _listener(listener), _ufrag(std::move(ufrag)), _password(std::move(password)) {
+IceTransport::IceTransport(Listener* listener, std::string ufrag, std::string password, EventPoller::Ptr poller)
+: _poller(std::move(poller)), _listener(listener), _ufrag(std::move(ufrag)), _password(std::move(password)) {
     TraceL;
     _identifier = makeRandStr(32);
     _request_handlers.emplace(std::make_pair(StunPacket::Class::REQUEST, StunPacket::Method::BINDING), 
@@ -718,8 +718,8 @@ onceToken PortManager_token([](){
 
 std::unordered_map<sockaddr_storage /*peer ip:port*/, IceServer::WeakPtr, toolkit::SockUtil::SockAddrHash, toolkit::SockUtil::SockAddrEqual> _realyed_session;
 
-IceServer::IceServer(Listener* listener, std::string ufrag, std::string password, const toolkit::EventPoller::Ptr &poller) 
-    : IceTransport(listener, std::move(ufrag), std::move(password), poller) {
+IceServer::IceServer(Listener* listener, std::string ufrag, std::string password, toolkit::EventPoller::Ptr poller)
+    : IceTransport(listener, std::move(ufrag), std::move(password), std::move(poller)) {
     DebugL;
 
     GET_CONFIG(bool, enable_turn, Rtc::kEnableTurn);
@@ -1089,8 +1089,8 @@ SocketHelper::Ptr IceServer::createRealyedUdpSocket(const std::string &peer_host
 
 ////////////  IceAgent //////////////////////////
 
-IceAgent::IceAgent(Listener* listener, Implementation implementation, Role role, std::string ufrag, std::string password, const toolkit::EventPoller::Ptr &poller) 
-: IceTransport(listener, std::move(ufrag), std::move(password), poller), _implementation(implementation) ,_role(role) {
+IceAgent::IceAgent(Listener* listener, Implementation implementation, Role role, std::string ufrag, std::string password, toolkit::EventPoller::Ptr poller)
+: IceTransport(listener, std::move(ufrag), std::move(password), std::move(poller)), _implementation(implementation) ,_role(role) {
     DebugL;
     _tiebreaker = makeRandNum();
     // 创建定时器，每分钟检查一次权限和通道绑定是否需要刷新
@@ -1103,7 +1103,7 @@ IceAgent::IceAgent(Listener* listener, Implementation implementation, Role role,
     );
 }
 
-void IceAgent::gatheringCandidate(CandidateTuple::Ptr candidate_tuple, bool gathering_rflx, bool gathering_realy) {
+void IceAgent::gatheringCandidate(const CandidateTuple::Ptr& candidate_tuple, bool gathering_rflx, bool gathering_realy) {
     // TraceL;
 
     auto interfaces = SockUtil::getInterfaceList();
@@ -1206,12 +1206,12 @@ void IceAgent::gatheringSrflxCandidate(const Pair::Ptr& pair) {
     sendBindRequest(pair, std::move(handle));
 }
 
-void IceAgent::gatheringRealyCandidate(Pair::Ptr pair) {
+void IceAgent::gatheringRealyCandidate(const Pair::Ptr &pair) {
     // TraceL;
     sendAllocateRequest(pair);
 }
 
-void IceAgent::connectivityCheck(Pair::Ptr pair, CandidateTuple& candidate) {
+void IceAgent::connectivityCheck(const Pair::Ptr &pair, CandidateTuple& candidate) {
     // TraceL;
     auto handler = std::bind(&IceAgent::handleConnectivityCheckResponse, this, placeholders::_1, placeholders::_2, candidate);
     sendBindRequest(pair, candidate, false, std::move(handler));

@@ -201,7 +201,7 @@ protected:
     virtual void onStartWebRTC() = 0;
     virtual void onRtcConfigure(RtcConfigure &configure) const;
     virtual void onCheckSdp(SdpType type, RtcSession &sdp) = 0;
-    virtual void onSendSockData(Buffer::Ptr buf, bool flush = true, IceTransport::Pair::Ptr pair = nullptr) = 0;
+    virtual void onSendSockData(Buffer::Ptr buf, bool flush = true, const IceTransport::Pair::Ptr& pair = nullptr) = 0;
 
     virtual void onRtp(const char *buf, size_t len, uint64_t stamp_ms) = 0;
     virtual void onRtcp(const char *buf, size_t len) = 0;
@@ -216,7 +216,7 @@ protected:
     void sendRtcpPli(uint32_t ssrc);
 
 private:
-    void sendSockData(const char *buf, size_t len, IceTransport::Pair::Ptr pair);
+    void sendSockData(const char *buf, size_t len, const IceTransport::Pair::Ptr& pair);
     void setRemoteDtlsFingerprint(SdpType type, const RtcSession &remote);
 
 protected:
@@ -323,7 +323,7 @@ protected:
     WebRtcTransportImp(const EventPoller::Ptr &poller);
     void OnDtlsTransportApplicationDataReceived(const RTC::DtlsTransport *dtlsTransport, const uint8_t *data, size_t len) override;
     void onStartWebRTC() override;
-    void onSendSockData(Buffer::Ptr buf, bool flush = true, IceTransport::Pair::Ptr pair = nullptr) override;
+    void onSendSockData(Buffer::Ptr buf, bool flush = true, const IceTransport::Pair::Ptr& pair = nullptr) override;
     void onCheckSdp(SdpType type, RtcSession &sdp) override;
     void onRtcConfigure(RtcConfigure &configure) const override;
 

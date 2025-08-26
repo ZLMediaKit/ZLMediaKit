@@ -186,7 +186,6 @@ public:
     SchemaType    _schema = SchemaType::TURN;
 };
 
-
 class IceTransport : public std::enable_shared_from_this<IceTransport> {
 public:
     using Ptr = std::shared_ptr<IceTransport>;
@@ -196,10 +195,10 @@ public:
         using Ptr = std::shared_ptr<Pair>;
 
         Pair() = default;
-        Pair(toolkit::SocketHelper::Ptr socket) : _socket(socket) {}
-        Pair(toolkit::SocketHelper::Ptr socket, const std::string& peer_host, uint16_t peer_port,
+        Pair(toolkit::SocketHelper::Ptr socket) : _socket(std::move(socket)) {}
+        Pair(toolkit::SocketHelper::Ptr socket, std::string peer_host, uint16_t peer_port,
              std::shared_ptr<sockaddr_storage> realyed_addr = nullptr) : 
-            _socket(socket), _peer_host(peer_host), _peer_port(peer_port), _realyed_addr(realyed_addr) {
+            _socket(std::move(socket)), _peer_host(std::move(peer_host)), _peer_port(peer_port), _realyed_addr(std::move(realyed_addr)) {
         }
 
         Pair(Pair &that) {
@@ -267,7 +266,7 @@ public:
 
         static bool is_same_realyed_addr(Pair* a, Pair* b) {
             if (a->_realyed_addr != nullptr && b->_realyed_addr != nullptr) {
-                return toolkit::SockUtil::is_same_addr(reinterpret_cast<const struct sockaddr*>(a->_realyed_addr.get()), 
+                return toolkit::SockUtil::is_same_addr(reinterpret_cast<const struct sockaddr*>(a->_realyed_addr.get()),
                 reinterpret_cast<const struct sockaddr*>(b->_realyed_addr.get()));
             }
             return (a->_realyed_addr == b->_realyed_addr);
@@ -320,14 +319,14 @@ public:
         static const uint32_t INITIAL_RTO = 500;    // 初始RTO 500ms
         static const uint32_t MAX_RETRIES = 7;      // 最大重传次数
         
-        RequestInfo(const StunPacket::Ptr& req, const MsgHandler& h, const Pair::Ptr& p)
-            : _request(req), _handler(h), _pair(p), _retry_count(0), _rto(INITIAL_RTO) {
+        RequestInfo(StunPacket::Ptr req, MsgHandler h, Pair::Ptr p)
+            : _request(std::move(req)), _handler(std::move(h)), _pair(std::move(p)), _retry_count(0), _rto(INITIAL_RTO) {
             _send_time = toolkit::getCurrentMillisecond();
             _next_timeout = _send_time + _rto;
         }
     };
 
-    IceTransport(Listener* listener, std::string ufrag, std::string password, const toolkit::EventPoller::Ptr &poller);
+    IceTransport(Listener* listener, std::string ufrag, std::string password, toolkit::EventPoller::Ptr poller);
     virtual ~IceTransport() {}
     
     virtual void initialize();
@@ -337,8 +336,8 @@ public:
 
     const std::string& getUfrag() const { return _ufrag; }
     const std::string& getPassword() const { return _password; }
-    void setUFrag(const std::string& ufrag) { _ufrag = ufrag; }
-    void setPassword(const std::string& password) { _password = password; }
+    void setUFrag(std::string ufrag) { _ufrag = std::move(ufrag); }
+    void setPassword(std::string password) { _password = std::move(password); }
 
     virtual bool processSocketData(const uint8_t* data, size_t len, const Pair::Ptr& pair);
     virtual void sendSocketData(const toolkit::Buffer::Ptr& buf, const Pair::Ptr& pair, bool flush = true);
@@ -403,7 +402,7 @@ class IceServer : public IceTransport {
 public:
     using Ptr = std::shared_ptr<IceServer>;
     using WeakPtr = std::weak_ptr<IceServer>;
-    IceServer(Listener* listener, std::string ufrag, std::string password, const toolkit::EventPoller::Ptr &poller);
+    IceServer(Listener* listener, std::string ufrag, std::string password, toolkit::EventPoller::Ptr poller);
     virtual ~IceServer() {}
     
     bool processSocketData(const uint8_t* data, size_t len, const Pair::Ptr& pair) override;
@@ -449,8 +448,8 @@ public:
         CandidateInfo::State _state;          // 连通性检查状态
         bool _nominated = false;
         
-        CandidatePair(Pair::Ptr local_pair, const CandidateInfo& remote, const CandidateInfo& local) 
-            : _local_pair(local_pair), _remote_candidate(remote), _local_candidate(local), _state(CandidateInfo::State::Frozen) {
+        CandidatePair(Pair::Ptr local_pair, CandidateInfo remote, CandidateInfo local)
+            : _local_pair(std::move(local_pair)), _remote_candidate(std::move(remote)), _local_candidate(std::move(local)), _state(CandidateInfo::State::Frozen) {
             _priority = calCandidatePairPriority(local._priority, remote._priority);
         }
         
@@ -487,15 +486,14 @@ public:
     };
 
     IceAgent(Listener* listener, Implementation implementation, Role role, 
-             std::string ufrag, std::string password, 
-             const toolkit::EventPoller::Ptr &poller);
+             std::string ufrag, std::string password, toolkit::EventPoller::Ptr poller);
     virtual ~IceAgent() {}
     
     void setIceServer(IceServerInfo::Ptr ice_server) {
         _ice_server = ice_server;
     }
 
-    void gatheringCandidate(CandidateTuple::Ptr candidate_tuple, bool gathering_rflx, bool gathering_realy);
+    void gatheringCandidate(const CandidateTuple::Ptr& candidate_tuple, bool gathering_rflx, bool gathering_realy);
     void connectivityCheck(CandidateInfo& candidate);
     void nominated(const Pair::Ptr& pair, CandidateTuple& candidate);
 
@@ -538,9 +536,9 @@ public:
 
 protected:
     void gatheringSrflxCandidate(const Pair::Ptr& pair);
-    void gatheringRealyCandidate(Pair::Ptr pair);
+    void gatheringRealyCandidate(const Pair::Ptr& pair);
     void localRealyedConnectivityCheck(CandidateInfo& candidate);
-    void connectivityCheck(Pair::Ptr pair, CandidateTuple& candidate);
+    void connectivityCheck(const Pair::Ptr& pair, CandidateTuple& candidate);
     void tryTriggerredCheck(const Pair::Ptr& pair);
 
     void sendBindRequest(const Pair::Ptr& pair, MsgHandler handler);

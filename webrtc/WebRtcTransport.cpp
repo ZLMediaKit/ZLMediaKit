@@ -557,7 +557,7 @@ void WebRtcTransport::sendDatachannel(uint16_t streamId, uint32_t ppid, const ch
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void WebRtcTransport::sendSockData(const char *buf, size_t len, IceTransport::Pair::Ptr pair) {
+void WebRtcTransport::sendSockData(const char *buf, size_t len, const IceTransport::Pair::Ptr& pair) {
     auto pkt = _packet_pool.obtain2();
     pkt->assign(buf, len);
     onSendSockData(std::move(pkt), true, pair);
@@ -822,7 +822,7 @@ void WebRtcTransportImp::onDestory() {
     unregisterSelf();
 }
 
-void WebRtcTransportImp::onSendSockData(Buffer::Ptr buf, bool flush, IceTransport::Pair::Ptr pair) {
+void WebRtcTransportImp::onSendSockData(Buffer::Ptr buf, bool flush, const IceTransport::Pair::Ptr& pair) {
     return _ice_agent->sendSocketData(buf, pair, flush);
 }
 
