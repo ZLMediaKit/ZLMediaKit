@@ -224,10 +224,7 @@ void IceTransport::sendSocketData_l(const Buffer::Ptr& buf, const Pair::Ptr& pai
     TraceL << "data: " << hexdump(buf->data(), buf->size());
 #endif
 
-    sockaddr_storage peer_addr;
-    pair->get_peer_addr(peer_addr);
-    auto addr_len = SockUtil::get_sock_len((const struct sockaddr*)&peer_addr);
-    pair->_socket->sendto(buf, (struct sockaddr*)&peer_addr, addr_len);
+    pair->_socket->send(buf);
     if (flush) {
         pair->_socket->flushAll();
     }

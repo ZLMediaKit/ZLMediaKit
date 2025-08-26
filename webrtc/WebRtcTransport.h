@@ -235,6 +235,7 @@ private:
     DtlsTransport::Ptr  _dtls_transport;
     SrtpSession::Ptr _srtp_session_send;
     SrtpSession::Ptr _srtp_session_recv;
+    IceTransport::Pair::Ptr _current_pair;
     Ticker _ticker;
     // 循环池  [AUTO-TRANSLATED:b7059f37]
     // Cycle pool

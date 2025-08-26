@@ -446,7 +446,7 @@ void WebRtcTransport::OnDtlsTransportSendData(
     while (offset < len) {
         auto *header = reinterpret_cast<const DtlsHeader *>(data + offset);
         auto length = ntohs(header->length) + offsetof(DtlsHeader, payload);
-        sendSockData((char *)data + offset, length, nullptr);
+        sendSockData((char *)data + offset, length, _current_pair);
         offset += length;
     }
 }
@@ -574,6 +574,7 @@ void WebRtcTransport::setOnShutdown(function<void(const SockException &ex)> cb) 
 
 void WebRtcTransport::onShutdown(const SockException &ex) {
     TraceL;
+    _current_pair = nullptr;
     if (_on_shutdown) {
         return _on_shutdown(ex);
     }
@@ -708,7 +709,8 @@ void WebRtcTransport::inputSockData(const char *buf, int len, const SocketHelper
     } else {
         pair = std::make_shared<IceTransport::Pair>(socket);
     }
-    return inputSockData(buf, len, pair);
+    _current_pair = std::move(pair);
+    return inputSockData(buf, len, _current_pair);
 }
 
 void WebRtcTransport::inputSockData(const char *buf, int len, const IceTransport::Pair::Ptr& pair) {
@@ -755,7 +757,7 @@ void WebRtcTransport::sendRtpPacket(const char *buf, int len, bool flush, void *
         onBeforeEncryptRtp(pkt->data(), len, ctx);
         if (_srtp_session_send->EncryptRtp(reinterpret_cast<uint8_t *>(pkt->data()), &len)) {
             pkt->setSize(len);
-            onSendSockData(std::move(pkt), flush);
+            onSendSockData(std::move(pkt), flush, _current_pair);
         }
     }
 }
@@ -770,7 +772,7 @@ void WebRtcTransport::sendRtcpPacket(const char *buf, int len, bool flush, void 
         onBeforeEncryptRtcp(pkt->data(), len, ctx);
         if (_srtp_session_send->EncryptRtcp(reinterpret_cast<uint8_t *>(pkt->data()), &len)) {
             pkt->setSize(len);
-            onSendSockData(std::move(pkt), flush);
+            onSendSockData(std::move(pkt), flush, _current_pair);
         }
     }
 }
