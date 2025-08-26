@@ -197,18 +197,18 @@ public:
         Pair() = default;
         Pair(toolkit::SocketHelper::Ptr socket) : _socket(std::move(socket)) {}
         Pair(toolkit::SocketHelper::Ptr socket, std::string peer_host, uint16_t peer_port,
-             std::shared_ptr<sockaddr_storage> realyed_addr = nullptr) : 
-            _socket(std::move(socket)), _peer_host(std::move(peer_host)), _peer_port(peer_port), _realyed_addr(std::move(realyed_addr)) {
+             std::shared_ptr<sockaddr_storage> relayed_addr = nullptr) :
+            _socket(std::move(socket)), _peer_host(std::move(peer_host)), _peer_port(peer_port), _relayed_addr(std::move(relayed_addr)) {
         }
 
         Pair(Pair &that) {
             _socket = that._socket;
             _peer_host = that._peer_host;
             _peer_port = that._peer_port;
-            _realyed_addr = nullptr;
-            if (that._realyed_addr) {
-                _realyed_addr = std::make_shared<sockaddr_storage>();
-                memcpy(_realyed_addr.get(), that._realyed_addr.get(), sizeof(sockaddr_storage));
+            _relayed_addr = nullptr;
+            if (that._relayed_addr) {
+                _relayed_addr = std::make_shared<sockaddr_storage>();
+                memcpy(_relayed_addr.get(), that._relayed_addr.get(), sizeof(sockaddr_storage));
             }
         }
         virtual ~Pair() = default;
@@ -224,13 +224,13 @@ public:
             memcpy(&peer_addr, &dummy_peer_addr, sizeof(peer_addr));
         }
 
-        bool get_realyed_addr(sockaddr_storage &peerAddr) {
-            if (!_realyed_addr) {
+        bool get_relayed_addr(sockaddr_storage &peerAddr) {
+            if (!_relayed_addr) {
                 return false;
             }
 
             memset(&peerAddr, 0, sizeof(peerAddr));
-            memcpy(&peerAddr, _realyed_addr.get(), sizeof(peerAddr));
+            memcpy(&peerAddr, _relayed_addr.get(), sizeof(peerAddr));
             return true;
         }
 
@@ -250,33 +250,33 @@ public:
             return !_peer_host.empty()? _peer_port : _socket->get_peer_port();
         }
 
-        std::string get_realyed_ip() {
-            if (_realyed_addr) {
-                return toolkit::SockUtil::inet_ntoa((const struct sockaddr*)_realyed_addr.get());
+        std::string get_relayed_ip() {
+            if (_relayed_addr) {
+                return toolkit::SockUtil::inet_ntoa((const struct sockaddr*)_relayed_addr.get());
             }
             return "";
         }
 
-        uint16_t get_realyed_port() {
-            if (_realyed_addr) {
-                return toolkit::SockUtil::inet_port((const struct sockaddr*)_realyed_addr.get());
+        uint16_t get_relayed_port() {
+            if (_relayed_addr) {
+                return toolkit::SockUtil::inet_port((const struct sockaddr*)_relayed_addr.get());
             }
             return 0;
         };
 
-        static bool is_same_realyed_addr(Pair* a, Pair* b) {
-            if (a->_realyed_addr != nullptr && b->_realyed_addr != nullptr) {
-                return toolkit::SockUtil::is_same_addr(reinterpret_cast<const struct sockaddr*>(a->_realyed_addr.get()),
-                reinterpret_cast<const struct sockaddr*>(b->_realyed_addr.get()));
+        static bool is_same_relayed_addr(Pair* a, Pair* b) {
+            if (a->_relayed_addr != nullptr && b->_relayed_addr != nullptr) {
+                return toolkit::SockUtil::is_same_addr(reinterpret_cast<const struct sockaddr*>(a->_relayed_addr.get()),
+                reinterpret_cast<const struct sockaddr*>(b->_relayed_addr.get()));
             }
-            return (a->_realyed_addr == b->_realyed_addr);
+            return (a->_relayed_addr == b->_relayed_addr);
         }
 
         static bool is_same(Pair* a, Pair* b) {
             if ((a->_socket == b->_socket)
                 && (a->get_peer_ip() == b->get_peer_ip())
                 && (a->get_peer_port() == b->get_peer_port()) 
-                && (is_same_realyed_addr(a, b))) {
+                && (is_same_relayed_addr(a, b))) {
                 return true;
             }
             return false;
@@ -290,7 +290,7 @@ public:
         uint16_t _peer_port;
 
         //转发地址，用于实现TURN转发地址
-        std::shared_ptr<sockaddr_storage> _realyed_addr = nullptr;
+        std::shared_ptr<sockaddr_storage> _relayed_addr = nullptr;
     };
 
     class Listener {
@@ -336,7 +336,7 @@ public:
 
     const std::string& getUfrag() const { return _ufrag; }
     const std::string& getPassword() const { return _password; }
-    void setUFrag(std::string ufrag) { _ufrag = std::move(ufrag); }
+    void setUfrag(std::string ufrag) { _ufrag = std::move(ufrag); }
     void setPassword(std::string password) { _password = std::move(password); }
 
     virtual bool processSocketData(const uint8_t* data, size_t len, const Pair::Ptr& pair);
@@ -423,14 +423,14 @@ protected:
     void sendDataIndication(const sockaddr_storage& peer_addr, const toolkit::Buffer::Ptr &buffer, const Pair::Ptr& pair);
     void sendUnauthorizedResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair) override;
 
-    toolkit::SocketHelper::Ptr allocateRealyed(const Pair::Ptr& pair);
-    toolkit::SocketHelper::Ptr createRealyedUdpSocket(const std::string &peer_host, uint16_t peer_port, const std::string &local_ip, uint16_t local_port);
+    toolkit::SocketHelper::Ptr allocateRelayed(const Pair::Ptr& pair);
+    toolkit::SocketHelper::Ptr createRelayedUdpSocket(const std::string &peer_host, uint16_t peer_port, const std::string &local_ip, uint16_t local_port);
 
 protected:
     std::vector<toolkit::BufferLikeString> _nonce_list;
 
-    std::unordered_map<sockaddr_storage /*peer ip:port*/, std::pair<std::shared_ptr<uint16_t> /* port */, Pair::Ptr /*realyed_pairs*/>,
-        toolkit::SockUtil::SockAddrHash, toolkit::SockUtil::SockAddrEqual> _realyed_pairs;
+    std::unordered_map<sockaddr_storage /*peer ip:port*/, std::pair<std::shared_ptr<uint16_t> /* port */, Pair::Ptr /*relayed_pairs*/>,
+        toolkit::SockUtil::SockAddrHash, toolkit::SockUtil::SockAddrEqual> _relayed_pairs;
     Pair::Ptr _session_pair = nullptr;
 };
 
@@ -537,7 +537,7 @@ public:
 protected:
     void gatheringSrflxCandidate(const Pair::Ptr& pair);
     void gatheringRealyCandidate(const Pair::Ptr& pair);
-    void localRealyedConnectivityCheck(CandidateInfo& candidate);
+    void localRelayedConnectivityCheck(CandidateInfo& candidate);
     void connectivityCheck(const Pair::Ptr& pair, CandidateTuple& candidate);
     void tryTriggerredCheck(const Pair::Ptr& pair);
 
@@ -603,7 +603,7 @@ protected:
         std::vector<toolkit::SocketHelper::Ptr> _host_sockets;    // HOST类型socket
         std::vector<toolkit::SocketHelper::Ptr> _relay_sockets;   // RELAY类型socket
 
-        bool _has_realyed_cnadidate = false;
+        bool _has_relayed_cnadidate = false;
         
         // 添加映射关系，带5元组重复检查
         bool addMapping(toolkit::SocketHelper::Ptr socket, const CandidateInfo& candidate) {
