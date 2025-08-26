@@ -227,7 +227,7 @@ void IceTransport::sendSocketData_l(const Buffer::Ptr& buf, const Pair::Ptr& pai
     sockaddr_storage peer_addr;
     pair->get_peer_addr(peer_addr);
     auto addr_len = SockUtil::get_sock_len((const struct sockaddr*)&peer_addr);
-    pair->_socket->sendto(std::move(buf), (struct sockaddr*)&peer_addr, addr_len);
+    pair->_socket->sendto(buf, (struct sockaddr*)&peer_addr, addr_len);
     if (flush) {
         pair->_socket->flushAll();
     }
@@ -303,7 +303,7 @@ void IceTransport::processResponse(const StunPacket::Ptr& packet, const Pair::Pt
         return;
     }
 
-    auto request = it->second._request;
+    auto request = std::move(it->second._request);
     auto handle = std::move(it->second._handler);
     // 收到响应后立即清理请求信息
     _response_handlers.erase(packet->getTransactionId().data());
@@ -525,14 +525,15 @@ SocketHelper::Ptr IceTransport::createUdpSocket(const std::string &peer_host, ui
     auto socket = std::make_shared<UdpClient>(getPoller());
 
     weak_ptr<IceTransport> weak_self = static_pointer_cast<IceTransport>(shared_from_this());
-    socket->setOnRecvFrom([weak_self, socket](const Buffer::Ptr &buffer, struct sockaddr *addr, int addr_len){
+    auto ptr = socket.get();
+    socket->setOnRecvFrom([weak_self, ptr](const Buffer::Ptr &buffer, struct sockaddr *addr, int addr_len) {
         auto strong_self = weak_self.lock();
         if (!strong_self) {
             return;
         }
         auto peer_host = SockUtil::inet_ntoa(addr);
         auto peer_port = SockUtil::inet_port(addr);
-        auto pair = std::make_shared<Pair>(socket, peer_host, peer_port);
+        auto pair = std::make_shared<Pair>(ptr->shared_from_this(), std::move(peer_host), peer_port);
         strong_self->_listener->onIceTransportRecvData(buffer, pair);
     });
 
@@ -1049,7 +1050,7 @@ void IceServer::relayBackingData(const toolkit::Buffer::Ptr& buffer, const Pair:
     }
 
     auto forward_pair = std::make_shared<Pair>(it->second.second->_socket,
-        SockUtil::inet_ntoa((const struct sockaddr *)&peer_addr).data(), SockUtil::inet_port((const struct sockaddr *)&peer_addr));
+        SockUtil::inet_ntoa((const struct sockaddr *)&peer_addr), SockUtil::inet_port((const struct sockaddr *)&peer_addr));
 
     sendSocketData(buffer, forward_pair);
 #if 0
@@ -1063,14 +1064,15 @@ SocketHelper::Ptr IceServer::createRelayedUdpSocket(const std::string &peer_host
     auto socket = std::make_shared<UdpClient>(getPoller());
 
     weak_ptr<IceServer> weak_self = static_pointer_cast<IceServer>(shared_from_this());
-    socket->setOnRecvFrom([weak_self, socket](const Buffer::Ptr &buffer, struct sockaddr *addr, int addr_len) {
+    auto ptr = socket.get();
+    socket->setOnRecvFrom([weak_self, ptr](const Buffer::Ptr &buffer, struct sockaddr *addr, int addr_len) {
         auto strong_self = weak_self.lock();
         if (!strong_self) {
             return;
         }
         auto peer_host = SockUtil::inet_ntoa(addr);
         auto peer_port = SockUtil::inet_port(addr);
-        auto pair = std::make_shared<Pair>(socket, peer_host, peer_port);
+        auto pair = std::make_shared<Pair>(ptr->shared_from_this(), std::move(peer_host), peer_port);
         strong_self->processRealyPacket(buffer, pair);
     });
 
@@ -1129,7 +1131,7 @@ void IceAgent::gatheringCandidate(const CandidateTuple::Ptr& candidate_tuple, bo
             // TraceL << "gathering local candidate " << candidate._addr._host << ":" << candidate._addr._port 
             // << " from stun server " << candidate_tuple->_addr._host << ":" << candidate_tuple->_addr._port;
 
-            auto pair = std::make_shared<Pair>(socket);
+            auto pair = std::make_shared<Pair>(std::move(socket));
             onGatheringCandidate(pair, candidate);
             if (gathering_rflx) {
                 gatheringSrflxCandidate(pair);
@@ -1138,7 +1140,7 @@ void IceAgent::gatheringCandidate(const CandidateTuple::Ptr& candidate_tuple, bo
             if (gathering_realy) {
                 auto realy_socket = createSocket(candidate_tuple->_transport, candidate_tuple->_addr._host, candidate_tuple->_addr._port, obj["ip"]);
                 _socket_candidate_manager.addRelaySocket(realy_socket);
-                gatheringRealyCandidate(std::make_shared<Pair>(realy_socket));
+                gatheringRealyCandidate(std::make_shared<Pair>(std::move(realy_socket)));
             }
         } catch (std::exception &ex) {
             WarnL << ex.what();
@@ -1152,7 +1154,7 @@ void IceAgent::connectivityCheck(CandidateInfo& candidate) {
     setState(IceAgent::State::Running);
     auto ret = _remote_candidates.emplace(candidate);
     if (ret.second) {
-        for (auto socket: _socket_candidate_manager._host_sockets) {
+        for (auto &socket: _socket_candidate_manager._host_sockets) {
             auto pair = std::make_shared<Pair>(socket, candidate._addr._host, candidate._addr._port);
             addToChecklist(pair, candidate);
         }
@@ -1166,7 +1168,7 @@ void IceAgent::connectivityCheck(CandidateInfo& candidate) {
 
 void IceAgent::localRelayedConnectivityCheck(CandidateInfo& candidate) {
     TraceL;
-    for (auto socket: _socket_candidate_manager._relay_sockets) {
+    for (auto &socket: _socket_candidate_manager._relay_sockets) {
         auto local_realy_pair = std::make_shared<Pair>(socket, _ice_server->_addr._host, _ice_server->_addr._port);
         auto peer_addr = SockUtil::make_sockaddr(candidate._addr._host.data(), candidate._addr._port);
         sendCreatePermissionRequest(local_realy_pair, peer_addr);

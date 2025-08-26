@@ -35,7 +35,7 @@ IceSession::IceSession(const Socket::Ptr &sock) : Session(sock) {
 
     GET_CONFIG(string, iceUfrag, Rtc::kIceUfrag);
     GET_CONFIG(string, icePwd, Rtc::kIcePwd);
-    _ice_transport = std::make_shared<IceServer>(this, std::move(iceUfrag), std::move(icePwd), getPoller());
+    _ice_transport = std::make_shared<IceServer>(this, iceUfrag, icePwd, getPoller());
     _ice_transport->initialize();
 }
 

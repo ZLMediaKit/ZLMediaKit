@@ -704,7 +704,7 @@ void WebRtcTransport::inputSockData(const char *buf, int len, const SocketHelper
     if (addr != nullptr) {
         auto peer_host = SockUtil::inet_ntoa(addr);
         auto peer_port = SockUtil::inet_port(addr);
-        pair = std::make_shared<IceTransport::Pair>(socket, peer_host, peer_port);
+        pair = std::make_shared<IceTransport::Pair>(socket, std::move(peer_host), peer_port);
     } else {
         pair = std::make_shared<IceTransport::Pair>(socket);
     }
