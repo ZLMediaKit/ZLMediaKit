@@ -1819,7 +1819,8 @@ static onceToken s_rtc_auto_register([]() {
 });
 
 void WebRtcTransport::onIceTransportRecvData(const toolkit::Buffer::Ptr& buffer, const IceTransport::Pair::Ptr& pair) {
-    return inputSockData(buffer->data(), buffer->size(), pair);
+    _current_pair = std::move(pair);
+    return inputSockData(buffer->data(), buffer->size(), _current_pair);
 }
 
 void translateIPFromEnv(std::vector<std::string> &v) {
