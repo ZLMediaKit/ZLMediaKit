@@ -1,23 +1,15 @@
-﻿/**
-ISC License
+﻿/*
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
+ *
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
+ *
+ * Use of this source code is governed by MIT-like license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
+*/
 
-Copyright © 2015, Iñaki Baz Castillo <ibc@aliax.net>
-
-Permission to use, copy, modify, and/or distribute this software for any
-purpose with or without fee is hereby granted, provided that the above
-copyright notice and this permission notice appear in all copies.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- */
-
-#ifndef MS_RTC_ICE_SERVER_HPP
-#define MS_RTC_ICE_SERVER_HPP
+#ifndef ZLMEDIAKIT_WEBRTC_ICE_TRANSPORT_HPP
+#define ZLMEDIAKIT_WEBRTC_ICE_TRANSPORT_HPP
 
 #include "StunPacket.hpp"
 #include "Util/Byte.hpp"
@@ -144,14 +136,18 @@ public:
     }
 
     std::string getAddressTypeStr() const {
-        switch (_type) {
-            case AddressType::HOST: return "host";
-            case AddressType::SRFLX: return "srflx";
-            case AddressType::PRFLX: return "reflx";
-            case AddressType::RELAY: return "relay";
-            default: break;
+        return getAddressTypeStr(_type);
+    }
+
+    // 获取候选者地址类型字符串的静态函数
+    static std::string getAddressTypeStr(CandidateInfo::AddressType type) {
+        switch (type) {
+            case CandidateInfo::AddressType::HOST: return "host";
+            case CandidateInfo::AddressType::SRFLX: return "srflx";
+            case CandidateInfo::AddressType::PRFLX: return "reflx";
+            case CandidateInfo::AddressType::RELAY: return "relay";
+            default: return "invalid";
         }
-        return "invalid";
     }
 
     static std::string getStateStr(State state) {
@@ -175,6 +171,12 @@ public:
     CandidateAddr _base_addr;
 };
 
+// ice stun/turn服务器配置
+// 格式为: (stun/turn)[s]:host:port[?transport=(tcp/udp)], 默认udp模式
+// 例如:
+// stun:stun.l.google.com:19302 → 谷歌的 STUN 服务器（UDP）。
+// turn:turn.example.com:3478?transport=tcp → 使用 TCP 的 TURN 服务器。
+// turns:turn.example.com:5349 → 使用 TLS 的 TURN 服务器。
 class IceServerInfo : public CandidateTuple {
 public:
     using Ptr = std::shared_ptr<IceServerInfo>;
@@ -223,13 +225,11 @@ public:
 
         void get_peer_addr(sockaddr_storage &peer_addr) {
             memset(&peer_addr, 0, sizeof(peer_addr));
-            sockaddr_storage dummy_peer_addr;
             if (!_peer_host.empty()) {
-                dummy_peer_addr = toolkit::SockUtil::make_sockaddr(_peer_host.data(), _peer_port);
+                peer_addr = toolkit::SockUtil::make_sockaddr(_peer_host.data(), _peer_port);
             } else {
-                dummy_peer_addr = toolkit::SockUtil::make_sockaddr(_socket->get_peer_ip().data(), _socket->get_peer_port());
+                peer_addr = toolkit::SockUtil::make_sockaddr(_socket->get_peer_ip().data(), _socket->get_peer_port());
             }
-            memcpy(&peer_addr, &dummy_peer_addr, sizeof(peer_addr));
         }
 
         bool get_relayed_addr(sockaddr_storage &peerAddr) {
@@ -418,11 +418,11 @@ public:
     void relayBackingData(const toolkit::Buffer::Ptr& buffer, const Pair::Ptr& pair, const sockaddr_storage& peer_addr);
 
 protected:
-    void processRealyPacket(const toolkit::Buffer::Ptr &buffer, const Pair::Ptr& pair);
+    void processRelayPacket(const toolkit::Buffer::Ptr &buffer, const Pair::Ptr& pair);
     void handleAllocateRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair);
     void handleRefreshRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair);
     void handleCreatePermissionRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair);
-    void handleChannelbindRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair);
+    void handleChannelBindRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair);
     void handleSendIndication(const StunPacket::Ptr& packet, const Pair::Ptr& pair);
     void handleChannelData(uint16_t channel_number, const char* data, size_t len, const Pair::Ptr& pair) override;
 
@@ -742,4 +742,4 @@ protected:
 };
 
 } // namespace RTC
-#endif //MS_RTC_ICE_SERVER_HPP
+#endif //ZLMEDIAKIT_WEBRTC_ICE_TRANSPORT_HPP

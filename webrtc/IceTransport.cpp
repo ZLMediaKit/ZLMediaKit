@@ -1,36 +1,27 @@
-﻿/**
-ISC License
-
-Copyright © 2015, Iñaki Baz Castillo <ibc@aliax.net>
-
-Permission to use, copy, modify, and/or distribute this software for any
-purpose with or without fee is hereby granted, provided that the above
-copyright notice and this permission notice appear in all copies.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- */
-
+﻿/*
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
+ *
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
+ *
+ * Use of this source code is governed by MIT-like license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
+*/
 
 #include <utility>
 #include <random>
 #include <algorithm>
+#include "json/json.h"
 #include "Util/onceToken.h"
+#include "Network/UdpClient.h"
 #include "Common/Parser.h"
 #include "Common/config.h"
 #include "IceTransport.hpp"
 #include "WebRtcTransport.h"
-#include "Network/UdpClient.h"
-#include "json/json.h"
 
+using namespace std;
 using namespace toolkit;
 using namespace mediakit;
-using namespace std;
 
 namespace RTC {
 
@@ -64,54 +55,38 @@ uint64_t calCandidatePairPriority(uint32_t G, uint32_t D) {
     return ((uint64_t)min_p << 32) | (2 * (uint64_t)max_p) | (G > D ? 1 : 0);
 }
 
-// 获取候选者地址类型字符串的静态函数
-static std::string getAddressTypeStr(CandidateInfo::AddressType type) {
-    switch (type) {
-        case CandidateInfo::AddressType::HOST: return "host";
-        case CandidateInfo::AddressType::SRFLX: return "srflx";
-        case CandidateInfo::AddressType::PRFLX: return "reflx";
-        case CandidateInfo::AddressType::RELAY: return "relay";
-        default: return "invalid";
-    }
-}
-
 // 检查ICE传输策略是否允许该候选者对
 static bool checkIceTransportPolicy(const IceAgent::CandidatePair& pair_info, const IceTransport::Pair::Ptr& pair) {
     GET_CONFIG(int, ice_transport_policy, Rtc::kIceTransportPolicy);
     
     // 优先使用新的统一配置参数
-    switch (ice_transport_policy) {
-        case static_cast<int>(IceTransportPolicy::kRelayOnly):
+    switch (static_cast<IceTransportPolicy>(ice_transport_policy)) {
+        case IceTransportPolicy::kRelayOnly:
             // 仅支持Relay转发：要求本地或远程是中继类型
             if (pair_info._local_candidate._type != CandidateInfo::AddressType::RELAY && 
                 pair_info._remote_candidate._type != CandidateInfo::AddressType::RELAY) {
                 DebugL << "relay only policy, skip pair: "
-                    << "local(" << getAddressTypeStr(pair_info._local_candidate._type) << ") " 
-                    << pair_info._local_candidate._addr._host << ":" << pair_info._local_candidate._addr._port
-                    << " <-> "
-                    << "remote(" << getAddressTypeStr(pair_info._remote_candidate._type) << ") " 
-                    << pair_info._remote_candidate._addr._host << ":" << pair_info._remote_candidate._addr._port;
+                       << "local(" << pair_info._local_candidate.dumpString() << ")"
+                       << " <-> "
+                       << "remote(" << pair_info._remote_candidate.dumpString() << ")";
                 return false;
             }
             break;
             
-        case static_cast<int>(IceTransportPolicy::kP2POnly):
+        case IceTransportPolicy::kP2POnly:
             // 仅支持P2P直连：要求本地和远程都不是中继类型
             if (pair_info._local_candidate._type == CandidateInfo::AddressType::RELAY ||
                 pair_info._remote_candidate._type == CandidateInfo::AddressType::RELAY) {
                 DebugL << "p2p only policy, skip pair: "
-                    << "local(" << getAddressTypeStr(pair_info._local_candidate._type) << ") " 
-                    << pair_info._local_candidate._addr._host << ":" << pair_info._local_candidate._addr._port
-                    << " <-> "
-                    << "remote(" << getAddressTypeStr(pair_info._remote_candidate._type) << ") " 
-                    << pair_info._remote_candidate._addr._host << ":" << pair_info._remote_candidate._addr._port;
+                       << "local(" << pair_info._local_candidate.dumpString() << ")"
+                       << " <-> "
+                       << "remote(" << pair_info._remote_candidate.dumpString() << ")";
                 return false;
             }
             break;
             
-        case static_cast<int>(IceTransportPolicy::kAll):
-        default:
-            break;
+        case IceTransportPolicy::kAll:
+        default: break;
     }
     
     return true;
@@ -126,7 +101,7 @@ void IceServerInfo::parse(const std::string &url_in) {
 
     auto schema_pos = url.find(":");
     if (schema_pos == string::npos) {
-        throw std::runtime_error(StrPrinter <<"fail to parse schema in url: " << url_in);
+        throw std::runtime_error(StrPrinter << "fail to parse schema in url: " << url_in);
     }
 
     auto schema = url.substr(0, schema_pos);
@@ -143,7 +118,7 @@ void IceServerInfo::parse(const std::string &url_in) {
         _schema = SchemaType::STUN;
         _secure = CandidateTuple::SecureType::NOT_SECURE;
     } else {
-        throw std::runtime_error(StrPrinter <<"not support schema: " << schema);
+        throw std::runtime_error(StrPrinter << "not support schema: " << schema);
     }
 
     // 解析了用户名密码之后再解析?参数，防止密码中的?被判为参数分隔符
@@ -178,21 +153,19 @@ IceTransport::IceTransport(Listener* listener, std::string ufrag, std::string pa
     TraceL;
     _identifier = makeRandStr(32);
     _request_handlers.emplace(std::make_pair(StunPacket::Class::REQUEST, StunPacket::Method::BINDING), 
-                              std::bind(&IceTransport::handleBindingRequest, this, placeholders::_1, placeholders::_2));
+                              std::bind(&IceTransport::handleBindingRequest, this, std::placeholders::_1, std::placeholders::_2));
 }
 
 void IceTransport::initialize() {
     weak_ptr<IceTransport> weak_self = static_pointer_cast<IceTransport>(shared_from_this());
-    _retry_timer = std::make_shared<Timer>(
-        0.1f, [weak_self]() {
-            auto strong_self = weak_self.lock();
-            if (!strong_self) {
-                return false;
-            }
-            strong_self->checkRequestTimeouts();
-            return true;
-        }, getPoller()
-    );
+    _retry_timer = std::make_shared<Timer>(0.1f, [weak_self]() {
+        auto strong_self = weak_self.lock();
+        if (!strong_self) {
+            return false;
+        }
+        strong_self->checkRequestTimeouts();
+        return true;
+    }, getPoller());
 }
 
 void IceTransport::sendSocketData(const Buffer::Ptr& buf, const Pair::Ptr& pair, bool flush) {
@@ -202,19 +175,15 @@ void IceTransport::sendSocketData(const Buffer::Ptr& buf, const Pair::Ptr& pair,
 void IceTransport::sendSocketData_l(const Buffer::Ptr& buf, const Pair::Ptr& pair, bool flush) {
     // DebugL;
     if (pair == nullptr) {
-        throw std::invalid_argument(StrPrinter << "pair should not be nullptr");
+        throw std::invalid_argument("pair should not be nullptr");
     }
 
     // 一次性发送一帧的rtp数据，提高网络io性能  [AUTO-TRANSLATED:fbab421e]
     // Send one frame of rtp data at a time to improve network io performance
     if (pair->_socket->getSock()->sockType() == SockNum::Sock_TCP) {
-        // 增加tcp两字节头  [AUTO-TRANSLATED:62159f79]
-        // Add two-byte header to tcp
-        auto len = buf->size();
-        char tcp_len[2] = { 0 };
-        tcp_len[0] = (len >> 8) & 0xff;
-        tcp_len[1] = len & 0xff;
-        pair->_socket->SockSender::send(tcp_len, 2);
+        // 增加tcp两字节头
+        uint16_t len = htons(buf->size());
+        pair->_socket->SockSender::send((char *)&len, 2);
     }
 
 #if 0
@@ -279,7 +248,7 @@ StunPacket::Authentication IceTransport::checkRequestAuthentication(const StunPa
 StunPacket::Authentication IceTransport::checkResponseAuthentication(const StunPacket::Ptr& request, const StunPacket::Ptr& packet, const Pair::Ptr& pair) {
     if (!packet->hasAttribute(StunAttribute::Type::FINGERPRINT)) {
         sendUnauthorizedResponse(packet, pair);
-        return  RTC::StunPacket::Authentication::UNAUTHORIZED;
+        return RTC::StunPacket::Authentication::UNAUTHORIZED;
     }
 #if 0
     DebugL << "peer_ufrag: "  << request->getPeerUfrag() << ", peer_password: "  << request->getPeerPassword();
@@ -296,7 +265,7 @@ void IceTransport::processResponse(const StunPacket::Ptr& packet, const Pair::Pt
 
     auto it = _response_handlers.find(packet->getTransactionId().data());
     if (it == _response_handlers.end()) {
-        WarnL << " not support Stun transaction_id ignore: " << hexdump(packet->getTransactionId().data(), packet->getTransactionId().size());
+        WarnL << "not support stun transaction_id ignore: " << hexdump(packet->getTransactionId().data(), packet->getTransactionId().size());
         return;
     }
 
@@ -313,12 +282,19 @@ void IceTransport::processResponse(const StunPacket::Ptr& packet, const Pair::Pt
     }
 
     if (RTC::StunPacket::Authentication::OK != checkResponseAuthentication(request, packet, pair)) {
-        WarnL << " checkRequestAuthentication fail, Method: " << packet->getMethodStr() << ", Class: " << packet->getClassStr();
+        WarnL << "checkRequestAuthentication fail, method: " << packet->getMethodStr() << ", class: " << packet->getClassStr();
         return;
     }
 
     handle(packet, pair);
 }
+
+#pragma pack(push, 1)
+struct ChannelDataHeader {
+    uint16_t channel_number;
+    uint16_t data_length;
+};
+#pragma pack(pop)
 
 bool IceTransport::processChannelData(const uint8_t* data, size_t len, const Pair::Ptr& pair) {
     // DebugL;
@@ -328,44 +304,38 @@ bool IceTransport::processChannelData(const uint8_t* data, size_t len, const Pai
         WarnL << "Received data too short to be a valid STUN or ChannelData message";
         return false;
     }
+    ChannelDataHeader header = *(reinterpret_cast<const ChannelDataHeader *>(data));
+    header.channel_number = ntohs(header.channel_number);
+    header.data_length = ntohs(header.data_length);
 
     // 检查是否是ChannelData消息
     // ChannelData消息的前两个字节是通道号，范围是0x4000-0x7FFF
-    uint16_t first_two_bytes;
-    memcpy(&first_two_bytes, data, 2);
-    first_two_bytes = ntohs(first_two_bytes);
-
-    if (first_two_bytes < 0x4000 || first_two_bytes > 0x7FFF) {
+    if (header.channel_number < 0x4000 || header.channel_number > 0x7FFF) {
+        WarnL << "Invalid channel number: " << header.channel_number;
         return false;
     }
 
-    // 这是一个ChannelData消息
-    uint16_t channel_number = first_two_bytes;
-    uint16_t data_length;
-    memcpy(&data_length, data + 2, 2);
-    data_length = ntohs(data_length);
-
-    // 检查数据长度是否合法
-    if (len < 4 + data_length) {
-        WarnL << "ChannelData message truncated, len: " << len << ", data_length: " << data_length;
+    // 这是一个ChannelData消息; 检查数据长度是否合法
+    if (len < 4 + header.data_length) {
+        WarnL << "ChannelData message truncated, len: " << len << ", data_length: " << header.data_length;
         return false;
     }
 
-    handleChannelData(channel_number, (const char*)(data + 4), data_length, pair);
+    handleChannelData(header.channel_number, (const char *)(data + 4), header.data_length, pair);
     return true;
 }
 
 void IceTransport::processUnauthorizedResponse(const StunPacket::Ptr& response, const StunPacket::Ptr& request, const Pair::Ptr& pair, MsgHandler handler) {
     // TraceL;
-    auto attr_nonce = dynamic_pointer_cast<StunAttrNonce>(response->getAttribute(StunAttribute::Type::NONCE));
-    auto attr_realm = dynamic_pointer_cast<StunAttrRealm>(response->getAttribute(StunAttribute::Type::REALM));
+    auto attr_nonce = std::dynamic_pointer_cast<StunAttrNonce>(response->getAttribute(StunAttribute::Type::NONCE));
+    auto attr_realm = std::dynamic_pointer_cast<StunAttrRealm>(response->getAttribute(StunAttribute::Type::REALM));
     if (!attr_nonce || !attr_realm) {
         return;
     }
 
     request->refreshTransactionId();
-    request->addAttribute(attr_nonce);
-    request->addAttribute(attr_realm);
+    request->addAttribute(std::move(attr_nonce));
+    request->addAttribute(std::move(attr_realm));
     request->setNeedMessageIntegrity(true);
     sendRequest(request, pair, std::move(handler));
 }
@@ -373,13 +343,13 @@ void IceTransport::processUnauthorizedResponse(const StunPacket::Ptr& response, 
 void IceTransport::processRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair) {
     // TraceL;
     if (RTC::StunPacket::Authentication::OK != checkRequestAuthentication(packet, pair)) {
-        WarnL << " checkRequestAuthentication fail, Method: " << packet->getMethodStr() << ", Class: " << packet->getClassStr();
+        WarnL << "checkRequestAuthentication fail, method: " << packet->getMethodStr() << ", class: " << packet->getClassStr();
         return;
     }
 
     auto it = _request_handlers.find(std::make_pair(packet->getClass(), packet->getMethod()));
     if (it == _request_handlers.end()) {
-        WarnL << " not support Stun Class: "<< packet->getClassStr() << ", Stun Method: " << packet->getMethodStr() << ", ignore";
+        WarnL << "not support stun class: "<< packet->getClassStr() << ", stun method: " << packet->getMethodStr() << ", ignore";
         return;
     }
 
@@ -408,23 +378,18 @@ void IceTransport::handleBindingRequest(const StunPacket::Ptr& packet, const Pai
 
 void IceTransport::sendChannelData(uint16_t channel_number, const Buffer::Ptr& buffer, const Pair::Ptr& pair) {
     // TraceL;
- 
+
     // ChannelData不是STUN消息，需要单独实现
     // ChannelData格式：2字节Channel Number + 2字节数据长度 + 数据内容
-
-    // 分配缓冲区：头部4字节 + 数据长度
     auto data_len = buffer->size();
     size_t total_len = 4 + data_len;
+    // 分配缓冲区：头部4字节 + 数据长度
     auto channel_data = toolkit::BufferRaw::create(total_len);
-
+    auto header = reinterpret_cast<ChannelDataHeader *>(channel_data->data());
     // 设置Channel Number (前两字节，网络字节序)
-    uint16_t net_channel_number = htons(channel_number);
-    memcpy(channel_data->data(), &net_channel_number, 2);
-
+    header->channel_number = htons(channel_number);
     // 设置数据长度 (中间两字节，网络字节序)
-    uint16_t net_data_len = htons(data_len);
-    memcpy(channel_data->data() + 2, &net_data_len, 2);
-
+    header->data_length = htons(data_len);
     // 拷贝数据
     memcpy(channel_data->data() + 4, buffer->data(), data_len);
     channel_data->setSize(total_len);
@@ -511,11 +476,10 @@ void IceTransport::addChannelBind(uint16_t channel_number, const sockaddr_storag
 }
 
 SocketHelper::Ptr IceTransport::createSocket(CandidateTuple::TransportType type, const std::string &peer_host, uint16_t peer_port, const std::string &local_ip, uint16_t local_port) {
-    if (type == CandidateTuple::TransportType::UDP) {
-        return createUdpSocket(peer_host, peer_port, local_ip, local_port);
-    } else {
-        throw std::invalid_argument(StrPrinter << "not support transport type: TCP");
+    if (type != CandidateTuple::TransportType::UDP) {
+        throw std::invalid_argument("not support transport type: TCP");
     }
+    return createUdpSocket(peer_host, peer_port, local_ip, local_port);
 }
 
 SocketHelper::Ptr IceTransport::createUdpSocket(const std::string &peer_host, uint16_t peer_port, const std::string &local_ip, uint16_t local_port) {
@@ -564,9 +528,8 @@ public:
         return *instance;
     }
 
-    void addListenConfigRelaod(){
+    void addListenConfigReload(){
         weak_ptr<PortManager> weak_self = this->shared_from_this();
-
         static auto func = [weak_self](const string &str, int index) {
             uint16_t port[] = { 49152, 65535 };
             auto strong_self = weak_self.lock();
@@ -577,7 +540,6 @@ public:
             strong_self->setRange(port[0], port[1]);
             return port[index];
         };
-
 
         GET_CONFIG_FUNC(uint16_t, dummy_min_port, kPortRange, [](const string &str) { return func(str, 0); });
         GET_CONFIG_FUNC(uint16_t, dummy_max_port, kPortRange, [](const string &str) { return func(str, 1); });
@@ -710,8 +672,8 @@ private:
 
 //注册端口管理监听配置重载
 onceToken PortManager_token([](){
-    PortManager<0>::Instance().addListenConfigRelaod();
-    PortManager<1>::Instance().addListenConfigRelaod();
+    PortManager<0>::Instance().addListenConfigReload();
+    PortManager<1>::Instance().addListenConfigReload();
 });
 
 std::unordered_map<sockaddr_storage /*peer ip:port*/, IceServer::WeakPtr, toolkit::SockUtil::SockAddrHash, toolkit::SockUtil::SockAddrEqual> _relayed_session;
@@ -729,7 +691,7 @@ IceServer::IceServer(Listener* listener, std::string ufrag, std::string password
         _request_handlers.emplace(std::make_pair(StunPacket::Class::REQUEST, StunPacket::Method::CREATEPERMISSION), 
                                   std::bind(&IceServer::handleCreatePermissionRequest, this, placeholders::_1, placeholders::_2));
         _request_handlers.emplace(std::make_pair(StunPacket::Class::REQUEST, StunPacket::Method::CHANNELBIND), 
-                                  std::bind(&IceServer::handleChannelbindRequest, this, placeholders::_1, placeholders::_2));
+                                  std::bind(&IceServer::handleChannelBindRequest, this, placeholders::_1, placeholders::_2));
         _request_handlers.emplace(std::make_pair(StunPacket::Class::INDICATION, StunPacket::Method::SEND), 
                                   std::bind(&IceServer::handleSendIndication, this, placeholders::_1, placeholders::_2));
     }
@@ -743,7 +705,7 @@ bool IceServer::processSocketData(const uint8_t* data, size_t len, const Pair::P
     return IceTransport::processSocketData(data, len, pair);
 }
 
-void IceServer::processRealyPacket(const Buffer::Ptr &buffer, const Pair::Ptr& pair) {
+void IceServer::processRelayPacket(const Buffer::Ptr &buffer, const Pair::Ptr& pair) {
     // TraceL << pair->get_local_ip() <<":" << pair->get_local_port() << " <- " << pair->get_peer_ip() << ":" << pair->get_peer_port();
 
     sockaddr_storage peer_addr;
@@ -814,7 +776,7 @@ void IceServer::handleCreatePermissionRequest(const StunPacket::Ptr& packet, con
     sendPacket(response, pair);
 }
 
-void IceServer::handleChannelbindRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair) {
+void IceServer::handleChannelBindRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair) {
     // TraceL
 
     // 检查必要的属性
@@ -1070,7 +1032,7 @@ SocketHelper::Ptr IceServer::createRelayedUdpSocket(const std::string &peer_host
         auto peer_host = SockUtil::inet_ntoa(addr);
         auto peer_port = SockUtil::inet_port(addr);
         auto pair = std::make_shared<Pair>(ptr->shared_from_this(), std::move(peer_host), peer_port);
-        strong_self->processRealyPacket(buffer, pair);
+        strong_self->processRelayPacket(buffer, pair);
     });
 
     socket->setOnError([weak_self](const SockException &err) {
@@ -1093,13 +1055,11 @@ IceAgent::IceAgent(Listener* listener, Implementation implementation, Role role,
     DebugL;
     _tiebreaker = makeRandNum();
     // 创建定时器，每分钟检查一次权限和通道绑定是否需要刷新
-    _refresh_timer = std::make_shared<Timer>(
-        60.0f, [this]() {
-            refreshPermissions();
-            refreshChannelBindings();
-            return true;
-        }, getPoller()
-    );
+    _refresh_timer = std::make_shared<Timer>(60.0f, [this]() {
+        refreshPermissions();
+        refreshChannelBindings();
+        return true;
+    }, getPoller());
 }
 
 void IceAgent::gatheringCandidate(const CandidateTuple::Ptr& candidate_tuple, bool gathering_rflx, bool gathering_realy) {
@@ -1108,7 +1068,7 @@ void IceAgent::gatheringCandidate(const CandidateTuple::Ptr& candidate_tuple, bo
     auto interfaces = SockUtil::getInterfaceList();
     for (auto obj : interfaces) {
         if (obj["name"]  == "lo") {
-            DebugL << "skip interace: " << obj["name"];
+            DebugL << "skip interface: " << obj["name"];
             continue;
         }
 
@@ -1135,9 +1095,9 @@ void IceAgent::gatheringCandidate(const CandidateTuple::Ptr& candidate_tuple, bo
             }
 
             if (gathering_realy) {
-                auto realy_socket = createSocket(candidate_tuple->_transport, candidate_tuple->_addr._host, candidate_tuple->_addr._port, obj["ip"]);
-                _socket_candidate_manager.addRelaySocket(realy_socket);
-                gatheringRealyCandidate(std::make_shared<Pair>(std::move(realy_socket)));
+                auto relay_socket = createSocket(candidate_tuple->_transport, candidate_tuple->_addr._host, candidate_tuple->_addr._port, obj["ip"]);
+                _socket_candidate_manager.addRelaySocket(relay_socket);
+                gatheringRealyCandidate(std::make_shared<Pair>(std::move(relay_socket)));
             }
         } catch (std::exception &ex) {
             WarnL << ex.what();
@@ -1166,13 +1126,13 @@ void IceAgent::connectivityCheck(CandidateInfo& candidate) {
 void IceAgent::localRelayedConnectivityCheck(CandidateInfo& candidate) {
     TraceL;
     for (auto &socket: _socket_candidate_manager._relay_sockets) {
-        auto local_realy_pair = std::make_shared<Pair>(socket, _ice_server->_addr._host, _ice_server->_addr._port);
+        auto local_relay_pair = std::make_shared<Pair>(socket, _ice_server->_addr._host, _ice_server->_addr._port);
         auto peer_addr = SockUtil::make_sockaddr(candidate._addr._host.data(), candidate._addr._port);
-        sendCreatePermissionRequest(local_realy_pair, peer_addr);
+        sendCreatePermissionRequest(local_relay_pair, peer_addr);
 
-        local_realy_pair->_relayed_addr = std::make_shared<sockaddr_storage>();
-        memcpy(local_realy_pair->_relayed_addr.get(), &peer_addr, sizeof(peer_addr));
-        addToChecklist(local_realy_pair, candidate);
+        local_relay_pair->_relayed_addr = std::make_shared<sockaddr_storage>();
+        memcpy(local_relay_pair->_relayed_addr.get(), &peer_addr, sizeof(peer_addr));
+        addToChecklist(local_relay_pair, candidate);
     }
 }
 
@@ -1567,9 +1527,9 @@ void IceAgent::handleAllocateResponse(const StunPacket::Ptr& packet, const Pair:
     candidate._ufrag = getUfrag();
     candidate._pwd = getPassword();
 
-    TraceL << "get local candidate type "  << candidate.getAddressTypeStr() << " : " << candidate._addr._host << ":" << candidate._addr._port
-        << ", by srflx addr " << srflx->getAddrString() << " : " << srflx->getPort()
-        << ", by host addr " << pair->get_local_ip() << " : " << pair->get_local_port();
+    TraceL << "get local candidate type "  << candidate.dumpString()
+           << ", by srflx addr " << srflx->getAddrString() << " : " << srflx->getPort()
+           << ", by host addr " << pair->get_local_ip() << " : " << pair->get_local_port();
     onGatheringCandidate(pair, candidate);
 }
 
@@ -1673,7 +1633,7 @@ void IceAgent::handleChannelData(uint16_t channel_number, const char* data, size
 
 void IceAgent::onGatheringCandidate(const Pair::Ptr& pair, CandidateInfo& candidate) {
     candidate._priority = calIceCandidatePriority(candidate._type);
-    InfoL << "get local candidate type "  << candidate.getAddressTypeStr() << " : " << candidate._addr._host << ":" << candidate._addr._port;
+    InfoL << "get local candidate type "  << candidate.dumpString();
 
     // 使用_socket_candidate_manager替代_local_candidates进行5元组重复检查
     if (!_socket_candidate_manager.addMapping(pair->_socket, candidate)) {
@@ -1711,10 +1671,8 @@ void IceAgent::onConnected(const IceTransport::Pair::Ptr& pair) {
         auto &remote_candidate = candidate_pair->_remote_candidate;
         auto &state = candidate_pair->_state;
 
-        TraceL << "check pair local(" << candidate_pair->_local_candidate.getAddressTypeStr() << ") " 
-            << candidate_pair->_local_candidate._addr._host << ":" << candidate_pair->_local_candidate._addr._port
-            << " <-> " << "remote(" << candidate_pair->_remote_candidate.getAddressTypeStr() << ") " 
-            << candidate_pair->_remote_candidate._addr._host << ":" << candidate_pair->_remote_candidate._addr._port
+        TraceL << "check pair local(" << candidate_pair->_local_candidate.dumpString() << ") "
+            << " <-> " << "remote(" << candidate_pair->_remote_candidate.dumpString() << ") "
             << ", pair info: " << pair_it->get_local_ip() << ":" << pair_it->get_local_port()
             << " <-> " << pair_it->get_peer_ip() << ":" << pair_it->get_peer_port() 
             << (!pair_it->get_relayed_ip().empty() ?  (" relayed addr: " + pair_it->get_relayed_ip() + ":"
@@ -1737,10 +1695,8 @@ void IceAgent::onConnected(const IceTransport::Pair::Ptr& pair) {
             return;
         }
 
-        InfoL << "push local(" << candidate_pair->_local_candidate.getAddressTypeStr() << ") " 
-            << candidate_pair->_local_candidate._addr._host << ":" << candidate_pair->_local_candidate._addr._port
-            << " <-> remote(" << candidate_pair->_remote_candidate.getAddressTypeStr() << ") " 
-            << candidate_pair->_remote_candidate._addr._host << ":" << candidate_pair->_remote_candidate._addr._port
+        InfoL << "push local(" << candidate_pair->_local_candidate.dumpString() << ") "
+            << " <-> remote(" << candidate_pair->_remote_candidate.dumpString() << ") "
             << " to valid_list";
 
         // 直接将候选者对添加到valid_list
@@ -1789,10 +1745,8 @@ void IceAgent::onCompleted(const IceTransport::Pair::Ptr& pair) {
     }
 
     if (found_in_valid_list && getState() != IceAgent::State::Completed) {
-        InfoL << "select pair: local(" << local_candidate_info.getAddressTypeStr() << ") " 
-            << local_candidate_info._addr._host << ":" << local_candidate_info._addr._port
-            << " <-> remote(" << remote_candidate_info.getAddressTypeStr() << ") " 
-            << remote_candidate_info._addr._host << ":" << remote_candidate_info._addr._port
+        InfoL << "select pair: local(" << local_candidate_info.dumpString() << ") "
+            << " <-> remote(" << remote_candidate_info.dumpString() << ") "
             << ", pair info: " << pair->get_local_ip() << ":" << pair->get_local_port()
             << " <-> " << pair->get_peer_ip() << ":" << pair->get_peer_port() 
             << (!pair->get_relayed_ip().empty() ?  (" relayed addr: " + pair->get_relayed_ip() + ":"
@@ -1939,10 +1893,8 @@ void IceAgent::addToChecklist(const Pair::Ptr& pair, CandidateInfo& remote_candi
         });
 
         InfoL << "connectivity check cnadidate pair " 
-            << "local(" << local_candidate.getAddressTypeStr() << ") " 
-            << local_candidate._addr._host << ":" << local_candidate._addr._port 
-            << " <-> remote(" << remote_candidate.getAddressTypeStr() << ") " 
-            << remote_candidate._addr._host << ":" << remote_candidate._addr._port
+            << "local(" << local_candidate.dumpString() << ") "
+            << " <-> remote(" << remote_candidate.dumpString() << ") "
             << ", pair info: " << pair->get_local_ip() << ":" << pair->get_local_port()
             << " <-> " << pair->get_peer_ip() << ":" << pair->get_peer_port() 
             << (!pair->get_relayed_ip().empty() ?  (" relayed addr: " + pair->get_relayed_ip() + ":"
@@ -2006,7 +1958,7 @@ Json::Value IceAgent::getChecklistInfo() const {
     auto all_local_candidates = _socket_candidate_manager.getAllCandidates();
     for (const auto& local_candidate : all_local_candidates) {
         Json::Value candidate_info;
-        candidate_info["type"] = getAddressTypeStr(local_candidate._type);
+        candidate_info["type"] = CandidateInfo::getAddressTypeStr(local_candidate._type);
         candidate_info["host"] = local_candidate._addr._host;
         candidate_info["port"] = local_candidate._addr._port;
         candidate_info["priority"] = local_candidate._priority;
@@ -2022,7 +1974,7 @@ Json::Value IceAgent::getChecklistInfo() const {
     Json::Value remote_candidates_array(Json::arrayValue);
     for (const auto& remote_candidate : _remote_candidates) {
         Json::Value candidate_info;
-        candidate_info["type"] = getAddressTypeStr(remote_candidate._type);
+        candidate_info["type"] = CandidateInfo::getAddressTypeStr(remote_candidate._type);
         candidate_info["host"] = remote_candidate._addr._host;
         candidate_info["port"] = remote_candidate._addr._port;
         candidate_info["priority"] = remote_candidate._priority;
@@ -2036,15 +1988,9 @@ Json::Value IceAgent::getChecklistInfo() const {
     result["remote_candidates_count"] = static_cast<Json::UInt64>(_remote_candidates.size());
 
     Json::Value checklist_array(Json::arrayValue);
-    auto build_candidate = [](const CandidateInfo& candidate) -> std::string {
-        return "("+getAddressTypeStr(candidate._type) + ") " + 
-            candidate._addr._host + ":" + to_string(candidate._addr._port);
-    };
-    
     for (const auto& candidate_pair : _checklist) {
         Json::Value entry;
-        entry["candidate_pair"] = build_candidate(candidate_pair->_local_candidate) 
-            + " <-> " + build_candidate(candidate_pair->_remote_candidate);
+        entry["candidate_pair"] = candidate_pair->_local_candidate.dumpString() + " <-> " + candidate_pair->_remote_candidate.dumpString();
         entry["state"] = CandidateInfo::getStateStr(candidate_pair->_state);
         entry["priority"] = (Json::UInt64)candidate_pair->_priority;
         entry["nominated"] = candidate_pair->_nominated;
