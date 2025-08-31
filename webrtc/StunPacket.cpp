@@ -631,8 +631,7 @@ StunPacket::Authentication StunPacket::checkAuthentication(const std::string &uf
             // 使用长期凭证机制
             //  根据RFC 5389/5766标准：key = MD5(username ":" realm ":" password)
             auto realm = attr_realm->getRealm();
-            std::string username_for_key = getUsername();
-            std::string input = username_for_key + ":" + std::string(realm.data(), realm.size()) + ":" + password;
+            std::string input = ufrag + ":" + std::string(realm.data(), realm.size()) + ":" + password;
             key = openssl_MD5(input.data(), input.size());
 
             // DebugL << "ufrag: " << ufrag;

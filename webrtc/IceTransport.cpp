@@ -1241,6 +1241,11 @@ void IceAgent::sendAllocateRequest(const Pair::Ptr& pair) {
     packet->setPassword(_password);
     packet->setPeerUfrag(_ice_server->_ufrag);
     packet->setPeerPassword(_ice_server->_pwd);
+
+    auto attr_username = std::make_shared<StunAttrUserName>();
+    attr_username->setUsername(_ice_server->_ufrag);
+    packet->addAttribute(std::move(attr_username));
+
     auto attr_requested_transport = std::make_shared<StunAttrRequestedTransport>();
     attr_requested_transport->setProtocol(StunAttrRequestedTransport::Protocol::UDP);
     packet->addAttribute(std::move(attr_requested_transport));
