@@ -687,7 +687,7 @@ public:
     bool hasAttribute(StunAttribute::Type type);
     StunAttribute::Ptr getAttribute(StunAttribute::Type type);
 
-    const std::string getUsername();
+    std::string getUsername();
     uint64_t getPriority();
     StunAttrErrorCode::Code getErrorCode() const;
 

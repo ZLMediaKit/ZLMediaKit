@@ -561,7 +561,7 @@ StunAttribute::Ptr StunPacket::getAttribute(StunAttribute::Type type) {
     return nullptr;
 }
 
-const std::string StunPacket::getUsername() {
+std::string StunPacket::getUsername() {
     auto it = _attribute_map.find(StunAttribute::Type::USERNAME);
     if (it != _attribute_map.end()) {
         auto user_attr = std::dynamic_pointer_cast<StunAttrUserName>(it->second);

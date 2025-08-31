@@ -51,6 +51,10 @@ public:
         return !(*this == rhs);
     }
 
+    std::string dumpString() const {
+        return _host + ":" + std::to_string(_port);
+    }
+
 public:
     std::string _host;
     uint16_t    _port = 0;
@@ -139,7 +143,7 @@ public:
         return CandidateTuple::operator==(rhs) && (_type == rhs._type);
     }
 
-    std::string getAddressTypeStr() {
+    std::string getAddressTypeStr() const {
         switch (_type) {
             case AddressType::HOST: return "host";
             case AddressType::SRFLX: return "srflx";
@@ -160,6 +164,10 @@ public:
             default: break;
         }
         return "unknown";
+    }
+
+    std::string dumpString() const {
+        return getAddressTypeStr() + " " + _base_addr.dumpString();
     }
 
 public:

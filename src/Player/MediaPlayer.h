@@ -26,7 +26,7 @@ public:
     void play(const std::string &url) override;
     toolkit::EventPoller::Ptr getPoller();
     void setOnCreateSocket(toolkit::Socket::onCreateSocket cb);
-    PlayerBase::Ptr getDelegate() const { return _delegate; }
+    const PlayerBase::Ptr& getDelegate() const { return _delegate; }
 
 private:
     toolkit::EventPoller::Ptr _poller;

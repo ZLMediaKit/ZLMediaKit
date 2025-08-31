@@ -573,7 +573,7 @@ void WebRtcTransport::setOnShutdown(function<void(const SockException &ex)> cb) 
 }
 
 void WebRtcTransport::onShutdown(const SockException &ex) {
-    TraceL;
+    TraceL << ex;
     _current_pair = nullptr;
     if (_on_shutdown) {
         return _on_shutdown(ex);
@@ -1819,7 +1819,7 @@ static onceToken s_rtc_auto_register([]() {
 });
 
 void WebRtcTransport::onIceTransportRecvData(const toolkit::Buffer::Ptr& buffer, const IceTransport::Pair::Ptr& pair) {
-    _current_pair = std::move(pair);
+    _current_pair = pair;
     return inputSockData(buffer->data(), buffer->size(), _current_pair);
 }
 

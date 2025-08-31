@@ -220,7 +220,7 @@ void WebRtcPusher::onRtcpBye() {
 }
 
 void WebRtcPusher::onShutdown(const SockException &ex) {
-    DebugL;
+    DebugL << ex;
     _push_src = nullptr;
     WebRtcTransportImp::onShutdown(ex);
 }

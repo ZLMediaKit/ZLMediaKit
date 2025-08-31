@@ -17,7 +17,7 @@ using namespace std;
 
 namespace mediakit {
 
-IceSession::Ptr queryIceTransport(uint8_t *data, size_t size, const EventPoller::Ptr& poller) {
+static IceSession::Ptr queryIceTransport(uint8_t *data, size_t size) {
     auto packet = RTC::StunPacket::parse((const uint8_t *)data, size);
     if (!packet) {
         WarnL << "parse stun error";
@@ -29,9 +29,8 @@ IceSession::Ptr queryIceTransport(uint8_t *data, size_t size, const EventPoller:
 }
 
 ////////////  IceSession //////////////////////////
-///
 IceSession::IceSession(const Socket::Ptr &sock) : Session(sock) {
-    TraceL;
+    TraceL << getIdentifier();
 
     GET_CONFIG(string, iceUfrag, Rtc::kIceUfrag);
     GET_CONFIG(string, icePwd, Rtc::kIcePwd);
@@ -39,8 +38,12 @@ IceSession::IceSession(const Socket::Ptr &sock) : Session(sock) {
     _ice_transport->initialize();
 }
 
+IceSession::~IceSession() {
+    TraceL << getIdentifier();
+}
+
 EventPoller::Ptr IceSession::queryPoller(const Buffer::Ptr &buffer) {
-    auto transport = queryIceTransport((uint8_t *)buffer->data(), buffer->size(), nullptr);
+    auto transport = queryIceTransport((uint8_t *)buffer->data(), buffer->size());
     return transport ? transport->getPoller() : nullptr;
 }
 
@@ -49,14 +52,32 @@ void IceSession::onRecv(const Buffer::Ptr &buffer) {
     if (!_session_pair) {
         _session_pair = std::make_shared<IceTransport::Pair>(shared_from_this());
     }
-    _ice_transport->processSocketData((const uint8_t *)buffer->data(), buffer->size(), _session_pair);
+    onIceTransportRecvData(buffer, _session_pair);
 }
 
 void IceSession::onError(const SockException &err) {
     InfoL;
+    // 消除循环引用
+    _session_pair = nullptr;
 }
 
 void IceSession::onManager() {
+}
+
+void IceSession::onIceTransportRecvData(const toolkit::Buffer::Ptr& buffer, const IceTransport::Pair::Ptr& pair) {
+    _ice_transport->processSocketData((const uint8_t *)buffer->data(), buffer->size(), pair);
+}
+
+void IceSession::onIceTransportGatheringCandidate(const IceTransport::Pair::Ptr& pair, CandidateInfo& candidate) {
+    DebugL << candidate.dumpString();
+}
+
+void IceSession::onIceTransportDisconnected() {
+    InfoL << getIdentifier();
+}
+
+void IceSession::onIceTransportCompleted() {
+    InfoL << getIdentifier();
 }
 
 ////////////  IceSessionManager //////////////////////////
@@ -85,23 +106,5 @@ void IceSessionManager::removeItem(const std::string& key) {
     std::lock_guard<std::mutex> lck(_mtx);
     _map.erase(key);
 }
-
-void IceSession::onIceTransportRecvData(const toolkit::Buffer::Ptr& buffer, const IceTransport::Pair::Ptr& pair) {
-    _ice_transport->processSocketData((const uint8_t *)buffer->data(), buffer->size(), pair);
-}
-
-void IceSession::onIceTransportGatheringCandidate(const IceTransport::Pair::Ptr& pair, CandidateInfo& candidate) {
-    DebugL;
-}
-
-void IceSession::onIceTransportDisconnected() {
-    InfoL << getIdentifier();
-}
-
-void IceSession::onIceTransportCompleted() {
-    InfoL << getIdentifier();
-}
-
-
 
 }// namespace mediakit

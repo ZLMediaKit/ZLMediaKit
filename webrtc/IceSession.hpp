@@ -24,7 +24,7 @@ public:
     using Ptr = std::shared_ptr<IceSession>;
     using WeakPtr = std::weak_ptr<IceSession>;
     IceSession(const Socket::Ptr &sock);
-    ~IceSession() override {DebugL;};
+    ~IceSession() override;
 
     static EventPoller::Ptr queryPoller(const Buffer::Ptr &buffer);
 
