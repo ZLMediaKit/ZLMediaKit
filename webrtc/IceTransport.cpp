@@ -193,7 +193,10 @@ void IceTransport::sendSocketData_l(const Buffer::Ptr& buf, const Pair::Ptr& pai
     TraceL << "data: " << hexdump(buf->data(), buf->size());
 #endif
 
-    pair->_socket->send(buf);
+    sockaddr_storage peer_addr;
+    pair->get_peer_addr(peer_addr);
+    auto addr_len = SockUtil::get_sock_len((const struct sockaddr*)&peer_addr);
+    pair->_socket->sendto(buf, (struct sockaddr*)&peer_addr, addr_len);
     if (flush) {
         pair->_socket->flushAll();
     }
@@ -1836,21 +1839,23 @@ void IceAgent::setSelectedPair(const Pair::Ptr& pair) {
 }
 
 void IceAgent::sendSocketData(const Buffer::Ptr& buf, const Pair::Ptr& pair, bool flush) {
-    if (pair == nullptr) {
+    auto use_pair = pair? pair : getSelectedPair();
+
+    if (use_pair == nullptr) {
         throw std::invalid_argument(StrPrinter << "pair should not be nullptr");
     }
 
-    if (pair->_relayed_addr) {
-        return sendRealyPacket(buf, pair, flush);
+    if (use_pair->_relayed_addr) {
+        return sendRealyPacket(buf, use_pair, flush);
     }
-    return sendSocketData_l(buf, pair, flush);
+    return sendSocketData_l(buf, use_pair, flush);
 }
 
 void IceAgent::sendRealyPacket(const Buffer::Ptr& buffer, const Pair::Ptr& pair, bool flush) {
     // TraceL;
-    auto use_pair = std::make_shared<Pair>(*pair);
-    auto peer_addr = std::move(use_pair->_relayed_addr);
-    use_pair->_relayed_addr = nullptr;
+    auto forward_pair = std::make_shared<Pair>(*pair);
+    auto peer_addr = std::move(forward_pair->_relayed_addr);
+    forward_pair->_relayed_addr = nullptr;
 
     if (!hasPermission(*peer_addr)) {
         WarnL << "No permission exists for peer: " << SockUtil::inet_ntoa((const struct sockaddr*)peer_addr.get()) 
@@ -1860,9 +1865,9 @@ void IceAgent::sendRealyPacket(const Buffer::Ptr& buffer, const Pair::Ptr& pair,
 
     uint16_t channel_number;
     if (hasChannelBind(*peer_addr, channel_number)) {
-        sendChannelData(channel_number, buffer, use_pair);
+        sendChannelData(channel_number, buffer, forward_pair);
     } else {
-        sendSendIndication(*peer_addr, buffer, use_pair);
+        sendSendIndication(*peer_addr, buffer, forward_pair);
     }
 }
 

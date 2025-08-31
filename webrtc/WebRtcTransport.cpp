@@ -757,7 +757,7 @@ void WebRtcTransport::sendRtpPacket(const char *buf, int len, bool flush, void *
         onBeforeEncryptRtp(pkt->data(), len, ctx);
         if (_srtp_session_send->EncryptRtp(reinterpret_cast<uint8_t *>(pkt->data()), &len)) {
             pkt->setSize(len);
-            onSendSockData(std::move(pkt), flush, _current_pair);
+            onSendSockData(std::move(pkt), flush);
         }
     }
 }
@@ -772,7 +772,7 @@ void WebRtcTransport::sendRtcpPacket(const char *buf, int len, bool flush, void 
         onBeforeEncryptRtcp(pkt->data(), len, ctx);
         if (_srtp_session_send->EncryptRtcp(reinterpret_cast<uint8_t *>(pkt->data()), &len)) {
             pkt->setSize(len);
-            onSendSockData(std::move(pkt), flush, _current_pair);
+            onSendSockData(std::move(pkt), flush);
         }
     }
 }
