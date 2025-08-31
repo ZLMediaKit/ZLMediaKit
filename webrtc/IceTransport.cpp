@@ -1116,7 +1116,7 @@ void IceAgent::connectivityCheck(CandidateInfo& candidate) {
             addToChecklist(pair, candidate);
         }
 
-        if (_socket_candidate_manager._has_relayed_cnadidate) {
+        if (_socket_candidate_manager._has_relayed_candidate) {
             localRelayedConnectivityCheck(candidate);
         }
     }
@@ -1645,7 +1645,7 @@ void IceAgent::onGatheringCandidate(const Pair::Ptr& pair, CandidateInfo& candid
 
     //如果是REALY,当前的所有PEER Candidate进行CreatePermission
     if (candidate._type == CandidateInfo::AddressType::RELAY) {
-        _socket_candidate_manager._has_relayed_cnadidate = true;
+        _socket_candidate_manager._has_relayed_candidate = true;
         for (auto remote_candidate : _remote_candidates) {
             localRelayedConnectivityCheck(remote_candidate);
         }

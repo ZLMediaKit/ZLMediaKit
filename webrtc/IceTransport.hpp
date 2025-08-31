@@ -224,7 +224,6 @@ public:
         virtual ~Pair() = default;
 
         void get_peer_addr(sockaddr_storage &peer_addr) {
-            memset(&peer_addr, 0, sizeof(peer_addr));
             if (!_peer_host.empty()) {
                 peer_addr = toolkit::SockUtil::make_sockaddr(_peer_host.data(), _peer_port);
             } else {
@@ -237,50 +236,32 @@ public:
                 return false;
             }
 
-            memset(&peerAddr, 0, sizeof(peerAddr));
             memcpy(&peerAddr, _relayed_addr.get(), sizeof(peerAddr));
             return true;
         }
 
-        std::string get_local_ip() {
-            return _socket->get_local_ip();
-        }
+        std::string get_local_ip() { return _socket->get_local_ip(); }
 
-        uint16_t get_local_port() {
-            return _socket->get_local_port();
-        };
+        uint16_t get_local_port() { return _socket->get_local_port(); }
 
-        std::string get_peer_ip() {
-            return !_peer_host.empty()? _peer_host : _socket->get_peer_ip();
-        }
+        std::string get_peer_ip() { return !_peer_host.empty() ? _peer_host : _socket->get_peer_ip(); }
 
-        uint16_t get_peer_port() {
-            return !_peer_host.empty()? _peer_port : _socket->get_peer_port();
-        }
+        uint16_t get_peer_port() { return !_peer_host.empty() ? _peer_port : _socket->get_peer_port(); }
 
-        std::string get_relayed_ip() {
-            if (_relayed_addr) {
-                return toolkit::SockUtil::inet_ntoa((const struct sockaddr*)_relayed_addr.get());
-            }
-            return "";
-        }
+        std::string get_relayed_ip() { return _relayed_addr ? toolkit::SockUtil::inet_ntoa((const struct sockaddr *)_relayed_addr.get()) : ""; }
 
-        uint16_t get_relayed_port() {
-            if (_relayed_addr) {
-                return toolkit::SockUtil::inet_port((const struct sockaddr*)_relayed_addr.get());
-            }
-            return 0;
-        };
+        uint16_t get_relayed_port() { return _relayed_addr ? toolkit::SockUtil::inet_port((const struct sockaddr *)_relayed_addr.get()) : 0; }
 
-        static bool is_same_relayed_addr(Pair* a, Pair* b) {
-            if (a->_relayed_addr != nullptr && b->_relayed_addr != nullptr) {
-                return toolkit::SockUtil::is_same_addr(reinterpret_cast<const struct sockaddr*>(a->_relayed_addr.get()),
-                reinterpret_cast<const struct sockaddr*>(b->_relayed_addr.get()));
+        static bool is_same_relayed_addr(Pair *a, Pair *b) {
+            if (a->_relayed_addr && b->_relayed_addr) {
+                return toolkit::SockUtil::is_same_addr(
+                    reinterpret_cast<const struct sockaddr *>(a->_relayed_addr.get()), reinterpret_cast<const struct sockaddr *>(b->_relayed_addr.get()));
             }
             return (a->_relayed_addr == b->_relayed_addr);
         }
 
         static bool is_same(Pair* a, Pair* b) {
+            // FIXME: a->_socket == b->_socket条件成立后，后面get_peer_ip和get_peer_port一定相同
             if ((a->_socket == b->_socket)
                 && (a->get_peer_ip() == b->get_peer_ip())
                 && (a->get_peer_port() == b->get_peer_port()) 
@@ -291,14 +272,13 @@ public:
         }
 
     public:
-
         toolkit::SocketHelper::Ptr _socket;
         //对端host:port 地址，因为多个pair会复用一个socket对象，因此可能会和_socket的创建bind信息不一致
         std::string _peer_host;
         uint16_t _peer_port;
 
         //转发地址，用于实现TURN转发地址
-        std::shared_ptr<sockaddr_storage> _relayed_addr = nullptr;
+        std::shared_ptr<sockaddr_storage> _relayed_addr;
     };
 
     class Listener {
@@ -324,11 +304,15 @@ public:
         uint32_t _retry_count;           // 当前重传次数
         uint32_t _rto;                   // 当前RTO值(毫秒)
 
-        static const uint32_t INITIAL_RTO = 500;    // 初始RTO 500ms
-        static const uint32_t MAX_RETRIES = 7;      // 最大重传次数
-        
+        static constexpr uint32_t INITIAL_RTO = 500;    // 初始RTO 500ms
+        static constexpr uint32_t MAX_RETRIES = 7;      // 最大重传次数
+
         RequestInfo(StunPacket::Ptr req, MsgHandler h, Pair::Ptr p)
-            : _request(std::move(req)), _handler(std::move(h)), _pair(std::move(p)), _retry_count(0), _rto(INITIAL_RTO) {
+            : _request(std::move(req))
+            , _handler(std::move(h))
+            , _pair(std::move(p))
+            , _retry_count(0)
+            , _rto(INITIAL_RTO) {
             _send_time = toolkit::getCurrentMillisecond();
             _next_timeout = _send_time + _rto;
         }
@@ -439,7 +423,7 @@ protected:
 
     std::unordered_map<sockaddr_storage /*peer ip:port*/, std::pair<std::shared_ptr<uint16_t> /* port */, Pair::Ptr /*relayed_pairs*/>,
         toolkit::SockUtil::SockAddrHash, toolkit::SockUtil::SockAddrEqual> _relayed_pairs;
-    Pair::Ptr _session_pair = nullptr;
+    Pair::Ptr _session_pair;
 };
 
 class IceAgent : public IceTransport {
@@ -455,12 +439,15 @@ public:
         uint64_t _priority;                   // 候选者对优先级（64位，符合RFC 8445）
         CandidateInfo::State _state;          // 连通性检查状态
         bool _nominated = false;
-        
+
         CandidatePair(Pair::Ptr local_pair, CandidateInfo remote, CandidateInfo local)
-            : _local_pair(std::move(local_pair)), _remote_candidate(std::move(remote)), _local_candidate(std::move(local)), _state(CandidateInfo::State::Frozen) {
+            : _local_pair(std::move(local_pair))
+            , _remote_candidate(std::move(remote))
+            , _local_candidate(std::move(local))
+            , _state(CandidateInfo::State::Frozen) {
             _priority = calCandidatePairPriority(local._priority, remote._priority);
         }
-        
+
         // 比较操作符，用于优先级排序（高优先级在前）
         bool operator<(const CandidatePair& other) const {
             return _priority > other._priority;
@@ -594,9 +581,9 @@ protected:
     uint64_t _tiebreaker = 0;                    // 8 bytes unsigned integer.
     State _state = IceAgent::State::Running;     //ice session state
  
-    Pair::Ptr _selected_pair = nullptr;
-    Pair::Ptr _nominated_pair = nullptr;
-    StunPacket::Ptr _nominated_response = nullptr;
+    Pair::Ptr _selected_pair;
+    Pair::Ptr _nominated_pair;
+    StunPacket::Ptr _nominated_response;
     std::weak_ptr<Pair>  _last_selected_pair;
 
     // 双向索引的候选地址管理结构
@@ -611,8 +598,8 @@ protected:
         std::vector<toolkit::SocketHelper::Ptr> _host_sockets;    // HOST类型socket
         std::vector<toolkit::SocketHelper::Ptr> _relay_sockets;   // RELAY类型socket
 
-        bool _has_relayed_cnadidate = false;
-        
+        bool _has_relayed_candidate = false;
+
         // 添加映射关系，带5元组重复检查
         bool addMapping(toolkit::SocketHelper::Ptr socket, const CandidateInfo& candidate) {
             // 检查5元组是否已存在
@@ -626,11 +613,11 @@ protected:
             // 按类型分组
             if (candidate._type != CandidateInfo::AddressType::RELAY) {
                 if (std::find(_host_sockets.begin(), _host_sockets.end(), socket) == _host_sockets.end()) {
-                    _host_sockets.push_back(socket);
+                    _host_sockets.emplace_back(std::move(socket));
                 }
             } else if (candidate._type == CandidateInfo::AddressType::RELAY) {
                 if (std::find(_relay_sockets.begin(), _relay_sockets.end(), socket) == _relay_sockets.end()) {
-                    _relay_sockets.push_back(socket);
+                    _relay_sockets.emplace_back(std::move(socket));
                 }
             }
             
@@ -638,7 +625,7 @@ protected:
         }
         
         // 获取socket对应的所有candidates
-        std::vector<CandidateInfo> getCandidates(toolkit::SocketHelper::Ptr socket) const {
+        std::vector<CandidateInfo> getCandidates(const toolkit::SocketHelper::Ptr& socket) const {
             auto it = socket_to_candidates.find(socket);
             return (it != socket_to_candidates.end()) ? it->second : std::vector<CandidateInfo>();
         }
@@ -661,7 +648,7 @@ protected:
         // 获取所有candidates（便于遍历）
         std::vector<CandidateInfo> getAllCandidates() const {
             std::vector<CandidateInfo> result;
-            for (const auto& pair : candidate_to_socket) {
+            for (auto& pair : candidate_to_socket) {
                 result.push_back(pair.first);
             }
             return result;
@@ -670,14 +657,14 @@ protected:
         // 直接添加host socket
         void addHostSocket(toolkit::SocketHelper::Ptr socket) {
             if (std::find(_host_sockets.begin(), _host_sockets.end(), socket) == _host_sockets.end()) {
-                _host_sockets.push_back(socket);
+                _host_sockets.emplace_back(std::move(socket));
             }
         }
         
         // 直接添加relay socket
         void addRelaySocket(toolkit::SocketHelper::Ptr socket) {
             if (std::find(_relay_sockets.begin(), _relay_sockets.end(), socket) == _relay_sockets.end()) {
-                _relay_sockets.push_back(socket);
+                _relay_sockets.emplace_back(std::move(socket));
             }
         }
         
@@ -692,7 +679,7 @@ protected:
         }
         
         // 移除host socket
-        void removeHostSocket(toolkit::SocketHelper::Ptr socket) {
+        void removeHostSocket(const toolkit::SocketHelper::Ptr& socket) {
             auto it = std::find(_host_sockets.begin(), _host_sockets.end(), socket);
             if (it != _host_sockets.end()) {
                 _host_sockets.erase(it);
@@ -700,7 +687,7 @@ protected:
         }
         
         // 移除relay socket
-        void removeRelaySocket(toolkit::SocketHelper::Ptr socket) {
+        void removeRelaySocket(const toolkit::SocketHelper::Ptr& socket) {
             auto it = std::find(_relay_sockets.begin(), _relay_sockets.end(), socket);
             if (it != _relay_sockets.end()) {
                 _relay_sockets.erase(it);
