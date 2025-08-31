@@ -17,7 +17,6 @@
 #include <vector>
 #include "RtpExt.h"
 #include "RtpMap.h"
-#include "assert.h"
 #include "Extension/Frame.h"
 #include "Common/Parser.h"
 

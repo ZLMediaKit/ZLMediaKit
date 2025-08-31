@@ -1,30 +1,20 @@
-﻿/**
-ISC License
+﻿/*
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
+ *
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
+ *
+ * Use of this source code is governed by MIT-like license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
+*/
 
-Copyright © 2015, Iñaki Baz Castillo <ibc@aliax.net>
+#ifndef ZLMEDIAKIT_WEBRTC_STUN_PACKET_HPP
+#define ZLMEDIAKIT_WEBRTC_STUN_PACKET_HPP
 
-Permission to use, copy, modify, and/or distribute this software for any
-purpose with or without fee is hereby granted, provided that the above
-copyright notice and this permission notice appear in all copies.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- */
-
-#ifndef MS_RTC_STUN_PACKET_HPP
-#define MS_RTC_STUN_PACKET_HPP
-
-
-#include "logger.h"
+#include <string>
 #include "Util/Byte.hpp"
 #include "Network/Buffer.h"
 #include "Network/sockutil.h"
-#include <string>
 
 namespace RTC {
 // reference https://rcf-editor.org/rfc/rfc8489
@@ -90,23 +80,17 @@ public:
     };
 
     static const size_t ATTR_HEADER_SIZE = 4;
-    static bool isComprehensionRequired(const uint8_t* data, size_t len);
+    static bool isComprehensionRequired(const uint8_t *data, size_t len);
 
     using Ptr = std::shared_ptr<StunAttribute>;
     StunAttribute(StunAttribute::Type type) : _type(type) {}
     virtual ~StunAttribute() = default;
 
-    char *data()  {
-        return _data? _data->data() : nullptr;
-    }
+    char *data() { return _data ? _data->data() : nullptr; }
 
-    size_t size() {
-        return _data? _data->size() : 0;
-    }
+    size_t size() const { return _data ? _data->size() : 0; }
 
-    Type type() const {
-        return _type;
-    }
+    Type type() const { return _type; }
 
     virtual bool loadFromData(const uint8_t *buf, size_t len) = 0;
     virtual bool storeToData() = 0;
@@ -138,7 +122,7 @@ protected:
 class StunAttrMappedAddress : public StunAttribute {
 public:
     using Ptr = std::shared_ptr<StunAttrMappedAddress>;
-    StunAttrMappedAddress() : StunAttribute(StunAttribute::Type::MAPPED_ADDRESS) {};
+    StunAttrMappedAddress() : StunAttribute(StunAttribute::Type::MAPPED_ADDRESS) {}
     virtual ~StunAttrMappedAddress() = default;
 
     bool loadFromData(const uint8_t *buf, size_t len) override;
@@ -149,20 +133,16 @@ public:
 class StunAttrUserName : public StunAttribute {
 public:
     using Ptr = std::shared_ptr<StunAttrUserName>;
-    StunAttrUserName() : StunAttribute(StunAttribute::Type::USERNAME) {};
+    StunAttrUserName() : StunAttribute(StunAttribute::Type::USERNAME) {}
     virtual ~StunAttrUserName() = default;
 
     bool loadFromData(const uint8_t *buf, size_t len) override;
     bool storeToData() override;
     // std::string dump() override;
 
-    void setUsername(const std::string username) {
-        _username = username;
-    }
+    void setUsername(std::string username) { _username = std::move(username); }
 
-    std::string getUsername() {
-        return _username;
-    }
+    const std::string& getUsername() const { return _username; }
 
 private:
     std::string _username;
@@ -171,28 +151,25 @@ private:
 class StunAttrMessageIntegrity : public StunAttribute {
 public:
     using Ptr = std::shared_ptr<StunAttrMessageIntegrity>;
-    StunAttrMessageIntegrity() : StunAttribute(StunAttribute::Type::MESSAGE_INTEGRITY) {};
+    StunAttrMessageIntegrity() : StunAttribute(StunAttribute::Type::MESSAGE_INTEGRITY) {}
     virtual ~StunAttrMessageIntegrity() = default;
 
     bool loadFromData(const uint8_t *buf, size_t len) override;
     bool storeToData() override;
     // std::string dump() override;
     //
-    void setHmac(toolkit::BufferLikeString hmac) {
-        _hmac = hmac;
-    }
+    void setHmac(toolkit::BufferLikeString hmac) { _hmac = std::move(hmac); }
 
-    toolkit::BufferLikeString getHmac() {
-        return _hmac;
-    }
+    const toolkit::BufferLikeString &getHmac() const { return _hmac; }
 
+private:
     toolkit::BufferLikeString _hmac;
 };
 
 class StunAttrErrorCode : public StunAttribute {
 public:
     using Ptr = std::shared_ptr<StunAttrErrorCode>;
-    StunAttrErrorCode() : StunAttribute(StunAttribute::Type::ERROR_CODE) {};
+    StunAttrErrorCode() : StunAttribute(StunAttribute::Type::ERROR_CODE) {}
     virtual ~StunAttrErrorCode() = default;
     enum class Code : uint16_t {
         Invalid                     = 0,   //
@@ -216,16 +193,12 @@ public:
     bool loadFromData(const uint8_t *buf, size_t len) override;
     bool storeToData() override;
     // std::string dump() override;
-    //
- 
-    void setErrorCode(Code error_code) {
-        _error_code = error_code;
-    }
 
-    Code getErrorCode() {
-        return _error_code;
-    }
+    void setErrorCode(Code error_code) { _error_code = error_code; }
 
+    Code getErrorCode() const { return _error_code; }
+
+private:
     Code _error_code;
 };
 
@@ -238,13 +211,9 @@ public:
     bool loadFromData(const uint8_t *buf, size_t len) override;
     bool storeToData() override;
 
-    void setChannelNumber(uint16_t channel_number) {
-        _channel_number = channel_number;
-    }
+    void setChannelNumber(uint16_t channel_number) { _channel_number = channel_number; }
 
-    uint16_t getChannelNumber() {
-        return _channel_number;
-    }
+    uint16_t getChannelNumber() const { return _channel_number; }
 
 private:
     uint16_t _channel_number;
@@ -260,13 +229,9 @@ public:
     bool storeToData() override;
     // std::string dump() override;
 
-    void setLifetime(uint32_t lifetime) {
-        _lifetime = lifetime;
-    }
+    void setLifetime(uint32_t lifetime) { _lifetime = lifetime; }
 
-    uint32_t getLifetime() {
-        return _lifetime;
-    }
+    uint32_t getLifetime() const { return _lifetime; }
 
 private:
     uint32_t _lifetime;
@@ -286,28 +251,22 @@ private:
 class StunAttrXorPeerAddress : public StunAttribute {
 public:
     using Ptr = std::shared_ptr<StunAttrXorPeerAddress>;
-    StunAttrXorPeerAddress(toolkit::BufferLikeString transaction_id) : StunAttribute(StunAttribute::Type::XOR_PEER_ADDRESS), _transaction_id(transaction_id) {};
+    StunAttrXorPeerAddress(toolkit::BufferLikeString transaction_id)
+        : StunAttribute(StunAttribute::Type::XOR_PEER_ADDRESS)
+        , _transaction_id(transaction_id) {};
     virtual ~StunAttrXorPeerAddress() = default;
 
     bool loadFromData(const uint8_t *buf, size_t len) override;
     bool storeToData() override;
     // std::string dump() override;
- 
-    void setAddr(struct sockaddr_storage addr) {
-        _addr = addr;
-    }
 
-    struct sockaddr_storage getAddr() {
-        return _addr;
-    }
+    void setAddr(struct sockaddr_storage addr) { _addr = std::move(addr); }
 
-    std::string getAddrString() {
-        return toolkit::SockUtil::inet_ntoa((struct sockaddr *)&_addr);
-    }
+    const struct sockaddr_storage& getAddr() const { return _addr; }
 
-    uint16_t getPort() {
-        return toolkit::SockUtil::inet_port((struct sockaddr *)&_addr);
-    }
+    std::string getAddrString() const { return toolkit::SockUtil::inet_ntoa((struct sockaddr *)&_addr); }
+
+    uint16_t getPort() const { return toolkit::SockUtil::inet_port((struct sockaddr *)&_addr); }
 
 protected:
     struct sockaddr_storage _addr;
@@ -323,13 +282,9 @@ public:
     bool loadFromData(const uint8_t *buf, size_t len) override;
     bool storeToData() override;
 
-    void setData(const toolkit::BufferLikeString &data) {
-        _data_content = data;
-    }
+    void setData(toolkit::BufferLikeString data) { _data_content = std::move(data); }
 
-    toolkit::BufferLikeString getData() {
-        return _data_content;
-    }
+    const toolkit::BufferLikeString& getData() const { return _data_content; }
 
 private:
     toolkit::BufferLikeString _data_content;
@@ -345,16 +300,12 @@ public:
     bool storeToData() override;
     // std::string dump() override;
 
-    void setRealm(toolkit::BufferLikeString realm) {
-        _realm = realm;
-    }
+    void setRealm(toolkit::BufferLikeString realm) { _realm = std::move(realm); }
 
-    toolkit::BufferLikeString getRealm() {
-        return _realm;
-    }
+    const toolkit::BufferLikeString& getRealm() const { return _realm; }
 
 private:
-    //必须要少于128字符
+    // 必须要少于128字符
     toolkit::BufferLikeString _realm;
 };
 
@@ -368,16 +319,12 @@ public:
     bool storeToData() override;
     // std::string dump() override;
 
-    void setNonce(toolkit::BufferLikeString nonce) {
-        _nonce = nonce;
-    }
+    void setNonce(toolkit::BufferLikeString nonce) { _nonce = std::move(nonce); }
 
-    toolkit::BufferLikeString getNonce() {
-        return _nonce;
-    }
+    const toolkit::BufferLikeString& getNonce() const { return _nonce; }
 
 private:
-    //必须要少于128字符
+    // 必须要少于128字符
     toolkit::BufferLikeString _nonce;
 };
 
@@ -407,19 +354,15 @@ public:
     bool loadFromData(const uint8_t *buf, size_t len) override;
     bool storeToData() override;
     // std::string dump() override;
- 
+
     enum class Protocol : uint8_t {
-        //This specification only allows the use of codepoint 17 (User Datagram Protocol).
+        // This specification only allows the use of codepoint 17 (User Datagram Protocol).
         UDP = 0x11,
     };
 
-    void setProtocol(Protocol protocol) {
-        _protocol = protocol;
-    }
+    void setProtocol(Protocol protocol) { _protocol = protocol; }
 
-    Protocol getProtocol() {
-        return _protocol;
-    }
+    Protocol getProtocol() const { return _protocol; }
 
 private:
     Protocol _protocol = Protocol::UDP;
@@ -444,13 +387,9 @@ public:
     bool storeToData() override;
     // std::string dump() override;
 
-    void setPriority(uint64_t priority) {
-        _priority = priority;
-    }
+    void setPriority(uint64_t priority) { _priority = priority; }
 
-    uint64_t getPriority() {
-        return _priority;
-    }
+    uint64_t getPriority() const { return _priority; }
 
 private:
     uint32_t _priority;
@@ -476,14 +415,10 @@ public:
     bool loadFromData(const uint8_t *buf, size_t len) override;
     bool storeToData() override;
     // std::string dump() override;
- 
-    void setFingerprint(uint32_t fingerprint) {
-        _fingerprint = fingerprint;
-    }
 
-    uint32_t getFingerprint() {
-        return _fingerprint;
-    }
+    void setFingerprint(uint32_t fingerprint) { _fingerprint = fingerprint; }
+
+    uint32_t getFingerprint() const { return _fingerprint; }
 
 private:
     uint32_t _fingerprint;
@@ -498,14 +433,11 @@ public:
     bool loadFromData(const uint8_t *buf, size_t len) override;
     bool storeToData() override;
     // std::string dump() override;
- 
-    void setTiebreaker(uint64_t tiebreaker) {
-        _tiebreaker = tiebreaker;
-    }
 
-    uint64_t getTiebreaker() {
-        return _tiebreaker;
-    }
+    void setTiebreaker(uint64_t tiebreaker) { _tiebreaker = tiebreaker; }
+
+    uint64_t getTiebreaker() const { return _tiebreaker; }
+
 private:
     uint64_t _tiebreaker = 0; // 8 bytes unsigned integer.
 };
@@ -520,13 +452,9 @@ public:
     bool storeToData() override;
     // std::string dump() override;
 
-    void setTiebreaker(uint64_t tiebreaker) {
-        _tiebreaker = tiebreaker;
-    }
+    void setTiebreaker(uint64_t tiebreaker) { _tiebreaker = tiebreaker; }
 
-    uint64_t getTiebreaker() {
-        return _tiebreaker;
-    }
+    uint64_t getTiebreaker() const { return _tiebreaker; }
 
 private:
     uint64_t _tiebreaker = 0; // 8 bytes unsigned integer.
@@ -546,7 +474,7 @@ private:
 |                                                               |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
         Figure 2: Format of STUN Message Header
-        reference https://www.rfc-editor.org/rfc/rfc8489.html#section-5 */ 
+        reference https://www.rfc-editor.org/rfc/rfc8489.html#section-5 */
 class StunPacket : public toolkit::Buffer {
 public:
     using Ptr = std::shared_ptr<StunPacket>;
@@ -581,7 +509,7 @@ public:
     };
 
     struct EnumClassHash {
-        template<typename T>
+        template <typename T>
         std::size_t operator()(T t) const {
             return static_cast<std::size_t>(t);
         }
@@ -598,84 +526,49 @@ public:
     static const size_t HEADER_SIZE = 20;
     static const uint8_t _magicCookie[];
 
-    static bool isStun(const uint8_t* data, size_t len);
-    static Class getClass(const uint8_t* data, size_t len);
-    static Method getMethod(const uint8_t* data, size_t len);
-    static StunPacket::Ptr parse(const uint8_t* data, size_t len);
+    static bool isStun(const uint8_t *data, size_t len);
+    static Class getClass(const uint8_t *data, size_t len);
+    static Method getMethod(const uint8_t *data, size_t len);
+    static StunPacket::Ptr parse(const uint8_t *data, size_t len);
     static std::string mappingClassEnum2Str(Class klass);
     static std::string mappingMethodEnum2Str(Method method);
-
 
     StunPacket(Class klass, Method method);
     virtual ~StunPacket();
 
-    Class getClass() const {
-        return _klass;
-    }
+    Class getClass() const { return _klass; }
 
-    Method getMethod() const {
-        return _method;
-    }
+    Method getMethod() const { return _method; }
 
-    std::string getClassStr() {
-        return StrPrinter << mappingClassEnum2Str(_klass) << "(" << (uint32_t)_klass << ")";
-    }
+    std::string getClassStr() const { return StrPrinter << mappingClassEnum2Str(_klass) << "(" << (uint32_t)_klass << ")"; }
 
-    std::string getMethodStr() {
-        return StrPrinter << mappingMethodEnum2Str(_method) << "(" << (uint32_t)_method << ")";
-    }
+    std::string getMethodStr() const { return StrPrinter << mappingMethodEnum2Str(_method) << "(" << (uint32_t)_method << ")"; }
 
-    const toolkit::BufferLikeString getTransactionId() {
-        return _transaction_id;
-    }
+    const toolkit::BufferLikeString& getTransactionId() const { return _transaction_id; }
 
-    void setUfrag(const std::string& ufrag) {
-        _ufrag = ufrag;
-    }
+    void setUfrag(std::string ufrag) { _ufrag = std::move(ufrag); }
 
-    const std::string getUfrag() {
-        return _ufrag;
-    }
+    const std::string& getUfrag() const { return _ufrag; }
 
-    void setPassword(const std::string& password) {
-        _password = password;
-    }
+    void setPassword(std::string password) { _password = std::move(password); }
 
-    const std::string getPassword() {
-        return _password;
-    }
+    const std::string& getPassword() const { return _password; }
 
-    void setPeerUfrag(const std::string& peer_ufrag) {
-        _peer_ufrag = peer_ufrag;
-    }
+    void setPeerUfrag(std::string peer_ufrag) { _peer_ufrag = std::move(peer_ufrag); }
 
-    const std::string getPeerUfrag() {
-        return _peer_ufrag;
-    }
+    const std::string& getPeerUfrag() const { return _peer_ufrag; }
 
-    void setPeerPassword(const std::string& peer_password) {
-        _peer_password = peer_password;
-    }
+    void setPeerPassword(std::string peer_password) { _peer_password = std::move(peer_password); }
 
-    const std::string getPeerPassword() {
-        return _peer_password;
-    }
+    const std::string& getPeerPassword() const { return _peer_password; }
 
-    void setNeedMessageIntegrity(bool flag) {
-        _need_message_integrity = flag;
-    }
+    void setNeedMessageIntegrity(bool flag) { _need_message_integrity = flag; }
 
-    bool getNeedMessageIntegrity() {
-        return _need_message_integrity;
-    }
+    bool getNeedMessageIntegrity() const { return _need_message_integrity; }
 
-    void setNeedFingerprint(bool flag) {
-        _need_fingerprint = flag;
-    }
+    void setNeedFingerprint(bool flag) { _need_fingerprint = flag; }
 
-    bool getNeedFingerprint() {
-        return _need_fingerprint;
-    }
+    bool getNeedFingerprint() const { return _need_fingerprint; }
 
     void refreshTransactionId() {
         _transaction_id = toolkit::makeRandStr(12, false);
@@ -684,31 +577,30 @@ public:
 
     void addAttribute(StunAttribute::Ptr attr);
     void removeAttribute(StunAttribute::Type type);
-    bool hasAttribute(StunAttribute::Type type);
-    StunAttribute::Ptr getAttribute(StunAttribute::Type type);
+    bool hasAttribute(StunAttribute::Type type) const;
+    StunAttribute::Ptr getAttribute(StunAttribute::Type type) const;
 
-    std::string getUsername();
-    uint64_t getPriority();
+    std::string getUsername() const;
+    uint64_t getPriority() const;
     StunAttrErrorCode::Code getErrorCode() const;
 
-    Authentication checkAuthentication(const std::string& ufrag, const std::string& password);
+    Authentication checkAuthentication(const std::string &ufrag, const std::string &password) const;
     void serialize();
 
-    StunPacket::Ptr createSuccessResponse();
-    StunPacket::Ptr createErrorResponse(StunAttrErrorCode::Code errorCode);
+    StunPacket::Ptr createSuccessResponse() const;
+    StunPacket::Ptr createErrorResponse(StunAttrErrorCode::Code errorCode) const;
 
     ///////Buffer override///////
     char *data() const override;
     size_t size() const override;
 
 private:
-
     bool loadFromData(const uint8_t *buf, size_t len);
 
-    //attribute
+    // attribute
     bool loadAttrMessage(const uint8_t *buf, size_t len);
     bool storeAttrMessage();
-    size_t getAttrSize();
+    size_t getAttrSize() const;
 
 protected:
 
@@ -737,7 +629,6 @@ class SuccessResponsePacket : public StunPacket {
 public:
     SuccessResponsePacket(Method method, toolkit::BufferLikeString transaction_id);
     virtual ~SuccessResponsePacket() {};
-
 };
 
 class ErrorResponsePacket : public StunPacket {
@@ -750,7 +641,7 @@ public:
 
 class TurnPacket : public StunPacket {
 public:
-    TurnPacket(Class klass, Method method) : StunPacket(klass, method) {};
+    TurnPacket(Class klass, Method method) : StunPacket(klass, method) {}
     virtual ~TurnPacket() {};
 };
 
@@ -778,13 +669,13 @@ public:
     virtual ~ChannelBindPacket() {};
 };
 
-class SendIndicationPacket: public TurnPacket {
+class SendIndicationPacket : public TurnPacket {
 public:
     SendIndicationPacket() : TurnPacket(Class::INDICATION, Method::SEND) {};
     virtual ~SendIndicationPacket() {};
 };
 
-class DataIndicationPacket: public TurnPacket {
+class DataIndicationPacket : public TurnPacket {
 public:
     DataIndicationPacket() : TurnPacket(Class::INDICATION, Method::DATA) {};
     virtual ~DataIndicationPacket() {};
@@ -795,7 +686,6 @@ public:
     DataPacket() : TurnPacket(Class::INDICATION, Method::DATA) {};
     virtual ~DataPacket() {};
 };
-
 
 } // namespace RTC
 
