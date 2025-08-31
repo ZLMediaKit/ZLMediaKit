@@ -304,8 +304,8 @@ public:
         uint32_t _retry_count;           // 当前重传次数
         uint32_t _rto;                   // 当前RTO值(毫秒)
 
-        static constexpr uint32_t INITIAL_RTO = 500;    // 初始RTO 500ms
-        static constexpr uint32_t MAX_RETRIES = 7;      // 最大重传次数
+        static const uint32_t INITIAL_RTO = 500;    // 初始RTO 500ms
+        static const uint32_t MAX_RETRIES = 7;      // 最大重传次数
 
         RequestInfo(StunPacket::Ptr req, MsgHandler h, Pair::Ptr p)
             : _request(std::move(req))
