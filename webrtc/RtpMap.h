@@ -18,7 +18,7 @@
 #include <memory>
 #include <iostream>
 #include <iomanip>
-#include "assert.h"
+#include <cassert>
 #include "Extension/Frame.h"
 
 namespace mediakit {
@@ -26,20 +26,19 @@ namespace mediakit {
 class RtpMap {
 public:
     using Ptr = std::shared_ptr<RtpMap>;
-    RtpMap(const std::string code_name, uint8_t payload, uint32_t clock_rate) :
-       _code_name(code_name), _payload(payload), _clock_rate(clock_rate) {
-    }
+    RtpMap(std::string code_name, uint8_t payload, uint32_t clock_rate)
+        : _code_name(std::move(code_name))
+        , _payload(payload)
+        , _clock_rate(clock_rate) {}
     virtual ~RtpMap() = default;
 
     virtual TrackType getType() = 0;
 
-    const std::map <std::string /*key*/, std::string /*value*/>& getFmtp() const {
-        return _fmtp;
-    }
+    const std::map<std::string /*key*/, std::string /*value*/> &getFmtp() const { return _fmtp; }
 
-    std::string getCodeName() const {return _code_name;}
+    const std::string &getCodeName() const { return _code_name; }
     uint8_t getPayload() const { return _payload; }
-    uint32_t getClockRate() const {return _clock_rate;}
+    uint32_t getClockRate() const { return _clock_rate; }
 
 protected:
     std::map<std::string /*key*/, std::string /*value*/> _fmtp;
@@ -48,20 +47,20 @@ protected:
     uint32_t _clock_rate;
 };
 
-class VideoRtpMap :public RtpMap {
+class VideoRtpMap : public RtpMap {
 public:
-    VideoRtpMap(const std::string codeName, uint8_t payload, uint32_t clock_rate) 
-        : RtpMap(codeName, payload, clock_rate) {};
+    VideoRtpMap(std::string code_name, uint8_t payload, uint32_t clock_rate)
+        : RtpMap(std::move(code_name), payload, clock_rate) {};
 
-    TrackType getType() override { return TrackVideo;}
+    TrackType getType() override { return TrackVideo; }
 };
 
 class AudioRtpMap : public RtpMap {
 public:
-    AudioRtpMap(const std::string codeName, uint8_t payload, uint32_t clock_rate) 
-       : RtpMap(codeName, payload, clock_rate) {};
+    AudioRtpMap( std::string code_name, uint8_t payload, uint32_t clock_rate)
+       : RtpMap(std::move(code_name), payload, clock_rate) {};
 
-    TrackType getType() override { return TrackAudio;};
+    TrackType getType() override { return TrackAudio; };
 };
 
 #define H264_PROFILE_IDC_MAP(XX) \
@@ -98,10 +97,11 @@ typedef enum {
     H264ProfileLevelMax
 } H264ProfileLevel;
 
-class H264RtpMap :public VideoRtpMap {
+class H264RtpMap : public VideoRtpMap {
 public:
-    H264RtpMap(uint8_t payload, uint32_t clock_rate, H264ProfileIdc profile_idc) 
-       : VideoRtpMap("H264", payload, clock_rate), _profile_idc(profile_idc) {
+    H264RtpMap(uint8_t payload, uint32_t clock_rate, H264ProfileIdc profile_idc)
+        : VideoRtpMap("H264", payload, clock_rate)
+        , _profile_idc(profile_idc) {
         _fmtp.emplace("level-asymmetry-allowed", "1");
         _fmtp.emplace("packetization-mode", "1");
 
@@ -116,7 +116,6 @@ private:
     H264ProfileIdc _profile_idc;
     int _profile_iop = 0;
     H264ProfileLevel _profile_level = H264_PROFILE_LEVEL_31;
-
 };
 
 #define H265_PROFILE_IDC_MAP(XX)                                                    \
@@ -163,10 +162,11 @@ typedef enum {
     H265ProfileLevelMax
 } H265ProfileLevel;
 
-class H265RtpMap :public VideoRtpMap {
+class H265RtpMap : public VideoRtpMap {
 public:
-    H265RtpMap(uint8_t payload, uint32_t clock_rate, H265ProfileIdc profile_idc) 
-       : VideoRtpMap("H265", payload, clock_rate), _profile_idc(profile_idc) {
+    H265RtpMap(uint8_t payload, uint32_t clock_rate, H265ProfileIdc profile_idc)
+        : VideoRtpMap("H265", payload, clock_rate)
+        , _profile_idc(profile_idc) {
         _fmtp.emplace("level-asymmetry-allowed", "1");
         _fmtp.emplace("packetization-mode", "1");
 
@@ -181,10 +181,11 @@ private:
     H265ProfileLevel _profile_level = H265_PROFILE_LEVEL_30;
 };
 
-class VP9RtpMap :public VideoRtpMap {
+class VP9RtpMap : public VideoRtpMap {
 public:
-    VP9RtpMap(uint8_t payload, uint32_t clock_rate, int profile_id) 
-       : VideoRtpMap("VP9", payload, clock_rate), _profile_id(profile_id) {
+    VP9RtpMap(uint8_t payload, uint32_t clock_rate, int profile_id)
+        : VideoRtpMap("VP9", payload, clock_rate)
+        , _profile_id(profile_id) {
         _fmtp.emplace("profile-id", std::to_string(_profile_id));
     };
 
@@ -192,10 +193,11 @@ private:
     int _profile_id = 1; // 0-3
 };
 
-class AV1RtpMap :public VideoRtpMap {
+class AV1RtpMap : public VideoRtpMap {
 public:
-    AV1RtpMap(uint8_t payload, uint32_t clock_rate, int profile_id) 
-       : VideoRtpMap("AV1", payload, clock_rate), _profile_id(profile_id) {
+    AV1RtpMap(uint8_t payload, uint32_t clock_rate, int profile_id)
+        : VideoRtpMap("AV1", payload, clock_rate)
+        , _profile_id(profile_id) {
         // a=fmtp:45 level-idx=5;profile=0;tier=0
         _fmtp.emplace("profile-id", std::to_string(_profile_id));
     };

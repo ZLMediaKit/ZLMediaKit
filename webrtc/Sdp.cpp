@@ -1581,8 +1581,8 @@ void RtcConfigure::enableREMB(bool enable, TrackType type) {
 shared_ptr<RtcSession> RtcConfigure::createOffer() const {
     shared_ptr<RtcSession> ret = std::make_shared<RtcSession>();
     ret->version = 0;
-    ret->origin.session_id = to_string(makeRandNum());
-    ret->origin.session_version = to_string(1);
+    ret->origin.session_id = std::to_string(makeRandNum());
+    ret->origin.session_version = std::to_string(1);
     ret->session_name = "-";
 
     createMediaOffer(ret);
