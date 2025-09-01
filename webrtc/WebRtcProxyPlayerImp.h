@@ -12,8 +12,6 @@
 #define ZLMEDIAKIT_WEBRTC_PROXY_PLAYER_IMP_H
 
 #include "WebRtcProxyPlayer.h"
-#include "Rtp/Decoder.h"
-#include "TS/TSMediaSource.h"
 
 namespace mediakit {
 

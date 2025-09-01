@@ -10,6 +10,7 @@
 
 #include "WebRtcSignalingSession.h"
 #include "WebRtcSignalingMsg.h"
+// for config key
 #include "WebRtcTransport.h"
 #include "Util/util.h"
 #include "Common/config.h"
@@ -33,8 +34,7 @@ Json::Value ToJson(const WebRtcSignalingSession::Ptr& p) {
 }
 
 WebRtcSignalingSession::Ptr getWebrtcRoomKeeper(const string &room_id) {
-    auto session = s_rooms.find(room_id);
-    return session;
+    return s_rooms.find(room_id);
 }
 
 ////////////  WebRtcSignalingSession //////////////////////////
@@ -143,7 +143,7 @@ void WebRtcSignalingSession::handleUnregisterRequest(SIGNALING_MSG_ARGS) {
     //同时主动向所有连接的对端会话发送bye
     notifyByeIndication();
 
-    if (s_rooms.find(allArgs[ROOM_ID_KEY])) {
+    if (s_rooms.find(_room_id)) {
         s_rooms.erase(_room_id);
     }
 }
@@ -163,13 +163,13 @@ void WebRtcSignalingSession::handleCallRequest(SIGNALING_MSG_ARGS) {
     if (_room_id.empty()) {
         return sendRejectResponse(body, allArgs[TRANSACTION_ID_KEY], "should register first");
     }
-
-    auto session = getWebrtcRoomKeeper(allArgs[ROOM_ID_KEY]);
+    auto peer_id = allArgs[ROOM_ID_KEY];
+    auto session = getWebrtcRoomKeeper(peer_id);
     if (!session) {
-        return sendRejectResponse(body, allArgs[TRANSACTION_ID_KEY], StrPrinter << "room_id: \"" << allArgs[ROOM_ID_KEY] << "\" unregistered");
+        return sendRejectResponse(body, allArgs[TRANSACTION_ID_KEY], StrPrinter << "room_id: \"" << peer_id << "\" unregistered");
     }
-    _tours.emplace(allArgs[GUEST_ID_KEY], allArgs[ROOM_ID_KEY]);
 
+    _tours.emplace(allArgs[GUEST_ID_KEY], peer_id);
     // forwardOffer
     weak_ptr<WebRtcSignalingSession> sender_ptr = static_pointer_cast<WebRtcSignalingSession>(shared_from_this());
     session->forwardCallRequest(sender_ptr, allArgs);
@@ -203,30 +203,29 @@ void WebRtcSignalingSession::handleCallAccept(SIGNALING_MSG_ARGS) {
 void WebRtcSignalingSession::handleByeIndication(SIGNALING_MSG_ARGS) {
     DebugL;
     CHECK_ARGS(GUEST_ID_KEY, ROOM_ID_KEY);
+    auto guest_id = allArgs[GUEST_ID_KEY];
 
     Json::Value body;
     body[METHOD_KEY] = METHOD_VALUE_BYE;
     body[ROOM_ID_KEY] = allArgs[ROOM_ID_KEY];
-
+    body[GUEST_ID_KEY] = guest_id;
     if (_room_id.empty()) {
         return sendRejectResponse(body, allArgs[TRANSACTION_ID_KEY], "should register first");
     }
-
     if (allArgs[ROOM_ID_KEY] == getRoomId()) {
         //作为被叫方,接收bye
-        auto it = _guests.find(allArgs[GUEST_ID_KEY]);
+        auto it = _guests.find(guest_id);
         if (it == _guests.end()) {
-            WarnL << "guest_id: \"" << allArgs[GUEST_ID_KEY] << "\" not register";
+            WarnL << "guest_id: \"" << guest_id << "\" not register";
             return;
         }
         auto session = it->second.lock();
         if (!session) {
-            WarnL << "guest_id: \"" << allArgs[GUEST_ID_KEY] << "\" leave alreadly";
+            WarnL << "guest_id: \"" << guest_id << "\" leave alreadly";
             return;
         }
-        _guests.erase(allArgs[GUEST_ID_KEY]);
+        _guests.erase(guest_id);
         session->forwardBye(allArgs);
-        return;
     } else {
         //作为主叫方，接受bye
         auto session = getWebrtcRoomKeeper(allArgs[ROOM_ID_KEY]);
@@ -234,7 +233,7 @@ void WebRtcSignalingSession::handleByeIndication(SIGNALING_MSG_ARGS) {
             WarnL << "room_id: \"" << allArgs[ROOM_ID_KEY] << "\" not register";
             return;
         }
-        _tours.erase(allArgs[GUEST_ID_KEY]);
+        _tours.erase(guest_id);
         session->forwardBye(allArgs);
     }
 }
@@ -248,29 +247,30 @@ void WebRtcSignalingSession::handleCandidateIndication(SIGNALING_MSG_ARGS) {
     body[ROOM_ID_KEY] = allArgs[ROOM_ID_KEY];
 
     if (_room_id.empty()) {
-        return sendRejectResponse(body, allArgs[TRANSACTION_ID_KEY], "should register first");
+        sendRejectResponse(body, allArgs[TRANSACTION_ID_KEY], "should register first");
     }
-
-    return handleOtherMsg(allArgs);
+    else {
+        handleOtherMsg(allArgs);
+    }
 }
 
 void WebRtcSignalingSession::handleOtherMsg(SIGNALING_MSG_ARGS) {
     DebugL;
     if (allArgs[ROOM_ID_KEY] == getRoomId()) {
         //作为被叫方,接收bye
-        auto it = _guests.find(allArgs[GUEST_ID_KEY]);
+        auto guest_id = allArgs[GUEST_ID_KEY];
+        auto it = _guests.find(guest_id);
         if (it == _guests.end()) {
-            WarnL << "guest_id: \"" << allArgs[GUEST_ID_KEY] << "\" not register";
+            WarnL << "guest_id: \"" << guest_id << "\" not register";
             return;
         }
         auto session = it->second.lock();
         if (!session) {
-            WarnL << "guest_id: \"" << allArgs[GUEST_ID_KEY] << "\" leave alreadly";
+            WarnL << "guest_id: \"" << guest_id << "\" leave alreadly";
             return;
         }
 
         session->forwardPacket(allArgs);
-        return;
     } else {
         //作为主叫方，接受bye
         auto session = getWebrtcRoomKeeper(allArgs[ROOM_ID_KEY]);
@@ -370,7 +370,8 @@ void WebRtcSignalingSession::sendRegisterAccept(Json::Value& body, const std::st
     Json::Value ice_server;
     GET_CONFIG(uint16_t, icePort, Rtc::kIcePort);
     GET_CONFIG(bool, enable_turn, Rtc::kEnableTurn);
-
+    GET_CONFIG(string, iceUfrag, Rtc::kIceUfrag);
+    GET_CONFIG(string, icePwd, Rtc::kIcePwd);
     GET_CONFIG_FUNC(std::vector<std::string>, extern_ips, Rtc::kExternIP, [](string str) {
         std::vector<std::string> ret;
         if (str.length()) {
@@ -410,8 +411,6 @@ void WebRtcSignalingSession::sendRegisterAccept(Json::Value& body, const std::st
         url = "stun:" + extern_ip + ":" + std::to_string(icePort) + "?transport=udp";
     }
 
-    GET_CONFIG(string, iceUfrag, Rtc::kIceUfrag);
-    GET_CONFIG(string, icePwd, Rtc::kIcePwd);
     ice_server[URL_KEY] = url;
     ice_server[UFRAG_KEY] = iceUfrag;
     ice_server[PWD_KEY] = icePwd;
@@ -421,7 +420,7 @@ void WebRtcSignalingSession::sendRegisterAccept(Json::Value& body, const std::st
 
     body[ICE_SERVERS_KEY] = ice_servers;
 
-    return sendAcceptResponse(body, transaction_id);
+    sendAcceptResponse(body, transaction_id);
 }
 
 void WebRtcSignalingSession::sendAcceptResponse(Json::Value &body, const std::string& transaction_id) {

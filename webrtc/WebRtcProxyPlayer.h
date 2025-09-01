@@ -15,7 +15,6 @@
 #include "Player/PlayerBase.h"
 #include "Poller/Timer.h"
 #include "Util/TimeTicker.h"
-#include "Http/HttpRequester.h"
 #include "WebRtcClient.h"
 #include <memory>
 #include <string>

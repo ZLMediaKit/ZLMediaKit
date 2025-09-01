@@ -81,7 +81,7 @@ using WebRtcWebcosktSignalingSession = WebSocketSession<WebRtcSignalingSession>;
 
 void listWebrtcRooms(const std::function<void(const std::string& key, const WebRtcSignalingSession::Ptr& p)> &cb);
 Json::Value ToJson(const WebRtcSignalingSession::Ptr& p);
-
+WebRtcSignalingSession::Ptr getWebrtcRoomKeeper(const std::string &room_id);
 }// namespace mediakit
 
 #endif //ZLMEDIAKIT_WEBRTC_SIGNALING_SESSION_H

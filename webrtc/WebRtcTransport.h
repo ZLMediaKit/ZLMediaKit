@@ -8,7 +8,8 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
-#pragma once
+#ifndef ZLMEDIAKIT_WEBRTC_TRANSPORT_H
+#define ZLMEDIAKIT_WEBRTC_TRANSPORT_H
 
 #include <memory>
 #include <string>
@@ -434,3 +435,5 @@ private:
 void translateIPFromEnv(std::vector<std::string> &v);
 
 }// namespace mediakit
+
+#endif // ZLMEDIAKIT_WEBRTC_TRANSPORT_H
