@@ -46,7 +46,9 @@ extern const std::string kPort;
 extern const std::string kTcpPort;
 extern const std::string kTimeOutSec;
 extern const std::string kSignalingPort;
+extern const std::string kSignalingSslPort;
 extern const std::string kIcePort;
+extern const std::string kIceTcpPort;
 extern const std::string kEnableTurn;
 extern const std::string kIceTransportPolicy;
 extern const std::string kIceUfrag;
@@ -110,12 +112,14 @@ public:
         CLIENT,
         PEER,
     };
+    static const char* RoleStr(Role role);
 
     enum class SignalingProtocols {
         Invalid   = -1,
         WHEP_WHIP = 0,
         WEBSOCKET = 1,  //FOR P2P
     };
+    static const char* SignalingProtocolsStr(SignalingProtocols protocol);
 
     using WeakPtr = std::weak_ptr<WebRtcTransport>;
     using Ptr = std::shared_ptr<WebRtcTransport>;
@@ -305,6 +309,8 @@ public:
     uint64_t getDuration() const;
     bool canSendRtp() const;
     bool canRecvRtp() const;
+    bool canSendRtp(const RtcMedia& media) const;
+    bool canRecvRtp(const RtcMedia& media) const;
     void onSendRtp(const RtpPacket::Ptr &rtp, bool flush, bool rtx = false);
 
     void createRtpChannel(const std::string &rid, uint32_t ssrc, MediaTrack &track);

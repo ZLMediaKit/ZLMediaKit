@@ -15,7 +15,6 @@
 #include <srtp2/srtp.h>
 #include "Util/base64.h"
 #include "Network/sockutil.h"
-#include "Network/UdpClient.h"
 #include "Common/config.h"
 #include "Nack.h"
 #include "RtpExt.h"
@@ -61,8 +60,10 @@ const string kPort = RTC_FIELD "port";
 const string kTcpPort = RTC_FIELD "tcpPort";
 // webrtc SignalingServerPort udp server
 const string kSignalingPort = RTC_FIELD "signalingPort";
+const string kSignalingSslPort = RTC_FIELD "signalingSslPort";
 // webrtc iceServer udp server
 const string kIcePort = RTC_FIELD "icePort";
+const string kIceTcpPort = RTC_FIELD "iceTcpPort";
 // webrtc enable turn or only enable stun
 const string kEnableTurn = RTC_FIELD "enableTurn";
 // webrtc ice ufrag and pwd  [AUTO-TRANSLATED:2f0d1b3c]
@@ -94,7 +95,9 @@ static onceToken token([]() {
     mINI::Instance()[kDataChannelEcho] = true;
 
     mINI::Instance()[kSignalingPort] = 3000;
+    mINI::Instance()[kSignalingSslPort] = 3001;
     mINI::Instance()[kIcePort] = 3478;
+    mINI::Instance()[kIceTcpPort] = 3478;
     mINI::Instance()[kEnableTurn] = 1;
     mINI::Instance()[kIceTransportPolicy] = 0;  // 默认值：不限制(kAll)
     mINI::Instance()[kIceUfrag] = "ZLMediaKit";
@@ -244,6 +247,22 @@ static CandidateInfo::Ptr makeCandidateInfoBySdpAttr(SdpAttrCandidate candidate_
     return candidate;
 }
 
+const char* WebRtcTransport::SignalingProtocolsStr(SignalingProtocols protocol) {
+    switch (protocol) {
+        case SignalingProtocols::WHEP_WHIP: return "whep_whip";
+        case SignalingProtocols::WEBSOCKET: return "websocket";
+        default: return "invalid";
+    }
+}
+
+const char* WebRtcTransport::RoleStr(Role role) {
+    switch (role) {
+    case Role::CLIENT: return "client";
+    case Role::PEER:   return "peer";
+    default:           return "none";
+    }
+}
+
 WebRtcTransport::WebRtcTransport(const EventPoller::Ptr &poller) {
     _poller = poller;
     static auto prefix = getServerPrefix();
@@ -304,11 +323,8 @@ void WebRtcTransport::getTransportInfo(const std::function<void(Json::Value)>& c
 
         try {
             result["transport_id"] = strong_self->_identifier;
-            result["role"] = (strong_self->_role == Role::CLIENT) ? "client" : 
-                            (strong_self->_role == Role::PEER) ? "peer" : "none";
-
-            result["signaling_protocol"] = (strong_self->_signaling_protocols == SignalingProtocols::WHEP_WHIP) ? "whep_whip" :
-                                          (strong_self->_signaling_protocols == SignalingProtocols::WEBSOCKET) ? "websocket" : "invalid";
+            result["role"] = RoleStr(strong_self->_role);
+            result["signaling_protocol"] = SignalingProtocolsStr(strong_self->_signaling_protocols);
 
             result["has_offer_sdp"] = (strong_self->_offer_sdp != nullptr);
             result["has_answer_sdp"] = (strong_self->_answer_sdp != nullptr);
@@ -368,7 +384,7 @@ void WebRtcTransport::onIceTransportCompleted() {
     InfoL << getIdentifier();
 
     if (!_answer_sdp) {
-        onShutdown(SockException(Err_other, StrPrinter << "answer sdp not ready, identifier: " << _identifier));
+        onShutdown(SockException(Err_other, "answer sdp not ready"));
         return;
     }
 
@@ -383,7 +399,7 @@ void WebRtcTransport::onIceTransportCompleted() {
            }
            if (strongSelf->_recv_ticker.elapsedTime() > timeout * 1000) {
                // 接收媒体数据包超时
-               strongSelf->onShutdown(SockException(Err_timeout, StrPrinter << "receive webrtc data timeout, identifier: " << strongSelf->_identifier));
+               strongSelf->onShutdown(SockException(Err_timeout, "webrtc data receive timeout"));
                return false;
            }
 
@@ -575,7 +591,7 @@ void WebRtcTransport::setOnShutdown(function<void(const SockException &ex)> cb) 
 void WebRtcTransport::onShutdown(const SockException &ex) {
     TraceL << ex;
     if (_on_shutdown) {
-        return _on_shutdown(ex);
+        _on_shutdown(ex);
     }
 }
 
@@ -827,13 +843,21 @@ void WebRtcTransportImp::onSendSockData(Buffer::Ptr buf, bool flush, const IceTr
 }
 
 ///////////////////////////////////////////////////////////////////
+bool WebRtcTransportImp::canSendRtp(const RtcMedia& m) const {
+    return (getRole() == WebRtcTransport::Role::PEER && m.direction == RtpDirection::sendonly) 
+            || (getRole() == WebRtcTransport::Role::CLIENT && m.direction == RtpDirection::recvonly)
+            || (m.direction == RtpDirection::sendrecv);
+}
+
+bool WebRtcTransportImp::canRecvRtp(const RtcMedia& m) const {
+    return (getRole() == WebRtcTransport::Role::PEER && m.direction == RtpDirection::recvonly) 
+            || (getRole() == WebRtcTransport::Role::CLIENT && m.direction == RtpDirection::sendonly)
+            || (m.direction == RtpDirection::sendrecv);
+}
 
 bool WebRtcTransportImp::canSendRtp() const {
     for (auto &m : _answer_sdp->media) {
-        if ((getRole()
-            == WebRtcTransport::Role::PEER && m.direction == RtpDirection::sendonly) 
-            || (getRole() == WebRtcTransport::Role::CLIENT && m.direction == RtpDirection::recvonly)
-            || (m.direction == RtpDirection::sendrecv)) {
+        if (canSendRtp(m)) {
             return true;
         }
     }
@@ -842,9 +866,7 @@ bool WebRtcTransportImp::canSendRtp() const {
 
 bool WebRtcTransportImp::canRecvRtp() const {
     for (auto &m : _answer_sdp->media) {
-        if ((getRole() == WebRtcTransport::Role::PEER && m.direction == RtpDirection::recvonly) 
-            || (getRole() == WebRtcTransport::Role::CLIENT && m.direction == RtpDirection::sendonly)
-            || (m.direction == RtpDirection::sendrecv)) {
+        if (canRecvRtp(m)) {
             return true;
         }
     }
@@ -871,9 +893,7 @@ void WebRtcTransportImp::onStartWebRTC() {
         track->rtcp_context_send = std::make_shared<RtcpContextForSend>();
 
         // rtp track type --> MediaTrack
-        if ((getRole() == WebRtcTransport::Role::PEER && m_answer.direction == RtpDirection::sendonly) 
-            || (getRole() == WebRtcTransport::Role::CLIENT && m_answer.direction == RtpDirection::recvonly)
-            || (m_answer.direction == RtpDirection::sendrecv)) {
+        if (canSendRtp(m_answer)) {
             // 该类型的track 才支持发送  [AUTO-TRANSLATED:b7c1e631]
             // This type of track supports sending
             _type_to_track[m_answer.type] = track;
@@ -1798,9 +1818,9 @@ float WebRtcTransport::getTimeOutSec() {
     GET_CONFIG(uint32_t, timeout, Rtc::kTimeOutSec);
     if (timeout <= 0) {
         WarnL << "config rtc. " << Rtc::kTimeOutSec << ": " << timeout << " not vaild";
-        return 5 * 1000;
+        return 5;
     }
-    return (float)timeout * (float)1000;
+    return (float)timeout;
 }
 
 static onceToken s_rtc_auto_register([]() {

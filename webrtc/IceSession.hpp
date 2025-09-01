@@ -14,12 +14,12 @@
 
 #include "Network/Session.h"
 #include "IceTransport.hpp"
-
+#include "Http/HttpRequestSplitter.h"
 using namespace toolkit;
 using namespace RTC;
 namespace mediakit {
 
-class IceSession : public Session, public RTC::IceTransport::Listener {
+class IceSession : public Session, public RTC::IceTransport::Listener, public HttpRequestSplitter {
 public:
     using Ptr = std::shared_ptr<IceSession>;
     using WeakPtr = std::weak_ptr<IceSession>;
@@ -40,7 +40,14 @@ public:
     void onIceTransportDisconnected() override;
     void onIceTransportCompleted() override;
 
+    //// HttpRequestSplitter override ////
+    ssize_t onRecvHeader(const char *data, size_t len) override;
+    const char *onSearchPacketTail(const char *data, size_t len) override;
+
+    void onRecv_l(const char *data, size_t len);
 protected:
+    bool _over_tcp = false;
+
     IceTransport::Pair::Ptr _session_pair = nullptr;
     IceServer::Ptr _ice_transport;
 };

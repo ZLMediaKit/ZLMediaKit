@@ -77,7 +77,8 @@ private:
     std::unordered_map<std::string /*peer_guest_id*/, WebRtcSignalingSession::WeakPtr /*session*/> _guests; //作为被叫
 };
 
-using WebRtcWebcosktSignalingSession = WebSocketSession<WebRtcSignalingSession>;
+using WebRtcWebcosktSignalingSession = WebSocketSession<WebRtcSignalingSession, HttpSession>;
+using WebRtcWebcosktSignalSslSession = WebSocketSession<WebRtcSignalingSession, HttpsSession>;
 
 void listWebrtcRooms(const std::function<void(const std::string& key, const WebRtcSignalingSession::Ptr& p)> &cb);
 Json::Value ToJson(const WebRtcSignalingSession::Ptr& p);
