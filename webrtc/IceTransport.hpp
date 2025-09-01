@@ -486,7 +486,7 @@ public:
     virtual ~IceAgent() {}
     
     void setIceServer(IceServerInfo::Ptr ice_server) {
-        _ice_server = ice_server;
+        _ice_server = std::move(ice_server);
     }
 
     void gatheringCandidate(const CandidateTuple::Ptr& candidate_tuple, bool gathering_rflx, bool gathering_realy);

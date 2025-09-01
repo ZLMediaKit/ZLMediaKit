@@ -95,8 +95,7 @@ void WebRtcProxyPlayerImp::startConnect() {
     MediaInfo info(_url._full_url);
     ProtocolOption option;
     std::weak_ptr<WebRtcProxyPlayerImp> weak_self = std::static_pointer_cast<WebRtcProxyPlayerImp>(shared_from_this());
-    _transport = WebRtcPusher::create(getPoller(), nullptr, nullptr, info, option, 
-                                      WebRtcTransport::Role::CLIENT, _url._signaling_protocols);
+    _transport = WebRtcPlayerClient::create(getPoller(), WebRtcTransport::Role::CLIENT, _url._signaling_protocols);
     _transport->setOnShutdown([weak_self](const SockException &ex) {
         auto strong_self = weak_self.lock();
         if (!strong_self) {
@@ -110,19 +109,26 @@ void WebRtcProxyPlayerImp::startConnect() {
 void WebRtcProxyPlayerImp::onResult(const SockException &ex) {
     WebRtcProxyPlayer::onResult(ex);
     if (!ex) {
-        WebRtcPusher::Ptr transport = std::dynamic_pointer_cast<WebRtcPusher>(_transport);
+        WebRtcPlayerClient::Ptr transport = std::dynamic_pointer_cast<WebRtcPlayerClient>(_transport);
         auto media_src = dynamic_pointer_cast<RtspMediaSource>(_media_src);
         transport->setMediaSource(media_src);
+        std::weak_ptr<WebRtcProxyPlayerImp> weak_self = std::static_pointer_cast<WebRtcProxyPlayerImp>(shared_from_this());
+        if (!ex) {
+            transport->setOnStartWebRTC([weak_self, ex]() {
+                if (auto strong_self = weak_self.lock()) {
+                    strong_self->Super::onPlayResult(ex);
+                }
+            });
+        }
     }
 }
 
 void WebRtcProxyPlayerImp::onPlayResult(const toolkit::SockException &ex) {
     DebugL;
-    Super::onPlayResult(ex);
 }
 
 std::vector<Track::Ptr> WebRtcProxyPlayerImp::getTracks(bool ready /*= true*/) const {
-    auto transport = static_pointer_cast<WebRtcPusher>(_transport);
+    auto transport = static_pointer_cast<WebRtcPlayerClient>(_transport);
     return transport ? transport->getTracks(ready) : Super::getTracks(ready);
 }
 

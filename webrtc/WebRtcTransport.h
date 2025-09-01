@@ -65,7 +65,6 @@ public:
     virtual void setIceCandidate(std::vector<SdpAttrCandidate> cands) {}
     virtual void setLocalIp(std::string localIp) {}
     virtual void setPreferredTcp(bool flag) {}
-    virtual void setMediaSource(const RtspMediaSource::Ptr src) {}
 
     using onGatheringCandidateCB = std::function<void(const std::string& transport_identifier, const std::string& candidate, const std::string& ufrag, const std::string& pwd)>;
     virtual void gatheringCandidate(IceServerInfo::Ptr ice_server, onGatheringCandidateCB cb = nullptr) = 0;

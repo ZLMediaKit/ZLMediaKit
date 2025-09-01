@@ -24,19 +24,8 @@ public:
                       const std::shared_ptr<void> &ownership, const MediaInfo &info, const ProtocolOption &option, 
                       WebRtcTransport::Role role, WebRtcTransport::SignalingProtocols signaling_protocols);
 
-    void setMediaSource(const RtspMediaSource::Ptr src) override {
-        _push_src = src;
-        if (_push_src && canRecvRtp()) {
-            _push_src->setSdp(_answer_sdp->toRtspSdp());
-        }
-    }
-
-    std::vector<Track::Ptr> getTracks(bool ready) const;
-
 protected:
     ///////WebRtcTransportImp override///////
-    std::string getAnswerSdp(const std::string &offer)override final;
-    void setAnswerSdp(const std::string &answer) override;
     void onStartWebRTC() override;
     void onDestory() override;
     void onRtcConfigure(RtcConfigure &configure) const override;
@@ -86,8 +75,6 @@ private:
     // 推流的rtsp源  [AUTO-TRANSLATED:4f976bca]
     // Rtsp source of the stream
     RtspMediaSource::Ptr _push_src;
-    // for mk_api
-    RtspDemuxer::Ptr _demuxer;
     // 推流所有权  [AUTO-TRANSLATED:d0ddf5c7]
     // Stream ownership
     std::shared_ptr<void> _push_src_ownership;
@@ -96,6 +83,32 @@ private:
     std::recursive_mutex _mtx;
     std::unordered_map<std::string/*rid*/, RtspMediaSource::Ptr> _push_src_sim;
     std::unordered_map<std::string/*rid*/, std::shared_ptr<void> > _push_src_sim_ownership;
+};
+
+class WebRtcPlayerClient : public WebRtcTransportImp {
+public:
+    using Ptr = std::shared_ptr<WebRtcPlayerClient>;
+    static Ptr create(const EventPoller::Ptr &poller, WebRtcTransport::Role role, WebRtcTransport::SignalingProtocols signaling_protocols);
+
+    void setMediaSource(RtspMediaSource::Ptr src);
+    void setOnStartWebRTC(std::function<void()> on_start);
+    std::vector<Track::Ptr> getTracks(bool ready) const;
+
+protected:
+    ///////WebRtcTransportImp override///////
+    void onStartWebRTC() override;
+    void onRtcConfigure(RtcConfigure &configure) const override;
+    void onRecvRtp(MediaTrack &track, const std::string &rid, RtpPacket::Ptr rtp) override;
+
+private:
+    WebRtcPlayerClient(const EventPoller::Ptr &poller);
+
+private:
+    std::function<void()> _on_start;
+    RtspDemuxer::Ptr _demuxer;
+    // 推流的rtsp源  [AUTO-TRANSLATED:4f976bca]
+    // Rtsp source of the stream
+    RtspMediaSource::Ptr _push_src;
 };
 
 }// namespace mediakit

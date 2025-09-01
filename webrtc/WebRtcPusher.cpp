@@ -43,7 +43,7 @@ WebRtcPusher::WebRtcPusher(const EventPoller::Ptr &poller,
     _push_src = src;
     _push_src_ownership = ownership;
     _continue_push_ms = option.continue_push_ms;
-    // CHECK(_push_src);
+    CHECK(_push_src);
 }
 
 bool WebRtcPusher::close(MediaSource &sender) {
@@ -91,13 +91,9 @@ toolkit::EventPoller::Ptr WebRtcPusher::getOwnerPoller(MediaSource &sender) {
 }
 
 void WebRtcPusher::onRecvRtp(MediaTrack &track, const string &rid, RtpPacket::Ptr rtp) {
-
-    auto key_pos = _demuxer->inputRtp(rtp);
-
     if (!_simulcast) {
-        if (_push_src) {
-            _push_src->onWrite(rtp, key_pos);
-        }
+        assert(_push_src);
+        _push_src->onWrite(rtp, false);
         return;
     }
 
@@ -105,7 +101,7 @@ void WebRtcPusher::onRecvRtp(MediaTrack &track, const string &rid, RtpPacket::Pt
         // 音频  [AUTO-TRANSLATED:a577d8e1]
         // Audio
         for (auto &pr : _push_src_sim) {
-            pr.second->onWrite(rtp, key_pos);
+            pr.second->onWrite(rtp, false);
         }
     } else {
         // 视频  [AUTO-TRANSLATED:904730ac]
@@ -119,45 +115,16 @@ void WebRtcPusher::onRecvRtp(MediaTrack &track, const string &rid, RtpPacket::Pt
             src_imp->setListener(static_pointer_cast<WebRtcPusher>(shared_from_this()));
             src = src_imp;
         }
-        src->onWrite(std::move(rtp), key_pos);
-    }
-}
-
-std::string WebRtcPusher::getAnswerSdp(const string &offer) {
-    auto answer = WebRtcTransport::getAnswerSdp(offer);
-
-    if (canRecvRtp()) {
-        if (_push_src) {
-            _push_src->setSdp(_answer_sdp->toRtspSdp());
-        }
-        _demuxer = std::make_shared<RtspDemuxer>();
-        _demuxer->loadSdp(_answer_sdp->toRtspSdp());
-    }
-    return answer;
-}
-
-void WebRtcPusher::setAnswerSdp(const std::string &answer) {
-    WebRtcTransport::setAnswerSdp(answer);
-
-    if (canRecvRtp()) {
-        if (_push_src) {
-            _push_src->setSdp(_answer_sdp->toRtspSdp());
-        }
-        _demuxer = std::make_shared<RtspDemuxer>();
-        _demuxer->loadSdp(_answer_sdp->toRtspSdp());
+        src->onWrite(std::move(rtp), false);
     }
 }
 
 void WebRtcPusher::onStartWebRTC() {
     WebRtcTransportImp::onStartWebRTC();
     _simulcast = _answer_sdp->supportSimulcast();
-#if 0
     if (canRecvRtp()) {
-        if (_push_src) {
-            _push_src->setSdp(_answer_sdp->toRtspSdp());
-        }
+        _push_src->setSdp(_answer_sdp->toRtspSdp());
     }
-#endif
 }
 
 void WebRtcPusher::onDestory() {
@@ -197,18 +164,7 @@ float WebRtcPusher::getLossRate(MediaSource &sender,TrackType type) {
     return WebRtcTransportImp::getLossRate(type);
 }
 
-vector<Track::Ptr> WebRtcPusher::getTracks(bool ready) const {
-    if (_demuxer) {
-        DebugL << "_demuxer track: " << _demuxer->getTracks(ready).size();
-        return _demuxer->getTracks(ready);
-    }
-
-    vector<Track::Ptr> ret;
-    return ret;
-}
-
 void WebRtcPusher::OnDtlsTransportClosed(const RTC::DtlsTransport *dtlsTransport) {
-    DebugL;
    // 主动关闭推流，那么不等待重推  [AUTO-TRANSLATED:1ff514d7]
    // Actively close the stream, then do not wait for re-pushing
     _push_src = nullptr;
@@ -220,9 +176,72 @@ void WebRtcPusher::onRtcpBye() {
 }
 
 void WebRtcPusher::onShutdown(const SockException &ex) {
-    DebugL << ex;
-    _push_src = nullptr;
-    WebRtcTransportImp::onShutdown(ex);
+     _push_src = nullptr;
+     WebRtcTransportImp::onShutdown(ex);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+
+WebRtcPlayerClient::Ptr WebRtcPlayerClient::create(const EventPoller::Ptr &poller, WebRtcTransport::Role role,
+                                                   WebRtcTransport::SignalingProtocols signaling_protocols) {
+    WebRtcPlayerClient::Ptr pusher(new WebRtcPlayerClient(poller), [](WebRtcPlayerClient *ptr) {
+        ptr->onDestory();
+        delete ptr;
+    });
+
+    pusher->setRole(role);
+    pusher->setSignalingProtocols(signaling_protocols);
+    pusher->onCreate();
+    return pusher;
+}
+
+WebRtcPlayerClient::WebRtcPlayerClient(const EventPoller::Ptr &poller)
+    : WebRtcTransportImp(poller) {
+    _demuxer = std::make_shared<RtspDemuxer>();
+}
+
+void WebRtcPlayerClient::onRecvRtp(MediaTrack &track, const string &rid, RtpPacket::Ptr rtp) {
+    auto key_pos = _demuxer->inputRtp(rtp);
+    if (_push_src) {
+        _push_src->onWrite(rtp, key_pos);
+    }
+}
+
+void WebRtcPlayerClient::onStartWebRTC() {
+    WebRtcTransportImp::onStartWebRTC();
+    CHECK(!_answer_sdp->supportSimulcast());
+    auto sdp = _answer_sdp->toRtspSdp();
+    if (canRecvRtp()) {
+        if (_push_src) {
+            _push_src->setSdp(sdp);
+        }
+        _demuxer->loadSdp(sdp);
+    }
+    if (_on_start) {
+        _on_start();
+    }
+}
+
+void WebRtcPlayerClient::setOnStartWebRTC(std::function<void()> on_start) {
+    _on_start = std::move(on_start);
+}
+
+void WebRtcPlayerClient::onRtcConfigure(RtcConfigure &configure) const {
+    WebRtcTransportImp::onRtcConfigure(configure);
+    // 这只是推流  [AUTO-TRANSLATED:f877bf98]
+    // This is just pushing the stream
+    configure.audio.direction = configure.video.direction = RtpDirection::recvonly;
+}
+
+vector<Track::Ptr> WebRtcPlayerClient::getTracks(bool ready) const {
+    return _demuxer->getTracks(ready);
+}
+
+void WebRtcPlayerClient::setMediaSource(RtspMediaSource::Ptr src) {
+    _push_src = std::move(src);
+    if (_push_src && canRecvRtp()) {
+        _push_src->setSdp(_answer_sdp->toRtspSdp());
+    }
 }
 
 }// namespace mediakit
