@@ -446,7 +446,7 @@ void WebRtcTransport::OnDtlsTransportSendData(
     while (offset < len) {
         auto *header = reinterpret_cast<const DtlsHeader *>(data + offset);
         auto length = ntohs(header->length) + offsetof(DtlsHeader, payload);
-        sendSockData((char *)data + offset, length, _current_pair);
+        sendSockData((char *)data + offset, length);
         offset += length;
     }
 }
@@ -574,11 +574,10 @@ void WebRtcTransport::setOnShutdown(function<void(const SockException &ex)> cb) 
 
 void WebRtcTransport::onShutdown(const SockException &ex) {
     TraceL << ex;
-    _current_pair = nullptr;
     if (_on_shutdown) {
         return _on_shutdown(ex);
     }
-};
+}
 
 void WebRtcTransport::sendRtcpRemb(uint32_t ssrc, size_t bit_rate) {
     auto remb = FCI_REMB::create({ ssrc }, (uint32_t)bit_rate);
@@ -709,8 +708,7 @@ void WebRtcTransport::inputSockData(const char *buf, int len, const SocketHelper
     } else {
         pair = std::make_shared<IceTransport::Pair>(socket);
     }
-    _current_pair = std::move(pair);
-    return inputSockData(buf, len, _current_pair);
+    return inputSockData(buf, len, pair);
 }
 
 void WebRtcTransport::inputSockData(const char *buf, int len, const IceTransport::Pair::Ptr& pair) {
@@ -1819,8 +1817,7 @@ static onceToken s_rtc_auto_register([]() {
 });
 
 void WebRtcTransport::onIceTransportRecvData(const toolkit::Buffer::Ptr& buffer, const IceTransport::Pair::Ptr& pair) {
-    _current_pair = pair;
-    return inputSockData(buffer->data(), buffer->size(), _current_pair);
+    return inputSockData(buffer->data(), buffer->size());
 }
 
 void translateIPFromEnv(std::vector<std::string> &v) {

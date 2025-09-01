@@ -227,7 +227,8 @@ public:
             if (!_peer_host.empty()) {
                 peer_addr = toolkit::SockUtil::make_sockaddr(_peer_host.data(), _peer_port);
             } else {
-                peer_addr = toolkit::SockUtil::make_sockaddr(_socket->get_peer_ip().data(), _socket->get_peer_port());
+                auto addr = _socket->get_peer_addr();
+                memcpy(&peer_addr, addr, toolkit::SockUtil::get_sock_len(addr));
             }
         }
 

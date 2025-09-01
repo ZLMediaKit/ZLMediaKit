@@ -142,9 +142,8 @@ public:
     const std::string& getIdentifier() const override;
     const std::string& deleteRandStr() const override;
 
-
     void inputSockData(const char *buf, int len, const SocketHelper::Ptr& socket, struct sockaddr *addr = nullptr, int addr_len = 0);
-    void inputSockData(const char *buf, int len, const IceTransport::Pair::Ptr& pair);
+    void inputSockData(const char *buf, int len, const IceTransport::Pair::Ptr& pair = nullptr);
     void sendRtpPacket(const char *buf, int len, bool flush, void *ctx = nullptr);
     void sendRtcpPacket(const char *buf, int len, bool flush, void *ctx = nullptr);
     void sendDatachannel(uint16_t streamId, uint32_t ppid, const char *msg, size_t len);
@@ -216,7 +215,7 @@ protected:
     void sendRtcpPli(uint32_t ssrc);
 
 private:
-    void sendSockData(const char *buf, size_t len, const IceTransport::Pair::Ptr& pair);
+    void sendSockData(const char *buf, size_t len, const IceTransport::Pair::Ptr& pair = nullptr);
     void setRemoteDtlsFingerprint(SdpType type, const RtcSession &remote);
 
 protected:
@@ -235,7 +234,6 @@ private:
     DtlsTransport::Ptr  _dtls_transport;
     SrtpSession::Ptr _srtp_session_send;
     SrtpSession::Ptr _srtp_session_recv;
-    IceTransport::Pair::Ptr _current_pair;
     Ticker _ticker;
     // 循环池  [AUTO-TRANSLATED:b7059f37]
     // Cycle pool

@@ -314,7 +314,7 @@ bool IceTransport::processChannelData(const uint8_t* data, size_t len, const Pai
     // 检查是否是ChannelData消息
     // ChannelData消息的前两个字节是通道号，范围是0x4000-0x7FFF
     if (header.channel_number < 0x4000 || header.channel_number > 0x7FFF) {
-        WarnL << "Invalid channel number: " << header.channel_number;
+        // WarnL << "Invalid channel number: " << header.channel_number;
         return false;
     }
 
