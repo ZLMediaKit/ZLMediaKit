@@ -40,6 +40,8 @@ void WebRTCUrl::parse(const string &strUrl, bool isPlayer) {
     } else {
         schema_pos = -3;
     }
+    // set default port
+    _port = _is_ssl ? 443 : 80;
     auto split_vec = split(url.substr(schema_pos + 3), "/");
     if (split_vec.size() > 0) {
         splitUrl(split_vec[0], _host, _port);

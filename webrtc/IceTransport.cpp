@@ -127,7 +127,7 @@ void IceServerInfo::parse(const std::string &url_in) {
         _param_strs = url.substr(pos + 1);
         url.erase(pos);
     }
-
+    _addr._port = (_secure == CandidateTuple::SecureType::NOT_SECURE) ? 3478 : 5349;
     auto host =  url.substr(schema_pos + 1, pos);
     mediakit::splitUrl(host, _addr._host, _addr._port);
 
