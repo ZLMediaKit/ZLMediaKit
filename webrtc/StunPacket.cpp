@@ -67,8 +67,8 @@ inline uint32_t getCRC32(const uint8_t *data, size_t size) {
     return crc ^ ~0U;
 }
 
-static toolkit::BufferLikeString openssl_HMACsha1(const void *key, size_t key_len, const void *data, size_t data_len) {
-    toolkit::BufferLikeString str;
+static std::string openssl_HMACsha1(const void *key, size_t key_len, const void *data, size_t data_len) {
+    std::string str;
     str.resize(20);
     unsigned int out_len;
 #if defined(OPENSSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER > 0x10100000L)
@@ -91,8 +91,8 @@ static toolkit::BufferLikeString openssl_HMACsha1(const void *key, size_t key_le
     return str;
 }
 
-static toolkit::BufferLikeString openssl_MD5(const void *data, size_t data_len) {
-    toolkit::BufferLikeString str;
+static std::string openssl_MD5(const void *data, size_t data_len) {
+    std::string str;
     str.resize(16);
     unsigned int out_len;
 #if defined(OPENSSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER > 0x10100000L)
@@ -119,18 +119,20 @@ bool StunAttribute::isComprehensionRequired(const uint8_t *data, size_t len) {
     return ((data[0] & 0xC0) == 0x00);
 }
 
-void StunAttribute::loadHeader(const uint8_t *buf) {
+const uint8_t * StunAttribute::loadHeader(const uint8_t *buf) {
     _type = (Type)Byte::Get2Bytes(buf, 0);
-    _content_length = Byte::Get2Bytes(buf, 2);
+    _length = Byte::Get2Bytes(buf, 2);
+    return buf + ATTR_HEADER_SIZE;
 }
 
-void StunAttribute::storeHeader() {
-    _data = toolkit::BufferRaw::create(ATTR_HEADER_SIZE + Byte::PadTo4Bytes(_content_length));
+uint8_t * StunAttribute::storeHeader() {
+    _data = toolkit::BufferRaw::create(ATTR_HEADER_SIZE + Byte::PadTo4Bytes(_length));
     _data->setSize(_data->getCapacity());
     memset(_data->data(), 0, _data->size());
     uint8_t *ptr = (uint8_t *)_data->data();
     Byte::Set2Bytes(ptr, 0, (uint16_t)_type);
-    Byte::Set2Bytes(ptr, 2, _content_length);
+    Byte::Set2Bytes(ptr, 2, _length);
+    return ptr + ATTR_HEADER_SIZE;
 }
 
 bool StunAttrMappedAddress::loadFromData(const uint8_t *buf, size_t len) {
@@ -143,129 +145,111 @@ bool StunAttrMappedAddress::storeToData() {
 }
 
 bool StunAttrUserName::loadFromData(const uint8_t *buf, size_t len) {
-    StunAttribute::loadHeader(buf);
-    _username.assign((const char *)buf + ATTR_HEADER_SIZE, _content_length);
+    auto p = StunAttribute::loadHeader(buf);
+    _username.assign((const char *)p, _length);
     return true;
 }
 
 bool StunAttrUserName::storeToData() {
-    _content_length = _username.length();
-    StunAttribute::storeHeader();
-    memcpy(_data->data() + ATTR_HEADER_SIZE, _username.data(), _username.length());
+    _length = _username.length();
+    auto p = StunAttribute::storeHeader();
+    memcpy(p, _username.data(), _username.length());
     return true;
 }
 
 bool StunAttrMessageIntegrity::loadFromData(const uint8_t *buf, size_t len) {
-    StunAttribute::loadHeader(buf);
-    _hmac.assign((const char *)buf + ATTR_HEADER_SIZE, _content_length);
+    auto p = StunAttribute::loadHeader(buf);
+    _hmac.assign((const char *)p, _length);
     return true;
 }
 
 bool StunAttrMessageIntegrity::storeToData() {
-    _content_length = _hmac.size();
-    StunAttribute::storeHeader();
-    memcpy(_data->data() + ATTR_HEADER_SIZE, _hmac.data(), _hmac.size());
+    _length = _hmac.size();
+    auto p = StunAttribute::storeHeader();
+    memcpy(p, _hmac.data(), _hmac.size());
     return true;
 }
 
 bool StunAttrErrorCode::loadFromData(const uint8_t *buf, size_t len) {
-    StunAttribute::loadHeader(buf);
-    uint16_t klass = Byte::Get1Byte(buf + ATTR_HEADER_SIZE, 2);
-    uint16_t number = Byte::Get1Byte(buf + ATTR_HEADER_SIZE, 3);
-    _error_code = (Code)(klass * 100 + number);
+    auto p = StunAttribute::loadHeader(buf);
+    _error_code = (Code)(p[2] * 100 + p[3]);
     return true;
 }
 
 bool StunAttrErrorCode::storeToData() {
-    _content_length = 4;
-    StunAttribute::storeHeader();
-    Byte::Set2Bytes((uint8_t *)_data->data() + ATTR_HEADER_SIZE, 0, 0); // reserved
-    Byte::Set1Byte((uint8_t *)_data->data() + ATTR_HEADER_SIZE, 2, (((uint16_t)_error_code) / 100));
-    Byte::Set1Byte((uint8_t *)_data->data() + ATTR_HEADER_SIZE, 3, (((uint16_t)_error_code) % 100));
+    _length = 4;
+    auto p = StunAttribute::storeHeader();
+    Byte::Set2Bytes(p, 0, 0); // reserved
+    uint16_t code = (uint16_t)_error_code;
+    p[2] = code / 100;
+    p[3] = code % 100;
     return true;
 }
 
 bool StunAttrChannelNumber::loadFromData(const uint8_t *buf, size_t len) {
-    StunAttribute::loadHeader(buf);
-    _channel_number = Byte::Get2Bytes(buf + ATTR_HEADER_SIZE, 0);
+    auto p = StunAttribute::loadHeader(buf);
+    _channel_number = Byte::Get2Bytes(p, 0);
     return true;
 }
 
 bool StunAttrChannelNumber::storeToData() {
-    _content_length = 4;
-    StunAttribute::storeHeader();
-    Byte::Set2Bytes((uint8_t *)(_data->data()) + ATTR_HEADER_SIZE, 0, _channel_number);
-    Byte::Set2Bytes((uint8_t *)(_data->data()) + ATTR_HEADER_SIZE, 2, 0); // RFFU
+    _length = 4;
+    auto p = StunAttribute::storeHeader();
+    Byte::Set2Bytes(p, 0, _channel_number);
+    Byte::Set2Bytes(p, 2, 0); // RFFU
     return true;
 }
 
 bool StunAttrLifeTime::loadFromData(const uint8_t *buf, size_t len) {
-    StunAttribute::loadHeader(buf);
-    _lifetime = Byte::Get4Bytes(buf + ATTR_HEADER_SIZE, 0);
+    auto p = StunAttribute::loadHeader(buf);
+    _lifetime = Byte::Get4Bytes(p, 0);
     return true;
 }
 
 bool StunAttrLifeTime::storeToData() {
-    _content_length = 4;
-    StunAttribute::storeHeader();
-    Byte::Set4Bytes((uint8_t *)(_data->data()) + ATTR_HEADER_SIZE, 0, _lifetime);
+    _length = 4;
+    auto p = StunAttribute::storeHeader();
+    Byte::Set4Bytes(p, 0, _lifetime);
     return true;
 }
 
 bool StunAttrXorPeerAddress::loadFromData(const uint8_t *buf, size_t len) {
-    StunAttribute::loadHeader(buf);
+    auto attrValue = StunAttribute::loadHeader(buf);
     memset(&_addr, 0, sizeof(_addr));
-    auto protocol = Byte::Get1Byte(buf + ATTR_HEADER_SIZE, 1);
+    uint8_t port[2], addr[16];
+    port[0] = attrValue[2] ^ StunPacket::_magicCookie[0];
+    port[1] = attrValue[3] ^ StunPacket::_magicCookie[1];
+    addr[0] = attrValue[4] ^ StunPacket::_magicCookie[0];
+    addr[1] = attrValue[5] ^ StunPacket::_magicCookie[1];
+    addr[2] = attrValue[6] ^ StunPacket::_magicCookie[2];
+    addr[3] = attrValue[7] ^ StunPacket::_magicCookie[3];
+    auto protocol = attrValue[1];
     if (protocol == 0x01) {
         _addr.ss_family = AF_INET;
-        auto attrValue = (uint8_t *)buf + ATTR_HEADER_SIZE;
-        attrValue[2] ^= StunPacket::_magicCookie[0];
-        attrValue[3] ^= StunPacket::_magicCookie[1];
-        attrValue[4] ^= StunPacket::_magicCookie[0];
-        attrValue[5] ^= StunPacket::_magicCookie[1];
-        attrValue[6] ^= StunPacket::_magicCookie[2];
-        attrValue[7] ^= StunPacket::_magicCookie[3];
         struct sockaddr_in *ipv4 = (struct sockaddr_in *)&_addr;
-        ipv4->sin_port = ntohs(Byte::Get2Bytes(buf + ATTR_HEADER_SIZE, 2));
-        std::memcpy((void *)&(reinterpret_cast<const sockaddr_in *>(&_addr))->sin_addr.s_addr, attrValue + 4, 4);
+        ipv4->sin_port = ntohs(Byte::Get2Bytes(port, 0));
+        std::memcpy((void *)&(reinterpret_cast<const sockaddr_in *>(&_addr))->sin_addr.s_addr, addr, 4);
     } else {
         _addr.ss_family = AF_INET6;
-        auto attrValue = (uint8_t *)buf + ATTR_HEADER_SIZE;
-        attrValue[2] ^= StunPacket::_magicCookie[0];
-        attrValue[3] ^= StunPacket::_magicCookie[1];
-        attrValue[4] ^= StunPacket::_magicCookie[0];
-        attrValue[5] ^= StunPacket::_magicCookie[1];
-        attrValue[6] ^= StunPacket::_magicCookie[2];
-        attrValue[7] ^= StunPacket::_magicCookie[3];
-        attrValue[8] ^= _transaction_id[0];
-        attrValue[9] ^= _transaction_id[1];
-        attrValue[10] ^= _transaction_id[2];
-        attrValue[11] ^= _transaction_id[3];
-        attrValue[12] ^= _transaction_id[4];
-        attrValue[13] ^= _transaction_id[5];
-        attrValue[14] ^= _transaction_id[6];
-        attrValue[15] ^= _transaction_id[7];
-        attrValue[16] ^= _transaction_id[8];
-        attrValue[17] ^= _transaction_id[9];
-        attrValue[18] ^= _transaction_id[10];
-        attrValue[19] ^= _transaction_id[11];
+        for (int i=0; i < 12; i++) {
+            addr[i + 4] = attrValue[i + 8] ^ _transaction_id[i];
+        }
         struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)&_addr;
-        ipv6->sin6_port = ntohs(Byte::Get2Bytes(buf + ATTR_HEADER_SIZE, 2));
-        std::memcpy((void *)&(reinterpret_cast<const sockaddr_in6 *>(&_addr))->sin6_addr.s6_addr, attrValue + 4, 16);
+        ipv6->sin6_port = ntohs(Byte::Get2Bytes(port, 0));
+        std::memcpy((void *)&(reinterpret_cast<const sockaddr_in6 *>(&_addr))->sin6_addr.s6_addr, addr, 16);
     }
 
     return true;
 }
 
 bool StunAttrXorPeerAddress::storeToData() {
-    _content_length = (_addr.ss_family == AF_INET) ? 8 : 20;
-    StunAttribute::storeHeader();
+    _length = (_addr.ss_family == AF_INET) ? 8 : 20;
+    auto attrValue = StunAttribute::storeHeader();
+    // Set first byte to 0.
+    attrValue[0] = 0;
     if (_addr.ss_family == AF_INET) {
-        // Set first byte to 0.
-        Byte::Set1Byte((uint8_t *)_data->data() + ATTR_HEADER_SIZE, 0, 0);
         // Set inet family.
-        Byte::Set1Byte((uint8_t *)_data->data() + ATTR_HEADER_SIZE, 1, 0x01);
-        auto attrValue = (uint8_t *)_data->data() + ATTR_HEADER_SIZE;
+        attrValue[1] = 1;
         // Set port and XOR it.
         std::memcpy(attrValue + 2, &(reinterpret_cast<const sockaddr_in *>(&_addr))->sin_port, 2);
         attrValue[2] ^= StunPacket::_magicCookie[0];
@@ -278,11 +262,9 @@ bool StunAttrXorPeerAddress::storeToData() {
         attrValue[6] ^= StunPacket::_magicCookie[2];
         attrValue[7] ^= StunPacket::_magicCookie[3];
     } else if (_addr.ss_family == AF_INET6) {
-        // Set first byte to 0.
-        Byte::Set1Byte((uint8_t *)_data->data() + ATTR_HEADER_SIZE, 0, 0);
         // Set inet family.
-        Byte::Set1Byte((uint8_t *)_data->data() + ATTR_HEADER_SIZE, 1, 0x02);
-        auto attrValue = (uint8_t *)_data->data() + ATTR_HEADER_SIZE;
+        attrValue[1] = 2;
+
         std::memcpy(attrValue + 2, &(reinterpret_cast<const sockaddr_in6 *>(&_addr))->sin6_port, 2);
         attrValue[2] ^= StunPacket::_magicCookie[0];
         attrValue[3] ^= StunPacket::_magicCookie[1];
@@ -292,85 +274,76 @@ bool StunAttrXorPeerAddress::storeToData() {
         attrValue[5] ^= StunPacket::_magicCookie[1];
         attrValue[6] ^= StunPacket::_magicCookie[2];
         attrValue[7] ^= StunPacket::_magicCookie[3];
-        attrValue[8] ^= _transaction_id[0];
-        attrValue[9] ^= _transaction_id[1];
-        attrValue[10] ^= _transaction_id[2];
-        attrValue[11] ^= _transaction_id[3];
-        attrValue[12] ^= _transaction_id[4];
-        attrValue[13] ^= _transaction_id[5];
-        attrValue[14] ^= _transaction_id[6];
-        attrValue[15] ^= _transaction_id[7];
-        attrValue[16] ^= _transaction_id[8];
-        attrValue[17] ^= _transaction_id[9];
-        attrValue[18] ^= _transaction_id[10];
-        attrValue[19] ^= _transaction_id[11];
+        for (int i=0; i < 12; i++) {
+            attrValue[8 + i] ^= _transaction_id[i];
+        }
     }
 
     return true;
 }
 
 bool StunAttrData::loadFromData(const uint8_t *buf, size_t len) {
-    StunAttribute::loadHeader(buf);
-    _data_content.assign((const char *)buf + ATTR_HEADER_SIZE, _content_length);
+    auto p = StunAttribute::loadHeader(buf);
+    setData((const char *)p, _length);
     return true;
 }
 
 bool StunAttrData::storeToData() {
-    _content_length = _data_content.size();
-    StunAttribute::storeHeader();
-    memcpy(_data->data() + ATTR_HEADER_SIZE, _data_content.data(), _data_content.size());
+    _length = _data_content.size();
+    auto p = StunAttribute::storeHeader();
+    memcpy(p, _data_content.data(), _data_content.size());
     return true;
 }
 
 bool StunAttrRealm::loadFromData(const uint8_t *buf, size_t len) {
-    StunAttribute::loadHeader(buf);
-    _realm.assign((const char *)buf + ATTR_HEADER_SIZE, _content_length);
+    auto p = StunAttribute::loadHeader(buf);
+    _realm.assign((const char *)p, _length);
     return true;
 }
 
 bool StunAttrRealm::storeToData() {
-    _content_length = _realm.size();
-    StunAttribute::storeHeader();
-    memcpy(_data->data() + ATTR_HEADER_SIZE, _realm.data(), _realm.size());
+    _length = _realm.size();
+    auto p = StunAttribute::storeHeader();
+    memcpy(p, _realm.data(), _realm.size());
     return true;
 }
 
 bool StunAttrNonce::loadFromData(const uint8_t *buf, size_t len) {
-    StunAttribute::loadHeader(buf);
-    _nonce.assign((const char *)buf + ATTR_HEADER_SIZE, _content_length);
+    auto p = StunAttribute::loadHeader(buf);
+    _nonce.assign((const char *)p, _length);
     return true;
 }
 
 bool StunAttrNonce::storeToData() {
-    _content_length = _nonce.size();
-    StunAttribute::storeHeader();
-    memcpy(_data->data() + ATTR_HEADER_SIZE, _nonce.data(), _nonce.size());
+    _length = _nonce.size();
+    auto p = StunAttribute::storeHeader();
+    memcpy(p, _nonce.data(), _nonce.size());
     return true;
 }
 
 bool StunAttrRequestedTransport::loadFromData(const uint8_t *buf, size_t len) {
-    StunAttribute::loadHeader(buf);
-    _protocol = (Protocol)Byte::Get1Byte(buf + ATTR_HEADER_SIZE, 0);
+    auto p = StunAttribute::loadHeader(buf);
+    _protocol = (Protocol)p[0];
     return true;
 }
 
 bool StunAttrRequestedTransport::storeToData() {
-    _content_length = 4;
-    StunAttribute::storeHeader();
-    Byte::Set1Byte((uint8_t *)(_data->data()) + ATTR_HEADER_SIZE, 0, (uint8_t)_protocol);
+    _length = 4;
+    auto p = StunAttribute::storeHeader();
+    p[0] = (uint8_t)_protocol;
     return true;
 }
 
 bool StunAttrPriority::loadFromData(const uint8_t *buf, size_t len) {
-    StunAttribute::loadHeader(buf);
-    _priority = Byte::Get4Bytes(buf + ATTR_HEADER_SIZE, 0);
+    auto p = StunAttribute::loadHeader(buf);
+    _priority = Byte::Get4Bytes(p, 0);
     return true;
 }
 
 bool StunAttrPriority::storeToData() {
-    _content_length = 4;
-    StunAttribute::storeHeader();
-    Byte::Set4Bytes((uint8_t *)_data->data() + ATTR_HEADER_SIZE, 0, _priority);
+    _length = 4;
+    auto p = StunAttribute::storeHeader();
+    Byte::Set4Bytes(p, 0, _priority);
     return true;
 }
 
@@ -380,47 +353,47 @@ bool StunAttrUseCandidate::loadFromData(const uint8_t *buf, size_t len) {
 }
 
 bool StunAttrUseCandidate::storeToData() {
-    _content_length = 0;
+    _length = 0;
     StunAttribute::storeHeader();
     return true;
 }
 
 bool StunAttrFingerprint::loadFromData(const uint8_t *buf, size_t len) {
-    StunAttribute::loadHeader(buf);
-    _fingerprint = Byte::Get4Bytes(buf + ATTR_HEADER_SIZE, 0);
+    auto p = StunAttribute::loadHeader(buf);
+    _fingerprint = Byte::Get4Bytes(p, 0);
     return true;
 }
 
 bool StunAttrFingerprint::storeToData() {
-    _content_length = 4;
-    StunAttribute::storeHeader();
-    Byte::Set4Bytes((uint8_t *)(_data->data()) + ATTR_HEADER_SIZE, 0, _fingerprint);
+    _length = 4;
+    auto p = StunAttribute::storeHeader();
+    Byte::Set4Bytes(p, 0, _fingerprint);
     return true;
 }
 
 bool StunAttrIceControlled::loadFromData(const uint8_t *buf, size_t len) {
-    StunAttribute::loadHeader(buf);
-    _tiebreaker = Byte::Get8Bytes(buf + ATTR_HEADER_SIZE, 0);
+    auto p = StunAttribute::loadHeader(buf);
+    _tiebreaker = Byte::Get8Bytes(p, 0);
     return true;
 }
 
 bool StunAttrIceControlled::storeToData() {
-    _content_length = 8;
-    StunAttribute::storeHeader();
-    Byte::Set8Bytes((uint8_t *)_data->data(), ATTR_HEADER_SIZE, _tiebreaker);
+    _length = 8;
+    auto p = StunAttribute::storeHeader();
+    Byte::Set8Bytes(p, 0, _tiebreaker);
     return true;
 }
 
 bool StunAttrIceControlling::loadFromData(const uint8_t *buf, size_t len) {
-    StunAttribute::loadHeader(buf);
-    _tiebreaker = Byte::Get8Bytes(buf + ATTR_HEADER_SIZE, 0);
+    auto p = StunAttribute::loadHeader(buf);
+    _tiebreaker = Byte::Get8Bytes(p, 0);
     return true;
 }
 
 bool StunAttrIceControlling::storeToData() {
-    _content_length = 8;
-    StunAttribute::storeHeader();
-    Byte::Set8Bytes((uint8_t *)(_data->data()) + ATTR_HEADER_SIZE, 0, _tiebreaker);
+    _length = 8;
+    auto p = StunAttribute::storeHeader();
+    Byte::Set8Bytes(p, 0, _tiebreaker);
     return true;
 }
 
@@ -461,13 +434,12 @@ bool StunPacket::isStun(const uint8_t *data, size_t len) {
   the class.
 */
 StunPacket::Class StunPacket::getClass(const uint8_t *data, size_t len) {
-    uint16_t msgType = Byte::Get2Bytes(data, 0);
     return StunPacket::Class(((data[0] & 0x01) << 1) | ((data[1] & 0x10) >> 4));
 }
 
 StunPacket::Method StunPacket::getMethod(const uint8_t *data, size_t len) {
     uint16_t msgType = Byte::Get2Bytes(data, 0);
-    return StunPacket::Method((msgType & 0x000f) | ((msgType & 0x00e0) >> 1) | ((msgType & 0x3E00) >> 2));
+    return StunPacket::Method((msgType & 0x000F) | ((msgType & 0x00E0) >> 1) | ((msgType & 0x3E00) >> 2));
 }
 
 StunPacket::Ptr StunPacket::parse(const uint8_t *data, size_t len) {
@@ -489,7 +461,7 @@ StunPacket::Ptr StunPacket::parse(const uint8_t *data, size_t len) {
     auto msgMethod = getMethod(data, len);
     auto msgClass = getClass(data, len);
 
-    auto packet = std::make_shared<StunPacket>(msgClass, msgMethod);
+    auto packet = std::make_shared<StunPacket>(msgClass, msgMethod, (const char *)data + 8);
     packet->loadFromData(data, len);
     return packet;
 }
@@ -519,15 +491,27 @@ std::string StunPacket::mappingMethodEnum2Str(Method method) {
     return "invalid";
 }
 
-StunPacket::StunPacket(Class klass, Method method)
+StunPacket::StunPacket(Class klass, Method method, const char* transId)
     : _klass(klass)
     , _method(method) {
-    refreshTransactionId();
     TraceL;
+    if (transId) {
+        _transaction_id.assign(transId, 12);
+    } else {
+        refreshTransactionId();
+    }
 }
 
 StunPacket::~StunPacket() {
     TraceL;
+}
+
+std::string StunPacket::dumpString(bool transId) const {
+    std::string ret = "class=" + getClassStr() + ", method=" + getMethodStr();
+    if (transId) {
+        ret += ", transaction=" + hexdump(_transaction_id.data(), _transaction_id.size());
+    }
+    return ret;
 }
 
 void StunPacket::addAttribute(StunAttribute::Ptr attr) {
@@ -551,44 +535,32 @@ StunAttribute::Ptr StunPacket::getAttribute(StunAttribute::Type type) const {
 }
 
 std::string StunPacket::getUsername() const {
-    auto it = _attribute_map.find(StunAttribute::Type::USERNAME);
-    if (it != _attribute_map.end()) {
-        auto user_attr = std::dynamic_pointer_cast<StunAttrUserName>(it->second);
-        return user_attr->getUsername();
-    }
-    return "";
+    auto attr = getAttribute<StunAttrUserName>();
+    return attr ? attr->getUsername() : "";
 }
 
 uint64_t StunPacket::getPriority() const {
-    auto it = _attribute_map.find(StunAttribute::Type::PRIORITY);
-    if (it != _attribute_map.end()) {
-        auto priority_attr = std::dynamic_pointer_cast<StunAttrPriority>(it->second);
-        return priority_attr->getPriority();
-    }
-    return 0;
+    auto attr = getAttribute<StunAttrPriority>();
+    return attr ? attr->getPriority() : 0;
 }
 
 StunAttrErrorCode::Code StunPacket::getErrorCode() const {
-    auto it = _attribute_map.find(StunAttribute::Type::ERROR_CODE);
-    if (it != _attribute_map.end()) {
-        auto errorcode_attr = std::dynamic_pointer_cast<StunAttrErrorCode>(it->second);
-        return errorcode_attr->getErrorCode();
-    }
-    return StunAttrErrorCode::Code::Invalid;
+    auto attr = getAttribute<StunAttrErrorCode>();
+    return attr ? attr->getErrorCode() : StunAttrErrorCode::Code::Invalid;
 }
 
 StunPacket::Authentication StunPacket::checkAuthentication(const std::string &ufrag, const std::string &password) const {
     TraceL;
 
-    auto attr_message_integrity = dynamic_pointer_cast<StunAttrMessageIntegrity>(getAttribute(StunAttribute::Type::MESSAGE_INTEGRITY));
+    auto attr_message_integrity = getAttribute<StunAttrMessageIntegrity>();
     switch (_klass) {
         case Class::REQUEST: {
             if (!attr_message_integrity) {
                 return Authentication::UNAUTHORIZED;
             }
 
-            if (getMethod() == Method::ALLOCATE || getMethod() == Method::REFRESH || getMethod() == Method::CREATEPERMISSION
-                || getMethod() == Method::CHANNELBIND) {
+            if (getMethod() == Method::ALLOCATE || getMethod() == Method::REFRESH || 
+                getMethod() == Method::CREATEPERMISSION || getMethod() == Method::CHANNELBIND) {
                 // TURN认证：USERNAME应该等于ufrag
                 std::string username = getUsername();
                 if (username != ufrag) {
@@ -600,7 +572,8 @@ StunPacket::Authentication StunPacket::checkAuthentication(const std::string &uf
                 std::string username = getUsername();
                 if (!username.empty()) {
                     size_t localUsernameLen = ufrag.length();
-                    if (username.length() <= localUsernameLen || username.at(localUsernameLen) != ':' || (username.compare(0, localUsernameLen, ufrag) != 0)) {
+                    if (username.length() <= localUsernameLen || username.at(localUsernameLen) != ':' ||
+                        (username.compare(0, localUsernameLen, ufrag) != 0)) {
                         DebugL << "ICE USERNAME format validation failed, expected format: " << ufrag << ":remote-ufrag, got: " << username;
                         return Authentication::UNAUTHORIZED;
                     }
@@ -623,13 +596,13 @@ StunPacket::Authentication StunPacket::checkAuthentication(const std::string &uf
             Byte::Set2Bytes((uint8_t *)_data->data(), 2, _data->size() - HEADER_SIZE - 8);
         }
 
-        auto attr_realm = dynamic_pointer_cast<StunAttrRealm>(getAttribute(StunAttribute::Type::REALM));
-        auto attr_nonce = dynamic_pointer_cast<StunAttrNonce>(getAttribute(StunAttribute::Type::NONCE));
+        auto attr_realm = getAttribute<StunAttrRealm>();
+        auto attr_nonce = getAttribute<StunAttrNonce>();
 
-        BufferLikeString key = password;
+        std::string key = password;
         if (attr_nonce && attr_realm) {
             // 使用长期凭证机制
-            //  根据RFC 5389/5766标准：key = MD5(username ":" realm ":" password)
+            // 根据RFC 5389/5766标准：key = MD5(username ":" realm ":" password)
             auto realm = attr_realm->getRealm();
             std::string input = ufrag + ":" + std::string(realm.data(), realm.size()) + ":" + password;
             key = openssl_MD5(input.data(), input.size());
@@ -650,24 +623,24 @@ StunPacket::Authentication StunPacket::checkAuthentication(const std::string &uf
         // DebugL << "_hmac: " << toolkit::hexdump(attr_message_integrity->_hmac.data(), attr_message_integrity->_hmac.size());
         // DebugL << "cal: " << toolkit::hexdump(computedMessageIntegrity.data(), computedMessageIntegrity.size());
 
-        if (std::memcmp(attr_message_integrity->getHmac().data(), computedMessageIntegrity.data(), computedMessageIntegrity.size()) != 0) {
+        if (attr_message_integrity->getHmac() != computedMessageIntegrity) {
             return Authentication::UNAUTHORIZED;
         }
 
         if (hasAttribute(StunAttribute::Type::FINGERPRINT)) {
-            Byte::Set2Bytes((uint8_t *)_data->data(), 2, _data->size() - HEADER_SIZE);
+            Byte::Set2Bytes((uint8_t*)_data->data(), 2, _data->size() - HEADER_SIZE);
         }
     }
 
     // FINGERPRINT验证
     if (hasAttribute(StunAttribute::Type::FINGERPRINT)) {
-        auto attr_fingerprint = dynamic_pointer_cast<StunAttrFingerprint>(getAttribute(StunAttribute::Type::FINGERPRINT));
+        auto attr_fingerprint = getAttribute<StunAttrFingerprint>();
         if (attr_fingerprint) {
             // 计算FINGERPRINT：对除FINGERPRINT属性外的整个包计算CRC32
-            uint32_t computedFingerprint = getCRC32((uint8_t *)_data->data(), _data->size() - 8) ^ 0x5354554e;
+            uint32_t computedFingerprint = getCRC32((uint8_t*)_data->data(), _data->size() - 8) ^ 0x5354554e;
             if (attr_fingerprint->getFingerprint() != computedFingerprint) {
-                // DebugL << "FINGERPRINT verification failed, expected: " << std::hex << computedFingerprint
-                // << ", got: " << attr_fingerprint->getFingerprint();
+                // DebugL << "FINGERPRINT verification failed, expected: " << std::hex << computedFingerprint 
+                //        << ", got: " << attr_fingerprint->getFingerprint();
                 return Authentication::UNAUTHORIZED;
             } else {
                 TraceL << "FINGERPRINT verification passed";
@@ -687,8 +660,6 @@ void StunPacket::serialize() {
     }
 
     auto attr_size = getAttrSize();
-    auto message_integrity_size = 24;
-    auto fingerprint_size = 8;
 
     if (getClass() == StunPacket::Class::ERROR_RESPONSE) {
         setNeedFingerprint(false);
@@ -699,13 +670,8 @@ void StunPacket::serialize() {
         setNeedMessageIntegrity(false);
     }
 
-    if (!getNeedFingerprint()) {
-        fingerprint_size = 0;
-    }
-
-    if (!getNeedMessageIntegrity()) {
-        message_integrity_size = 0;
-    }
+    auto message_integrity_size = getNeedMessageIntegrity() ? 24 : 0;
+    auto fingerprint_size = getNeedFingerprint() ? 8 : 0;
 
     auto packet_size = HEADER_SIZE + attr_size + message_integrity_size + fingerprint_size;
     _data->setCapacity(packet_size);
@@ -724,28 +690,29 @@ void StunPacket::serialize() {
     uint16_t initial_length = static_cast<uint16_t>(attr_size + message_integrity_size);
     Byte::Set2Bytes((unsigned char *)_data->data(), 2, initial_length);
     // Set magic cookie.
-    std::memcpy((unsigned char *)_data->data() + 4, StunPacket::_magicCookie, 4);
+    std::memcpy(_data->data() + 4, StunPacket::_magicCookie, 4);
     // Set TransactionId field.
-    std::memcpy((unsigned char *)_data->data() + 8, _transaction_id.data(), 12);
+    std::memcpy(_data->data() + 8, _transaction_id.data(), 12);
 
     storeAttrMessage();
     if (message_integrity_size) {
         auto ufrag = _peer_ufrag;
         auto password = _peer_password;
-        if (getClass() == StunPacket::Class::SUCCESS_RESPONSE || getClass() == StunPacket::Class::ERROR_RESPONSE) {
+        if (getClass() == StunPacket::Class::SUCCESS_RESPONSE || 
+            getClass() == StunPacket::Class::ERROR_RESPONSE) {
             ufrag = _ufrag;
             password = _password;
         }
 
         // Add MESSAGE-INTEGRITY.
-        auto attr_nonce = dynamic_pointer_cast<StunAttrNonce>(getAttribute(StunAttribute::Type::NONCE));
-        auto attr_realm = dynamic_pointer_cast<StunAttrRealm>(getAttribute(StunAttribute::Type::REALM));
+        auto attr_nonce = getAttribute<StunAttrNonce>();
+        auto attr_realm = getAttribute<StunAttrRealm>();
         // FIXME: need use SASLprep(password) replace password
         //  根据RFC 5766标准：key = MD5(username ":" realm ":" SASLprep(password))
-        BufferLikeString key = password;
+        std::string key = password;
         if (attr_nonce && attr_realm) {
             // 使用长期凭证机制
-            //  key = MD5(username ":" realm ":" password)
+            // key = MD5(username ":" realm ":" password)
             auto realm = attr_realm->getRealm();
             std::string username = ufrag; // 对于response消息，使用ufrag作为username
             std::string input = username + ":" + std::string(realm.data(), realm.size()) + ":" + password;
@@ -791,8 +758,7 @@ StunPacket::Ptr StunPacket::createSuccessResponse() const {
     TraceL;
     CHECK(_klass == Class::REQUEST, "attempt to create a success response for a non Request STUN packet");
 
-    auto packet = std::make_shared<StunPacket>(Class::SUCCESS_RESPONSE, _method);
-    packet->_transaction_id = _transaction_id;
+    auto packet = std::make_shared<StunPacket>(Class::SUCCESS_RESPONSE, _method, _transaction_id.c_str());
 
     // 复制认证相关属性到响应包中，用于MESSAGE-INTEGRITY计算
     auto attr_realm = getAttribute(StunAttribute::Type::REALM);
@@ -812,7 +778,11 @@ StunPacket::Ptr StunPacket::createSuccessResponse() const {
 StunPacket::Ptr StunPacket::createErrorResponse(StunAttrErrorCode::Code errorCode) const {
     TraceL;
     CHECK(_klass == Class::REQUEST, "attempt to create an error response for a non Request STUN packet");
-    return std::make_shared<ErrorResponsePacket>(_method, _transaction_id, errorCode);
+    auto ret = std::make_shared<StunPacket>(Class::ERROR_RESPONSE, _method, _transaction_id.c_str());
+    auto attr = std::make_shared<StunAttrErrorCode>();
+    attr->setErrorCode(errorCode);
+    ret->addAttribute(std::move(attr));
+    return ret;
 }
 
 char *StunPacket::data() const {
@@ -832,7 +802,7 @@ bool StunPacket::loadFromData(const uint8_t *buf, size_t len) {
     _data = BufferRaw::create();
     _data->assign((const char *)(buf), len);
 
-    _transaction_id.assign((const char *)buf + 8, 12);
+    //_transaction_id.assign((const char *)buf + 8, 12);
 
     if (len == HEADER_SIZE) {
         return true;
@@ -846,7 +816,6 @@ bool StunPacket::loadAttrMessage(const uint8_t *buf, size_t len) {
     _message_integrity_data_len = HEADER_SIZE + len;
 
     uint8_t *ptr = const_cast<uint8_t*>(buf);
-    uint16_t length;
     StunAttribute::Ptr attr = nullptr;
     while (ptr < buf + len) {
         auto type = (StunAttribute::Type)Byte::Get2Bytes(ptr, 0);
@@ -863,12 +832,12 @@ bool StunPacket::loadAttrMessage(const uint8_t *buf, size_t len) {
             case StunAttribute::Type::ERROR_CODE: attr = std::make_shared<StunAttrErrorCode>(); break;
             case StunAttribute::Type::CHANNEL_NUMBER: attr = std::make_shared<StunAttrChannelNumber>(); break;
             case StunAttribute::Type::LIFETIME: attr = std::make_shared<StunAttrLifeTime>(); break;
-            case StunAttribute::Type::XOR_PEER_ADDRESS: attr = std::make_shared<StunAttrXorPeerAddress>(_transaction_id); break;
             case StunAttribute::Type::DATA: attr = std::make_shared<StunAttrData>(); break;
             case StunAttribute::Type::REALM: attr = std::make_shared<StunAttrRealm>(); break;
             case StunAttribute::Type::NONCE: attr = std::make_shared<StunAttrNonce>(); break;
-            case StunAttribute::Type::XOR_RELAYED_ADDRESS: attr = std::make_shared<StunAttrXorRelayedAddress>(_transaction_id); break;
             case StunAttribute::Type::REQUESTED_TRANSPORT: attr = std::make_shared<StunAttrRequestedTransport>(); break;
+            case StunAttribute::Type::XOR_PEER_ADDRESS: attr = std::make_shared<StunAttrXorPeerAddress>(_transaction_id); break;
+            case StunAttribute::Type::XOR_RELAYED_ADDRESS: attr = std::make_shared<StunAttrXorRelayedAddress>(_transaction_id); break;
             case StunAttribute::Type::XOR_MAPPED_ADDRESS: attr = std::make_shared<StunAttrXorMappedAddress>(_transaction_id); break;
 
             case StunAttribute::Type::PRIORITY: attr = std::make_shared<StunAttrPriority>(); break;
@@ -923,15 +892,13 @@ size_t StunPacket::getAttrSize() const {
     return size;
 }
 
-SuccessResponsePacket::SuccessResponsePacket(Method method, toolkit::BufferLikeString transaction_id) :
-    StunPacket(Class::SUCCESS_RESPONSE, method) {
-    _transaction_id = std::move(transaction_id);
+SuccessResponsePacket::SuccessResponsePacket(Method method, const std::string& transaction_id) :
+    StunPacket(Class::SUCCESS_RESPONSE, method, transaction_id.c_str()) {
 }
 
-ErrorResponsePacket::ErrorResponsePacket(Method method, toolkit::BufferLikeString transaction_id, StunAttrErrorCode::Code error_code) :
-    StunPacket(Class::ERROR_RESPONSE, method) {
+ErrorResponsePacket::ErrorResponsePacket(Method method, const std::string& transaction_id, StunAttrErrorCode::Code error_code) :
+    StunPacket(Class::ERROR_RESPONSE, method, transaction_id.c_str()) {
     DebugL;
-    _transaction_id = std::move(transaction_id);
     auto attr = std::make_shared<StunAttrErrorCode>();
     attr->setErrorCode(error_code);
     addAttribute(std::move(attr));

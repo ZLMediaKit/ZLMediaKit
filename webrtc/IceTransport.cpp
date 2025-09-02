@@ -223,8 +223,7 @@ bool IceTransport::processSocketData(const uint8_t* data, size_t len, const Pair
 
 void IceTransport::processStunPacket(const StunPacket::Ptr& packet, const Pair::Ptr& pair) {
 #if 0
-    TraceL << "recv packet calss: " << packet->getClassStr() << ", method: " << packet->getMethodStr()
-           << ", transaction_id: " << hexdump(packet->getTransactionId().data(), packet->getTransactionId().size());
+    TraceL << "recv packet : " << packet->dumpString(1);
 #endif
     if ((packet->getClass() == StunPacket::Class::REQUEST) || (packet->getClass() == StunPacket::Class::INDICATION)) {
         processRequest(packet, pair);
@@ -268,7 +267,7 @@ void IceTransport::processResponse(const StunPacket::Ptr& packet, const Pair::Pt
 
     auto it = _response_handlers.find(packet->getTransactionId().data());
     if (it == _response_handlers.end()) {
-        WarnL << "not support stun transaction_id ignore: " << hexdump(packet->getTransactionId().data(), packet->getTransactionId().size());
+        WarnL << "not support stun transaction_id ignore: " << packet->dumpString(true);
         return;
     }
 
@@ -285,7 +284,7 @@ void IceTransport::processResponse(const StunPacket::Ptr& packet, const Pair::Pt
     }
 
     if (RTC::StunPacket::Authentication::OK != checkResponseAuthentication(request, packet, pair)) {
-        WarnL << "checkRequestAuthentication fail, method: " << packet->getMethodStr() << ", class: " << packet->getClassStr();
+        WarnL << "checkRequestAuthentication fail: " << packet->dumpString();
         return;
     }
 
@@ -330,8 +329,8 @@ bool IceTransport::processChannelData(const uint8_t* data, size_t len, const Pai
 
 void IceTransport::processUnauthorizedResponse(const StunPacket::Ptr& response, const StunPacket::Ptr& request, const Pair::Ptr& pair, MsgHandler handler) {
     // TraceL;
-    auto attr_nonce = std::dynamic_pointer_cast<StunAttrNonce>(response->getAttribute(StunAttribute::Type::NONCE));
-    auto attr_realm = std::dynamic_pointer_cast<StunAttrRealm>(response->getAttribute(StunAttribute::Type::REALM));
+    auto attr_nonce = response->getAttribute<StunAttrNonce>();
+    auto attr_realm = response->getAttribute<StunAttrRealm>();
     if (!attr_nonce || !attr_realm) {
         return;
     }
@@ -346,13 +345,13 @@ void IceTransport::processUnauthorizedResponse(const StunPacket::Ptr& response, 
 void IceTransport::processRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair) {
     // TraceL;
     if (RTC::StunPacket::Authentication::OK != checkRequestAuthentication(packet, pair)) {
-        WarnL << "checkRequestAuthentication fail, method: " << packet->getMethodStr() << ", class: " << packet->getClassStr();
+        WarnL << "checkRequestAuthentication fail: " << packet->dumpString();
         return;
     }
 
     auto it = _request_handlers.find(std::make_pair(packet->getClass(), packet->getMethod()));
     if (it == _request_handlers.end()) {
-        WarnL << "not support stun class: "<< packet->getClassStr() << ", stun method: " << packet->getMethodStr() << ", ignore";
+        WarnL << "ignore unsupport stun "<< packet->dumpString();
         return;
     }
 
@@ -428,8 +427,7 @@ void IceTransport::sendRequest(const StunPacket::Ptr& packet, const Pair::Ptr& p
 
 void IceTransport::sendPacket(const StunPacket::Ptr& packet, const Pair::Ptr& pair) {
 #if 0
-    TraceL << "send packet calss: " << packet->getClassStr() << ", method: " << packet->getMethodStr()
-           << ", transaction_id: " << hexdump(packet->getTransactionId().data(), packet->getTransactionId().size())
+    TraceL << "send packet " << packet->dumpString(1)
            << ", " << pair->get_local_ip() <<":" << pair->get_local_port() << " -> " << pair->get_peer_ip() << ":" << pair->get_peer_port();
 #endif
     packet->serialize();
@@ -764,7 +762,7 @@ void IceServer::handleCreatePermissionRequest(const StunPacket::Ptr& packet, con
     // TraceL
 
     // 检查XOR-PEER-ADDRESS属性是否存在
-    auto peer_addr = static_pointer_cast<StunAttrXorPeerAddress>(packet->getAttribute(StunAttribute::Type::XOR_PEER_ADDRESS));
+    auto peer_addr = packet->getAttribute<StunAttrXorPeerAddress>();
     if (!peer_addr) {
         WarnL << "CreatePermission request missing XOR-PEER-ADDRESS attribute";
         sendErrorResponse(packet, pair, StunAttrErrorCode::Code::BadRequest);
@@ -783,8 +781,8 @@ void IceServer::handleChannelBindRequest(const StunPacket::Ptr& packet, const Pa
     // TraceL
 
     // 检查必要的属性
-    auto channel_number = static_pointer_cast<StunAttrChannelNumber>(packet->getAttribute(StunAttribute::Type::CHANNEL_NUMBER));
-    auto peer_addr = static_pointer_cast<StunAttrXorPeerAddress>(packet->getAttribute(StunAttribute::Type::XOR_PEER_ADDRESS));
+    auto channel_number = packet->getAttribute<StunAttrChannelNumber>();
+    auto peer_addr = packet->getAttribute<StunAttrXorPeerAddress>();
     if (!channel_number || !peer_addr) {
         WarnL << "ChannelBind request missing required attributes";
         sendErrorResponse(packet, pair, StunAttrErrorCode::Code::BadRequest);
@@ -820,8 +818,8 @@ void IceServer::handleSendIndication(const StunPacket::Ptr& packet, const Pair::
     // TraceL
 
     // 检查必要的属性
-    auto peer_addr = static_pointer_cast<StunAttrXorPeerAddress>(packet->getAttribute(StunAttribute::Type::XOR_PEER_ADDRESS));
-    auto data = static_pointer_cast<StunAttrData>(packet->getAttribute(StunAttribute::Type::DATA));
+    auto peer_addr = packet->getAttribute<StunAttrXorPeerAddress>();
+    auto data = packet->getAttribute<StunAttrData>();
 
     if (!peer_addr || !data) {
         WarnL << "Send indication missing required attributes";
@@ -904,9 +902,7 @@ void IceServer::sendDataIndication(const sockaddr_storage& peer_addr, const Buff
     packet->addAttribute(std::move(attr_peer_address));
 
     auto attr_data = std::make_shared<StunAttrData>();
-    BufferLikeString data;
-    data.assign(buffer->data(), buffer->size());
-    attr_data->setData(data);
+    attr_data->setData((const char *)buffer->data(), buffer->size());
     packet->addAttribute(std::move(attr_data));
 
     sendPacket(packet, pair);
@@ -1154,9 +1150,7 @@ void IceAgent::sendSendIndication(const sockaddr_storage& peer_addr, const Buffe
     packet->addAttribute(std::move(attr_peer_address));
 
     auto attr_data = std::make_shared<StunAttrData>();
-    BufferLikeString data;
-    data.assign(buffer->data(), buffer->size());
-    attr_data->setData(data);
+    attr_data->setData(buffer->data(), buffer->size());
     packet->addAttribute(std::move(attr_data));
 
     sendPacket(packet, pair);
@@ -1309,9 +1303,9 @@ void IceAgent::processRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pa
 
 void IceAgent::handleBindingRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair) {
     // TraceL;
-    auto controlling = static_pointer_cast<StunAttrIceControlling>(packet->getAttribute(StunAttribute::Type::ICE_CONTROLLING));
-    auto controlled = static_pointer_cast<StunAttrIceControlled>(packet->getAttribute(StunAttribute::Type::ICE_CONTROLLED));
-    auto priority = static_pointer_cast<StunAttrPriority>(packet->getAttribute(StunAttribute::Type::PRIORITY));
+    auto controlling = packet->getAttribute<StunAttrIceControlling>();
+    auto controlled = packet->getAttribute<StunAttrIceControlled>();
+    auto priority = packet->getAttribute<StunAttrPriority>();
 
     //角色冲突
     if (controlling && getRole() == Role::Controlling) {
@@ -1374,11 +1368,11 @@ void IceAgent::handleGatheringCandidateResponse(const StunPacket::Ptr& packet, c
     // TraceL; 
 
     if (RTC::StunPacket::Class::SUCCESS_RESPONSE != packet->getClass()) {
-        WarnL << "fail, get response class: " << packet->getClassStr();
+        WarnL << "fail, get response: " << packet->dumpString();
         return;
     }
 
-    auto srflx = static_pointer_cast<StunAttrXorMappedAddress>(packet->getAttribute(StunAttribute::Type::XOR_MAPPED_ADDRESS));
+    auto srflx = packet->getAttribute<StunAttrXorMappedAddress>();
     if (!srflx) {
         WarnL << "Binding request missing XOR_MAPPED_ADDRESS attribute";
         sendErrorResponse(packet, pair, StunAttrErrorCode::Code::BadRequest);
@@ -1386,7 +1380,7 @@ void IceAgent::handleGatheringCandidateResponse(const StunPacket::Ptr& packet, c
 
     CandidateInfo candidate;
     candidate._type = CandidateInfo::AddressType::SRFLX;
-    candidate._addr._host = srflx->getAddrString();
+    candidate._addr._host = srflx->getIp();
     candidate._addr._port = srflx->getPort();
     candidate._base_addr._host = pair->get_local_ip();
     candidate._base_addr._port = pair->get_local_port();
@@ -1399,12 +1393,12 @@ void IceAgent::handleConnectivityCheckResponse(const StunPacket::Ptr& packet, co
     // TraceL; 
 
     if (RTC::StunPacket::Class::SUCCESS_RESPONSE != packet->getClass()) {
-        WarnL << "fail, get response class: " << packet->getClassStr();
+        WarnL << "fail, get response: " << packet->dumpString();
         if (packet->getErrorCode() == StunAttrErrorCode::Code::RoleConflict) {
             InfoL << "process Role Conflict";
 
-            auto controlling = static_pointer_cast<StunAttrIceControlling>(packet->getAttribute(StunAttribute::Type::ICE_CONTROLLING));
-            auto controlled = static_pointer_cast<StunAttrIceControlled>(packet->getAttribute(StunAttribute::Type::ICE_CONTROLLED));
+            auto controlling = packet->getAttribute<StunAttrIceControlling>();
+            auto controlled = packet->getAttribute<StunAttrIceControlled>();
             //角色冲突
             if (controlling && getRole() == Role::Controlling) {
                 if (controlling->getTiebreaker() > _tiebreaker) {
@@ -1428,7 +1422,7 @@ void IceAgent::handleConnectivityCheckResponse(const StunPacket::Ptr& packet, co
         return;
     }
 
-    auto srflx = static_pointer_cast<StunAttrXorMappedAddress>(packet->getAttribute(StunAttribute::Type::XOR_MAPPED_ADDRESS));
+    auto srflx = packet->getAttribute<StunAttrXorMappedAddress>();
     if (!srflx) {
         WarnL << "Binding request missing XOR_MAPPED_ADDRESS attribute";
         sendErrorResponse(packet, pair, StunAttrErrorCode::Code::BadRequest);
@@ -1436,7 +1430,7 @@ void IceAgent::handleConnectivityCheckResponse(const StunPacket::Ptr& packet, co
 
     CandidateInfo preflx_candidate;
     preflx_candidate._type = CandidateInfo::AddressType::PRFLX;
-    preflx_candidate._addr._host = srflx->getAddrString();
+    preflx_candidate._addr._host = srflx->getIp();
     preflx_candidate._addr._port = srflx->getPort();
     preflx_candidate._base_addr._host = pair->get_local_ip();
     preflx_candidate._base_addr._port = pair->get_local_port();
@@ -1444,7 +1438,7 @@ void IceAgent::handleConnectivityCheckResponse(const StunPacket::Ptr& packet, co
     preflx_candidate._pwd = getPassword();
     onGatheringCandidate(pair, preflx_candidate);
 
-    DebugL << "get candidate type preflx: " << srflx->getAddrString() << ":" << srflx->getPort();
+    DebugL << "get candidate type preflx: " << srflx->getIp() << ":" << srflx->getPort();
     onConnected(pair);
 }
 
@@ -1452,12 +1446,12 @@ void IceAgent::handleNominatedResponse(const StunPacket::Ptr& packet, const Pair
     // TraceL; 
 
     if (RTC::StunPacket::Class::SUCCESS_RESPONSE != packet->getClass()) {
-        WarnL << "fail, get response class: " << packet->getClassStr();
+        WarnL << "fail, get response: " << packet->dumpString();
         if (packet->getErrorCode() == StunAttrErrorCode::Code::RoleConflict) {
             //角色冲突
             InfoL << "process Role Conflict";
-            auto controlling = static_pointer_cast<StunAttrIceControlling>(packet->getAttribute(StunAttribute::Type::ICE_CONTROLLING));
-            auto controlled = static_pointer_cast<StunAttrIceControlled>(packet->getAttribute(StunAttribute::Type::ICE_CONTROLLED));
+            auto controlling = packet->getAttribute<StunAttrIceControlling>();
+            auto controlled = packet->getAttribute<StunAttrIceControlled>();
             if (controlling && getRole() == Role::Controlling) {
                 if (controlling->getTiebreaker() > _tiebreaker) {
                     InfoL << "rule conflict, election fail, change role to controlled";
@@ -1481,7 +1475,7 @@ void IceAgent::handleNominatedResponse(const StunPacket::Ptr& packet, const Pair
         }
     }
 
-    auto srflx = static_pointer_cast<StunAttrXorMappedAddress>(packet->getAttribute(StunAttribute::Type::XOR_MAPPED_ADDRESS));
+    auto srflx = packet->getAttribute<StunAttrXorMappedAddress>();
     if (!srflx) {
         WarnL << "Binding request missing XOR_MAPPED_ADDRESS attribute";
         sendErrorResponse(packet, pair, StunAttrErrorCode::Code::BadRequest);
@@ -1494,15 +1488,14 @@ void IceAgent::handleAllocateResponse(const StunPacket::Ptr& packet, const Pair:
     // TraceL; 
 
     if (RTC::StunPacket::Class::SUCCESS_RESPONSE != packet->getClass()) {
-        WarnL << "fail, get response class: " << packet->getClassStr() << "method: " << packet->getMethodStr() 
-            << ", errorCode: " << (uint16_t)packet->getErrorCode();
+        WarnL << "fail, get response: " << packet->dumpString() << ", errorCode: " << (uint16_t)packet->getErrorCode();
         if (packet->getErrorCode() == StunAttrErrorCode::Code::AllocationQuotaReached) {
             InfoL << "use stun retry";
         }
         return;
     }
 
-    auto srflx = static_pointer_cast<StunAttrXorMappedAddress>(packet->getAttribute(StunAttribute::Type::XOR_MAPPED_ADDRESS));
+    auto srflx = packet->getAttribute<StunAttrXorMappedAddress>();
     if (!srflx) {
         WarnL << "Binding request missing XOR_MAPPED_ADDRESS attribute";
         sendErrorResponse(packet, pair, StunAttrErrorCode::Code::BadRequest);
@@ -1520,7 +1513,7 @@ void IceAgent::handleAllocateResponse(const StunPacket::Ptr& packet, const Pair:
     onGatheringCandidate(pair, candidate);
 #endif
 
-    auto relay = static_pointer_cast<StunAttrXorRelayedAddress>(packet->getAttribute(StunAttribute::Type::XOR_RELAYED_ADDRESS));
+    auto relay = packet->getAttribute<StunAttrXorRelayedAddress>();
     if (!relay) {
         WarnL << "Binding request missing XOR_RELAYED_ADDRESS attribute";
         sendErrorResponse(packet, pair, StunAttrErrorCode::Code::BadRequest);
@@ -1528,7 +1521,7 @@ void IceAgent::handleAllocateResponse(const StunPacket::Ptr& packet, const Pair:
 
     CandidateInfo candidate;
     candidate._type = CandidateInfo::AddressType::RELAY;
-    candidate._addr._host = relay->getAddrString();
+    candidate._addr._host = relay->getIp();
     candidate._addr._port = relay->getPort();
     candidate._base_addr._host = candidate._addr._host;
     candidate._base_addr._port = candidate._addr._port;
@@ -1536,7 +1529,7 @@ void IceAgent::handleAllocateResponse(const StunPacket::Ptr& packet, const Pair:
     candidate._pwd = getPassword();
 
     TraceL << "get local candidate type "  << candidate.dumpString()
-           << ", by srflx addr " << srflx->getAddrString() << " : " << srflx->getPort()
+           << ", by srflx addr " << srflx->getIp() << " : " << srflx->getPort()
            << ", by host addr " << pair->get_local_ip() << " : " << pair->get_local_port();
     onGatheringCandidate(pair, candidate);
 }
@@ -1545,7 +1538,7 @@ void IceAgent::handleCreatePermissionResponse(const StunPacket::Ptr& packet, con
     // TraceL; 
 
     if (RTC::StunPacket::Class::SUCCESS_RESPONSE != packet->getClass()) {
-        WarnL << "CreatePermission failed, response class: " << packet->getClassStr();
+        WarnL << "CreatePermission failed, response: " << packet->dumpString();
         return;
     }
 
@@ -1564,7 +1557,7 @@ void IceAgent::handleChannelBindResponse(const StunPacket::Ptr& packet, const Pa
     // TraceL;
 
     if (RTC::StunPacket::Class::SUCCESS_RESPONSE != packet->getClass()) {
-        WarnL << "ChannelBind failed, response class: " << packet->getClassStr();
+        WarnL << "ChannelBind failed, response: " << packet->dumpString();
         return;
     }
 
@@ -1581,8 +1574,8 @@ void IceAgent::handleDataIndication(const StunPacket::Ptr& packet, const Pair::P
     // TraceL;
 
     // 检查必要的属性
-    auto peer_addr = static_pointer_cast<StunAttrXorPeerAddress>(packet->getAttribute(StunAttribute::Type::XOR_PEER_ADDRESS));
-    auto data = static_pointer_cast<StunAttrData>(packet->getAttribute(StunAttribute::Type::DATA));
+    auto peer_addr = packet->getAttribute<StunAttrXorPeerAddress>();
+    auto data = packet->getAttribute<StunAttrData>();
 
     if (!peer_addr || !data) {
         WarnL << "Data indication missing required attributes";
