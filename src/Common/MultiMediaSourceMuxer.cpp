@@ -833,4 +833,10 @@ bool MultiMediaSourceMuxer::isEnabled(){
     return _is_enable;
 }
 
+void MultiMediaSourceMuxer::setHlsDemand(bool b) {
+    if (_hls) {
+        _hls->setHlsDemand(b);
+    }
+}
+
 }//namespace mediakit

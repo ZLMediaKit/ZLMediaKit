@@ -77,6 +77,10 @@ public:
         return _option.hls_demand ? (_clear_cache ? true : _enabled) : true;
     }
 
+    void setHlsDemand(bool b) { 
+        _option.hls_demand = b; 
+    }
+
 protected:
     bool _enabled = true;
     bool _clear_cache = false;

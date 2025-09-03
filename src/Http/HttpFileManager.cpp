@@ -555,9 +555,22 @@ static void accessFile(Session &sender, const Parser &parser, const MediaInfo &m
         if (!is_hls || !cookie) {
             // 不是hls或访问m3u8文件不带cookie, 直接回复文件或404  [AUTO-TRANSLATED:64e5d19b]
             // Not hls or accessing m3u8 files without cookies, directly reply to the file or 404
-            response_file(cookie, cb, file_path, parser);
-            if (is_hls) {
-                WarnL << "access m3u8 file without cookie:" << file_path;
+            // response_file(cookie, cb, file_path, parser);
+
+            if (is_hls && !File::fileExist(file_path)) {
+                MediaSource::findAsync(media_info, strongSession, [response_file, cookie, cb, file_path, parser](const MediaSource::Ptr &src) {
+                    auto hls = dynamic_pointer_cast<HlsMediaSource>(src);
+                    if (!hls) {
+                        response_file(cookie, cb, file_path, parser);
+                        return;
+                    }
+                    WarnL << "access m3u8 file without cookie, and general it " << file_path;
+                    hls->getMuxer()->setHlsDemand(false);
+                    hls->getIndexFile(
+                        [response_file, file_path, cookie, cb, parser](const string &file) { response_file(cookie, cb, file_path, parser, file); });
+                });
+            } else {
+                response_file(cookie, cb, file_path, parser);
             }
             return;
         }
@@ -587,7 +600,7 @@ static void accessFile(Session &sender, const Parser &parser, const MediaInfo &m
                 response_file(cookie, cb, file_path, parser);
                 return;
             }
-
+            hls->getMuxer()->setHlsDemand(false);
             auto &attach = cookie->getAttach<HttpCookieAttachment>();
             attach._hls_data->setMediaSource(hls);
             // 添加HlsMediaSource的观看人数(HLS是按需生成的，这样可以触发HLS文件的生成)  [AUTO-TRANSLATED:bd98e100]

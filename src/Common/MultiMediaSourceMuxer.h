@@ -211,6 +211,9 @@ public:
 #if defined(ENABLE_RTPPROXY)
     void forEachRtpSender(const std::function<void(const std::string &ssrc, const RtpSender &sender)> &cb) const;
 #endif // ENABLE_RTPPROXY
+
+    void setHlsDemand(bool b);
+
 protected:
     /////////////////////////////////MediaSink override/////////////////////////////////
 
