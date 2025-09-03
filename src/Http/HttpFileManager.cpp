@@ -12,6 +12,7 @@
 #include "Util/File.h"
 #include "Common/Parser.h"
 #include "Common/config.h"
+#include "Common/MultiMediaSourceMuxer.h"
 #include "Common/strCoding.h"
 #include "Record/HlsMediaSource.h"
 #include "HttpConst.h"
