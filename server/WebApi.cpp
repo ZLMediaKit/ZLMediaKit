@@ -2171,11 +2171,11 @@ void installWebApi() {
 
     api_regist("/index/api/addWebrtcRoomKeeper",[](API_ARGS_MAP_ASYNC){
         CHECK_SECRET();
-        CHECK_ARGS("server_host", "server_port", "room_id");
+        CHECK_ARGS("server_host", "server_port", "room_id", "ssl");
         //server_host: 信令服务器host
         //server_post: 信令服务器host
         //room_id: 注册的id,信令服务器会对该id进行唯一性检查
-        addWebrtcRoomKeeper(allArgs["server_host"], allArgs["server_port"], allArgs["room_id"],
+        addWebrtcRoomKeeper(allArgs["server_host"], allArgs["server_port"], allArgs["room_id"], allArgs["ssl"],
             [val, headerOut, invoker](const SockException &ex, const string &key) mutable {
                 if (ex) {
                     val["code"] = API::OtherFailed;

@@ -36,7 +36,7 @@ public:
         }
     };
     using Ptr = std::shared_ptr<WebRtcSignalingPeer>;
-    WebRtcSignalingPeer(const std::string &host, uint16_t port, const std::string& room_id, const EventPoller::Ptr &poller = nullptr);
+    WebRtcSignalingPeer(const std::string &host, uint16_t port, bool ssl, const std::string& room_id, const EventPoller::Ptr &poller = nullptr);
     virtual ~WebRtcSignalingPeer();
 
     void connect();
@@ -78,7 +78,11 @@ protected:
     void createResponseExpireTimer();
 
     using ResponseTrigger = std::function<void(const SockException &ex, std::string /*msg*/)>;
-    using ResponseTuple = std::tuple<TimePoint /*expire time*/, std::string /*method*/, ResponseTrigger /*cb*/>;
+    struct ResponseTuple {
+        TimePoint expire_time;
+        std::string method;
+        ResponseTrigger cb;
+    };
 
 #define TRANSACTION_ID_ANY std::string()
 #define EXPIRE_NEVER TimePoint::max()
@@ -128,7 +132,7 @@ private:
     Timer::Ptr _offer_timeout_timer = nullptr;
 };
 
-void addWebrtcRoomKeeper(const std::string &host, uint16_t port, const std::string& room_id,
+void addWebrtcRoomKeeper(const std::string &host, uint16_t port, bool ssl, const std::string& room_id,
                          const std::function<void(const SockException &ex, const std::string &key)> &cb);
 void delWebrtcRoomKeeper(const std::string &key, const std::function<void(const SockException &ex)> &cb);
 void listWebrtcRoomKeepers(const std::function<void(const std::string& key, const WebRtcSignalingPeer::Ptr& p)> &cb);

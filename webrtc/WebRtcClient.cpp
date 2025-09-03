@@ -195,7 +195,7 @@ void WebRtcClient::doNegotiateWebsocket() {
     // 未注册的,先增加注册流程，并在此次播放结束后注销
     InfoL << (StrPrinter << "register to signaling server " << _url._host << "::" << _url._port << " first");
     auto room_id = "ringing_" + makeRandStr(16);
-    _peer = make_shared<WebRtcSignalingPeer>(_url._host, _url._port, room_id);
+    _peer = make_shared<WebRtcSignalingPeer>(_url._host, _url._port, _url._is_ssl, room_id);
     weak_ptr<WebRtcClient> weak_self = static_pointer_cast<WebRtcClient>(shared_from_this());
     _peer->setOnConnect([weak_self](const SockException &ex) {
         auto strong_self = weak_self.lock();
