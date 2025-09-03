@@ -1012,9 +1012,9 @@ float SrtCaller::getTimeOutSec() {
     GET_CONFIG(uint32_t, timeout, SRT::kTimeOutSec);
     if (timeout <= 0) {
         WarnL << "config srt " << kTimeOutSec << " not vaild";
-        return 5 * 1000;
+        return 5.0f;
     }
-    return (float)timeout * (float)1000;
+    return (float)timeout;
 };
 
 std::string SrtCaller::generateStreamId() { 

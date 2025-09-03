@@ -122,7 +122,7 @@ protected:
 class StunAttrMappedAddress : public StunAttribute {
 public:
     using Ptr = std::shared_ptr<StunAttrMappedAddress>;
-    static const Type TYPE = StunAttribute::Type::MAPPED_ADDRESS;
+    static constexpr Type TYPE = StunAttribute::Type::MAPPED_ADDRESS;
     StunAttrMappedAddress() : StunAttribute(TYPE) {};
     virtual ~StunAttrMappedAddress() = default;
 
@@ -134,7 +134,7 @@ public:
 class StunAttrUserName : public StunAttribute {
 public:
     using Ptr = std::shared_ptr<StunAttrUserName>;
-    static const Type TYPE = StunAttribute::Type::USERNAME;
+    static constexpr Type TYPE = StunAttribute::Type::USERNAME;
     StunAttrUserName() : StunAttribute(TYPE) {};
     virtual ~StunAttrUserName() = default;
 
@@ -153,7 +153,7 @@ private:
 class StunAttrMessageIntegrity : public StunAttribute {
 public:
     using Ptr = std::shared_ptr<StunAttrMessageIntegrity>;
-    static const Type TYPE = StunAttribute::Type::MESSAGE_INTEGRITY;
+    static constexpr Type TYPE = StunAttribute::Type::MESSAGE_INTEGRITY;
     StunAttrMessageIntegrity() : StunAttribute(TYPE) {};
     virtual ~StunAttrMessageIntegrity() = default;
 
@@ -170,7 +170,7 @@ private:
 class StunAttrErrorCode : public StunAttribute {
 public:
     using Ptr = std::shared_ptr<StunAttrErrorCode>;
-    static const Type TYPE = StunAttribute::Type::ERROR_CODE;
+    static constexpr Type TYPE = StunAttribute::Type::ERROR_CODE;
     StunAttrErrorCode() : StunAttribute(TYPE) {};
     virtual ~StunAttrErrorCode() = default;
 
@@ -206,7 +206,7 @@ private:
 class StunAttrChannelNumber : public StunAttribute {
 public:
     using Ptr = std::shared_ptr<StunAttrChannelNumber>;
-    static const Type TYPE = StunAttribute::Type::CHANNEL_NUMBER;
+    static constexpr Type TYPE = StunAttribute::Type::CHANNEL_NUMBER;
     StunAttrChannelNumber() : StunAttribute(TYPE) {};
     virtual ~StunAttrChannelNumber() = default;
 
@@ -222,7 +222,7 @@ private:
 class StunAttrLifeTime : public StunAttribute {
 public:
     using Ptr = std::shared_ptr<StunAttrLifeTime>;
-    static const Type TYPE = StunAttribute::Type::LIFETIME;
+    static constexpr Type TYPE = StunAttribute::Type::LIFETIME;
     StunAttrLifeTime() : StunAttribute(TYPE) {};
     ~StunAttrLifeTime() = default;
 
@@ -250,7 +250,7 @@ private:
 class StunAttrXorPeerAddress : public StunAttribute {
 public:
     using Ptr = std::shared_ptr<StunAttrXorPeerAddress>;
-    static const Type TYPE = StunAttribute::Type::XOR_PEER_ADDRESS;
+    static constexpr Type TYPE = StunAttribute::Type::XOR_PEER_ADDRESS;
     StunAttrXorPeerAddress(const std::string& transaction_id)
         : StunAttribute(TYPE), _transaction_id(transaction_id) {}
     virtual ~StunAttrXorPeerAddress() = default;
@@ -273,7 +273,7 @@ protected:
 class StunAttrData : public StunAttribute {
 public:
     using Ptr = std::shared_ptr<StunAttrData>;
-    static const Type TYPE = StunAttribute::Type::DATA;
+    static constexpr Type TYPE = StunAttribute::Type::DATA;
     StunAttrData() : StunAttribute(TYPE) {};
     virtual ~StunAttrData() = default;
 
@@ -291,7 +291,7 @@ private:
 class StunAttrRealm : public StunAttribute {
 public:
     using Ptr = std::shared_ptr<StunAttrRealm>;
-    static const Type TYPE = StunAttribute::Type::REALM;
+    static constexpr Type TYPE = StunAttribute::Type::REALM;
     StunAttrRealm() : StunAttribute(TYPE) {};
     virtual ~StunAttrRealm() = default;
 
@@ -309,7 +309,7 @@ private:
 class StunAttrNonce : public StunAttribute {
 public:
     using Ptr = std::shared_ptr<StunAttrNonce>;
-    static const Type TYPE = StunAttribute::Type::NONCE;
+    static constexpr Type TYPE = StunAttribute::Type::NONCE;
     StunAttrNonce() : StunAttribute(TYPE) {};
     virtual ~StunAttrNonce() = default;
 
@@ -327,7 +327,7 @@ private:
 class StunAttrXorRelayedAddress : public StunAttrXorPeerAddress {
 public:
     using Ptr = std::shared_ptr<StunAttrXorRelayedAddress>;
-    static const Type TYPE = StunAttribute::Type::XOR_RELAYED_ADDRESS;
+    static constexpr Type TYPE = StunAttribute::Type::XOR_RELAYED_ADDRESS;
     StunAttrXorRelayedAddress(const std::string& transaction_id) : StunAttrXorPeerAddress(transaction_id) {
         _type = TYPE;
     }
@@ -337,7 +337,7 @@ public:
 class StunAttrXorMappedAddress : public StunAttrXorPeerAddress {
 public:
     using Ptr = std::shared_ptr<StunAttrXorPeerAddress>;
-    static const Type TYPE = StunAttribute::Type::XOR_MAPPED_ADDRESS;
+    static constexpr Type TYPE = StunAttribute::Type::XOR_MAPPED_ADDRESS;
     StunAttrXorMappedAddress(const std::string& transaction_id) : StunAttrXorPeerAddress(transaction_id) {
         _type = TYPE;
     }
@@ -355,7 +355,7 @@ public:
 class StunAttrRequestedTransport : public StunAttribute {
 public:
     using Ptr = std::shared_ptr<StunAttrRequestedTransport>;
-    static const Type TYPE = StunAttribute::Type::REQUESTED_TRANSPORT;
+    static constexpr Type TYPE = StunAttribute::Type::REQUESTED_TRANSPORT;
     StunAttrRequestedTransport() : StunAttribute(TYPE) {};
     virtual ~StunAttrRequestedTransport() = default;
 
@@ -377,7 +377,7 @@ private:
 class StunAttrPriority : public StunAttribute {
 public:
     using Ptr = std::shared_ptr<StunAttrPriority>;
-    static const Type TYPE = StunAttribute::Type::PRIORITY;
+    static constexpr Type TYPE = StunAttribute::Type::PRIORITY;
     StunAttrPriority() : StunAttribute(TYPE) {};
     virtual ~StunAttrPriority() = default;
 
@@ -394,7 +394,7 @@ private:
 class StunAttrUseCandidate : public StunAttribute {
 public:
     using Ptr = std::shared_ptr<StunAttrUseCandidate>;
-    static const Type TYPE = StunAttribute::Type::USE_CANDIDATE;
+    static constexpr Type TYPE = StunAttribute::Type::USE_CANDIDATE;
     StunAttrUseCandidate() : StunAttribute(TYPE) {};
     virtual ~StunAttrUseCandidate() = default;
 
@@ -406,7 +406,7 @@ public:
 class StunAttrFingerprint : public StunAttribute {
 public:
     using Ptr = std::shared_ptr<StunAttrFingerprint>;
-    static const Type TYPE = StunAttribute::Type::FINGERPRINT;
+    static constexpr Type TYPE = StunAttribute::Type::FINGERPRINT;
     StunAttrFingerprint() : StunAttribute(TYPE) {};
     virtual ~StunAttrFingerprint() = default;
 
@@ -423,7 +423,7 @@ private:
 class StunAttrIceControlled : public StunAttribute {
 public:
     using Ptr = std::shared_ptr<StunAttrIceControlled>;
-    static const Type TYPE = StunAttribute::Type::ICE_CONTROLLED;
+    static constexpr Type TYPE = StunAttribute::Type::ICE_CONTROLLED;
     StunAttrIceControlled() : StunAttribute(TYPE) {};
     virtual ~StunAttrIceControlled() = default;
 
@@ -440,7 +440,7 @@ private:
 class StunAttrIceControlling : public StunAttribute {
 public:
     using Ptr = std::shared_ptr<StunAttrIceControlling>;
-    static const Type TYPE = StunAttribute::Type::ICE_CONTROLLING;
+    static constexpr Type TYPE = StunAttribute::Type::ICE_CONTROLLING;
     StunAttrIceControlling() : StunAttribute(TYPE) {};
     virtual ~StunAttrIceControlling() = default;
 

@@ -231,7 +231,7 @@ bool StunAttrXorPeerAddress::loadFromData(const uint8_t *buf, size_t len) {
         std::memcpy((void *)&(reinterpret_cast<const sockaddr_in *>(&_addr))->sin_addr.s_addr, addr, 4);
     } else {
         _addr.ss_family = AF_INET6;
-        for (int i=0; i < 12; i++) {
+        for (int i=0; i < 12; ++i) {
             addr[i + 4] = attrValue[i + 8] ^ _transaction_id[i];
         }
         struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)&_addr;
@@ -274,7 +274,7 @@ bool StunAttrXorPeerAddress::storeToData() {
         attrValue[5] ^= StunPacket::_magicCookie[1];
         attrValue[6] ^= StunPacket::_magicCookie[2];
         attrValue[7] ^= StunPacket::_magicCookie[3];
-        for (int i=0; i < 12; i++) {
+        for (int i=0; i < 12; ++i) {
             attrValue[8 + i] ^= _transaction_id[i];
         }
     }
@@ -802,7 +802,7 @@ bool StunPacket::loadFromData(const uint8_t *buf, size_t len) {
     _data = BufferRaw::create();
     _data->assign((const char *)(buf), len);
 
-    //_transaction_id.assign((const char *)buf + 8, 12);
+    _transaction_id.assign((const char *)buf + 8, 12);
 
     if (len == HEADER_SIZE) {
         return true;

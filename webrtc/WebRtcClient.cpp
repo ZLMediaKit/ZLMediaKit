@@ -310,9 +310,9 @@ float WebRtcClient::getTimeOutSec() {
     GET_CONFIG(uint32_t, timeout, Rtc::kTimeOutSec);
     if (timeout <= 0) {
         WarnL << "config rtc. " << Rtc::kTimeOutSec << ": " << timeout << " not vaild";
-        return 5 * 1000;
+        return 5.0;
     }
-    return (float)timeout * (float)1000;
+    return (float)timeout;
 }
 
 } /* namespace mediakit */

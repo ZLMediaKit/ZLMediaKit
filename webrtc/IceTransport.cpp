@@ -223,7 +223,7 @@ bool IceTransport::processSocketData(const uint8_t* data, size_t len, const Pair
 
 void IceTransport::processStunPacket(const StunPacket::Ptr& packet, const Pair::Ptr& pair) {
 #if 0
-    TraceL << "recv packet : " << packet->dumpString(1);
+    TraceL << "recv packet : " << packet->dumpString(true);
 #endif
     if ((packet->getClass() == StunPacket::Class::REQUEST) || (packet->getClass() == StunPacket::Class::INDICATION)) {
         processRequest(packet, pair);
@@ -427,7 +427,7 @@ void IceTransport::sendRequest(const StunPacket::Ptr& packet, const Pair::Ptr& p
 
 void IceTransport::sendPacket(const StunPacket::Ptr& packet, const Pair::Ptr& pair) {
 #if 0
-    TraceL << "send packet " << packet->dumpString(1)
+    TraceL << "send packet " << packet->dumpString(true)
            << ", " << pair->get_local_ip() <<":" << pair->get_local_port() << " -> " << pair->get_peer_ip() << ":" << pair->get_peer_port();
 #endif
     packet->serialize();
