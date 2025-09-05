@@ -200,9 +200,9 @@ WebRtcPlayer::WebRtcPlayer(const EventPoller::Ptr &poller,
 
 void WebRtcPlayer::onStartWebRTC() {
     auto playSrc = _play_src.lock();
-    if(!playSrc){
+    if (!playSrc) {
         onShutdown(SockException(Err_shutdown, "rtsp media source was shutdown"));
-        return ;
+        return;
     }
     WebRtcTransportImp::onStartWebRTC();
     if (canSendRtp()) {
@@ -251,7 +251,7 @@ void WebRtcPlayer::onStartWebRTC() {
             strong_self->onShutdown(SockException(Err_shutdown, "rtsp ring buffer detached"));
         });
 
-        _reader->setMessageCB([weak_self] (const toolkit::Any &data) {
+        _reader->setMessageCB([weak_self](const toolkit::Any &data) {
             auto strong_self = weak_self.lock();
             if (!strong_self) {
                 return;
@@ -286,8 +286,8 @@ void WebRtcPlayer::onDestory() {
 
 void WebRtcPlayer::onRtcConfigure(RtcConfigure &configure) const {
     auto playSrc = _play_src.lock();
-    if(!playSrc){
-        return ;
+    if (!playSrc) {
+        return;
     }
     WebRtcTransportImp::onRtcConfigure(configure);
     // 这是播放  [AUTO-TRANSLATED:d93c019e]
