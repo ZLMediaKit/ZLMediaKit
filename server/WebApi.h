@@ -259,8 +259,17 @@ public:
     }
 
     size_t erase(const std::string &key) {
-        std::lock_guard<std::recursive_mutex> lck(_mtx);
-        return _map.erase(key);
+        Pointer erase_ptr;
+        {
+            std::lock_guard<std::recursive_mutex> lck(_mtx);
+            auto itr = _map.find(key);
+            if (itr != _map.end()) {
+                erase_ptr = std::move(itr->second);
+                _map.erase(itr);
+                return 1;
+            }
+        }
+        return 0;
     }
 
     size_t size() { 

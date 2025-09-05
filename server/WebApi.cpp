@@ -318,8 +318,6 @@ static inline void addHttpListener(){
     });
 }
 
-
-
 // 拉流代理器列表  [AUTO-TRANSLATED:6dcfb11f]
 // Pull stream proxy list
 static ServiceController<PlayerProxy> s_player_proxy;
@@ -2127,12 +2125,12 @@ void installWebApi() {
     api_regist("/index/api/getWebrtcProxyPlayerInfo", [](API_ARGS_MAP_ASYNC) {
         CHECK_SECRET();
         CHECK_ARGS("key");
-        
+
         auto player_proxy = s_player_proxy.find(allArgs["key"]);
         if (!player_proxy) {
             throw ApiRetException("Stream proxy not found", API::NotFound);
         }
-        
+
         auto media_player = player_proxy->getDelegate();
         if (!media_player) {
             throw ApiRetException("Media player not found", API::OtherFailed);
@@ -2147,11 +2145,11 @@ void installWebApi() {
         if (!webrtc_transport) {
             throw ApiRetException("WebRTC transport not available", API::OtherFailed);
         }
-        
+
         std::string stream_key = allArgs["key"];
         webrtc_transport->getTransportInfo([val, headerOut, invoker, stream_key](Json::Value transport_info) mutable {
             transport_info["stream_key"] = stream_key;
-            
+
             if (transport_info.isMember("error")) {
                 Json::Value error_val;
                 error_val["code"] = API::OtherFailed;
@@ -2159,7 +2157,7 @@ void installWebApi() {
                 invoker(200, headerOut, error_val.toStyledString());
                 return;
             }
-            
+
             // 成功返回结果
             Json::Value success_val;
             success_val["code"] = API::Success;
