@@ -251,8 +251,9 @@ class StunAttrXorPeerAddress : public StunAttribute {
 public:
     using Ptr = std::shared_ptr<StunAttrXorPeerAddress>;
     static constexpr Type TYPE = StunAttribute::Type::XOR_PEER_ADDRESS;
-    StunAttrXorPeerAddress(const std::string& transaction_id)
-        : StunAttribute(TYPE), _transaction_id(transaction_id) {}
+    StunAttrXorPeerAddress(std::string transaction_id)
+        : StunAttribute(TYPE)
+        , _transaction_id(std::move(transaction_id)) {}
     virtual ~StunAttrXorPeerAddress() = default;
 
     bool loadFromData(const uint8_t *buf, size_t len) override;
@@ -280,7 +281,7 @@ public:
     bool loadFromData(const uint8_t *buf, size_t len) override;
     bool storeToData() override;
 
-    void setData(const std::string &data) { _data_content = data; }
+    void setData(std::string data) { _data_content = std::move(data); }
     void setData(const char *data, int size) { _data_content.assign(data, size); }
     const std::string &getData() const { return _data_content; }
 
@@ -328,7 +329,7 @@ class StunAttrXorRelayedAddress : public StunAttrXorPeerAddress {
 public:
     using Ptr = std::shared_ptr<StunAttrXorRelayedAddress>;
     static constexpr Type TYPE = StunAttribute::Type::XOR_RELAYED_ADDRESS;
-    StunAttrXorRelayedAddress(const std::string& transaction_id) : StunAttrXorPeerAddress(transaction_id) {
+    StunAttrXorRelayedAddress(std::string transaction_id) : StunAttrXorPeerAddress(std::move(transaction_id)) {
         _type = TYPE;
     }
     virtual ~StunAttrXorRelayedAddress() = default;
@@ -338,7 +339,7 @@ class StunAttrXorMappedAddress : public StunAttrXorPeerAddress {
 public:
     using Ptr = std::shared_ptr<StunAttrXorPeerAddress>;
     static constexpr Type TYPE = StunAttribute::Type::XOR_MAPPED_ADDRESS;
-    StunAttrXorMappedAddress(const std::string& transaction_id) : StunAttrXorPeerAddress(transaction_id) {
+    StunAttrXorMappedAddress(std::string transaction_id) : StunAttrXorPeerAddress(std::move(transaction_id)) {
         _type = TYPE;
     }
     virtual ~StunAttrXorMappedAddress() = default;
