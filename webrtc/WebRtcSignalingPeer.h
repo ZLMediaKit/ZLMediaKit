@@ -21,7 +21,7 @@
 
 namespace mediakit {
 
-class WebRtcSignalingPeer : public WebSocketClient<TcpClient>  {
+class WebRtcSignalingPeer : public WebSocketClient<toolkit::TcpClient>  {
 public:
     struct ClassMethodHash {
         bool operator()(std::pair<std::string /*class*/, std::string /*method*/> key) const {
@@ -32,14 +32,14 @@ public:
         }
     };
     using Ptr = std::shared_ptr<WebRtcSignalingPeer>;
-    WebRtcSignalingPeer(const std::string &host, uint16_t port, bool ssl, const std::string &room_id, const EventPoller::Ptr &poller = nullptr);
+    WebRtcSignalingPeer(const std::string &host, uint16_t port, bool ssl, const std::string &room_id, const toolkit::EventPoller::Ptr &poller = nullptr);
     virtual ~WebRtcSignalingPeer();
 
     void connect();
-    void regist(const std::function<void(const SockException &ex, const std::string &key)> &cb);
-    void unregist(const std::function<void(const SockException &ex)> &cb);
+    void regist(const std::function<void(const toolkit::SockException &ex, const std::string &key)> &cb);
+    void unregist(const std::function<void(const toolkit::SockException &ex)> &cb);
     void checkIn(const std::string& peer_room_id, const MediaTuple &tuple, const std::string& identifier,
-                 const std::string& offer, bool is_play, const std::function<void(const SockException &ex, const std::string& answer)> &cb, float timeout_sec);
+                 const std::string& offer, bool is_play, const std::function<void(const toolkit::SockException &ex, const std::string& answer)> &cb, float timeout_sec);
     void checkOut(const std::string& peer_room_id);
     void candidate(const std::string& transport_identifier, const std::string& candidate, const std::string& ice_ufrag, const std::string& ice_pwd);
 
@@ -59,12 +59,12 @@ public:
     }
 
     //// TcpClient override////
-    void setOnConnect(std::function<void(const SockException &ex)> cb);
-    void onConnect(const SockException &ex) override;
-    void setOnShutdown(std::function<void(const SockException &ex)> cb);
-    void onShutdown(const SockException &ex);
-    void onRecv(const Buffer::Ptr &) override;
-    void onError(const SockException &err) override;
+    void setOnConnect(std::function<void(const toolkit::SockException &ex)> cb);
+    void onConnect(const toolkit::SockException &ex) override;
+    void setOnShutdown(std::function<void(const toolkit::SockException &ex)> cb);
+    void onShutdown(const toolkit::SockException &ex);
+    void onRecv(const toolkit::Buffer::Ptr &) override;
+    void onError(const toolkit::SockException &err) override;
 
     Json::Value makeInfoJson();
 
@@ -72,9 +72,9 @@ protected:
     void checkResponseExpired();
     void createResponseExpiredTimer();
 
-    using ResponseTrigger = std::function<void(const SockException &ex, std::string /*msg*/)>;
+    using ResponseTrigger = std::function<void(const toolkit::SockException &ex, std::string /*msg*/)>;
     struct ResponseTuple {
-        Ticker ticker;
+        toolkit::Ticker ticker;
         uint32_t ttl_ms;
         std::string method;
         ResponseTrigger cb;
@@ -126,12 +126,12 @@ private:
 
     std::function<void(const toolkit::SockException &ex)> _on_connect;
     std::function<void(const toolkit::SockException &ex)> _on_shutdown;
-    Timer::Ptr _offer_timeout_timer = nullptr;
+    toolkit::Timer::Ptr _offer_timeout_timer = nullptr;
 };
 
 void addWebrtcRoomKeeper(const std::string &host, uint16_t port, bool ssl, const std::string& room_id,
-                         const std::function<void(const SockException &ex, const std::string &key)> &cb);
-void delWebrtcRoomKeeper(const std::string &key, const std::function<void(const SockException &ex)> &cb);
+                         const std::function<void(const toolkit::SockException &ex, const std::string &key)> &cb);
+void delWebrtcRoomKeeper(const std::string &key, const std::function<void(const toolkit::SockException &ex)> &cb);
 void listWebrtcRoomKeepers(const std::function<void(const std::string& key, const WebRtcSignalingPeer::Ptr& p)> &cb);
 Json::Value ToJson(const WebRtcSignalingPeer::Ptr& p);
 WebRtcSignalingPeer::Ptr getWebrtcRoomKeeper(const std::string &host, uint16_t port);

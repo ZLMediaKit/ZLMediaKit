@@ -74,7 +74,7 @@ public:
 
 class WebRtcException : public WebRtcInterface {
 public:
-    WebRtcException(const SockException &ex) : _ex(ex) {};
+    WebRtcException(const toolkit::SockException &ex) : _ex(ex) {};
 
     std::string createOfferSdp() override {
         throw _ex;
@@ -98,7 +98,7 @@ public:
     }
 
 private:
-    SockException _ex;
+    toolkit::SockException _ex;
 };
 
 class WebRtcTransport : public WebRtcInterface, public RTC::DtlsTransport::Listener, public IceTransport::Listener, public std::enable_shared_from_this<WebRtcTransport>
@@ -123,7 +123,7 @@ public:
 
     using WeakPtr = std::weak_ptr<WebRtcTransport>;
     using Ptr = std::shared_ptr<WebRtcTransport>;
-    WebRtcTransport(const EventPoller::Ptr &poller);
+    WebRtcTransport(const toolkit::EventPoller::Ptr &poller);
 
     virtual void onCreate();
 
@@ -141,17 +141,17 @@ public:
     const std::string& getIdentifier() const override;
     const std::string& deleteRandStr() const override;
 
-    void inputSockData(const char *buf, int len, const SocketHelper::Ptr& socket, struct sockaddr *addr = nullptr, int addr_len = 0);
+    void inputSockData(const char *buf, int len, const toolkit::SocketHelper::Ptr& socket, struct sockaddr *addr = nullptr, int addr_len = 0);
     void inputSockData(const char *buf, int len, const IceTransport::Pair::Ptr& pair = nullptr);
     void sendRtpPacket(const char *buf, int len, bool flush, void *ctx = nullptr);
     void sendRtcpPacket(const char *buf, int len, bool flush, void *ctx = nullptr);
     void sendDatachannel(uint16_t streamId, uint32_t ppid, const char *msg, size_t len);
 
-    const EventPoller::Ptr &getPoller() const { return _poller; }
-    void setPoller(EventPoller::Ptr poller) { _poller = std::move(poller); }
+    const toolkit::EventPoller::Ptr &getPoller() const { return _poller; }
+    void setPoller(toolkit::EventPoller::Ptr poller) { _poller = std::move(poller); }
 
-    Session::Ptr getSession() const;
-    void removePair(const SocketHelper *socket);
+    toolkit::Session::Ptr getSession() const;
+    void removePair(const toolkit::SocketHelper *socket);
 
     Role getRole() const { return _role; }
     void setRole(Role role) { _role = role; }
@@ -163,7 +163,7 @@ public:
 
     void getTransportInfo(const std::function<void(Json::Value)> &callback) const;
 
-    void setOnShutdown(std::function<void(const SockException &ex)> cb);
+    void setOnShutdown(std::function<void(const toolkit::SockException &ex)> cb);
 
     void gatheringCandidate(IceServerInfo::Ptr ice_server, onGatheringCandidateCB cb = nullptr) override;
     void connectivityCheck(SdpAttrCandidate candidate_attr, const std::string &ufrag, const std::string &pwd);
@@ -206,11 +206,11 @@ protected:
     virtual void onStartWebRTC() = 0;
     virtual void onRtcConfigure(RtcConfigure &configure) const;
     virtual void onCheckSdp(SdpType type, RtcSession &sdp) = 0;
-    virtual void onSendSockData(Buffer::Ptr buf, bool flush = true, const IceTransport::Pair::Ptr& pair = nullptr) = 0;
+    virtual void onSendSockData(toolkit::Buffer::Ptr buf, bool flush = true, const IceTransport::Pair::Ptr& pair = nullptr) = 0;
 
     virtual void onRtp(const char *buf, size_t len, uint64_t stamp_ms) = 0;
     virtual void onRtcp(const char *buf, size_t len) = 0;
-    virtual void onShutdown(const SockException &ex);
+    virtual void onShutdown(const toolkit::SockException &ex);
     virtual void onBeforeEncryptRtp(const char *buf, int &len, void *ctx) = 0;
     virtual void onBeforeEncryptRtcp(const char *buf, int &len, void *ctx) = 0;
     virtual void onRtcpBye() = 0;
@@ -235,14 +235,14 @@ protected:
 private:
     mutable std::string _delete_rand_str;
     std::string _identifier;
-    EventPoller::Ptr _poller;
+    toolkit::EventPoller::Ptr _poller;
     DtlsTransport::Ptr  _dtls_transport;
     SrtpSession::Ptr _srtp_session_send;
     SrtpSession::Ptr _srtp_session_recv;
-    Ticker _ticker;
+    toolkit::Ticker _ticker;
     // 循环池  [AUTO-TRANSLATED:b7059f37]
     // Cycle pool
-    ResourcePool<BufferRaw> _packet_pool;
+    toolkit::ResourcePool<toolkit::BufferRaw> _packet_pool;
 
     //超时功能实现
     toolkit::Ticker _recv_ticker;
@@ -315,7 +315,7 @@ public:
     void onSendRtp(const RtpPacket::Ptr &rtp, bool flush, bool rtx = false);
 
     void createRtpChannel(const std::string &rid, uint32_t ssrc, MediaTrack &track);
-    void safeShutdown(const SockException &ex);
+    void safeShutdown(const toolkit::SockException &ex);
 
     void setPreferredTcp(bool flag) override;
     void setLocalIp(std::string local_ip) override;
@@ -326,10 +326,10 @@ protected:
     // // ice相关的回调 ///  [AUTO-TRANSLATED:30abf693]
     // // ice related callbacks ///
 
-    WebRtcTransportImp(const EventPoller::Ptr &poller);
+    WebRtcTransportImp(const toolkit::EventPoller::Ptr &poller);
     void OnDtlsTransportApplicationDataReceived(const RTC::DtlsTransport *dtlsTransport, const uint8_t *data, size_t len) override;
     void onStartWebRTC() override;
-    void onSendSockData(Buffer::Ptr buf, bool flush = true, const IceTransport::Pair::Ptr& pair = nullptr) override;
+    void onSendSockData(toolkit::Buffer::Ptr buf, bool flush = true, const IceTransport::Pair::Ptr& pair = nullptr) override;
     void onCheckSdp(SdpType type, RtcSession &sdp) override;
     void onRtcConfigure(RtcConfigure &configure) const override;
 
@@ -339,7 +339,7 @@ protected:
     void onBeforeEncryptRtcp(const char *buf, int &len, void *ctx) override {};
     void onCreate() override;
     void onDestory() override;
-    void onShutdown(const SockException &ex) override;
+    void onShutdown(const toolkit::SockException &ex) override;
     virtual void onRecvRtp(MediaTrack &track, const std::string &rid, RtpPacket::Ptr rtp) {}
     void updateTicker();
     float getLossRate(TrackType type);
@@ -366,16 +366,16 @@ private:
     Ptr _self;
     // 检测超时的定时器  [AUTO-TRANSLATED:a58e1388]
     // Timeout detection timer
-    Timer::Ptr _timer;
+    toolkit::Timer::Ptr _timer;
     // 刷新计时器  [AUTO-TRANSLATED:61eb11e5]
     // Refresh timer
-    Ticker _alive_ticker;
+    toolkit::Ticker _alive_ticker;
     // pli rtcp计时器  [AUTO-TRANSLATED:a1a5fd18]
     // pli rtcp timer
-    Ticker _pli_ticker;
+    toolkit::Ticker _pli_ticker;
 
-    Ticker _rtcp_sr_send_ticker;
-    Ticker _rtcp_rr_send_ticker;
+    toolkit::Ticker _rtcp_sr_send_ticker;
+    toolkit::Ticker _rtcp_rr_send_ticker;
 
     // twcc rtcp发送上下文对象  [AUTO-TRANSLATED:aef6476a]
     // twcc rtcp send context object
@@ -414,20 +414,20 @@ private:
 class WebRtcArgs : public std::enable_shared_from_this<WebRtcArgs> {
 public:
     virtual ~WebRtcArgs() = default;
-    virtual variant operator[](const std::string &key) const = 0;
+    virtual toolkit::variant operator[](const std::string &key) const = 0;
 };
 
 using onCreateWebRtc = std::function<void(const WebRtcInterface &rtc)>;
 class WebRtcPluginManager {
 public:
-    using Plugin = std::function<void(SocketHelper& sender, const WebRtcArgs &args, const onCreateWebRtc &cb)>;
-    using Listener = std::function<void(SocketHelper& sender, const std::string &type, const WebRtcArgs &args, const WebRtcInterface &rtc)>;
+    using Plugin = std::function<void(toolkit::SocketHelper& sender, const WebRtcArgs &args, const onCreateWebRtc &cb)>;
+    using Listener = std::function<void(toolkit::SocketHelper& sender, const std::string &type, const WebRtcArgs &args, const WebRtcInterface &rtc)>;
 
     static WebRtcPluginManager &Instance();
 
     void registerPlugin(const std::string &type, Plugin cb);
     void setListener(Listener cb);
-    void negotiateSdp(SocketHelper& sender, const std::string &type, const WebRtcArgs &args, const onCreateWebRtc &cb);
+    void negotiateSdp(toolkit::SocketHelper& sender, const std::string &type, const WebRtcArgs &args, const onCreateWebRtc &cb);
 
 private:
     WebRtcPluginManager() = default;

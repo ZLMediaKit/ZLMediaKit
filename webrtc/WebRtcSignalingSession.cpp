@@ -15,6 +15,7 @@
 #include "WebRtcSignalingSession.h"
 
 using namespace std;
+using namespace toolkit;
 using namespace mediakit::Rtc;
 
 namespace mediakit {

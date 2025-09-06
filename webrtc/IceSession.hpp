@@ -15,28 +15,27 @@
 #include "Network/Session.h"
 #include "IceTransport.hpp"
 #include "Http/HttpRequestSplitter.h"
-using namespace toolkit;
-using namespace RTC;
+
 namespace mediakit {
 
-class IceSession : public Session, public RTC::IceTransport::Listener, public HttpRequestSplitter {
+class IceSession : public toolkit::Session, public RTC::IceTransport::Listener, public HttpRequestSplitter {
 public:
     using Ptr = std::shared_ptr<IceSession>;
     using WeakPtr = std::weak_ptr<IceSession>;
-    IceSession(const Socket::Ptr &sock);
+    IceSession(const toolkit::Socket::Ptr &sock);
     ~IceSession() override;
 
-    static EventPoller::Ptr queryPoller(const Buffer::Ptr &buffer);
+    static toolkit::EventPoller::Ptr queryPoller(const toolkit::Buffer::Ptr &buffer);
 
     //// Session override////
     // void attachServer(const Server &server) override;
-    void onRecv(const Buffer::Ptr &) override;
-    void onError(const SockException &err) override;
+    void onRecv(const toolkit::Buffer::Ptr &) override;
+    void onError(const toolkit::SockException &err) override;
     void onManager() override;
 
     // ice related callbacks ///
-    void onIceTransportRecvData(const toolkit::Buffer::Ptr& buffer, const IceTransport::Pair::Ptr& pair) override;
-    void onIceTransportGatheringCandidate(const IceTransport::Pair::Ptr& pair, CandidateInfo& candidate) override;
+    void onIceTransportRecvData(const toolkit::Buffer::Ptr& buffer, const RTC::IceTransport::Pair::Ptr& pair) override;
+    void onIceTransportGatheringCandidate(const RTC::IceTransport::Pair::Ptr& pair, RTC::CandidateInfo& candidate) override;
     void onIceTransportDisconnected() override;
     void onIceTransportCompleted() override;
 
@@ -48,8 +47,8 @@ public:
 protected:
     bool _over_tcp = false;
 
-    IceTransport::Pair::Ptr _session_pair = nullptr;
-    IceServer::Ptr _ice_transport;
+    RTC::IceTransport::Pair::Ptr _session_pair = nullptr;
+    RTC::IceServer::Ptr _ice_transport;
 };
 
 class IceSessionManager {

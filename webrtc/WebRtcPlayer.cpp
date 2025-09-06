@@ -15,6 +15,7 @@
 #include "Util/base64.h"
 
 using namespace std;
+using namespace toolkit;
 
 namespace mediakit {
 

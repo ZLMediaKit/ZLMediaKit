@@ -33,6 +33,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include "Util/SSLUtil.h"
 
 using namespace std;
+using namespace toolkit;
 
 #define LOG_OPENSSL_ERROR(desc)                                                                    \
     do                                                                                               \

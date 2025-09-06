@@ -98,7 +98,7 @@ protected:
     bool _is_negotiate_finished = false;
 
 private:
-    std::map<std::string /*candidate key*/, SocketHelper::Ptr> _socket_map;
+    std::map<std::string /*candidate key*/, toolkit::SocketHelper::Ptr> _socket_map;
 };
 
 } /*namespace mediakit */

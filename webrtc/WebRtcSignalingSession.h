@@ -8,7 +8,6 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
-
 #ifndef ZLMEDIAKIT_WEBRTC_SIGNALING_SESSION_H
 #define ZLMEDIAKIT_WEBRTC_SIGNALING_SESSION_H
 
@@ -18,10 +17,8 @@
 
 namespace mediakit {
 
-using namespace toolkit;
-
 // webrtc 信令, 基于websocket实现
-class WebRtcSignalingSession : public Session {
+class WebRtcSignalingSession : public toolkit::Session {
 public:
     struct ClassMethodHash {
         bool operator()(std::pair<std::string /*class*/, std::string /*method*/> key) const {
@@ -35,7 +32,7 @@ public:
     using Ptr = std::shared_ptr<WebRtcSignalingSession>;
     using WeakPtr = std::weak_ptr<WebRtcSignalingSession>;
 
-    WebRtcSignalingSession(const Socket::Ptr &sock);
+    WebRtcSignalingSession(const toolkit::Socket::Ptr &sock);
     virtual ~WebRtcSignalingSession();
 
     Json::Value makeInfoJson();
@@ -43,8 +40,8 @@ public:
     std::string getRoomId() { return _room_id; };
 
     //// Session override////
-    void onRecv(const Buffer::Ptr &) override;
-    void onError(const SockException &err) override;
+    void onRecv(const toolkit::Buffer::Ptr &) override;
+    void onError(const toolkit::SockException &err) override;
     void onManager() override;
 
 protected:
