@@ -8,28 +8,26 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "WebRtcSignalingSession.h"
-#include "WebRtcSignalingMsg.h"
-// for config key
-#include "WebRtcTransport.h"
 #include "Util/util.h"
 #include "Common/config.h"
+#include "WebRtcTransport.h"
+#include "WebRtcSignalingMsg.h"
+#include "WebRtcSignalingSession.h"
 
 using namespace std;
+using namespace mediakit::Rtc;
 
 namespace mediakit {
-using namespace Rtc;
 
-
-//注册上来的peer列表
+// 注册上来的peer列表
 static std::atomic<uint32_t> s_room_idx_generate { 1 };
 static ServiceController<WebRtcSignalingSession> s_rooms;
 
-void listWebrtcRooms(const std::function<void(const std::string& key, const WebRtcSignalingSession::Ptr& p)> &cb) {
+void listWebrtcRooms(const std::function<void(const std::string &key, const WebRtcSignalingSession::Ptr &p)> &cb) {
     s_rooms.for_each(cb);
 }
 
-Json::Value ToJson(const WebRtcSignalingSession::Ptr& p) {
+Json::Value ToJson(const WebRtcSignalingSession::Ptr &p) {
     return p->makeInfoJson();
 }
 
@@ -73,13 +71,13 @@ void WebRtcSignalingSession::onRecv(const Buffer::Ptr &buffer) {
         CHECK_ARGS(CLASS_KEY, METHOD_KEY, TRANSACTION_ID_KEY);
         auto it = s_msg_handlers.find(std::make_pair(allArgs[CLASS_KEY], allArgs[METHOD_KEY]));
         if (it == s_msg_handlers.end()) {
-            WarnL << " not support class: "<< allArgs[CLASS_KEY] << ", method: " << allArgs[METHOD_KEY] << ", ignore";
+            WarnL << " not support class: " << allArgs[CLASS_KEY] << ", method: " << allArgs[METHOD_KEY] << ", ignore";
             return;
         }
 
         (this->*(it->second))(allArgs);
     } catch (std::exception &ex) {
-        ErrorL << "process msg fail: " << ex.what();
+        WarnL << "process msg fail: " << ex.what();
     }
 }
 
@@ -90,7 +88,7 @@ void WebRtcSignalingSession::onError(const SockException &err) {
 }
 
 void WebRtcSignalingSession::onManager() {
-    //Websocket会话会自行定时发送PING/PONG 消息，并进行超时自己管理，该对象暂时不需要心跳超时处理
+    // Websocket会话会自行定时发送PING/PONG 消息，并进行超时自己管理，该对象暂时不需要心跳超时处理
 }
 
 void WebRtcSignalingSession::handleRegisterRequest(SIGNALING_MSG_ARGS) {
@@ -108,12 +106,12 @@ void WebRtcSignalingSession::handleRegisterRequest(SIGNALING_MSG_ARGS) {
     } else {
         room_id = allArgs[ROOM_ID_KEY];
         if (s_rooms.find(room_id)) {
-            //已经注册了
+            // 已经注册了
             body[ROOM_ID_KEY] = room_id;
             return sendRejectResponse(body, allArgs[TRANSACTION_ID_KEY], "room id conflict");
         }
     }
-    
+
     body[ROOM_ID_KEY] = room_id;
 
     _room_id = room_id;
@@ -134,13 +132,12 @@ void WebRtcSignalingSession::handleUnregisterRequest(SIGNALING_MSG_ARGS) {
     }
 
     if (allArgs[ROOM_ID_KEY] != getRoomId()) {
-        return sendRejectResponse(body, allArgs[TRANSACTION_ID_KEY], 
-            StrPrinter << "room_id: \"" << allArgs[ROOM_ID_KEY] << "\" not match room_id:" << getRoomId());
+        return sendRejectResponse(body, allArgs[TRANSACTION_ID_KEY], StrPrinter << "room_id: \"" << allArgs[ROOM_ID_KEY] << "\" not match room_id:" << getRoomId());
     }
 
     sendAcceptResponse(body, allArgs[TRANSACTION_ID_KEY]);
 
-    //同时主动向所有连接的对端会话发送bye
+    // 同时主动向所有连接的对端会话发送bye
     notifyByeIndication();
 
     if (s_rooms.find(_room_id)) {
@@ -213,7 +210,7 @@ void WebRtcSignalingSession::handleByeIndication(SIGNALING_MSG_ARGS) {
         return sendRejectResponse(body, allArgs[TRANSACTION_ID_KEY], "should register first");
     }
     if (allArgs[ROOM_ID_KEY] == getRoomId()) {
-        //作为被叫方,接收bye
+        // 作为被叫方,接收bye
         auto it = _guests.find(guest_id);
         if (it == _guests.end()) {
             WarnL << "guest_id: \"" << guest_id << "\" not register";
@@ -227,7 +224,7 @@ void WebRtcSignalingSession::handleByeIndication(SIGNALING_MSG_ARGS) {
         _guests.erase(guest_id);
         session->forwardBye(allArgs);
     } else {
-        //作为主叫方，接受bye
+        // 作为主叫方，接受bye
         auto session = getWebrtcRoomKeeper(allArgs[ROOM_ID_KEY]);
         if (!session) {
             WarnL << "room_id: \"" << allArgs[ROOM_ID_KEY] << "\" not register";
@@ -248,8 +245,7 @@ void WebRtcSignalingSession::handleCandidateIndication(SIGNALING_MSG_ARGS) {
 
     if (_room_id.empty()) {
         sendRejectResponse(body, allArgs[TRANSACTION_ID_KEY], "should register first");
-    }
-    else {
+    } else {
         handleOtherMsg(allArgs);
     }
 }
@@ -257,7 +253,7 @@ void WebRtcSignalingSession::handleCandidateIndication(SIGNALING_MSG_ARGS) {
 void WebRtcSignalingSession::handleOtherMsg(SIGNALING_MSG_ARGS) {
     DebugL;
     if (allArgs[ROOM_ID_KEY] == getRoomId()) {
-        //作为被叫方,接收bye
+        // 作为被叫方,接收bye
         auto guest_id = allArgs[GUEST_ID_KEY];
         auto it = _guests.find(guest_id);
         if (it == _guests.end()) {
@@ -272,7 +268,7 @@ void WebRtcSignalingSession::handleOtherMsg(SIGNALING_MSG_ARGS) {
 
         session->forwardPacket(allArgs);
     } else {
-        //作为主叫方，接受bye
+        // 作为主叫方，接受bye
         auto session = getWebrtcRoomKeeper(allArgs[ROOM_ID_KEY]);
         if (!session) {
             WarnL << "room_id: \"" << allArgs[ROOM_ID_KEY] << "\" not register";
@@ -289,7 +285,7 @@ void WebRtcSignalingSession::notifyByeIndication() {
     allArgs[CLASS_KEY] = CLASS_VALUE_INDICATION;
     allArgs[METHOD_KEY] = METHOD_VALUE_BYE;
     allArgs[REASON_KEY] = "peer unregister";
-    //作为被叫方
+    // 作为被叫方
     for (auto it : _guests) {
         auto session = it.second.lock();
         if (session) {
@@ -300,7 +296,7 @@ void WebRtcSignalingSession::notifyByeIndication() {
         }
     }
 
-    //作为主叫方
+    // 作为主叫方
     for (auto it : _tours) {
         auto guest_id = it.first;
         auto peer_room_id = it.second;
@@ -316,56 +312,71 @@ void WebRtcSignalingSession::notifyByeIndication() {
 
 void WebRtcSignalingSession::forwardCallRequest(WebRtcSignalingSession::WeakPtr sender, SIGNALING_MSG_ARGS) {
     DebugL;
-    getPoller()->async([=]() {
-        _guests.emplace(allArgs[GUEST_ID_KEY], sender);
-        sendPacket(allArgs.getArgs());
+    WeakPtr weak_self = std::static_pointer_cast<WebRtcSignalingSession>(shared_from_this());
+    getPoller()->async([weak_self, sender, allArgs]() {
+        if (auto strong_self = weak_self.lock()) {
+            strong_self->_guests.emplace(allArgs[GUEST_ID_KEY], sender);
+            strong_self->sendPacket(allArgs.getArgs());
+        }
     });
 }
 
 void WebRtcSignalingSession::forwardCallAccept(SIGNALING_MSG_ARGS) {
     DebugL;
-    getPoller()->async([=] (){
-        sendPacket(allArgs.getArgs());
+    WeakPtr weak_self = std::static_pointer_cast<WebRtcSignalingSession>(shared_from_this());
+    getPoller()->async([weak_self, allArgs]() {
+        if (auto strong_self = weak_self.lock()) {
+            strong_self->sendPacket(allArgs.getArgs());
+        }
     });
 }
 
 void WebRtcSignalingSession::forwardBye(SIGNALING_MSG_ARGS) {
     DebugL;
-    getPoller()->async([=]() {
-        if (allArgs[ROOM_ID_KEY] == getRoomId()) {
-            //作为被叫
-            _guests.erase(allArgs[GUEST_ID_KEY]);
-        } else {
-            //作为主叫
-            _tours.erase(allArgs[GUEST_ID_KEY]);
+    WeakPtr weak_self = std::static_pointer_cast<WebRtcSignalingSession>(shared_from_this());
+    getPoller()->async([weak_self, allArgs]() {
+        if (auto strong_self = weak_self.lock()) {
+            if (allArgs[ROOM_ID_KEY] == strong_self->getRoomId()) {
+                // 作为被叫
+                strong_self->_guests.erase(allArgs[GUEST_ID_KEY]);
+            } else {
+                // 作为主叫
+                strong_self->_tours.erase(allArgs[GUEST_ID_KEY]);
+            }
+            strong_self->sendPacket(allArgs.getArgs());
         }
-        sendPacket(allArgs.getArgs());
     });
 }
 
 void WebRtcSignalingSession::forwardBye(Json::Value allArgs) {
     DebugL;
-    getPoller()->async([=]() {
-        if (allArgs[ROOM_ID_KEY] == getRoomId()) {
-            //作为被叫
-            _guests.erase(allArgs[GUEST_ID_KEY].asString());
-        } else {
-            //作为主叫
-            _tours.erase(allArgs[GUEST_ID_KEY].asString());
+    WeakPtr weak_self = std::static_pointer_cast<WebRtcSignalingSession>(shared_from_this());
+    getPoller()->async([weak_self, allArgs]() {
+        if (auto strong_self = weak_self.lock()) {
+            if (allArgs[ROOM_ID_KEY] == strong_self->getRoomId()) {
+                // 作为被叫
+                strong_self->_guests.erase(allArgs[GUEST_ID_KEY].asString());
+            } else {
+                // 作为主叫
+                strong_self->_tours.erase(allArgs[GUEST_ID_KEY].asString());
+            }
+            strong_self->sendPacket(allArgs);
         }
-        sendPacket(allArgs);
     });
 }
 
 void WebRtcSignalingSession::forwardPacket(SIGNALING_MSG_ARGS) {
-    getPoller()->async([=]() {
-        sendPacket(allArgs.getArgs());
+    WeakPtr weak_self = std::static_pointer_cast<WebRtcSignalingSession>(shared_from_this());
+    getPoller()->async([weak_self, allArgs]() {
+        if (auto strong_self = weak_self.lock()) {
+            strong_self->sendPacket(allArgs.getArgs());
+        }
     });
 }
 
 void WebRtcSignalingSession::sendRegisterAccept(Json::Value& body, const std::string& transaction_id) {
     DebugL;
-    body[CLASS_KEY]  = CLASS_VALUE_ACCEPT;
+    body[CLASS_KEY] = CLASS_VALUE_ACCEPT;
 
     Json::Value ice_server;
     GET_CONFIG(uint16_t, icePort, Rtc::kIcePort);
@@ -381,8 +392,8 @@ void WebRtcSignalingSession::sendRegisterAccept(Json::Value& body, const std::st
         return ret;
     });
 
-    //如果配置了extern_ips, 则选择第一个作为turn服务器的ip
-    //如果没配置获取网卡接口
+    // 如果配置了extern_ips, 则选择第一个作为turn服务器的ip
+    // 如果没配置获取网卡接口
     std::string extern_ip;
     if (!extern_ips.empty()) {
         extern_ip = extern_ips.front();
@@ -390,15 +401,15 @@ void WebRtcSignalingSession::sendRegisterAccept(Json::Value& body, const std::st
         extern_ip = SockUtil::get_local_ip();
     }
 
-    //TODO: support multi extern ip
-    //TODO: support third stun/turn server
+    // TODO: support multi extern ip
+    // TODO: support third stun/turn server
 
     std::string url;
-    // SUPPORT: 
+    // SUPPORT:
     // stun:host:port?transport=udp
     // turn:host:port?transport=udp
-    
-    // NOT SUPPORT NOW TODO: 
+
+    // NOT SUPPORT NOW TODO:
     // turns:host:port?transport=udp
     // turn:host:port?transport=tcp
     // turns:host:port?transport=tcp
@@ -423,20 +434,20 @@ void WebRtcSignalingSession::sendRegisterAccept(Json::Value& body, const std::st
     sendAcceptResponse(body, transaction_id);
 }
 
-void WebRtcSignalingSession::sendAcceptResponse(Json::Value &body, const std::string& transaction_id) {
+void WebRtcSignalingSession::sendAcceptResponse(Json::Value &body, const std::string &transaction_id) {
     TraceL;
     body[CLASS_KEY] = CLASS_VALUE_ACCEPT;
     return sendResponse(body, transaction_id);
 }
 
-void WebRtcSignalingSession::sendRejectResponse(Json::Value &body, const std::string& transaction_id, const std::string& reason) {
+void WebRtcSignalingSession::sendRejectResponse(Json::Value &body, const std::string &transaction_id, const std::string &reason) {
     DebugL;
     body[CLASS_KEY] = CLASS_VALUE_REJECT;
     body[REASON_KEY] = reason;
     return sendResponse(body, transaction_id);
 }
 
-void WebRtcSignalingSession::sendResponse(Json::Value &body, const std::string& transaction_id) {
+void WebRtcSignalingSession::sendResponse(Json::Value &body, const std::string &transaction_id) {
     DebugL;
     body[TRANSACTION_ID_KEY] = transaction_id;
     return sendPacket(body);
@@ -454,23 +465,23 @@ Json::Value WebRtcSignalingSession::makeInfoJson() {
 
     Json::Value tours_obj(Json::arrayValue);
     auto tours = _tours;
-    for(auto &tour : tours) {
+    for (auto &tour : tours) {
         Json::Value obj;
         obj["guest_id"] = tour.first;
         obj["room_id"] = tour.second;
-        tours_obj.append(obj);
+        tours_obj.append(std::move(obj));
     }
-    item["tours"] = tours_obj;
+    item["tours"] = std::move(tours_obj);
 
     Json::Value guests_obj(Json::arrayValue);
     auto guests = _guests;
-    for(auto &guest : guests) {
+    for (auto &guest : guests) {
         Json::Value obj;
         obj["guest_id"] = guest.first;
-        guests_obj.append(obj);
+        guests_obj.append(std::move(obj));
     }
-    item["guests"] = guests_obj;
+    item["guests"] = std::move(guests_obj);
     return item;
 }
 
-}// namespace mediakit
+} // namespace mediakit
