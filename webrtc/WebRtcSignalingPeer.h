@@ -19,11 +19,7 @@
 #include "webrtc/WebRtcSignalingMsg.h"
 #include "webrtc/WebRtcTransport.h"
 
-using namespace toolkit;
 namespace mediakit {
-
-using SteadyClock = std::chrono::steady_clock;
-using TimePoint = std::chrono::time_point<SteadyClock>;
 
 class WebRtcSignalingPeer : public WebSocketClient<TcpClient>  {
 public:
@@ -36,29 +32,29 @@ public:
         }
     };
     using Ptr = std::shared_ptr<WebRtcSignalingPeer>;
-    WebRtcSignalingPeer(const std::string &host, uint16_t port, bool ssl, const std::string& room_id, const EventPoller::Ptr &poller = nullptr);
+    WebRtcSignalingPeer(const std::string &host, uint16_t port, bool ssl, const std::string &room_id, const EventPoller::Ptr &poller = nullptr);
     virtual ~WebRtcSignalingPeer();
 
     void connect();
-    void regist(const std::function<void(const SockException &ex, const std::string &key)>& cb);
-    void unregist(const std::function<void(const SockException &ex)> cb);
-    void checkIn(const std::string& peer_room_id, const MediaTuple &tuple, const std::string& identifier, 
-                 const std::string& offer, bool is_play, const std::function<void(const SockException &ex, const std::string& answer)> cb, float timeout_sec);
+    void regist(const std::function<void(const SockException &ex, const std::string &key)> &cb);
+    void unregist(const std::function<void(const SockException &ex)> &cb);
+    void checkIn(const std::string& peer_room_id, const MediaTuple &tuple, const std::string& identifier,
+                 const std::string& offer, bool is_play, const std::function<void(const SockException &ex, const std::string& answer)> &cb, float timeout_sec);
     void checkOut(const std::string& peer_room_id);
     void candidate(const std::string& transport_identifier, const std::string& candidate, const std::string& ice_ufrag, const std::string& ice_pwd);
 
     void processOffer(SIGNALING_MSG_ARGS, WebRtcInterface &transport);
     void answer(const std::string& guest_id, const MediaTuple &tuple, const std::string& identifier, const std::string& sdp, bool is_play, const std::string& transaction_id);
 
-    std::string getRoomKey() {
+    const std::string& getRoomKey() const {
         return _room_key;
-    };
+    }
 
-    std::string getRoomId() {
+    const std::string& getRoomId() const {
         return _room_id;
-    };
+    }
 
-    RTC::IceServerInfo::Ptr getIceServer() {
+    const RTC::IceServerInfo::Ptr& getIceServer() const {
         return _ice_server;
     }
 
@@ -73,19 +69,20 @@ public:
     Json::Value makeInfoJson();
 
 protected:
-
-    void checkResponseExpire();
-    void createResponseExpireTimer();
+    void checkResponseExpired();
+    void createResponseExpiredTimer();
 
     using ResponseTrigger = std::function<void(const SockException &ex, std::string /*msg*/)>;
     struct ResponseTuple {
-        TimePoint expire_time;
+        Ticker ticker;
+        uint32_t ttl_ms;
         std::string method;
         ResponseTrigger cb;
-    };
 
-#define TRANSACTION_ID_ANY std::string()
-#define EXPIRE_NEVER TimePoint::max()
+        bool expired() {
+            return ticker.elapsedTime() > ttl_ms;
+        }
+    };
 
     bool responseFilter(SIGNALING_MSG_ARGS, ResponseTrigger& trigger);
 
@@ -109,11 +106,11 @@ protected:
     void sendByeIndication(const std::string& peer_room_id, const std::string &guest_id);
     void handleByeIndication(SIGNALING_MSG_ARGS);
 
-    void sendAccpetResponse(const std::string& method, const std::string& transaction_id, const std::string& room_id, const std::string& guest_id, const std::string& reason);
+    void sendAcceptResponse(const std::string& method, const std::string& transaction_id, const std::string& room_id, const std::string& guest_id, const std::string& reason);
     void sendRefusesResponse(Json::Value &body, const std::string& transaction_id, const std::string& reason);
 
     void sendIndication(Json::Value &body);
-    void sendRequest(Json::Value& body, ResponseTrigger trigger, uint32_t seconds = 10);
+    void sendRequest(Json::Value& body, ResponseTrigger trigger, float seconds = 10);
     void sendResponse(Json::Value &body, const std::string& transaction_id);
     void sendPacket(Json::Value& body);
 
@@ -139,7 +136,6 @@ void listWebrtcRoomKeepers(const std::function<void(const std::string& key, cons
 Json::Value ToJson(const WebRtcSignalingPeer::Ptr& p);
 WebRtcSignalingPeer::Ptr getWebrtcRoomKeeper(const std::string &host, uint16_t port);
 
-}// namespace mediakit
-//
+} // namespace mediakit
 
-#endif //ZLMEDIAKIT_WEBRTC_SIGNALING_PEER_H
+#endif // ZLMEDIAKIT_WEBRTC_SIGNALING_PEER_H
