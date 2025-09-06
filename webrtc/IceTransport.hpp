@@ -527,6 +527,10 @@ public:
     }
     void setSelectedPair(const Pair::Ptr& pair);
 
+    void removePair(const toolkit::SocketHelper *socket);
+
+    std::vector<Pair::Ptr> getPairs() const;
+
     // 获取checklist信息，用于API查询
     Json::Value getChecklistInfo() const;
 

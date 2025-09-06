@@ -28,8 +28,8 @@ class WebRTCUrl {
 public:
     bool _is_ssl;
     std::string _full_url;
-    std::string _negotiate_url;   //for whep or whip
-    std::string _delete_url;   //for whep or whip
+    std::string _negotiate_url; // for whep or whip
+    std::string _delete_url; // for whep or whip
     std::string _target_secret;
     std::string _params;
     std::string _host;
@@ -37,9 +37,8 @@ public:
     std::string _vhost;
     std::string _app;
     std::string _stream;
-    WebRtcTransport::SignalingProtocols _signaling_protocols 
-    = WebRtcTransport::SignalingProtocols::WHEP_WHIP;
-    std::string _peer_room_id;    //peer room_id
+    WebRtcTransport::SignalingProtocols _signaling_protocols = WebRtcTransport::SignalingProtocols::WHEP_WHIP;
+    std::string _peer_room_id; // peer room_id
 
 public:
     void parse(const std::string &url, bool isPlayer);
@@ -53,21 +52,21 @@ typedef enum {
     Signaling_WHEP_WHIP = 0,
     Signaling_WEBSOCKET = 1,
 } eSignalingProtocols;
-}//namespace RTC
+} // namespace Rtc
 
 // 实现了webrtc代理功能
-class WebRtcClient : public std::enable_shared_from_this<WebRtcClient>{
+class WebRtcClient : public std::enable_shared_from_this<WebRtcClient> {
 public:
     using Ptr = std::shared_ptr<WebRtcClient>;
 
-    WebRtcClient(const toolkit::EventPoller::Ptr &poller);
+    WebRtcClient(toolkit::EventPoller::Ptr poller);
     virtual ~WebRtcClient();
 
-    const toolkit::EventPoller::Ptr &getPoller() const {return _poller;}
-    void setPoller(const toolkit::EventPoller::Ptr &poller)  {_poller = poller;};
-    
+    const toolkit::EventPoller::Ptr &getPoller() const { return _poller; }
+    void setPoller(toolkit::EventPoller::Ptr poller) { _poller = std::move(poller); }
+
     // 获取WebRTC transport，用于API查询
-    WebRtcTransport::Ptr getWebRtcTransport() const { return _transport; }
+    const WebRtcTransport::Ptr &getWebRtcTransport() const { return _transport; }
 
 protected:
     virtual bool isPlayer() = 0;
@@ -86,12 +85,12 @@ protected:
 
     void gatheringCandidate(IceServerInfo::Ptr ice_server);
     void connectivityCheck();
-    void candidate(const std::string& candidate, const std::string& ufrag, const std::string pwd);
+    void candidate(const std::string &candidate, const std::string &ufrag, const std::string &pwd);
 
 protected:
     toolkit::EventPoller::Ptr _poller;
 
-    //for _negotiate_sdp
+    // for _negotiate_sdp
     WebRTCUrl _url;
     HttpRequester::Ptr _negotiate = nullptr;
     WebRtcSignalingPeer::Ptr _peer = nullptr;

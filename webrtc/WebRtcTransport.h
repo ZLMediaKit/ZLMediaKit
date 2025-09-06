@@ -129,19 +129,14 @@ public:
 
     virtual void onDestory();
 
-    void setOnShutdown(std::function<void(const SockException &ex)> cb);
-
-    void gatheringCandidate(IceServerInfo::Ptr ice_server, onGatheringCandidateCB cb = nullptr) override;
-    void connectivityCheck(SdpAttrCandidate candidate_attr, const std::string& ufrag, const std::string& pwd);
-    void connectivityCheckForSFU();
-
-    std::string createOfferSdp() override;
     std::string getAnswerSdp(const std::string &offer) override;
     void setAnswerSdp(const std::string &answer) override;
 
-    virtual RtcSession::Ptr answerSdp() {
+    const RtcSession::Ptr& answerSdp() const {
         return _answer_sdp;
     }
+
+    std::string createOfferSdp() override;
 
     const std::string& getIdentifier() const override;
     const std::string& deleteRandStr() const override;
@@ -152,30 +147,30 @@ public:
     void sendRtcpPacket(const char *buf, int len, bool flush, void *ctx = nullptr);
     void sendDatachannel(uint16_t streamId, uint32_t ppid, const char *msg, size_t len);
 
-    const EventPoller::Ptr& getPoller() const {return _poller;};
-    void setPoller(const EventPoller::Ptr &poller)  {_poller = poller;};
-    
+    const EventPoller::Ptr &getPoller() const { return _poller; }
+    void setPoller(EventPoller::Ptr poller) { _poller = std::move(poller); }
+
     Session::Ptr getSession() const;
+    void removePair(const SocketHelper *socket);
 
-    virtual Role getRole() const {return _role;}
-    virtual void setRole(Role role) { _role = role;}
+    Role getRole() const { return _role; }
+    void setRole(Role role) { _role = role; }
 
-    virtual SignalingProtocols getSignalingProtocols() const {return _signaling_protocols;}
-    virtual void setSignalingProtocols(SignalingProtocols signaling_protocols) { _signaling_protocols = signaling_protocols;}
+    SignalingProtocols getSignalingProtocols() const { return _signaling_protocols; }
+    void setSignalingProtocols(SignalingProtocols signaling_protocols) { _signaling_protocols = signaling_protocols; }
 
-    virtual float getTimeOutSec();
+    float getTimeOutSec();
 
-    void getTransportInfo(const std::function<void(Json::Value)>& callback) const;
+    void getTransportInfo(const std::function<void(Json::Value)> &callback) const;
+
+    void setOnShutdown(std::function<void(const SockException &ex)> cb);
+
+    void gatheringCandidate(IceServerInfo::Ptr ice_server, onGatheringCandidateCB cb = nullptr) override;
+    void connectivityCheck(SdpAttrCandidate candidate_attr, const std::string &ufrag, const std::string &pwd);
+    void connectivityCheckForSFU();
 
 protected:
-    // for ICE
-    // IceTransport::Listener.
-    void onIceTransportRecvData(const toolkit::Buffer::Ptr& buffer, const IceTransport::Pair::Ptr& pair) override;
-    void onIceTransportGatheringCandidate(const IceTransport::Pair::Ptr& pair, CandidateInfo& candidate) override;
-    void onIceTransportDisconnected() override;
-    void onIceTransportCompleted() override;
-
-    // DtlsTransport::Listener.
+    // DtlsTransport::Listener; dtls相关的回调
     void OnDtlsTransportConnecting(const RTC::DtlsTransport *dtlsTransport) override;
     void OnDtlsTransportConnected(const RTC::DtlsTransport *dtlsTransport,
                                   RTC::SrtpSession::CryptoSuite srtpCryptoSuite,
@@ -188,6 +183,13 @@ protected:
     void OnDtlsTransportClosed(const RTC::DtlsTransport *dtlsTransport) override;
     void OnDtlsTransportSendData(const RTC::DtlsTransport *dtlsTransport, const uint8_t *data, size_t len) override;
     void OnDtlsTransportApplicationDataReceived(const RTC::DtlsTransport *dtlsTransport, const uint8_t *data, size_t len) override;
+
+protected:
+    // ice相关的回调; IceTransport::Listener.
+    void onIceTransportRecvData(const toolkit::Buffer::Ptr& buffer, const IceTransport::Pair::Ptr& pair) override;
+    void onIceTransportGatheringCandidate(const IceTransport::Pair::Ptr& pair, CandidateInfo& candidate) override;
+    void onIceTransportCompleted() override;
+    void onIceTransportDisconnected() override;
 
     // SctpAssociation::Listener
 #ifdef ENABLE_SCTP
@@ -208,11 +210,10 @@ protected:
 
     virtual void onRtp(const char *buf, size_t len, uint64_t stamp_ms) = 0;
     virtual void onRtcp(const char *buf, size_t len) = 0;
+    virtual void onShutdown(const SockException &ex);
     virtual void onBeforeEncryptRtp(const char *buf, int &len, void *ctx) = 0;
     virtual void onBeforeEncryptRtcp(const char *buf, int &len, void *ctx) = 0;
     virtual void onRtcpBye() = 0;
-
-    virtual void onShutdown(const SockException &ex);
 
 protected:
     void sendRtcpRemb(uint32_t ssrc, size_t bit_rate);

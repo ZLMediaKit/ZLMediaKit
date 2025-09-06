@@ -118,7 +118,7 @@ void WebRtcSession::onError(const SockException &err) {
     getPoller()->async([transport, self]() mutable {
         // 延时减引用，防止使用transport对象时，销毁对象  [AUTO-TRANSLATED:09dd6609]
         // Delay decrementing the reference count to prevent the object from being destroyed when using the transport object
-        //FIXME::
+        transport->removePair(self.get());
         // 确保transport在Session对象前销毁，防止WebRtcTransport::onDestory()时获取不到Session对象  [AUTO-TRANSLATED:acd8bd77]
         // Ensure that the transport is destroyed before the Session object to prevent WebRtcTransport::onDestory() from not being able to get the Session object
         transport = nullptr;

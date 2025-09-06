@@ -1836,6 +1836,18 @@ void IceAgent::setSelectedPair(const Pair::Ptr& pair) {
     _selected_pair = pair;
 }
 
+void IceAgent::removePair(const toolkit::SocketHelper *socket) {
+    // TODO
+}
+
+std::vector<IceAgent::Pair::Ptr> IceAgent::getPairs() const {
+    // TODO
+    if (_selected_pair) {
+        return { _selected_pair };
+    }
+    return {};
+}
+
 void IceAgent::sendSocketData(const Buffer::Ptr& buf, const Pair::Ptr& pair, bool flush) {
     auto use_pair = pair? pair : getSelectedPair();
 

@@ -19,8 +19,8 @@ using namespace toolkit;
 namespace mediakit {
 
 // # WebRTCUrl format
-// ## whep/weip over http sfu: webrtc://server_host:server_port/{{app}}/{{streamid}}
-// ## whep/weip over https sfu: webrtcs://server_host:server_port/{{app}}/{{streamid}}
+// ## whep/whip over http sfu: webrtc://server_host:server_port/{{app}}/{{streamid}}
+// ## whep/whip over https sfu: webrtcs://server_host:server_port/{{app}}/{{streamid}}
 // ## websocket p2p: webrtc://{{signaling_server_host}}:{{signaling_server_port}}/{{app}}/{{streamid}}?room_id={{peer_room_id}}
 // ## websockets p2p: webrtcs://{{signaling_server_host}}:{{signaling_server_port}}/{{app}}/{{streamid}}?room_id={{peer_room_id}}
 void WebRTCUrl::parse(const string &strUrl, bool isPlayer) {
@@ -92,6 +92,9 @@ void WebRTCUrl::parse(const string &strUrl, bool isPlayer) {
     auto suffix = _host + ":" + to_string(_port);
     suffix += (isPlayer ? "/index/api/whep" : "/index/api/whip");
     suffix += "?app=" + _app + "&stream=" + _stream;
+    if (!_params.empty()) {
+        suffix += "&" + _params;
+    }
     if (_is_ssl) {
         _negotiate_url = StrPrinter << "https://" << suffix << endl;
     } else {
@@ -101,12 +104,12 @@ void WebRTCUrl::parse(const string &strUrl, bool isPlayer) {
 
 ////////////  WebRtcClient //////////////////////////
 
-WebRtcClient::WebRtcClient(const toolkit::EventPoller::Ptr &poller) {
+WebRtcClient::WebRtcClient(toolkit::EventPoller::Ptr poller) {
     DebugL;
     _poller = poller ? std::move(poller) : EventPollerPool::Instance().getPoller();
 }
 
-WebRtcClient::~WebRtcClient(void) {
+WebRtcClient::~WebRtcClient() {
     doBye();
     DebugL;
 }
@@ -128,7 +131,7 @@ void WebRtcClient::onNegotiateFinish() {
         // P2P模式需要gathering candidates
         gatheringCandidate(_peer->getIceServer());
     } else if (WebRtcTransport::SignalingProtocols::WHEP_WHIP == _url._signaling_protocols) {
-        // SFU模式不会存在IP不通的情况， answer中就携带了candidates, 直接进行connectiviryCheck
+        // SFU模式不会存在IP不通的情况， answer中就携带了candidates, 直接进行connectivityCheck
         connectivityCheck();
     }
 }
@@ -151,16 +154,16 @@ void WebRtcClient::doNegotiateWhepOrWhip() {
 
     _negotiate = make_shared<HttpRequester>();
     _negotiate->setMethod("POST");
-    _negotiate->setBody(offer_sdp);
+    _negotiate->setBody(std::move(offer_sdp));
     _negotiate->startRequester(_url._negotiate_url, [weak_self](const toolkit::SockException &ex, const Parser &response) {
         auto strong_self = weak_self.lock();
         if (!strong_self) {
-            return false;
+            return;
         }
         if (ex) {
-            WarnL << "network err:" << ex.getErrCode() << " " << ex.what();
+            WarnL << "network err:" << ex;
             strong_self->onResult(ex);
-            return false;
+            return;
         }
 
         DebugL << "status:" << response.status() << "\r\n"
@@ -168,21 +171,17 @@ void WebRtcClient::doNegotiateWhepOrWhip() {
                << response.getHeader()["Location"] << "\r\nrecv answer:\n"
                << response.content();
         strong_self->_url._delete_url = response.getHeader()["Location"];
-
-        if ("201" == response.status()) {
-            strong_self->_transport->setAnswerSdp(response.content());
-            strong_self->onNegotiateFinish();
-            return true;
-        } else {
+        if ("201" != response.status()) {
             strong_self->onResult(SockException(Err_other, response.content()));
-            return false;
+            return;
         }
+        strong_self->_transport->setAnswerSdp(response.content());
+        strong_self->onNegotiateFinish();
     }, getTimeOutSec());
 }
 
 void WebRtcClient::doNegotiateWebsocket() {
     DebugL;
-
 #if 0
     //TODO: 当前暂将每一路呼叫都使用一个独立的peer_connection,不复用
     _peer = getWebrtcRoomKeeper(_url._host, _url._port);
@@ -198,20 +197,14 @@ void WebRtcClient::doNegotiateWebsocket() {
     _peer = make_shared<WebRtcSignalingPeer>(_url._host, _url._port, _url._is_ssl, room_id);
     weak_ptr<WebRtcClient> weak_self = static_pointer_cast<WebRtcClient>(shared_from_this());
     _peer->setOnConnect([weak_self](const SockException &ex) {
-        auto strong_self = weak_self.lock();
-        if (!strong_self) {
-            return;
+        if (auto strong_self = weak_self.lock()) {
+            auto cb = [weak_self](const SockException &ex, const string &key) {
+                if (auto strong_self = weak_self.lock()) {
+                    strong_self->checkIn();
+                }
+            };
+            strong_self->_peer->regist(cb);
         }
-
-        auto cb = [weak_self](const SockException &ex, const string &key) {
-            auto strong_self = weak_self.lock();
-            if (!strong_self) {
-                return;
-            }
-            strong_self->checkIn();
-            return;
-        };
-        strong_self->_peer->regist(cb);
     });
     _peer->connect();
 }
@@ -219,22 +212,21 @@ void WebRtcClient::doNegotiateWebsocket() {
 void WebRtcClient::checkIn() {
     DebugL;
     weak_ptr<WebRtcClient> weak_self = static_pointer_cast<WebRtcClient>(shared_from_this());
-    auto tuple = MediaTuple(_url._vhost, _url._app, _url._stream, "");
+    auto tuple = MediaTuple(_url._vhost, _url._app, _url._stream, _url._params);
     _peer->checkIn(_url._peer_room_id, tuple, _transport->getIdentifier(), _transport->createOfferSdp(), isPlayer(),
-                   [weak_self](const SockException &ex, const std::string& answer) {
+                   [weak_self](const SockException &ex, const std::string &answer) {
         auto strong_self = weak_self.lock();
         if (!strong_self) {
-            return false;
+            return;
         }
         if (ex) {
-            WarnL << "network err:" << ex.getErrCode() << " " << ex.what();
+            WarnL << "network err:" << ex;
             strong_self->onResult(ex);
-            return false;
+            return;
         }
 
         strong_self->_transport->setAnswerSdp(answer);
         strong_self->onNegotiateFinish();
-        return true;
     }, getTimeOutSec());
 }
 
@@ -247,7 +239,7 @@ void WebRtcClient::checkOut() {
     }
 }
 
-void WebRtcClient::candidate(const std::string &candidate, const std::string &ufrag, const std::string pwd) {
+void WebRtcClient::candidate(const std::string &candidate, const std::string &ufrag, const std::string &pwd) {
     _peer->candidate(_transport->getIdentifier(), candidate, ufrag, pwd);
 }
 
@@ -287,11 +279,10 @@ void WebRtcClient::doByeWhepOrWhip() {
     _negotiate->setBody("");
     _negotiate->startRequester(_url._delete_url, [](const toolkit::SockException &ex, const Parser &response) {
         if (ex) {
-            WarnL << "network err:" << ex.getErrCode() << " " << ex.what();
-            return false;
+            WarnL << "network err:" << ex;
+            return;
         }
         DebugL << "status:" << response.status();
-        return true;
     }, getTimeOutSec());
 }
 
