@@ -26,17 +26,20 @@ public:
     ~WebRtcProxyPlayerImp() override { DebugL; }
 
 private:
-    void onPlayResult_l(const toolkit::SockException &ex);
 
     //// WebRtcProxyPlayer override////
     void startConnect() override;
+
     //// PlayerBase override////
     void onResult(const toolkit::SockException &ex) override;
+    void onPlayResult(const toolkit::SockException &ex) override {}
     std::vector<Track::Ptr> getTracks(bool ready = true) const override;
+
     //// TrackListener override////
     bool addTrack(const Track::Ptr &track) override { return true; }
     void addTrackCompleted() override;
 
+    void onRealPlayResult(const toolkit::SockException &ex);
 };
 
 } /* namespace mediakit */

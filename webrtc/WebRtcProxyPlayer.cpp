@@ -116,15 +116,15 @@ void WebRtcProxyPlayerImp::onResult(const SockException &ex) {
         if (!ex) {
             transport->setOnStartWebRTC([weak_self, ex]() {
                 if (auto strong_self = weak_self.lock()) {
-                    strong_self->onPlayResult_l(ex);
+                    strong_self->onRealPlayResult(ex);
                 }
             });
         }
     }
 }
 
-void WebRtcProxyPlayerImp::onPlayResult_l(const toolkit::SockException &ex) {
-    DebugL;
+void WebRtcProxyPlayerImp::onRealPlayResult(const toolkit::SockException &ex) {
+    InfoL << "webrtc play result: " << ex;
     Super::onPlayResult(ex);
 }
 
