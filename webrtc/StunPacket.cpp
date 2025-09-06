@@ -443,7 +443,7 @@ StunPacket::Method StunPacket::getMethod(const uint8_t *data, size_t len) {
 }
 
 StunPacket::Ptr StunPacket::parse(const uint8_t *data, size_t len) {
-    TraceL;
+    // TraceL;
 
     if (!StunPacket::isStun(data, len)) {
         return nullptr;
@@ -494,7 +494,7 @@ std::string StunPacket::mappingMethodEnum2Str(Method method) {
 StunPacket::StunPacket(Class klass, Method method, const char* transId)
     : _klass(klass)
     , _method(method) {
-    TraceL;
+    // TraceL;
     if (transId) {
         _transaction_id.assign(transId, 12);
     } else {
@@ -503,7 +503,7 @@ StunPacket::StunPacket(Class klass, Method method, const char* transId)
 }
 
 StunPacket::~StunPacket() {
-    TraceL;
+    // TraceL;
 }
 
 std::string StunPacket::dumpString(bool transId) const {
@@ -550,8 +550,7 @@ StunAttrErrorCode::Code StunPacket::getErrorCode() const {
 }
 
 StunPacket::Authentication StunPacket::checkAuthentication(const std::string &ufrag, const std::string &password) const {
-    TraceL;
-
+    // TraceL;
     auto attr_message_integrity = getAttribute<StunAttrMessageIntegrity>();
     switch (_klass) {
         case Class::REQUEST: {
@@ -643,7 +642,7 @@ StunPacket::Authentication StunPacket::checkAuthentication(const std::string &uf
                 //        << ", got: " << attr_fingerprint->getFingerprint();
                 return Authentication::UNAUTHORIZED;
             } else {
-                TraceL << "FINGERPRINT verification passed";
+                // TraceL << "FINGERPRINT verification passed";
             }
         }
     }
@@ -755,7 +754,7 @@ void StunPacket::serialize() {
 }
 
 StunPacket::Ptr StunPacket::createSuccessResponse() const {
-    TraceL;
+    // TraceL;
     CHECK(_klass == Class::REQUEST, "attempt to create a success response for a non Request STUN packet");
 
     auto packet = std::make_shared<StunPacket>(Class::SUCCESS_RESPONSE, _method, _transaction_id.c_str());
