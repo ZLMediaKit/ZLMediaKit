@@ -582,9 +582,11 @@ void WebRtcTransport::onShutdown(const SockException &ex) {
     if (_on_shutdown) {
         _on_shutdown(ex);
     }
-    for (auto &pair : _ice_agent->getPairs()) {
-        if (pair->_socket) {
-            pair->_socket->shutdown(ex);
+    if (_ice_agent) {
+        for (auto &pair : _ice_agent->getPairs()) {
+            if (pair->_socket) {
+                pair->_socket->shutdown(ex);
+            }
         }
     }
 }
