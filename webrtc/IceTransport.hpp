@@ -625,13 +625,9 @@ protected:
             
             // 按类型分组
             if (candidate._type != CandidateInfo::AddressType::RELAY) {
-                if (std::find(_host_sockets.begin(), _host_sockets.end(), socket) == _host_sockets.end()) {
-                    _host_sockets.emplace_back(std::move(socket));
-                }
+                addHostSocket(std::move(socket));
             } else if (candidate._type == CandidateInfo::AddressType::RELAY) {
-                if (std::find(_relay_sockets.begin(), _relay_sockets.end(), socket) == _relay_sockets.end()) {
-                    _relay_sockets.emplace_back(std::move(socket));
-                }
+                addRelaySocket(std::move(socket));
             }
             
             return true;

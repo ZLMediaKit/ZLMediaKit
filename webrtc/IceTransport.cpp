@@ -1081,7 +1081,7 @@ void IceAgent::connectivityCheck(CandidateInfo& candidate) {
     auto ret = _remote_candidates.emplace(candidate);
     if (ret.second) {
         bool udp = candidate._transport == CandidateTuple::TransportType::UDP;
-        for (auto socket: _socket_candidate_manager._host_sockets) {
+        for (auto& socket : _socket_candidate_manager._host_sockets) {
             if (udp != (socket->getSock()->sockType() == SockNum::Sock_UDP)) {
                 continue;
             }
