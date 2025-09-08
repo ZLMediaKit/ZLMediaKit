@@ -1551,8 +1551,8 @@ void WebRtcTransportImp::safeShutdown(const SockException &ex) {
 
 void WebRtcTransportImp::onShutdown(const SockException &ex) {
     WarnL << ex;
-    unrefSelf();
     WebRtcTransport::onShutdown(ex);
+    unrefSelf();
 }
 
 uint64_t WebRtcTransportImp::getBytesUsage() const {
