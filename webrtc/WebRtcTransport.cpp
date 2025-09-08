@@ -137,7 +137,7 @@ static std::string getServerPrefix() {
     return ret;
 }
 
-static std::string mappingCandidateTypeEnum2Str(CandidateInfo::AddressType& type) {
+static std::string mappingCandidateTypeEnum2Str(CandidateInfo::AddressType type) {
     switch (type) {
         case CandidateInfo::AddressType::HOST: return "host";
         case CandidateInfo::AddressType::SRFLX: return "srflx";
@@ -405,7 +405,7 @@ void WebRtcTransport::onIceTransportDisconnected() {
     InfoL << getIdentifier();
 }
 
-void WebRtcTransport::onIceTransportGatheringCandidate(const IceTransport::Pair::Ptr &pair, CandidateInfo &candidate) {
+void WebRtcTransport::onIceTransportGatheringCandidate(const IceTransport::Pair::Ptr &pair, const CandidateInfo &candidate) {
     InfoL << getIdentifier() << " get local candidate type " << candidate.dumpString();
     if (_on_gathering_candidate) {
         auto type = mappingCandidateTypeEnum2Str(candidate._type);

@@ -223,7 +223,7 @@ public:
         }
         virtual ~Pair() = default;
 
-        void get_peer_addr(sockaddr_storage &peer_addr) {
+        void get_peer_addr(sockaddr_storage &peer_addr) const {
             if (!_peer_host.empty()) {
                 peer_addr = toolkit::SockUtil::make_sockaddr(_peer_host.data(), _peer_port);
             } else {
@@ -232,7 +232,7 @@ public:
             }
         }
 
-        bool get_relayed_addr(sockaddr_storage &peerAddr) {
+        bool get_relayed_addr(sockaddr_storage &peerAddr) const {
             if (!_relayed_addr) {
                 return false;
             }
@@ -298,7 +298,7 @@ public:
 
     public:
         virtual void onIceTransportRecvData(const toolkit::Buffer::Ptr& buffer, const Pair::Ptr& pair) = 0;
-        virtual void onIceTransportGatheringCandidate(const Pair::Ptr&, CandidateInfo&) = 0;
+        virtual void onIceTransportGatheringCandidate(const Pair::Ptr&, const CandidateInfo&) = 0;
         virtual void onIceTransportDisconnected() = 0;
         virtual void onIceTransportCompleted() = 0;
     };

@@ -35,7 +35,7 @@ public:
 
     // ice related callbacks ///
     void onIceTransportRecvData(const toolkit::Buffer::Ptr& buffer, const RTC::IceTransport::Pair::Ptr& pair) override;
-    void onIceTransportGatheringCandidate(const RTC::IceTransport::Pair::Ptr& pair, RTC::CandidateInfo& candidate) override;
+    void onIceTransportGatheringCandidate(const RTC::IceTransport::Pair::Ptr& pair, const RTC::CandidateInfo& candidate) override;
     void onIceTransportDisconnected() override;
     void onIceTransportCompleted() override;
 

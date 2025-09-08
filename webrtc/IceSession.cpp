@@ -97,7 +97,7 @@ void IceSession::onIceTransportRecvData(const toolkit::Buffer::Ptr& buffer, cons
     _ice_transport->processSocketData((const uint8_t *)buffer->data(), buffer->size(), pair);
 }
 
-void IceSession::onIceTransportGatheringCandidate(const IceTransport::Pair::Ptr& pair, CandidateInfo& candidate) {
+void IceSession::onIceTransportGatheringCandidate(const IceTransport::Pair::Ptr& pair, const CandidateInfo& candidate) {
     DebugL << candidate.dumpString();
 }
 

@@ -187,7 +187,7 @@ protected:
 protected:
     // ice相关的回调; IceTransport::Listener.
     void onIceTransportRecvData(const toolkit::Buffer::Ptr& buffer, const IceTransport::Pair::Ptr& pair) override;
-    void onIceTransportGatheringCandidate(const IceTransport::Pair::Ptr& pair, CandidateInfo& candidate) override;
+    void onIceTransportGatheringCandidate(const IceTransport::Pair::Ptr& pair, const CandidateInfo& candidate) override;
     void onIceTransportCompleted() override;
     void onIceTransportDisconnected() override;
 
