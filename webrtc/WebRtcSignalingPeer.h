@@ -129,7 +129,7 @@ private:
     toolkit::Timer::Ptr _offer_timeout_timer = nullptr;
 };
 
-void addWebrtcRoomKeeper(const std::string &host, uint16_t port, bool ssl, const std::string& room_id,
+void addWebrtcRoomKeeper(const std::string &host, uint16_t port, const std::string& room_id, bool ssl,
                          const std::function<void(const toolkit::SockException &ex, const std::string &key)> &cb);
 void delWebrtcRoomKeeper(const std::string &key, const std::function<void(const toolkit::SockException &ex)> &cb);
 void listWebrtcRoomKeepers(const std::function<void(const std::string& key, const WebRtcSignalingPeer::Ptr& p)> &cb);

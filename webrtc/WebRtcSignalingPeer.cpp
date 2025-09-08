@@ -28,7 +28,7 @@ static inline string getRoomKeepersKey(const string &host, uint16_t &port) {
     return host + ":" + std::to_string(port);
 }
 
-void addWebrtcRoomKeeper(const string &host, uint16_t port, bool ssl, const std::string& room_id,
+void addWebrtcRoomKeeper(const string &host, uint16_t port, const std::string& room_id, bool ssl,
                          const function<void(const SockException &ex, const string &key)> &cb) {
     DebugL;
     auto key = getRoomKeepersKey(host, port);
