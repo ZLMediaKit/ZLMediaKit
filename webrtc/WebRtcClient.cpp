@@ -198,6 +198,11 @@ void WebRtcClient::doNegotiateWebsocket() {
     weak_ptr<WebRtcClient> weak_self = static_pointer_cast<WebRtcClient>(shared_from_this());
     _peer->setOnConnect([weak_self](const SockException &ex) {
         if (auto strong_self = weak_self.lock()) {
+            if (ex) {
+                strong_self->onResult(ex);
+                return;
+            }
+
             auto cb = [weak_self](const SockException &ex, const string &key) {
                 if (auto strong_self = weak_self.lock()) {
                     strong_self->checkIn();
@@ -284,17 +289,6 @@ void WebRtcClient::doByeWhepOrWhip() {
         }
         DebugL << "status:" << response.status();
     }, getTimeOutSec());
-}
-
-void WebRtcClient::onResult(const SockException &ex) {
-    if (!ex) {
-        // 会话建立成功
-    } else {
-        if (ex.getErrCode() == Err_shutdown) {
-            // 主动shutdown的，不触发回调
-            return;
-        }
-    }
 }
 
 float WebRtcClient::getTimeOutSec() {

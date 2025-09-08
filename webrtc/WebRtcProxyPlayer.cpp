@@ -54,28 +54,6 @@ void WebRtcProxyPlayer::speed(float speed) {
     DebugL;
 }
 
-void WebRtcProxyPlayer::onResult(const SockException &ex) {
-    WebRtcClient::onResult(ex);
-
-    DebugL;
-    if (!ex) {
-        // 播放成功
-        onPlayResult(ex);
-        _benchmark_mode = (*this)[Client::kBenchmarkMode].as<int>();
-    } else {
-        WarnL << ex.getErrCode() << " " << ex.what();
-        if (ex.getErrCode() == Err_shutdown) {
-            // 主动shutdown的，不触发回调
-            return;
-        }
-        if (!_is_negotiate_finished) {
-            onPlayResult(ex);
-        } else {
-            onShutdown(ex);
-        }
-    }
-}
-
 float WebRtcProxyPlayer::getTimeOutSec() {
     auto timeoutMS = (*this)[Client::kTimeoutMS].as<uint64_t>();
     return (float)timeoutMS / (float)1000;
@@ -107,8 +85,10 @@ void WebRtcProxyPlayerImp::startConnect() {
 }
 
 void WebRtcProxyPlayerImp::onResult(const SockException &ex) {
-    WebRtcProxyPlayer::onResult(ex);
     if (!ex) {
+        // 播放成功
+        _benchmark_mode = (*this)[Client::kBenchmarkMode].as<int>();
+
         WebRtcPlayerClient::Ptr transport = std::dynamic_pointer_cast<WebRtcPlayerClient>(_transport);
         auto media_src = dynamic_pointer_cast<RtspMediaSource>(_media_src);
         transport->setMediaSource(media_src);
@@ -116,16 +96,23 @@ void WebRtcProxyPlayerImp::onResult(const SockException &ex) {
         if (!ex) {
             transport->setOnStartWebRTC([weak_self, ex]() {
                 if (auto strong_self = weak_self.lock()) {
-                    strong_self->onRealPlayResult(ex);
+                    strong_self->onPlayResult(ex);
                 }
             });
         }
-    }
-}
+    } else {
+        WarnL << ex.getErrCode() << " " << ex.what();
+        if (ex.getErrCode() == Err_shutdown) {
+            // 主动shutdown的，不触发回调
+            return;
+        }
 
-void WebRtcProxyPlayerImp::onRealPlayResult(const toolkit::SockException &ex) {
-    InfoL << "webrtc play result: " << ex;
-    Super::onPlayResult(ex);
+        if (!_is_negotiate_finished) {
+            onPlayResult(ex);
+        } else {
+            onShutdown(ex);
+        }
+    }
 }
 
 std::vector<Track::Ptr> WebRtcProxyPlayerImp::getTracks(bool ready /*= true*/) const {

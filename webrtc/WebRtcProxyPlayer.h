@@ -40,7 +40,6 @@ protected:
 
     //// WebRtcClient override////
     bool isPlayer() override {return true;}
-    void onResult(const toolkit::SockException &ex) override;
     float getTimeOutSec() override;
     void onNegotiateFinish() override;
 

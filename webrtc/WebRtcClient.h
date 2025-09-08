@@ -71,7 +71,7 @@ public:
 protected:
     virtual bool isPlayer() = 0;
     virtual void startConnect();
-    virtual void onResult(const toolkit::SockException &ex);
+    virtual void onResult(const toolkit::SockException &ex) = 0;
     virtual void onNegotiateFinish();
     virtual float getTimeOutSec();
 
