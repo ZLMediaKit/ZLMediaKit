@@ -241,17 +241,17 @@ public:
             return true;
         }
 
-        std::string get_local_ip() { return _socket->get_local_ip(); }
+        std::string get_local_ip() const { return _socket->get_local_ip(); }
 
-        uint16_t get_local_port() { return _socket->get_local_port(); }
+        uint16_t get_local_port() const { return _socket->get_local_port(); }
 
-        std::string get_peer_ip() { return !_peer_host.empty() ? _peer_host : _socket->get_peer_ip(); }
+        std::string get_peer_ip() const { return !_peer_host.empty() ? _peer_host : _socket->get_peer_ip(); }
 
-        uint16_t get_peer_port() { return !_peer_host.empty() ? _peer_port : _socket->get_peer_port(); }
+        uint16_t get_peer_port() const { return !_peer_host.empty() ? _peer_port : _socket->get_peer_port(); }
 
-        std::string get_relayed_ip() { return _relayed_addr ? toolkit::SockUtil::inet_ntoa((const struct sockaddr *)_relayed_addr.get()) : ""; }
+        std::string get_relayed_ip() const { return _relayed_addr ? toolkit::SockUtil::inet_ntoa((const struct sockaddr *)_relayed_addr.get()) : ""; }
 
-        uint16_t get_relayed_port() { return _relayed_addr ? toolkit::SockUtil::inet_port((const struct sockaddr *)_relayed_addr.get()) : 0; }
+        uint16_t get_relayed_port() const { return _relayed_addr ? toolkit::SockUtil::inet_port((const struct sockaddr *)_relayed_addr.get()) : 0; }
 
         static bool is_same_relayed_addr(Pair *a, Pair *b) {
             if (a->_relayed_addr && b->_relayed_addr) {
@@ -272,6 +272,16 @@ public:
             return false;
         }
 
+        std::string dumpString(uint8_t flag) const { 
+            toolkit::_StrPrinter sp;
+            static const char* fStr[] = { "<-", "->", "<->" };
+            sp << (_socket ? (_socket->getSock()->sockType() == toolkit::SockNum::Sock_TCP ? "tcp " : "udp ") : "")
+               << get_local_ip() << ":" << get_local_port() << fStr[flag] << get_peer_ip() << ":" << get_peer_port();
+            if (_relayed_addr && flag == 2) {
+                sp << " relay " << get_relayed_ip() << ":" << get_relayed_port();
+            }
+            return sp;
+        }
     public:
         toolkit::SocketHelper::Ptr _socket;
         //对端host:port 地址，因为多个pair会复用一个socket对象，因此可能会和_socket的创建bind信息不一致
@@ -303,17 +313,13 @@ public:
         uint64_t _send_time;             // 首次发送时间(毫秒)
         uint64_t _next_timeout;          // 下次超时时间(毫秒)
         uint32_t _retry_count;           // 当前重传次数
-        uint32_t _rto;                   // 当前RTO值(毫秒)
-
-        static const uint32_t INITIAL_RTO = 500;    // 初始RTO 500ms
-        static const uint32_t MAX_RETRIES = 7;      // 最大重传次数
+        uint32_t _rto = 500;             // 当前RTO值(毫秒) 初始RTO 500ms
 
         RequestInfo(StunPacket::Ptr req, MsgHandler h, Pair::Ptr p)
             : _request(std::move(req))
             , _handler(std::move(h))
             , _pair(std::move(p))
-            , _retry_count(0)
-            , _rto(INITIAL_RTO) {
+            , _retry_count(0) {
             _send_time = toolkit::getCurrentMillisecond();
             _next_timeout = _send_time + _rto;
         }
@@ -448,7 +454,9 @@ public:
             , _state(CandidateInfo::State::Frozen) {
             _priority = calCandidatePairPriority(local._priority, remote._priority);
         }
-
+        std::string dumpString() const {
+            return "local " + _local_candidate.dumpString() + " <-> remote " + _remote_candidate.dumpString();
+        }
         // 比较操作符，用于优先级排序（高优先级在前）
         bool operator<(const CandidatePair& other) const {
             return _priority > other._priority;
@@ -728,7 +736,7 @@ protected:
     CandidateSet _remote_candidates;
 
     //TODO:当前仅支持多数据流复用一个checklist
-    std::vector<std::shared_ptr<CandidatePair>> _checklist;
+    std::vector<std::shared_ptr<CandidatePair>> _check_list;
     std::vector<std::shared_ptr<CandidatePair>> _valid_list;
 
 };
