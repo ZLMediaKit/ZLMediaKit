@@ -1734,7 +1734,7 @@ void installWebApi() {
         auto src = MediaSource::find(vhost, app, allArgs["stream_id"]);
         auto process = src ? src->getRtpProcess() : nullptr;
         if (process) {
-            process->setStopCheckRtp(true);
+            process->pauseRtpTimeout(true, allArgs["pause_seconds"]);
         } else {
             val["code"] = API::NotFound;
         }
@@ -1754,7 +1754,7 @@ void installWebApi() {
         auto src = MediaSource::find(vhost, app, allArgs["stream_id"]);
         auto process = src ? src->getRtpProcess() : nullptr;
         if (process) {
-            process->setStopCheckRtp(false);
+            process->pauseRtpTimeout(false);
         } else {
             val["code"] = API::NotFound;
         }
