@@ -145,16 +145,8 @@ void SrtTransportImp::onShutdown(const SockException &ex) {
 }
 
 bool SrtTransportImp::close(mediakit::MediaSource &sender) {
-    std::string err = StrPrinter << "close media: " << sender.getUrl();
-    weak_ptr<SrtTransportImp> weak_self = static_pointer_cast<SrtTransportImp>(shared_from_this());
-    getPoller()->async([weak_self, err]() {
-        auto strong_self = weak_self.lock();
-        if (strong_self) {
-            strong_self->onShutdown(SockException(Err_shutdown, err));
-            // 主动关闭推流，那么不延时注销
-            strong_self->_muxer = nullptr;
-        }
-    });
+    onShutdown(SockException(Err_shutdown, "close media: " + sender.getUrl()));
+    _muxer = nullptr;
     return true;
 }
 

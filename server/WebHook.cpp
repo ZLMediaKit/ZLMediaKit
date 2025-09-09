@@ -634,7 +634,10 @@ void installWebHook() {
             // 边沿站无人观看时如果是拉流的则立即停止溯源  [AUTO-TRANSLATED:a1429c77]
             // If no one is watching at the edge station, stop tracing immediately if it is pulling
             if (!auto_close) {
-                sender.close(false);
+                auto ptr = sender.shared_from_this();
+                sender.getOwnerPoller()->async([ptr]() {
+                    ptr->close(false);
+                });
                 WarnL << "Auto close stream when none reader: " << sender.getOriginUrl();
             }
             return;
@@ -661,7 +664,7 @@ void installWebHook() {
             if (!flag || !err.empty() || !strongSrc) {
                 return;
             }
-            strongSrc->close(false);
+            strongSrc->getOwnerPoller()->async([strongSrc]() { strongSrc->close(false); });
             WarnL << "无人观看主动关闭流:" << strongSrc->getOriginUrl();
         });
     });

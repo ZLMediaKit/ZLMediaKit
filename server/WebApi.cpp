@@ -1106,9 +1106,8 @@ void installWebApi() {
 
         bool force = allArgs["force"].as<bool>();
         for (auto &media : media_list) {
-            if (media->close(force)) {
-                ++count_closed;
-            }
+            media->getOwnerPoller()->async([media, force]() { media->close(force); });
+            ++count_closed;
         }
         val["count_hit"] = count_hit;
         val["count_closed"] = count_closed;
