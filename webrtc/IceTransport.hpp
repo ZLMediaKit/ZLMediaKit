@@ -533,7 +533,7 @@ public:
     Pair::Ptr getSelectedPair(bool try_last = false) const {
         return try_last ?  _last_selected_pair.lock() : _selected_pair;
     }
-    void setSelectedPair(const Pair::Ptr& pair);
+    bool setSelectedPair(const Pair::Ptr& pair);
 
     void removePair(const toolkit::SocketHelper *socket);
 

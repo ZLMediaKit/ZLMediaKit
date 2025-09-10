@@ -1696,15 +1696,21 @@ void IceAgent::onCompleted(const IceTransport::Pair::Ptr& pair) {
         found_in_valid_list = true;
     }
 
-    if (found_in_valid_list && getState() != IceAgent::State::Completed) {
-        setSelectedPair(pair);
-        setState(IceAgent::State::Completed);
-        _listener->onIceTransportCompleted();
-        if (_nominated_response) {
-            sendPacket(_nominated_response, pair);
+    if (found_in_valid_list) { 
+
+        if (setSelectedPair(pair)) {
+
+            if (getState() != IceAgent::State::Completed) {
+                setState(IceAgent::State::Completed);
+            }
+
+            _listener->onIceTransportCompleted();
+            if (_nominated_response) {
+                sendPacket(_nominated_response, pair);
+                _nominated_response = nullptr;
+            }
+            _nominated_pair = nullptr;
         }
-        _nominated_response = nullptr;
-        _nominated_pair = nullptr;
     }
 }
 
@@ -1771,13 +1777,21 @@ void IceAgent::refreshChannelBindings() {
     }
 }
 
-void IceAgent::setSelectedPair(const Pair::Ptr& pair) {
+bool IceAgent::setSelectedPair(const Pair::Ptr& pair) {
     if (_selected_pair && Pair::is_same(pair.get(), _selected_pair.get())){
-        return;
+        return false;
     }
-    DebugL << pair->dumpString(2);
+    
+    if (_selected_pair) {
+        InfoL << "Previous selected_pair: " << _selected_pair->dumpString(2);
+        InfoL << "New selected_pair: " << pair->dumpString(2);
+    } else {
+        InfoL << "Initial selected_pair: " << pair->dumpString(2);
+    }
+    
     _last_selected_pair = std::static_pointer_cast<Pair>(_selected_pair);
     _selected_pair = pair;
+    return true;
 }
 
 void IceAgent::removePair(const toolkit::SocketHelper *socket) {
