@@ -91,22 +91,22 @@ void RtspPlayer::play(const string &strUrl) {
     _speed = (*this)[Client::kRtspSpeed].as<float>();
     DebugL << url._url << " " << (url._user.size() ? url._user : "null") << " " << (url._passwd.size() ? url._passwd : "null") << " " << _rtp_type;
 
-    weak_ptr<RtspPlayer> weakSelf = static_pointer_cast<RtspPlayer>(shared_from_this());
+    weak_ptr<RtspPlayer> weak_self = static_pointer_cast<RtspPlayer>(shared_from_this());
     float playTimeOutSec = (*this)[Client::kTimeoutMS].as<int>() / 1000.0f;
-    _play_check_timer.reset(new Timer(
-        playTimeOutSec,
-        [weakSelf]() {
-            auto strongSelf = weakSelf.lock();
-            if (!strongSelf) {
-                return false;
-            }
-            strongSelf->onPlayResult_l(SockException(Err_timeout, "play rtsp timeout"), false);
-            return false;
-        },
-        getPoller()));
+    _play_check_timer.reset(new Timer(playTimeOutSec,[weak_self]() {
+        if (auto strong_self = weak_self.lock()) {
+            strong_self->onPlayResult_l(SockException(Err_timeout, "play rtsp timeout"), false);
+        }
+        return false;
+    }, getPoller()));
 
-    if (!(*this)[Client::kNetAdapter].empty()) {
-        setNetAdapter((*this)[Client::kNetAdapter]);
+    auto &adapter = (*this)[Client::kNetAdapter];
+    if (!adapter.empty()) {
+        setNetAdapter(std::move(adapter));
+    }
+    auto &custom_header = (*this)[Client::kCustomHeader];
+    if (!custom_header.empty()) {
+        _custom_header = mediakit::Parser::parseArgs(custom_header);
     }
     startConnect(url._host, url._port, playTimeOutSec);
 }
@@ -632,7 +632,11 @@ void RtspPlayer::sendRtspRequest(const string &cmd, const string &url, const std
             key = val;
         }
     }
-
+    if (cmd == "PLAY") {
+        for (auto &pr : _custom_header) {
+            header_map.emplace(pr.first, pr.second);
+        }
+    }
     sendRtspRequest(cmd, url, header_map);
 }
 

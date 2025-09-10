@@ -25,6 +25,7 @@ void TsPlayer::play(const string &url) {
     setHeaderTimeout((*this)[Client::kTimeoutMS].as<int>());
     setBodyTimeout((*this)[Client::kMediaTimeoutMS].as<int>());
     setMethod("GET");
+    addCustomHeader(this);
     sendRequest(url);
 }
 

@@ -400,6 +400,7 @@ const string kProxyUrl = "proxy_url";
 const string kRtspSpeed = "rtsp_speed";
 const string kLatency = "latency";
 const string kPassPhrase = "passPhrase";
+const string kCustomHeader = "custom_header";
 } // namespace Client
 
 } // namespace mediakit

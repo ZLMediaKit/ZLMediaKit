@@ -21,8 +21,21 @@
 #include "Common/MediaSink.h"
 #include "Extension/Frame.h"
 #include "Extension/Track.h"
+#include "Common/config.h"
+#include "Common/Parser.h"
 
 namespace mediakit {
+
+template <typename Type>
+void addCustomHeader(Type *c) {
+    auto &custom_header = (*c)[Client::kCustomHeader];
+    if (!custom_header.empty()) {
+        auto args = mediakit::Parser::parseArgs(custom_header);
+        for (auto &pr : args) {
+            c->addHeader(pr.first, pr.second);
+        }
+    }
+}
 
 class PlayerBase : public TrackSource, public toolkit::mINI {
 public:
