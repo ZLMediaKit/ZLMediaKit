@@ -411,12 +411,11 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int track_idx) {
     // All SETUP commands have been sent
     // 发送play命令  [AUTO-TRANSLATED:47a826d1]
     // Send PLAY command
-    if (_speed==0.0f) {
+    if (_speed == 0.0f) {
         sendPause(type_play, 0);
     } else {
         sendPause(type_speed, 0);
     }
-   
 }
 
 void RtspPlayer::sendDescribe() {
@@ -465,15 +464,11 @@ void RtspPlayer::sendPause(int type, uint32_t seekMS) {
     // Start or pause RTSP
     switch (type) {
         case type_pause: sendRtspRequest("PAUSE", _control_url, {}); break;
-        case type_play:
-            // sendRtspRequest("PLAY", _content_base);
-            // break;
+        case type_play: sendRtspRequest("PLAY", _content_base); break;
         case type_seek:
             sendRtspRequest("PLAY", _control_url, { "Range", StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << seekMS / 1000.0 << "-" });
             break;
-        case type_speed:
-            speed(_speed);
-            break;
+        case type_speed: speed(_speed); break;
         default:
             WarnL << "unknown type : " << type;
             _on_response = nullptr;
@@ -632,11 +627,6 @@ void RtspPlayer::sendRtspRequest(const string &cmd, const string &url, const std
             key = val;
         }
     }
-    if (cmd == "PLAY") {
-        for (auto &pr : _custom_header) {
-            header_map.emplace(pr.first, pr.second);
-        }
-    }
     sendRtspRequest(cmd, url, header_map);
 }
 
@@ -697,6 +687,11 @@ void RtspPlayer::sendRtspRequest(const string &cmd, const string &url, const Str
     TraceL << cmd << " "<< url;
     for (auto &pr : header) {
         printer << pr.first << ": " << pr.second << "\r\n";
+    }
+    if (cmd == "PLAY") {
+        for (auto &pr : _custom_header) {
+            printer << pr.first << ": " << pr.second << "\r\n";
+        }
     }
     printer << "\r\n";
     SockSender::send(std::move(printer));
