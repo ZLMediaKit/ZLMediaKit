@@ -1705,11 +1705,12 @@ void IceAgent::onCompleted(const IceTransport::Pair::Ptr& pair) {
             }
 
             _listener->onIceTransportCompleted();
-            if (_nominated_response) {
-                sendPacket(_nominated_response, pair);
-                _nominated_response = nullptr;
-            }
             _nominated_pair = nullptr;
+        }
+
+        if (_nominated_response) {
+            sendPacket(_nominated_response, pair);
+            _nominated_response = nullptr;
         }
     }
 }

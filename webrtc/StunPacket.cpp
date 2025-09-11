@@ -651,7 +651,7 @@ StunPacket::Authentication StunPacket::checkAuthentication(const std::string &uf
 }
 
 void StunPacket::serialize() {
-    TraceL;
+    //TraceL;
 
     _data = BufferRaw::create();
     for (auto it : _attribute_map) {
@@ -845,7 +845,7 @@ bool StunPacket::loadAttrMessage(const uint8_t *buf, size_t len) {
             case StunAttribute::Type::ICE_CONTROLLED: attr = std::make_shared<StunAttrIceControlled>(); break;
             case StunAttribute::Type::ICE_CONTROLLING: attr = std::make_shared<StunAttrIceControlling>(); break;
             case StunAttribute::Type::GOOG_NETWORK_INFO:
-                // DebugL << "skip Attribute GOOG_NETWORK_INFO";
+            case StunAttribute::Type::SOFTWARE:
                 break;
             default: WarnL << "not support Attribute " << (uint16_t)type << "," << toolkit::hexdump(ptr, 2); break;
         }
