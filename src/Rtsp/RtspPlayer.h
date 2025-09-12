@@ -203,6 +203,8 @@ private:
     // 统计rtp并发送rtcp  [AUTO-TRANSLATED:0ac2b665]
     // Statistics rtp and send rtcp
     std::vector<RtcpContext::Ptr> _rtcp_context;
+    // 用户自定义rtsp头
+    StrCaseMap _custom_header;
 };
 
 } /* namespace mediakit */

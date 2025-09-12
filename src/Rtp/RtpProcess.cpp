@@ -203,27 +203,24 @@ void RtpProcess::doCachedFunc() {
 }
 
 bool RtpProcess::alive() {
-    if (_stop_rtp_check.load()) {
-        if(_last_check_alive.elapsedTime() > 5 * 60 * 1000){
-            // 最多暂停5分钟的rtp超时检测，因为NAT映射有效期一般不会太长  [AUTO-TRANSLATED:2df59aad]
-            // Pause the RTP timeout detection for a maximum of 5 minutes, because the NAT mapping validity period is generally not very long.
-            _stop_rtp_check = false;
-        } else {
+    if (_pause_timeout) {
+        if (_last_check_alive.elapsedTime() < _pause_seconds * 1000) {
             return true;
         }
+        // 最多暂停_pause_seconds秒的rtp超时检测，因为NAT映射有效期一般不会太长
+        _pause_timeout = false;
     }
 
     _last_check_alive.resetTime();
     GET_CONFIG(uint64_t, timeoutSec, RtpProxy::kTimeoutSec)
-    if (_last_frame_time.elapsedTime() / 1000 < timeoutSec) {
-        return true;
-    }
-    return false;
+    return _last_frame_time.elapsedTime() < timeoutSec * 1000;
 }
 
-void RtpProcess::setStopCheckRtp(bool is_check){
-    _stop_rtp_check = is_check;
-    if (!is_check) {
+void RtpProcess::pauseRtpTimeout(bool pause, uint32_t pause_seconds) {
+    _pause_timeout = pause;
+    // 默认5分钟恢复超时监测
+    _pause_seconds = pause_seconds ? pause_seconds : 300;
+    if (!pause) {
         _last_frame_time.resetTime();
     }
 }

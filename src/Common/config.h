@@ -630,6 +630,8 @@ extern const std::string kRtspSpeed;
 extern const std::string kLatency;
 // Set SRT PassPhrase
 extern const std::string kPassPhrase;
+// 自定义rtsp/http头
+extern const std::string kCustomHeader;
 } // namespace Client
 } // namespace mediakit
 
