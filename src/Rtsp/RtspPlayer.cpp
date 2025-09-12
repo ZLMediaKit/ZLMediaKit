@@ -91,22 +91,22 @@ void RtspPlayer::play(const string &strUrl) {
     _speed = (*this)[Client::kRtspSpeed].as<float>();
     DebugL << url._url << " " << (url._user.size() ? url._user : "null") << " " << (url._passwd.size() ? url._passwd : "null") << " " << _rtp_type;
 
-    weak_ptr<RtspPlayer> weakSelf = static_pointer_cast<RtspPlayer>(shared_from_this());
+    weak_ptr<RtspPlayer> weak_self = static_pointer_cast<RtspPlayer>(shared_from_this());
     float playTimeOutSec = (*this)[Client::kTimeoutMS].as<int>() / 1000.0f;
-    _play_check_timer.reset(new Timer(
-        playTimeOutSec,
-        [weakSelf]() {
-            auto strongSelf = weakSelf.lock();
-            if (!strongSelf) {
-                return false;
-            }
-            strongSelf->onPlayResult_l(SockException(Err_timeout, "play rtsp timeout"), false);
-            return false;
-        },
-        getPoller()));
+    _play_check_timer.reset(new Timer(playTimeOutSec,[weak_self]() {
+        if (auto strong_self = weak_self.lock()) {
+            strong_self->onPlayResult_l(SockException(Err_timeout, "play rtsp timeout"), false);
+        }
+        return false;
+    }, getPoller()));
 
-    if (!(*this)[Client::kNetAdapter].empty()) {
-        setNetAdapter((*this)[Client::kNetAdapter]);
+    auto &adapter = (*this)[Client::kNetAdapter];
+    if (!adapter.empty()) {
+        setNetAdapter(std::move(adapter));
+    }
+    auto &custom_header = (*this)[Client::kCustomHeader];
+    if (!custom_header.empty()) {
+        _custom_header = mediakit::Parser::parseArgs(custom_header);
     }
     startConnect(url._host, url._port, playTimeOutSec);
 }
@@ -411,12 +411,11 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int track_idx) {
     // All SETUP commands have been sent
     // 发送play命令  [AUTO-TRANSLATED:47a826d1]
     // Send PLAY command
-    if (_speed==0.0f) {
+    if (_speed == 0.0f) {
         sendPause(type_play, 0);
     } else {
         sendPause(type_speed, 0);
     }
-   
 }
 
 void RtspPlayer::sendDescribe() {
@@ -465,15 +464,11 @@ void RtspPlayer::sendPause(int type, uint32_t seekMS) {
     // Start or pause RTSP
     switch (type) {
         case type_pause: sendRtspRequest("PAUSE", _control_url, {}); break;
-        case type_play:
-            // sendRtspRequest("PLAY", _content_base);
-            // break;
+        case type_play: sendRtspRequest("PLAY", _content_base); break;
         case type_seek:
             sendRtspRequest("PLAY", _control_url, { "Range", StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << seekMS / 1000.0 << "-" });
             break;
-        case type_speed:
-            speed(_speed);
-            break;
+        case type_speed: speed(_speed); break;
         default:
             WarnL << "unknown type : " << type;
             _on_response = nullptr;
@@ -632,7 +627,6 @@ void RtspPlayer::sendRtspRequest(const string &cmd, const string &url, const std
             key = val;
         }
     }
-
     sendRtspRequest(cmd, url, header_map);
 }
 
@@ -693,6 +687,11 @@ void RtspPlayer::sendRtspRequest(const string &cmd, const string &url, const Str
     TraceL << cmd << " "<< url;
     for (auto &pr : header) {
         printer << pr.first << ": " << pr.second << "\r\n";
+    }
+    if (cmd == "PLAY") {
+        for (auto &pr : _custom_header) {
+            printer << pr.first << ": " << pr.second << "\r\n";
+        }
     }
     printer << "\r\n";
     SockSender::send(std::move(printer));

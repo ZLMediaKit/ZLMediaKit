@@ -698,13 +698,13 @@ void MediaSourceEvent::onReaderChanged(MediaSource &sender, int size){
                 // 此流被标记为无人观看自动关闭流  [AUTO-TRANSLATED:64a0dac3]
                 // This stream is marked as an automatically closed stream with no viewers.
                 WarnL << "Auto close stream when none reader: " << strong_sender->getUrl();
-                strong_sender->close(false);
+                strong_sender->getOwnerPoller()->async([strong_sender]() { strong_sender->close(false); });
             }
         } else {
             // 这个是mp4点播，我们自动关闭  [AUTO-TRANSLATED:8a7b9a90]
             // This is an mp4 on-demand, we automatically close it.
             WarnL << "MP4点播无人观看,自动关闭:" << strong_sender->getUrl();
-            strong_sender->close(false);
+            strong_sender->getOwnerPoller()->async([strong_sender]() { strong_sender->close(false); });
         }
         return false;
     }, specified_poller);

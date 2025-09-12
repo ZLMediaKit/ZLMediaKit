@@ -36,6 +36,7 @@ void HlsPlayer::fetchIndexFile() {
     }
     setCompleteTimeout((*this)[Client::kTimeoutMS].as<int>());
     setMethod("GET");
+    addCustomHeader(this);
     sendRequest(_play_url);
 }
 

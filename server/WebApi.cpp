@@ -1032,9 +1032,8 @@ void installWebApi() {
 
         bool force = allArgs["force"].as<bool>();
         for (auto &media : media_list) {
-            if (media->close(force)) {
-                ++count_closed;
-            }
+            media->getOwnerPoller()->async([media, force]() { media->close(force); });
+            ++count_closed;
         }
         val["count_hit"] = count_hit;
         val["count_closed"] = count_closed;
@@ -1488,20 +1487,18 @@ void installWebApi() {
     api_regist("/index/api/listRtpServer",[](API_ARGS_MAP){
         CHECK_SECRET();
 
-        std::lock_guard<std::recursive_mutex> lck(s_rtp_server._mtx);
-        for (auto &pr : s_rtp_server._map) {
-            auto vec = split(pr.first, "/");
+        s_rtp_server.for_each([&val](const std::string &key, const RtpServer::Ptr &rtps) {
+            auto vec = split(key, "/");
             Value obj;
             obj["vhost"] = vec[0];
             obj["app"] = vec[1];
             obj["stream_id"] = vec[2];
-            auto& rtps = pr.second;
             obj["port"] = rtps->getPort();
             obj["ssrc"] = rtps->getSSRC();
             obj["tcp_mode"] = rtps->getTcpMode();
             obj["only_track"] = rtps->getOnlyTrack();
             val["data"].append(obj);
-        }
+        });
     });
 
     static auto start_send_rtp = [] (bool passive, API_ARGS_MAP_ASYNC) {
@@ -1663,7 +1660,7 @@ void installWebApi() {
         auto src = MediaSource::find(vhost, app, allArgs["stream_id"]);
         auto process = src ? src->getRtpProcess() : nullptr;
         if (process) {
-            process->setStopCheckRtp(true);
+            process->pauseRtpTimeout(true, allArgs["pause_seconds"]);
         } else {
             val["code"] = API::NotFound;
         }
@@ -1683,7 +1680,7 @@ void installWebApi() {
         auto src = MediaSource::find(vhost, app, allArgs["stream_id"]);
         auto process = src ? src->getRtpProcess() : nullptr;
         if (process) {
-            process->setStopCheckRtp(false);
+            process->pauseRtpTimeout(false);
         } else {
             val["code"] = API::NotFound;
         }

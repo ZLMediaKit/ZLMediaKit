@@ -102,7 +102,7 @@ API_EXPORT void API_CALL mk_rtp_pause_check(const char *app, const char *stream)
     auto src = MediaSource::find(DEFAULT_VHOST, app, stream);
     auto process = src ? src->getRtpProcess() : nullptr;
     if (process) {
-        process->setStopCheckRtp(true);
+        process->pauseRtpTimeout(true);
     }
 }
 
@@ -110,7 +110,7 @@ API_EXPORT void API_CALL mk_rtp_resume_check(const char *app, const char *stream
     auto src = MediaSource::find(DEFAULT_VHOST, app, stream);
     auto process = src ? src->getRtpProcess() : nullptr;
     if (process) {
-        process->setStopCheckRtp(false);
+        process->pauseRtpTimeout(false);
     }
 }
 

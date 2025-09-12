@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
@@ -22,7 +22,7 @@ WebRtcPusher::Ptr WebRtcPusher::create(const EventPoller::Ptr &poller,
                                        const std::shared_ptr<void> &ownership,
                                        const MediaInfo &info,
                                        const ProtocolOption &option,
-                                       WebRtcTransport::Role role, 
+                                       WebRtcTransport::Role role,
                                        WebRtcTransport::SignalingProtocols signaling_protocols) {
     WebRtcPusher::Ptr pusher(new WebRtcPusher(poller, src, ownership, info, option), [](WebRtcPusher *ptr) {
         ptr->onDestory();
@@ -48,19 +48,10 @@ WebRtcPusher::WebRtcPusher(const EventPoller::Ptr &poller,
 }
 
 bool WebRtcPusher::close(MediaSource &sender) {
-    // 此回调在其他线程触发  [AUTO-TRANSLATED:c98e7686]
-    // This callback is triggered in another thread
-    string err = StrPrinter << "close media: " << sender.getUrl();
-    weak_ptr<WebRtcPusher> weak_self = static_pointer_cast<WebRtcPusher>(shared_from_this());
-    getPoller()->async([weak_self, err]() {
-        auto strong_self = weak_self.lock();
-        if (strong_self) {
-            strong_self->onShutdown(SockException(Err_shutdown, err));
-            // 主动关闭推流，那么不延时注销  [AUTO-TRANSLATED:ee7cc580]
-            // Actively close the stream, then do not delay the logout
-            strong_self->_push_src = nullptr;
-        }
-    });
+    onShutdown(SockException(Err_shutdown, "close media: " + sender.getUrl()));
+    // 主动关闭推流，那么不延时注销  [AUTO-TRANSLATED:ee7cc580]
+    // Actively close the stream, then do not delay the logout
+    _push_src = nullptr;
     return true;
 }
 

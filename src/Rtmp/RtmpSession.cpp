@@ -591,9 +591,7 @@ void RtmpSession::onSendMedia(const RtmpPacket::Ptr &pkt) {
 }
 
 bool RtmpSession::close(MediaSource &sender) {
-    //此回调在其他线程触发
-    string err = StrPrinter << "close media: " << sender.getUrl();
-    safeShutdown(SockException(Err_shutdown, err));
+    shutdown(SockException(Err_shutdown, "close media: " + sender.getUrl()));
     return true;
 }
 

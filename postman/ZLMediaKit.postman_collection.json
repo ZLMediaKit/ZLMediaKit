@@ -2019,6 +2019,12 @@
 							"key": "stream_id",
 							"value": "test",
 							"description": "该端口绑定的流id"
+						},
+						{
+							"key": "pause_seconds",
+							"value": "300",
+							"description": "暂停超时监测后，将在pause_seconds时间后恢复",
+							"disabled": true
 						}
 					]
 				}

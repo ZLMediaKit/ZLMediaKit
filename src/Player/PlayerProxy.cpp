@@ -254,16 +254,9 @@ void PlayerProxy::rePlay(const string &strUrl, int iFailedCnt) {
 bool PlayerProxy::close(MediaSource &sender) {
     // 通知其停止推流  [AUTO-TRANSLATED:d69d10d8]
     // Notify it to stop pushing the stream
-    weak_ptr<PlayerProxy> weakSelf = dynamic_pointer_cast<PlayerProxy>(shared_from_this());
-    getPoller()->async_first([weakSelf]() {
-        auto strongSelf = weakSelf.lock();
-        if (!strongSelf) {
-            return;
-        }
-        strongSelf->_muxer.reset();
-        strongSelf->setMediaSource(nullptr);
-        strongSelf->teardown();
-    });
+    _muxer = nullptr;
+    setMediaSource(nullptr);
+    teardown();
     _on_close(SockException(Err_shutdown, "closed by user"));
     WarnL << "close media: " << sender.getUrl();
     return true;
