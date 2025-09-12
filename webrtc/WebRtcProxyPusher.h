@@ -27,28 +27,22 @@ class WebRtcProxyPusher
 public:
     using Ptr = std::shared_ptr<WebRtcProxyPusher>;
 
-    WebRtcProxyPusher(const toolkit::EventPoller::Ptr &poller,const RtspMediaSource::Ptr &src);
+    WebRtcProxyPusher(const toolkit::EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src);
     ~WebRtcProxyPusher() override;
 
     //// PusherBase override////
     void publish(const std::string &url) override;
     void teardown() override;
 
-    void doPublish();
-
 protected:
-
     //// WebRtcClient override////
     void startConnect() override;
-    bool isPlayer() override {return false;}
+    bool isPlayer() override { return false; }
     void onResult(const toolkit::SockException &ex) override;
     float getTimeOutSec() override;
-    void onNegotiateFinish() override;
 
 protected:
-
     std::weak_ptr<RtspMediaSource> _push_src;
-    RtspMediaSource::RingType::RingReader::Ptr _rtsp_reader;
 };
 
 using WebRtcProxyPusherImp = PusherImp<WebRtcProxyPusher, PusherBase>;

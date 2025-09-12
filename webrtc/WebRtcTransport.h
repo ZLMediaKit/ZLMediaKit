@@ -169,6 +169,8 @@ public:
     void connectivityCheck(SdpAttrCandidate candidate_attr, const std::string &ufrag, const std::string &pwd);
     void connectivityCheckForSFU();
 
+    void setOnStartWebRTC(std::function<void()> on_start);
+
 protected:
     // DtlsTransport::Listener; dtls相关的回调
     void OnDtlsTransportConnecting(const RTC::DtlsTransport *dtlsTransport) override;
@@ -247,6 +249,7 @@ private:
     //超时功能实现
     toolkit::Ticker _recv_ticker;
     std::shared_ptr<toolkit::Timer> _check_timer;
+    std::function<void()> _on_start;
     std::function<void(const toolkit::SockException &ex)> _on_shutdown;
 
 #ifdef ENABLE_SCTP

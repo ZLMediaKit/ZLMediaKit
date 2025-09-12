@@ -416,6 +416,10 @@ void WebRtcTransport::onIceTransportGatheringCandidate(const IceTransport::Pair:
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+void WebRtcTransport::setOnStartWebRTC(std::function<void()> on_start) {
+    _on_start = std::move(on_start);
+}
+
 void WebRtcTransport::OnDtlsTransportConnected(
     const RTC::DtlsTransport *dtlsTransport, RTC::SrtpSession::CryptoSuite srtpCryptoSuite, uint8_t *srtpLocalKey,
     size_t srtpLocalKeyLen, uint8_t *srtpRemoteKey, size_t srtpRemoteKeyLen, std::string &remoteCert) {
@@ -429,6 +433,9 @@ void WebRtcTransport::OnDtlsTransportConnected(
     _sctp->TransportConnected();
 #endif
     onStartWebRTC();
+    if (_on_start) {
+        _on_start();
+    }
 }
 
 #pragma pack(push, 1)

@@ -91,7 +91,6 @@ public:
     static Ptr create(const toolkit::EventPoller::Ptr &poller, WebRtcTransport::Role role, WebRtcTransport::SignalingProtocols signaling_protocols);
 
     void setMediaSource(RtspMediaSource::Ptr src);
-    void setOnStartWebRTC(std::function<void()> on_start);
     std::vector<Track::Ptr> getTracks(bool ready) const;
 
 protected:
@@ -104,7 +103,6 @@ private:
     WebRtcPlayerClient(const toolkit::EventPoller::Ptr &poller);
 
 private:
-    std::function<void()> _on_start;
     RtspDemuxer::Ptr _demuxer;
     // 推流的rtsp源  [AUTO-TRANSLATED:4f976bca]
     // Rtsp source of the stream

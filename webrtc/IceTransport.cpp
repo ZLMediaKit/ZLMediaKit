@@ -1876,7 +1876,7 @@ void IceAgent::addToChecklist(const Pair::Ptr& pair, CandidateInfo& remote_candi
 
 void IceTransport::checkRequestTimeouts() {
     uint64_t now = toolkit::getCurrentMillisecond();
-    GET_CONFIG(int, max_retry, kMaxStunRetry);
+    GET_CONFIG(uint32_t, max_retry, kMaxStunRetry);
     for (auto it = _response_handlers.begin(); it != _response_handlers.end();) {
         auto& transaction_id = it->first;
         auto& req_info = it->second;

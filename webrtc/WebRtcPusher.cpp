@@ -209,13 +209,6 @@ void WebRtcPlayerClient::onStartWebRTC() {
         }
         _demuxer->loadSdp(sdp);
     }
-    if (_on_start) {
-        _on_start();
-    }
-}
-
-void WebRtcPlayerClient::setOnStartWebRTC(std::function<void()> on_start) {
-    _on_start = std::move(on_start);
 }
 
 void WebRtcPlayerClient::onRtcConfigure(RtcConfigure &configure) const {
