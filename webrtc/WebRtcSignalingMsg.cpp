@@ -29,6 +29,7 @@ const char* const METHOD_VALUE_CANDIDATE = "candidate";
 const char* const TRANSACTION_ID_KEY = "transaction_id";        // 消息id,每条消息拥有一个唯一的id
 const char* const ROOM_ID_KEY = "room_id";
 const char* const GUEST_ID_KEY = "guest_id";                    // 每个独立的会话，会拥有一个唯一的guest_id
+const char* const SENDER_KEY = "sender";
 const char* const TYPE_KEY = "type";
 const char* const TYPE_VALUE_PLAY = "play";                     // 拉流
 const char* const TYPE_VALUE_PUSH = "push";                     // 推流

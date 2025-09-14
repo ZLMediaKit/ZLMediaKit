@@ -543,6 +543,7 @@ void WebRtcSignalingPeer::sendByeIndication(const std::string& peer_room_id, con
     body[METHOD_KEY]   = METHOD_VALUE_BYE;
     body[GUEST_ID_KEY] = guest_id; //our guest id
     body[ROOM_ID_KEY]  = peer_room_id;
+    body[SENDER_KEY]  = guest_id;
     sendIndication(body);
 }
 
@@ -560,6 +561,7 @@ void WebRtcSignalingPeer::sendCandidateIndication(const std::string& transport_i
         if (pr.second == transport_identifier) {
             body[ROOM_ID_KEY] = _room_id;
             body[GUEST_ID_KEY] = pr.first; //peer_guest_id
+            body[SENDER_KEY]  = _room_id;
             return sendIndication(body);
         }
     }
@@ -570,6 +572,7 @@ void WebRtcSignalingPeer::sendCandidateIndication(const std::string& transport_i
         if (info.second == transport_identifier) {
             body[ROOM_ID_KEY] = pr.first;    //peer room id
             body[GUEST_ID_KEY] = info.first; //our_guest_id
+            body[SENDER_KEY]  = info.first;
             return sendIndication(body);
         }
     }

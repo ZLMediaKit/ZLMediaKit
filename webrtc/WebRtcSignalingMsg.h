@@ -35,6 +35,7 @@ extern const char* const METHOD_VALUE_CANDIDATE;
 extern const char* const TRANSACTION_ID_KEY;            // 消息id,每条消息拥有一个唯一的id
 extern const char* const ROOM_ID_KEY;
 extern const char* const GUEST_ID_KEY;                 // 每个独立的会话，会拥有一个唯一的guest_id
+extern const char* const SENDER_KEY;
 extern const char* const TYPE_KEY;
 extern const char* const TYPE_VALUE_PLAY;              // 拉流
 extern const char* const TYPE_VALUE_PUSH;              // 推流
