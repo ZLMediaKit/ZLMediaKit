@@ -1496,8 +1496,8 @@ void IceAgent::handleAllocateResponse(const StunPacket::Ptr& packet, const Pair:
     candidate._type = CandidateInfo::AddressType::RELAY;
     candidate._addr._host = relay->getIp();
     candidate._addr._port = relay->getPort();
-    candidate._base_addr._host = candidate._addr._host;
-    candidate._base_addr._port = candidate._addr._port;
+    candidate._base_addr._host = pair->get_local_ip();
+    candidate._base_addr._port = pair->get_local_port();
     candidate._ufrag = getUfrag();
     candidate._pwd = getPassword();
 

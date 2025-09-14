@@ -190,8 +190,9 @@ static std::string calculateFoundation(const std::string& ip, const std::string&
     return foundation_str;
 }
 
-static SdpAttrCandidate::Ptr makeIceCandidate(std::string ip, uint16_t port, uint32_t priority = 100, const std::string &proto = "udp", const std::string &type = "host",
-    const std::string &stun_server = "") {
+static SdpAttrCandidate::Ptr makeIceCandidate(std::string ip, uint16_t port, uint32_t priority = 100, 
+    const std::string &proto = "udp", const std::string &type = "host",
+    const std::string &base_host = "", uint16_t base_port = 0, const std::string &stun_server = "") {
     auto candidate = std::make_shared<SdpAttrCandidate>();
     candidate->foundation = calculateFoundation(ip, proto, type, stun_server);
     candidate->component = 1;
@@ -203,6 +204,12 @@ static SdpAttrCandidate::Ptr makeIceCandidate(std::string ip, uint16_t port, uin
     if (strcasecmp(proto.c_str(), "tcp") == 0) {
         candidate->type += " tcptype passive";
     }
+    
+    if (type != "host" && !base_host.empty() && base_port > 0) {
+        candidate->arr.emplace_back("raddr", base_host);
+        candidate->arr.emplace_back("rport", std::to_string(base_port));
+    }
+    
     return candidate;
 }
 
@@ -215,17 +222,22 @@ static CandidateInfo::Ptr makeCandidateInfoBySdpAttr(const SdpAttrCandidate& can
     candidate->_addr._port = candidate_attr.port;
     candidate->_base_addr._host = candidate->_addr._host;
     candidate->_base_addr._port = candidate->_addr._port;
-    for (auto &pr : candidate_attr.arr) {
-        if (pr.first == "raddr") {
-            candidate->_base_addr._host = pr.second;
-        } 
-        if (pr.first == "rport") {
-            candidate->_base_addr._port = atoi(pr.second.data());
-        }
-    }
     candidate->_priority = candidate_attr.priority;
     candidate->_ufrag = ufrag;
     candidate->_pwd = pwd;
+
+    if (CandidateInfo::AddressType::HOST == candidate->_type) {
+        candidate->_base_addr = candidate->_addr;
+    } else {
+        for (auto &pr : candidate_attr.arr) {
+            if (pr.first == "raddr") {
+                candidate->_base_addr._host = pr.second;
+            }
+            if (pr.first == "rport") {
+                candidate->_base_addr._port = atoi(pr.second.data());
+            }
+        }
+    }
 
     if (strcasecmp(candidate_attr.transport.c_str(), "udp") == 0) {
         candidate->_transport = CandidateTuple::TransportType::UDP;
@@ -409,7 +421,7 @@ void WebRtcTransport::onIceTransportGatheringCandidate(const IceTransport::Pair:
     InfoL << getIdentifier() << " get local candidate type " << candidate.dumpString();
     if (_on_gathering_candidate) {
         auto type = mappingCandidateTypeEnum2Str(candidate._type);
-        auto sdpAttrCandidate = makeIceCandidate(candidate._addr._host, candidate._addr._port, candidate._priority, "udp", type);
+        auto sdpAttrCandidate = makeIceCandidate(candidate._addr._host, candidate._addr._port, candidate._priority, "udp", type, candidate._base_addr._host, candidate._base_addr._port);
         _on_gathering_candidate(getIdentifier(), sdpAttrCandidate->toString(), candidate._ufrag, candidate._pwd);
     }
 }
