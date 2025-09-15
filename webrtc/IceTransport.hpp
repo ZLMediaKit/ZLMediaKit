@@ -228,7 +228,17 @@ public:
                 peer_addr = toolkit::SockUtil::make_sockaddr(_peer_host.data(), _peer_port);
             } else {
                 auto addr = _socket->get_peer_addr();
-                memcpy(&peer_addr, addr, toolkit::SockUtil::get_sock_len(addr));
+                if (addr->sa_family == AF_INET6 && IN6_IS_ADDR_V4MAPPED(&((struct sockaddr_in6 *)addr)->sin6_addr)) {
+                    memset(&peer_addr, 0, sizeof(peer_addr));
+                    // 转换IPv6 v4mapped地址为IPv4地址
+                    struct sockaddr_in6 *addr6 = (struct sockaddr_in6 *)addr;
+                    struct sockaddr_in *addr4 = (struct sockaddr_in *)&peer_addr;
+                    addr4->sin_family = AF_INET;
+                    addr4->sin_port = addr6->sin6_port;
+                    memcpy(&addr4->sin_addr, &addr6->sin6_addr.s6_addr[12], 4);
+                } else {
+                    memcpy(&peer_addr, addr, toolkit::SockUtil::get_sock_len(addr));
+                }
             }
         }
 
@@ -248,6 +258,7 @@ public:
         std::string get_peer_ip() const { return !_peer_host.empty() ? _peer_host : _socket->get_peer_ip(); }
 
         uint16_t get_peer_port() const { return !_peer_host.empty() ? _peer_port : _socket->get_peer_port(); }
+
 
         std::string get_relayed_ip() const { return _relayed_addr ? toolkit::SockUtil::inet_ntoa((const struct sockaddr *)_relayed_addr.get()) : ""; }
 
@@ -288,7 +299,7 @@ public:
         std::string _peer_host;
         uint16_t _peer_port;
 
-        //转发地址，用于实现TURN转发地址
+        //中继后地址，用于实现TURN转发地址，当该地址不为空时，该地址为真正的peer地址,_peer_host和_peer_port表示中继地址
         std::shared_ptr<sockaddr_storage> _relayed_addr;
     };
 
