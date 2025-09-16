@@ -477,6 +477,7 @@ public:
     enum class State {
         //checklist state and ice session state
         Running = 1,        //正在进行候选地址的连通性检测
+        Nominated,          //发起提名，等待应答
         Completed,          //所有候选地址完成验证,且至少有一路连接检测成功
         Failed,             //所有候选地址检测失败,连接不可用
     };

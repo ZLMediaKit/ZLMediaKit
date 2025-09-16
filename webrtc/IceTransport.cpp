@@ -1664,7 +1664,9 @@ void IceAgent::onConnected(const IceTransport::Pair::Ptr& pair) {
         _valid_list.push_back(candidate_pair);
 
         if (getRole() == Role::Controlling) {
-            if (getState() != IceAgent::State::Completed) {
+            if (getState() != IceAgent::State::Nominated && getState() != IceAgent::State::Completed) {
+                //TODO:need process priority
+                setState(IceAgent::State::Nominated);
                 nominated(pair, remote_candidate);
             }
         }
