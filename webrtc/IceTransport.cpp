@@ -201,9 +201,9 @@ bool IceTransport::processSocketData(const uint8_t* data, size_t len, const Pair
 #if 0
     TraceL << pair->dumpString(0) << " data len: " << len;
     sockaddr_storage relay_peer_addr;
-     if (pair->get_relayed_addr(relay_peer_addr)) {
+    if (pair->get_relayed_addr(relay_peer_addr)) {
         TraceL << "data relay from peer " << addrToStr(relay_peer_addr);
-     }
+    }
 #endif
 
     auto packet = StunPacket::parse(data, len);
@@ -923,7 +923,6 @@ SocketHelper::Ptr IceServer::allocateRelayed(const Pair::Ptr& pair) {
     auto socket = createRelayedUdpSocket(pair->get_peer_ip(), pair->get_peer_port(), extern_ip, *port);
     auto relayed_pair = std::make_shared<Pair>(socket);
     auto peer_addr = SockUtil::make_sockaddr(pair->get_peer_ip().data(), pair->get_peer_port());
-    _relayed_pairs.emplace(peer_addr, std::make_pair(port, relayed_pair));
     weak_ptr<IceServer> weak_self = static_pointer_cast<IceServer>(shared_from_this());
     _relayed_pairs.emplace(peer_addr, std::make_pair(port, relayed_pair));
     _relayed_session.emplace(peer_addr, weak_self);
@@ -1065,6 +1064,7 @@ void IceAgent::gatheringCandidate(const CandidateTuple::Ptr& candidate_tuple, bo
             }
 
             if (gathering_realy) {
+                //TODO: 代优化relay_socket 复用host socket当前SocketCandidateManager数据结构不支持
                 auto relay_socket = createSocket(candidate_tuple->_transport, candidate_tuple->_addr._host, candidate_tuple->_addr._port, local_ip);
                 _socket_candidate_manager.addRelaySocket(relay_socket);
                 gatheringRealyCandidate(std::make_shared<Pair>(std::move(relay_socket)));
@@ -1401,15 +1401,18 @@ void IceAgent::handleConnectivityCheckResponse(const StunPacket::Ptr& packet, co
         sendErrorResponse(packet, pair, StunAttrErrorCode::Code::BadRequest);
     }
 
-    CandidateInfo preflx_candidate;
-    preflx_candidate._type = CandidateInfo::AddressType::PRFLX;
-    preflx_candidate._addr._host = srflx->getIp();
-    preflx_candidate._addr._port = srflx->getPort();
-    preflx_candidate._base_addr._host = pair->get_local_ip();
-    preflx_candidate._base_addr._port = pair->get_local_port();
-    preflx_candidate._ufrag = getUfrag();
-    preflx_candidate._pwd = getPassword();
-    onGatheringCandidate(pair, preflx_candidate);
+    if (!pair->_relayed_addr) {
+        //relay的消息不添加PRFLX candidaite
+        CandidateInfo preflx_candidate;
+        preflx_candidate._type = CandidateInfo::AddressType::PRFLX;
+        preflx_candidate._addr._host = srflx->getIp();
+        preflx_candidate._addr._port = srflx->getPort();
+        preflx_candidate._base_addr._host = pair->get_local_ip();
+        preflx_candidate._base_addr._port = pair->get_local_port();
+        preflx_candidate._ufrag = getUfrag();
+        preflx_candidate._pwd = getPassword();
+        onGatheringCandidate(pair, preflx_candidate);
+    }
 
     DebugL << "get candidate type preflx: " << srflx->getIp() << ":" << srflx->getPort();
     onConnected(pair);
@@ -1496,8 +1499,8 @@ void IceAgent::handleAllocateResponse(const StunPacket::Ptr& packet, const Pair:
     candidate._type = CandidateInfo::AddressType::RELAY;
     candidate._addr._host = relay->getIp();
     candidate._addr._port = relay->getPort();
-    candidate._base_addr._host = pair->get_local_ip();
-    candidate._base_addr._port = pair->get_local_port();
+    candidate._base_addr._host = relay->getIp();
+    candidate._base_addr._port = relay->getPort();
     candidate._ufrag = getUfrag();
     candidate._pwd = getPassword();
 
@@ -1680,6 +1683,7 @@ void IceAgent::onCompleted(const IceTransport::Pair::Ptr& pair) {
             auto &pair_it = candidate_pair->_local_pair;
             if (Pair::is_same(pair_it.get(), pair.get())) {
                 candidate_pair->_nominated = true;
+                _select_candidate_pair = candidate_pair;
                 InfoL << "select pair: " << candidate_pair->dumpString();
                 found_in_valid_list = true;
                 break;
@@ -1844,7 +1848,7 @@ CandidateInfo IceAgent::getLocalCandidateInfo(const Pair::Ptr& pair) {
     // 从socket_candidate_manager中查找对应的本地候选者信息
     for (const auto& socket_candidates : _socket_candidate_manager.socket_to_candidates) {
         if (socket_candidates.first == pair->_socket) {
-            // 找到对应socket的候选者列表，选择第一个作为默认
+            // 找到对应socket的候选者列表，选择第一个(host类型)作为默认
             if (!socket_candidates.second.empty()) {
                 return socket_candidates.second[0];
             }
@@ -1856,6 +1860,7 @@ CandidateInfo IceAgent::getLocalCandidateInfo(const Pair::Ptr& pair) {
 
 void IceAgent::addToChecklist(const Pair::Ptr& pair, CandidateInfo& remote_candidate) {
     try {
+        //TODO: 优化checklist
         CandidateInfo local_candidate = getLocalCandidateInfo(pair);
         auto candidate_pair = std::make_shared<CandidatePair>(std::make_shared<Pair>(*pair), remote_candidate, local_candidate);
         candidate_pair->_state = CandidateInfo::State::InProgress;
@@ -1970,19 +1975,20 @@ Json::Value IceAgent::getChecklistInfo() const {
     result["ice_state"] = stateToString(_state);
     
     if (_selected_pair) {
-        Json::Value active_pair;
-        active_pair["local"] = _selected_pair->get_local_ip() + ":" + std::to_string(_selected_pair->get_local_port());
+        Json::Value selected_pair;
+        selected_pair["local_addr"] = _selected_pair->get_local_ip() + ":" + std::to_string(_selected_pair->get_local_port());
+        selected_pair["remote_addr"] = _selected_pair->get_peer_ip() + ":" + std::to_string(_selected_pair->get_peer_port());
+        if (!_selected_pair->get_relayed_ip().empty()) {
+            selected_pair["relayed_addr"] = _selected_pair->get_relayed_ip() + ":" + std::to_string(_selected_pair->get_relayed_port());
+        }
+
+        if (_select_candidate_pair) {
+            selected_pair["candidate_pair"] = _select_candidate_pair->_local_candidate.dumpString() + " <-> " + _select_candidate_pair->_remote_candidate.dumpString();
+        }
         
-        // 优先使用relayed地址，如果没有则使用peer地址
-        const auto remote_ip = _selected_pair->get_relayed_ip().empty()
-            ? _selected_pair->get_peer_ip() : _selected_pair->get_relayed_ip();
-        const auto remote_port = _selected_pair->get_relayed_ip().empty()
-            ? _selected_pair->get_peer_port() : _selected_pair->get_relayed_port();
-        active_pair["remote"] = remote_ip + ":" + std::to_string(remote_port);
-        
-        result["active_pair"] = active_pair;
+        result["selected_pair"] = selected_pair;
     } else {
-        result["active_pair"] = Json::nullValue;
+        result["selected_pair"] = Json::nullValue;
     }
     return result;
 }

@@ -163,7 +163,7 @@ public:
     }
 
     std::string dumpString() const {
-        return getAddressTypeStr() + " " + _base_addr.dumpString();
+        return getAddressTypeStr() + " " + _addr.dumpString();
     }
 
 public:
@@ -745,6 +745,7 @@ protected:
     //TODO:当前仅支持多数据流复用一个checklist
     std::vector<std::shared_ptr<CandidatePair>> _check_list;
     std::vector<std::shared_ptr<CandidatePair>> _valid_list;
+    std::shared_ptr<CandidatePair> _select_candidate_pair;
 
 };
 
