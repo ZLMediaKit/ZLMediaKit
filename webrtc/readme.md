@@ -1,13 +1,6 @@
 # 致谢与声明
 本文件夹下部分文件提取自[MediaSoup](https://github.com/versatica/mediasoup) ，分别为：
 
-- ice相关功能：
-  - IceServer.cpp
-  - IceServer.hpp
-  - StunPacket.cpp
-  - StunPacket.hpp
-  - Utils.hpp
-  
 - dtls相关功能：
    - DtlsTransport.cpp
    - DtlsTransport.hpp

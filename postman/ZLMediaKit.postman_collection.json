@@ -2732,6 +2732,154 @@
 				}
 			},
 			"response": []
+		},
+		{
+			"name": "WebRTC-注册到信令服务器(addWebrtcRoomKeeper)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/addWebrtcRoomKeeper?secret={{ZLMediaKit_secret}}&server_host=127.0.0.1&server_port=3000&room_id=peer_1",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"addWebrtcRoomKeeper"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}"
+						},
+						{
+							"key": "server_host",
+							"value": "127.0.0.1",
+							"description": "要注册到的信令服务器地址"
+						},
+						{
+							"key": "server_port",
+							"value": "3000",
+							"description": "要注册到的信令服务器端口"
+						},
+						{
+							"key": "room_id",
+							"value": "peer_1",
+							"description": "要注册到的roomid"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "WebRTC-从信令服务器注销(delWebrtcRoomKeeper)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/delWebrtcRoomKeeper?secret={{ZLMediaKit_secret}}&room_key=",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"delWebrtcRoomKeeper"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}"
+						},
+						{
+							"key": "room_key",
+							"value": ""
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "WebRTC-Peer查看注册信息(listWebrtcRoomKeepers)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/listWebrtcRoomKeepers?secret={{ZLMediaKit_secret}}",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"listWebrtcRoomKeepers"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "WebRTC-信令服务器查看注册信息(listWebrtcRooms)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/listWebrtcRooms?secret={{ZLMediaKit_secret}}",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"listWebrtcRooms"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "WebRTC-查看WebRTCProxyPlayer连接信息(getWebrtcProxyPlayerInfo)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/getWebrtcProxyPlayerInfo?secret={{ZLMediaKit_secret}}&key=__defaultVhost__/live/test",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"getWebrtcProxyPlayerInfo"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}"
+						},
+						{
+							"key": "key",
+							"value": "__defaultVhost__/live/test"
+						}
+					]
+				}
+			},
+			"response": []
 		}
 	],
 	"event": [
