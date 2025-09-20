@@ -57,6 +57,10 @@
 #include "../webrtc/WebRtcPlayer.h"
 #include "../webrtc/WebRtcPusher.h"
 #include "../webrtc/WebRtcEchoTest.h"
+#include "../webrtc/WebRtcSignalingPeer.h"
+#include "../webrtc/WebRtcSignalingSession.h"
+#include "../webrtc/WebRtcProxyPlayer.h"
+#include "../webrtc/WebRtcProxyPlayerImp.h"
 #endif
 
 #if defined(ENABLE_VERSION)
@@ -313,84 +317,6 @@ static inline void addHttpListener(){
         },false);
     });
 }
-
-template <typename Type>
-class ServiceController {
-public:
-    using Pointer = std::shared_ptr<Type>;
-
-    void clear() {
-        decltype(_map) copy;
-        {
-            std::lock_guard<std::recursive_mutex> lck(_mtx);
-            copy.swap(_map);
-        }
-    }
-
-    size_t erase(const std::string &key) {
-        Pointer erase_ptr;
-        {
-            std::lock_guard<std::recursive_mutex> lck(_mtx);
-            auto itr = _map.find(key);
-            if (itr != _map.end()) {
-                erase_ptr = itr->second;
-                _map.erase(itr);
-                return 1;
-            }
-        }
-        return 0;
-    }
-
-    size_t size() { 
-        std::lock_guard<std::recursive_mutex> lck(_mtx);
-        return _map.size();
-    }
-
-    Pointer find(const std::string &key) const {
-        std::lock_guard<std::recursive_mutex> lck(_mtx);
-        auto it = _map.find(key);
-        if (it == _map.end()) {
-            return nullptr;
-        }
-        return it->second;
-    }
-
-    void for_each(const std::function<void(const std::string&, const Pointer&)>& cb) {
-        std::lock_guard<std::recursive_mutex> lck(_mtx);
-        auto it = _map.begin();
-        while (it != _map.end()) {
-            cb(it->first, it->second);
-            it++;
-        }
-    }
-
-    template<class ..._Args>
-    Pointer make(const std::string &key, _Args&& ...__args) {
-        // assert(!find(key));
-
-        auto server = std::make_shared<Type>(std::forward<_Args>(__args)...);
-        std::lock_guard<std::recursive_mutex> lck(_mtx);
-        auto it = _map.emplace(key, server);
-        assert(it.second);
-        return server;
-    }
-
-    template<class ..._Args>
-    Pointer makeWithAction(const std::string &key, function<void(Pointer)> action, _Args&& ...__args) {
-        // assert(!find(key));
-
-        auto server = std::make_shared<Type>(std::forward<_Args>(__args)...);
-        action(server);
-        std::lock_guard<std::recursive_mutex> lck(_mtx);
-        auto it = _map.emplace(key, server);
-        assert(it.second);
-        return server;
-    }
-
-private:
-    std::unordered_map<std::string, Pointer> _map;
-    mutable std::recursive_mutex _mtx;
-};
 
 // 拉流代理器列表  [AUTO-TRANSLATED:6dcfb11f]
 // Pull stream proxy list
@@ -2127,35 +2053,6 @@ void installWebApi() {
     });
 
 #ifdef ENABLE_WEBRTC
-    class WebRtcArgsImp : public WebRtcArgs {
-    public:
-        WebRtcArgsImp(const ArgsString &args, std::string session_id)
-            : _args(args)
-            , _session_id(std::move(session_id)) {}
-        ~WebRtcArgsImp() override = default;
-
-        toolkit::variant operator[](const string &key) const override {
-            if (key == "url") {
-                return getUrl();
-            }
-            return _args[key];
-        }
-
-    private:
-        string getUrl() const{
-            auto &allArgs = _args;
-            CHECK_ARGS("app", "stream");
-
-            string auth = _args["Authorization"]; // Authorization  Bearer
-            return StrPrinter << "rtc://" << _args["Host"] << "/" << _args["app"] << "/" << _args["stream"] << "?"
-                              << _args.parser.params() + "&session=" + _session_id + (auth.empty() ? "" : ("&Authorization=" + auth));
-        }
-
-    private:
-        ArgsString _args;
-        std::string _session_id;
-    };
-
     api_regist("/index/api/webrtc",[](API_ARGS_STRING_ASYNC){
         CHECK_ARGS("type");
         auto type = allArgs["type"];
@@ -2163,7 +2060,7 @@ void installWebApi() {
         CHECK(!offer.empty(), "http body(webrtc offer sdp) is empty");
 
         auto &session = static_cast<Session&>(sender);
-        auto args = std::make_shared<WebRtcArgsImp>(allArgs, sender.getIdentifier());
+        auto args = std::make_shared<WebRtcArgsImp<std::string>>(allArgs, sender.getIdentifier());
         WebRtcPluginManager::Instance().negotiateSdp(session, type, *args, [invoker, val, offer, headerOut](const WebRtcInterface &exchanger) mutable {
             auto &handler = const_cast<WebRtcInterface &>(exchanger);
             try {
@@ -2186,7 +2083,7 @@ void installWebApi() {
 
         auto &session = static_cast<Session&>(sender);
         auto location = std::string(session.overSsl() ? "https://" : "http://") + allArgs["host"] + delete_webrtc_url;
-        auto args = std::make_shared<WebRtcArgsImp>(allArgs, sender.getIdentifier());
+        auto args = std::make_shared<WebRtcArgsImp<std::string>>(allArgs, sender.getIdentifier());
         WebRtcPluginManager::Instance().negotiateSdp(session, type, *args, [invoker, offer, headerOut, location](const WebRtcInterface &exchanger) mutable {
             auto &handler = const_cast<WebRtcInterface &>(exchanger);
             try {
@@ -2219,6 +2116,103 @@ void installWebApi() {
         }
         obj->safeShutdown(SockException(Err_shutdown, "deleted by http api"));
         invoker(200, headerOut, "");
+    });
+
+    // 获取WebRTCProxyPlayer 连接信息
+    api_regist("/index/api/getWebrtcProxyPlayerInfo", [](API_ARGS_MAP_ASYNC) {
+        CHECK_SECRET();
+        CHECK_ARGS("key");
+
+        auto player_proxy = s_player_proxy.find(allArgs["key"]);
+        if (!player_proxy) {
+            throw ApiRetException("Stream proxy not found", API::NotFound);
+        }
+
+        auto media_player = player_proxy->getDelegate();
+        if (!media_player) {
+            throw ApiRetException("Media player not found", API::OtherFailed);
+        }
+
+        auto webrtc_player_imp = std::dynamic_pointer_cast<WebRtcProxyPlayerImp>(media_player);
+        if (!webrtc_player_imp) {
+            throw ApiRetException("Stream proxy is not WebRTC type", API::OtherFailed);
+        }
+
+        auto webrtc_transport = webrtc_player_imp->getWebRtcTransport();
+        if (!webrtc_transport) {
+            throw ApiRetException("WebRTC transport not available", API::OtherFailed);
+        }
+
+        std::string stream_key = allArgs["key"];
+        webrtc_transport->getTransportInfo([val, headerOut, invoker, stream_key](Json::Value transport_info) mutable {
+            transport_info["stream_key"] = stream_key;
+
+            if (transport_info.isMember("error")) {
+                Json::Value error_val;
+                error_val["code"] = API::OtherFailed;
+                error_val["msg"] = transport_info["error"].asString();
+                invoker(200, headerOut, error_val.toStyledString());
+                return;
+            }
+
+            // 成功返回结果
+            Json::Value success_val;
+            success_val["code"] = API::Success;
+            success_val["msg"] = "success";
+            success_val["data"] = transport_info;
+            invoker(200, headerOut, success_val.toStyledString());
+        });
+    });
+
+    api_regist("/index/api/addWebrtcRoomKeeper",[](API_ARGS_MAP_ASYNC){
+        CHECK_SECRET();
+        CHECK_ARGS("server_host", "server_port", "room_id", "ssl");
+        //server_host: 信令服务器host
+        //server_post: 信令服务器host
+        //room_id: 注册的id,信令服务器会对该id进行唯一性检查
+        addWebrtcRoomKeeper(allArgs["server_host"], allArgs["server_port"], allArgs["room_id"], allArgs["ssl"],
+            [val, headerOut, invoker](const SockException &ex, const string &key) mutable {
+                if (ex) {
+                    val["code"] = API::OtherFailed;
+                    val["msg"] = ex.what();
+                } else {
+                    val["msg"] = "success";
+                    val["data"]["room_key"] = key;
+                }
+                invoker(200, headerOut, val.toStyledString());
+            });
+    });
+
+    api_regist("/index/api/delWebrtcRoomKeeper",[](API_ARGS_MAP_ASYNC){
+        CHECK_SECRET();
+        CHECK_ARGS("room_key");
+
+        delWebrtcRoomKeeper(allArgs["room_key"],
+            [val, headerOut, invoker](const SockException &ex) mutable {
+                if (ex) {
+                    val["code"] = API::OtherFailed;
+                    val["msg"] = ex.what();
+                }
+                invoker(200, headerOut, val.toStyledString());
+            });
+    });
+
+    api_regist("/index/api/listWebrtcRoomKeepers", [](API_ARGS_MAP) {
+        CHECK_SECRET();
+        listWebrtcRoomKeepers([&val](const std::string& key, const WebRtcSignalingPeer::Ptr& p) {
+            Json::Value item = ToJson(p);
+            item["room_key"] = key;
+            val["data"].append(item);
+        });
+    });
+
+    api_regist("/index/api/listWebrtcRooms", [](API_ARGS_MAP) {
+        CHECK_SECRET();
+        listWebrtcRooms([&val](const std::string& key, const WebRtcSignalingSession::Ptr& p) {
+            Json::Value item = ToJson(p);
+            item["room_id"] = key;
+            val["data"].append(item);
+        });
     });
 #endif
 

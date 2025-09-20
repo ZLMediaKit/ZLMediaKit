@@ -163,7 +163,7 @@ static std::shared_ptr<char> getSharedMmap(const string &file_path, int64_t &fil
 
     if (addr_ == nullptr) {
         mmap_close(hfile, hmapping, addr_);
-		WarnL << "MapViewOfFile() " << file_path << " failed:";
+        WarnL << "MapViewOfFile() " << file_path << " failed:";
         return nullptr;
     }
 

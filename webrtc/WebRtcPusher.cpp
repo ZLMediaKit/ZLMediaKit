@@ -13,6 +13,7 @@
 #include "Rtsp/RtspMediaSourceImp.h"
 
 using namespace std;
+using namespace toolkit;
 
 namespace mediakit {
 
@@ -20,13 +21,18 @@ WebRtcPusher::Ptr WebRtcPusher::create(const EventPoller::Ptr &poller,
                                        const RtspMediaSource::Ptr &src,
                                        const std::shared_ptr<void> &ownership,
                                        const MediaInfo &info,
-                                       const ProtocolOption &option) {
-    WebRtcPusher::Ptr ret(new WebRtcPusher(poller, src, ownership, info, option), [](WebRtcPusher *ptr) {
+                                       const ProtocolOption &option,
+                                       WebRtcTransport::Role role,
+                                       WebRtcTransport::SignalingProtocols signaling_protocols) {
+    WebRtcPusher::Ptr pusher(new WebRtcPusher(poller, src, ownership, info, option), [](WebRtcPusher *ptr) {
         ptr->onDestory();
         delete ptr;
     });
-    ret->onCreate();
-    return ret;
+
+    pusher->setRole(role);
+    pusher->setSignalingProtocols(signaling_protocols);
+    pusher->onCreate();
+    return pusher;
 }
 
 WebRtcPusher::WebRtcPusher(const EventPoller::Ptr &poller,
@@ -164,6 +170,63 @@ void WebRtcPusher::onRtcpBye() {
 void WebRtcPusher::onShutdown(const SockException &ex) {
      _push_src = nullptr;
      WebRtcTransportImp::onShutdown(ex);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+
+WebRtcPlayerClient::Ptr WebRtcPlayerClient::create(const EventPoller::Ptr &poller, WebRtcTransport::Role role,
+                                                   WebRtcTransport::SignalingProtocols signaling_protocols) {
+    WebRtcPlayerClient::Ptr pusher(new WebRtcPlayerClient(poller), [](WebRtcPlayerClient *ptr) {
+        ptr->onDestory();
+        delete ptr;
+    });
+
+    pusher->setRole(role);
+    pusher->setSignalingProtocols(signaling_protocols);
+    pusher->onCreate();
+    return pusher;
+}
+
+WebRtcPlayerClient::WebRtcPlayerClient(const EventPoller::Ptr &poller)
+    : WebRtcTransportImp(poller) {
+    _demuxer = std::make_shared<RtspDemuxer>();
+}
+
+void WebRtcPlayerClient::onRecvRtp(MediaTrack &track, const string &rid, RtpPacket::Ptr rtp) {
+    auto key_pos = _demuxer->inputRtp(rtp);
+    if (_push_src) {
+        _push_src->onWrite(rtp, key_pos);
+    }
+}
+
+void WebRtcPlayerClient::onStartWebRTC() {
+    WebRtcTransportImp::onStartWebRTC();
+    CHECK(!_answer_sdp->supportSimulcast());
+    auto sdp = _answer_sdp->toRtspSdp();
+    if (canRecvRtp()) {
+        if (_push_src) {
+            _push_src->setSdp(sdp);
+        }
+        _demuxer->loadSdp(sdp);
+    }
+}
+
+void WebRtcPlayerClient::onRtcConfigure(RtcConfigure &configure) const {
+    WebRtcTransportImp::onRtcConfigure(configure);
+    // 这只是推流  [AUTO-TRANSLATED:f877bf98]
+    // This is just pushing the stream
+    configure.audio.direction = configure.video.direction = RtpDirection::recvonly;
+}
+
+vector<Track::Ptr> WebRtcPlayerClient::getTracks(bool ready) const {
+    return _demuxer->getTracks(ready);
+}
+
+void WebRtcPlayerClient::setMediaSource(RtspMediaSource::Ptr src) {
+    _push_src = std::move(src);
+    if (_push_src && canRecvRtp()) {
+        _push_src->setSdp(_answer_sdp->toRtspSdp());
+    }
 }
 
 }// namespace mediakit

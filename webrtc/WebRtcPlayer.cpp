@@ -15,6 +15,7 @@
 #include "Util/base64.h"
 
 using namespace std;
+using namespace toolkit;
 
 namespace mediakit {
 
@@ -167,17 +168,24 @@ uint8_t H264BFrameFilter::extractSliceType(const uint8_t *data, size_t size) con
     return -1;
 }
 
-WebRtcPlayer::Ptr WebRtcPlayer::create(const EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src, const MediaInfo &info) {
+WebRtcPlayer::Ptr WebRtcPlayer::create(const EventPoller::Ptr &poller,
+                                       const RtspMediaSource::Ptr &src,
+                                       const MediaInfo &info,
+                                       WebRtcTransport::Role role,
+                                       WebRtcTransport::SignalingProtocols signaling_protocols) {
     WebRtcPlayer::Ptr ret(new WebRtcPlayer(poller, src, info), [](WebRtcPlayer *ptr) {
         ptr->onDestory();
         delete ptr;
     });
+    ret->setRole(role);
+    ret->setSignalingProtocols(signaling_protocols);
     ret->onCreate();
     return ret;
 }
 
-WebRtcPlayer::WebRtcPlayer(const EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src, const MediaInfo &info)
-    : WebRtcTransportImp(poller) {
+WebRtcPlayer::WebRtcPlayer(const EventPoller::Ptr &poller,
+                           const RtspMediaSource::Ptr &src,
+                           const MediaInfo &info) : WebRtcTransportImp(poller) {
     _media_info = info;
     _play_src = src;
     CHECK(src);
