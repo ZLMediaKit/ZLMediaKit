@@ -54,6 +54,7 @@ extern const std::string kIceTransportPolicy;
 extern const std::string kIceUfrag;
 extern const std::string kIcePwd;
 extern const std::string kExternIP;
+extern const std::string kInterfaces;
 }//namespace RTC
 
 class WebRtcInterface {

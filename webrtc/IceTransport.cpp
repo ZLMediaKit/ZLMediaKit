@@ -903,8 +903,9 @@ SocketHelper::Ptr IceServer::allocateRelayed(const Pair::Ptr& pair) {
 
     // only support udp
     auto port = PortManager<0>::Instance().getSinglePort();
+    std::string local_ip;
 
-    GET_CONFIG_FUNC(std::vector<std::string>, extern_ips, Rtc::kExternIP, [](string str) {
+    GET_CONFIG_FUNC(std::vector<std::string>, interfaces, Rtc::kInterfaces, [](string str) {
         std::vector<std::string> ret;
         if (str.length()) {
             ret = split(str, ",");
@@ -913,14 +914,41 @@ SocketHelper::Ptr IceServer::allocateRelayed(const Pair::Ptr& pair) {
         return ret;
     });
 
-    std::string extern_ip;
-    if (extern_ips.empty()) {
-        extern_ip = SockUtil::get_local_ip();
-    } else {
-        extern_ip = extern_ips.front();
+    //如果指定了对外的网卡，使用第一个对外网卡的ip
+    if (!interfaces.empty()) {
+        auto machine_interfaces = SockUtil::getInterfaceList();
+        for (auto& obj : machine_interfaces) {
+            std::string& interface_ip = obj["ip"];
+            if (toolkit::start_with(obj["name"], "lo") || interface_ip == "0.0.0.0" || interface_ip == "::") {
+                DebugL << "skip interace: " << obj["name"] << " " << interface_ip;
+                continue;
+            }
+            if (obj["name"] == interfaces.front()) {
+                DebugL << "use interace: " << obj["name"] << " " << interface_ip;
+                local_ip = interface_ip;
+                break;
+            }
+        }
     }
 
-    auto socket = createRelayedUdpSocket(pair->get_peer_ip(), pair->get_peer_port(), extern_ip, *port);
+    if (interfaces.empty() || local_ip.empty()){
+        GET_CONFIG_FUNC(std::vector<std::string>, extern_ips, Rtc::kExternIP, [](string str) {
+            std::vector<std::string> ret;
+            if (str.length()) {
+                ret = split(str, ",");
+            }
+            translateIPFromEnv(ret);
+            return ret;
+        });
+
+        if (!extern_ips.empty()) {
+            local_ip = extern_ips.front();
+        } else {
+            local_ip = SockUtil::get_local_ip();
+        }
+    }
+
+    auto socket = createRelayedUdpSocket(pair->get_peer_ip(), pair->get_peer_port(), local_ip, *port);
     auto relayed_pair = std::make_shared<Pair>(socket);
     auto peer_addr = SockUtil::make_sockaddr(pair->get_peer_ip().data(), pair->get_peer_port());
     weak_ptr<IceServer> weak_self = static_pointer_cast<IceServer>(shared_from_this());

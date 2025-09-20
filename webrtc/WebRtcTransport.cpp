@@ -51,6 +51,7 @@ const string kTimeOutSec = RTC_FIELD "timeoutSec";
 // 服务器外网ip  [AUTO-TRANSLATED:23283ba6]
 // Server external network ip
 const string kExternIP = RTC_FIELD "externIP";
+const string kInterfaces = RTC_FIELD "interfaces";
 // 设置remb比特率，非0时关闭twcc并开启remb。该设置在rtc推流时有效，可以控制推流画质  [AUTO-TRANSLATED:412801db]
 // Set remb bitrate, when it is not 0, turn off twcc and turn on remb. This setting is valid when rtc pushes the stream, and can control the pushing stream quality
 const string kRembBitRate = RTC_FIELD "rembBitRate";
@@ -84,6 +85,7 @@ const string kDataChannelEcho = RTC_FIELD "datachannel_echo";
 static onceToken token([]() {
     mINI::Instance()[kTimeOutSec] = 15;
     mINI::Instance()[kExternIP] = "";
+    mINI::Instance()[kInterfaces] = "";
     mINI::Instance()[kRembBitRate] = 0;
     mINI::Instance()[kPort] = 8000;
     mINI::Instance()[kTcpPort] = 8000;
