@@ -47,7 +47,7 @@
 
 ## 功能清单
 ### 功能一览
-<img width="749" alt="image" src="https://github.com/user-attachments/assets/8cf5911b-4603-4aa0-8e24-0acb0c616a82" />
+<img width="749" alt="功能预览" src="https://github.com/user-attachments/assets/7072fe1c-e2b3-47e9-bd50-e5266523edf1">
 
 - RTSP[S]
   - RTSP[S] 服务器，支持RTMP/MP4/HLS转RTSP[S],支持亚马逊echo show这样的设备
@@ -131,6 +131,8 @@
   - 支持webrtc over tcp模式
   - 优秀的nack、jitter buffer算法, 抗丢包能力卓越
   - 支持whip/whep协议
+  - [支持ice-full,支持作为webrtc客户端拉流、推流以及p2p模式](./webrtc/USAGE.md)
+  
 - [SRT支持](./srt/srt.md)
 - 其他
   - 支持丰富的restful api以及web hook事件 
