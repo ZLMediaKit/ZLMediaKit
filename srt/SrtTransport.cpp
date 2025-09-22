@@ -400,7 +400,7 @@ void SrtTransport::sendMsgDropReq(uint32_t first, uint32_t last) {
 }
 
 void SrtTransport::tryAnnounceKeyMaterial() {
-	//TraceL;
+    //TraceL;
 
     if (!_crypto) {
         return;

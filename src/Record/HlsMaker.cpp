@@ -17,7 +17,7 @@ using namespace std;
 namespace mediakit {
 
 HlsMaker::HlsMaker(bool is_fmp4, float seg_duration, uint32_t seg_number, bool seg_keep) {
-	_is_fmp4 = is_fmp4;
+    _is_fmp4 = is_fmp4;
     // 最小允许设置为0，0个切片代表点播  [AUTO-TRANSLATED:19235e8e]
     // Minimum allowed setting is 0, 0 slices represent on-demand
     _seg_number = seg_number;

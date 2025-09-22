@@ -301,7 +301,7 @@ static string getPullUrl(const string &origin_fmt, const MediaInfo &info) {
     }
     // 告知源站这是来自边沿站的拉流请求，如果未找到流请立即返回拉流失败  [AUTO-TRANSLATED:adf0d210]
     // Inform the origin station that this is a pull stream request from the edge station, if the stream is not found, please return the pull stream failure immediately
-    return string(url) + '?' + kEdgeServerParam + '&' + VHOST_KEY + '=' + info.vhost + '&' + info.params;
+    return string(url) + (strchr(url, '?') ? '&' : '?') + kEdgeServerParam + '&' + VHOST_KEY + '=' + info.vhost + '&' + info.params;
 }
 
 static void pullStreamFromOrigin(const vector<string> &urls, size_t index, size_t failed_cnt, const MediaInfo &args, const function<void()> &closePlayer) {

@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 #include "RtpExt.h"
-#include "assert.h"
+#include "RtpMap.h"
 #include "Extension/Frame.h"
 #include "Common/Parser.h"
 
@@ -744,6 +744,7 @@ public:
     void setDefaultSetting(std::string ice_ufrag, std::string ice_pwd, RtpDirection direction, const SdpAttrFingerprint &fingerprint);
     void addCandidate(const SdpAttrCandidate &candidate, TrackType type = TrackInvalid);
 
+    std::shared_ptr<RtcSession> createOffer() const;
     std::shared_ptr<RtcSession> createAnswer(const RtcSession &offer) const;
 
     void setPlayRtspInfo(const std::string &sdp);
@@ -752,6 +753,8 @@ public:
     void enableREMB(bool enable = true, TrackType type = TrackInvalid);
 
 private:
+    void createMediaOffer(const std::shared_ptr<RtcSession> &ret) const;
+    void createMediaOfferEach(const std::shared_ptr<RtcSession> &ret, TrackType type, int index) const;
     void matchMedia(const std::shared_ptr<RtcSession> &ret, const RtcMedia &media) const;
     bool onCheckCodecProfile(const RtcCodecPlan &plan, CodecId codec) const;
     void onSelectPlan(RtcCodecPlan &plan, CodecId codec) const;

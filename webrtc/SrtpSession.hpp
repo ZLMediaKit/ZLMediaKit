@@ -19,7 +19,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #ifndef MS_RTC_SRTP_SESSION_HPP
 #define MS_RTC_SRTP_SESSION_HPP
 
-#include "Utils.hpp"
+#include "Util/Byte.hpp"
 
 #include <memory>
 
@@ -31,6 +31,7 @@ class DepLibSRTP;
 
 class SrtpSession {
 public:
+    using Ptr = std::shared_ptr<SrtpSession>;
     enum class CryptoSuite {
         NONE = 0,
         AES_CM_128_HMAC_SHA1_80 = 1,

@@ -19,6 +19,10 @@
 #include "Http/HttpSession.h"
 #include "Common/MultiMediaSourceMuxer.h"
 
+#if defined(ENABLE_WEBRTC)
+#include "webrtc/WebRtcTransport.h"
+#endif
+
 // 配置文件路径  [AUTO-TRANSLATED:8a373c2f]
 // Configuration file path
 extern std::string g_ini_file;
@@ -110,6 +114,11 @@ std::string getValue(const mediakit::Parser &parser, const Key &key) {
     return getValue(parser.getHeader(), key);
 }
 
+template<typename Key>
+std::string getValue(mediakit::Parser &parser, const Key &key) {
+    return getValue((const mediakit::Parser &) parser, key);
+}
+
 template<typename Args, typename Key>
 std::string getValue(const mediakit::Parser &parser, Args &args, const Key &key) {
     auto ret = getValue(args, key);
@@ -144,6 +153,14 @@ public:
     template<typename Key>
     toolkit::variant operator[](const Key &key) const {
         return (toolkit::variant)getValue(parser, args, key);
+    }
+
+    const Args& getArgs() const {
+        return args;
+    }
+
+    const mediakit::Parser &getParser() const {
+        return parser;
     }
 };
 
@@ -225,4 +242,123 @@ void getStatisticJson(const std::function<void(Json::Value &val)> &cb);
 void addStreamProxy(const mediakit::MediaTuple &tuple, const std::string &url, int retry_count,
                     const mediakit::ProtocolOption &option, int rtp_type, float timeout_sec, const toolkit::mINI &args,
                     const std::function<void(const toolkit::SockException &ex, const std::string &key)> &cb);
+
+template <typename Type>
+class ServiceController {
+public:
+    using Pointer = std::shared_ptr<Type>;
+    std::unordered_map<std::string, Pointer> _map;
+    mutable std::recursive_mutex _mtx;
+
+    void clear() {
+        decltype(_map) copy;
+        {
+            std::lock_guard<std::recursive_mutex> lck(_mtx);
+            copy.swap(_map);
+        }
+    }
+
+    size_t erase(const std::string &key) {
+        Pointer erase_ptr;
+        {
+            std::lock_guard<std::recursive_mutex> lck(_mtx);
+            auto itr = _map.find(key);
+            if (itr != _map.end()) {
+                erase_ptr = std::move(itr->second);
+                _map.erase(itr);
+                return 1;
+            }
+        }
+        return 0;
+    }
+
+    size_t size() { 
+        std::lock_guard<std::recursive_mutex> lck(_mtx);
+        return _map.size();
+    }
+
+    Pointer find(const std::string &key) const {
+        std::lock_guard<std::recursive_mutex> lck(_mtx);
+        auto it = _map.find(key);
+        if (it == _map.end()) {
+            return nullptr;
+        }
+        return it->second;
+    }
+
+    void for_each(const std::function<void(const std::string&, const Pointer&)>& cb) {
+        std::lock_guard<std::recursive_mutex> lck(_mtx);
+        auto it = _map.begin();
+        while (it != _map.end()) {
+            cb(it->first, it->second);
+            it++;
+        }
+    }
+
+    template<class ..._Args>
+    Pointer make(const std::string &key, _Args&& ...__args) {
+        // assert(!find(key));
+
+        auto server = std::make_shared<Type>(std::forward<_Args>(__args)...);
+        std::lock_guard<std::recursive_mutex> lck(_mtx);
+        auto it = _map.emplace(key, server);
+        assert(it.second);
+        return server;
+    }
+
+    template<class ..._Args>
+    Pointer makeWithAction(const std::string &key, std::function<void(Pointer)> action, _Args&& ...__args) {
+        // assert(!find(key));
+
+        auto server = std::make_shared<Type>(std::forward<_Args>(__args)...);
+        action(server);
+        std::lock_guard<std::recursive_mutex> lck(_mtx);
+        auto it = _map.emplace(key, server);
+        assert(it.second);
+        return server;
+    }
+
+    template<class ..._Args>
+    Pointer emplace(const std::string &key, _Args&& ...__args) {
+        // assert(!find(key));
+
+        auto server = std::static_pointer_cast<Type>(std::forward<_Args>(__args)...);
+        std::lock_guard<std::recursive_mutex> lck(_mtx);
+        auto it = _map.emplace(key, server);
+        assert(it.second);
+        return server;
+    }
+};
+
+#if defined(ENABLE_WEBRTC)
+template <typename Args>
+class WebRtcArgsImp : public mediakit::WebRtcArgs {
+public:
+    WebRtcArgsImp(const HttpAllArgs<Args> &args, std::string session_id)
+        : _args(args)
+        , _session_id(std::move(session_id)) {}
+    ~WebRtcArgsImp() override = default;
+
+    toolkit::variant operator[](const std::string &key) const override {
+        if (key == "url") {
+            return getUrl();
+        }
+        return _args[key];
+    }
+
+private:
+    std::string getUrl() const {
+        auto &allArgs = _args;
+        CHECK_ARGS("app", "stream");
+
+        return StrPrinter << RTC_SCHEMA << "://" << (_args["Host"].empty() ? DEFAULT_VHOST : _args["Host"].data()) << "/" << _args["app"] << "/"
+                          << _args["stream"] << "?" << _args.getParser().params() + "&session=" + _session_id;
+    }
+
+private:
+    HttpAllArgs<Args> _args;
+    std::string _session_id;
+};
+#endif
+
 #endif //ZLMEDIAKIT_WEBAPI_H

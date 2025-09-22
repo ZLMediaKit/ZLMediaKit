@@ -1,0 +1,132 @@
+webrtc websocket 信令
+
+# register 注册
+
+``` json
+#client/peer --> server
+{
+	"class" : "request",
+	"method" : "register",
+	"transaction_id" : "HFaq5Jp2agKfDjizOT5jGpiPtOQ8yays"
+	"room_id" : "room_1",
+}
+#server --> client/peer
+#success
+#支持turn
+{
+	"class" : "accept",
+	"method" : "register",
+	"transaction_id" : "HFaq5Jp2agKfDjizOT5jGpiPtOQ8yays"
+	"room_id" : "room_1",
+	"ice_servers" : [ {
+			"pwd" : "ZLMediaKit",
+			"ufrag" : "ZLMediaKit",
+			"url" : "turn:10.9.120.61:3478?transport=udp"
+		}
+	],
+}
+
+#不支持turn
+{
+	"class" : "accept",
+	"method" : "register",
+	"transaction_id" : "HFaq5Jp2agKfDjizOT5jGpiPtOQ8yays"
+	"room_id" : "room_1",
+	"ice_servers" : [ {
+			"pwd" : "ZLMediaKit",
+			"ufrag" : "ZLMediaKit",
+			"url" : "stun:10.9.120.61:3478?transport=udp"
+		}
+	],
+}
+```
+
+#fail
+``` json
+{
+	"class" : "reject",
+	"method" : "register",
+	"transaction_id" : "2DiOjTulA4Glp9Si7yHdQypibAn2LPaX"
+	"reason" : "alreadly register",
+	"room_id" : "room_1",
+}
+```
+
+# unregister 注销
+# client --> server
+```json
+{
+	"class" : "request",
+	"method" : "unregister",
+	"transaction_id" : "0Xbgr86OIacWvjJIc03EsxH3QIF1ou8m"
+	"room_id" : "room_1",
+}
+```
+# server --> client
+# success
+``` json
+{
+	"class" : "accept",
+	"method" : "unregister",
+	"room_id" : "room1",
+	"transaction_id" : "0Xbgr86OIacWvjJIc03EsxH3QIF1ou8m"
+}
+
+```
+
+# 呼叫
+# client --> server,server -透传-> peer
+{
+	"class" : "request",
+	"method" : "call",
+	"transaction_id" : "qUpN8C49bGiyOHk6WNanAFq2viSkk6HC",
+	"guest_id" : "guest1_EDuVWIxLUMlDDKDa",
+	"room_id" : "room_1",
+	"type" : "play",
+	"vhost" : "__defaultVhost__",
+	"app" : "live",
+	"stream" : "test",
+	"sdp" : "v=0\r\no=- 7040255305116218076 1 IN IP4 0.0.0.0\r\ns=-\r\nt=0 0\r\na=group:BUNDLE 0 1\r\na=extmap-allow-mixed\r\na=msid-semantic: WMS\r\nm=video 9 UDP/TLS/RTP/SAVPF 102 124 123 102 124 123 35 98 100 96\r\nc=IN IP4 0.0.0.0\r\na=ice-ufrag:rBIAAR9AH0A=_1\r\na=ice-pwd:V1WhKKOK9jrhmLPmZemhcO5h\r\na=ice-options:trickle\r\na=fingerprint:sha-256 B4:51:C0:D2:0E:60:70:C2:CD:40:3A:8E:33:EB:FC:67:F6:29:72:89:AC:23:48:90:A0:D7:C0:07:44:7B:F1:79\r\na=setup:active\r\na=mid:0\r\na=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time\r\na=extmap:3 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01\r\na=extmap:5 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id\r\na=extmap:6 urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id\r\na=extmap:7 http://www.webrtc.org/experiments/rtp-hdrext/video-timing\r\na=extmap:8 http://www.webrtc.org/experiments/rtp-hdrext/color-space\r\na=extmap:10 http://tools.ietf.org/html/draft-ietf-avtext-framemarking-07\r\na=extmap:11 http://www.webrtc.org/experiments/rtp-hdrext/video-content-type\r\na=extmap:12 http://www.webrtc.org/experiments/rtp-hdrext/playout-delay\r\na=extmap:14 urn:ietf:params:rtp-hdrext:toffset\r\na=recvonly\r\na=rtcp-mux\r\na=rtcp-rsize\r\na=rtpmap:102 H264/90000\r\na=rtcp-fb:102 ccm fir\r\na=rtcp-fb:102 goog-remb\r\na=rtcp-fb:102 nack\r\na=rtcp-fb:102 nack pli\r\na=rtcp-fb:102 transport-cc\r\na=fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f\r\na=rtpmap:124 H264/90000\r\na=rtcp-fb:124 ccm fir\r\na=rtcp-fb:124 goog-remb\r\na=rtcp-fb:124 nack\r\na=rtcp-fb:124 nack pli\r\na=rtcp-fb:124 transport-cc\r\na=fmtp:124 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=4d001f\r\na=rtpmap:123 H264/90000\r\na=rtcp-fb:123 ccm fir\r\na=rtcp-fb:123 goog-remb\r\na=rtcp-fb:123 nack\r\na=rtcp-fb:123 nack pli\r\na=rtcp-fb:123 transport-cc\r\na=fmtp:123 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=64001f\r\na=rtpmap:102 H264/90000\r\na=rtcp-fb:102 ccm fir\r\na=rtcp-fb:102 goog-remb\r\na=rtcp-fb:102 nack\r\na=rtcp-fb:102 nack pli\r\na=rtcp-fb:102 transport-cc\r\na=fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f\r\na=rtpmap:124 H264/90000\r\na=rtcp-fb:124 ccm fir\r\na=rtcp-fb:124 goog-remb\r\na=rtcp-fb:124 nack\r\na=rtcp-fb:124 nack pli\r\na=rtcp-fb:124 transport-cc\r\na=fmtp:124 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=4d001f\r\na=rtpmap:123 H264/90000\r\na=rtcp-fb:123 ccm fir\r\na=rtcp-fb:123 goog-remb\r\na=rtcp-fb:123 nack\r\na=rtcp-fb:123 nack pli\r\na=rtcp-fb:123 transport-cc\r\na=fmtp:123 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=64001f\r\na=rtpmap:35 AV1/90000\r\na=rtcp-fb:35 ccm fir\r\na=rtcp-fb:35 goog-remb\r\na=rtcp-fb:35 nack\r\na=rtcp-fb:35 nack pli\r\na=rtcp-fb:35 transport-cc\r\na=rtpmap:98 VP9/90000\r\na=rtcp-fb:98 ccm fir\r\na=rtcp-fb:98 goog-remb\r\na=rtcp-fb:98 nack\r\na=rtcp-fb:98 nack pli\r\na=rtcp-fb:98 transport-cc\r\na=fmtp:98 profile-id==0\r\na=rtpmap:100 VP9/90000\r\na=rtcp-fb:100 ccm fir\r\na=rtcp-fb:100 goog-remb\r\na=rtcp-fb:100 nack\r\na=rtcp-fb:100 nack pli\r\na=rtcp-fb:100 transport-cc\r\na=fmtp:100 profile-id==2\r\na=rtpmap:96 VP8/90000\r\na=rtcp-fb:96 ccm fir\r\na=rtcp-fb:96 goog-remb\r\na=rtcp-fb:96 nack\r\na=rtcp-fb:96 nack pli\r\na=rtcp-fb:96 transport-cc\r\nm=audio 9 UDP/TLS/RTP/SAVPF 0 8 111 96\r\nc=IN IP4 0.0.0.0\r\na=ice-ufrag:rBIAAR9AH0A=_1\r\na=ice-pwd:V1WhKKOK9jrhmLPmZemhcO5h\r\na=ice-options:trickle\r\na=fingerprint:sha-256 B4:51:C0:D2:0E:60:70:C2:CD:40:3A:8E:33:EB:FC:67:F6:29:72:89:AC:23:48:90:A0:D7:C0:07:44:7B:F1:79\r\na=setup:active\r\na=mid:1\r\na=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level\r\na=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time\r\na=extmap:3 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01\r\na=extmap:5 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id\r\na=extmap:6 urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id\r\na=extmap:9 urn:ietf:params:rtp-hdrext:csrc-audio-level\r\na=recvonly\r\na=rtcp-mux\r\na=rtcp-rsize\r\na=rtpmap:0 PCMU/8000\r\na=rtcp-fb:0 goog-remb\r\na=rtcp-fb:0 transport-cc\r\na=rtpmap:8 PCMA/8000\r\na=rtcp-fb:8 goog-remb\r\na=rtcp-fb:8 transport-cc\r\na=rtpmap:111 opus/48000\r\na=rtcp-fb:111 goog-remb\r\na=rtcp-fb:111 transport-cc\r\na=rtpmap:96 mpeg4-generic/48000\r\na=rtcp-fb:96 goog-remb\r\na=rtcp-fb:96 transport-cc\r\n"
+}
+
+#peer->server, server -透传->client
+{
+	"class" : "accept",
+	"method" : "call",
+	"transaction_id" : "qUpN8C49bGiyOHk6WNanAFq2viSkk6HC",
+	"guest_id" : "guest1_EDuVWIxLUMlDDKDa",
+	"room_id" : "room1",
+	"vhost" : "__defaultVhost__",
+	"app" : "live",
+	"stream" : "test",
+	"type" : "play",
+	"sdp" : "v=0\r\no=- 7040255305116218076 1 IN IP4 10.9.120.61\r\ns=-\r\nt=0 0\r\na=group:BUNDLE 0 1\r\na=extmap-allow-mixed\r\na=msid-semantic: WMS\r\na=ice-lite\r\nm=video 28000 UDP/TLS/RTP/SAVPF 102\r\nc=IN IP4 10.9.120.61\r\na=rtcp:28000 IN IP4 10.9.120.61\r\na=ice-ufrag:rBIAAW1gbWA=_1\r\na=ice-pwd:NmPNJgMbz9z2kH3g97yZFbCn\r\na=ice-options:trickle\r\na=fingerprint:sha-256 B4:51:C0:D2:0E:60:70:C2:CD:40:3A:8E:33:EB:FC:67:F6:29:72:89:AC:23:48:90:A0:D7:C0:07:44:7B:F1:79\r\na=setup:passive\r\na=mid:0\r\na=ice-lite\r\na=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time\r\na=extmap:3 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01\r\na=extmap:5 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id\r\na=extmap:6 urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id\r\na=extmap:7 http://www.webrtc.org/experiments/rtp-hdrext/video-timing\r\na=extmap:8 http://www.webrtc.org/experiments/rtp-hdrext/color-space\r\na=extmap:10 http://tools.ietf.org/html/draft-ietf-avtext-framemarking-07\r\na=extmap:11 http://www.webrtc.org/experiments/rtp-hdrext/video-content-type\r\na=extmap:12 http://www.webrtc.org/experiments/rtp-hdrext/playout-delay\r\na=extmap:14 urn:ietf:params:rtp-hdrext:toffset\r\na=sendonly\r\na=rtcp-mux\r\na=rtpmap:102 H264/90000\r\na=rtcp-fb:102 ccm fir\r\na=rtcp-fb:102 goog-remb\r\na=rtcp-fb:102 nack\r\na=rtcp-fb:102 nack pli\r\na=rtcp-fb:102 transport-cc\r\na=fmtp:102 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42001f\r\na=msid:zlmediakit-mslabel zlmediakit-label-0\r\na=ssrc:1 cname:zlmediakit-rtp\r\na=ssrc:1 msid:zlmediakit-mslabel zlmediakit-label-0\r\na=ssrc:1 mslabel:zlmediakit-mslabel\r\na=ssrc:1 label:zlmediakit-label-0\r\nm=audio 28000 UDP/TLS/RTP/SAVPF 0\r\nc=IN IP4 10.9.120.61\r\na=rtcp:28000 IN IP4 10.9.120.61\r\na=ice-ufrag:rBIAAW1gbWA=_1\r\na=ice-pwd:NmPNJgMbz9z2kH3g97yZFbCn\r\na=ice-options:trickle\r\na=fingerprint:sha-256 B4:51:C0:D2:0E:60:70:C2:CD:40:3A:8E:33:EB:FC:67:F6:29:72:89:AC:23:48:90:A0:D7:C0:07:44:7B:F1:79\r\na=setup:passive\r\na=mid:1\r\na=ice-lite\r\na=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level\r\na=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time\r\na=extmap:3 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01\r\na=extmap:5 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id\r\na=extmap:6 urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id\r\na=extmap:9 urn:ietf:params:rtp-hdrext:csrc-audio-level\r\na=inactive\r\na=rtcp-mux\r\na=rtpmap:0 PCMU/8000/1\r\na=rtcp-fb:0 goog-remb\r\na=rtcp-fb:0 transport-cc\r\na=msid:zlmediakit-mslabel zlmediakit-label-1\r\na=ssrc:2 cname:zlmediakit-rtp\r\na=ssrc:2 msid:zlmediakit-mslabel zlmediakit-label-1\r\na=ssrc:2 mslabel:zlmediakit-mslabel\r\na=ssrc:2 label:zlmediakit-label-1\r\n"
+}
+
+# candidate
+```peer--> server -透传-> peer
+{
+	"class" : "indication",
+	"method" : "candidate",
+	"transaction_id" : "7oEa2vcYvps7aZ1g9UGIPoFf5PrTl2N9",
+	"guest_id" : "guest1_n9WyhNMR42EvkOvE",
+	"room_id" : "room_1",
+	"candidate" : "7e0de214 1 udp 2113955071 192.168.1.1 46411 typ host",
+	"ufrag" : "rBIAAW1gbWA=_1"
+	"pwd" : "gDNJZM0uVLlnNnthaE41KXOp",
+}
+
+# bye
+
+```
+{
+	"class" : "indication",
+	"method" : "bye",
+	"transaction_id" : "86RdplPz21Ow9DwR1gvXjsAdmh30TAf3"
+	"guest_id" : "guest1_n9WyhNMR42EvkOvE",
+	"reason" : "peer unregister",
+	"room_id" : "room_1",
+}
+```
+
+
