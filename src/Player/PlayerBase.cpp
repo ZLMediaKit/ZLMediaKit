@@ -16,7 +16,7 @@
 #include "Http/HlsPlayer.h"
 #include "Http/TsPlayerImp.h"
 #ifdef ENABLE_SRT
-#include "Srt/SrtPlayerImp.h"
+#include "../srt/SrtPlayerImp.h"
 #endif // ENABLE_SRT
 #ifdef ENABLE_WEBRTC
 #include "../webrtc/WebRtcProxyPlayerImp.h"
