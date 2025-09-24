@@ -154,6 +154,7 @@ void WebRtcClient::doNegotiateWhepOrWhip() {
 
     _negotiate = make_shared<HttpRequester>();
     _negotiate->setMethod("POST");
+    _negotiate->addHeader("Content-Type", "application/sdp");
     _negotiate->setBody(std::move(offer_sdp));
     _negotiate->startRequester(_url._negotiate_url, [weak_self](const toolkit::SockException &ex, const Parser &response) {
         auto strong_self = weak_self.lock();

@@ -27,5 +27,6 @@
 #include "mk_frame.h"
 #include "mk_track.h"
 #include "mk_transcode.h"
+#include "mk_webrtc.h"
 
 #endif /* MK_API_H_ */
