@@ -259,6 +259,25 @@ API_EXPORT uint16_t API_CALL mk_rtp_server_start(uint16_t port);
  */
 API_EXPORT uint16_t API_CALL mk_rtc_server_start(uint16_t port);
 
+
+/**
+ * 创建websocket[s]信令服务器
+ * @param port websocket监听端口
+ * @param ssl 是否为ssl类型服务器
+ * @return 0:失败,非0:端口号
+ * 
+ */
+API_EXPORT uint16_t API_CALL mk_signaling_server_start(uint16_t port, int ssl);
+
+/**
+ * 创建webrtc-ice[s]服务器
+ * @param port websocket监听端口
+ * @return 0:失败,非0:端口号
+ *
+ */
+API_EXPORT uint16_t API_CALL mk_ice_server_start(uint16_t port);
+
+
 /**
  * 创建srt服务器
  * @param port srt监听端口

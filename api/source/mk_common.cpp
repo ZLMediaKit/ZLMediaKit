@@ -29,6 +29,7 @@ using namespace mediakit;
 static TcpServer::Ptr rtsp_server[2];
 static TcpServer::Ptr rtmp_server[2];
 static TcpServer::Ptr http_server[2];
+static TcpServer::Ptr signaling_server[2];
 static TcpServer::Ptr shell_server;
 
 #ifdef ENABLE_RTPPROXY
@@ -37,9 +38,14 @@ static RtpServer::Ptr rtpServer;
 #endif
 
 #ifdef ENABLE_WEBRTC
-#include "../webrtc/WebRtcSession.h"
+#include "webrtc/WebRtcSession.h"
+#include "webrtc/IceSession.hpp"
+#include "webrtc/WebRtcSignalingSession.h"
+#include "webrtc/WebRtcTransport.h"
 static UdpServer::Ptr rtcServer_udp;
 static TcpServer::Ptr rtcServer_tcp;
+static UdpServer::Ptr iceServer_udp;
+static TcpServer::Ptr iceServer_tcp;
 #endif
 
 #if defined(ENABLE_SRT)
@@ -288,6 +294,47 @@ API_EXPORT uint16_t API_CALL mk_rtc_server_start(uint16_t port) {
 #endif
 }
 
+
+API_EXPORT uint16_t API_CALL mk_signaling_server_start(uint16_t port, int ssl) {
+#ifdef ENABLE_WEBRTC
+    ssl = MAX(0, MIN(ssl, 1));
+    try {
+        signaling_server[ssl] = std::make_shared<TcpServer>();
+        if (ssl) {
+            signaling_server[ssl]->start<WebRtcWebcosktSignalSslSession>(port);
+        } else {
+            signaling_server[ssl]->start<WebRtcWebcosktSignalingSession>(port);
+        }
+        return signaling_server[ssl]->getPort();
+    } catch (std::exception &ex) {
+        signaling_server[ssl] = nullptr;
+        WarnL << ex.what();
+        return 0;
+    }
+#else
+    WarnL << "未启用webrtc功能, 编译时请开启ENABLE_WEBRTC";
+    return 0;
+#endif
+}
+
+API_EXPORT uint16_t API_CALL mk_ice_server_start(uint16_t port){
+#ifdef ENABLE_WEBRTC
+    try {
+        iceServer_tcp = std::make_shared<TcpServer>();
+        iceServer_udp = std::make_shared<UdpServer>();
+        iceServer_udp->start<IceSession>(port);
+        iceServer_tcp->start<IceSession>(port);
+    } catch (std::exception &ex) {
+        iceServer_udp = nullptr;
+        iceServer_tcp = nullptr;
+        WarnL << ex.what();
+        return 0;
+    }
+#else
+    WarnL << "未启用webrtc功能, 编译时请开启ENABLE_WEBRTC";
+    return 0;
+#endif
+}
 
 API_EXPORT uint16_t API_CALL mk_srt_server_start(uint16_t port) {
 #ifdef ENABLE_SRT

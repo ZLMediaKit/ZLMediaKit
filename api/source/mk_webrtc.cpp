@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
@@ -126,8 +126,7 @@ API_EXPORT void API_CALL mk_webrtc_add_room_keeper2(
     // server_post: 信令服务器host
     // room_id: 注册的id,信令服务器会对该id进行唯一性检查
     std::string server_host_str(server_host), room_id_str(room_id);
-    std::shared_ptr<void> ptr(
-        user_data, user_data_free ? user_data_free : [](void *) {});
+    std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
     addWebrtcRoomKeeper(server_host_str, server_port, room_id_str, ssl, [ptr,cb](const SockException &ex, const string &key) mutable {
         if (ex) {
             cb(ptr.get(), nullptr, ex.what());
@@ -149,8 +148,7 @@ mk_webrtc_del_room_keeper2(const char *room_key, on_mk_webrtc_room_keeper_info_c
 #ifdef ENABLE_WEBRTC
     assert(room_key && cb);
     std::string room_key_str(room_key);
-    std::shared_ptr<void> ptr(
-        user_data, user_data_free ? user_data_free : [](void *) {});
+    std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
     delWebrtcRoomKeeper(room_key_str, [room_key_str, ptr, cb](const SockException &ex) mutable {
         if (ex) {
             cb(ptr.get(), room_key_str.c_str(), ex.what());
