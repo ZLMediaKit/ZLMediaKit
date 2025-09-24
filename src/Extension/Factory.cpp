@@ -23,6 +23,7 @@ static std::unordered_map<int, const CodecPlugin *> s_plugins;
 
 REGISTER_CODEC(h264_plugin);
 REGISTER_CODEC(h265_plugin);
+REGISTER_CODEC(av1_plugin);
 REGISTER_CODEC(jpeg_plugin);
 REGISTER_CODEC(aac_plugin);
 REGISTER_CODEC(opus_plugin);
