@@ -29,6 +29,7 @@ using namespace mediakit;
 static TcpServer::Ptr rtsp_server[2];
 static TcpServer::Ptr rtmp_server[2];
 static TcpServer::Ptr http_server[2];
+static TcpServer::Ptr signaling_server[2];
 static TcpServer::Ptr shell_server;
 
 #ifdef ENABLE_RTPPROXY
@@ -37,9 +38,14 @@ static RtpServer::Ptr rtpServer;
 #endif
 
 #ifdef ENABLE_WEBRTC
-#include "../webrtc/WebRtcSession.h"
+#include "webrtc/WebRtcSession.h"
+#include "webrtc/IceSession.hpp"
+#include "webrtc/WebRtcSignalingSession.h"
+#include "webrtc/WebRtcTransport.h"
 static UdpServer::Ptr rtcServer_udp;
 static TcpServer::Ptr rtcServer_tcp;
+static UdpServer::Ptr iceServer_udp;
+static TcpServer::Ptr iceServer_tcp;
 #endif
 
 #if defined(ENABLE_SRT)
@@ -288,46 +294,45 @@ API_EXPORT uint16_t API_CALL mk_rtc_server_start(uint16_t port) {
 #endif
 }
 
-#ifdef ENABLE_WEBRTC
-class WebRtcArgsUrl : public mediakit::WebRtcArgs {
-public:
-    WebRtcArgsUrl(std::string url) { _url = std::move(url); }
 
-    toolkit::variant operator[](const std::string &key) const override {
-        if (key == "url") {
-            return _url;
+API_EXPORT uint16_t API_CALL mk_signaling_server_start(uint16_t port, int ssl) {
+#ifdef ENABLE_WEBRTC
+    ssl = MAX(0, MIN(ssl, 1));
+    try {
+        signaling_server[ssl] = std::make_shared<TcpServer>();
+        if (ssl) {
+            signaling_server[ssl]->start<WebRtcWebcosktSignalSslSession>(port);
+        } else {
+            signaling_server[ssl]->start<WebRtcWebcosktSignalingSession>(port);
         }
-        return "";
+        return signaling_server[ssl]->getPort();
+    } catch (std::exception &ex) {
+        signaling_server[ssl] = nullptr;
+        WarnL << ex.what();
+        return 0;
     }
-
-private:
-    std::string _url;
-};
-#endif
-
-API_EXPORT void API_CALL mk_webrtc_get_answer_sdp(void *user_data,  on_mk_webrtc_get_answer_sdp cb, const char *type,
-                                                   const char *offer, const char *url) {
-    mk_webrtc_get_answer_sdp2(user_data, nullptr, cb, type, offer, url);
-}
-API_EXPORT void API_CALL mk_webrtc_get_answer_sdp2(void *user_data, on_user_data_free user_data_free, on_mk_webrtc_get_answer_sdp cb, const char *type,
-                                                  const char *offer, const char *url) {
-#ifdef ENABLE_WEBRTC
-    assert(type && offer && url && cb);
-    auto session = std::make_shared<HttpSession>(Socket::createSocket());
-    std::string offer_str = offer;
-    std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
-    auto args = std::make_shared<WebRtcArgsUrl>(url);
-    WebRtcPluginManager::Instance().negotiateSdp(*session, type, *args, [offer_str, session, ptr, cb](const WebRtcInterface &exchanger) mutable {
-        auto &handler = const_cast<WebRtcInterface &>(exchanger);
-        try {
-            auto sdp_answer = handler.getAnswerSdp(offer_str);
-            cb(ptr.get(), sdp_answer.data(), nullptr);
-        } catch (std::exception &ex) {
-            cb(ptr.get(), nullptr, ex.what());
-        }
-    });
 #else
     WarnL << "未启用webrtc功能, 编译时请开启ENABLE_WEBRTC";
+    return 0;
+#endif
+}
+
+API_EXPORT uint16_t API_CALL mk_ice_server_start(uint16_t port){
+#ifdef ENABLE_WEBRTC
+    try {
+        iceServer_tcp = std::make_shared<TcpServer>();
+        iceServer_udp = std::make_shared<UdpServer>();
+        iceServer_udp->start<IceSession>(port);
+        iceServer_tcp->start<IceSession>(port);
+    } catch (std::exception &ex) {
+        iceServer_udp = nullptr;
+        iceServer_tcp = nullptr;
+        WarnL << ex.what();
+        return 0;
+    }
+#else
+    WarnL << "未启用webrtc功能, 编译时请开启ENABLE_WEBRTC";
+    return 0;
 #endif
 }
 

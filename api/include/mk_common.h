@@ -259,31 +259,24 @@ API_EXPORT uint16_t API_CALL mk_rtp_server_start(uint16_t port);
  */
 API_EXPORT uint16_t API_CALL mk_rtc_server_start(uint16_t port);
 
-// 获取webrtc answer sdp回调函数  [AUTO-TRANSLATED:10c93fa9]
-// Get webrtc answer sdp callback function
-typedef void(API_CALL *on_mk_webrtc_get_answer_sdp)(void *user_data, const char *answer, const char *err);
 
 /**
- * webrtc交换sdp，根据offer sdp生成answer sdp
- * @param user_data 回调用户指针
- * @param cb 回调函数
- * @param type webrtc插件类型，支持echo,play,push
- * @param offer webrtc offer sdp
- * @param url rtc url, 例如 rtc://__defaultVhost/app/stream?key1=val1&key2=val2
- * webrtc exchange sdp, generate answer sdp based on offer sdp
- * @param user_data Callback user pointer
- * @param cb Callback function
- * @param type webrtc plugin type, supports echo, play, push
- * @param offer webrtc offer sdp
- * @param url rtc url, for example rtc://__defaultVhost/app/stream?key1=val1&key2=val2
- 
- * [AUTO-TRANSLATED:ea79659b]
+ * 创建websocket[s]信令服务器
+ * @param port websocket监听端口
+ * @param ssl 是否为ssl类型服务器
+ * @return 0:失败,非0:端口号
+ * 
  */
-API_EXPORT void API_CALL mk_webrtc_get_answer_sdp(void *user_data, on_mk_webrtc_get_answer_sdp cb, const char *type,
-                                                  const char *offer, const char *url);
+API_EXPORT uint16_t API_CALL mk_signaling_server_start(uint16_t port, int ssl);
 
-API_EXPORT void API_CALL mk_webrtc_get_answer_sdp2(void *user_data, on_user_data_free user_data_free, on_mk_webrtc_get_answer_sdp cb, const char *type,
-                                                  const char *offer, const char *url);
+/**
+ * 创建webrtc-ice[s]服务器
+ * @param port websocket监听端口
+ * @return 0:失败,非0:端口号
+ *
+ */
+API_EXPORT uint16_t API_CALL mk_ice_server_start(uint16_t port);
+
 
 /**
  * 创建srt服务器
