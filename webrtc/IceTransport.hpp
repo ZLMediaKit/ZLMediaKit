@@ -509,7 +509,7 @@ public:
         _ice_server = std::move(ice_server);
     }
 
-    void gatheringCandidate(const CandidateTuple::Ptr& candidate_tuple, bool gathering_rflx, bool gathering_realy);
+    void gatheringCandidate(const CandidateTuple::Ptr& candidate_tuple, bool gathering_rflx, bool gathering_relay);
     void connectivityCheck(CandidateInfo& candidate);
     void nominated(const Pair::Ptr& pair, CandidateTuple& candidate);
 
@@ -556,7 +556,7 @@ public:
 
 protected:
     void gatheringSrflxCandidate(const Pair::Ptr& pair);
-    void gatheringRealyCandidate(const Pair::Ptr& pair);
+    void gatheringRelayCandidate(const Pair::Ptr& pair);
     void localRelayedConnectivityCheck(CandidateInfo& candidate);
     void connectivityCheck(const Pair::Ptr& pair, CandidateTuple& candidate);
     void tryTriggerredCheck(const Pair::Ptr& pair);
@@ -587,7 +587,7 @@ protected:
     void refreshChannelBindings();
 
     void sendSendIndication(const sockaddr_storage& peer_addr, const toolkit::Buffer::Ptr& buffer, const Pair::Ptr& pair);
-    void sendRealyPacket(const toolkit::Buffer::Ptr& buffer, const Pair::Ptr& pair, bool flush);
+    void sendRelayPacket(const toolkit::Buffer::Ptr& buffer, const Pair::Ptr& pair, bool flush);
 
 private:
 
