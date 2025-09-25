@@ -82,6 +82,9 @@ API_EXPORT void API_CALL mk_stop_all_server(){
 #ifdef ENABLE_WEBRTC
     rtcServer_udp = nullptr;
     rtcServer_tcp = nullptr;
+    iceServer_udp = nullptr;
+    iceServer_tcp = nullptr;
+    CLEAR_ARR(signaling_server);
 #endif
 #ifdef ENABLE_SRT
     srtServer = nullptr;
