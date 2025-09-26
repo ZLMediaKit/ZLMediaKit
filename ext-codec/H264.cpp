@@ -391,7 +391,7 @@ Track::Ptr getTrackBySdp(const SdpTrack::Ptr &track) {
         // If there is no sps/pps in the sdp, then it may be possible to recover the sps/pps in the subsequent rtp
         return std::make_shared<H264Track>();
     }
-    return std::make_shared<H264Track>(sps, pps, 0, 0);
+    return std::make_shared<H264Track>(sps, pps, prefixSize(sps.data(), sps.size()), prefixSize(pps.data(), pps.size()));
 }
 
 RtpCodec::Ptr getRtpEncoderByCodecId(uint8_t pt) {
