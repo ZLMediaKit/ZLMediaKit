@@ -281,7 +281,7 @@ bool AV1RtpEncoder::sendObu(const ObuInfo& obu,
     size_t offset = 0;
     bool first_fragment = true;
     while (offset < obu_bytes.size()) {
-        size_t fragment_size = std::min(max_payload_size, obu_bytes.size() - offset);
+        size_t fragment_size = std::min<size_t>(max_payload_size, obu_bytes.size() - offset);
         bool last_fragment = (offset + fragment_size) == obu_bytes.size();
         uint8_t agg_header = makeAggregationHeader(
             !first_fragment,
