@@ -12,6 +12,8 @@
 #include <algorithm>
 #include <cstring>
 #include <vector>
+#include <sstream>
+#include <iomanip>
 
 using namespace std;
 using namespace toolkit;
@@ -67,6 +69,14 @@ static bool readLeb128(const uint8_t*& data, size_t& remaining, uint64_t& value)
             return true;
         }
     }
+
+    // 兼容性处理：如果到达数据末尾但最后一个字节的MSB仍为1，
+    // 假设这是leb128编码的结尾
+    if (remaining == 0 && shift > 0) {
+        WarnL << "Tolerating non-standard LEB128 encoding (missing termination bit)";
+        return true;
+    }
+
     return false;
 }
 
@@ -335,11 +345,19 @@ bool AV1RtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
     const uint8_t* data = payload + kAggregationHeaderSize;
     size_t remaining = payload_size - kAggregationHeaderSize;
 
-    DebugL << "RTP seq=" << seq << ", Z=" << agg_header.first_obu_is_fragment
-           << ", Y=" << agg_header.last_obu_is_fragment
-           << ", W=" << agg_header.num_obu_elements
-           << ", N=" << agg_header.starts_new_coded_video_sequence
-           << ", size=" << remaining;
+    // InfoL << "RTP seq=" << seq << ", Z=" << agg_header.first_obu_is_fragment
+    //       << ", Y=" << agg_header.last_obu_is_fragment
+    //       << ", W=" << agg_header.num_obu_elements
+    //       << ", N=" << agg_header.starts_new_coded_video_sequence
+    //       << ", payload_size=" << remaining;
+
+    // if (remaining > 0) {
+    //     std::ostringstream hex_stream;
+    //     for (size_t i = 0; i < std::min(remaining, size_t(16)); ++i) {
+    //         hex_stream << std::hex << std::setw(2) << std::setfill('0') << (int)data[i] << " ";
+    //     }
+    //     InfoL << "RTP payload hex: " << hex_stream.str();
+    // }
 
     // 如果开始新的编码视频序列，清理之前的状态
     if (agg_header.starts_new_coded_video_sequence) {
@@ -399,12 +417,13 @@ bool AV1RtpDecoder::processPayload(const AggregationHeader& agg_header,
         bool has_size = (expected_elements == 0) || (static_cast<int>(element_index) < expected_elements - 1);
         if (has_size) {
             if (!readLeb128(data, remaining, element_size)) {
-                WarnL << "Failed to read OBU element size";
-                return false;
-            }
-            if (element_size > remaining) {
-                WarnL << "OBU element size exceeds remaining payload";
-                return false;
+                WarnL << "Failed to read OBU element size, trying fallback parsing";
+                // 兼容性回退：如果leb128解析失败，尝试直接使用剩余字节数
+                element_size = remaining;
+            } else if (element_size > remaining) {
+                WarnL << "OBU element size (" << element_size << ") exceeds remaining payload ("
+                      << remaining << "), using remaining size";
+                element_size = remaining;
             }
         } else {
             element_size = remaining;
@@ -450,8 +469,10 @@ bool AV1RtpDecoder::processPayload(const AggregationHeader& agg_header,
     }
 
     if (expected_elements > 0 && static_cast<int>(element_index) != expected_elements) {
-        WarnL << "Mismatch between W field and parsed OBU elements";
-        return false;
+        WarnL << "Mismatch between W field (" << expected_elements
+              << ") and parsed OBU elements (" << element_index
+              << "), tolerating for compatibility";
+        // 不返回false，继续处理以提高兼容性
     }
 
     return true;
@@ -470,29 +491,69 @@ bool AV1RtpDecoder::emitObu(const uint8_t* data, size_t size) {
     uint8_t obu_header = data[0];
     size_t header_size = 1;
 
-    _frame->_buffer.push_back(obu_header | kObuSizePresentBit);
+    // 检查OBU头部是否已经包含size bit
+    bool already_has_size = obuHasSize(obu_header);
 
-    if (obuHasExtension(obu_header)) {
-        if (size < 2) {
-            WarnL << "OBU with extension flag but insufficient data";
+    // 如果RTP包中的OBU已经包含size字段，需要特殊处理
+    if (already_has_size) {
+        //WarnL << "RTP OBU contains size field";
+
+        // 跳过extension header处理
+        if (obuHasExtension(obu_header)) {
+            if (size < 2) {
+                WarnL << "OBU with extension flag but insufficient data";
+                return false;
+            }
+            header_size = 2;
+        }
+
+        // 读取原始的size字段
+        const uint8_t* ptr = data + header_size;
+        size_t remaining = size - header_size;
+        uint64_t original_size = 0;
+
+        if (!readLeb128(ptr, remaining, original_size)) {
+            WarnL << "Failed to read original OBU size field";
             return false;
         }
-        _frame->_buffer.push_back(data[1]);
-        header_size = 2;
-    }
 
-    if (size < header_size) {
-        WarnL << "Invalid OBU size";
-        return false;
-    }
+        if (original_size != remaining) {
+            WarnL << "OBU size mismatch in RTP packet, original_size=" << original_size
+                  << " remaining=" << remaining;
+        }
 
-    uint64_t payload_size = size - header_size;
-    uint8_t size_bytes[8];
-    size_t size_len = writeLeb128(payload_size, size_bytes);
-    _frame->_buffer.append((char*)size_bytes, size_len);
+        // 直接拷贝完整的OBU（包括已有的size字段）
+        _frame->_buffer.append((char*)data, size);
+    } else {
+        // 标准情况：RTP包中的OBU没有size字段，需要我们添加
 
-    if (payload_size > 0) {
-        _frame->_buffer.append((char*)data + header_size, payload_size);
+        // 写入带size bit的OBU头部
+        _frame->_buffer.push_back(obu_header | kObuSizePresentBit);
+
+        if (obuHasExtension(obu_header)) {
+            if (size < 2) {
+                WarnL << "OBU with extension flag but insufficient data";
+                return false;
+            }
+            _frame->_buffer.push_back(data[1]);
+            header_size = 2;
+        }
+
+        if (size < header_size) {
+            WarnL << "Invalid OBU size";
+            return false;
+        }
+
+        // 计算payload大小并写入leb128编码的size字段
+        uint64_t payload_size = size - header_size;
+        uint8_t size_bytes[8];
+        size_t size_len = writeLeb128(payload_size, size_bytes);
+        _frame->_buffer.append((char*)size_bytes, size_len);
+
+        // 拷贝payload数据
+        if (payload_size > 0) {
+            _frame->_buffer.append((char*)data + header_size, payload_size);
+        }
     }
 
     if (obuType(obu_header) == kObuTypeSequenceHeader) {
