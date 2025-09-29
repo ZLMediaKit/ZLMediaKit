@@ -36,6 +36,16 @@ public:
     void pause(bool pause) override;
     void speed(float speed) override;
 
+    std::shared_ptr<toolkit::SockInfo> getSockInfo() const override { 
+        return getWebRtcTransport() ? getWebRtcTransport()->getSession() : nullptr;
+    }
+    size_t getRecvSpeed() override { 
+        return getWebRtcTransport() ? getWebRtcTransport()->getRecvSpeed() : 0;
+    }
+    size_t getRecvTotalBytes() override { 
+        return getWebRtcTransport() ? getWebRtcTransport()->getRecvTotalBytes() : 0; 
+    }
+
 protected:
 
     //// WebRtcClient override////

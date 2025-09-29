@@ -2023,4 +2023,24 @@ Json::Value IceAgent::getChecklistInfo() const {
     return result;
 }
 
+size_t IceAgent::getRecvSpeed() {
+    size_t ret = 0;
+    for (auto s : _socket_candidate_manager.getAllSockets()) {
+        if (s && s->getSock()) {
+            ret += s->getSock()->getRecvSpeed();
+        }
+    }
+    return ret;
+}
+
+size_t IceAgent::getRecvTotalBytes() {
+    size_t ret = 0;
+    for (auto s : _socket_candidate_manager.getAllSockets()) {
+        if (s && s->getSock()) {
+            ret += s->getSock()->getRecvTotalBytes();
+        }
+    }
+    return ret;
+}
+
 } // namespace RTC
