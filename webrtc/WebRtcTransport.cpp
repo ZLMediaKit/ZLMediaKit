@@ -1236,9 +1236,6 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
                 if (it != _ssrc_to_track.end()) {
                     auto &track = it->second;
                     track->rtcp_context_send->onRtcp(rtcp);
-                    auto sr = track->rtcp_context_send->createRtcpSR(track->answer_ssrc_rtp);
-                    sendRtcpPacket(sr->data(), sr->size(), true);
-                    _rtcp_sr_send_ticker.resetTime();
                 } else {
                     WarnL << "未识别的rr rtcp包:" << rtcp->dumpString();
                 }
@@ -1505,13 +1502,10 @@ void WebRtcTransportImp::onSendRtp(const RtpPacket::Ptr &rtp, bool flush, bool r
     sendRtpPacket(rtp->data() + RtpPacket::kRtpTcpHeaderSize, rtp->size() - RtpPacket::kRtpTcpHeaderSize, flush, &ctx);
     _bytes_usage += rtp->size() - RtpPacket::kRtpTcpHeaderSize;
 
-    if (_rtcp_sr_send_ticker.elapsedTime() > 5000) {
-        _rtcp_sr_send_ticker.resetTime();
-        if (track->rtcp_context_send) {
-            auto sr = track->rtcp_context_send->createRtcpSR(track->answer_ssrc_rtp);
-            if (sr && sr->size() > 0) {
-                sendRtcpPacket(sr->data(), sr->size(), true);
-            }
+    if (track->rtcp_context_send) {
+        auto sr = track->rtcp_context_send->createRtcpSR(track->answer_ssrc_rtp);
+        if (sr && sr->size() > 0) {
+            sendRtcpPacket(sr->data(), sr->size(), true);
         }
     }
 }
