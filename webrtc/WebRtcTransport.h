@@ -163,6 +163,8 @@ public:
     float getTimeOutSec();
 
     void getTransportInfo(const std::function<void(Json::Value)> &callback) const;
+    size_t getRecvSpeed() const { return _ice_agent ? _ice_agent->getRecvSpeed() : 0; }
+    size_t getRecvTotalBytes() const { return _ice_agent ? _ice_agent->getRecvTotalBytes() : 0; }
 
     void setOnShutdown(std::function<void(const toolkit::SockException &ex)> cb);
 

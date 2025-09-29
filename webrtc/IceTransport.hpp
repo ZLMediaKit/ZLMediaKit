@@ -553,6 +553,8 @@ public:
 
     // 获取checklist信息，用于API查询
     Json::Value getChecklistInfo() const;
+    size_t getRecvSpeed();
+    size_t getRecvTotalBytes();
 
 protected:
     void gatheringSrflxCandidate(const Pair::Ptr& pair);
