@@ -94,9 +94,8 @@ int main(int argc, char *argv[]) {
                 // FFmpeg解码时已经统一转换为16位整型pcm
                 audio_player->setup(audioTrack->getAudioSampleRate(), audioTrack->getAudioChannel(), AUDIO_S16);
                 FFmpegSwr::Ptr swr;
-
-                decoder->setOnDecode([audio_player, swr](const FFmpegFrame::Ptr &frame) mutable {
-                    int chs = 0;
+				int chs = 0;
+                decoder->setOnDecode([audio_player, swr, chs](const FFmpegFrame::Ptr &frame) mutable {
                     if (!swr) {
 # if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
                         swr = std::make_shared<FFmpegSwr>(AV_SAMPLE_FMT_S16, &(frame->get()->ch_layout), frame->get()->sample_rate);
