@@ -1127,11 +1127,10 @@ public:
         }
         return rtp;
     }
-
-    Buffer::Ptr createRtcpRR(RtcpHeader *sr, uint32_t ssrc) {
-        if (sr) {
-            _rtcp_context.onRtcp(sr);
-        }
+    void onRtcp(RtcpHeader *sr) { 
+        _rtcp_context.onRtcp(sr);
+    }
+    Buffer::Ptr createRtcpRR(uint32_t ssrc) {
         return _rtcp_context.createRtcpRR(ssrc, getSSRC());
     }
 
@@ -1217,9 +1216,7 @@ void WebRtcTransportImp::onRtcp(const char *buf, size_t len) {
                     // 设置rtp时间戳与ntp时间戳的对应关系  [AUTO-TRANSLATED:e92f4749]
                     // Set the correspondence between rtp timestamp and ntp timestamp
                     rtp_chn->setNtpStamp(sr->rtpts, sr->getNtpUnixStampMS());
-                    auto rr = rtp_chn->createRtcpRR(sr, track->answer_ssrc_rtp);
-                    sendRtcpPacket(rr->data(), rr->size(), true);
-                    _rtcp_rr_send_ticker.resetTime();
+                    rtp_chn->onRtcp(sr);
                 }
             } else {
                 WarnL << "未识别的sr rtcp包:" << rtcp->dumpString();
@@ -1348,14 +1345,12 @@ void WebRtcTransportImp::onRtp(const char *buf, size_t len, uint64_t stamp_ms) {
 
     if (_rtcp_rr_send_ticker.elapsedTime() > 5000) {
         _rtcp_rr_send_ticker.resetTime();
-        
-        auto ssrc = ntohl(rtp->ssrc);
-        auto track_it = _ssrc_to_track.find(ssrc);
-        if (track_it != _ssrc_to_track.end()) {
-            auto &track = track_it->second;
+        for (auto& it : _ssrc_to_track) {
+            auto ssrc = it.first;
+            auto &track = it.second;
             auto rtp_chn = track->getRtpChannel(ssrc);
             if (rtp_chn) {
-                auto rr = rtp_chn->createRtcpRR(nullptr, track->answer_ssrc_rtp);
+                auto rr = rtp_chn->createRtcpRR(track->answer_ssrc_rtp);
                 if (rr && rr->size() > 0) {
                     sendRtcpPacket(rr->data(), rr->size(), true);
                 }
