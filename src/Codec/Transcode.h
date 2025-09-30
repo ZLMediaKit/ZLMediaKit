@@ -44,6 +44,7 @@ public:
 
     AVFrame *get() const;
     void fillPicture(AVPixelFormat target_format, int target_width, int target_height);
+    int getChannels() const;
 
 private:
     char *_data = nullptr;

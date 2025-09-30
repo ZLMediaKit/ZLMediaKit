@@ -40,6 +40,7 @@ private:
     void onReqPCM(char *stream, int len);
 
 private:
+    SDL_AudioDeviceID _device;
     std::shared_ptr<char> _play_buf;
     SDL_AudioSpec _audio_config;
     std::recursive_mutex _channel_mtx;
