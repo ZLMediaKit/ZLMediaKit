@@ -247,6 +247,15 @@ void FFmpegFrame::fillPicture(AVPixelFormat target_format, int target_width, int
     av_image_fill_arrays(_frame->data, _frame->linesize, (uint8_t *) _data,  target_format, target_width, target_height, 32);
 }
 
+int FFmpegFrame::getChannels() const {
+    if (!_frame) return 0;
+#if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
+    return _frame->ch_layout.nb_channels;
+#else
+    return _frame->channels;
+#endif
+}
+
 ///////////////////////////////////////////////////////////////////////////
 
 template<bool decoder = true>
