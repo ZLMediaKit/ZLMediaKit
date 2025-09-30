@@ -11,7 +11,6 @@
 #include "AV1.h"
 #include "AV1Rtp.h"
 #include "Extension/Factory.h"
-#include "Extension/CommonRtp.h"
 #include "Extension/CommonRtmp.h"
 
 using namespace std;
@@ -19,12 +18,33 @@ using namespace toolkit;
 
 namespace mediakit {
 
-Sdp::Ptr AV1Track::getSdp(uint8_t payload_type) const {
-    return std::make_shared<DefaultSdp>(payload_type, *this);
+bool AV1Track::inputFrame(const Frame::Ptr &frame) {
+    char *dataPtr = frame->data() + frame->prefixSize();
+    if (0 == aom_av1_codec_configuration_record_init(&_context, dataPtr, frame->size() - frame->prefixSize())) {
+        _width = _context.width;
+        _height = _context.height;
+        //InfoL << _width << "x" << _height;
+    }
+    return VideoTrackImp::inputFrame(frame);
 }
 
 Track::Ptr AV1Track::clone() const {
     return std::make_shared<AV1Track>(*this);
+}
+
+Buffer::Ptr AV1Track::getExtraData() const {
+    if (_context.bytes <= 0)
+        return nullptr;
+    auto ret = BufferRaw::create(4 + _context.bytes);
+    ret->setSize(aom_av1_codec_configuration_record_save(&_context, (uint8_t *)ret->data(), ret->getCapacity()));
+    return ret;
+}
+
+void AV1Track::setExtraData(const uint8_t *data, size_t size) {
+    if (aom_av1_codec_configuration_record_load(data, size, &_context) > 0) {
+        _width = _context.width;
+        _height = _context.height;
+    }
 }
 
 namespace {
@@ -34,8 +54,7 @@ CodecId getCodec() {
 }
 
 Track::Ptr getTrackByCodecId(int sample_rate, int channels, int sample_bit) {
-    // AV1是视频编解码器，这里的参数实际上是width, height, fps
-    return std::make_shared<AV1Track>(sample_rate, channels, sample_bit);
+    return std::make_shared<AV1Track>();
 }
 
 Track::Ptr getTrackBySdp(const SdpTrack::Ptr &track) {
@@ -59,7 +78,7 @@ RtmpCodec::Ptr getRtmpDecoderByTrack(const Track::Ptr &track) {
 }
 
 Frame::Ptr getFrameFromPtr(const char *data, size_t bytes, uint64_t dts, uint64_t pts) {
-    return std::make_shared<FrameFromPtr>(CodecAV1, (char *)data, bytes, dts, pts);
+    return std::make_shared<AV1FrameNoCacheAble>((char *)data, bytes, dts, pts, 0);
 }
 
 } // namespace
@@ -73,4 +92,4 @@ CodecPlugin av1_plugin = { getCodec,
                            getRtmpDecoderByTrack,
                            getFrameFromPtr };
 
-}//namespace mediakit
+} // namespace mediakit
