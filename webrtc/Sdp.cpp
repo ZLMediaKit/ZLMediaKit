@@ -1082,7 +1082,9 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const {
     if (connection.empty()) {
         sdp.addItem(std::make_shared<SdpConnection>(connection));
     }
-    sdp.addAttr(std::make_shared<SdpAttrGroup>(group));
+    if (media.size() > 1) {
+        sdp.addAttr(std::make_shared<SdpAttrGroup>(group));
+    }
     sdp.addAttr(std::make_shared<SdpAttrExtmapAllowMixed>());
     sdp.addAttr(std::make_shared<SdpAttrMsidSemantic>(msid_semantic));
 
@@ -1354,7 +1356,7 @@ void RtcSession::checkValid() const {
     CHECK(!session_name.empty());
     CHECK(!msid_semantic.empty());
     CHECK(!media.empty());
-    CHECK(!group.mids.empty() && group.mids.size() <= media.size(), "只支持group BUNDLE模式");
+    CHECK(media.size() == 1 || (!group.mids.empty() && group.mids.size() <= media.size()), "只支持group BUNDLE模式");
 
     bool have_active_media = false;
     for (auto &item : media) {
@@ -1588,10 +1590,12 @@ shared_ptr<RtcSession> RtcConfigure::createOffer() const {
     createMediaOffer(ret);
     // 设置音视频端口复用  [AUTO-TRANSLATED:ffe27d17]
     // Set audio and video port multiplexing
-    for (auto &m : ret->media) {
-        // The remote end has rejected (port 0) the m-section, so it should not be putting its mid in the group attribute.
-        if (m.port) {
-            ret->group.mids.emplace_back(m.mid);
+    if (ret->media.size() > 1) {
+        for (auto &m : ret->media) {
+            // The remote end has rejected (port 0) the m-section, so it should not be putting its mid in the group attribute.
+            if (m.port) {
+                ret->group.mids.emplace_back(m.mid);
+            }
         }
     }
 
