@@ -180,8 +180,8 @@ public:
     virtual void setOnResume(const std::function<void()> &cb) = 0;
    
     virtual size_t getRecvSpeed() { return 0; }
-
     virtual size_t getRecvTotalBytes() { return 0; }
+    virtual std::shared_ptr<toolkit::SockInfo> getSockInfo() const { return nullptr; } 
 
 protected:
     virtual void onResume() = 0;
@@ -241,8 +241,11 @@ public:
         return _delegate ? _delegate->getTracks(ready) : Parent::getTracks(ready);
     }
 
-    std::shared_ptr<toolkit::SockInfo> getSockInfo() const {
-        return std::dynamic_pointer_cast<toolkit::SockInfo>(_delegate);
+    std::shared_ptr<toolkit::SockInfo> getSockInfo() const override {
+        auto ret = std::dynamic_pointer_cast<toolkit::SockInfo>(_delegate);
+        if (!ret)
+            ret = _delegate ? _delegate->getSockInfo() : Parent::getSockInfo();
+        return ret;
     }
 
     void setMediaSource(const MediaSource::Ptr &src) override {

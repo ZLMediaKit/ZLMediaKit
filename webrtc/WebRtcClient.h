@@ -11,9 +11,6 @@
 #ifndef ZLMEDIAKIT_WEBRTC_CLIENT_H
 #define ZLMEDIAKIT_WEBRTC_CLIENT_H
 
-#include "Network/Socket.h"
-#include "Poller/Timer.h"
-#include "Util/TimeTicker.h"
 #include "Http/HttpRequester.h"
 #include "Sdp.h"
 #include "WebRtcTransport.h"
@@ -45,14 +42,6 @@ public:
 
 private:
 };
-
-namespace Rtc {
-typedef enum {
-    Signaling_Invalid   = -1,
-    Signaling_WHEP_WHIP = 0,
-    Signaling_WEBSOCKET = 1,
-} eSignalingProtocols;
-} // namespace Rtc
 
 // 实现了webrtc代理功能
 class WebRtcClient : public std::enable_shared_from_this<WebRtcClient> {
@@ -97,8 +86,6 @@ protected:
     WebRtcTransport::Ptr _transport = nullptr;
     bool _is_negotiate_finished = false;
 
-private:
-    std::map<std::string /*candidate key*/, toolkit::SocketHelper::Ptr> _socket_map;
 };
 
 } /*namespace mediakit */

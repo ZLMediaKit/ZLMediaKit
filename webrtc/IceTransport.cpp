@@ -1060,7 +1060,7 @@ IceAgent::IceAgent(Listener* listener, Implementation implementation, Role role,
     }, getPoller());
 }
 
-void IceAgent::gatheringCandidate(const CandidateTuple::Ptr& candidate_tuple, bool gathering_rflx, bool gathering_realy) {
+void IceAgent::gatheringCandidate(const CandidateTuple::Ptr& candidate_tuple, bool gathering_rflx, bool gathering_relay) {
     // TraceL;
 
     auto interfaces = SockUtil::getInterfaceList();
@@ -1091,11 +1091,11 @@ void IceAgent::gatheringCandidate(const CandidateTuple::Ptr& candidate_tuple, bo
                 gatheringSrflxCandidate(pair);
             }
 
-            if (gathering_realy) {
+            if (gathering_relay) {
                 //TODO: 代优化relay_socket 复用host socket当前SocketCandidateManager数据结构不支持
                 auto relay_socket = createSocket(candidate_tuple->_transport, candidate_tuple->_addr._host, candidate_tuple->_addr._port, local_ip);
                 _socket_candidate_manager.addRelaySocket(relay_socket);
-                gatheringRealyCandidate(std::make_shared<Pair>(std::move(relay_socket)));
+                gatheringRelayCandidate(std::make_shared<Pair>(std::move(relay_socket)));
             }
         } catch (std::exception &ex) {
             WarnL << ex.what();
@@ -1163,7 +1163,7 @@ void IceAgent::gatheringSrflxCandidate(const Pair::Ptr& pair) {
     sendBindRequest(pair, std::move(handle));
 }
 
-void IceAgent::gatheringRealyCandidate(const Pair::Ptr &pair) {
+void IceAgent::gatheringRelayCandidate(const Pair::Ptr &pair) {
     // TraceL;
     sendAllocateRequest(pair);
 }
@@ -1850,12 +1850,12 @@ void IceAgent::sendSocketData(const Buffer::Ptr& buf, const Pair::Ptr& pair, boo
     }
 
     if (use_pair->_relayed_addr) {
-        return sendRealyPacket(buf, use_pair, flush);
+        return sendRelayPacket(buf, use_pair, flush);
     }
     return sendSocketData_l(buf, use_pair, flush);
 }
 
-void IceAgent::sendRealyPacket(const Buffer::Ptr& buffer, const Pair::Ptr& pair, bool flush) {
+void IceAgent::sendRelayPacket(const Buffer::Ptr &buffer, const Pair::Ptr &pair, bool flush) {
     // TraceL;
     auto forward_pair = std::make_shared<Pair>(*pair);
     auto peer_addr = std::move(forward_pair->_relayed_addr);
@@ -2021,6 +2021,26 @@ Json::Value IceAgent::getChecklistInfo() const {
         result["selected_pair"] = Json::nullValue;
     }
     return result;
+}
+
+size_t IceAgent::getRecvSpeed() {
+    size_t ret = 0;
+    for (auto s : _socket_candidate_manager.getAllSockets()) {
+        if (s && s->getSock()) {
+            ret += s->getSock()->getRecvSpeed();
+        }
+    }
+    return ret;
+}
+
+size_t IceAgent::getRecvTotalBytes() {
+    size_t ret = 0;
+    for (auto s : _socket_candidate_manager.getAllSockets()) {
+        if (s && s->getSock()) {
+            ret += s->getSock()->getRecvTotalBytes();
+        }
+    }
+    return ret;
 }
 
 } // namespace RTC
