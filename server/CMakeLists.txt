@@ -69,7 +69,7 @@ install(TARGETS MediaServer DESTINATION ${INSTALL_PATH_RUNTIME})
 
 #relase 类型时额外输出debug调试信息
 string(TOLOWER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE_LOWER)
-if(UNIX)
+if(UNIX AND ENABLE_OBJCOPY)
   if("${CMAKE_BUILD_TYPE_LOWER}" STREQUAL "release")
     find_program(OBJCOPY_FOUND objcopy)
     if (OBJCOPY_FOUND)
