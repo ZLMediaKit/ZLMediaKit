@@ -11,7 +11,7 @@
 #include "Opus.h"
 #include "Extension/Factory.h"
 #include "Extension/CommonRtp.h"
-#include "Extension/CommonRtmp.h"
+#include "OpusRtmp.h"
 #include "opus-head.h"
 using namespace std;
 using namespace toolkit;
@@ -62,11 +62,11 @@ RtpCodec::Ptr getRtpDecoderByCodecId() {
 }
 
 RtmpCodec::Ptr getRtmpEncoderByTrack(const Track::Ptr &track) {
-    return std::make_shared<CommonRtmpEncoder>(track);
+    return std::make_shared<OpusRtmpEncoder>(track);
 }
 
 RtmpCodec::Ptr getRtmpDecoderByTrack(const Track::Ptr &track) {
-    return std::make_shared<CommonRtmpDecoder>(track);
+    return std::make_shared<OpusRtmpDecoder>(track);
 }
 
 Frame::Ptr getFrameFromPtr(const char *data, size_t bytes, uint64_t dts, uint64_t pts) {
