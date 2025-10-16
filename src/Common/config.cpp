@@ -256,7 +256,7 @@ static onceToken token([]() {
     mINI::Instance()[kHandshakeSecond] = 15;
     mINI::Instance()[kKeepAliveSecond] = 15;
     mINI::Instance()[kDirectProxy] = 1;
-    mINI::Instance()[kEnhanced] = 0;
+    mINI::Instance()[kEnhanced] = 1;
 });
 } // namespace Rtmp
 
