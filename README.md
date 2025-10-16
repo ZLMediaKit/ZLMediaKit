@@ -36,7 +36,7 @@
 - [谁在使用zlmediakit?](https://github.com/ZLMediaKit/ZLMediaKit/issues/511)
 - 全面支持ipv6网络
 - 支持多轨道模式(一个流中多个视频/音频)
-- 全协议支持H264/H265/AAC/G711/OPUS/MP3，部分支持VP8/VP9/AV1/JPEG/MP3/H266/ADPCM/SVAC/G722/G723/G729
+- 全协议支持H264/H265/AAC/G711/OPUS/MP3/VP8/VP9/AV1，部分支持JPEG/H266/ADPCM/SVAC/G722/G723/G729
 
 ## 项目定位
 
@@ -57,7 +57,7 @@
   - 服务器/客户端完整支持Basic/Digest方式的登录鉴权，全异步可配置化的鉴权接口
   - 支持H265编码
   - 服务器支持RTSP推流(包括`rtp over udp` `rtp over tcp`方式)
-  - 支持H264/H265/AAC/G711/OPUS/MJPEG/MP3编码，其他编码能转发但不能转协议
+  - 支持H264/H265/AAC/G711/OPUS/MJPEG/MP3/VP8/VP9/AV1编码，其他编码能转发但不能转协议
 
 - RTMP[S]
   - RTMP[S] 播放服务器，支持RTSP/MP4/HLS转RTMP
@@ -70,25 +70,25 @@
   - 支持H264/H265/AAC/G711/OPUS/MP3编码，其他编码能转发但不能转协议
   - 支持[RTMP-H265](https://github.com/ksvc/FFmpeg/wiki)
   - 支持[RTMP-OPUS](https://github.com/ZLMediaKit/ZLMediaKit/wiki/RTMP%E5%AF%B9H265%E5%92%8COPUS%E7%9A%84%E6%94%AF%E6%8C%81)
-  - 支持[enhanced-rtmp(H265)](https://github.com/veovera/enhanced-rtmp)
+  - 支持[enhanced-rtmp(H265/VP8/VP9/AV1/OPUS)](https://github.com/veovera/enhanced-rtmp)
 
 - HLS
   - 支持HLS文件(mpegts/fmp4)生成，自带HTTP文件服务器
   - 通过cookie追踪技术，可以模拟HLS播放为长连接，可以实现HLS按需拉流、播放统计等业务
   - 支持HLS播发器，支持拉流HLS转rtsp/rtmp/mp4
-  - 支持H264/H265/AAC/G711/OPUS/MP3编码
+  - 支持H264/H265/AAC/G711/OPUS/MP3/VP8/VP9/AV1编码
   - 支持多轨道模式
   
 - TS
   - 支持http[s]-ts直播
   - 支持ws[s]-ts直播
-  - 支持H264/H265/AAC/G711/OPUS/MP3编码
+  - 支持H264/H265/AAC/G711/OPUS/MP3/VP8/VP9/AV1编码
   - 支持多轨道模式
   
 - fMP4
   - 支持http[s]-fmp4直播
   - 支持ws[s]-fmp4直播
-  - 支持H264/H265/AAC/G711/OPUS/MJPEG/MP3编码
+  - 支持H264/H265/AAC/G711/OPUS/MJPEG/MP3/VP8/VP9/AV1编码
   - 支持多轨道模式
 
 - HTTP[S]与WebSocket
@@ -103,7 +103,7 @@
 - GB28181与RTP推流
   - 支持UDP/TCP RTP(PS/TS/ES)推流服务器，可以转换成RTSP/RTMP/HLS等协议
   - 支持RTSP/RTMP/HLS等协议转rtp推流客户端，支持TCP/UDP模式，提供相应restful api，支持主动被动方式
-  - 支持H264/H265/AAC/G711/OPUS/MP3编码
+  - 支持H264/H265/AAC/G711/OPUS/MP3/VP8/VP9/AV1编码
   - 支持es/ps/ts/ehome rtp推流
   - 支持es/ps rtp转推
   - 支持GB28181主动拉流模式
@@ -113,7 +113,7 @@
 - MP4点播与录制
   - 支持录制为FLV/HLS/MP4
   - RTSP/RTMP/HTTP-FLV/WS-FLV支持MP4文件点播，支持seek
-  - 支持H264/H265/AAC/G711/OPUS/MP3编码
+  - 支持H264/H265/AAC/G711/OPUS/MP3/VP8/VP9/AV1编码
   - 支持多轨道模式
   
 - WebRTC
@@ -131,13 +131,13 @@
   - 支持webrtc over tcp模式
   - 优秀的nack、jitter buffer算法, 抗丢包能力卓越
   - 支持whip/whep协议
+  - 支持编码格式与rtsp协议一致
   - [支持ice-full,支持作为webrtc客户端拉流、推流以及p2p模式](./webrtc/USAGE.md)
   
 - [SRT支持](./srt/srt.md)
 - 其他
   - 支持丰富的restful api以及web hook事件 
-  - 支持简单的telnet调试
-  - 支持配置文件热加载
+  - 支持配置文件、ssl证书热加载
   - 支持流量统计、推拉流鉴权等事件
   - 支持虚拟主机,可以隔离不同域名
   - 支持按需拉流，无人观看自动关断拉流
@@ -172,12 +172,9 @@
   - 1、支持rtsp-ts/hls/http-ts/rtp组播/udp组播拉流转协议，支持ts透传模式，无需解复用转rtsp-ts/hls/http-ts/srt协议。
   - 2、支持接收rtsp-ts/srt推流，支持ts透传模式，无需解复用转rtsp-ts/hls/http-ts/srt协议。
   - 3、上述功能同时支持解复用ts为es流再转rtsp/rtmp/flv/http-ts/hls/hls-fmp4/mp4/fmp4/webrtc等协议。
- 
-- VP9/AV1版本
-  - 全面新增支持av1/vp9编码，rtmp/rtsp/ts/ps/hls/mp4/fmp4等协议全面支持av1/vp9。
-  
+
 - 其他
-  - 支持s3/minio云存储内存流直接写入，解决录像文件io系统瓶颈问题。
+  - 支持s3/minio云存储内存流直接写入，解决录像文件io系统瓶颈问题；支持从s3云存储http读取并下载。
   - 支持onvif设备扫描与添加拉流。
   - 支持GA1400视图api。
 
@@ -224,7 +221,6 @@ bash build_docker_images.sh
    - [jessibuca](https://github.com/langhuihui/jessibuca) 基于wasm支持H265的播放器
    - [wsPlayer](https://github.com/v354412101/wsPlayer) 基于MSE的websocket-fmp4播放器
    - [BXC_gb28181Player](https://github.com/any12345com/BXC_gb28181Player) C++开发的支持国标GB28181协议的视频流播放器
-   - [RTCPlayer](https://github.com/leo94666/RTCPlayer) 一个基于Android客户端的的RTC播放器
 
 - WEB管理网站
    - [zlm_webassist](https://github.com/1002victor/zlm_webassist) 本项目配套的前后端分离web管理项目
