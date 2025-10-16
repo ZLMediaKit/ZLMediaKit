@@ -271,6 +271,8 @@ CodecId parseVideoRtmpPacket(const uint8_t *data, size_t size, RtmpPacketInfo *i
         switch ((RtmpVideoCodec)ntohl(enhanced_header->fourcc)) {
             case RtmpVideoCodec::fourcc_av1: info->codec = CodecAV1; break;
             case RtmpVideoCodec::fourcc_vp9: info->codec = CodecVP9; break;
+            case RtmpVideoCodec::fourcc_vp8: info->codec = CodecVP8; break;
+            case RtmpVideoCodec::fourcc_avc1: info->codec = CodecH264; break;
             case RtmpVideoCodec::fourcc_hevc: info->codec = CodecH265; break;
             default: WarnL << "Rtmp video codec not supported: " << std::string((char *)data + 1, 4);
         }
@@ -290,6 +292,21 @@ CodecId parseVideoRtmpPacket(const uint8_t *data, size_t size, RtmpPacketInfo *i
                 CHECK(size >= 1, "Invalid rtmp buffer size: ", size);
                 info->codec = CodecH265;
                 info->video.h264_pkt_type = (RtmpH264PacketType)classic_header->h264_pkt_type;
+                break;
+            }
+            case RtmpVideoCodec::vp8: {
+                CHECK(size >= 0, "Invalid rtmp buffer size: ", size);
+                info->codec = CodecVP8;
+                break;
+            }
+            case RtmpVideoCodec::vp9: {
+                CHECK(size >= 0, "Invalid rtmp buffer size: ", size);
+                info->codec = CodecVP9;
+                break;
+            }
+            case RtmpVideoCodec::av1: {
+                CHECK(size >= 0, "Invalid rtmp buffer size: ", size);
+                info->codec = CodecAV1;
                 break;
             }
             default: WarnL << "Rtmp video codec not supported: " << (int)classic_header->codec_id; break;

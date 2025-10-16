@@ -7,7 +7,7 @@
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
-
+#include "AV1.h"
 #include "AV1Rtp.h"
 #include <algorithm>
 #include <cstring>
@@ -309,8 +309,7 @@ AV1RtpDecoder::AV1RtpDecoder() {
 }
 
 void AV1RtpDecoder::obtainFrame() {
-    _frame = FrameImp::create();
-    _frame->_codec_id = CodecAV1;
+    _frame = FrameImp::create<AV1Frame>();
 }
 
 AV1RtpDecoder::AggregationHeader AV1RtpDecoder::parseAggregationHeader(uint8_t header) {
