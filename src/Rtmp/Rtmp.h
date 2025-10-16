@@ -306,9 +306,9 @@ enum class RtmpVideoCodec : uint32_t {
     screen_video2 = 6, // Screen video version 2
     h264 = 7, // avc
     h265 = 12, // 国内扩展
-    av1 = 13,
-    vp8 = 14,
-    vp9 = 15,
+    av1 = 13, // 国内扩展
+    vp8 = 14, // 国内扩展
+    vp9 = 15, // 国内扩展
     // 增强型rtmp FourCC  [AUTO-TRANSLATED:442b77fb]
     // Enhanced rtmp FourCC
     fourcc_vp8 = MKBETAG('v', 'p', '0', '8'),
@@ -358,7 +358,7 @@ enum class RtmpPacketType : uint8_t {
 //https://rtmp.veriskope.com/pdf/video_file_format_spec_v10_1.pdf
 
 // UB [4]; Format of SoundData
-enum class RtmpAudioCodec : uint8_t {
+enum class RtmpAudioCodec : uint32_t {
     /**
     0 = Linear PCM, platform endian
     1 = ADPCM
@@ -379,9 +379,10 @@ enum class RtmpAudioCodec : uint8_t {
     mp3 = 2,
     g711a = 7,
     g711u = 8,
-    FOURCC = 9, // Enhanced audio
+    ex_header = 9, // Enhanced audio; new, used to signal FOURCC mode
     aac = 10,
-    opus = 13 // 国内扩展
+    opus = 13, // 国内扩展
+    fourcc_opus = MKBETAG('O', 'p', 'u', 's')
 };
 
 // UI8;
