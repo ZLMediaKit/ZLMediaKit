@@ -25,7 +25,7 @@ void OpusRtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt) {
     auto codec = (RtmpAudioCodec)(flags >> 4);
     auto type = flags & 0x0F;
     data++; size--;
-    if (codec == RtmpAudioCodec::FOURCC) {
+    if (codec == RtmpAudioCodec::ex_header) {
         // @todo parse enhance audio header and check fourcc
         data += 4;
         size -= 4;
@@ -51,9 +51,10 @@ OpusRtmpEncoder::OpusRtmpEncoder(const Track::Ptr &track) : RtmpCodec(track) {
 bool OpusRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     auto packet = RtmpPacket::create();
     if (_enhanced) {
-        uint8_t flags = ((uint8_t)RtmpAudioCodec::FOURCC << 4) | (uint8_t)RtmpPacketType::PacketTypeCodedFrames;
+        uint8_t flags = ((uint8_t)RtmpAudioCodec::ex_header << 4) | (uint8_t)RtmpPacketType::PacketTypeCodedFrames;
         packet->buffer.push_back(flags);
-        packet->buffer.append("Opus", 4);
+        uint32_t fourcc = static_cast<uint32_t>(RtmpAudioCodec::fourcc_opus);
+        packet->buffer.append(reinterpret_cast<char *>(&fourcc), 4);
     } else {
         uint8_t flags = getAudioRtmpFlags(getTrack());
         packet->buffer.push_back(flags);
@@ -75,9 +76,10 @@ void OpusRtmpEncoder::makeConfigPacket() {
         return;
     auto pkt = RtmpPacket::create();
     if (_enhanced) {
-        uint8_t flags = ((uint8_t)RtmpAudioCodec::FOURCC << 4) | (uint8_t)RtmpPacketType::PacketTypeSequenceStart;
+        uint8_t flags = ((uint8_t)RtmpAudioCodec::ex_header << 4) | (uint8_t)RtmpPacketType::PacketTypeSequenceStart;
         pkt->buffer.push_back(flags);
-        pkt->buffer.append("Opus", 4);
+        uint32_t fourcc = static_cast<uint32_t>(RtmpAudioCodec::fourcc_opus);
+        pkt->buffer.append(reinterpret_cast<char *>(&fourcc), 4);
     } else {
         uint8_t flags = getAudioRtmpFlags(getTrack());
         pkt->buffer.push_back(flags);

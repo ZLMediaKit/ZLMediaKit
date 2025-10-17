@@ -88,10 +88,10 @@ bool VpxRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         header->enhanced = 1;
         header->frame_type = frame->keyFrame() ? (int)RtmpFrameType::key_frame : (int)RtmpFrameType::inter_frame;
         switch (frame->getCodecId()) {
-        case CodecVP8: header->fourcc = htonl((uint32_t)RtmpVideoCodec::fourcc_vp8); break;
-        case CodecVP9: header->fourcc = htonl((uint32_t)RtmpVideoCodec::fourcc_vp9); break;
-        case CodecAV1: header->fourcc = htonl((uint32_t)RtmpVideoCodec::fourcc_av1); break;
-        default: break;
+            case CodecVP8: header->fourcc = htonl((uint32_t)RtmpVideoCodec::fourcc_vp8); break;
+            case CodecVP9: header->fourcc = htonl((uint32_t)RtmpVideoCodec::fourcc_vp9); break;
+            case CodecAV1: header->fourcc = htonl((uint32_t)RtmpVideoCodec::fourcc_av1); break;
+            default: break;
         }
         buff += RtmpPacketInfo::kEnhancedRtmpHeaderSize;
         if (cts) {
@@ -105,10 +105,10 @@ bool VpxRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         // flags
         uint8_t flags = 0;
         switch (getTrack()->getCodecId()) {
-        case CodecVP8: flags = (uint8_t)RtmpVideoCodec::vp8; break;
-        case CodecVP9: flags = (uint8_t)RtmpVideoCodec::vp9; break;
-        case CodecAV1: flags = (uint8_t)RtmpVideoCodec::av1; break;
-        default: break;
+            case CodecVP8: flags = (uint8_t)RtmpVideoCodec::vp8; break;
+            case CodecVP9: flags = (uint8_t)RtmpVideoCodec::vp9; break;
+            case CodecAV1: flags = (uint8_t)RtmpVideoCodec::av1; break;
+            default: break;
         }
         flags |= (uint8_t)(frame->keyFrame() ? RtmpFrameType::key_frame : RtmpFrameType::inter_frame) << 4;
 
@@ -145,18 +145,18 @@ void VpxRtmpEncoder::makeConfigPacket() {
         header->pkt_type = (int)RtmpPacketType::PacketTypeSequenceStart;
         header->frame_type = (int)RtmpFrameType::key_frame;
         switch (getTrack()->getCodecId()) {
-        case CodecVP8: header->fourcc = htonl((uint32_t)RtmpVideoCodec::fourcc_vp8); break;
-        case CodecVP9: header->fourcc = htonl((uint32_t)RtmpVideoCodec::fourcc_vp9); break;
-        case CodecAV1: header->fourcc = htonl((uint32_t)RtmpVideoCodec::fourcc_av1); break;
-        default: break;
+            case CodecVP8: header->fourcc = htonl((uint32_t)RtmpVideoCodec::fourcc_vp8); break;
+            case CodecVP9: header->fourcc = htonl((uint32_t)RtmpVideoCodec::fourcc_vp9); break;
+            case CodecAV1: header->fourcc = htonl((uint32_t)RtmpVideoCodec::fourcc_av1); break;
+            default: break;
         }
     } else {
         uint8_t flags = 0;
         switch (getTrack()->getCodecId()) {
-        case CodecVP8: flags = (uint8_t)RtmpVideoCodec::vp8; break;
-        case CodecVP9: flags = (uint8_t)RtmpVideoCodec::vp9; break;
-        case CodecAV1: flags = (uint8_t)RtmpVideoCodec::av1; break;
-        default: break;
+            case CodecVP8: flags = (uint8_t)RtmpVideoCodec::vp8; break;
+            case CodecVP9: flags = (uint8_t)RtmpVideoCodec::vp9; break;
+            case CodecAV1: flags = (uint8_t)RtmpVideoCodec::av1; break;
+            default: break;
         }
         flags |= ((uint8_t)RtmpFrameType::key_frame << 4);
         buff[0] = flags;

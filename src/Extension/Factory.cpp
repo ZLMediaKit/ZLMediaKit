@@ -160,7 +160,8 @@ static CodecId getAudioCodecIdByAmf(const AMFValue &val) {
             case RtmpAudioCodec::adpcm: return CodecADPCM;
             case RtmpAudioCodec::g711a: return CodecG711A;
             case RtmpAudioCodec::g711u: return CodecG711U;
-            case RtmpAudioCodec::opus: return CodecOpus;
+            case RtmpAudioCodec::opus:
+            case RtmpAudioCodec::fourcc_opus: return CodecOpus;
             default: WarnL << "Unsupported codec: " << (int)type_id; return CodecInvalid;
         }
     }
@@ -202,7 +203,7 @@ AMFValue Factory::getAmfByCodecId(CodecId codecId) {
         case CodecH265: return enhanced ? AMFValue((int)RtmpVideoCodec::fourcc_hevc) : AMFValue((int)RtmpVideoCodec::h265);
         case CodecG711A: return AMFValue((int)RtmpAudioCodec::g711a);
         case CodecG711U: return AMFValue((int)RtmpAudioCodec::g711u);
-        case CodecOpus: return AMFValue((int)RtmpAudioCodec::opus);
+        case CodecOpus: return enhanced ? AMFValue((int)RtmpAudioCodec::fourcc_opus) : AMFValue((int)RtmpAudioCodec::opus);
         case CodecADPCM: return AMFValue((int)RtmpAudioCodec::adpcm);
         case CodecMP3: return AMFValue((int)RtmpAudioCodec::mp3);
         case CodecAV1: return enhanced ? AMFValue((int)RtmpVideoCodec::fourcc_av1) : AMFValue((int)RtmpVideoCodec::av1);
