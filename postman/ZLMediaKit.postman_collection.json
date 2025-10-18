@@ -2613,6 +2613,18 @@
 							"disabled": true
 						},
 						{
+							"key": "seek_ms",
+							"value": "0",
+							"description": "点播seek到特定位置，单位毫秒",
+							"disabled": true
+						},
+						{
+							"key": "speed",
+							"value": "1.0",
+							"description": "播放速度, float类型",
+							"disabled": true
+						},
+						{
 							"key": "enable_hls",
 							"value": "",
 							"description": "是否转hls-ts",
