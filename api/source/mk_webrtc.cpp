@@ -25,16 +25,19 @@
 #include "Http/HttpSession.h"
 #include "Shell/ShellSession.h"
 #include "Player/PlayerProxy.h"
-#include "webrtc/WebRtcProxyPlayer.h"
-#include "webrtc/WebRtcProxyPlayerImp.h"
-#include "../webrtc/WebRtcSignalingPeer.h"
-#include "../webrtc/WebRtcSignalingSession.h"
+
 using namespace std;
 using namespace toolkit;
 using namespace mediakit;
 
 #ifdef ENABLE_WEBRTC
-#include "../webrtc/WebRtcSession.h"
+
+#include "webrtc/WebRtcProxyPlayer.h"
+#include "webrtc/WebRtcProxyPlayerImp.h"
+#include "webrtc/WebRtcSignalingPeer.h"
+#include "webrtc/WebRtcSignalingSession.h"
+#include "webrtc/WebRtcSession.h"
+
 static UdpServer::Ptr rtcServer_udp;
 static TcpServer::Ptr rtcServer_tcp;
 class WebRtcArgsUrl : public mediakit::WebRtcArgs {
