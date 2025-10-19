@@ -61,7 +61,7 @@ bool OpusRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     if (_enhanced) {
         uint8_t flags = ((uint8_t)RtmpAudioCodec::ex_header << 4) | (uint8_t)RtmpPacketType::PacketTypeCodedFrames;
         packet->buffer.push_back(flags);
-        uint32_t fourcc = getCodecFourCC(getTrack()->getCodecId());
+        uint32_t fourcc = htonl(getCodecFourCC(getTrack()->getCodecId()));
         packet->buffer.append(reinterpret_cast<char *>(&fourcc), 4);
     } else {
         uint8_t flags = getAudioRtmpFlags(getTrack());
@@ -89,7 +89,7 @@ void OpusRtmpEncoder::makeConfigPacket() {
     if (_enhanced) {
         uint8_t flags = ((uint8_t)RtmpAudioCodec::ex_header << 4) | (uint8_t)RtmpPacketType::PacketTypeSequenceStart;
         packet->buffer.push_back(flags);
-        uint32_t fourcc = getCodecFourCC(getTrack()->getCodecId());
+        uint32_t fourcc = htonl(getCodecFourCC(getTrack()->getCodecId()));
         packet->buffer.append(reinterpret_cast<char *>(&fourcc), 4);
     } else {
         uint8_t flags = getAudioRtmpFlags(getTrack());
