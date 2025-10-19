@@ -35,6 +35,14 @@ void OpusRtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt) {
             outputFrame(data, size, pkt->time_stamp, pkt->time_stamp);
         }
     } else {
+        if (codec == RtmpAudioCodec::aac) {
+            uint8_t pkt_type = *data;
+            data++; size--;
+            if (pkt_type == (uint8_t)RtmpAACPacketType::aac_config_header) {
+                getTrack()->setExtraData((uint8_t *)data, size);
+                return;
+            }
+        }
         outputFrame(data, size, pkt->time_stamp, pkt->time_stamp);
     } 
 }
@@ -53,11 +61,14 @@ bool OpusRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     if (_enhanced) {
         uint8_t flags = ((uint8_t)RtmpAudioCodec::ex_header << 4) | (uint8_t)RtmpPacketType::PacketTypeCodedFrames;
         packet->buffer.push_back(flags);
-        uint32_t fourcc = static_cast<uint32_t>(RtmpAudioCodec::fourcc_opus);
+        uint32_t fourcc = htonl(getCodecFourCC(getTrack()->getCodecId()));
         packet->buffer.append(reinterpret_cast<char *>(&fourcc), 4);
     } else {
         uint8_t flags = getAudioRtmpFlags(getTrack());
         packet->buffer.push_back(flags);
+        if (getTrack()->getCodecId() == CodecAAC) {
+            packet->buffer.push_back((uint8_t)RtmpAACPacketType::aac_raw);
+        }
     }
     packet->buffer.append(frame->data(), frame->size());
     packet->body_size = packet->buffer.size();
@@ -74,23 +85,29 @@ void OpusRtmpEncoder::makeConfigPacket() {
     auto extra_data = getTrack()->getExtraData();
     if (!extra_data || !extra_data->size())
         return;
-    auto pkt = RtmpPacket::create();
+    auto packet = RtmpPacket::create();
     if (_enhanced) {
         uint8_t flags = ((uint8_t)RtmpAudioCodec::ex_header << 4) | (uint8_t)RtmpPacketType::PacketTypeSequenceStart;
-        pkt->buffer.push_back(flags);
-        uint32_t fourcc = static_cast<uint32_t>(RtmpAudioCodec::fourcc_opus);
-        pkt->buffer.append(reinterpret_cast<char *>(&fourcc), 4);
+        packet->buffer.push_back(flags);
+        uint32_t fourcc = htonl(getCodecFourCC(getTrack()->getCodecId()));
+        packet->buffer.append(reinterpret_cast<char *>(&fourcc), 4);
     } else {
         uint8_t flags = getAudioRtmpFlags(getTrack());
-        pkt->buffer.push_back(flags);
+        packet->buffer.push_back(flags);
+        if (getTrack()->getCodecId() == CodecAAC) {
+            packet->buffer.push_back((uint8_t)RtmpAACPacketType::aac_config_header);
+        }
+        else{
+            return ;
+        }
     }
-    pkt->buffer.append(extra_data->data(), extra_data->size());
-    pkt->body_size = pkt->buffer.size();
-    pkt->chunk_id = CHUNK_AUDIO;
-    pkt->stream_index = STREAM_MEDIA;
-    pkt->time_stamp = 0;
-    pkt->type_id = MSG_AUDIO;
-    RtmpCodec::inputRtmp(pkt);
+    packet->buffer.append(extra_data->data(), extra_data->size());
+    packet->body_size = packet->buffer.size();
+    packet->chunk_id = CHUNK_AUDIO;
+    packet->stream_index = STREAM_MEDIA;
+    packet->time_stamp = 0;
+    packet->type_id = MSG_AUDIO;
+    RtmpCodec::inputRtmp(packet);
 }
 
 } // namespace mediakit

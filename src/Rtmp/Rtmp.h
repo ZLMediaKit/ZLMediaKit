@@ -382,8 +382,26 @@ enum class RtmpAudioCodec : uint32_t {
     ex_header = 9, // Enhanced audio; new, used to signal FOURCC mode
     aac = 10,
     opus = 13, // 国内扩展
-    fourcc_opus = MKBETAG('O', 'p', 'u', 's')
+    fourcc_opus = MKBETAG('O', 'p', 'u', 's'),
+    fourcc_mp3 = MKBETAG('.', 'm', 'p', '3'),
+    fourcc_aac = MKBETAG('m', 'p', '4', 'a'),
+    fourcc_ac3 = MKBETAG('a', 'c', '-', '3'),
+    fourcc_flac = MKBETAG('f', 'L', 'a', 'C'),
+
 };
+
+#define RTMP_CODEC_MAP(XX) \
+    XX(CodecH264,  RtmpVideoCodec::h264, RtmpVideoCodec::fourcc_avc1)       \
+    XX(CodecH265,  RtmpVideoCodec::h265, RtmpVideoCodec::fourcc_hevc)       \
+    XX(CodecVP8,  RtmpVideoCodec::vp8, RtmpVideoCodec::fourcc_vp8)          \
+    XX(CodecVP9,  RtmpVideoCodec::vp9, RtmpVideoCodec::fourcc_vp9)          \
+    XX(CodecAV1,  RtmpVideoCodec::av1, RtmpVideoCodec::fourcc_av1)          \
+    XX(CodecAAC,  RtmpAudioCodec::aac, RtmpAudioCodec::fourcc_aac)          \
+    XX(CodecMP3,  RtmpAudioCodec::mp3, RtmpAudioCodec::fourcc_mp3)          \
+    XX(CodecOpus,  RtmpAudioCodec::opus, RtmpAudioCodec::fourcc_opus)
+uint32_t getCodecFourCC(CodecId cid);
+CodecId getFourccCodec(uint32_t id);
+uint8_t getCodecFlags(CodecId cid);
 
 // UI8;
 enum class RtmpAACPacketType : uint8_t {
