@@ -1220,6 +1220,7 @@ void RtspSession::updateRtcpContext(const RtpPacket::Ptr &rtp){
         _send_sr_rtcp[track_index] = false;
 
         static auto send_rtcp = [](RtspSession *thiz, int index, Buffer::Ptr ptr) {
+            if (!ptr) return;
             if (thiz->_rtp_type == Rtsp::RTP_TCP) {
                 auto &track = thiz->_sdp_track[index];
                 thiz->send(makeRtpOverTcpPrefix((uint16_t)(ptr->size()), track->_interleaved + 1));
