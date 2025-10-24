@@ -204,7 +204,11 @@ SrtpSession::SrtpSession(Type type, CryptoSuite cryptoSuite, uint8_t *key, size_
     policy.key = key;
     // Required for sending RTP retransmission without RTX.
     policy.allow_repeat_tx = 1;
-    policy.window_size = 1024;
+    if (type == Type::OUTBOUND) {
+        policy.window_size = 0x8000 - 1;
+    } else {
+        policy.window_size = 1024;
+    }
     policy.next = nullptr;
 
     // Set the SRTP session.
