@@ -913,21 +913,24 @@ void installWebApi() {
         CHECK_SECRET();
         // 获取所有MediaSource列表  [AUTO-TRANSLATED:7bf16dc2]
         // Get all MediaSource lists
-        bool first = true;
-        std::shared_ptr<Json::Value> done(new Json::Value(val), [invoker, headerOut](Json::Value *val) {
-            invoker(200, headerOut, val->toStyledString());
-            delete val;
-        });
+        std::list<MediaSource::Ptr> lst;
         MediaSource::for_each_media([&](const MediaSource::Ptr &media) {
-            if (first) {
-                first = false;
-                media->getOwnerPoller()->async([media, done]() mutable {
-                    (*done)["data"].append(makeMediaSourceJson(*media));
-                });
-            } else {
-                (*done)["data"].append(makeMediaSourceJson(*media));
-            }
+            lst.emplace_back(media);
         }, allArgs["schema"], allArgs["vhost"], allArgs["app"], allArgs["stream"]);
+
+        if (lst.size() == 1) {
+            // 如果是搜索单一流，那么在它的归属线程中执行，用于获取丢包率参数
+            auto front = std::move(lst.front());
+            front->getOwnerPoller()->async([=]() mutable {
+                val["data"].append(makeMediaSourceJson(*front));
+                invoker(200, headerOut, val.toStyledString());
+            });
+        } else {
+            for (auto &media : lst) {
+                val["data"].append(makeMediaSourceJson(*media));
+            }
+            invoker(200, headerOut, val.toStyledString());
+        }
     });
 
     // 测试url http://127.0.0.1/index/api/isMediaOnline?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs  [AUTO-TRANSLATED:126a75e8]
