@@ -34,14 +34,17 @@ namespace mediakit {
 // 解析srt 信令url的工具类
 class SrtUrl {
 public:
-    std::string _full_url;
-    std::string _params;
-    std::string _host;
-    uint16_t _port;
-    std::string _streamid;
+    void parse(const std::string &url);
 
 public:
-    void parse(const std::string &url);
+    std::string _full_url;
+    std::string _params;
+    std::string _streamid;
+    sockaddr_storage _addr;
+
+private:
+    uint16_t _port;
+    std::string _host;
 };
 
 // 实现了webrtc代理拉流功能

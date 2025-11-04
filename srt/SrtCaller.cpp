@@ -35,6 +35,10 @@ void SrtUrl::parse(const string &strUrl) {
     auto ip = findSubString(url.data(), "://", "?");
     splitUrl(ip, _host, _port);
 
+    if (!SockUtil::getDomainIP(_host.c_str(), _port, _addr, AF_INET, SOCK_DGRAM, IPPROTO_UDP)) {
+        throw std::invalid_argument("invalid host: " + _host);
+    }
+
     auto _params = findSubString(url.data(), "?" , NULL);
 
     auto kv = Parser::parseArgs(_params);
@@ -80,10 +84,9 @@ SrtCaller::~SrtCaller(void) {
 void SrtCaller::onConnect() {
     //DebugL;
 
-    auto peer_addr = SockUtil::make_sockaddr(_url._host.c_str(), (_url._port));
     _socket = Socket::createSocket(_poller, false);
-    _socket->bindUdpSock(0, SockUtil::is_ipv4(_url._host.data()) ? "0.0.0.0" : "::");
-    _socket->bindPeerAddr((struct sockaddr *)&peer_addr, 0, true);
+    _socket->bindUdpSock(0, _url._addr.ss_family == AF_INET ? "0.0.0.0" : "::");
+    _socket->bindPeerAddr((struct sockaddr *)&_url._addr, 0, true);
 
     weak_ptr<SrtCaller> weak_self = shared_from_this();
     _socket->setOnRead([weak_self](const Buffer::Ptr &buf, struct sockaddr *addr, int addr_len) mutable {
@@ -280,8 +283,7 @@ void SrtCaller::sendHandshakeInduction() {
     req->srt_socket_id                  = _socket_id;
     req->syn_cookie                     = 0;
 
-    auto dataSenderAddr = SockUtil::make_sockaddr(_url._host.c_str(), _url._port);
-    req->assignPeerIPBE(&dataSenderAddr);
+    req->assignPeerIPBE(&_url._addr);
     req->storeToData();
     _handleshake_req = req;
     sendControlPacket(req, true);
@@ -326,8 +328,7 @@ void SrtCaller::sendHandshakeConclusion() {
     req->srt_socket_id                   = _socket_id;
     req->syn_cookie                      = _sync_cookie;
 
-    auto addr = SockUtil::make_sockaddr(_url._host.c_str(), _url._port);
-    req->assignPeerIPBE(&addr);
+    req->assignPeerIPBE(&_url._addr);
 
     HSExtMessage::Ptr ext = std::make_shared<HSExtMessage>();
     ext->extension_type = HSExt::SRT_CMD_HSREQ;
