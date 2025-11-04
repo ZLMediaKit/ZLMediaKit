@@ -107,11 +107,6 @@ uint32_t RtcpContextForSend::getRtt(uint32_t ssrc) const {
 }
 
 Buffer::Ptr RtcpContextForSend::createRtcpSR(uint32_t rtcp_ssrc) {
-    uint64_t now = getCurrentMillisecond();
-    if (now - _last_sr_tsp < 5000) {
-        return nullptr;
-    }
-    _last_sr_tsp = now;
     auto rtcp = RtcpSR::create(0);
     rtcp->setNtpStamp(_last_ntp_stamp_ms);
     rtcp->rtpts = htonl(_last_rtp_stamp);
@@ -122,7 +117,7 @@ Buffer::Ptr RtcpContextForSend::createRtcpSR(uint32_t rtcp_ssrc) {
     // 记录上次发送的sender report信息，用于后续统计rtt  [AUTO-TRANSLATED:1d22d2c8]
     // Record the last sent sender report information for subsequent RTT statistics
     auto last_sr_lsr = ((ntohl(rtcp->ntpmsw) & 0xFFFF) << 16) | ((ntohl(rtcp->ntplsw) >> 16) & 0xFFFF);
-    _sender_report_ntp[last_sr_lsr] = now;
+    _sender_report_ntp[last_sr_lsr] = getCurrentMillisecond();
     if (_sender_report_ntp.size() >= 5) {
         // 删除最早的sr rtcp  [AUTO-TRANSLATED:2457e08d]
         // Delete the earliest sr rtcp
