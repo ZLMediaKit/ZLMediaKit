@@ -380,6 +380,7 @@ private:
     // pli rtcp timer
     toolkit::Ticker _pli_ticker;
 
+    toolkit::Ticker _rtcp_sr_send_ticker;
     toolkit::Ticker _rtcp_rr_send_ticker;
 
     // twcc rtcp发送上下文对象  [AUTO-TRANSLATED:aef6476a]

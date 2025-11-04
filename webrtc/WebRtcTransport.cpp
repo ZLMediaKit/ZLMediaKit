@@ -1497,10 +1497,13 @@ void WebRtcTransportImp::onSendRtp(const RtpPacket::Ptr &rtp, bool flush, bool r
     sendRtpPacket(rtp->data() + RtpPacket::kRtpTcpHeaderSize, rtp->size() - RtpPacket::kRtpTcpHeaderSize, flush, &ctx);
     _bytes_usage += rtp->size() - RtpPacket::kRtpTcpHeaderSize;
 
-    if (track->rtcp_context_send) {
-        auto sr = track->rtcp_context_send->createRtcpSR(track->answer_ssrc_rtp);
-        if (sr && sr->size() > 0) {
-            sendRtcpPacket(sr->data(), sr->size(), true);
+    if (_rtcp_sr_send_ticker.elapsedTime() > 5000) {
+        _rtcp_sr_send_ticker.resetTime();
+        if (track->rtcp_context_send) {
+            auto sr = track->rtcp_context_send->createRtcpSR(track->answer_ssrc_rtp);
+            if (sr && sr->size() > 0) {
+                sendRtcpPacket(sr->data(), sr->size(), true);
+            }
         }
     }
 }
