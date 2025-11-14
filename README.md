@@ -234,6 +234,7 @@ bash build_docker_images.sh
 - WEB管理网站
    - [zlm_webassist](https://github.com/1002victor/zlm_webassist) 本项目配套的前后端分离web管理项目
    - [AKStreamNVR](https://github.com/langmansh/AKStreamNVR) 前后端分离web项目,支持webrtc播放
+   - [StreamUI](https://github.com/lmk123568/StreamUI) 一个极简、轻便的视频流媒体管理平台
    
  - SDK
    - [spring-boot-starter](https://github.com/lunasaw/zlm-spring-boot-starter) 本项目hook和rest接口starter
