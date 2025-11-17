@@ -71,6 +71,9 @@
 #include "VideoStack.h"
 #endif
 
+#include "Onvif/Onvif.h"
+#include "Onvif/SoapUtil.h"
+
 using namespace std;
 using namespace Json;
 using namespace toolkit;
@@ -714,7 +717,7 @@ void getThreadsLoad(TaskExecutorGetterImp &getter, API_ARGS_MAP_ASYNC) {
  * Install api interface
  * All apis support GET and POST methods
  * POST method parameters support application/json and application/x-www-form-urlencoded methods
- 
+
  * [AUTO-TRANSLATED:62e68c43]
  */
 void installWebApi() {
@@ -2335,6 +2338,53 @@ void installWebApi() {
             // No one is listening to the file download authentication event, download is not allowed
             invoker(401, StrCaseMap {}, "None http access event listener");
         }
+    });
+
+
+    api_regist("/index/api/searchOnvifDevice",[](API_ARGS_MAP_ASYNC){
+       CHECK_SECRET();
+       CHECK_ARGS("timeout_ms");
+
+       auto result = std::make_shared<Value>(std::move(val));
+       auto complete_token = std::make_shared<onceToken>(nullptr, [result, headerOut, invoker]() {
+           invoker(200, headerOut, result->toStyledString());
+       });
+       auto lam_search = [complete_token, result](const std::map<string, string> &device_info,
+                                                  const std::string &onvif_url) {
+           Value obj;
+           obj["onvif_url"] = onvif_url;
+           for (auto &pr : device_info) {
+               obj[pr.first] = pr.second;
+           }
+           (*result)["data"].append(std::move(obj));
+           //继续等待扫描
+           return true;
+       };
+       OnvifSearcher::Instance().sendSearchBroadcast(std::move(lam_search), allArgs["timeout_ms"]);
+   });
+
+    api_regist("/index/api/getStreamUrl", [](API_ARGS_MAP_ASYNC) {
+        CHECK_SECRET();
+        CHECK_ARGS("onvif_url");
+
+        SoapUtil::asyncGetStreamUri(allArgs["onvif_url"],[val, headerOut, allArgs, invoker]
+                (const SoapErr &err, const SoapUtil::GetStreamUriRetryInvoker &retry_invoker,
+                 int retry_count, const std::string &url) mutable {
+            if (err && retry_count == 0 && !allArgs["user_name"].empty() /* &&
+                (err.httpCode() == 400 || err.httpCode() == 401)*/) {
+                //第一次失败，且提供了用户密码，且确定是鉴权失败
+                retry_invoker(allArgs["user_name"], allArgs["passwd"]);
+                return;
+            }
+            val["code"] = err ? API::OtherFailed : API::Success;
+            if (err) {
+                val["http_code"] = err.httpCode();
+                val["msg"] = (string) err;
+            } else {
+                val["url"] = url;
+            }
+            invoker(200, headerOut, val.toStyledString());
+        });
     });
 
 #if defined(ENABLE_VIDEOSTACK) && defined(ENABLE_X264) && defined(ENABLE_FFMPEG)
