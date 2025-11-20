@@ -2043,4 +2043,23 @@ size_t IceAgent::getRecvTotalBytes() {
     return ret;
 }
 
+size_t IceAgent::getSendSpeed() {
+    size_t ret = 0;
+    for (auto s : _socket_candidate_manager.getAllSockets()) {
+        if (s && s->getSock()) {
+            ret += s->getSock()->getSendSpeed();
+        }
+    }
+    return ret;
+}
+
+size_t IceAgent::getSendTotalBytes() {
+    size_t ret = 0;
+    for (auto s : _socket_candidate_manager.getAllSockets()) {
+        if (s && s->getSock()) {
+            ret += s->getSock()->getSendTotalBytes();
+        }
+    }
+    return ret;
+}
 } // namespace RTC

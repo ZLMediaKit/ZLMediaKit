@@ -555,6 +555,8 @@ public:
     Json::Value getChecklistInfo() const;
     size_t getRecvSpeed();
     size_t getRecvTotalBytes();
+    size_t getSendSpeed();
+    size_t getSendTotalBytes();
 
 protected:
     void gatheringSrflxCandidate(const Pair::Ptr& pair);

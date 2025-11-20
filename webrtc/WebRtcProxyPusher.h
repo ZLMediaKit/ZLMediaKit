@@ -34,6 +34,9 @@ public:
     void publish(const std::string &url) override;
     void teardown() override;
 
+    size_t getSendSpeed() override { return getWebRtcTransport() ? getWebRtcTransport()->getSendSpeed() : 0; }
+    size_t getSendTotalBytes() override { return getWebRtcTransport() ? getWebRtcTransport()->getSendTotalBytes() : 0; }
+
 protected:
     //// WebRtcClient override////
     void startConnect() override;
