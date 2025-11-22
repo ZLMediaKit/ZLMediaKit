@@ -16,6 +16,7 @@
 #include "System.h"
 #include "Thread/WorkThreadPool.h"
 #include "Network/sockutil.h"
+#include "RedLineConfig.h"
 
 using namespace std;
 using namespace toolkit;
@@ -98,8 +99,45 @@ void FFmpegSource::play(const string &ffmpeg_cmd_key, const string &src_url, con
             throw std::invalid_argument("ffmpeg cmd template must start with '%s'");
         }
 
-        char cmd[2048] = { 0 };
-        snprintf(cmd, sizeof(cmd), ffmpeg_cmd.data(), File::absolutePath("", ffmpeg_bin).data(), src_url.data(), dst_url.data());
+        // 生成camera_id并获取红线配置
+        string camera_id = _media_info.app + "/" + _media_info.stream;
+        string red_line_filter = RedLineConfigManager::getInstance().generateFFmpegFilter(camera_id);
+
+        char cmd[4096] = { 0 };
+        if (!red_line_filter.empty()) {
+            // 有红线配置，需要修改FFmpeg命令以包含滤镜
+            // 在原始命令中插入 -vf "滤镜" 参数
+            // 注意：这会强制重新编码视频
+            string modified_cmd = ffmpeg_cmd;
+
+            // 查找 -c:v 参数的位置，在其之前插入滤镜
+            size_t codec_pos = modified_cmd.find("-c:v");
+            if (codec_pos != string::npos) {
+                // 在 -c:v 之前插入滤镜参数
+                modified_cmd.insert(codec_pos, "-vf \"" + red_line_filter + "\" ");
+            } else {
+                // 如果没有找到 -c:v，在最后的URL之前插入
+                // 先构建基础命令，然后手动添加滤镜
+                modified_cmd = ffmpeg_cmd;
+                size_t last_percent = modified_cmd.rfind("%s");
+                if (last_percent != string::npos) {
+                    modified_cmd.insert(last_percent, "-vf \"" + red_line_filter + "\" ");
+                }
+            }
+
+            snprintf(cmd, sizeof(cmd), modified_cmd.data(),
+                     File::absolutePath("", ffmpeg_bin).data(),
+                     src_url.data(),
+                     dst_url.data());
+            InfoL << "摄像头 " << camera_id << " 启用红线绘制";
+        } else {
+            // 没有红线配置，使用原始命令
+            snprintf(cmd, sizeof(cmd), ffmpeg_cmd.data(),
+                     File::absolutePath("", ffmpeg_bin).data(),
+                     src_url.data(),
+                     dst_url.data());
+        }
+
         auto log_file = ffmpeg_log.empty() ? "" : File::absolutePath("", ffmpeg_log);
         _process.run(cmd, log_file);
         _cmd = cmd;

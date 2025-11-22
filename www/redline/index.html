@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZLMediaKit 红线配置管理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            padding: 20px;
+            min-height: 600px;
+        }
+
+        .sidebar {
+            border-right: 1px solid #e0e0e0;
+            padding-right: 20px;
+        }
+
+        .camera-list {
+            margin-top: 20px;
+        }
+
+        .camera-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .camera-item:hover {
+            background: #e9ecef;
+        }
+
+        .camera-item.active {
+            background: #667eea;
+            color: white;
+            border-color: #5568d3;
+        }
+
+        .camera-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .main-content {
+            padding-left: 20px;
+        }
+
+        .video-canvas-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin: 20px 0;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        #videoPlayer {
+            width: 100%;
+            display: block;
+        }
+
+        #drawCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            cursor: crosshair;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .line-list {
+            margin-top: 20px;
+        }
+
+        .line-item {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .line-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .line-item-details {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .color-picker {
+            width: 50px;
+            height: 35px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .thickness-input {
+            width: 80px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .label-input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            flex: 1;
+        }
+
+        .alert {
+            padding: 12px 20px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .type-selector {
+            display: flex;
+            gap: 10px;
+        }
+
+        .type-btn {
+            padding: 8px 16px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .type-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .stream-url-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        .secret-input {
+            width: 300px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+        .help-text {
+            font-size: 13px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>红线配置管理</h1>
+            <p>为指定摄像头绘制红线区域，支持直线、矩形和多边形</p>
+        </div>
+
+        <div class="content">
+            <div class="sidebar">
+                <h3>配置管理</h3>
+                <input type="password" class="secret-input" id="secretInput" placeholder="API密钥 (secret)">
+                <div class="help-text">默认: 035c73f7-bb6b-4889-a715-d9eb2d1925cc</div>
+
+                <input type="text" class="camera-input" id="cameraInput" placeholder="摄像头ID (app/stream)">
+                <button class="btn btn-primary" style="width: 100%;" onclick="loadOrCreateCamera()">加载/新建</button>
+
+                <div class="camera-list" id="cameraList">
+                    <!-- 摄像头列表将在这里显示 -->
+                </div>
+            </div>
+
+            <div class="main-content">
+                <div id="alertContainer"></div>
+
+                <div id="cameraConfigSection" style="display: none;">
+                    <h3>摄像头: <span id="currentCamera"></span></h3>
+
+                    <div style="margin: 20px 0;">
+                        <input type="text" class="stream-url-input" id="streamUrlInput"
+                               placeholder="视频流URL (可选, 用于预览)">
+                        <button class="btn btn-primary" onclick="loadVideo()">加载视频预览</button>
+                        <div class="help-text">例如: rtsp://..., rtmp://..., http://.../live.flv</div>
+                    </div>
+
+                    <div class="video-canvas-container">
+                        <video id="videoPlayer" controls crossorigin="anonymous">
+                            您的浏览器不支持video标签
+                        </video>
+                        <canvas id="drawCanvas"></canvas>
+                    </div>
+
+                    <div class="controls">
+                        <div class="type-selector">
+                            <button class="type-btn active" data-type="line" onclick="selectLineType('line')">直线</button>
+                            <button class="type-btn" data-type="rect" onclick="selectLineType('rect')">矩形</button>
+                            <button class="type-btn" data-type="polygon" onclick="selectLineType('polygon')">多边形</button>
+                        </div>
+
+                        <input type="color" class="color-picker" id="colorPicker" value="#FF0000" title="颜色">
+                        <input type="number" class="thickness-input" id="thicknessInput" value="2" min="1" max="10" placeholder="粗细">
+                        <input type="text" class="label-input" id="labelInput" placeholder="标签文本 (可选)">
+
+                        <button class="btn btn-success" onclick="saveConfig()">保存配置</button>
+                        <button class="btn btn-danger" onclick="clearLines()">清空所有</button>
+                    </div>
+
+                    <div class="line-list" id="lineList">
+                        <!-- 红线列表将在这里显示 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="redline-manager.js"></script>
+</body>
+</html>

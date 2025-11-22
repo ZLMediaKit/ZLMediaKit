@@ -39,6 +39,7 @@
 #include "WebApi.h"
 #include "WebHook.h"
 #include "FFmpegSource.h"
+#include "RedLineConfig.h"
 
 #include "Common/config.h"
 #include "Common/MediaSource.h"
@@ -2243,6 +2244,64 @@ void installWebApi() {
         invoker(200, headerOut, val.toStyledString());
     });
 #endif
+
+    // 红线配置相关API
+    // 获取指定摄像头的红线配置
+    api_regist("/index/api/getRedLineConfig", [](API_ARGS_MAP) {
+        CHECK_SECRET();
+        CHECK_ARGS("camera_id");
+
+        auto camera_id = allArgs["camera_id"];
+        auto config = RedLineConfigManager::getInstance().getConfig(camera_id);
+        val["data"] = config.toJson();
+    });
+
+    // 设置摄像头红线配置
+    api_regist("/index/api/setRedLineConfig", [](API_ARGS_JSON) {
+        CHECK_SECRET();
+        CHECK_ARGS("camera_id");
+
+        auto camera_id = allArgs["camera_id"];
+        auto config = CameraRedLineConfig::fromJson(allArgs.args);
+        config.camera_id = camera_id;
+
+        RedLineConfigManager::getInstance().setConfig(camera_id, config);
+        val["msg"] = "配置保存成功";
+    });
+
+    // 删除摄像头红线配置
+    api_regist("/index/api/deleteRedLineConfig", [](API_ARGS_MAP) {
+        CHECK_SECRET();
+        CHECK_ARGS("camera_id");
+
+        auto camera_id = allArgs["camera_id"];
+        RedLineConfigManager::getInstance().deleteConfig(camera_id);
+        val["msg"] = "配置删除成功";
+    });
+
+    // 删除指定红线
+    api_regist("/index/api/deleteRedLine", [](API_ARGS_MAP) {
+        CHECK_SECRET();
+        CHECK_ARGS("camera_id", "line_id");
+
+        auto camera_id = allArgs["camera_id"];
+        auto line_id = allArgs["line_id"];
+
+        bool success = RedLineConfigManager::getInstance().deleteRedLine(camera_id, line_id);
+        if (success) {
+            val["msg"] = "红线删除成功";
+        } else {
+            val["code"] = API::OtherFailed;
+            val["msg"] = "红线不存在";
+        }
+    });
+
+    // 获取所有摄像头的红线配置
+    api_regist("/index/api/getAllRedLineConfigs", [](API_ARGS_MAP) {
+        CHECK_SECRET();
+
+        val["data"] = RedLineConfigManager::getInstance().getAllConfigs();
+    });
 
 #if ENABLE_MP4
     api_regist("/index/api/loadMP4File", [](API_ARGS_MAP) {
