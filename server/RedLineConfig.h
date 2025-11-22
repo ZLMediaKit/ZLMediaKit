@@ -180,6 +180,15 @@ public:
      */
     std::string generateFFmpegFilter(const std::string &camera_id);
 
+    /**
+     * 为指定摄像头生成红线PNG图片
+     * @param camera_id 摄像头ID
+     * @param width 视频宽度
+     * @param height 视频高度
+     * @return PNG文件路径，如果没有配置或生成失败返回空字符串
+     */
+    std::string generateOverlayPNG(const std::string &camera_id, int width, int height);
+
 private:
     RedLineConfigManager();
     ~RedLineConfigManager() = default;

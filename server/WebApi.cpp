@@ -2303,6 +2303,28 @@ void installWebApi() {
         val["data"] = RedLineConfigManager::getInstance().getAllConfigs();
     });
 
+    // 重新生成红线PNG（用于性能优化）
+    api_regist("/index/api/regenerateRedLinePNG", [](API_ARGS_MAP) {
+        CHECK_SECRET();
+        CHECK_ARGS("camera_id");
+
+        auto camera_id = allArgs["camera_id"];
+        int width = atoi(allArgs["width"].data());
+        int height = atoi(allArgs["height"].data());
+
+        if (width <= 0) width = 1920;
+        if (height <= 0) height = 1080;
+
+        string png_file = RedLineConfigManager::getInstance().generateOverlayPNG(camera_id, width, height);
+        if (!png_file.empty()) {
+            val["data"]["png_file"] = png_file;
+            val["msg"] = "PNG生成成功";
+        } else {
+            val["code"] = API::OtherFailed;
+            val["msg"] = "PNG生成失败";
+        }
+    });
+
 #if ENABLE_MP4
     api_regist("/index/api/loadMP4File", [](API_ARGS_MAP) {
         CHECK_SECRET();
