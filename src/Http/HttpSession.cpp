@@ -358,7 +358,7 @@ bool HttpSession::checkLiveStream(const string &schema, const string &url_suffix
 
     Broadcast::AuthInvoker invoker = [weak_self, onRes](const string &err) {
         if (auto strong_self = weak_self.lock()) {
-            strong_self->async([onRes, err]() { onRes(err); });
+            strong_self->async([onRes, err]() { onRes(err); }, false);
         }
     };
 
@@ -366,7 +366,7 @@ bool HttpSession::checkLiveStream(const string &schema, const string &url_suffix
     if (!flag) {
         // 该事件无人监听,默认不鉴权  [AUTO-TRANSLATED:e1fbc6ae]
         // No one is listening to this event, no authentication by default
-        onRes("");
+        invoker("");
     }
     return true;
 }
