@@ -320,7 +320,7 @@ bool DtsGenerator::getDts_l(uint64_t pts, uint64_t &dts) {
     // Put pts into the sorting cache queue, the maximum cache queue is equal to the number of consecutive B frames
     _pts_sorter.emplace(pts);
 
-    if (_sorter_max_size && _pts_sorter.size() > _sorter_max_size) {
+    if (_sorter_max_size > 1 && _pts_sorter.size() > _sorter_max_size) {
         // 如果启用了pts排序(意味着存在B帧)，并且pts排序缓存列队长度大于连续B帧个数，  [AUTO-TRANSLATED:002c0d03]
         // If pts sorting is enabled (meaning there are B frames), and the length of the pts sorting cache queue is greater than the number of consecutive B frames,
         // 意味着后续的pts都会比最早的pts大，那么说明可以取出最早的pts了，这个pts将当做该帧的dts基准  [AUTO-TRANSLATED:86b8f679]
