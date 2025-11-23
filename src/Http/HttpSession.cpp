@@ -224,22 +224,22 @@ bool HttpSession::checkWebSocket() {
         headerOut["Sec-WebSocket-Protocol"] = _parser["Sec-WebSocket-Protocol"];
     }
 
-    auto res_cb = [this, headerOut]() {
-        _live_over_websocket = true;
-        sendResponse(101, false, nullptr, headerOut, nullptr, true);
+    auto res_cb = []() {
+        // 改成先回复http头模式，以解决按需播放场景下websocket请求pending问题：#4553
     };
 
-    auto res_cb_flv = [this, headerOut]() mutable {
-        _live_over_websocket = true;
+    auto res_immediately = [this, headerOut]() mutable {
         headerOut.emplace("Cache-Control", "no-store");
         sendResponse(101, false, nullptr, headerOut, nullptr, true);
+        _live_over_websocket = true;
     };
 
     // 判断是否为websocket-flv  [AUTO-TRANSLATED:31682d7a]
     // Determine whether it is websocket-flv
-    if (checkLiveStreamFlv(res_cb_flv)) {
+    if (checkLiveStreamFlv(res_cb)) {
         // 这里是websocket-flv直播请求  [AUTO-TRANSLATED:4bea5956]
         // This is a websocket-flv live request
+        res_immediately();
         return true;
     }
 
@@ -248,6 +248,7 @@ bool HttpSession::checkWebSocket() {
     if (checkLiveStreamTS(res_cb)) {
         // 这里是websocket-ts直播请求  [AUTO-TRANSLATED:8ab08dd6]
         // This is a websocket-ts live request
+        res_immediately();
         return true;
     }
 
@@ -256,6 +257,7 @@ bool HttpSession::checkWebSocket() {
     if (checkLiveStreamFMP4(res_cb)) {
         // 这里是websocket-fmp4直播请求  [AUTO-TRANSLATED:ccf0c1e2]
         // This is a websocket-fmp4 live request
+        res_immediately();
         return true;
     }
 
@@ -659,6 +661,23 @@ void HttpSession::sendResponse(int code,
                                const HttpSession::KeyValue &header,
                                const HttpBody::Ptr &body,
                                bool no_content_length) {
+    if (_live_over_websocket) {
+        WebSocketHeader ws_header;
+        ws_header._fin = true;
+        ws_header._reserved = 0;
+        ws_header._opcode = WebSocketHeader::CLOSE;
+        ws_header._mask_flag = false;
+        uint16_t why = htons(0xFFFF & code);
+        std::string buffer;
+        buffer.append(reinterpret_cast<char *>(&why), 2);
+        if (body && code != 404) {
+            buffer.append(body->readData(body->remainSize())->toString());
+        } else {
+            buffer.append("unknown reason");
+        }
+        WebSocketSplitter::encode(ws_header, std::make_shared<BufferString>(std::move(buffer)));
+        return;
+    }
     GET_CONFIG(string, charSet, Http::kCharSet);
     GET_CONFIG(uint32_t, keepAliveSec, Http::kKeepAliveSecond);
 
