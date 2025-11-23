@@ -35,8 +35,8 @@ RtpSender::~RtpSender() {
     }
 }
 
-void RtpSender::startSend(const MediaSource &sender, const MediaSourceEvent::SendRtpArgs &args, const function<void(uint16_t local_port, const SockException &ex)> &cb){
-    auto origin_socket = sender.getOriginSock();
+void RtpSender::startSend(const MediaSourceEvent &sender, const MediaSourceEvent::SendRtpArgs &args, const function<void(uint16_t local_port, const SockException &ex)> &cb){
+    auto origin_socket = sender.getOriginSock(MediaSource::NullMediaSource());
     _origin_socket = dynamic_pointer_cast<Socket>(origin_socket);
     if (!_origin_socket) {
         auto process = dynamic_pointer_cast<RtpProcess>(origin_socket);

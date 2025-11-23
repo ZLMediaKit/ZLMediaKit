@@ -308,7 +308,7 @@ API_EXPORT void API_CALL mk_media_start_send_rtp2(mk_media ctx, const char *dst_
     auto ref = *obj;
     std::shared_ptr<void> ptr(user_data, user_data_free ? user_data_free : [](void *) {});
     (*obj)->getChannel()->getOwnerPoller(MediaSource::NullMediaSource())->async([args, ref, cb, ptr]() {
-        ref->getChannel()->startSendRtp(MediaSource::NullMediaSource(), args, [cb, ptr](uint16_t local_port, const SockException &ex) {
+        ref->getChannel()->getMuxer(MediaSource::NullMediaSource())->startSendRtp( args, [cb, ptr](uint16_t local_port, const SockException &ex) {
             if (cb) {
                 cb(ptr.get(), local_port, ex.getErrCode(), ex.what());
             }
@@ -349,7 +349,7 @@ API_EXPORT void API_CALL mk_media_start_send_rtp4(mk_media ctx, const char *dst_
     std::shared_ptr<void> ptr(
         user_data, user_data_free ? user_data_free : [](void *) {});
     (*obj)->getChannel()->getOwnerPoller(MediaSource::NullMediaSource())->async([args, ref, cb, ptr]() {
-        ref->getChannel()->startSendRtp(MediaSource::NullMediaSource(), args, [cb, ptr](uint16_t local_port, const SockException &ex) {
+        ref->getChannel()->getMuxer(MediaSource::NullMediaSource())->startSendRtp(args, [cb, ptr](uint16_t local_port, const SockException &ex) {
             if (cb) {
                 cb(ptr.get(), local_port, ex.getErrCode(), ex.what());
             }
@@ -365,7 +365,7 @@ API_EXPORT void API_CALL mk_media_stop_send_rtp(mk_media ctx, const char *ssrc) 
     auto ref = *obj;
     string ssrc_str = ssrc ? ssrc : "";
     (*obj)->getChannel()->getOwnerPoller(MediaSource::NullMediaSource())->async([ref, ssrc_str]() {
-        ref->getChannel()->stopSendRtp(MediaSource::NullMediaSource(), ssrc_str);
+        ref->getChannel()->getMuxer(MediaSource::NullMediaSource())->stopSendRtp(ssrc_str);
     });
 }
 

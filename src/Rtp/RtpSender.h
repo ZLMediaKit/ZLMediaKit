@@ -40,7 +40,7 @@ public:
      
      * [AUTO-TRANSLATED:c31bd9b3]
      */
-    void startSend(const MediaSource &sender, const MediaSourceEvent::SendRtpArgs &args, const std::function<void(uint16_t local_port, const toolkit::SockException &ex)> &cb);
+    void startSend(const MediaSourceEvent &sender, const MediaSourceEvent::SendRtpArgs &args, const std::function<void(uint16_t local_port, const toolkit::SockException &ex)> &cb);
 
     /**
      * 输入帧数据

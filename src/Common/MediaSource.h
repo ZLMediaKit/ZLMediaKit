@@ -94,17 +94,6 @@ public:
     // Get the current thread, this function is generally forced to overload
     virtual toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) { throw NotImplemented(toolkit::demangle(typeid(*this).name()) + "::getOwnerPoller not implemented"); }
 
-    // //////////////////////仅供MultiMediaSourceMuxer对象继承////////////////////////  [AUTO-TRANSLATED:6e810d1f]
-    // //////////////////////Only for MultiMediaSourceMuxer object inheritance////////////////////////
-    // 开启或关闭录制  [AUTO-TRANSLATED:3817e390]
-    // Start or stop recording
-    virtual bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const std::string &custom_path, size_t max_second) { return false; };
-    // 获取录制状态  [AUTO-TRANSLATED:a0499880]
-    // Get recording status
-    virtual bool isRecording(MediaSource &sender, Recorder::type type) { return false; }
-    // 获取所有track相关信息  [AUTO-TRANSLATED:2141be42]
-    // Get all track related information
-    virtual std::vector<Track::Ptr> getMediaTracks(MediaSource &sender, bool trackReady = true) const { return std::vector<Track::Ptr>(); };
     // 获取MultiMediaSourceMuxer对象  [AUTO-TRANSLATED:2de96d44]
     // Get MultiMediaSourceMuxer object
     virtual std::shared_ptr<MultiMediaSourceMuxer> getMuxer(MediaSource &sender) const { return nullptr; }
@@ -179,13 +168,6 @@ public:
         // rtp tcp模式发送时busy时, origin 接收限流, 默认不启用
         bool enable_origin_recv_limit = false;
     };
-
-    // 开始发送ps-rtp  [AUTO-TRANSLATED:a51796fa]
-    // Start sending ps-rtp
-    virtual void startSendRtp(MediaSource &sender, const SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb) { cb(0, toolkit::SockException(toolkit::Err_other, "not implemented"));};
-    // 停止发送ps-rtp  [AUTO-TRANSLATED:952d2b35]
-    // Stop sending ps-rtp
-    virtual bool stopSendRtp(MediaSource &sender, const std::string &ssrc) {return false; }
 
 private:
     toolkit::Timer::Ptr _async_close_timer;
@@ -362,11 +344,6 @@ public:
     int totalReaderCount(MediaSource &sender) override;
     void onReaderChanged(MediaSource &sender, int size) override;
     void onRegist(MediaSource &sender, bool regist) override;
-    bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const std::string &custom_path, size_t max_second) override;
-    bool isRecording(MediaSource &sender, Recorder::type type) override;
-    std::vector<Track::Ptr> getMediaTracks(MediaSource &sender, bool trackReady = true) const override;
-    void startSendRtp(MediaSource &sender, const SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb) override;
-    bool stopSendRtp(MediaSource &sender, const std::string &ssrc) override;
     float getLossRate(MediaSource &sender, TrackType type) override;
     toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;
     std::shared_ptr<MultiMediaSourceMuxer> getMuxer(MediaSource &sender) const override;

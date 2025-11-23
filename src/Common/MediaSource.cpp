@@ -132,10 +132,10 @@ uint64_t MediaSource::getAliveSecond() const {
 
 vector<Track::Ptr> MediaSource::getTracks(bool ready) const {
     auto listener = _listener.lock();
-    if(!listener){
+    if (!listener) {
         return vector<Track::Ptr>();
     }
-    return listener->getMediaTracks(const_cast<MediaSource &>(*this), ready);
+    return listener->getMuxer(const_cast<MediaSource &>(*this))->getTracks(ready);
 }
 
 void MediaSource::setListener(const std::weak_ptr<MediaSourceEvent> &listener){
@@ -277,7 +277,7 @@ bool MediaSource::setupRecord(Recorder::type type, bool start, const string &cus
         WarnL << "未设置MediaSource的事件监听者，setupRecord失败:" << getUrl();
         return false;
     }
-    return listener->setupRecord(*this, type, start, custom_path, max_second);
+    return listener->getMuxer(const_cast<MediaSource &>(*this))->setupRecord(type, start, custom_path, max_second);
 }
 
 bool MediaSource::isRecording(Recorder::type type){
@@ -285,7 +285,7 @@ bool MediaSource::isRecording(Recorder::type type){
     if(!listener){
         return false;
     }
-    return listener->isRecording(*this, type);
+    return listener->getMuxer(const_cast<MediaSource &>(*this))->isRecording(type);
 }
 
 void MediaSource::startSendRtp(const MediaSourceEvent::SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb) {
@@ -294,7 +294,7 @@ void MediaSource::startSendRtp(const MediaSourceEvent::SendRtpArgs &args, const 
         cb(0, SockException(Err_other, "尚未设置事件监听器"));
         return;
     }
-    return listener->startSendRtp(*this, args, cb);
+    return listener->getMuxer(const_cast<MediaSource &>(*this))->startSendRtp(args, cb);
 }
 
 bool MediaSource::stopSendRtp(const string &ssrc) {
@@ -302,7 +302,7 @@ bool MediaSource::stopSendRtp(const string &ssrc) {
     if (!listener) {
         return false;
     }
-    return listener->stopSendRtp(*this, ssrc);
+    return listener->getMuxer(const_cast<MediaSource &>(*this))->stopSendRtp(ssrc);
 }
 
 template<typename MAP, typename LIST, typename First, typename ...KeyTypes>
@@ -828,46 +828,6 @@ std::shared_ptr<RtpProcess> MediaSourceEventInterceptor::getRtpProcess(MediaSour
         return MediaSourceEvent::getRtpProcess(sender);
     }
     return listener->getRtpProcess(sender);
-}
-
-bool MediaSourceEventInterceptor::setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path, size_t max_second) {
-    auto listener = _listener.lock();
-    if (!listener) {
-        return MediaSourceEvent::setupRecord(sender, type, start, custom_path, max_second);
-    }
-    return listener->setupRecord(sender, type, start, custom_path, max_second);
-}
-
-bool MediaSourceEventInterceptor::isRecording(MediaSource &sender, Recorder::type type) {
-    auto listener = _listener.lock();
-    if (!listener) {
-        return MediaSourceEvent::isRecording(sender, type);
-    }
-    return listener->isRecording(sender, type);
-}
-
-vector<Track::Ptr> MediaSourceEventInterceptor::getMediaTracks(MediaSource &sender, bool trackReady) const {
-    auto listener = _listener.lock();
-    if (!listener) {
-        return MediaSourceEvent::getMediaTracks(sender, trackReady);
-    }
-    return listener->getMediaTracks(sender, trackReady);
-}
-
-void MediaSourceEventInterceptor::startSendRtp(MediaSource &sender, const MediaSourceEvent::SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb) {
-    auto listener = _listener.lock();
-    if (!listener) {
-        return MediaSourceEvent::startSendRtp(sender, args, cb);
-    }
-    listener->startSendRtp(sender, args, cb);
-}
-
-bool MediaSourceEventInterceptor::stopSendRtp(MediaSource &sender, const string &ssrc) {
-    auto listener = _listener.lock();
-    if (!listener) {
-        return MediaSourceEvent::stopSendRtp(sender, ssrc);
-    }
-    return listener->stopSendRtp(sender, ssrc);
 }
 
 void MediaSourceEventInterceptor::setDelegate(const std::weak_ptr<MediaSourceEvent> &listener) {

@@ -120,7 +120,7 @@ public:
      
      * [AUTO-TRANSLATED:cb1fd8a9]
      */
-    bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const std::string &custom_path, size_t max_second) override;
+    bool setupRecord(Recorder::type type, bool start, const std::string &custom_path, size_t max_second);
 
     /**
      * 开始录制mp4
@@ -141,25 +141,13 @@ public:
      
      * [AUTO-TRANSLATED:798afa71]
      */
-    bool isRecording(MediaSource &sender, Recorder::type type) override;
+    bool isRecording(Recorder::type type);
 
     /**
      * 开始发送ps-rtp流
-     * @param dst_url 目标ip或域名
-     * @param dst_port 目标端口
-     * @param ssrc rtp的ssrc
-     * @param is_udp 是否为udp
      * @param cb 启动成功或失败回调
-     * Start sending ps-rtp stream
-     * @param dst_url Target ip or domain name
-     * @param dst_port Target port
-     * @param ssrc rtp's ssrc
-     * @param is_udp Whether it is udp
-     * @param cb Start success or failure callback
-     
-     * [AUTO-TRANSLATED:620416c2]
      */
-    void startSendRtp(MediaSource &sender, const MediaSourceEvent::SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb) override;
+    void startSendRtp(const MediaSourceEvent::SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb);
 
     /**
      * 停止ps-rtp发送
@@ -169,19 +157,7 @@ public:
      
      * [AUTO-TRANSLATED:b91e2055]
      */
-    bool stopSendRtp(MediaSource &sender, const std::string &ssrc) override;
-
-    /**
-     * 获取所有Track
-     * @param trackReady 是否筛选过滤未就绪的track
-     * @return 所有Track
-     * Get all Tracks
-     * @param trackReady Whether to filter out unready tracks
-     * @return All Tracks
-     
-     * [AUTO-TRANSLATED:53755f5d]
-     */
-    std::vector<Track::Ptr> getMediaTracks(MediaSource &sender, bool trackReady = true) const override;
+    bool stopSendRtp(const std::string &ssrc);
 
     /**
      * 获取所属线程
@@ -247,7 +223,7 @@ protected:
 
 private:
     void createGopCacheIfNeed(size_t gop_count);
-    std::shared_ptr<MediaSinkInterface> makeRecorder(MediaSource &sender, Recorder::type type);
+    std::shared_ptr<MediaSinkInterface> makeRecorder(Recorder::type type);
 
 private:
     bool _is_enable = false;
