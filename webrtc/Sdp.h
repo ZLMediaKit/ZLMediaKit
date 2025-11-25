@@ -55,36 +55,36 @@ namespace mediakit {
 //          k=* (encryption key)
 //          a=* (zero or more media attribute lines)
 
-enum class RtpDirection {
+enum class RtpDirection : int8_t {
     invalid = -1,
     // 只发送  [AUTO-TRANSLATED:d7e7fdb7]
     // Send only
-    sendonly,
+    sendonly = 1 << 0,
     // 只接收  [AUTO-TRANSLATED:f75ca789]
     // Receive only
-    recvonly,
+    recvonly = 1 << 1,
     // 同时发送接收  [AUTO-TRANSLATED:7f900ba1]
     // Send and receive simultaneously
-    sendrecv,
+    sendrecv = sendonly | recvonly,
     // 禁止发送数据  [AUTO-TRANSLATED:6045b47e]
     // Prohibit sending data
-    inactive
+    inactive = 0
 };
 
-enum class DtlsRole {
+enum class DtlsRole : int8_t {
     invalid = -1,
     // 客户端  [AUTO-TRANSLATED:915417a2]
     // Client
-    active,
+    active = 1 << 0,
     // 服务端  [AUTO-TRANSLATED:03a80b18]
     // Server
-    passive,
+    passive = 1 << 1,
     // 既可作做客户端也可以做服务端  [AUTO-TRANSLATED:5ab1162e]
     // Can be used as both client and server
-    actpass,
+    actpass = active | passive,
 };
 
-enum class SdpType { invalid = -1, offer, answer };
+enum class SdpType : int8_t { invalid = -1, offer, answer };
 
 DtlsRole getDtlsRole(const std::string &str);
 const char *getDtlsRoleString(DtlsRole role);

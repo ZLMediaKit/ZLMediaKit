@@ -28,6 +28,7 @@
 #include "WebRtcEchoTest.h"
 #include "WebRtcPlayer.h"
 #include "WebRtcPusher.h"
+#include "WebRtcTalk.h"
 #include "Rtsp/RtspMediaSourceImp.h"
 
 #define RTP_SSRC_OFFSET 1
@@ -1726,6 +1727,7 @@ void push_plugin(SocketHelper& sender, const WebRtcArgs &args, const onCreateWeb
     }
 }
 
+template<typename Type>
 void play_plugin(SocketHelper &sender, const WebRtcArgs &args, const onCreateWebRtc &cb) {
 
     MediaInfo info(args["url"]);
@@ -1748,7 +1750,7 @@ void play_plugin(SocketHelper &sender, const WebRtcArgs &args, const onCreateWeb
             // 还原成rtc，目的是为了hook时识别哪种播放协议  [AUTO-TRANSLATED:fe8dd2dc]
             // Restore to RTC, the purpose is to identify which playback protocol during hooking
             info.schema = "rtc";
-            auto rtc = WebRtcPlayer::create(EventPollerPool::Instance().getPoller(), src, info, 
+            auto rtc = Type::create(EventPollerPool::Instance().getPoller(), src, info,
                 WebRtcTransport::Role::PEER, WebRtcTransport::SignalingProtocols::WHEP_WHIP);
             cb(*rtc);
         });
@@ -1831,7 +1833,9 @@ static onceToken s_rtc_auto_register([]() {
     WebRtcPluginManager::Instance().registerPlugin("echo", echo_plugin);
 #endif
     WebRtcPluginManager::Instance().registerPlugin("push", push_plugin);
-    WebRtcPluginManager::Instance().registerPlugin("play", play_plugin);
+    WebRtcPluginManager::Instance().registerPlugin("play", play_plugin<WebRtcPlayer>);
+    WebRtcPluginManager::Instance().registerPlugin("talk", play_plugin<WebRtcTalk>);
+
     WebRtcPluginManager::Instance().setListener([](SocketHelper& sender, const std::string &type, const WebRtcArgs &args, const WebRtcInterface &rtc) {
         setWebRtcArgs(args, const_cast<WebRtcInterface&>(rtc));
     });
