@@ -39,7 +39,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{ZLMediaKit_URL}}/index/api/getApiList?secret={{ZLMediaKit_secret}}&id=stack_test",
+					"raw": "{{ZLMediaKit_URL}}/index/api/stack/stop?secret={{ZLMediaKit_secret}}&id=stack_test",
 					"host": [
 						"{{ZLMediaKit_URL}}"
 					],
