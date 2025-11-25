@@ -28,6 +28,8 @@ bool CommonRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool){
     if (payload_size <= 0) {
         // 无实际负载  [AUTO-TRANSLATED:305af48f]
         // No actual load
+        // 无实际负载也需要记录序号，否则会误判丢包
+        _last_seq = rtp->getSeq();
         return false;
     }
     auto payload = rtp->getPayload();
