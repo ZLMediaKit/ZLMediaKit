@@ -21,7 +21,7 @@
 # SOFTWARE.
 #
 
-cmake_minimum_required(VERSION 3.1.3)
+cmake_minimum_required(VERSION 3.1.3...3.26)
 
 # 加载自定义模块
 # Load custom modules
@@ -32,6 +32,8 @@ project(ZLMediaKit LANGUAGES C CXX)
 # 使能 C++11
 # Enable C++11
 set(CMAKE_CXX_STANDARD 11)
+# -fPIC
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 option(ENABLE_API "Enable C API SDK" ON)
 option(ENABLE_API_STATIC_LIB "Enable mk_api static lib" OFF)
@@ -56,11 +58,12 @@ option(ENABLE_TESTS "Enable Tests" ON)
 option(ENABLE_SCTP "Enable SCTP" ON)
 option(ENABLE_WEBRTC "Enable WebRTC" ON)
 option(ENABLE_X264 "Enable x264" OFF)
-option(ENABLE_WEPOLL "Enable wepoll" ON)
 option(ENABLE_VIDEOSTACK "Enable video stack" OFF)
 option(DISABLE_REPORT "Disable report to report.zlmediakit.com" OFF)
 option(USE_SOLUTION_FOLDERS "Enable solution dir supported" ON)
 option(ENABLE_OBJCOPY "Enable use objcopy to generate debug info file" ON)
+# 编译静态库
+option(BUILD_SHARED_LIBS "Build shared instead of static" OFF)
 
 ##############################################################################
 # 设置socket默认缓冲区大小为256k.如果设置为0则不设置socket的默认缓冲区大小,使用系统内核默认值(设置为0仅对linux有效)
