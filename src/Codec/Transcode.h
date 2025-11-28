@@ -27,6 +27,10 @@ extern "C" {
 #include "libavutil/audio_fifo.h"
 #include "libavutil/imgutils.h"
 #include "libavutil/frame.h"
+#include "libavutil/pixdesc.h"
+#include "libavfilter/avfilter.h"
+#include "libavfilter/buffersink.h"
+#include "libavfilter/buffersrc.h"
 #ifdef __cplusplus
 }
 #endif
@@ -172,7 +176,7 @@ public:
      * @param fmt jpg:AV_PIX_FMT_YUVJ420P，PNG:AV_PIX_FMT_RGB24
      * @return
      */
-    static std::tuple<bool, std::string> saveFrame(const FFmpegFrame::Ptr &frame, const char *filename, AVPixelFormat fmt = AV_PIX_FMT_YUVJ420P);
+    static std::tuple<bool, std::string> saveFrame(const FFmpegFrame::Ptr &frame, const char *filename, AVPixelFormat fmt = AV_PIX_FMT_YUVJ420P, int w = 0, int h = 0, const char *font_path = nullptr);
 };
 
 }//namespace mediakit

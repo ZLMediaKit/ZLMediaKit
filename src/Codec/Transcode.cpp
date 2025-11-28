@@ -756,8 +756,52 @@ FFmpegFrame::Ptr FFmpegSws::inputFrame(const FFmpegFrame::Ptr &frame, int &ret, 
     return nullptr;
 }
 
-std::tuple<bool, std::string> FFmpegUtils::saveFrame(const FFmpegFrame::Ptr &frame, const char *filename, AVPixelFormat fmt) {
+std::tuple<bool, std::string> FFmpegUtils::saveFrame(const FFmpegFrame::Ptr &frame, const char *filename, AVPixelFormat fmt, int w, int h, const char *font_path) {
+    std::shared_ptr<AVFilterGraph> _filter_graph;
+    AVFilterContext *buffersrc_ctx = nullptr;
+    AVFilterContext *buffersink_ctx = nullptr;
+    const AVFilter *buffersrc;
+    const AVFilter *buffersink;
+    const string mark = "ZLMediakit";
+    char drawtext_args1[512];
+
     _StrPrinter ss;
+
+    std::unique_ptr<FILE, void (*)(FILE *)> tmp_save_file_jpg(File::create_file(filename, "wb"), [](FILE *fp) {
+        if (fp) {
+            fclose(fp);
+        }
+    });
+
+    std::string fontfile("");
+    if (font_path && File::fileExist(font_path)) {
+        fontfile = font_path;
+    } else {
+        // Fallback to common system fonts
+        const char *common_fonts[] = { "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+                                       "/System/Library/Fonts/Helvetica.ttc", // macOS
+                                       "C:/Windows/Fonts/arial.ttf", // Windows
+                                       nullptr };
+        for (int i = 0; common_fonts[i]; ++i) {
+            if (File::fileExist(common_fonts[i])) {
+                fontfile = common_fonts[i];
+                break;
+            }
+        }
+    }
+
+    if (!fontfile.empty()) {
+        snprintf(drawtext_args1, sizeof(drawtext_args1), "text='%s':fontfile='%s':fontcolor=white@0.1:fontsize=100:x=30:y=h-th-30", mark.data(), fontfile.c_str());
+    } else {
+        snprintf(drawtext_args1, sizeof(drawtext_args1), "text='%s':fontcolor=white&0.1:fontsize=100:x=30:y=h-th-30", mark.data());
+    }
+
+    if (!tmp_save_file_jpg) {
+        ss << "Could not open the file " << filename;
+        DebugL << ss;
+        return make_tuple<bool, std::string>(false, ss.data());
+    }
+
     const AVCodec *jpeg_codec = avcodec_find_encoder(fmt == AV_PIX_FMT_YUVJ420P ? AV_CODEC_ID_MJPEG : AV_CODEC_ID_PNG);
     std::unique_ptr<AVCodecContext, void (*)(AVCodecContext *)> jpeg_codec_ctx(
         jpeg_codec ? avcodec_alloc_context3(jpeg_codec) : nullptr, [](AVCodecContext *ctx) { avcodec_free_context(&ctx); });
@@ -768,8 +812,8 @@ std::tuple<bool, std::string> FFmpegUtils::saveFrame(const FFmpegFrame::Ptr &fra
         return make_tuple<bool, std::string>(false, ss.data());
     }
 
-    jpeg_codec_ctx->width = frame->get()->width;
-    jpeg_codec_ctx->height = frame->get()->height;
+    jpeg_codec_ctx->width = (w > 0 && w < 8192) ? w : frame->get()->width;
+    jpeg_codec_ctx->height = (h > 0 && h < 4320) ? h : frame->get()->height;
     jpeg_codec_ctx->pix_fmt = fmt;
     jpeg_codec_ctx->time_base = { 1, 1 };
 
@@ -780,7 +824,7 @@ std::tuple<bool, std::string> FFmpegUtils::saveFrame(const FFmpegFrame::Ptr &fra
         return make_tuple<bool, std::string>(false, ss.data());
     }
 
-    FFmpegSws sws(fmt, 0, 0);
+    FFmpegSws sws(fmt, jpeg_codec_ctx->width, jpeg_codec_ctx->height);
     auto new_frame = sws.inputFrame(frame);
     if (!new_frame) {
         ss << "Could not scale the frame: " << ffmpeg_err(ret);
@@ -789,29 +833,64 @@ std::tuple<bool, std::string> FFmpegUtils::saveFrame(const FFmpegFrame::Ptr &fra
     }
 
     auto pkt = alloc_av_packet();
-    ret = avcodec_send_frame(jpeg_codec_ctx.get(), new_frame->get());
-    if (ret < 0) {
-        ss << "Error sending a frame for encoding, " << ffmpeg_err(ret);
+
+    _filter_graph.reset(avfilter_graph_alloc(), [](AVFilterGraph *ctx) { avfilter_graph_free(&ctx); });
+    if (!_filter_graph) {
+        ss << "avfilter_graph_alloc failed";
         DebugL << ss;
         return make_tuple<bool, std::string>(false, ss.data());
     }
 
-    std::unique_ptr<FILE, void (*)(FILE *)> tmp_save_file_jpg(File::create_file(filename, "wb"), [](FILE *fp) {
-        if (fp) {
-            fclose(fp);
+    char args[512];
+    snprintf(
+        args, sizeof(args), "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d", jpeg_codec_ctx->width, jpeg_codec_ctx->height,
+        jpeg_codec_ctx->pix_fmt, jpeg_codec_ctx->time_base.num, jpeg_codec_ctx->time_base.den, jpeg_codec_ctx->sample_aspect_ratio.num,
+        jpeg_codec_ctx->sample_aspect_ratio.den);
+
+    buffersrc = avfilter_get_by_name("buffer");
+
+    if (ret = avfilter_graph_create_filter(&buffersrc_ctx, buffersrc, "in", args, NULL, _filter_graph.get()) < 0) {
+        ss << "Cannot create buffer source: " << ret << " " << ffmpeg_err(ret);
+        DebugL << ss;
+        return make_tuple<bool, std::string>(false, ss.data());
+    }
+
+    buffersink = avfilter_get_by_name("buffersink");
+    if (ret = avfilter_graph_create_filter(&buffersink_ctx, buffersink, "out", NULL, NULL, _filter_graph.get()) < 0) {
+        ss << "Cannot create buffer sink: " << ret << " " << ffmpeg_err(ret);
+        return make_tuple<bool, std::string>(false, ss.data());
+    }
+
+    AVFilterContext *drawtext_ctx1 = nullptr;
+
+    const AVFilter *drawtext_filter = avfilter_get_by_name("drawtext");
+    if (ret = avfilter_graph_create_filter(&drawtext_ctx1, drawtext_filter, "drawtext", drawtext_args1, NULL, _filter_graph.get()) < 0) {
+        ss << "Cannot create drawtext filter: " << ret << " " << ffmpeg_err(ret);
+        return make_tuple<bool, std::string>(false, ss.data());
+    }
+
+    if (ret = avfilter_link(buffersrc_ctx, 0, drawtext_ctx1, 0) < 0 || avfilter_link(drawtext_ctx1, 0, buffersink_ctx, 0) < 0) {
+        ss << "Error connecting filters: " << ret << " " << ffmpeg_err(ret);
+        return make_tuple<bool, std::string>(false, ss.data());
+    }
+
+    if (ret = avfilter_graph_config(_filter_graph.get(), NULL) < 0) {
+        ss << "Error configuring the filter graph: " << ret << " " << ffmpeg_err(ret);
+        return make_tuple<bool, std::string>(false, ss.data());
+    }
+
+    if (ret = av_buffersrc_add_frame_flags(buffersrc_ctx, new_frame->get(), 0) < 0) {
+        ss << "av_buffersink_get_frame failed: " << ret << " " << ffmpeg_err(ret);
+        return make_tuple<bool, std::string>(false, ss.data());
+    }
+
+    while (av_buffersink_get_frame(buffersink_ctx, new_frame->get()) >= 0) {
+        if (avcodec_send_frame(jpeg_codec_ctx.get(), new_frame->get()) == 0) {
+            while (avcodec_receive_packet(jpeg_codec_ctx.get(), pkt.get()) == 0) {
+                fwrite(pkt.get()->data, pkt.get()->size, 1, tmp_save_file_jpg.get());
+            }
         }
-    });
-
-    if (!tmp_save_file_jpg) {
-        ss << "Could not open the file " << filename;
-        DebugL << ss;
-        return make_tuple<bool, std::string>(false, ss.data());
     }
-
-    while (avcodec_receive_packet(jpeg_codec_ctx.get(), pkt.get()) == 0) {
-        fwrite(pkt.get()->data, pkt.get()->size, 1, tmp_save_file_jpg.get());
-    }
-    DebugL << "Screenshot successful: " << filename;
     return make_tuple<bool, std::string>(true, "");
 }
 
