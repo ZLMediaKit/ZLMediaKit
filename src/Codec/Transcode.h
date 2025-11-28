@@ -174,6 +174,8 @@ public:
      * @param frame 解码后的帧
      * @param filename 保存文件路径
      * @param fmt jpg:AV_PIX_FMT_YUVJ420P，PNG:AV_PIX_FMT_RGB24
+     * @param w h 图片大小，默认和输入源一致
+     * @param font_path 
      * @return
      */
     static std::tuple<bool, std::string> saveFrame(const FFmpegFrame::Ptr &frame, const char *filename, AVPixelFormat fmt = AV_PIX_FMT_YUVJ420P, int w = 0, int h = 0, const char *font_path = nullptr);

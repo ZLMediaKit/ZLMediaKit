@@ -760,11 +760,11 @@ std::tuple<bool, std::string> FFmpegUtils::saveFrame(const FFmpegFrame::Ptr &fra
     std::shared_ptr<AVFilterGraph> _filter_graph;
     AVFilterContext *buffersrc_ctx = nullptr;
     AVFilterContext *buffersink_ctx = nullptr;
-    const AVFilter *buffersrc;
-    const AVFilter *buffersink;
-    const string mark = "ZLMediakit";
+    const AVFilter *buffersrc = nullptr;
+    const AVFilter *buffersink = nullptr;
+    // kServerName
+    const string mark = "ZLMediakit"; 
     char drawtext_args1[512];
-
     _StrPrinter ss;
 
     std::unique_ptr<FILE, void (*)(FILE *)> tmp_save_file_jpg(File::create_file(filename, "wb"), [](FILE *fp) {
@@ -773,12 +773,18 @@ std::tuple<bool, std::string> FFmpegUtils::saveFrame(const FFmpegFrame::Ptr &fra
         }
     });
 
+    if (!tmp_save_file_jpg) {
+        ss << "Could not open the file " << filename;
+        DebugL << ss;
+        return make_tuple<bool, std::string>(false, ss.data());
+    }
+
     std::string fontfile("");
     if (font_path && File::fileExist(font_path)) {
         fontfile = font_path;
     } else {
         // Fallback to common system fonts
-        const char *common_fonts[] = { "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        const char *common_fonts[] = { "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
                                        "/System/Library/Fonts/Helvetica.ttc", // macOS
                                        "C:/Windows/Fonts/arial.ttf", // Windows
                                        nullptr };
@@ -791,15 +797,9 @@ std::tuple<bool, std::string> FFmpegUtils::saveFrame(const FFmpegFrame::Ptr &fra
     }
 
     if (!fontfile.empty()) {
-        snprintf(drawtext_args1, sizeof(drawtext_args1), "text='%s':fontfile='%s':fontcolor=white@0.1:fontsize=100:x=30:y=h-th-30", mark.data(), fontfile.c_str());
+        snprintf(drawtext_args1, sizeof(drawtext_args1), "text='%s':fontfile='%s':fontcolor=white@0.1:fontsize=50:x=30:y=h-th-30", mark.data(), fontfile.c_str());
     } else {
-        snprintf(drawtext_args1, sizeof(drawtext_args1), "text='%s':fontcolor=white&0.1:fontsize=100:x=30:y=h-th-30", mark.data());
-    }
-
-    if (!tmp_save_file_jpg) {
-        ss << "Could not open the file " << filename;
-        DebugL << ss;
-        return make_tuple<bool, std::string>(false, ss.data());
+        snprintf(drawtext_args1, sizeof(drawtext_args1), "text='%s':fontcolor=white&0.1:fontsize=50:x=30:y=h-th-30", mark.data());
     }
 
     const AVCodec *jpeg_codec = avcodec_find_encoder(fmt == AV_PIX_FMT_YUVJ420P ? AV_CODEC_ID_MJPEG : AV_CODEC_ID_PNG);
@@ -827,7 +827,7 @@ std::tuple<bool, std::string> FFmpegUtils::saveFrame(const FFmpegFrame::Ptr &fra
     FFmpegSws sws(fmt, jpeg_codec_ctx->width, jpeg_codec_ctx->height);
     auto new_frame = sws.inputFrame(frame);
     if (!new_frame) {
-        ss << "Could not scale the frame: " << ffmpeg_err(ret);
+        ss << "Could not scale the frame";
         DebugL << ss;
         return make_tuple<bool, std::string>(false, ss.data());
     }
