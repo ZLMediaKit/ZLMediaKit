@@ -783,24 +783,11 @@ std::tuple<bool, std::string> FFmpegUtils::saveFrame(const FFmpegFrame::Ptr &fra
     if (font_path && File::fileExist(font_path)) {
         fontfile = font_path;
     } else {
-        // Fallback to common system fonts
-        const char *common_fonts[] = { "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-                                       "/System/Library/Fonts/Helvetica.ttc", // macOS
-                                       "C:/Windows/Fonts/arial.ttf", // Windows
-                                       nullptr };
-        for (int i = 0; common_fonts[i]; ++i) {
-            if (File::fileExist(common_fonts[i])) {
-                fontfile = common_fonts[i];
-                break;
-            }
-        }
+        // Fallback to common default
+        fontfile = exeDir() + "/DejaVuSans.ttf";
     }
 
-    if (!fontfile.empty()) {
-        snprintf(drawtext_args1, sizeof(drawtext_args1), "text='%s':fontfile='%s':fontcolor=white@0.1:fontsize=h/50:x=w*0.02:y=h-th-h*0.02", mark.data(), fontfile.c_str());
-    } else {
-        snprintf(drawtext_args1, sizeof(drawtext_args1), "text='%s':fontcolor=white:fontsize=h/50:x=w*0.02:y=h-th-h*0.02", mark.data());
-    }
+    snprintf(drawtext_args1, sizeof(drawtext_args1), "text='%s':fontfile='%s':fontcolor=white@0.1:fontsize=h/50:x=w*0.02:y=h-th-h*0.02", mark.data(), fontfile.c_str());
 
     const AVCodec *jpeg_codec = avcodec_find_encoder(fmt == AV_PIX_FMT_YUVJ420P ? AV_CODEC_ID_MJPEG : AV_CODEC_ID_PNG);
     std::unique_ptr<AVCodecContext, void (*)(AVCodecContext *)> jpeg_codec_ctx(
@@ -832,8 +819,6 @@ std::tuple<bool, std::string> FFmpegUtils::saveFrame(const FFmpegFrame::Ptr &fra
         return make_tuple<bool, std::string>(false, ss.data());
     }
 
-    auto pkt = alloc_av_packet();
-
     _filter_graph.reset(avfilter_graph_alloc(), [](AVFilterGraph *ctx) { avfilter_graph_free(&ctx); });
     if (!_filter_graph) {
         ss << "avfilter_graph_alloc failed";
@@ -850,40 +835,41 @@ std::tuple<bool, std::string> FFmpegUtils::saveFrame(const FFmpegFrame::Ptr &fra
     buffersrc = avfilter_get_by_name("buffer");
 
     if (ret = avfilter_graph_create_filter(&buffersrc_ctx, buffersrc, "in", args, NULL, _filter_graph.get()) < 0) {
-        ss << "Cannot create buffer source: " << ret << " " << ffmpeg_err(ret);
+        ss << "avfilter_graph_create_filter buffersrc failed: " << ret << " " << ffmpeg_err(ret);
         DebugL << ss;
         return make_tuple<bool, std::string>(false, ss.data());
     }
 
     buffersink = avfilter_get_by_name("buffersink");
     if (ret = avfilter_graph_create_filter(&buffersink_ctx, buffersink, "out", NULL, NULL, _filter_graph.get()) < 0) {
-        ss << "Cannot create buffer sink: " << ret << " " << ffmpeg_err(ret);
+        ss << "avfilter_graph_create_filter buffersink failed: " << ret << " " << ffmpeg_err(ret);
         return make_tuple<bool, std::string>(false, ss.data());
     }
 
     AVFilterContext *drawtext_ctx1 = nullptr;
 
     const AVFilter *drawtext_filter = avfilter_get_by_name("drawtext");
-    if (ret = avfilter_graph_create_filter(&drawtext_ctx1, drawtext_filter, "drawtext", drawtext_args1, NULL, _filter_graph.get()) < 0) {
-        ss << "Cannot create drawtext filter: " << ret << " " << ffmpeg_err(ret);
+    if ((ret = avfilter_graph_create_filter(&drawtext_ctx1, drawtext_filter, "drawtext", drawtext_args1, NULL, _filter_graph.get())) < 0) {
+        ss << "avfilter_graph_create_filter drawtext_filter failed: " << ret << " " << ffmpeg_err(ret);
         return make_tuple<bool, std::string>(false, ss.data());
     }
 
-    if (ret = avfilter_link(buffersrc_ctx, 0, drawtext_ctx1, 0) < 0 || avfilter_link(drawtext_ctx1, 0, buffersink_ctx, 0) < 0) {
-        ss << "Error connecting filters: " << ret << " " << ffmpeg_err(ret);
+    if ((ret = avfilter_link(buffersrc_ctx, 0, drawtext_ctx1, 0) < 0 || avfilter_link(drawtext_ctx1, 0, buffersink_ctx, 0))< 0) {
+        ss << "avfilter_link: " << ret << " " << ffmpeg_err(ret);
         return make_tuple<bool, std::string>(false, ss.data());
     }
 
-    if (ret = avfilter_graph_config(_filter_graph.get(), NULL) < 0) {
-        ss << "Error configuring the filter graph: " << ret << " " << ffmpeg_err(ret);
+    if ((ret = avfilter_graph_config(_filter_graph.get(), NULL)) < 0) {
+        ss << "avfilter_graph_config failed: " << ret << " " << ffmpeg_err(ret);
         return make_tuple<bool, std::string>(false, ss.data());
     }
 
-    if (ret = av_buffersrc_add_frame_flags(buffersrc_ctx, new_frame->get(), 0) < 0) {
+    if ((ret = av_buffersrc_add_frame_flags(buffersrc_ctx, new_frame->get(), 0)) < 0) {
         ss << "av_buffersink_get_frame failed: " << ret << " " << ffmpeg_err(ret);
         return make_tuple<bool, std::string>(false, ss.data());
     }
 
+    auto pkt = alloc_av_packet();
     while (av_buffersink_get_frame(buffersink_ctx, new_frame->get()) >= 0) {
         if (avcodec_send_frame(jpeg_codec_ctx.get(), new_frame->get()) == 0) {
             while (avcodec_receive_packet(jpeg_codec_ctx.get(), pkt.get()) == 0) {
