@@ -340,7 +340,17 @@ if(ENABLE_FFMPEG)
     endif()
   endif()
 
-  if(AVUTIL_FOUND AND AVCODEC_FOUND AND SWSCALE_FOUND AND SWRESAMPLE_FOUND)
+  if(NOT AVFILTER_FOUND)
+    find_package(AVFILTER QUIET)
+    if(AVFILTER_FOUND)
+      include_directories(SYSTEM ${AVFILTER_INCLUDE_DIR})
+      update_cached_list(MK_LINK_LIBRARIES ${AVFILTER_LIBRARIES})
+      message(STATUS "found library: ${AVFILTER_LIBRARIES}")
+    endif()
+  endif()
+
+  
+  if(AVUTIL_FOUND AND AVCODEC_FOUND AND SWSCALE_FOUND AND SWRESAMPLE_FOUND AND AVFILTER_FOUND)
     update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_FFMPEG)
     update_cached_list(MK_LINK_LIBRARIES ${CMAKE_DL_LIBS})
   else()
@@ -569,7 +579,9 @@ endif ()
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/www" DESTINATION ${EXECUTABLE_OUTPUT_PATH})
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/conf/config.ini" DESTINATION ${EXECUTABLE_OUTPUT_PATH})
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/default.pem" DESTINATION ${EXECUTABLE_OUTPUT_PATH})
-
+if (ENABLE_FFMPEG)
+  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/DejaVuSans.ttf" DESTINATION ${EXECUTABLE_OUTPUT_PATH})
+endif ()
 # 拷贝VideoStack 无视频流时默认填充的背景图片
 # Copy the default background image used by VideoStack when there is no video stream
 if (ENABLE_VIDEOSTACK AND ENABLE_FFMPEG AND ENABLE_X264)
