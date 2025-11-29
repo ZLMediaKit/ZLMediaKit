@@ -797,9 +797,9 @@ std::tuple<bool, std::string> FFmpegUtils::saveFrame(const FFmpegFrame::Ptr &fra
     }
 
     if (!fontfile.empty()) {
-        snprintf(drawtext_args1, sizeof(drawtext_args1), "text='%s':fontfile='%s':fontcolor=white@0.1:fontsize=50:x=30:y=h-th-30", mark.data(), fontfile.c_str());
+        snprintf(drawtext_args1, sizeof(drawtext_args1), "text='%s':fontfile='%s':fontcolor=white@0.1:fontsize=h/50:x=w*0.02:y=h-th-h*0.02", mark.data(), fontfile.c_str());
     } else {
-        snprintf(drawtext_args1, sizeof(drawtext_args1), "text='%s':fontcolor=white:fontsize=50:x=30:y=h-th-30", mark.data());
+        snprintf(drawtext_args1, sizeof(drawtext_args1), "text='%s':fontcolor=white:fontsize=h/50:x=w*0.02:y=h-th-h*0.02", mark.data());
     }
 
     const AVCodec *jpeg_codec = avcodec_find_encoder(fmt == AV_PIX_FMT_YUVJ420P ? AV_CODEC_ID_MJPEG : AV_CODEC_ID_PNG);
