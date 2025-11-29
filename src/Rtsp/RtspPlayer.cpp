@@ -464,7 +464,7 @@ void RtspPlayer::sendPause(int type, uint32_t seekMS) {
     // Start or pause RTSP
     switch (type) {
         case type_pause: sendRtspRequest("PAUSE", _control_url, {}); break;
-        case type_play: sendRtspRequest("PLAY", _content_base); break;
+        case type_play: sendRtspRequest("PLAY", _content_base,{ "Range", StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << 0.0 / 1000.0 << "-" }); break;
         case type_seek:
             sendRtspRequest("PLAY", _control_url, { "Range", StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << seekMS / 1000.0 << "-" });
             break;
@@ -582,6 +582,9 @@ void RtspPlayer::onRtcpPacket(int track_idx, SdpTrack::Ptr &track, uint8_t *data
 
 void RtspPlayer::onRtpSorted(RtpPacket::Ptr rtppt, int trackidx) {
     _stamp[trackidx] = rtppt->getStampMS();
+    if(!_first_stamp[trackidx]){
+        _first_stamp[trackidx] = _stamp[trackidx];
+    }
     _rtp_recv_ticker.resetTime();
     onRecvRTP(std::move(rtppt), _sdp_track[trackidx]);
 }
@@ -609,7 +612,8 @@ float RtspPlayer::getPacketLossRate(TrackType type) const {
 }
 
 uint32_t RtspPlayer::getProgressMilliSecond() const {
-    return MAX(_stamp[0], _stamp[1]);
+    
+    return MAX(_stamp[0] -_first_stamp[0],_stamp[1] -_first_stamp[1]);
 }
 
 void RtspPlayer::seekToMilliSecond(uint32_t ms) {
