@@ -30,7 +30,22 @@ bool loadIniConfig(const char *ini_path) {
         ini = exePath() + ".ini";
     }
     try {
-        mINI::Instance().parseFile(ini);
+        mINI tmp;
+        tmp.parseFile(ini);
+
+        auto &ref = mINI::Instance();
+        for (auto &pr : tmp) {
+            if (ref.find(pr.first) == ref.end()) {
+                // 新增键
+                WarnL << "unknow config: " << pr.first << " = " << pr.second;
+                ref.emplace(pr);
+            } else {
+                // 更新键
+                ref[pr.first] = pr.second;
+            }
+        }
+        // 更新注释和排序
+        ref.updateFrom(tmp);
         NOTICE_EMIT(BroadcastReloadConfigArgs, Broadcast::kBroadcastReloadConfig);
         return true;
     } catch (std::exception &) {
