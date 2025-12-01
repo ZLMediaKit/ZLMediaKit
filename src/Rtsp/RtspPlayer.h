@@ -184,9 +184,12 @@ protected:
     Rtsp::eRtpType _rtp_type = Rtsp::RTP_TCP;
 
 private:
+    // 起始时间戳
+    uint64_t _first_stamp[2] = {0, 0};
+
     // 当前rtp时间戳  [AUTO-TRANSLATED:410f2691]
     // Current rtp timestamp
-    uint32_t _stamp[2] = {0, 0};
+    uint64_t _stamp[2] = {0, 0};
 
     // 超时功能实现  [AUTO-TRANSLATED:1d603b3a]
     // Timeout function implementation
