@@ -21,6 +21,10 @@
 #include "WebHook.h"
 #include "WebApi.h"
 
+#if defined(ENABLE_PYTHON)
+#include "pyinvoker.h"
+#endif
+
 using namespace std;
 using namespace Json;
 using namespace toolkit;
@@ -358,6 +362,12 @@ void installWebHook() {
     GET_CONFIG(bool, hook_enable, Hook::kEnable);
 
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastMediaPublish, [](BroadcastMediaPublishArgs) {
+#if defined(ENABLE_PYTHON)
+        if (PythonInvoker::Instance().on_publish(type, args, invoker, sender)) {
+            return;
+        }
+#endif
+
         GET_CONFIG(string, hook_publish, Hook::kOnPublish);
         if (!hook_enable || hook_publish.empty()) {
             invoker("", ProtocolOption());

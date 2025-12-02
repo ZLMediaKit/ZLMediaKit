@@ -10,3 +10,6 @@
 [submodule "www/webassist"]
 	path = www/webassist
 	url = https://gitee.com/victor1002/zlm_webassist
+[submodule "3rdpart/pybind11"]
+	path = 3rdpart/pybind11
+	url = https://gitee.com/mirrors/pybind11.git

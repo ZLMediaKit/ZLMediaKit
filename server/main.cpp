@@ -43,6 +43,10 @@
 #include "ZLMVersion.h"
 #endif
 
+#if defined(ENABLE_PYTHON)
+#include "pyinvoker.h"
+#endif
+
 #include "System.h"
 
 using namespace std;
@@ -104,6 +108,14 @@ namespace RtpProxy {
 const string kPort = RTP_PROXY_FIELD"port";
 onceToken token1([](){
     mINI::Instance()[kPort] = 10000;
+},nullptr);
+} //namespace RtpProxy
+
+namespace Python {
+#define Python_FIELD "python."
+const string kPlugin = Python_FIELD"plugin";
+onceToken token1([](){
+    mINI::Instance()[kPlugin] = "mk_plugin";
 },nullptr);
 } //namespace RtpProxy
 
@@ -493,6 +505,13 @@ int start_main(int argc,char *argv[]) {
             mediakit::loadIniConfig(g_ini_file.data());
             g_reload_certificates();
         });
+#endif
+
+#if defined(ENABLE_PYTHON)
+        auto py_plugin = mINI::Instance()[Python::kPlugin];
+        if (!py_plugin.empty()) {
+            PythonInvoker::Instance().load(py_plugin);
+        }
 #endif
         sem.wait();
     }

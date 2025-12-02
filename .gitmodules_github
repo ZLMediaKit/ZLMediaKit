@@ -10,3 +10,6 @@
 [submodule "www/webassist"]
 	path = www/webassist
 	url = https://github.com/1002victor/zlm_webassist
+[submodule "3rdpart/pybind11"]
+	path = 3rdpart/pybind11
+	url = https://github.com/pybind/pybind11.git
