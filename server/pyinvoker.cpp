@@ -73,7 +73,7 @@ T &to_native(const py::capsule &cap) {
     if (std::string(cap.name()) != name_str) {
         throw std::runtime_error("Invalid capsule name!");
     }
-    auto any = reinterpret_cast<toolkit::Any *>(cap.get_pointer());
+    auto any = static_cast<toolkit::Any *>(cap.get_pointer());
     return any->get<T>();
 }
 
@@ -181,12 +181,15 @@ void PythonInvoker::load(const std::string &module_name) {
         if (hasattr(_module, "on_play")) {
             _on_play = _module.attr("on_play");
         }
+        if (hasattr(_module, "on_flow_report")) {
+            _on_flow_report = _module.attr("on_flow_report");
+        }
     } catch (py::error_already_set &e) {
         PrintE("Python exception:%s", e.what());
     }
 }
 
-bool PythonInvoker::on_publish(BroadcastMediaPublishArgs) {
+bool PythonInvoker::on_publish(BroadcastMediaPublishArgs) const {
     py::gil_scoped_acquire gil; // 确保在 Python 调用期间持有 GIL
     if (!_on_publish) {
         return false;
@@ -194,12 +197,20 @@ bool PythonInvoker::on_publish(BroadcastMediaPublishArgs) {
     return _on_publish(getOriginTypeString(type), to_python(args), to_python(invoker), to_python(sender)).cast<bool>();
 }
 
-bool PythonInvoker::on_play(BroadcastMediaPlayedArgs) {
+bool PythonInvoker::on_play(BroadcastMediaPlayedArgs) const {
     py::gil_scoped_acquire gil; // 确保在 Python 调用期间持有 GIL
     if (!_on_play) {
         return false;
     }
     return _on_play(to_python(args), to_python(invoker), to_python(sender)).cast<bool>();
+}
+
+bool PythonInvoker::on_flow_report(BroadcastFlowReportArgs) const {
+    py::gil_scoped_acquire gil; // 确保在 Python 调用期间持有 GIL
+    if (!_on_flow_report) {
+        return false;
+    }
+    return _on_flow_report(to_python(args), totalBytes, totalDuration, isPlayer, to_python(sender)).cast<bool>();
 }
 
 } // namespace mediakit

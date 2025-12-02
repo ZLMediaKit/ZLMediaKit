@@ -417,6 +417,11 @@ void installWebHook() {
     });
 
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastFlowReport, [](BroadcastFlowReportArgs) {
+#if defined(ENABLE_PYTHON)
+        if (PythonInvoker::Instance().on_flow_report(args, totalBytes, totalDuration, isPlayer, sender)) {
+            return;
+        }
+#endif
         GET_CONFIG(string, hook_flowreport, Hook::kOnFlowReport);
         if (!hook_enable || hook_flowreport.empty()) {
             return;

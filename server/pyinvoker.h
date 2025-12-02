@@ -23,8 +23,9 @@ public:
     static PythonInvoker& Instance();
 
     void load(const std::string &module_name);
-    bool on_publish(BroadcastMediaPublishArgs);
-    bool on_play(BroadcastMediaPlayedArgs);
+    bool on_publish(BroadcastMediaPublishArgs) const;
+    bool on_play(BroadcastMediaPlayedArgs) const;
+    bool on_flow_report(BroadcastFlowReportArgs) const;
 
 private:
     PythonInvoker();
@@ -41,6 +42,8 @@ private:
     py::object _on_publish;
     // 播放鉴权
     py::object _on_play;
+    // 流量汇报接口
+    py::object _on_flow_report;
 };
 
 } // namespace mediakit
