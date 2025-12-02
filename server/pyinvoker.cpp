@@ -12,6 +12,10 @@
 using namespace toolkit;
 using namespace mediakit;
 
+extern ArgsType make_json(const MediaInfo &args);
+extern void fillSockInfo(Json::Value & val, SockInfo* info);
+extern std::string g_ini_file;
+
 template <typename T>
 typename std::enable_if<std::is_copy_constructible<T>::value, py::capsule>::type to_python(const T &obj) {
     static auto name_str = toolkit::demangle(typeid(T).name());
@@ -33,9 +37,6 @@ typename std::enable_if<!std::is_copy_constructible<T>::value, py::capsule>::typ
         TraceL << "unref " << name_str << "(" << p << ")";
     });
 }
-
-extern ArgsType make_json(const MediaInfo &args);
-extern void fillSockInfo(Json::Value & val, SockInfo* info);
 
 static py::dict jsonToPython(const Json::Value &obj) {
     py::dict ret;
@@ -91,6 +92,26 @@ PYBIND11_EMBEDDED_MODULE(mk_loader, m) {
         py::gil_scoped_release release;
         LoggerWrapper::printLog(::toolkit::getLogger(), lev, file, func, line, content);
     });
+
+    m.def("get_config", [](const std::string &key) -> std::string {
+        py::gil_scoped_release release;
+        const auto it = mINI::Instance().find(key);
+        if (it != mINI::Instance().end()) {
+            return it->second;
+        }
+        return "";
+    });
+    m.def("set_config", [](const std::string &key, const std::string &value) -> bool {
+        py::gil_scoped_release release;
+        mINI::Instance()[key]= value;
+        return true;
+    });
+    m.def("update_config", []() {
+        NOTICE_EMIT(BroadcastReloadConfigArgs, Broadcast::kBroadcastReloadConfig);
+        mINI::Instance().dumpFile(g_ini_file);
+        return true;
+   });
+
     m.def("publish_auth_invoker_do", [](const py::capsule &cap, const std::string &err, const py::dict &opt) {
         ProtocolOption option;
         option.load(to_native(opt));
@@ -145,9 +166,16 @@ PythonInvoker::PythonInvoker() {
     set_python_path(); // 确保 PYTHONPATH 在第一次调用时设置
     _interpreter = new py::scoped_interpreter;
     _rel = new py::gil_scoped_release;
+
+    NoticeCenter::Instance().addListener(this, Broadcast::kBroadcastReloadConfig, [this] (BroadcastReloadConfigArgs) {
+        if (_on_reload_config) {
+            _on_reload_config();
+        }
+    });
 }
 
 PythonInvoker::~PythonInvoker() {
+    NoticeCenter::Instance().delListener(this, Broadcast::kBroadcastReloadConfig);
     {
         py::gil_scoped_acquire gil; // 加锁
         if (_on_exit) {
@@ -166,12 +194,6 @@ void PythonInvoker::load(const std::string &module_name) {
     try {
         py::gil_scoped_acquire gil; // 加锁
         _module = py::module::import(module_name.c_str());
-        if (hasattr(_module, "on_start")) {
-            py::object on_start = _module.attr("on_start");
-            if (on_start) {
-                on_start();
-            }
-        }
         if (hasattr(_module, "on_exit")) {
             _on_exit = _module.attr("on_exit");
         }
@@ -183,6 +205,15 @@ void PythonInvoker::load(const std::string &module_name) {
         }
         if (hasattr(_module, "on_flow_report")) {
             _on_flow_report = _module.attr("on_flow_report");
+        }
+        if (hasattr(_module, "on_reload_config")) {
+            _on_reload_config = _module.attr("on_reload_config");
+        }
+        if (hasattr(_module, "on_start")) {
+            py::object on_start = _module.attr("on_start");
+            if (on_start) {
+                on_start();
+            }
         }
     } catch (py::error_already_set &e) {
         PrintE("Python exception:%s", e.what());

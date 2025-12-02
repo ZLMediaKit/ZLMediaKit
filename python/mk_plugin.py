@@ -2,7 +2,9 @@ import mk_logger
 import mk_loader
 
 def on_start():
-    mk_logger.log_info("on_start")
+    mk_logger.log_info(f"on_start, secret: {mk_loader.get_config('api.secret')}")
+    mk_loader.set_config('api.secret', "new_secret_from_python")
+    mk_loader.update_config()
 
 def on_exit():
     mk_logger.log_info("on_exit")
@@ -29,3 +31,6 @@ def on_flow_report(args: dict, totalBytes: int, totalDuration: int, isPlayer: bo
     mk_logger.log_info(f"args: {args}, totalBytes: {totalBytes}, totalDuration: {totalDuration}, isPlayer: {isPlayer}, sender: {sender}")
     # 返回True代表此事件被python拦截
     return True
+
+def on_reload_config():
+    mk_logger.log_info(f"on_reload_config")

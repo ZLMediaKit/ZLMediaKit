@@ -44,6 +44,8 @@ private:
     py::object _on_play;
     // 流量汇报接口
     py::object _on_flow_report;
+    // 配置文件热更新回调
+    py::object _on_reload_config;
 };
 
 } // namespace mediakit
