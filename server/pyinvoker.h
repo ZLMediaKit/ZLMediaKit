@@ -24,6 +24,7 @@ public:
 
     void load(const std::string &module_name);
     bool on_publish(BroadcastMediaPublishArgs);
+    bool on_play(BroadcastMediaPlayedArgs);
 
 private:
     PythonInvoker();
@@ -38,6 +39,8 @@ private:
     py::object _on_exit;
     // 推流鉴权
     py::object _on_publish;
+    // 播放鉴权
+    py::object _on_play;
 };
 
 } // namespace mediakit

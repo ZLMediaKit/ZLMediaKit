@@ -230,7 +230,7 @@ void do_http_hook(const string &url, const ArgsType &body, const function<void(c
 
 void dumpMediaTuple(const MediaTuple &tuple, Json::Value& item);
 
-static ArgsType make_json(const MediaInfo &args) {
+ArgsType make_json(const MediaInfo &args) {
     ArgsType body;
     body["schema"] = args.schema;
     if(!args.protocol.empty()){
@@ -397,6 +397,11 @@ void installWebHook() {
     });
 
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastMediaPlayed, [](BroadcastMediaPlayedArgs) {
+#if defined(ENABLE_PYTHON)
+        if (PythonInvoker::Instance().on_play(args, invoker, sender)) {
+            return;
+        }
+#endif
         GET_CONFIG(string, hook_play, Hook::kOnPlay);
         if (!hook_enable || hook_play.empty()) {
             invoker("");

@@ -345,7 +345,7 @@ static inline string getPusherKey(const string &schema, const string &vhost, con
     return schema + "/" + vhost + "/" + app + "/" + stream + "/" + MD5(dst_url).hexdigest();
 }
 
-static void fillSockInfo(Value& val, SockInfo* info) {
+void fillSockInfo(Value& val, SockInfo* info) {
     val["peer_ip"] = info->get_peer_ip();
     val["peer_port"] = info->get_peer_port();
     val["local_port"] = info->get_local_port();

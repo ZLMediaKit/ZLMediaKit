@@ -1,17 +1,19 @@
 ﻿#if defined(ENABLE_PYTHON)
 
 #include "pyinvoker.h"
+
 #include <chrono>
 #include <cstdlib>
 #include <iostream>
 #include <string>
 #include <type_traits>
+#include "WebHook.h"
 
 using namespace toolkit;
 using namespace mediakit;
 
 template <typename T>
-auto to_python(const T &obj) -> typename std::enable_if<std::is_copy_constructible<T>::value, py::capsule>::type {
+typename std::enable_if<std::is_copy_constructible<T>::value, py::capsule>::type to_python(const T &obj) {
     static auto name_str = toolkit::demangle(typeid(T).name());
     auto p = new toolkit::Any(std::make_shared<T>(obj));
     return py::capsule(p, name_str.data(), [](PyObject *capsule) {
@@ -22,7 +24,7 @@ auto to_python(const T &obj) -> typename std::enable_if<std::is_copy_constructib
 }
 
 template <typename T>
-auto to_python(const T &obj) -> typename std::enable_if<!std::is_copy_constructible<T>::value, py::capsule>::type {
+typename std::enable_if<!std::is_copy_constructible<T>::value, py::capsule>::type to_python(const T &obj) {
     static auto name_str = toolkit::demangle(typeid(T).name());
     auto p = new toolkit::Any(std::shared_ptr<T>(const_cast<T *>(&obj), [](T *) {}));
     return py::capsule(p, name_str.data(), [](PyObject *capsule) {
@@ -30,6 +32,39 @@ auto to_python(const T &obj) -> typename std::enable_if<!std::is_copy_constructi
         delete p;
         TraceL << "unref " << name_str << "(" << p << ")";
     });
+}
+
+extern ArgsType make_json(const MediaInfo &args);
+extern void fillSockInfo(Json::Value & val, SockInfo* info);
+
+static py::dict jsonToPython(const Json::Value &obj) {
+    py::dict ret;
+    if (obj.isObject()) {
+        for (auto it = obj.begin(); it != obj.end(); ++it) {
+            if (it->isNull()) {
+                // 忽略null，修复wvp传null覆盖Protocol配置的问题
+                continue;
+            }
+            try {
+                auto str = (*it).asString();
+                ret[it.name().data()] = std::move(str);
+            } catch (std::exception &) {
+                WarnL << "Json is not convertible to string, key: " << it.name() << ", value: " << (*it);
+            }
+        }
+    }
+    return ret;
+}
+
+py::dict to_python(const MediaInfo &args) {
+    auto json = make_json(args);
+    return jsonToPython(json);
+}
+
+py::dict to_python(const SockInfo &info) {
+    Json::Value json;
+    fillSockInfo(json, const_cast<SockInfo *>(&info));
+    return jsonToPython(json);
 }
 
 template <typename T>
@@ -56,13 +91,19 @@ PYBIND11_EMBEDDED_MODULE(mk_loader, m) {
         py::gil_scoped_release release;
         LoggerWrapper::printLog(::toolkit::getLogger(), lev, file, func, line, content);
     });
-    m.def("mk_publish_auth_invoker_do", [](const py::capsule &cap, const std::string &err, const py::dict &opt) {
+    m.def("publish_auth_invoker_do", [](const py::capsule &cap, const std::string &err, const py::dict &opt) {
         ProtocolOption option;
         option.load(to_native(opt));
         // 执行c++代码时释放gil锁
         py::gil_scoped_release release;
         auto &invoker = to_native<Broadcast::PublishAuthInvoker>(cap);
         invoker(err, option);
+    });
+    m.def("auth_invoker_do", [](const py::capsule &cap, const std::string &err) {
+        // 执行c++代码时释放gil锁
+        py::gil_scoped_release release;
+        auto &invoker = to_native<Broadcast::AuthInvoker>(cap);
+        invoker(err);
     });
 }
 
@@ -137,6 +178,9 @@ void PythonInvoker::load(const std::string &module_name) {
         if (hasattr(_module, "on_publish")) {
             _on_publish = _module.attr("on_publish");
         }
+        if (hasattr(_module, "on_play")) {
+            _on_play = _module.attr("on_play");
+        }
     } catch (py::error_already_set &e) {
         PrintE("Python exception:%s", e.what());
     }
@@ -148,6 +192,14 @@ bool PythonInvoker::on_publish(BroadcastMediaPublishArgs) {
         return false;
     }
     return _on_publish(getOriginTypeString(type), to_python(args), to_python(invoker), to_python(sender)).cast<bool>();
+}
+
+bool PythonInvoker::on_play(BroadcastMediaPlayedArgs) {
+    py::gil_scoped_acquire gil; // 确保在 Python 调用期间持有 GIL
+    if (!_on_play) {
+        return false;
+    }
+    return _on_play(to_python(args), to_python(invoker), to_python(sender)).cast<bool>();
 }
 
 } // namespace mediakit
