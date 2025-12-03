@@ -13,3 +13,6 @@
 [submodule "3rdpart/pybind11"]
 	path = 3rdpart/pybind11
 	url = https://gitee.com/mirrors/pybind11.git
+[submodule "python/StreamUI"]
+	path = python/StreamUI
+	url = https://gitee.com/xia-chu/StreamUI.git
