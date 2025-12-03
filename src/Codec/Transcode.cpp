@@ -231,10 +231,6 @@ FFmpegFrame::FFmpegFrame(std::shared_ptr<AVFrame> frame) {
 }
 
 FFmpegFrame::~FFmpegFrame() {
-    if (_data) {
-        delete[] _data;
-        _data = nullptr;
-    }
 }
 
 AVFrame *FFmpegFrame::get() const {
@@ -242,9 +238,9 @@ AVFrame *FFmpegFrame::get() const {
 }
 
 void FFmpegFrame::fillPicture(AVPixelFormat target_format, int target_width, int target_height) {
-    assert(_data == nullptr);
-    _data = new char[av_image_get_buffer_size(target_format, target_width, target_height, 32)];
-    av_image_fill_arrays(_frame->data, _frame->linesize, (uint8_t *) _data,  target_format, target_width, target_height, 32);
+    auto buffer_size = av_image_get_buffer_size(target_format, target_width, target_height, 32);
+    _data = std::make_unique<char[]>(buffer_size);
+    av_image_fill_arrays(_frame->data, _frame->linesize, (uint8_t *)_data.get(), target_format, target_width, target_height, 32);
 }
 
 int FFmpegFrame::getChannels() const {
@@ -254,6 +250,14 @@ int FFmpegFrame::getChannels() const {
 #else
     return _frame->channels;
 #endif
+}
+
+// 资源池复用前调用
+void FFmpegFrame::reset() {
+    _data.reset();
+    if (_frame) {
+        av_frame_unref(_frame.get()); // 清理AVFrame数据引用
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -734,6 +738,7 @@ FFmpegFrame::Ptr FFmpegSws::inputFrame(const FFmpegFrame::Ptr &frame, int &ret, 
     }
     if (_ctx) {
         auto out = _sws_frame_pool.obtain2();
+        out->reset(); // 清理旧数据和帧引用
         if (!out->get()->data[0]) {
             if (data) {
                 av_image_fill_arrays(out->get()->data, out->get()->linesize, data, _target_format, target_width, target_height, 32);
@@ -756,45 +761,16 @@ FFmpegFrame::Ptr FFmpegSws::inputFrame(const FFmpegFrame::Ptr &frame, int &ret, 
     return nullptr;
 }
 
-std::tuple<bool, std::string> FFmpegUtils::saveFrame(const FFmpegFrame::Ptr &frame, const char *filename, AVPixelFormat fmt) {
+std::tuple<bool, std::string> FFmpegUtils::saveFrame(const FFmpegFrame::Ptr &frame, const char *filename, AVPixelFormat fmt, int w, int h, const char *font_path) {
+    std::shared_ptr<AVFilterGraph> _filter_graph;
+    AVFilterContext *buffersrc_ctx = nullptr;
+    AVFilterContext *buffersink_ctx = nullptr;
+    const AVFilter *buffersrc = nullptr;
+    const AVFilter *buffersink = nullptr;
+    // kServerName
+    const string mark = "ZLMediaKit"; 
+    char drawtext_args1[512];
     _StrPrinter ss;
-    const AVCodec *jpeg_codec = avcodec_find_encoder(fmt == AV_PIX_FMT_YUVJ420P ? AV_CODEC_ID_MJPEG : AV_CODEC_ID_PNG);
-    std::unique_ptr<AVCodecContext, void (*)(AVCodecContext *)> jpeg_codec_ctx(
-        jpeg_codec ? avcodec_alloc_context3(jpeg_codec) : nullptr, [](AVCodecContext *ctx) { avcodec_free_context(&ctx); });
-
-    if (!jpeg_codec_ctx) {
-        ss << "Could not allocate JPEG/PNG codec context";
-        DebugL << ss;
-        return make_tuple<bool, std::string>(false, ss.data());
-    }
-
-    jpeg_codec_ctx->width = frame->get()->width;
-    jpeg_codec_ctx->height = frame->get()->height;
-    jpeg_codec_ctx->pix_fmt = fmt;
-    jpeg_codec_ctx->time_base = { 1, 1 };
-
-    auto ret = avcodec_open2(jpeg_codec_ctx.get(), jpeg_codec, NULL);
-    if (ret < 0) {
-        ss << "Could not open JPEG/PNG codec, " << ffmpeg_err(ret);
-        DebugL << ss;
-        return make_tuple<bool, std::string>(false, ss.data());
-    }
-
-    FFmpegSws sws(fmt, 0, 0);
-    auto new_frame = sws.inputFrame(frame);
-    if (!new_frame) {
-        ss << "Could not scale the frame: " << ffmpeg_err(ret);
-        DebugL << ss;
-        return make_tuple<bool, std::string>(false, ss.data());
-    }
-
-    auto pkt = alloc_av_packet();
-    ret = avcodec_send_frame(jpeg_codec_ctx.get(), new_frame->get());
-    if (ret < 0) {
-        ss << "Error sending a frame for encoding, " << ffmpeg_err(ret);
-        DebugL << ss;
-        return make_tuple<bool, std::string>(false, ss.data());
-    }
 
     std::unique_ptr<FILE, void (*)(FILE *)> tmp_save_file_jpg(File::create_file(filename, "wb"), [](FILE *fp) {
         if (fp) {
@@ -808,10 +784,104 @@ std::tuple<bool, std::string> FFmpegUtils::saveFrame(const FFmpegFrame::Ptr &fra
         return make_tuple<bool, std::string>(false, ss.data());
     }
 
-    while (avcodec_receive_packet(jpeg_codec_ctx.get(), pkt.get()) == 0) {
-        fwrite(pkt.get()->data, pkt.get()->size, 1, tmp_save_file_jpg.get());
+    std::string fontfile("");
+    if (font_path && File::fileExist(font_path)) {
+        fontfile = font_path;
+    } else {
+        // Fallback to common default
+        fontfile = exeDir() + "/DejaVuSans.ttf";
     }
-    DebugL << "Screenshot successful: " << filename;
+
+    snprintf(drawtext_args1, sizeof(drawtext_args1), "text='%s':fontfile='%s':fontcolor=white@0.1:fontsize=h/50:x=w*0.02:y=h-th-h*0.02", mark.data(), fontfile.c_str());
+
+    const AVCodec *jpeg_codec = avcodec_find_encoder(fmt == AV_PIX_FMT_YUVJ420P ? AV_CODEC_ID_MJPEG : AV_CODEC_ID_PNG);
+    std::unique_ptr<AVCodecContext, void (*)(AVCodecContext *)> jpeg_codec_ctx(
+        jpeg_codec ? avcodec_alloc_context3(jpeg_codec) : nullptr, [](AVCodecContext *ctx) { avcodec_free_context(&ctx); });
+
+    if (!jpeg_codec_ctx) {
+        ss << "Could not allocate JPEG/PNG codec context";
+        DebugL << ss;
+        return make_tuple<bool, std::string>(false, ss.data());
+    }
+
+    jpeg_codec_ctx->width = (w > 0 && w < 8192) ? w : frame->get()->width;
+    jpeg_codec_ctx->height = (h > 0 && h < 4320) ? h : frame->get()->height;
+    jpeg_codec_ctx->pix_fmt = fmt;
+    jpeg_codec_ctx->time_base = { 1, 1 };
+
+    auto ret = avcodec_open2(jpeg_codec_ctx.get(), jpeg_codec, NULL);
+    if (ret < 0) {
+        ss << "Could not open JPEG/PNG codec, " << ffmpeg_err(ret);
+        DebugL << ss;
+        return make_tuple<bool, std::string>(false, ss.data());
+    }
+
+    FFmpegSws sws(fmt, jpeg_codec_ctx->width, jpeg_codec_ctx->height);
+    auto new_frame = sws.inputFrame(frame);
+    if (!new_frame) {
+        ss << "Could not scale the frame";
+        DebugL << ss;
+        return make_tuple<bool, std::string>(false, ss.data());
+    }
+
+    _filter_graph.reset(avfilter_graph_alloc(), [](AVFilterGraph *ctx) { avfilter_graph_free(&ctx); });
+    if (!_filter_graph) {
+        ss << "avfilter_graph_alloc failed";
+        DebugL << ss;
+        return make_tuple<bool, std::string>(false, ss.data());
+    }
+
+    char args[512];
+    snprintf(
+        args, sizeof(args), "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d", jpeg_codec_ctx->width, jpeg_codec_ctx->height,
+        jpeg_codec_ctx->pix_fmt, jpeg_codec_ctx->time_base.num, jpeg_codec_ctx->time_base.den, jpeg_codec_ctx->sample_aspect_ratio.num,
+        jpeg_codec_ctx->sample_aspect_ratio.den);
+
+    buffersrc = avfilter_get_by_name("buffer");
+
+    if (ret = avfilter_graph_create_filter(&buffersrc_ctx, buffersrc, "in", args, NULL, _filter_graph.get()) < 0) {
+        ss << "avfilter_graph_create_filter buffersrc failed: " << ret << " " << ffmpeg_err(ret);
+        DebugL << ss;
+        return make_tuple<bool, std::string>(false, ss.data());
+    }
+
+    buffersink = avfilter_get_by_name("buffersink");
+    if (ret = avfilter_graph_create_filter(&buffersink_ctx, buffersink, "out", NULL, NULL, _filter_graph.get()) < 0) {
+        ss << "avfilter_graph_create_filter buffersink failed: " << ret << " " << ffmpeg_err(ret);
+        return make_tuple<bool, std::string>(false, ss.data());
+    }
+
+    AVFilterContext *drawtext_ctx1 = nullptr;
+
+    const AVFilter *drawtext_filter = avfilter_get_by_name("drawtext");
+    if ((ret = avfilter_graph_create_filter(&drawtext_ctx1, drawtext_filter, "drawtext", drawtext_args1, NULL, _filter_graph.get())) < 0) {
+        ss << "avfilter_graph_create_filter drawtext_filter failed: " << ret << " " << ffmpeg_err(ret);
+        return make_tuple<bool, std::string>(false, ss.data());
+    }
+
+    if ((ret = avfilter_link(buffersrc_ctx, 0, drawtext_ctx1, 0) < 0 || avfilter_link(drawtext_ctx1, 0, buffersink_ctx, 0))< 0) {
+        ss << "avfilter_link: " << ret << " " << ffmpeg_err(ret);
+        return make_tuple<bool, std::string>(false, ss.data());
+    }
+
+    if ((ret = avfilter_graph_config(_filter_graph.get(), NULL)) < 0) {
+        ss << "avfilter_graph_config failed: " << ret << " " << ffmpeg_err(ret);
+        return make_tuple<bool, std::string>(false, ss.data());
+    }
+
+    if ((ret = av_buffersrc_add_frame_flags(buffersrc_ctx, new_frame->get(), 0)) < 0) {
+        ss << "av_buffersink_get_frame failed: " << ret << " " << ffmpeg_err(ret);
+        return make_tuple<bool, std::string>(false, ss.data());
+    }
+
+    auto pkt = alloc_av_packet();
+    while (av_buffersink_get_frame(buffersink_ctx, new_frame->get()) >= 0) {
+        if (avcodec_send_frame(jpeg_codec_ctx.get(), new_frame->get()) == 0) {
+            while (avcodec_receive_packet(jpeg_codec_ctx.get(), pkt.get()) == 0) {
+                fwrite(pkt.get()->data, pkt.get()->size, 1, tmp_save_file_jpg.get());
+            }
+        }
+    }
     return make_tuple<bool, std::string>(true, "");
 }
 
