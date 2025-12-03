@@ -228,6 +228,7 @@ PythonInvoker::PythonInvoker() {
     _rel = new py::gil_scoped_release;
 
     NoticeCenter::Instance().addListener(this, Broadcast::kBroadcastReloadConfig, [this] (BroadcastReloadConfigArgs) {
+        py::gil_scoped_acquire guard;
         if (_on_reload_config) {
             _on_reload_config();
         }
