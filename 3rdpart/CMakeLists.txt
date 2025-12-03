@@ -121,3 +121,13 @@ add_subdirectory(ZLToolKit)
 add_library(ZLMediaKit::ToolKit ALIAS ZLToolKit)
 # 添加依赖
 update_cached_list(MK_LINK_LIBRARIES ZLMediaKit::ToolKit)
+
+##############################################################################
+
+if (ENABLE_PYTHON)
+  # ============ pybind11 lib ============
+  add_subdirectory(pybind11)
+  update_cached_list(MK_LINK_LIBRARIES pybind11::embed)
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/pybind11/include)
+  update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_PYTHON)
+endif ()

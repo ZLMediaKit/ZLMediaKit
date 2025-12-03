@@ -21,6 +21,10 @@
 #include "WebHook.h"
 #include "WebApi.h"
 
+#if defined(ENABLE_PYTHON)
+#include "pyinvoker.h"
+#endif
+
 using namespace std;
 using namespace Json;
 using namespace toolkit;
@@ -226,7 +230,7 @@ void do_http_hook(const string &url, const ArgsType &body, const function<void(c
 
 void dumpMediaTuple(const MediaTuple &tuple, Json::Value& item);
 
-static ArgsType make_json(const MediaInfo &args) {
+ArgsType make_json(const MediaInfo &args) {
     ArgsType body;
     body["schema"] = args.schema;
     if(!args.protocol.empty()){
@@ -358,6 +362,12 @@ void installWebHook() {
     GET_CONFIG(bool, hook_enable, Hook::kEnable);
 
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastMediaPublish, [](BroadcastMediaPublishArgs) {
+#if defined(ENABLE_PYTHON)
+        if (PythonInvoker::Instance().on_publish(type, args, invoker, sender)) {
+            return;
+        }
+#endif
+
         GET_CONFIG(string, hook_publish, Hook::kOnPublish);
         if (!hook_enable || hook_publish.empty()) {
             invoker("", ProtocolOption());
@@ -387,6 +397,11 @@ void installWebHook() {
     });
 
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastMediaPlayed, [](BroadcastMediaPlayedArgs) {
+#if defined(ENABLE_PYTHON)
+        if (PythonInvoker::Instance().on_play(args, invoker, sender)) {
+            return;
+        }
+#endif
         GET_CONFIG(string, hook_play, Hook::kOnPlay);
         if (!hook_enable || hook_play.empty()) {
             invoker("");
@@ -402,6 +417,11 @@ void installWebHook() {
     });
 
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastFlowReport, [](BroadcastFlowReportArgs) {
+#if defined(ENABLE_PYTHON)
+        if (PythonInvoker::Instance().on_flow_report(args, totalBytes, totalDuration, isPlayer, sender)) {
+            return;
+        }
+#endif
         GET_CONFIG(string, hook_flowreport, Hook::kOnFlowReport);
         if (!hook_enable || hook_flowreport.empty()) {
             return;

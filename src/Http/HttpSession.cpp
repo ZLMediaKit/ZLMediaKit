@@ -61,6 +61,7 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
     static onceToken token([]() {
         s_func_map.emplace("GET", &HttpSession::onHttpRequest_GET);
         s_func_map.emplace("POST", &HttpSession::onHttpRequest_POST);
+        s_func_map.emplace("PUT", &HttpSession::onHttpRequest_POST);
         // DELETE命令用于whip/whep用，只用于触发http api  [AUTO-TRANSLATED:f3b7aaea]
         // DELETE command is used for whip/whep, only used to trigger http api
         s_func_map.emplace("DELETE", &HttpSession::onHttpRequest_POST);
