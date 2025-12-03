@@ -8,6 +8,8 @@
 #include <string>
 #include <type_traits>
 #include "WebHook.h"
+#include "Common/Parser.h"
+#include "Http/HttpSession.h"
 
 using namespace toolkit;
 using namespace mediakit;
@@ -87,6 +89,55 @@ mINI to_native(const py::dict &opt) {
     return ret;
 }
 
+void handle_http_request(const py::object &check_route, const py::object &submit_coro, const Parser &parser, const HttpSession::HttpResponseInvoker &invoker, bool &consumed, toolkit::SockInfo &sender) {
+    py::gil_scoped_acquire guard;
+
+    py::dict scope;
+    scope["type"] = "http";
+    scope["http_version"] = "1.1";
+    scope["method"] = parser.method();
+    scope["path"] = parser.url();
+    scope["query_string"] = parser.params();
+    py::list hdrs;
+    for (auto &kv : parser.getHeader()) {
+        hdrs.append(py::make_tuple(py::bytes(kv.first), py::bytes(kv.second)));
+    }
+    scope["headers"] = hdrs;
+
+    bool ok = check_route(scope).cast<bool>();
+    if (!ok) {
+        return;
+    }
+    consumed = true;
+
+    StrCaseMap resp_headers;
+    std::string resp_body;
+    int status = 500;
+    auto send = py::cpp_function([invoker, status, resp_body, resp_headers](const py::dict &msg) mutable {
+        auto type = msg["type"].cast<std::string>();
+        if (type == "http.response.start") {
+            status = msg["status"].cast<int>();
+            for (auto tup : msg["headers"].cast<py::list>()) {
+                auto t = tup.cast<py::tuple>();
+                resp_headers[t[0].cast<std::string>()] = t[1].cast<std::string>();
+            }
+            return;
+        }
+
+        if (type == "http.response.body") {
+            resp_body += msg["body"].cast<std::string>();
+            // 💥 只在 more_body=False 时回调
+            bool more = msg.contains("more_body") && msg["more_body"].cast<bool>();
+            if (!more) {
+                invoker(status, resp_headers, resp_body);
+            }
+        }
+    });
+
+    submit_coro(scope, py::bytes(parser.content()), send);
+}
+
+
 PYBIND11_EMBEDDED_MODULE(mk_loader, m) {
     m.def("log", [](int lev, const char *file, int line, const char *func, const char *content) {
         py::gil_scoped_release release;
@@ -126,6 +177,15 @@ PYBIND11_EMBEDDED_MODULE(mk_loader, m) {
         auto &invoker = to_native<Broadcast::AuthInvoker>(cap);
         invoker(err);
     });
+
+    m.def("set_fastapi", [](const py::object &check_route, const py::object &submit_coro) {
+        static void *fastapi_tag = nullptr;
+        NoticeCenter::Instance().delListener(&fastapi_tag, Broadcast::kBroadcastHttpRequest);
+        NoticeCenter::Instance().addListener(&fastapi_tag, Broadcast::kBroadcastHttpRequest, [check_route, submit_coro](BroadcastHttpRequestArgs) {
+            handle_http_request(check_route, submit_coro, parser, invoker, consumed, sender);
+        });
+    });
+
 }
 
 namespace mediakit {

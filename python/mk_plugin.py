@@ -1,10 +1,63 @@
 import mk_logger
 import mk_loader
+import asyncio
+import threading
+from StreamUI.backend.main import app
+from starlette.routing import Match
+
+def start_background_loop(loop):
+    asyncio.set_event_loop(loop)
+    loop.run_forever()
+
+loop = asyncio.new_event_loop()
+threading.Thread(target=start_background_loop, args=(loop,), daemon=True).start()
+
+def submit_coro(scope, body, send):
+    async def run():
+        # 包装 send 函数，确保它总是可等待的
+        async def async_send(message):
+            # 调用原始的 send 函数，它现在应该返回一个协程
+            result = send(message)
+            if result is not None:
+                await result
+
+        async def receive():
+            return {
+                "type": "http.request",
+                "body": body,
+                "more_body": False,
+            }
+
+        try:
+            await app(scope, receive, async_send)
+        except Exception as e:
+            mk_logger.log_warn(f"FastAPI failed: {e}")
+            # 发送错误响应
+            await async_send({
+                "type": "http.response.start",
+                "status": 500,
+                "headers": [(b"content-type", b"text/plain")],
+            })
+            await async_send({
+                "type": "http.response.body",
+                "body": b"Internal Server Error",
+                "more_body": False,
+            })
+    return asyncio.run_coroutine_threadsafe(run(), loop)
+
+def check_route(scope) -> bool:
+    for route in app.routes:
+        if hasattr(route, "matches"):
+            match, _ = route.matches(scope)
+            if match == Match.FULL:
+                return True
+    return False
 
 def on_start():
     mk_logger.log_info(f"on_start, secret: {mk_loader.get_config('api.secret')}")
-    mk_loader.set_config('api.secret', "new_secret_from_python")
-    mk_loader.update_config()
+    # mk_loader.set_config('api.secret', "new_secret_from_python")
+    # mk_loader.update_config()
+    mk_loader.set_fastapi(check_route, submit_coro)
 
 def on_exit():
     mk_logger.log_info("on_exit")
