@@ -231,10 +231,6 @@ FFmpegFrame::FFmpegFrame(std::shared_ptr<AVFrame> frame) {
 }
 
 FFmpegFrame::~FFmpegFrame() {
-    if (_data) {
-        delete[] _data;
-        _data = nullptr;
-    }
 }
 
 AVFrame *FFmpegFrame::get() const {
@@ -242,9 +238,9 @@ AVFrame *FFmpegFrame::get() const {
 }
 
 void FFmpegFrame::fillPicture(AVPixelFormat target_format, int target_width, int target_height) {
-    assert(_data == nullptr);
-    _data = new char[av_image_get_buffer_size(target_format, target_width, target_height, 32)];
-    av_image_fill_arrays(_frame->data, _frame->linesize, (uint8_t *) _data,  target_format, target_width, target_height, 32);
+    auto buffer_size = av_image_get_buffer_size(target_format, target_width, target_height, 32);
+    _data = std::make_unique<char[]>(buffer_size);
+    av_image_fill_arrays(_frame->data, _frame->linesize, (uint8_t *)_data.get(), target_format, target_width, target_height, 32);
 }
 
 int FFmpegFrame::getChannels() const {
@@ -254,6 +250,14 @@ int FFmpegFrame::getChannels() const {
 #else
     return _frame->channels;
 #endif
+}
+
+// 资源池复用前调用
+void FFmpegFrame::reset() {
+    _data.reset();
+    if (_frame) {
+        av_frame_unref(_frame.get()); // 清理AVFrame数据引用
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -734,6 +738,7 @@ FFmpegFrame::Ptr FFmpegSws::inputFrame(const FFmpegFrame::Ptr &frame, int &ret, 
     }
     if (_ctx) {
         auto out = _sws_frame_pool.obtain2();
+        out->reset(); // 清理旧数据和帧引用
         if (!out->get()->data[0]) {
             if (data) {
                 av_image_fill_arrays(out->get()->data, out->get()->linesize, data, _target_format, target_width, target_height, 32);

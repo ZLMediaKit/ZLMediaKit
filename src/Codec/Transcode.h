@@ -48,9 +48,10 @@ public:
     AVFrame *get() const;
     void fillPicture(AVPixelFormat target_format, int target_width, int target_height);
     int getChannels() const;
+    void reset();
 
 private:
-    char *_data = nullptr;
+    std::unique_ptr<char[]> _data;
     std::shared_ptr<AVFrame> _frame;
 };
 
