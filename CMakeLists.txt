@@ -256,8 +256,8 @@ endif()
 # Multiple modules depend on ffmpeg related libraries, unified search
 if(ENABLE_FFMPEG)
   find_package(PkgConfig QUIET)
-  # 查找 ffmpeg/libutil 是否安装
-  # find ffmpeg/libutil installed
+  # 查找 ffmpeg/libavutil 是否安装
+  # find ffmpeg/libavutil installed
   if(PKG_CONFIG_FOUND)
     pkg_check_modules(AVUTIL QUIET IMPORTED_TARGET libavutil)
     if(AVUTIL_FOUND)
@@ -296,8 +296,19 @@ if(ENABLE_FFMPEG)
     endif()
   endif()
 
-  # 查找 ffmpeg/libutil 是否安装
-  # find ffmpeg/libutil installed
+  # 查找 ffmpeg/libavfilter 是否安装
+  # find ffmpeg/libavfilter installed
+  if(PKG_CONFIG_FOUND)
+    pkg_check_modules(AVFILTER QUIET IMPORTED_TARGET libavfilter)
+    if(AVFILTER_FOUND)
+      update_cached_list(MK_LINK_LIBRARIES PkgConfig::AVFILTER)
+      message(STATUS "found library: ${AVFILTER_LIBRARIES}")
+    endif()
+  endif()
+
+
+  # 查找 ffmpeg/libavutil 是否安装
+  # find ffmpeg/libavutil installed
   if(NOT AVUTIL_FOUND)
     find_package(AVUTIL QUIET)
     if(AVUTIL_FOUND)
@@ -349,7 +360,6 @@ if(ENABLE_FFMPEG)
     endif()
   endif()
 
-  
   if(AVUTIL_FOUND AND AVCODEC_FOUND AND SWSCALE_FOUND AND SWRESAMPLE_FOUND AND AVFILTER_FOUND)
     update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_FFMPEG)
     update_cached_list(MK_LINK_LIBRARIES ${CMAKE_DL_LIBS})
