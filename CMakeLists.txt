@@ -44,6 +44,7 @@ option(ENABLE_FFMPEG "Enable FFmpeg" OFF)
 option(ENABLE_HLS "Enable HLS" ON)
 option(ENABLE_JEMALLOC_STATIC "Enable static linking to the jemalloc library" OFF)
 option(ENABLE_JEMALLOC_DUMP "Enable jemalloc to dump malloc statistics" OFF)
+option(ENABLE_TCMALLOC "Enable linking to the tcmalloc library" OFF)
 option(ENABLE_MEM_DEBUG "Enable Memory Debug" OFF)
 option(ENABLE_MP4 "Enable MP4" ON)
 option(ENABLE_MSVC_MT "Enable MSVC Mt/Mtd lib" ON)
@@ -256,8 +257,8 @@ endif()
 # Multiple modules depend on ffmpeg related libraries, unified search
 if(ENABLE_FFMPEG)
   find_package(PkgConfig QUIET)
-  # 查找 ffmpeg/libutil 是否安装
-  # find ffmpeg/libutil installed
+  # 查找 ffmpeg/libavutil 是否安装
+  # find ffmpeg/libavutil installed
   if(PKG_CONFIG_FOUND)
     pkg_check_modules(AVUTIL QUIET IMPORTED_TARGET libavutil)
     if(AVUTIL_FOUND)
@@ -296,8 +297,19 @@ if(ENABLE_FFMPEG)
     endif()
   endif()
 
-  # 查找 ffmpeg/libutil 是否安装
-  # find ffmpeg/libutil installed
+  # 查找 ffmpeg/libavfilter 是否安装
+  # find ffmpeg/libavfilter installed
+  if(PKG_CONFIG_FOUND)
+    pkg_check_modules(AVFILTER QUIET IMPORTED_TARGET libavfilter)
+    if(AVFILTER_FOUND)
+      update_cached_list(MK_LINK_LIBRARIES PkgConfig::AVFILTER)
+      message(STATUS "found library: ${AVFILTER_LIBRARIES}")
+    endif()
+  endif()
+
+
+  # 查找 ffmpeg/libavutil 是否安装
+  # find ffmpeg/libavutil installed
   if(NOT AVUTIL_FOUND)
     find_package(AVUTIL QUIET)
     if(AVUTIL_FOUND)
@@ -349,7 +361,6 @@ if(ENABLE_FFMPEG)
     endif()
   endif()
 
-  
   if(AVUTIL_FOUND AND AVCODEC_FOUND AND SWSCALE_FOUND AND SWRESAMPLE_FOUND AND AVFILTER_FOUND)
     update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_FFMPEG)
     update_cached_list(MK_LINK_LIBRARIES ${CMAKE_DL_LIBS})
@@ -409,6 +420,19 @@ if(JEMALLOC_FOUND)
     add_definitions(-DENABLE_JEMALLOC_DUMP)
     message(STATUS "jemalloc will save memory usage statistics when the program exits")
   endif ()
+endif()
+
+# 查找 tcmalloc 是否安装
+# find tcmalloc installed
+if(ENABLE_TCMALLOC)
+  find_package(TCMALLOC QUIET)
+  if(TCMALLOC_FOUND)
+    message(STATUS "Link with tcmalloc library: ${TCMALLOC_LIBRARIES}")
+    update_cached_list(MK_LINK_LIBRARIES ${TCMALLOC_LIBRARIES})
+  else()
+    set(ENABLE_TCMALLOC OFF)
+    message(WARNING "tcmalloc 相关功能未找到")
+  endif()
 endif()
 
 # 查找 openssl 是否安装

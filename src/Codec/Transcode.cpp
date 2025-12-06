@@ -239,7 +239,7 @@ AVFrame *FFmpegFrame::get() const {
 
 void FFmpegFrame::fillPicture(AVPixelFormat target_format, int target_width, int target_height) {
     auto buffer_size = av_image_get_buffer_size(target_format, target_width, target_height, 32);
-    _data = std::make_unique<char[]>(buffer_size);
+    _data = std::unique_ptr<char[]>(new char[buffer_size]);
     av_image_fill_arrays(_frame->data, _frame->linesize, (uint8_t *)_data.get(), target_format, target_width, target_height, 32);
 }
 
@@ -839,14 +839,14 @@ std::tuple<bool, std::string> FFmpegUtils::saveFrame(const FFmpegFrame::Ptr &fra
 
     buffersrc = avfilter_get_by_name("buffer");
 
-    if (ret = avfilter_graph_create_filter(&buffersrc_ctx, buffersrc, "in", args, NULL, _filter_graph.get()) < 0) {
+    if ((ret = avfilter_graph_create_filter(&buffersrc_ctx, buffersrc, "in", args, NULL, _filter_graph.get())) < 0) {
         ss << "avfilter_graph_create_filter buffersrc failed: " << ret << " " << ffmpeg_err(ret);
         DebugL << ss;
         return make_tuple<bool, std::string>(false, ss.data());
     }
 
     buffersink = avfilter_get_by_name("buffersink");
-    if (ret = avfilter_graph_create_filter(&buffersink_ctx, buffersink, "out", NULL, NULL, _filter_graph.get()) < 0) {
+    if ((ret = avfilter_graph_create_filter(&buffersink_ctx, buffersink, "out", NULL, NULL, _filter_graph.get())) < 0) {
         ss << "avfilter_graph_create_filter buffersink failed: " << ret << " " << ffmpeg_err(ret);
         return make_tuple<bool, std::string>(false, ss.data());
     }
