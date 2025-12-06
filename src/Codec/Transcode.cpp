@@ -839,14 +839,14 @@ std::tuple<bool, std::string> FFmpegUtils::saveFrame(const FFmpegFrame::Ptr &fra
 
     buffersrc = avfilter_get_by_name("buffer");
 
-    if (ret = avfilter_graph_create_filter(&buffersrc_ctx, buffersrc, "in", args, NULL, _filter_graph.get()) < 0) {
+    if ((ret = avfilter_graph_create_filter(&buffersrc_ctx, buffersrc, "in", args, NULL, _filter_graph.get())) < 0) {
         ss << "avfilter_graph_create_filter buffersrc failed: " << ret << " " << ffmpeg_err(ret);
         DebugL << ss;
         return make_tuple<bool, std::string>(false, ss.data());
     }
 
     buffersink = avfilter_get_by_name("buffersink");
-    if (ret = avfilter_graph_create_filter(&buffersink_ctx, buffersink, "out", NULL, NULL, _filter_graph.get()) < 0) {
+    if ((ret = avfilter_graph_create_filter(&buffersink_ctx, buffersink, "out", NULL, NULL, _filter_graph.get())) < 0) {
         ss << "avfilter_graph_create_filter buffersink failed: " << ret << " " << ffmpeg_err(ret);
         return make_tuple<bool, std::string>(false, ss.data());
     }
