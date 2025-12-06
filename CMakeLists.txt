@@ -44,6 +44,7 @@ option(ENABLE_FFMPEG "Enable FFmpeg" OFF)
 option(ENABLE_HLS "Enable HLS" ON)
 option(ENABLE_JEMALLOC_STATIC "Enable static linking to the jemalloc library" OFF)
 option(ENABLE_JEMALLOC_DUMP "Enable jemalloc to dump malloc statistics" OFF)
+option(ENABLE_TCMALLOC "Enable linking to the tcmalloc library" OFF)
 option(ENABLE_MEM_DEBUG "Enable Memory Debug" OFF)
 option(ENABLE_MP4 "Enable MP4" ON)
 option(ENABLE_MSVC_MT "Enable MSVC Mt/Mtd lib" ON)
@@ -419,6 +420,19 @@ if(JEMALLOC_FOUND)
     add_definitions(-DENABLE_JEMALLOC_DUMP)
     message(STATUS "jemalloc will save memory usage statistics when the program exits")
   endif ()
+endif()
+
+# 查找 tcmalloc 是否安装
+# find tcmalloc installed
+if(ENABLE_TCMALLOC)
+  find_package(TCMALLOC QUIET)
+  if(TCMALLOC_FOUND)
+    message(STATUS "Link with tcmalloc library: ${TCMALLOC_LIBRARIES}")
+    update_cached_list(MK_LINK_LIBRARIES ${TCMALLOC_LIBRARIES})
+  else()
+    set(ENABLE_TCMALLOC OFF)
+    message(WARNING "tcmalloc 相关功能未找到")
+  endif()
 endif()
 
 # 查找 openssl 是否安装
