@@ -239,7 +239,7 @@ AVFrame *FFmpegFrame::get() const {
 
 void FFmpegFrame::fillPicture(AVPixelFormat target_format, int target_width, int target_height) {
     auto buffer_size = av_image_get_buffer_size(target_format, target_width, target_height, 32);
-    _data = std::make_unique<char[]>(buffer_size);
+    _data = std::unique_ptr<char[]>(new char[buffer_size]);
     av_image_fill_arrays(_frame->data, _frame->linesize, (uint8_t *)_data.get(), target_format, target_width, target_height, 32);
 }
 
