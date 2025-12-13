@@ -330,6 +330,9 @@ const char* RtmpProtocol::handle_S0S1S2(const char *data, size_t len, const func
     // 发送 C2  [AUTO-TRANSLATED:e51c339e]
     // Send C2
     const char *pcC2 = data + 1;
+    uint64_t now = getCurrentMillisecond();
+    uint32_t now_32 = htonl((uint32_t)(now &0xFFFFFFFF));
+    memcpy((char*)&data[5], &now_32, 4);
     onSendRawData(obtainBuffer(pcC2, C1_HANDSHARK_SIZE));
     // 握手结束  [AUTO-TRANSLATED:9df763ff]
     // Handshake finished
@@ -573,7 +576,9 @@ void RtmpProtocol::send_complex_S0S1S2(int schemeType,const string &digest){
 // Send complex handshake c0c1
 void RtmpHandshake::create_complex_c0c1() {
 #ifdef ENABLE_OPENSSL
-    memcpy(zero, "\x80\x00\x07\x02", 4);
+    uint64_t now = getCurrentMillisecond();
+    uint32_t now_32 = htonl((uint32_t)(now &0xFFFFFFFF));
+    memcpy(zero, (unsigned char*)&now_32, 4);
     // digest随机偏移长度  [AUTO-TRANSLATED:758606f0]
     // Digest random offset length
     auto offset_value = rand() % (C1_SCHEMA_SIZE - C1_OFFSET_SIZE - C1_DIGEST_SIZE);
