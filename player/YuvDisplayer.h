@@ -135,16 +135,27 @@ public:
     }
     bool displayYUV(AVFrame *pFrame){
         if (!_win) {
+			int w, h;
+            double hw = 0.0f;
+			w = pFrame->width;
+			h = pFrame->height;
+            hw = (double)h / (double)w;
+            w = 720;
+            h = w * hw;
             if (_hwnd) {
                 _win = SDL_CreateWindowFrom(_hwnd);
             }else {
                 _win = SDL_CreateWindow(_title.data(),
                                         SDL_WINDOWPOS_UNDEFINED,
                                         SDL_WINDOWPOS_UNDEFINED,
-                                        pFrame->width,
-                                        pFrame->height,
-                                        SDL_WINDOW_OPENGL);
+                                        w,
+                                        h,
+                                        SDL_WINDOW_OPENGL |SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN); // 允许最大化
             }
+            SDL_SetWindowInputFocus(_win);
+            SDL_RaiseWindow(_win);
+          //  SDL_GL_SetSwapInterval(1); // 1 ,“开启垂直同步”就是让程序“等显示器”，以牺牲一点延迟换取画面完整无撕裂。
+
         }
         if (_win && ! _render){
 #if 0
