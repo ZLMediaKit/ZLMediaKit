@@ -69,10 +69,11 @@ void WebRtcSession::onRecv_l(const char *data, size_t len) {
             auto sock = Socket::createSocket(transport->getPoller(), false);
             // 1、克隆socket(fd不变)，切换poller线程到WebRtcTransport所在线程  [AUTO-TRANSLATED:f930bfab]
             // 1. Clone socket (fd remains unchanged), switch poller thread to the thread where WebRtcTransport is located
-            sock->cloneSocket(*(getSock()));
+            auto on_complete = sock->cloneSocket(*(getSock()));
             auto server = _server;
             std::string str(data, len);
-            sock->getPoller()->async([sock, server, str](){
+            // on_complete在创建WebRtcSession后才析构(才开始网络事件监听)
+            sock->getPoller()->async([sock, server, str, on_complete](){
                 auto strong_server = server.lock();
                 if (strong_server) {
                     auto session = static_pointer_cast<WebRtcSession>(strong_server->createSession(sock));

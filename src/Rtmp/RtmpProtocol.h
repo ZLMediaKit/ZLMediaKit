@@ -63,14 +63,16 @@ protected:
     void sendRtmp(uint8_t type, uint32_t stream_index, const std::string &buffer, uint32_t stamp, int chunk_id);
     void sendRtmp(uint8_t type, uint32_t stream_index, const toolkit::Buffer::Ptr &buffer, uint32_t stamp, int chunk_id);
     toolkit::BufferRaw::Ptr obtainBuffer(const void *data = nullptr, size_t len = 0);
-
+    
 private:
     void handle_C1_simple(const char *data);
 #ifdef ENABLE_OPENSSL
+    void handle_S1_complex(const char *data, RtmpHandshake &c2);
     void handle_C1_complex(const char *data);
     std::string get_C1_digest(const uint8_t *ptr,char **digestPos);
     std::string get_C1_key(const uint8_t *ptr);
     void check_C1_Digest(const std::string &digest,const std::string &data);
+    void check_S1_Digest(const std::string &digest,const std::string &data);
     void send_complex_S0S1S2(int schemeType,const std::string &digest);
 #endif //ENABLE_OPENSSL
 

@@ -26,10 +26,34 @@ using namespace toolkit;
 #define S2_FMS_KEY_SIZE 68
 #define C1_OFFSET_SIZE 4
 
+
 #ifdef ENABLE_OPENSSL
 #include "Util/SSLBox.h"
 #include <openssl/hmac.h>
 #include <openssl/opensslv.h>
+
+static uint8_t FMSKey[] = {
+    0x47, 0x65, 0x6e, 0x75, 0x69, 0x6e, 0x65, 0x20,
+    0x41, 0x64, 0x6f, 0x62, 0x65, 0x20, 0x46, 0x6c,
+    0x61, 0x73, 0x68, 0x20, 0x4d, 0x65, 0x64, 0x69,
+    0x61, 0x20, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72,
+    0x20, 0x30, 0x30, 0x31, // Genuine Adobe Flash Media Server 001
+    0xf0, 0xee, 0xc2, 0x4a, 0x80, 0x68, 0xbe, 0xe8,
+    0x2e, 0x00, 0xd0, 0xd1, 0x02, 0x9e, 0x7e, 0x57,
+    0x6e, 0xec, 0x5d, 0x2d, 0x29, 0x80, 0x6f, 0xab,
+    0x93, 0xb8, 0xe6, 0x36, 0xcf, 0xeb, 0x31, 0xae
+}; // 68
+
+static uint8_t FPKey[] = {
+    0x47, 0x65, 0x6E, 0x75, 0x69, 0x6E, 0x65, 0x20,
+    0x41, 0x64, 0x6F, 0x62, 0x65, 0x20, 0x46, 0x6C,
+    0x61, 0x73, 0x68, 0x20, 0x50, 0x6C, 0x61, 0x79,
+    0x65, 0x72, 0x20, 0x30, 0x30, 0x31, // Genuine Adobe Flash Player 001
+    0xF0, 0xEE, 0xC2, 0x4A, 0x80, 0x68, 0xBE, 0xE8,
+    0x2E, 0x00, 0xD0, 0xD1, 0x02, 0x9E, 0x7E, 0x57,
+    0x6E, 0xEC, 0x5D, 0x2D, 0x29, 0x80, 0x6F, 0xAB,
+    0x93, 0xB8, 0xE6, 0x36, 0xCF, 0xEB, 0x31, 0xAE
+}; // 62
 
 static string openssl_HMACsha256(const void *key, size_t key_len, const void *data, size_t data_len){
     std::shared_ptr<char> out(new char[32], [](char *ptr) { delete[] ptr; });
@@ -329,8 +353,16 @@ const char* RtmpProtocol::handle_S0S1S2(const char *data, size_t len, const func
     }
     // 发送 C2  [AUTO-TRANSLATED:e51c339e]
     // Send C2
-    const char *pcC2 = data + 1;
-    onSendRawData(obtainBuffer(pcC2, C1_HANDSHARK_SIZE));
+    uint8_t *pS1 = (uint8_t*)data + 1;    
+    RtmpHandshake c2(0);
+    memcpy(&c2, pS1, sizeof(c2));
+#ifdef ENABLE_OPENSSL
+    if(pS1[4] >=3){ // 复杂握手计算c2
+        handle_S1_complex((char*)pS1, c2);
+    }
+#endif
+
+    onSendRawData(obtainBuffer(&c2, C1_HANDSHARK_SIZE));
     // 握手结束  [AUTO-TRANSLATED:9df763ff]
     // Handshake finished
     _next_step_func = [this](const char *data, size_t len) {
@@ -408,7 +440,7 @@ void RtmpProtocol::handle_C1_complex(const char *data){
         check_C1_Digest(digest, c1_joined);
 
         send_complex_S0S1S2(0, digest);
-//		InfoL << "schema0";
+//      InfoL << "schema0";
     } catch (std::exception &) {
         // 貌似flash从来都不用schema1  [AUTO-TRANSLATED:2c6d140f]
         // It seems that flash never uses schema1
@@ -426,40 +458,70 @@ void RtmpProtocol::handle_C1_complex(const char *data){
             check_C1_Digest(digest, c1_joined);
 
             send_complex_S0S1S2(1, digest);
-//			InfoL << "schema1";
+//          InfoL << "schema1";
         } catch (std::exception &) {
-//			WarnL << "try rtmp complex schema1 failed:" <<  ex.what();
+			//WarnL << "try rtmp complex schema1 failed:" <<  ex.what();
             handle_C1_simple(data);
         }
     }
 }
 
-#if !defined(u_int8_t)
-#define u_int8_t unsigned char
-#endif // !defined(u_int8_t)
+void RtmpProtocol::check_S1_Digest(const std::string &digest,const std::string &data){
+    auto sha256 = openssl_HMACsha256(FMSKey, S1_FMS_KEY_SIZE, data.data(), data.size());
+    if (sha256 != digest) {
+        throw std::runtime_error("digest mismatched");
+    } else {
+        InfoL << "check rtmp complex handshark success!";
+    }
+}
 
-static u_int8_t FMSKey[] = {
-    0x47, 0x65, 0x6e, 0x75, 0x69, 0x6e, 0x65, 0x20,
-    0x41, 0x64, 0x6f, 0x62, 0x65, 0x20, 0x46, 0x6c,
-    0x61, 0x73, 0x68, 0x20, 0x4d, 0x65, 0x64, 0x69,
-    0x61, 0x20, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72,
-    0x20, 0x30, 0x30, 0x31, // Genuine Adobe Flash Media Server 001
-    0xf0, 0xee, 0xc2, 0x4a, 0x80, 0x68, 0xbe, 0xe8,
-    0x2e, 0x00, 0xd0, 0xd1, 0x02, 0x9e, 0x7e, 0x57,
-    0x6e, 0xec, 0x5d, 0x2d, 0x29, 0x80, 0x6f, 0xab,
-    0x93, 0xb8, 0xe6, 0x36, 0xcf, 0xeb, 0x31, 0xae
-}; // 68
+void RtmpProtocol::handle_S1_complex(const char *data,RtmpHandshake &c2){
 
-static u_int8_t FPKey[] = {
-    0x47, 0x65, 0x6E, 0x75, 0x69, 0x6E, 0x65, 0x20,
-    0x41, 0x64, 0x6F, 0x62, 0x65, 0x20, 0x46, 0x6C,
-    0x61, 0x73, 0x68, 0x20, 0x50, 0x6C, 0x61, 0x79,
-    0x65, 0x72, 0x20, 0x30, 0x30, 0x31, // Genuine Adobe Flash Player 001
-    0xF0, 0xEE, 0xC2, 0x4A, 0x80, 0x68, 0xBE, 0xE8,
-    0x2E, 0x00, 0xD0, 0xD1, 0x02, 0x9E, 0x7E, 0x57,
-    0x6E, 0xEC, 0x5D, 0x2D, 0x29, 0x80, 0x6F, 0xAB,
-    0x93, 0xB8, 0xE6, 0x36, 0xCF, 0xEB, 0x31, 0xAE
-}; // 62
+    const char *s1_start = data;
+    const char *schema_start = s1_start + 8;
+    char *digest_start;
+    std::string digest;
+    try {
+        /* c1s1 schema0
+        time: 4bytes
+        version: 4bytes
+        key: 764bytes
+        digest: 764bytes
+         */
+        digest = get_C1_digest((uint8_t *) schema_start + C1_SCHEMA_SIZE, &digest_start);
+        string s1_joined(s1_start, C1_HANDSHARK_SIZE);
+        s1_joined.erase(digest_start - s1_start, C1_DIGEST_SIZE);
+        check_S1_Digest(digest, s1_joined);
+		//InfoL << "schema0";
+    } catch (std::exception &ex) {
+        // 貌似flash从来都不用schema1  [AUTO-TRANSLATED:2c6d140f]
+        // It seems that flash never uses schema1
+		//WarnL << "try rtmp complex schema0 failed:" << ex.what();
+        try {
+            /* c1s1 schema1
+            time: 4bytes
+            version: 4bytes
+            digest: 764bytes
+            key: 764bytes
+             */
+            digest = get_C1_digest((uint8_t *) schema_start, &digest_start);
+            string s1_joined(s1_start, C1_HANDSHARK_SIZE);
+            s1_joined.erase(digest_start - s1_start, C1_DIGEST_SIZE);
+            check_S1_Digest(digest, s1_joined);
+            //send_complex_S0S1S2(1, digest);
+			//InfoL << "schema1";
+        } catch (std::exception &ex) {
+			WarnL << "try rtmp complex schema1 failed:" <<  ex.what();
+            return;
+        }
+    }
+
+    //InfoL << "send complex C2";
+    auto c2_key = openssl_HMACsha256(FPKey, sizeof(FPKey), digest.data(), digest.size());
+    std::string c2_str((char*)(&c2), sizeof(c2)- C1_DIGEST_SIZE);
+    auto c2_digest = openssl_HMACsha256(c2_key.data(), c2_key.size(), c2_str.data(), c2_str.size());
+    memcpy(c2.random + RANDOM_LEN - C1_DIGEST_SIZE, c2_digest.data(), C1_DIGEST_SIZE);
+}
 
 void RtmpProtocol::check_C1_Digest(const string &digest,const string &data){
     auto sha256 = openssl_HMACsha256(FPKey, C1_FPKEY_SIZE, data.data(), data.size());
