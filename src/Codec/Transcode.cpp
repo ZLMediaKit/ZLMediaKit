@@ -34,6 +34,10 @@ std::unique_ptr<AVPacket, void (*)(AVPacket *)> alloc_av_packet() {
     return std::unique_ptr<AVPacket, void (*)(AVPacket *)>(av_packet_alloc(), [](AVPacket *pkt) { av_packet_free(&pkt); });
 }
 
+std::unique_ptr<AVFrame, void (*)(AVFrame *)> alloc_av_frame() {
+    return std::unique_ptr<AVFrame, void (*)(AVFrame *)>(av_frame_alloc(), [](AVFrame *frame) { av_frame_free(&frame); });
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////
 static void on_ffmpeg_log(void *ctx, int level, const char *fmt, va_list args) {
     GET_CONFIG(bool, enable_ffmpeg_log, General::kEnableFFmpegLog);
@@ -875,12 +879,14 @@ std::tuple<bool, std::string> FFmpegUtils::saveFrame(const FFmpegFrame::Ptr &fra
     }
 
     auto pkt = alloc_av_packet();
-    while (av_buffersink_get_frame(buffersink_ctx, new_frame->get()) >= 0) {
-        if (avcodec_send_frame(jpeg_codec_ctx.get(), new_frame->get()) == 0) {
+    auto filt_frame = alloc_av_frame();
+    while (av_buffersink_get_frame(buffersink_ctx, filt_frame.get()) >= 0) {
+        if (avcodec_send_frame(jpeg_codec_ctx.get(), filt_frame.get()) == 0) {
             while (avcodec_receive_packet(jpeg_codec_ctx.get(), pkt.get()) == 0) {
                 fwrite(pkt.get()->data, pkt.get()->size, 1, tmp_save_file_jpg.get());
             }
         }
+        av_frame_unref(filt_frame.get());
     }
     return make_tuple<bool, std::string>(true, "");
 }
