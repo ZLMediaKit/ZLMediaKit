@@ -880,6 +880,10 @@ std::tuple<bool, std::string> FFmpegUtils::saveFrame(const FFmpegFrame::Ptr &fra
 
     auto pkt = alloc_av_packet();
     auto filt_frame = alloc_av_frame();
+    if (!filt_frame) {
+        ss << "Failed to allocate AVFrame";
+        return make_tuple<bool, std::string>(false, ss.data());
+    }
     while (av_buffersink_get_frame(buffersink_ctx, filt_frame.get()) >= 0) {
         if (avcodec_send_frame(jpeg_codec_ctx.get(), filt_frame.get()) == 0) {
             while (avcodec_receive_packet(jpeg_codec_ctx.get(), pkt.get()) == 0) {
