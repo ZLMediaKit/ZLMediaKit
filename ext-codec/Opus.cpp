@@ -28,7 +28,7 @@ void OpusTrack::setExtraData(const uint8_t *data, size_t size) {
 }
 
 Buffer::Ptr OpusTrack::getExtraData() const {
-    struct opus_head_t opus = { 0 };
+    struct opus_head_t opus {};
     opus.version = 1;
     opus.channels = getAudioChannel();
     opus.input_sample_rate = getAudioSampleRate();

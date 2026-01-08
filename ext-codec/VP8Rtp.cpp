@@ -334,7 +334,7 @@ bool VP8RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     bool key = frame->keyFrame();
     bool mark = false;
     for (size_t pos = 0; pos < len; pos += pdu_size) {
-        if (len - pos <= pdu_size) {
+        if (static_cast<int>(len - pos) <= pdu_size) {
             pdu_size = len - pos;
             mark = true;
         }

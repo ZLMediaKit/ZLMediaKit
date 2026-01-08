@@ -20,7 +20,7 @@ using namespace toolkit;
 namespace mediakit {
 
 Buffer::Ptr G711Track::getExtraData() const {
-    struct wave_format_t wav = {0};
+    struct wave_format_t wav {};
     wav.wFormatTag = getCodecId() == CodecG711A ? WAVE_FORMAT_ALAW : WAVE_FORMAT_MULAW;
     wav.nChannels = getAudioChannel();
     wav.nSamplesPerSec = getAudioSampleRate();

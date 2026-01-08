@@ -327,6 +327,7 @@ API_EXPORT uint16_t API_CALL mk_ice_server_start(uint16_t port){
         iceServer_udp = std::make_shared<UdpServer>();
         iceServer_udp->start<IceSession>(port);
         iceServer_tcp->start<IceSession>(port);
+        return 0;
     } catch (std::exception &ex) {
         iceServer_udp = nullptr;
         iceServer_tcp = nullptr;

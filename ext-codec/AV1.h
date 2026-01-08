@@ -57,7 +57,7 @@ public:
     toolkit::Buffer::Ptr getExtraData() const override;
     void setExtraData(const uint8_t *data, size_t size) override;
 protected:
-    aom_av1_t _context = {0};
+    aom_av1_t _context {};
 };
 
 } // namespace mediakit

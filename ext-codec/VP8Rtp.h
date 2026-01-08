@@ -56,9 +56,6 @@ public:
     using Ptr = std::shared_ptr<VP8RtpEncoder>;
 
     bool inputFrame(const Frame::Ptr &frame) override;
-
-private:
-    uint16_t _pic_id = 0;
 };
 
 }//namespace mediakit

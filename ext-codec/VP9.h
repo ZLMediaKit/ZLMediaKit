@@ -41,7 +41,7 @@ public:
     toolkit::Buffer::Ptr getExtraData() const override;
     void setExtraData(const uint8_t *data, size_t size) override;
 private:
-    webm_vpx_t _vpx = {0};
+    webm_vpx_t _vpx {};
 };
 
 } // namespace mediakit

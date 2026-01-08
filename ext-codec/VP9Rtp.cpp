@@ -297,7 +297,7 @@ bool VP9RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     int pdu_size = getRtpInfo().getMaxSize() - nheader;
 
     bool mark = false;
-    for (size_t pos = 0; pos < len; pos += pdu_size) {
+    for (int pos = 0; pos < len; pos += pdu_size) {
         if (len - pos <= pdu_size) {
             pdu_size = len - pos;
             header[0] |= kEBit;

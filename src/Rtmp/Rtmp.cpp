@@ -60,8 +60,8 @@ uint8_t getCodecFlags(CodecId cid) {
 #define XX(a, b, c) case a: return static_cast<uint8_t>(b);
     RTMP_CODEC_MAP(XX)
 #undef XX
+        default: return 0;
     }
-    return 0;
 }
 
 uint32_t getCodecFourCC(CodecId cid) {
@@ -69,8 +69,8 @@ uint32_t getCodecFourCC(CodecId cid) {
 #define XX(a, b, c) case a: return static_cast<uint32_t>(c);
     RTMP_CODEC_MAP(XX)
 #undef XX
+        default: return 0;
     }
-    return 0;
 }
 
 CodecId getFourccCodec(uint32_t id) {
@@ -195,12 +195,10 @@ bool RtmpPacket::isConfigFrame() const {
     switch (type_id) {
         case MSG_AUDIO: {
             switch ((RtmpAudioCodec)getRtmpCodecId()) {
-            case RtmpAudioCodec::aac:
-                return (RtmpAACPacketType)buffer[1] == RtmpAACPacketType::aac_config_header;
-            case RtmpAudioCodec::ex_header:
-                return (RtmpPacketType)(buffer[0] & 0x0f) == RtmpPacketType::PacketTypeSequenceStart;
+                case RtmpAudioCodec::aac: return (RtmpAACPacketType)buffer[1] == RtmpAACPacketType::aac_config_header;
+                case RtmpAudioCodec::ex_header: return (RtmpPacketType)(buffer[0] & 0x0f) == RtmpPacketType::PacketTypeSequenceStart;
+                default: return false;
             }
-            return false;
         }
         case MSG_VIDEO: {
             if (!isVideoKeyFrame()) {
