@@ -162,6 +162,7 @@ private:
     float _speed = 0.0f;
     std::vector<SdpTrack::Ptr> _sdp_track;
     std::function<void(const Parser&)> _on_response;
+    std::function<void(const Parser&)> _on_keepalive_reponse;
  protected:   
     // RTP端口,trackid idx 为数组下标  [AUTO-TRANSLATED:77c186bb]
     // RTP port, trackid idx is the array subscript
