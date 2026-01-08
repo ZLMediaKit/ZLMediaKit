@@ -446,7 +446,11 @@ void RtspPlayer::sendOptions() {
 }
 
 void RtspPlayer::sendKeepAlive() {
-    _on_response = [](const Parser &parser) {};
+    if (_play_check_timer)
+    {
+        WarnL << "receive RTP packet before handleResPAUSE";
+    }
+    _on_keepalive_reponse = [](const Parser &parser) {};
     if (_supported_cmd.find("GET_PARAMETER") != _supported_cmd.end()) {
         // 支持GET_PARAMETER，用此命令保活  [AUTO-TRANSLATED:b45cd737]
         // Support GET_PARAMETER, use this command to keep alive
@@ -532,6 +536,10 @@ void RtspPlayer::onWholeRtspPacket(Parser &parser) {
     try {
         decltype(_on_response) func;
         _on_response.swap(func);
+        if (!func)
+        {
+            _on_keepalive_reponse.swap(func);
+        }
         if (func) {
             func(parser);
         }
