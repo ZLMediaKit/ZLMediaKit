@@ -420,7 +420,9 @@ std::string MultiMediaSourceMuxer::startRecord(const std::string &file_path, uin
     muxer->addTrackCompleted();
 
     std::list<Frame::Ptr> history;
-    _ring->flushGop([&](const Frame::Ptr &frame) { history.emplace_back(frame); });
+    if (back_time_ms) {
+        _ring->flushGop([&](const Frame::Ptr &frame) { history.emplace_back(frame); });
+    }
     if (!history.empty()) {
         auto now_dts = history.back()->dts();
 
@@ -452,6 +454,12 @@ std::string MultiMediaSourceMuxer::startRecord(const std::string &file_path, uin
         for (auto &frame : history) {
             muxer->inputFrame(frame);
         }
+    }
+
+    if (forward_time_ms == 0) {
+        InfoL << "stop record: " << path << ", duration: " << muxer->getDuration();
+        WorkThreadPool::Instance().getPoller()->async([muxer]() { muxer->closeMP4(); });
+        return path;
     }
 
     auto reader = _ring->attach(MultiMediaSourceMuxer::getOwnerPoller(MediaSource::NullMediaSource()), false);
