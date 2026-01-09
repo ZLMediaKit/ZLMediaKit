@@ -1079,6 +1079,7 @@ void installWebApi() {
             }
             fillSockInfo(jsession, session.get());
             jsession["id"] = id;
+            jsession["type"] = session->getSock()->sockType() == SockNum::Sock_TCP ? "tcp" : "udp";
             jsession["typeid"] = toolkit::demangle(typeid(*session).name());
             val["data"].append(jsession);
         });
