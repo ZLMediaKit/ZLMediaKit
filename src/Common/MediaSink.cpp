@@ -176,7 +176,9 @@ void MediaSink::checkTrackIfReady() {
 }
 
 void MediaSink::addTrackCompleted() {
-    setMaxTrackCount(_track_map.size());
+    if (!_track_map.empty()) {
+        setMaxTrackCount(_track_map.size());
+    }
 }
 
 void MediaSink::setMaxTrackCount(size_t i) {

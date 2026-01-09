@@ -55,31 +55,31 @@ extern const std::string kBroadcastRecordTs;
 // 收到http api请求广播  [AUTO-TRANSLATED:c72e7c3f]
 // Broadcast for receiving http api request
 extern const std::string kBroadcastHttpRequest;
-#define BroadcastHttpRequestArgs const Parser &parser, const HttpSession::HttpResponseInvoker &invoker, bool &consumed, SockInfo &sender
+#define BroadcastHttpRequestArgs const Parser &parser, const HttpSession::HttpResponseInvoker &invoker, bool &consumed, toolkit::SockInfo &sender
 
 // 在http文件服务器中,收到http访问文件或目录的广播,通过该事件控制访问http目录的权限  [AUTO-TRANSLATED:2de426b4]
 // In the http file server, broadcast for receiving http access to files or directories. Control access permissions to the http directory through this event.
 extern const std::string kBroadcastHttpAccess;
-#define BroadcastHttpAccessArgs const Parser &parser, const std::string &path, const bool &is_dir, const HttpSession::HttpAccessPathInvoker &invoker, SockInfo &sender
+#define BroadcastHttpAccessArgs const Parser &parser, const std::string &path, const bool &is_dir, const HttpSession::HttpAccessPathInvoker &invoker, toolkit::SockInfo &sender
 
 // 在http文件服务器中,收到http访问文件或目录前的广播,通过该事件可以控制http url到文件路径的映射  [AUTO-TRANSLATED:0294d0c5]
 // In the http file server, broadcast before receiving http access to files or directories. Control the mapping from http url to file path through this event.
 // 在该事件中通过自行覆盖path参数，可以做到譬如根据虚拟主机或者app选择不同http根目录的目的  [AUTO-TRANSLATED:1bea3efb]
 // By overriding the path parameter in this event, you can achieve the purpose of selecting different http root directories based on virtual hosts or apps.
 extern const std::string kBroadcastHttpBeforeAccess;
-#define BroadcastHttpBeforeAccessArgs const Parser &parser, std::string &path, SockInfo &sender
+#define BroadcastHttpBeforeAccessArgs const Parser &parser, std::string &path, toolkit::SockInfo &sender
 
 // 该流是否需要认证？是的话调用invoker并传入realm,否则传入空的realm.如果该事件不监听则不认证  [AUTO-TRANSLATED:5f436d8f]
 // Does this stream need authentication? If yes, call invoker and pass in realm, otherwise pass in an empty realm. If this event is not listened to, no authentication will be performed.
 extern const std::string kBroadcastOnGetRtspRealm;
-#define BroadcastOnGetRtspRealmArgs const MediaInfo &args, const RtspSession::onGetRealm &invoker, SockInfo &sender
+#define BroadcastOnGetRtspRealmArgs const MediaInfo &args, const RtspSession::onGetRealm &invoker, toolkit::SockInfo &sender
 
 // 请求认证用户密码事件，user_name为用户名，must_no_encrypt如果为true，则必须提供明文密码(因为此时是base64认证方式),否则会导致认证失败  [AUTO-TRANSLATED:22b6dfcc]
 // Request authentication user password event, user_name is the username, must_no_encrypt if true, then the plaintext password must be provided (because it is base64 authentication method at this time), otherwise it will lead to authentication failure.
 // 获取到密码后请调用invoker并输入对应类型的密码和密码类型，invoker执行时会匹配密码  [AUTO-TRANSLATED:8c57fd43]
 // After getting the password, please call invoker and input the corresponding type of password and password type. The invoker will match the password when executing.
 extern const std::string kBroadcastOnRtspAuth;
-#define BroadcastOnRtspAuthArgs const MediaInfo &args, const std::string &realm, const std::string &user_name, const bool &must_no_encrypt, const RtspSession::onAuth &invoker, SockInfo &sender
+#define BroadcastOnRtspAuthArgs const MediaInfo &args, const std::string &realm, const std::string &user_name, const bool &must_no_encrypt, const RtspSession::onAuth &invoker, toolkit::SockInfo &sender
 
 // 推流鉴权结果回调对象  [AUTO-TRANSLATED:7e508ed1]
 // Push stream authentication result callback object
@@ -90,7 +90,7 @@ using PublishAuthInvoker = std::function<void(const std::string &err, const Prot
 // 收到rtsp/rtmp推流事件广播，通过该事件控制推流鉴权  [AUTO-TRANSLATED:72417373]
 // Broadcast for receiving rtsp/rtmp push stream event. Control push stream authentication through this event.
 extern const std::string kBroadcastMediaPublish;
-#define BroadcastMediaPublishArgs const MediaOriginType &type, const MediaInfo &args, const Broadcast::PublishAuthInvoker &invoker, SockInfo &sender
+#define BroadcastMediaPublishArgs const MediaOriginType &type, const MediaInfo &args, const Broadcast::PublishAuthInvoker &invoker, toolkit::SockInfo &sender
 
 // 播放鉴权结果回调对象  [AUTO-TRANSLATED:c980162b]
 // Playback authentication result callback object
@@ -101,22 +101,22 @@ using AuthInvoker = std::function<void(const std::string &err)>;
 // 播放rtsp/rtmp/http-flv事件广播，通过该事件控制播放鉴权  [AUTO-TRANSLATED:eddd7014]
 // Broadcast for playing rtsp/rtmp/http-flv events. Control playback authentication through this event.
 extern const std::string kBroadcastMediaPlayed;
-#define BroadcastMediaPlayedArgs const MediaInfo &args, const Broadcast::AuthInvoker &invoker, SockInfo &sender
+#define BroadcastMediaPlayedArgs const MediaInfo &args, const Broadcast::AuthInvoker &invoker, toolkit::SockInfo &sender
 
 // shell登录鉴权  [AUTO-TRANSLATED:26b135d4]
 // Shell login authentication
 extern const std::string kBroadcastShellLogin;
-#define BroadcastShellLoginArgs const std::string &user_name, const std::string &passwd, const Broadcast::AuthInvoker &invoker, SockInfo &sender
+#define BroadcastShellLoginArgs const std::string &user_name, const std::string &passwd, const Broadcast::AuthInvoker &invoker, toolkit::SockInfo &sender
 
 // 停止rtsp/rtmp/http-flv会话后流量汇报事件广播  [AUTO-TRANSLATED:69df61d8]
 // Broadcast for traffic reporting event after stopping rtsp/rtmp/http-flv session
 extern const std::string kBroadcastFlowReport;
-#define BroadcastFlowReportArgs const MediaInfo &args, const uint64_t &totalBytes, const uint64_t &totalDuration, const bool &isPlayer, SockInfo &sender
+#define BroadcastFlowReportArgs const MediaInfo &args, const uint64_t &totalBytes, const uint64_t &totalDuration, const bool &isPlayer, toolkit::SockInfo &sender
 
 // 未找到流后会广播该事件，请在监听该事件后去拉流或其他方式产生流，这样就能按需拉流了  [AUTO-TRANSLATED:0c00171d]
 // This event will be broadcast after the stream is not found. Please pull the stream or other methods to generate the stream after listening to this event, so that you can pull the stream on demand.
 extern const std::string kBroadcastNotFoundStream;
-#define BroadcastNotFoundStreamArgs const MediaInfo &args, SockInfo &sender, const std::function<void()> &closePlayer
+#define BroadcastNotFoundStreamArgs const MediaInfo &args, toolkit::SockInfo &sender, const std::function<void()> &closePlayer
 
 // 某个流无人消费时触发，目的为了实现无人观看时主动断开拉流等业务逻辑  [AUTO-TRANSLATED:3c45f002]
 // Triggered when a stream is not consumed by anyone. The purpose is to achieve business logic such as actively disconnecting the pull stream when no one is watching.
