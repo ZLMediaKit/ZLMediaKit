@@ -401,15 +401,20 @@ bool MultiMediaSourceMuxer::setupRecord(Recorder::type type, bool start, const s
     }
 }
 
-std::string MultiMediaSourceMuxer::startRecord(const std::string &file_path, uint32_t back_time_ms, uint32_t forward_time_ms) {
+std::string MultiMediaSourceMuxer::startRecord(const std::string &file_path, int back_time_ms, int forward_time_ms) {
 #if !defined(ENABLE_MP4)
     throw std::invalid_argument("mp4相关功能未打开，请开启ENABLE_MP4宏后编译再测试");
 #else
     if (!_ring) {
         throw std::runtime_error("frame gop cache disabled, start record event video failed");
     }
-    auto path = Recorder::getRecordPath(Recorder::type_mp4, _tuple, _option.mp4_save_path);
-    path += file_path;
+    std::string path;
+    if (!start_with(file_path, "/")) {
+        path = Recorder::getRecordPath(Recorder::type_mp4, _tuple, _option.mp4_save_path);
+        path += file_path;
+    } else {
+        path = file_path;
+    }
     TraceL << "mp4 save path: " << path;
 
     auto muxer = std::make_shared<MP4Muxer>();
@@ -419,68 +424,124 @@ std::string MultiMediaSourceMuxer::startRecord(const std::string &file_path, uin
     }
     muxer->addTrackCompleted();
 
-    std::list<Frame::Ptr> history;
-    _ring->flushGop([&](const Frame::Ptr &frame) { history.emplace_back(frame); });
-    if (!history.empty()) {
-        auto now_dts = history.back()->dts();
-
-        decltype(history)::iterator pos = history.end();
-        for (auto it = history.rbegin(); it != history.rend(); ++it) {
-            auto &frame = *it;
-            if (frame->getTrackType() != TrackVideo || (!frame->configFrame() && !frame->keyFrame())) {
-                continue;
-            }
-            // 如果视频关键帧到末尾的时长超过一定的时间，那前面的数据应该全部删除
-            if (frame->dts() + back_time_ms < now_dts) {
-                pos = it.base();
-                --pos;
-                break;
-            }
-        }
-        if (pos != history.end()) {
-            // 移除前面过多的数据
-            TraceL << "clear history video: " << history.front()->dts() << " -> " << (*pos)->dts();
-            history.erase(history.begin(), pos);
-        }
+    bool have_history = false;
+    if (back_time_ms > 0) {
+        // 回溯录制
+        std::list<Frame::Ptr> history;
+        _ring->flushGop([&](const Frame::Ptr &frame) { history.emplace_back(frame); });
         if (!history.empty()) {
-            auto &front = history.front();
-            InfoL << "start record: " << path
-                  << ", start_dts: " << front->dts() << ", key_frame: " << front->keyFrame() << ", config_frame: " << front->configFrame()
-                  << ", now_dts: " << now_dts;
-        }
+            auto now_dts = history.back()->dts();
 
-        for (auto &frame : history) {
-            muxer->inputFrame(frame);
+            decltype(history)::iterator pos = history.end();
+            for (auto it = history.rbegin(); it != history.rend(); ++it) {
+                auto &frame = *it;
+                if (frame->getTrackType() != TrackVideo || (!frame->configFrame() && !frame->keyFrame())) {
+                    continue;
+                }
+                // 如果视频关键帧到末尾的时长超过一定的时间，那前面的数据应该全部删除
+                if (frame->dts() + back_time_ms < now_dts) {
+                    pos = it.base();
+                    --pos;
+                    break;
+                }
+            }
+            if (pos != history.end()) {
+                // 移除历史视频前面过多的数据
+                DebugL << "clear history front video: " << history.front()->dts() << " -> " << (*pos)->dts();
+                history.erase(history.begin(), pos);
+            }
+
+            if (forward_time_ms < 0) {
+                // 如果后向录制时长为负，说明回溯录制要截取一段尾部
+                pos = history.end();
+                for (auto it = history.rbegin(); it != history.rend(); ++it) {
+                    auto &frame = *it;
+                    if (frame->getTrackType() != TrackVideo) {
+                        continue;
+                    }
+                    if (frame->dts() < now_dts + forward_time_ms) {
+                        pos = it.base();
+                        ++pos;
+                        break;
+                    }
+                }
+
+                if (pos != history.end()) {
+                    // 移除历史视频后面过多的数据
+                    DebugL << "clear history tail video: " << (*pos)->dts() << " -> " << now_dts;
+                    history.erase(pos, history.end());
+                }
+            }
+
+            if (!history.empty()) {
+                auto &front = history.front();
+                InfoL << "start record: " << path
+                      << ", start_dts: " << front->dts() << ", key_frame: " << front->keyFrame() << ", config_frame: " << front->configFrame()
+                      << ", now_dts: " << now_dts;
+                have_history = true;
+            }
+
+            for (auto &frame : history) {
+                muxer->inputFrame(frame);
+            }
         }
     }
 
-    auto reader = _ring->attach(MultiMediaSourceMuxer::getOwnerPoller(MediaSource::NullMediaSource()), false);
-    uint64_t now_dts = 0;
-    int selected_index = -1;
-    Ticker ticker;
-    bool is_live_stream = _dur_sec < 0.01;
-    reader->setReadCB([muxer, now_dts, selected_index, forward_time_ms, reader, path, ticker, is_live_stream](const Frame::Ptr &frame) mutable {
-        // 循环引用自身
-        if (!now_dts) {
-            now_dts = frame->dts();
-            selected_index = frame->getIndex();
+    if (forward_time_ms > 0) {
+        if (!have_history) {
+            InfoL << "start record: " << path << ", back_time_ms: " << back_time_ms << ", forward_time_ms: " << forward_time_ms;
         }
-        // 新增兜底机制，如果直播录制任务时长超过预期时间3秒，不管数据时间戳是否增长是否达到预期，都强制停止录制
-        if ((frame->getIndex() == selected_index && now_dts + forward_time_ms < frame->dts()) || (is_live_stream && ticker.createdTime() > forward_time_ms + 3000)) {
-            InfoL << "stop record: " << path << ", end dts: " << frame->dts();
-            WorkThreadPool::Instance().getPoller()->async([muxer]() { muxer->closeMP4(); });
-            reader = nullptr;
-            return;
+
+        weak_ptr<MultiMediaSourceMuxer> weak_self = shared_from_this();
+        auto lam = [weak_self, muxer, forward_time_ms, have_history, path]() {
+            auto strong_self = weak_self.lock();
+            if (!strong_self) {
+                return;
+            }
+            uint64_t now_dts = 0;
+            int selected_index = -1;
+            Ticker ticker;
+            bool is_live_stream = strong_self->_dur_sec < 0.01;
+            auto reader = strong_self->_ring->attach(strong_self->MultiMediaSourceMuxer::getOwnerPoller(MediaSource::NullMediaSource()), !have_history, 1);
+            reader->setReadCB([muxer, now_dts, selected_index, forward_time_ms, reader, path, ticker, is_live_stream](const Frame::Ptr &frame) mutable {
+                if (!reader) {
+                    // 已经关闭录制
+                    return;
+                }
+                // 循环引用自身
+                if (!now_dts) {
+                    now_dts = frame->dts();
+                    selected_index = frame->getIndex();
+                }
+                // 新增兜底机制，如果直播录制任务时长超过预期时间3秒，不管数据时间戳是否增长是否达到预期，都强制停止录制
+                if ((frame->getIndex() == selected_index && now_dts + forward_time_ms < frame->dts())
+                    || (is_live_stream && ticker.createdTime() > forward_time_ms + 3000ULL)) {
+                    InfoL << "stop record: " << path << ", end dts: " << frame->dts();
+                    WorkThreadPool::Instance().getPoller()->async([muxer]() { muxer->closeMP4(); });
+                    reader = nullptr;
+                    return;
+                }
+                muxer->inputFrame(frame);
+            });
+            std::weak_ptr<RingType::RingReader> weak_reader = reader;
+            reader->setDetachCB([weak_reader]() {
+                if (auto strong_reader = weak_reader.lock()) {
+                    // 防止循环引用
+                    strong_reader->setReadCB(nullptr);
+                }
+            });
+        };
+        if (back_time_ms >= 0) {
+            // 立即前向录制
+            lam();
+        } else {
+            // 延时启动录制
+            MultiMediaSourceMuxer::getOwnerPoller(MediaSource::NullMediaSource())->doDelayTask(-back_time_ms, [lam]() {
+                lam();
+                return 0;
+            });
         }
-        muxer->inputFrame(frame);
-    });
-    std::weak_ptr<RingType::RingReader> weak_reader = reader;
-    reader->setDetachCB([weak_reader]() {
-        if (auto strong_reader = weak_reader.lock()) {
-            // 防止循环引用
-            strong_reader->setReadCB(nullptr);
-        }
-    });
+    }
 
     return path;
 #endif

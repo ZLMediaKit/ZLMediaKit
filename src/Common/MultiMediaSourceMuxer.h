@@ -129,7 +129,7 @@ public:
      * @param forward_time_ms 后续录制时长
      * @return 录制文件绝对路径
      */
-    std::string startRecord(const std::string &file_path, uint32_t back_time_ms, uint32_t forward_time_ms);
+    std::string startRecord(const std::string &file_path, int back_time_ms, int forward_time_ms);
 
     /**
      * 获取录制状态
