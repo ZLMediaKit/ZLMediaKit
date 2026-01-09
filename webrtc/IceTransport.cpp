@@ -1175,7 +1175,7 @@ void IceAgent::connectivityCheck(const Pair::Ptr &pair, CandidateTuple& candidat
 }
 
 void IceAgent::tryTriggerredCheck(const Pair::Ptr& pair) {
-    DebugL;
+    // DebugL;
     //FIXME 暂不实现,因为当前实现基本收到candidate就会发起check
 }
 

@@ -286,7 +286,7 @@ public:
 
 struct WrappedMediaTrack {
     MediaTrack::Ptr track;
-    explicit WrappedMediaTrack(MediaTrack::Ptr ptr): track(ptr) {}
+    explicit WrappedMediaTrack(MediaTrack::Ptr ptr): track(std::move(ptr)) {}
     virtual ~WrappedMediaTrack() {}
     virtual void inputRtp(const char *buf, size_t len, uint64_t stamp_ms, RtpHeader *rtp) = 0;
 };

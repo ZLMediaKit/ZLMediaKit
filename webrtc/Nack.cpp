@@ -46,6 +46,7 @@ const string kNackIntervalRatio = RTC_FIELD "nackIntervalRatio";
 // nack包中rtp个数，减小此值可以让nack包响应更灵敏  [AUTO-TRANSLATED:12393868]
 // Number of rtp in nack packet, reducing this value can make nack packet response more sensitive
 const string kNackRtpSize = RTC_FIELD "nackRtpSize";
+const string kNackAudioRtpSize = RTC_FIELD "nackAudioRtpSize";
 
 static onceToken token([]() {
     mINI::Instance()[kMaxRtpCacheMS] = 5 * 1000;
@@ -55,6 +56,7 @@ static onceToken token([]() {
     mINI::Instance()[kNackMaxCount] = 15;
     mINI::Instance()[kNackIntervalRatio] = 1.0f;
     mINI::Instance()[kNackRtpSize] = 8;
+    mINI::Instance()[kNackAudioRtpSize] = 4;
 });
 
 } // namespace Rtc
@@ -155,7 +157,8 @@ int64_t NackList::getNtpStamp(uint16_t seq) {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-NackContext::NackContext() {
+NackContext::NackContext(TrackType type) {
+    _type = type;
     setOnNack(nullptr);
 }
 
@@ -217,7 +220,9 @@ void NackContext::makeNack(uint16_t max_seq, bool flush) {
     // 最多生成5个nack包，防止seq大幅跳跃导致一直循环  [AUTO-TRANSLATED:9cc5da25]
     // Generate at most 5 nack packets to prevent seq from jumping significantly and causing continuous loops
     auto max_nack = 5u;
-    GET_CONFIG(uint32_t, nack_rtpsize, Rtc::kNackRtpSize);
+    GET_CONFIG(uint32_t, nack_video_rtpsize, Rtc::kNackRtpSize);
+    GET_CONFIG(uint32_t, nack_audio_rtpsize, Rtc::kNackAudioRtpSize);
+    auto nack_rtpsize = _type == TrackVideo ? nack_video_rtpsize : nack_audio_rtpsize;
     // kNackRtpSize must between 0 and 16
     nack_rtpsize = std::min<uint32_t>(nack_rtpsize, FCI_NACK::kBitSize);
     while (_nack_seq != max_seq && max_nack--) {
