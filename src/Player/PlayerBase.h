@@ -286,7 +286,11 @@ public:
 
 protected:
     void onShutdown(const toolkit::SockException &ex) override {
-        if (_on_shutdown) {
+        if(_media_src){
+            _media_src->delSink(this);
+            _media_src.reset();
+        }
+        if( _on_shutdown) {
             _on_shutdown(ex);
             _on_shutdown = nullptr;
         }
