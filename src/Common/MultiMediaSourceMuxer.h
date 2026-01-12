@@ -150,7 +150,7 @@ public:
      
      * [AUTO-TRANSLATED:620416c2]
      */
-    void startSendRtp(MediaSource &sender, const MediaSourceEvent::SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb) override;
+    virtual void startSendRtp(MediaSource &sender, const MediaSourceEvent::SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb) override;  // 继承于class MediaSourceEventInterceptor : public MediaSourceEvent
 
     /**
      * 停止ps-rtp发送
@@ -160,7 +160,7 @@ public:
      
      * [AUTO-TRANSLATED:b91e2055]
      */
-    bool stopSendRtp(MediaSource &sender, const std::string &ssrc) override;
+    virtual bool stopSendRtp(MediaSource &sender, const std::string &ssrc) override; // 继承于 class MediaSourceEventInterceptor : public MediaSourceEvent
 
     /**
      * 获取所有Track

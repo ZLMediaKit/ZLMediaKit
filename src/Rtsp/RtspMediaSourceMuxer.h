@@ -55,6 +55,7 @@ public:
         _media_src->setSdp(getSdp());
     }
 
+    // 继承自MediaSourceEventInterceptor : public MediaSourceEvent
     void onReaderChanged(MediaSource &sender, int size) override {
         _enabled = _option.rtsp_demand ? size : true;
         if (!size && _option.rtsp_demand) {

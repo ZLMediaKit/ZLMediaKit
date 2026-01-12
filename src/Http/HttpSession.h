@@ -45,7 +45,7 @@ public:
     using HttpAccessPathInvoker = std::function<void(const std::string &errMsg,const std::string &accessPath, int cookieLifeSecond)>;
 
     HttpSession(const toolkit::Socket::Ptr &pSock);
-
+    
     void onRecv(const toolkit::Buffer::Ptr &) override;
     void onError(const toolkit::SockException &err) override;
     void onManager() override;
@@ -54,8 +54,8 @@ public:
 
 protected:
     //FlvMuxer override
-    void onWrite(const toolkit::Buffer::Ptr &data, bool flush) override ;
-    void onDetach() override;
+    virtual void onWrite(const toolkit::Buffer::Ptr &data, bool flush) override ;  // from FlvMuxer override
+    virtual void onDetach() override;  // from FlvMuxer override
     std::shared_ptr<FlvMuxer> getSharedPtr() override;
 
     //HttpRequestSplitter override

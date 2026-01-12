@@ -144,7 +144,7 @@ vector<Track::Ptr> MediaSource::getTracks(bool ready) const {
 }
 
 void MediaSource::setListener(const std::weak_ptr<MediaSourceEvent> &listener){
-    _listener = listener;
+    _listener = listener;  //MediaSourceEvent
 }
 
 std::weak_ptr<MediaSourceEvent> MediaSource::getListener() const {
@@ -225,7 +225,7 @@ bool MediaSource::close(bool force) {
 }
 
 float MediaSource::getLossRate(mediakit::TrackType type) {
-    auto listener = _listener.lock();
+    auto listener = _listener.lock();  //MediaSourceEvent
     if (!listener) {
         return -1;
     }
@@ -303,8 +303,10 @@ void MediaSource::startSendRtp(const MediaSourceEvent::SendRtpArgs &args, const 
 }
 
 bool MediaSource::stopSendRtp(const string &ssrc) {
+    // WarnL << "MediaSource::stopSendRtp ssrc:" << ssrc;
     auto listener = _listener.lock();
     if (!listener) {
+        // WarnL << "未设置MediaSource的事件监听者，stopSendRtp失败:" << getUrl();
         return false;
     }
     return listener->stopSendRtp(*this, ssrc);
@@ -427,6 +429,9 @@ static void findAsync_l(const MediaInfo &info, const std::shared_ptr<Session> &s
 
     weak_ptr<Session> weak_session = session;
     auto on_register = [weak_session, info, cb_once, cancel_all, poller](BroadcastMediaChangedArgs) {
+
+        DebugL << "---------------注册事件 :" << info.getUrl() << ", sender:" << sender.getSchema() << ", bRegist " << bRegist;
+
         if (!bRegist ||
             sender.getSchema() != info.schema ||
             !equalMediaTuple(sender.getMediaTuple(), info)) {
@@ -434,6 +439,8 @@ static void findAsync_l(const MediaInfo &info, const std::shared_ptr<Session> &s
             // Not an event of interest, ignore it
             return;
         }
+
+        DebugL << "@@@@@@@@@@@@@@@@@@@@注册事件 :" << info.getUrl() << ", sender:" << sender.getSchema() << ", bRegist " << bRegist;
 
         poller->async([weak_session, cancel_all, info, cb_once]() {
             cancel_all();

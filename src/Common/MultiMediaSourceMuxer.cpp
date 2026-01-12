@@ -233,12 +233,12 @@ MultiMediaSourceMuxer::MultiMediaSourceMuxer(const MediaTuple& tuple, float dur_
 }
 
 void MultiMediaSourceMuxer::setMediaListener(const std::weak_ptr<MediaSourceEvent> &listener) {
-    setDelegate(listener);
+    setDelegate(listener);  // 继承了MediaSourceEvent的类，比如RtpProcess
 
     auto self = shared_from_this();
     // 拦截事件  [AUTO-TRANSLATED:100ca068]
     // Intercept events
-    if (_rtmp) {
+    if (_rtmp) {  //RtmpMediaSourceMuxer
         _rtmp->setListener(self);
     }
     if (_rtsp) {
@@ -460,6 +460,11 @@ void MultiMediaSourceMuxer::startSendRtp(MediaSource &sender, const MediaSourceE
 
 bool MultiMediaSourceMuxer::stopSendRtp(MediaSource &sender, const string &ssrc) {
 #if defined(ENABLE_RTPPROXY)
+    WarnL << "stream:" << shortUrl() << " stop send rtp:" << ssrc;
+    if(_rtp_sender.size() == 0){
+        return true;
+    }
+
     if (ssrc.empty()) {
         // 关闭全部  [AUTO-TRANSLATED:ffaadfda]
         // Close all
@@ -469,6 +474,8 @@ bool MultiMediaSourceMuxer::stopSendRtp(MediaSource &sender, const string &ssrc)
     }
     // 关闭特定的  [AUTO-TRANSLATED:2286322a]
     // Close specific
+    
+    WarnL << "_rtp_sender size:" << _rtp_sender.size();
     return _rtp_sender.erase(ssrc);
 #else
     return false;
