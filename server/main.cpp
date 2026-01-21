@@ -273,6 +273,16 @@ int start_main(int argc,char *argv[]) {
         }
 #endif //! defined(_WIN32)
 
+        // 设置poller线程数和cpu亲和性,该函数必须在使用ZLToolKit网络相关对象之前调用才能生效  [AUTO-TRANSLATED:7f03a1e5]
+        // Set the number of poller threads and CPU affinity. This function must be called before using ZLToolKit network related objects to take effect.
+        // 如果需要调用getSnap和addFFmpegSource接口，可以关闭cpu亲和性  [AUTO-TRANSLATED:7629f7bc]
+        // If you need to call the getSnap and addFFmpegSource interfaces, you can turn off CPU affinity
+
+        EventPollerPool::setPoolSize(threads);
+        WorkThreadPool::setPoolSize(threads);
+        EventPollerPool::enableCpuAffinity(affinity);
+        WorkThreadPool::enableCpuAffinity(affinity);
+
         // 开启崩溃捕获等  [AUTO-TRANSLATED:9c7c759c]
         // Enable crash capture, etc.
         System::systemSetup();
@@ -328,15 +338,6 @@ int start_main(int argc,char *argv[]) {
         uint16_t httpPort = mINI::Instance()[Http::kPort];
         uint16_t httpsPort = mINI::Instance()[Http::kSSLPort];
         uint16_t rtpPort = mINI::Instance()[RtpProxy::kPort];
-
-        // 设置poller线程数和cpu亲和性,该函数必须在使用ZLToolKit网络相关对象之前调用才能生效  [AUTO-TRANSLATED:7f03a1e5]
-        // Set the number of poller threads and CPU affinity. This function must be called before using ZLToolKit network related objects to take effect.
-        // 如果需要调用getSnap和addFFmpegSource接口，可以关闭cpu亲和性  [AUTO-TRANSLATED:7629f7bc]
-        // If you need to call the getSnap and addFFmpegSource interfaces, you can turn off CPU affinity
-
-        EventPollerPool::setPoolSize(threads);
-        WorkThreadPool::setPoolSize(threads);
-        EventPollerPool::enableCpuAffinity(affinity);
 
         // 简单的telnet服务器，可用于服务器调试，但是不能使用23端口，否则telnet上了莫名其妙的现象  [AUTO-TRANSLATED:f9324c6e]
         // Simple telnet server, can be used for server debugging, but cannot use port 23, otherwise telnet will have inexplicable phenomena
@@ -508,9 +509,11 @@ int start_main(int argc,char *argv[]) {
 #endif
 
 #if defined(ENABLE_PYTHON)
+        // 初始化python解释器
+        auto &ref = PythonInvoker::Instance();
         auto py_plugin = mINI::Instance()[Python::kPlugin];
         if (!py_plugin.empty()) {
-            PythonInvoker::Instance().load(py_plugin);
+            ref.load(py_plugin);
         }
 #endif
         sem.wait();
@@ -518,6 +521,10 @@ int start_main(int argc,char *argv[]) {
     unInstallWebApi();
     unInstallWebHook();
     onProcessExited();
+
+#if defined(ENABLE_PYTHON)
+    PythonInvoker::release();
+#endif
 
     // 休眠1秒再退出，防止资源释放顺序错误  [AUTO-TRANSLATED:1b11a74f]
     // sleep for 1 second before exiting, to prevent resource release order errors

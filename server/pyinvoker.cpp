@@ -7,7 +7,10 @@
 #include <iostream>
 #include <string>
 #include <type_traits>
+#include "WebApi.h"
 #include "WebHook.h"
+#include "Util/util.h"
+#include "Util/File.h"
 #include "Common/Parser.h"
 #include "Http/HttpSession.h"
 
@@ -71,6 +74,11 @@ py::dict to_python(const SockInfo &info) {
 }
 
 template <typename T>
+std::shared_ptr<T> to_python2(const T &t) {
+    return std::shared_ptr<T>(const_cast<T *>(&t), py::nodelete());
+}
+
+template <typename T>
 T &to_native(const py::capsule &cap) {
     static auto name_str = toolkit::demangle(typeid(T).name());
     if (std::string(cap.name()) != name_str) {
@@ -109,6 +117,22 @@ void handle_http_request(const py::object &check_route, const py::object &submit
         return;
     }
     consumed = true;
+
+    // http api被python拦截了，再api统一鉴权
+    try {
+        auto args = getAllArgs(parser);
+        auto allArgs = ArgsMap(parser, args);
+        GET_CONFIG(std::string, api_secret, API::kSecret);
+        CHECK_SECRET(); // 检测secret
+    } catch (std::exception &ex) {
+        Json::Value val;
+        val["code"] = API::Exception;
+        val["msg"] = ex.what();
+        HttpSession::KeyValue headerOut;
+        headerOut["Content-Type"] = "application/json";
+        invoker(200, headerOut, val.toStyledString());
+        return;
+    }
 
     StrCaseMap resp_headers;
     std::string resp_body;
@@ -152,11 +176,18 @@ PYBIND11_EMBEDDED_MODULE(mk_loader, m) {
         }
         return "";
     });
+
+    m.def("get_full_path", [](const std::string &path, const std::string &current_path) -> std::string {
+        py::gil_scoped_release release;
+        return File::absolutePath(path, current_path);
+    });
+
     m.def("set_config", [](const std::string &key, const std::string &value) -> bool {
         py::gil_scoped_release release;
         mINI::Instance()[key]= value;
         return true;
     });
+
     m.def("update_config", []() {
         NOTICE_EMIT(BroadcastReloadConfigArgs, Broadcast::kBroadcastReloadConfig);
         mINI::Instance().dumpFile(g_ini_file);
@@ -171,6 +202,7 @@ PYBIND11_EMBEDDED_MODULE(mk_loader, m) {
         auto &invoker = to_native<Broadcast::PublishAuthInvoker>(cap);
         invoker(err, option);
     });
+
     m.def("auth_invoker_do", [](const py::capsule &cap, const std::string &err) {
         // 执行c++代码时释放gil锁
         py::gil_scoped_release release;
@@ -186,6 +218,46 @@ PYBIND11_EMBEDDED_MODULE(mk_loader, m) {
         });
     });
 
+    py::enum_<TrackType>(m, "TrackType")
+        .value("Invalid", TrackInvalid)
+        .value("Video", TrackVideo)
+        .value("Audio", TrackAudio)
+        .value("Title", TrackTitle)
+        .value("Application", TrackApplication)
+        .export_values();
+
+    py::class_<MediaSource, MediaSource::Ptr>(m, "MediaSource")
+        .def("getSchema", &MediaSource::getSchema)
+        .def("getUrl", &MediaSource::getUrl)
+        .def("getMediaTuple", &MediaSource::getMediaTuple)
+        .def("getTimeStamp", &MediaSource::getTimeStamp)
+        .def("setTimeStamp", &MediaSource::setTimeStamp)
+        .def("getBytesSpeed", &MediaSource::getBytesSpeed)
+        .def("getTotalBytes", &MediaSource::getTotalBytes)
+        .def("getCreateStamp", &MediaSource::getCreateStamp)
+        .def("getAliveSecond", &MediaSource::getAliveSecond)
+        .def("readerCount", &MediaSource::readerCount)
+        .def("totalReaderCount", &MediaSource::totalReaderCount)
+        .def("getOriginType", &MediaSource::getOriginType)
+        .def("getOriginUrl", &MediaSource::getOriginUrl)
+        .def("getOriginSock", &MediaSource::getOriginSock)
+        .def("seekTo", &MediaSource::seekTo)
+        .def("pause", &MediaSource::pause)
+        .def("speed", &MediaSource::speed)
+        .def("close", &MediaSource::close)
+        .def("setupRecord", &MediaSource::setupRecord)
+        .def("isRecording", &MediaSource::isRecording)
+        .def("stopSendRtp", &MediaSource::stopSendRtp)
+        .def("getLossRate", &MediaSource::getLossRate);
+
+    py::class_<MediaTuple, std::shared_ptr<MediaTuple>>(m, "MediaTuple")
+        .def_readwrite("vhost", &MediaTuple::vhost)
+        .def_readwrite("app", &MediaTuple::app)
+        .def_readwrite("stream", &MediaTuple::stream)
+        .def_readwrite("params", &MediaTuple::params)
+        .def("shortUrl", &MediaTuple::shortUrl);
+
+    py::class_<SockException, std::shared_ptr<SockException>>(m, "SockException").def("what", &SockException::what).def("code", &SockException::getErrCode);
 }
 
 namespace mediakit {
@@ -215,9 +287,18 @@ bool set_python_path() {
     return true;
 }
 
+static std::shared_ptr<PythonInvoker> g_instance;
+
 PythonInvoker &PythonInvoker::Instance() {
-    static std::shared_ptr<PythonInvoker> instance(new PythonInvoker);
-    return *instance;
+    static toolkit::onceToken s_token([]() {
+        g_instance.reset(new PythonInvoker);
+    });
+
+    return *g_instance;
+}
+
+void PythonInvoker::release() {
+    g_instance = nullptr;
 }
 
 PythonInvoker::PythonInvoker() {
@@ -244,32 +325,34 @@ PythonInvoker::~PythonInvoker() {
         }
         _on_exit = py::object();
         _on_publish = py::object();
+        _on_play = py::object();
+        _on_flow_report = py::object();
+        _on_reload_config = py::object();
+        _on_media_changed = py::object();
+        _on_player_proxy_failed = py::object();
         _module = py::module();
     }
-
     delete _rel;
     delete _interpreter;
 }
+
+#define GET_FUNC(instance, name) \
+    if (hasattr(instance, #name)) { \
+        _##name = instance.attr(#name); \
+    }
 
 void PythonInvoker::load(const std::string &module_name) {
     try {
         py::gil_scoped_acquire gil; // 加锁
         _module = py::module::import(module_name.c_str());
-        if (hasattr(_module, "on_exit")) {
-            _on_exit = _module.attr("on_exit");
-        }
-        if (hasattr(_module, "on_publish")) {
-            _on_publish = _module.attr("on_publish");
-        }
-        if (hasattr(_module, "on_play")) {
-            _on_play = _module.attr("on_play");
-        }
-        if (hasattr(_module, "on_flow_report")) {
-            _on_flow_report = _module.attr("on_flow_report");
-        }
-        if (hasattr(_module, "on_reload_config")) {
-            _on_reload_config = _module.attr("on_reload_config");
-        }
+        GET_FUNC(_module, on_exit);
+        GET_FUNC(_module, on_publish);
+        GET_FUNC(_module, on_play);
+        GET_FUNC(_module, on_flow_report);
+        GET_FUNC(_module, on_reload_config);
+        GET_FUNC(_module, on_media_changed);
+        GET_FUNC(_module, on_player_proxy_failed);
+
         if (hasattr(_module, "on_start")) {
             py::object on_start = _module.attr("on_start");
             if (on_start) {
@@ -303,6 +386,22 @@ bool PythonInvoker::on_flow_report(BroadcastFlowReportArgs) const {
         return false;
     }
     return _on_flow_report(to_python(args), totalBytes, totalDuration, isPlayer, to_python(sender)).cast<bool>();
+}
+
+bool PythonInvoker::on_media_changed(BroadcastMediaChangedArgs) const {
+    py::gil_scoped_acquire gil; // 确保在 Python 调用期间持有 GIL
+    if (!_on_media_changed) {
+        return false;
+    }
+    return _on_media_changed(bRegist, to_python2(sender)).cast<bool>();
+}
+
+bool PythonInvoker::on_player_proxy_failed(BroadcastPlayerProxyFailedArgs) const {
+    py::gil_scoped_acquire gil; // 确保在 Python 调用期间持有 GIL
+    if (!_on_player_proxy_failed) {
+        return false;
+    }
+    return _on_player_proxy_failed(sender.getUrl(), to_python2(sender.getMediaTuple()), to_python2(ex)).cast<bool>();
 }
 
 } // namespace mediakit

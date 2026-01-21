@@ -115,8 +115,6 @@ static void responseApi(int code, const string &msg, const HttpSession::HttpResp
     responseApi(res, invoker);
 }
 
-static ApiArgsType getAllArgs(const Parser &parser);
-
 static HttpApi toApi(const function<void(API_ARGS_MAP_ASYNC)> &cb) {
     return [cb](const Parser &parser, const HttpSession::HttpResponseInvoker &invoker, SockInfo &sender) {
         GET_CONFIG(string, charSet, Http::kCharSet);
@@ -215,7 +213,7 @@ void api_regist(const string &api_path, const function<void(API_ARGS_STRING_ASYN
 
 // 获取HTTP请求中url参数、content参数  [AUTO-TRANSLATED:d161a1e1]
 // Get URL parameters and content parameters from the HTTP request
-static ApiArgsType getAllArgs(const Parser &parser) {
+ApiArgsType getAllArgs(const Parser &parser) {
     ApiArgsType allArgs;
     if (parser["Content-Type"].find("application/x-www-form-urlencoded") == 0) {
         auto contentArgs = parser.parseArgs(parser.content());

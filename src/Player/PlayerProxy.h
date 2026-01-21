@@ -18,8 +18,7 @@
 
 namespace mediakit {
 
-struct StreamInfo
-{
+struct StreamInfo {
     TrackType codec_type;
     std::string codec_name;
     int bitrate;
@@ -30,8 +29,7 @@ struct StreamInfo
     int video_height;
     float video_fps;
 
-    StreamInfo()
-    {
+    StreamInfo() {
         codec_type = TrackInvalid;
         codec_name = "none";
         bitrate = -1;
@@ -44,14 +42,12 @@ struct StreamInfo
     }
 };
 
-struct TranslationInfo
-{
+struct TranslationInfo {
     std::vector<StreamInfo> stream_info;
     int byte_speed;
     uint64_t start_time_stamp;
 
-    TranslationInfo()
-    {
+    TranslationInfo() {
         byte_speed = -1;
         start_time_stamp = 0;
     }

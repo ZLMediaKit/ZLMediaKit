@@ -161,6 +161,9 @@ extern const std::string kBroadcastRtcSctpReceived;
 extern const std::string kBroadcastPlayerCountChanged;
 #define BroadcastPlayerCountChangedArgs const MediaTuple& args, const int& count
 
+extern const std::string kBroadcastPlayerProxyFailed;
+#define BroadcastPlayerProxyFailedArgs const PlayerProxy& sender, const toolkit::SockException &ex
+
 #define ReloadConfigTag ((void *)(0xFF))
 #define RELOAD_KEY(arg, key)                                                                                           \
     do {                                                                                                               \

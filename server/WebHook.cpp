@@ -18,6 +18,7 @@
 #include "Http/HttpRequester.h"
 #include "Network/Session.h"
 #include "Rtsp/RtspSession.h"
+#include "Player/PlayerProxy.h"
 #include "WebHook.h"
 #include "WebApi.h"
 
@@ -500,10 +501,6 @@ void installWebHook() {
     // 监听rtsp、rtmp源注册或注销事件  [AUTO-TRANSLATED:6396afa8]
     // Listen to rtsp, rtmp source registration or deregistration events
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastMediaChanged, [](BroadcastMediaChangedArgs) {
-        GET_CONFIG(string, hook_stream_changed, Hook::kOnStreamChanged);
-        if (!hook_enable || hook_stream_changed.empty()) {
-            return;
-        }
         GET_CONFIG_FUNC(std::set<std::string>, stream_changed_set, Hook::kStreamChangedSchemas, [](const std::string &str) {
             std::set<std::string> ret;
             auto vec = split(str, "/");
@@ -518,6 +515,15 @@ void installWebHook() {
         if (!stream_changed_set.empty() && stream_changed_set.find(sender.getSchema()) == stream_changed_set.end()) {
             // 该协议注册注销事件被忽略  [AUTO-TRANSLATED:87299c9d]
             // This protocol registration deregistration event is ignored
+            return;
+        }
+#if defined(ENABLE_PYTHON)
+        if (PythonInvoker::Instance().on_media_changed(bRegist, sender)) {
+            return;
+        }
+#endif
+        GET_CONFIG(string, hook_stream_changed, Hook::kOnStreamChanged);
+        if (!hook_enable || hook_stream_changed.empty()) {
             return;
         }
 
@@ -797,6 +803,14 @@ void installWebHook() {
         body["re_use_port"] = re_use_port;
         body["ssrc"] = ssrc;
         do_http_hook(rtp_server_timeout, body);
+    });
+
+    NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastPlayerProxyFailed, [](BroadcastPlayerProxyFailedArgs) {
+#if defined(ENABLE_PYTHON)
+        if (PythonInvoker::Instance().on_player_proxy_failed(sender, ex)) {
+            return;
+        }
+#endif
     });
 
     // 汇报服务器重新启动  [AUTO-TRANSLATED:bd7d83df]
