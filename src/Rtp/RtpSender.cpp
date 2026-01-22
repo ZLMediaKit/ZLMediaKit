@@ -51,9 +51,9 @@ void RtpSender::startSend(const MediaSourceEvent &sender, const MediaSourceEvent
         // Do not recreate the object when reconnecting
         auto lam = [this](std::shared_ptr<List<Buffer::Ptr>> list) { onFlushRtpList(std::move(list)); };
         switch (args.data_type) {
-            case MediaSourceEvent::SendRtpArgs::kRtpPS: _interface = std::make_shared<RtpCachePS>(lam, atoi(args.ssrc.data()), args.pt, true); break;
-            case MediaSourceEvent::SendRtpArgs::kRtpTS: _interface = std::make_shared<RtpCachePS>(lam, atoi(args.ssrc.data()), args.pt, false); break;
-            case MediaSourceEvent::SendRtpArgs::kRtpES: _interface = std::make_shared<RtpCacheRaw>(lam, atoi(args.ssrc.data()), args.pt, args.only_audio); break;
+            case MediaSourceEvent::SendRtpArgs::kRtpPS: _interface = std::make_shared<RtpCachePS>(lam, stoll(args.ssrc), args.pt, true); break;
+            case MediaSourceEvent::SendRtpArgs::kRtpTS: _interface = std::make_shared<RtpCachePS>(lam, stoll(args.ssrc), args.pt, false); break;
+            case MediaSourceEvent::SendRtpArgs::kRtpES: _interface = std::make_shared<RtpCacheRaw>(lam, stoll(args.ssrc), args.pt, args.only_audio); break;
             default: CHECK(0, "invalid rtp type: " + to_string(args.data_type)); break;
         }
     }
@@ -386,7 +386,7 @@ void RtpSender::onSendRtpUdp(const toolkit::Buffer::Ptr &buf, bool check) {
         _rtcp_send_ticker.resetTime();
         // rtcp ssrc为rtp ssrc + 1  [AUTO-TRANSLATED:318fada3]
         // rtcp ssrc is rtp ssrc + 1
-        auto sr = _rtcp_context->createRtcpSR(atoi(_args.ssrc.data()) + 1);
+        auto sr = _rtcp_context->createRtcpSR(stoll(_args.ssrc) + 1);
         // send sender report rtcp
         _socket_rtcp->send(sr);
     }
