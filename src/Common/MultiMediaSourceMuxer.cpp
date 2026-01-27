@@ -245,6 +245,8 @@ MultiMediaSourceMuxer::MultiMediaSourceMuxer(const MediaTuple& tuple, float dur_
     enableMuteAudio(option.add_mute_audio);
 }
 
+MultiMediaSourceMuxer::~MultiMediaSourceMuxer() = default;
+
 void MultiMediaSourceMuxer::setMediaListener(const std::weak_ptr<MediaSourceEvent> &listener) {
     setDelegate(listener);
 

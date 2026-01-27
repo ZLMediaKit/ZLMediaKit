@@ -37,7 +37,7 @@ public:
     };
 
     MultiMediaSourceMuxer(const MediaTuple& tuple, float dur_sec = 0.0,const ProtocolOption &option = ProtocolOption());
-
+    ~MultiMediaSourceMuxer() override;
     /**
      * 设置事件监听器
      * @param listener 监听器
