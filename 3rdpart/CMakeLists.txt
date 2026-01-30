@@ -160,10 +160,26 @@ endif()
 
 set(ToolKit_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/ZLToolKit)
 # 收集源代码
-file(GLOB ToolKit_SRC_LIST
-  ${ToolKit_ROOT}/src/*/*.cpp
-  ${ToolKit_ROOT}/src/*/*.h
-  ${ToolKit_ROOT}/src/*/*.c)
+if (WIN32)
+    file(GLOB ToolKit_SRC_LIST
+      ${ToolKit_ROOT}/src/*/*.cpp
+      ${ToolKit_ROOT}/src/*/*.h
+      ${ToolKit_ROOT}/src/*/*.c)
+else ()
+    file(GLOB ToolKit_SRC_LIST
+      ${ToolKit_ROOT}/src/Network/*.cpp
+      ${ToolKit_ROOT}/src/Network/*.h
+      ${ToolKit_ROOT}/src/Network/*.c
+      ${ToolKit_ROOT}/src/Poller/*.cpp
+      ${ToolKit_ROOT}/src/Poller/*.h
+      ${ToolKit_ROOT}/src/Poller/*.c
+      ${ToolKit_ROOT}/src/Thread/*.cpp
+      ${ToolKit_ROOT}/src/Thread/*.h
+      ${ToolKit_ROOT}/src/Thread/*.c
+      ${ToolKit_ROOT}/src/Util/*.cpp
+      ${ToolKit_ROOT}/src/Util/*.h
+      ${ToolKit_ROOT}/src/Util/*.c)
+endif ()
 if(IOS)
   list(APPEND ToolKit_SRC_LIST
     ${ToolKit_ROOT}/src/Network/Socket_ios.mm)
