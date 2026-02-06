@@ -632,6 +632,9 @@ extern const std::string kLatency;
 extern const std::string kPassPhrase;
 // 自定义rtsp/http头
 extern const std::string kCustomHeader;
+// 设置rtp解码器是否使用rtp标记作为帧的结束标志
+// Set whether the rtp decoder uses rtp mark as the end of frame flag
+extern const std::string kUseRtpMark;
 } // namespace Client
 } // namespace mediakit
 

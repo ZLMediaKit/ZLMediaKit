@@ -71,13 +71,14 @@ RtpCodec::Ptr Factory::getRtpEncoderByCodecId(CodecId codec, uint8_t pt) {
     return it->second->getRtpEncoderByCodecId(pt);
 }
 
-RtpCodec::Ptr Factory::getRtpDecoderByCodecId(CodecId codec) {
+RtpCodec::Ptr Factory::getRtpDecoderByCodecId(const Track::Ptr& track) {
+    CodecId codec = track->getCodecId();
     auto it = s_plugins.find(codec);
     if (it == s_plugins.end()) {
         WarnL << "Unsupported codec: " << getCodecName(codec) << ", use CommonRtpDecoder";
-        return std::make_shared<CommonRtpDecoder>(codec, 10 * 1024);
+        return std::make_shared<CommonRtpDecoder>(codec, track->getUseRtpMark() ? 32 * 1024 : 10 * 1024, track->getUseRtpMark());
     }
-    return it->second->getRtpDecoderByCodecId();
+    return it->second->getRtpDecoderByCodecId(track);
 }
 
 // ///////////////////////////rtmp相关///////////////////////////////////////////  [AUTO-TRANSLATED:da9645df]

@@ -27,7 +27,7 @@ public:
      
      * [AUTO-TRANSLATED:235be34f]
      */
-    void loadSdp(const std::string &sdp);
+    void loadSdp(const std::string &sdp, bool use_rtp_mark = false);
 
     /**
      * 开始解复用
@@ -63,6 +63,7 @@ private:
     VideoTrack::Ptr _video_track;
     RtpCodec::Ptr _audio_rtp_decoder;
     RtpCodec::Ptr _video_rtp_decoder;
+    bool _use_rtp_mark = false;
 };
 
 } /* namespace mediakit */

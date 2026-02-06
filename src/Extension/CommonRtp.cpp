@@ -12,9 +12,10 @@
 
 using namespace mediakit;
 
-CommonRtpDecoder::CommonRtpDecoder(CodecId codec, size_t max_frame_size ){
+CommonRtpDecoder::CommonRtpDecoder(CodecId codec, size_t max_frame_size, bool use_rtp_mark){
     _codec = codec;
     _max_frame_size = max_frame_size;
+    _use_rtp_mark = use_rtp_mark;
     obtainFrame();
 }
 
@@ -35,10 +36,31 @@ bool CommonRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool){
     auto payload = rtp->getPayload();
     auto stamp = rtp->getStamp();
     auto seq = rtp->getSeq();
+    bool should_before_insert_frame = _frame->_buffer.empty() && _use_rtp_mark && rtp->getHeader()->mark; // Hint : 提前送帧, 减少一帧的延迟
 
-    if (_last_stamp != stamp || _frame->_buffer.size() > _max_frame_size) {
+    auto should_output_frame = [this](const RtpPacket::Ptr &rtp) -> bool {
+        if (_frame->_buffer.size() > _max_frame_size) { // 缓存超过MAX_FRAME_SIZE，则输出帧
+            return true;
+        }
+        if (_use_rtp_mark && rtp->getHeader()->mark) { // 使用rtp标记作为帧的结束标志
+            return rtp->getHeader()->mark;
+        }
+        else if (!_use_rtp_mark &&_last_stamp != rtp->getStamp()) { // 时间戳发生变化
+            return true;
+        }
+        return false;
+    };
+
+    if (should_output_frame(rtp)) {
         // 时间戳发生变化或者缓存超过MAX_FRAME_SIZE，则清空上帧数据  [AUTO-TRANSLATED:96f15576]
         // If the timestamp changes or the cache exceeds MAX_FRAME_SIZE, clear the previous frame data
+        if (should_before_insert_frame) {
+            assert(_frame->_buffer.empty());
+            _frame->_buffer.append((char *)payload, payload_size);
+            _frame->_dts = rtp->getStampMS();
+            _last_stamp = stamp;
+        }
+
         if (!_frame->_buffer.empty()) {
             // 有有效帧，则输出  [AUTO-TRANSLATED:f3ff1bda]
             // If there is a valid frame, output it
@@ -59,7 +81,7 @@ bool CommonRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool){
         _frame->_buffer.clear();
     }
 
-    if (!_drop_flag) {
+    if (!_drop_flag && !should_before_insert_frame) {
         _frame->_buffer.append((char *)payload, payload_size);
     }
 

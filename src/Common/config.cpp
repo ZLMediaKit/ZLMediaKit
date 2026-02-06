@@ -416,6 +416,7 @@ const string kRtspSpeed = "rtsp_speed";
 const string kLatency = "latency";
 const string kPassPhrase = "passPhrase";
 const string kCustomHeader = "custom_header";
+const string kUseRtpMark = "use_rtp_mark";
 } // namespace Client
 
 } // namespace mediakit
