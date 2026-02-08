@@ -396,6 +396,12 @@ Track::Ptr getTrackBySdp(const SdpTrack::Ptr &track) {
         // If aac config information cannot be obtained from sdp, then it cannot be obtained from rtp either, so ignore this Track
         return nullptr;
     }
+    while (aac_cfg_str.size() < 4) {
+        aac_cfg_str = '0' + aac_cfg_str;
+    }
+    if (aac_cfg_str.size() > 4) {
+        aac_cfg_str = aac_cfg_str.substr(0, 4);
+    }
     string aac_cfg;
     for (size_t i = 0; i < aac_cfg_str.size() / 2; ++i) {
         unsigned int cfg;
