@@ -444,6 +444,11 @@ void installWebHook() {
     // 监听kBroadcastOnGetRtspRealm事件决定rtsp链接是否需要鉴权(传统的rtsp鉴权方案)才能访问  [AUTO-TRANSLATED:00dc9fa3]
     // Listen to the kBroadcastOnGetRtspRealm event to determine whether the rtsp link needs authentication (traditional rtsp authentication scheme) to access
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastOnGetRtspRealm, [](BroadcastOnGetRtspRealmArgs) {
+#if defined(ENABLE_PYTHON)
+        if (PythonInvoker::Instance().on_get_rtsp_realm(args, invoker, sender)) {
+            return;
+        }
+#endif
         GET_CONFIG(string, hook_rtsp_realm, Hook::kOnRtspRealm);
         if (!hook_enable || hook_rtsp_realm.empty()) {
             // 无需认证  [AUTO-TRANSLATED:77728e07]

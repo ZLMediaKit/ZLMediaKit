@@ -74,7 +74,7 @@ py::dict to_python(const SockInfo &info) {
 }
 
 template <typename T>
-std::shared_ptr<T> to_python2(const T &t) {
+std::shared_ptr<T> to_python_ref(const T &t) {
     return std::shared_ptr<T>(const_cast<T *>(&t), py::nodelete());
 }
 
@@ -203,11 +203,18 @@ PYBIND11_EMBEDDED_MODULE(mk_loader, m) {
         invoker(err, option);
     });
 
-    m.def("auth_invoker_do", [](const py::capsule &cap, const std::string &err) {
+    m.def("play_auth_invoker_do", [](const py::capsule &cap, const std::string &err) {
         // 执行c++代码时释放gil锁
         py::gil_scoped_release release;
         auto &invoker = to_native<Broadcast::AuthInvoker>(cap);
         invoker(err);
+    });
+
+    m.def("rtsp_get_realm_invoker_do", [](const py::capsule &cap, const std::string &realm) {
+        // 执行c++代码时释放gil锁
+        py::gil_scoped_release release;
+        auto &invoker = to_native<RtspSession::onGetRealm>(cap);
+        invoker(realm);
     });
 
     m.def("set_fastapi", [](const py::object &check_route, const py::object &submit_coro) {
@@ -323,13 +330,14 @@ PythonInvoker::~PythonInvoker() {
         if (_on_exit) {
             _on_exit();
         }
-        _on_exit = py::object();
-        _on_publish = py::object();
-        _on_play = py::object();
-        _on_flow_report = py::object();
-        _on_reload_config = py::object();
-        _on_media_changed = py::object();
-        _on_player_proxy_failed = py::object();
+        _on_exit = py::function();
+        _on_publish = py::function();
+        _on_play = py::function();
+        _on_flow_report = py::function();
+        _on_reload_config = py::function();
+        _on_media_changed = py::function();
+        _on_player_proxy_failed = py::function();
+        _on_get_rtsp_realm = py::function();
         _module = py::module();
     }
     delete _rel;
@@ -352,6 +360,7 @@ void PythonInvoker::load(const std::string &module_name) {
         GET_FUNC(_module, on_reload_config);
         GET_FUNC(_module, on_media_changed);
         GET_FUNC(_module, on_player_proxy_failed);
+        GET_FUNC(_module, on_get_rtsp_realm);
 
         if (hasattr(_module, "on_start")) {
             py::object on_start = _module.attr("on_start");
@@ -393,7 +402,7 @@ bool PythonInvoker::on_media_changed(BroadcastMediaChangedArgs) const {
     if (!_on_media_changed) {
         return false;
     }
-    return _on_media_changed(bRegist, to_python2(sender)).cast<bool>();
+    return _on_media_changed(bRegist, to_python_ref(sender)).cast<bool>();
 }
 
 bool PythonInvoker::on_player_proxy_failed(BroadcastPlayerProxyFailedArgs) const {
@@ -401,7 +410,15 @@ bool PythonInvoker::on_player_proxy_failed(BroadcastPlayerProxyFailedArgs) const
     if (!_on_player_proxy_failed) {
         return false;
     }
-    return _on_player_proxy_failed(sender.getUrl(), to_python2(sender.getMediaTuple()), to_python2(ex)).cast<bool>();
+    return _on_player_proxy_failed(sender.getUrl(), to_python_ref(sender.getMediaTuple()), to_python_ref(ex)).cast<bool>();
+}
+
+bool PythonInvoker::on_get_rtsp_realm(BroadcastOnGetRtspRealmArgs) const {
+    py::gil_scoped_acquire gil; // 确保在 Python 调用期间持有 GIL
+    if (!_on_get_rtsp_realm) {
+        return false;
+    }
+    return _on_get_rtsp_realm(to_python(args), to_python(invoker), to_python(sender)).cast<bool>();
 }
 
 } // namespace mediakit

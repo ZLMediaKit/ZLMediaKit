@@ -63,20 +63,20 @@ def on_exit():
     mk_logger.log_info("on_exit")
 
 def on_publish(type: str, args: dict, invoker, sender: dict) -> bool:
-    mk_logger.log_info(f"args: {type}, args: {args}, sender: {sender}")
+    mk_logger.log_info(f"type: {type}, args: {args}, sender: {sender}")
     # opt 控制转协议，请参考配置文件[protocol]下字段
     opt = {
         "enable_rtmp": "1"
     }
     # 响应推流鉴权结果
-    mk_loader.publish_auth_invoker_do(invoker, "", opt);
+    mk_loader.publish_auth_invoker_do(invoker, "", opt)
     # 返回True代表此事件被python拦截
     return True
 
 def on_play(args: dict, invoker, sender: dict) -> bool:
     mk_logger.log_info(f"args: {args}, sender: {sender}")
     # 响应播放鉴权结果
-    mk_loader.auth_invoker_do(invoker, "");
+    mk_loader.play_auth_invoker_do(invoker, "")
     # 返回True代表此事件被python拦截
     return True
 
@@ -84,6 +84,23 @@ def on_flow_report(args: dict, totalBytes: int, totalDuration: int, isPlayer: bo
     mk_logger.log_info(f"args: {args}, totalBytes: {totalBytes}, totalDuration: {totalDuration}, isPlayer: {isPlayer}, sender: {sender}")
     # 返回True代表此事件被python拦截
     return True
+
+def on_media_changed(is_register: bool, sender) -> bool:
+    mk_logger.log_info(f"is_register: {is_register}, sender: {sender.getUrl()}")
+    # 该事件在c++中也处理下
+    return False
+
+def on_player_proxy_failed(url, media_tuple, ex) -> bool:
+    mk_logger.log_info(f"on_player_proxy_failed: {url}, {media_tuple.shortUrl()}, {ex.what()}")
+    # 该事件在c++中也处理下
+    return False
+
+def on_get_rtsp_realm(args: dict, invoker, sender) -> bool:
+    mk_logger.log_info(f"on_get_rtsp_realm, args: {args}, sender: {sender}")
+    mk_loader.rtsp_get_realm_invoker_do(invoker, "zlmediakit")
+    # 该事件在c++中也处理下
+    return True
+
 
 def on_reload_config():
     mk_logger.log_info(f"on_reload_config")
