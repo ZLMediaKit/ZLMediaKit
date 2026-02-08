@@ -34,6 +34,8 @@ public:
     bool on_get_rtsp_realm(BroadcastOnGetRtspRealmArgs) const;
     bool on_rtsp_auth(BroadcastOnRtspAuthArgs) const;
     bool on_stream_not_found(BroadcastNotFoundStreamArgs) const;
+    bool on_record_mp4(BroadcastRecordMP4Args) const;
+    bool on_record_ts(BroadcastRecordTsArgs) const;
 
 private:
     PythonInvoker();
@@ -64,6 +66,10 @@ private:
     py::function _on_rtsp_auth;
     // 播放一个不存在的流时触发
     py::function _on_stream_not_found;
+    // 生成mp4录制文件回调
+    py::function _on_record_mp4;
+    // 生成hls ts/fmp4切片文件回调
+    py::function _on_record_ts;
 
 
 };

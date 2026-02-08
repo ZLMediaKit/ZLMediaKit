@@ -114,5 +114,14 @@ def on_stream_not_found(args: dict, sender:dict, invoker) -> bool:
     # 返回True代表此事件被python拦截
     return True
 
+def on_record_mp4(info: dict) -> bool:
+    mk_logger.log_info(f"on_record_mp4, info: {info}")
+    # 返回True代表此事件被python拦截
+    return True
+def on_record_ts(info: dict) -> bool:
+    mk_logger.log_info(f"on_record_ts, info: {info}")
+    # 返回True代表此事件被python拦截
+    return True
+
 def on_reload_config():
     mk_logger.log_info(f"on_reload_config")

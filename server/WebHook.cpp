@@ -359,6 +359,19 @@ static mINI jsonToMini(const Value &obj) {
     return ret;
 }
 
+ArgsType getRecordInfo(const RecordInfo &info) {
+    ArgsType body;
+    body["start_time"] = (Json::UInt64)info.start_time;
+    body["file_size"] = (Json::UInt64)info.file_size;
+    body["time_len"] = info.time_len;
+    body["file_path"] = info.file_path;
+    body["file_name"] = info.file_name;
+    body["folder"] = info.folder;
+    body["url"] = info.url;
+    dumpMediaTuple(info, body);
+    return body;
+}
+
 void installWebHook() {
     GET_CONFIG(bool, hook_enable, Hook::kEnable);
 
@@ -610,23 +623,15 @@ void installWebHook() {
         do_http_hook(hook_stream_not_found, body, res_cb);
     });
 
-    static auto getRecordInfo = [](const RecordInfo &info) {
-        ArgsType body;
-        body["start_time"] = (Json::UInt64)info.start_time;
-        body["file_size"] = (Json::UInt64)info.file_size;
-        body["time_len"] = info.time_len;
-        body["file_path"] = info.file_path;
-        body["file_name"] = info.file_name;
-        body["folder"] = info.folder;
-        body["url"] = info.url;
-        dumpMediaTuple(info, body);
-        return body;
-    };
-
 #ifdef ENABLE_MP4
     // 录制mp4文件成功后广播  [AUTO-TRANSLATED:479ec954]
     // Broadcast after recording the mp4 file successfully
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastRecordMP4, [](BroadcastRecordMP4Args) {
+#if defined(ENABLE_PYTHON)
+        if (PythonInvoker::Instance().on_record_mp4(info)) {
+            return;
+        }
+#endif
         GET_CONFIG(string, hook_record_mp4, Hook::kOnRecordMp4);
         if (!hook_enable || hook_record_mp4.empty()) {
             return;
@@ -638,6 +643,11 @@ void installWebHook() {
 #endif // ENABLE_MP4
 
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastRecordTs, [](BroadcastRecordTsArgs) {
+#if defined(ENABLE_PYTHON)
+        if (PythonInvoker::Instance().on_record_ts(info)) {
+            return;
+        }
+#endif
         GET_CONFIG(string, hook_record_ts, Hook::kOnRecordTs);
         if (!hook_enable || hook_record_ts.empty()) {
             return;
