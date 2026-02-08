@@ -476,6 +476,11 @@ void installWebHook() {
     // 监听kBroadcastOnRtspAuth事件返回正确的rtsp鉴权用户密码  [AUTO-TRANSLATED:bcf1754e]
     // Listen to the kBroadcastOnRtspAuth event to return the correct rtsp authentication username and password
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastOnRtspAuth, [](BroadcastOnRtspAuthArgs) {
+#if defined(ENABLE_PYTHON)
+        if (PythonInvoker::Instance().on_rtsp_auth(args, realm, user_name, must_no_encrypt, invoker, sender)) {
+            return;
+        }
+#endif
         GET_CONFIG(string, hook_rtsp_auth, Hook::kOnRtspAuth);
         if (unAuthedRealm == realm || !hook_enable || hook_rtsp_auth.empty()) {
             // 认证失败  [AUTO-TRANSLATED:70cf56ff]

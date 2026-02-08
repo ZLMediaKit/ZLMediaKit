@@ -98,9 +98,14 @@ def on_player_proxy_failed(url, media_tuple, ex) -> bool:
 def on_get_rtsp_realm(args: dict, invoker, sender) -> bool:
     mk_logger.log_info(f"on_get_rtsp_realm, args: {args}, sender: {sender}")
     mk_loader.rtsp_get_realm_invoker_do(invoker, "zlmediakit")
-    # 该事件在c++中也处理下
+    # 返回True代表此事件被python拦截
     return True
 
+def on_rtsp_auth(args: dict, realm: str, user_name: str, must_no_encrypt: bool, invoker, sender:dict) -> bool:
+    mk_logger.log_info(f"on_rtsp_auth, args: {args}, realm: {realm}, user_name: {user_name}, must_no_encrypt: {must_no_encrypt}, sender: {sender}")
+    mk_loader.rtsp_auth_invoker_do(invoker, False, "zlmediakit")
+    # 返回True代表此事件被python拦截
+    return True
 
 def on_reload_config():
     mk_logger.log_info(f"on_reload_config")

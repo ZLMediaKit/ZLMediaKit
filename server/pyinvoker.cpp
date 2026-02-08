@@ -217,6 +217,13 @@ PYBIND11_EMBEDDED_MODULE(mk_loader, m) {
         invoker(realm);
     });
 
+    m.def("rtsp_auth_invoker_do", [](const py::capsule &cap, bool encrypted, const std::string &pwd_or_md5) {
+        // 执行c++代码时释放gil锁
+        py::gil_scoped_release release;
+        auto &invoker = to_native<RtspSession::onAuth>(cap);
+        invoker(encrypted, pwd_or_md5);
+    });
+
     m.def("set_fastapi", [](const py::object &check_route, const py::object &submit_coro) {
         static void *fastapi_tag = nullptr;
         NoticeCenter::Instance().delListener(&fastapi_tag, Broadcast::kBroadcastHttpRequest);
@@ -338,6 +345,7 @@ PythonInvoker::~PythonInvoker() {
         _on_media_changed = py::function();
         _on_player_proxy_failed = py::function();
         _on_get_rtsp_realm = py::function();
+        _on_rtsp_auth = py::function();
         _module = py::module();
     }
     delete _rel;
@@ -361,6 +369,7 @@ void PythonInvoker::load(const std::string &module_name) {
         GET_FUNC(_module, on_media_changed);
         GET_FUNC(_module, on_player_proxy_failed);
         GET_FUNC(_module, on_get_rtsp_realm);
+        GET_FUNC(_module, on_rtsp_auth);
 
         if (hasattr(_module, "on_start")) {
             py::object on_start = _module.attr("on_start");
@@ -419,6 +428,14 @@ bool PythonInvoker::on_get_rtsp_realm(BroadcastOnGetRtspRealmArgs) const {
         return false;
     }
     return _on_get_rtsp_realm(to_python(args), to_python(invoker), to_python(sender)).cast<bool>();
+}
+
+bool PythonInvoker::on_rtsp_auth(BroadcastOnRtspAuthArgs) const {
+    py::gil_scoped_acquire gil; // 确保在 Python 调用期间持有 GIL
+    if (!_on_rtsp_auth) {
+        return false;
+    }
+    return _on_rtsp_auth(to_python(args), realm, user_name, must_no_encrypt, to_python(invoker), to_python(sender)).cast<bool>();
 }
 
 } // namespace mediakit

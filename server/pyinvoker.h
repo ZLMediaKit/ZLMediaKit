@@ -32,6 +32,7 @@ public:
     bool on_media_changed(BroadcastMediaChangedArgs) const;
     bool on_player_proxy_failed(BroadcastPlayerProxyFailedArgs) const;
     bool on_get_rtsp_realm(BroadcastOnGetRtspRealmArgs) const;
+    bool on_rtsp_auth(BroadcastOnRtspAuthArgs) const;
 
 private:
     PythonInvoker();
@@ -58,6 +59,9 @@ private:
     py::function _on_player_proxy_failed;
     // rtsp播放是否开启专属鉴权
     py::function _on_get_rtsp_realm;
+    // rtsp播放或推流鉴权回调
+    py::function _on_rtsp_auth;
+
 
 };
 
