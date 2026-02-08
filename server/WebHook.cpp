@@ -581,6 +581,12 @@ void installWebHook() {
             return;
         }
 
+#if defined(ENABLE_PYTHON)
+        if (PythonInvoker::Instance().on_stream_not_found(args, sender, closePlayer)) {
+            return;
+        }
+#endif
+
         GET_CONFIG(string, hook_stream_not_found, Hook::kOnStreamNotFound);
         if (!hook_enable || hook_stream_not_found.empty()) {
             return;

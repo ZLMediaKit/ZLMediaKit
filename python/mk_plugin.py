@@ -107,5 +107,12 @@ def on_rtsp_auth(args: dict, realm: str, user_name: str, must_no_encrypt: bool, 
     # 返回True代表此事件被python拦截
     return True
 
+def on_stream_not_found(args: dict, sender:dict, invoker) -> bool:
+    mk_logger.log_info(f"on_stream_not_found, args: {args}, sender: {sender}")
+    # 立即通知播放器流不存在并关闭
+    mk_loader.close_player_invoker_do(invoker)
+    # 返回True代表此事件被python拦截
+    return True
+
 def on_reload_config():
     mk_logger.log_info(f"on_reload_config")

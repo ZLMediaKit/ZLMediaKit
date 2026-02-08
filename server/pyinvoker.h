@@ -33,6 +33,7 @@ public:
     bool on_player_proxy_failed(BroadcastPlayerProxyFailedArgs) const;
     bool on_get_rtsp_realm(BroadcastOnGetRtspRealmArgs) const;
     bool on_rtsp_auth(BroadcastOnRtspAuthArgs) const;
+    bool on_stream_not_found(BroadcastNotFoundStreamArgs) const;
 
 private:
     PythonInvoker();
@@ -61,6 +62,8 @@ private:
     py::function _on_get_rtsp_realm;
     // rtsp播放或推流鉴权回调
     py::function _on_rtsp_auth;
+    // 播放一个不存在的流时触发
+    py::function _on_stream_not_found;
 
 
 };
