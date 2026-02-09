@@ -63,7 +63,7 @@ const string kSSLPort = HTTP_FIELD"sslport";
 onceToken token1([](){
     mINI::Instance()[kPort] = 80;
     mINI::Instance()[kSSLPort] = 443;
-},nullptr);
+});
 }//namespace Http
 
 // //////////SHELL配置///////////  [AUTO-TRANSLATED:f023ec45]
@@ -73,7 +73,7 @@ namespace Shell {
 const string kPort = SHELL_FIELD"port";
 onceToken token1([](){
     mINI::Instance()[kPort] = 9000;
-},nullptr);
+});
 } //namespace Shell
 
 // //////////RTSP服务器配置///////////  [AUTO-TRANSLATED:950e1981]
@@ -85,7 +85,7 @@ const string kSSLPort = RTSP_FIELD"sslport";
 onceToken token1([](){
     mINI::Instance()[kPort] = 554;
     mINI::Instance()[kSSLPort] = 332;
-},nullptr);
+});
 
 } //namespace Rtsp
 
@@ -98,7 +98,7 @@ const string kSSLPort = RTMP_FIELD"sslport";
 onceToken token1([](){
     mINI::Instance()[kPort] = 1935;
     mINI::Instance()[kSSLPort] = 19350;
-},nullptr);
+});
 } //namespace RTMP
 
 // //////////Rtp代理相关配置///////////  [AUTO-TRANSLATED:7b285587]
@@ -108,16 +108,16 @@ namespace RtpProxy {
 const string kPort = RTP_PROXY_FIELD"port";
 onceToken token1([](){
     mINI::Instance()[kPort] = 10000;
-},nullptr);
+});
 } //namespace RtpProxy
 
 namespace Python {
 #define Python_FIELD "python."
 const string kPlugin = Python_FIELD"plugin";
 onceToken token1([](){
-    mINI::Instance()[kPlugin] = "mk_plugin";
-},nullptr);
-} //namespace RtpProxy
+    mINI::Instance()[kPlugin] = "";
+});
+} //namespace Python
 
 }  // namespace mediakit
 
