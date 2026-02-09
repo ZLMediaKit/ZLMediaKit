@@ -83,6 +83,8 @@ private:
     py::function _on_http_access;
     // rtp服务收流超时事件
     py::function _on_rtp_server_timeout;
+    // 创建Python muxer对象
+    py::function _on_create_muxer;
 
 
 };

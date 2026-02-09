@@ -149,3 +149,20 @@ def on_rtp_server_timeout(local_port: int, tuple: mk_loader.MediaTuple, tcp_mode
 
 def on_reload_config():
     mk_logger.log_info(f"on_reload_config")
+
+class PyMultiMediaSourceMuxer:
+    def __init__(self, sender: mk_loader.MultiMediaSourceMuxer):
+        mk_logger.log_info(f"PyMultiMediaSourceMuxer: {sender.getMediaTuple().shortUrl()}")
+    def destroy(self):
+        mk_logger.log_info(f"~PyMultiMediaSourceMuxer")
+
+    def addTrack(self, track: mk_loader.Track):
+        mk_logger.log_info(f"addTrack: {track.getCodecName()}")
+        return True
+    def addTrackCompleted(self):
+        mk_logger.log_info(f"addTrackCompleted")
+    def inputFrame(self, frame: mk_loader.Frame):
+        mk_logger.log_info(f"inputFrame: {frame.getCodecName()} {frame.dts()}")
+        return True
+def on_create_muxer(sender: mk_loader.MultiMediaSourceMuxer):
+    return PyMultiMediaSourceMuxer(sender)

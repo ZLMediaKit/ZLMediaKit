@@ -167,6 +167,53 @@ void handle_http_request(const py::object &check_route, const py::object &submit
     submit_coro(scope, py::bytes(parser.content()), send);
 }
 
+class MuxerDelegatePython : public MediaSinkInterface {
+public:
+    MuxerDelegatePython(py::object object) {
+        _py_muxer = std::move(object);
+        _input_frame = _py_muxer.attr("inputFrame");
+        _add_track = _py_muxer.attr("addTrack");
+        _add_track_completed = _py_muxer.attr("addTrackCompleted");
+    }
+
+    ~MuxerDelegatePython() override {
+        py::gil_scoped_acquire guard;
+        try {
+            auto destroy = _py_muxer.attr("destroy");
+            destroy();
+            destroy = py::function();
+        } catch (std::exception &ex) {
+            ErrorL << "destroy python muxer failed: " << ex.what();
+        }
+        _input_frame = py::function();
+        _add_track = py::function();
+        _add_track_completed = py::function();
+        _py_muxer = py::function();
+    }
+
+    bool addTrack(const Track::Ptr &track) override {
+        py::gil_scoped_acquire guard;
+        return _add_track ? _add_track(track).cast<bool>() : false;
+    }
+
+    void addTrackCompleted() override {
+        py::gil_scoped_acquire guard;
+        if (_add_track_completed) {
+            _add_track_completed();
+        }
+    }
+
+    bool inputFrame(const Frame::Ptr &frame) override {
+        py::gil_scoped_acquire guard;
+        return _input_frame ? _input_frame(frame).cast<bool>() : false;
+    }
+
+private:
+    py::object _py_muxer;
+    py::function _input_frame;
+    py::function _add_track;
+    py::function _add_track_completed;
+};
 
 PYBIND11_EMBEDDED_MODULE(mk_loader, m) {
     m.def("log", [](int lev, const char *file, int line, const char *func, const char *content) {
@@ -333,6 +380,70 @@ PYBIND11_EMBEDDED_MODULE(mk_loader, m) {
         .def("stopSendRtp", &MultiMediaSourceMuxer::stopSendRtp)
         .def("getOption", &MultiMediaSourceMuxer::getOption)
         .def("getMediaTuple", &MultiMediaSourceMuxer::getMediaTuple);
+
+    py::class_<Track, Track::Ptr>(m, "Track")
+        .def("getCodecId", &Track::getCodecId)
+        .def("getCodecName", &Track::getCodecName)
+        .def("getTrackType", &Track::getTrackType)
+        .def("getTrackTypeStr", &Track::getTrackTypeStr)
+        .def("setIndex", &Track::setIndex)
+        .def("getIndex", &Track::getIndex)
+        .def("getVideoKeyFrames", &Track::getVideoKeyFrames)
+        .def("getFrames", &Track::getFrames)
+        .def("getVideoGopSize", &Track::getVideoGopSize)
+        .def("getVideoGopInterval", &Track::getVideoGopInterval)
+        .def("getDuration", &Track::getDuration)
+        .def("ready", &Track::ready)
+        .def("update", &Track::update)
+        .def("getSdp", &Track::getSdp)
+        .def("getExtraData", &Track::getExtraData)
+        .def("setExtraData", &Track::setExtraData)
+        .def("getBitRate", &Track::getBitRate)
+        .def("setBitRate", &Track::setBitRate)
+        .def("getVideoHeight",[](Track *thiz) {
+            auto ptr = dynamic_cast<VideoTrack *>(thiz);
+            return ptr ? ptr->getVideoHeight() : 0;
+        })
+        .def("getVideoWidth", [](Track *thiz) {
+            auto ptr = dynamic_cast<VideoTrack *>(thiz);
+            return ptr ? ptr->getVideoWidth() : 0;
+        })
+        .def("getVideoFps", [](Track *thiz) {
+            auto ptr = dynamic_cast<VideoTrack *>(thiz);
+            return ptr ? ptr->getVideoFps() : 0;
+        })
+        .def("getAudioSampleRate",[](Track *thiz) {
+            auto ptr = dynamic_cast<AudioTrack *>(thiz);
+            return ptr ? ptr->getAudioSampleRate() : 0;
+        })
+        .def("getAudioSampleBit", [](Track *thiz) {
+            auto ptr = dynamic_cast<AudioTrack *>(thiz);
+            return ptr ? ptr->getAudioSampleBit() : 0;
+        })
+        .def("getAudioChannel", [](Track *thiz) {
+            auto ptr = dynamic_cast<AudioTrack *>(thiz);
+            return ptr ? ptr->getAudioChannel() : 0;
+        });
+
+    py::class_<Frame, Frame::Ptr>(m, "Frame")
+        .def("data", &Frame::data)
+        .def("size", &Frame::size)
+        .def("toString", &Frame::toString)
+        .def("getCapacity", &Frame::getCapacity)
+        .def("getCodecId", &Frame::getCodecId)
+        .def("getCodecName", &Frame::getCodecName)
+        .def("getTrackType", &Frame::getTrackType)
+        .def("getTrackTypeStr", &Frame::getTrackTypeStr)
+        .def("setIndex", &Frame::setIndex)
+        .def("getIndex", &Frame::getIndex)
+        .def("dts", &Frame::dts)
+        .def("pts", &Frame::pts)
+        .def("prefixSize", &Frame::prefixSize)
+        .def("keyFrame", &Frame::keyFrame)
+        .def("configFrame", &Frame::configFrame)
+        .def("cacheAble", &Frame::cacheAble)
+        .def("dropAble", &Frame::dropAble)
+        .def("decodeAble", &Frame::decodeAble);
 }
 
 namespace mediakit {
@@ -389,6 +500,16 @@ PythonInvoker::PythonInvoker() {
             _on_reload_config();
         }
     });
+
+    NoticeCenter::Instance().addListener(this, Broadcast::kBroadcastCreateMuxer, [this](BroadcastCreateMuxerArgs) {
+        py::gil_scoped_acquire guard;
+        if (_on_create_muxer) {
+            auto py_muxer = _on_create_muxer(sender);
+            if (py_muxer && !py_muxer.is_none()) {
+                delegate = std::make_shared<MuxerDelegatePython>(std::move(py_muxer));
+            }
+        }
+    });
 }
 
 PythonInvoker::~PythonInvoker() {
@@ -414,6 +535,7 @@ PythonInvoker::~PythonInvoker() {
         _on_send_rtp_stopped = py::function();
         _on_http_access = py::function();
         _on_rtp_server_timeout = py::function();
+        _on_create_muxer = py::function();
         _module = py::module();
     }
     delete _rel;
@@ -445,6 +567,7 @@ void PythonInvoker::load(const std::string &module_name) {
         GET_FUNC(_module, on_send_rtp_stopped);
         GET_FUNC(_module, on_http_access);
         GET_FUNC(_module, on_rtp_server_timeout);
+        GET_FUNC(_module, on_create_muxer);
 
         if (hasattr(_module, "on_start")) {
             py::object on_start = _module.attr("on_start");

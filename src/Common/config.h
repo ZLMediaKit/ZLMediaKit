@@ -164,6 +164,9 @@ extern const std::string kBroadcastPlayerCountChanged;
 extern const std::string kBroadcastPlayerProxyFailed;
 #define BroadcastPlayerProxyFailedArgs const PlayerProxy& sender, const toolkit::SockException &ex
 
+extern const std::string kBroadcastCreateMuxer;
+#define BroadcastCreateMuxerArgs MediaSinkInterface::Ptr &delegate, const MultiMediaSourceMuxer &sender
+
 #define ReloadConfigTag ((void *)(0xFF))
 #define RELOAD_KEY(arg, key)                                                                                           \
     do {                                                                                                               \
