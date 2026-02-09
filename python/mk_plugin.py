@@ -85,17 +85,17 @@ def on_flow_report(args: dict, totalBytes: int, totalDuration: int, isPlayer: bo
     # 返回True代表此事件被python拦截
     return True
 
-def on_media_changed(is_register: bool, sender) -> bool:
+def on_media_changed(is_register: bool, sender: mk_loader.MediaSource) -> bool:
     mk_logger.log_info(f"is_register: {is_register}, sender: {sender.getUrl()}")
     # 该事件在c++中也处理下
     return False
 
-def on_player_proxy_failed(url, media_tuple, ex) -> bool:
+def on_player_proxy_failed(url: str, media_tuple: mk_loader.MediaTuple , ex: mk_loader.SockException) -> bool:
     mk_logger.log_info(f"on_player_proxy_failed: {url}, {media_tuple.shortUrl()}, {ex.what()}")
     # 该事件在c++中也处理下
     return False
 
-def on_get_rtsp_realm(args: dict, invoker, sender) -> bool:
+def on_get_rtsp_realm(args: dict, invoker, sender: dict) -> bool:
     mk_logger.log_info(f"on_get_rtsp_realm, args: {args}, sender: {sender}")
     mk_loader.rtsp_get_realm_invoker_do(invoker, "zlmediakit")
     # 返回True代表此事件被python拦截
@@ -120,6 +120,30 @@ def on_record_mp4(info: dict) -> bool:
     return True
 def on_record_ts(info: dict) -> bool:
     mk_logger.log_info(f"on_record_ts, info: {info}")
+    # 返回True代表此事件被python拦截
+    return True
+
+def on_stream_none_reader(sender: mk_loader.MediaSource) -> bool:
+    mk_logger.log_info(f"on_stream_none_reader: {sender.getUrl()}")
+    # 无人观看自动关闭
+    sender.close(False)
+    # 返回True代表此事件被python拦截
+    return True
+
+def on_send_rtp_stopped(sender: mk_loader.MultiMediaSourceMuxer, ssrc: str, ex: mk_loader.SockException) -> bool:
+    mk_logger.log_info(f"on_send_rtp_stopped, ssrc: {ssrc}, ex: {ex.what()}, url: {sender.getMediaTuple().getUrl()}")
+    # 返回True代表此事件被python拦截
+    return True
+
+def on_http_access(parser: mk_loader.Parser, path: str, is_dir: bool, invoker, sender: dict) -> bool:
+    mk_logger.log_info(f"on_http_access, path: {path}, is_dir: {is_dir}, sender: {sender}, http header: {parser.getHeader()}")
+    # 允许访问该文件/目录1小时, cookie有效期内，访问该目录下的文件或路径不再触发该事件
+    mk_loader.http_access_invoker_do(invoker, "", path, 60 * 60)
+    # 返回True代表此事件被python拦截
+    return True
+
+def on_rtp_server_timeout(local_port: int, tuple: mk_loader.MediaTuple, tcp_mode: int, re_use_port: bool, ssrc: int) -> bool:
+    mk_logger.log_info(f"on_rtp_server_timeout, local_port: {local_port}, tuple: {tuple.shortUrl()}, tcp_mode: {tcp_mode}, re_use_port: {re_use_port}, ssrc: {ssrc}")
     # 返回True代表此事件被python拦截
     return True
 

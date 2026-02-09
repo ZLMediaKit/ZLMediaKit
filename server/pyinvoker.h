@@ -13,6 +13,7 @@
 #include "Common/MediaSource.h"
 #include "Player/PlayerProxy.h"
 #include "Rtsp/RtspSession.h"
+#include "Http/HttpSession.h"
 
 namespace py = pybind11;
 
@@ -36,6 +37,10 @@ public:
     bool on_stream_not_found(BroadcastNotFoundStreamArgs) const;
     bool on_record_mp4(BroadcastRecordMP4Args) const;
     bool on_record_ts(BroadcastRecordTsArgs) const;
+    bool on_stream_none_reader(BroadcastStreamNoneReaderArgs) const;
+    bool on_send_rtp_stopped(BroadcastSendRtpStoppedArgs) const;
+    bool on_http_access(BroadcastHttpAccessArgs) const;
+    bool on_rtp_server_timeout(BroadcastRtpServerTimeoutArgs) const;
 
 private:
     PythonInvoker();
@@ -70,6 +75,14 @@ private:
     py::function _on_record_mp4;
     // 生成hls ts/fmp4切片文件回调
     py::function _on_record_ts;
+    // 流无人观看事件
+    py::function _on_stream_none_reader;
+    // rtp转发失败事件
+    py::function _on_send_rtp_stopped;
+    // http访问鉴权事件
+    py::function _on_http_access;
+    // rtp服务收流超时事件
+    py::function _on_rtp_server_timeout;
 
 
 };

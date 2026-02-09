@@ -695,6 +695,12 @@ void installWebHook() {
             return;
         }
 
+#if defined(ENABLE_PYTHON)
+        if (PythonInvoker::Instance().on_stream_none_reader(sender)) {
+            return;
+        }
+#endif
+
         GET_CONFIG(string, hook_stream_none_reader, Hook::kOnStreamNoneReader);
         if (!hook_enable || hook_stream_none_reader.empty()) {
             return;
@@ -722,6 +728,11 @@ void installWebHook() {
     });
 
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastSendRtpStopped, [](BroadcastSendRtpStoppedArgs) {
+#if defined(ENABLE_PYTHON)
+        if (PythonInvoker::Instance().on_send_rtp_stopped(sender, ssrc, ex)) {
+            return;
+        }
+#endif
         GET_CONFIG(string, hook_send_rtp_stopped, Hook::kOnSendRtpStopped);
         if (!hook_enable || hook_send_rtp_stopped.empty()) {
             return;
@@ -771,6 +782,11 @@ void installWebHook() {
     // 追踪用户的目的是为了缓存上次鉴权结果，减少鉴权次数，提高性能  [AUTO-TRANSLATED:22827145]
     // The purpose of tracking users is to cache the last authentication result, reduce the number of authentication times, and improve performance
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastHttpAccess, [](BroadcastHttpAccessArgs) {
+#if defined(ENABLE_PYTHON)
+        if (PythonInvoker::Instance().on_http_access(parser, path, is_dir, invoker, sender)) {
+            return;
+        }
+#endif
         GET_CONFIG(string, hook_http_access, Hook::kOnHttpAccess);
         if (!hook_enable || hook_http_access.empty()) {
             // 未开启http文件访问鉴权，那么允许访问，但是每次访问都要鉴权；  [AUTO-TRANSLATED:deb3a0ae]
@@ -815,6 +831,11 @@ void installWebHook() {
     });
 
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastRtpServerTimeout, [](BroadcastRtpServerTimeoutArgs) {
+#if defined(ENABLE_PYTHON)
+        if (PythonInvoker::Instance().on_rtp_server_timeout(local_port, tuple, tcp_mode, re_use_port, ssrc)) {
+            return;
+        }
+#endif
         GET_CONFIG(string, rtp_server_timeout, Hook::kOnRtpServerTimeout);
         if (!hook_enable || rtp_server_timeout.empty()) {
             return;

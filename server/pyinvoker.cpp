@@ -128,7 +128,8 @@ void handle_http_request(const py::object &check_route, const py::object &submit
         auto args = getAllArgs(parser);
         auto allArgs = ArgsMap(parser, args);
         GET_CONFIG(std::string, api_secret, API::kSecret);
-        CHECK_SECRET(); // 检测secret
+        // TODO python http api暂不开启secret鉴权
+        // CHECK_SECRET(); // 检测secret
     } catch (std::exception &ex) {
         Json::Value val;
         val["code"] = API::Exception;
@@ -236,6 +237,13 @@ PYBIND11_EMBEDDED_MODULE(mk_loader, m) {
         invoker();
     });
 
+    m.def("http_access_invoker_do", [](const py::capsule &cap, const std::string &errMsg,const std::string &accessPath, int cookieLifeSecond) {
+        // 执行c++代码时释放gil锁
+        py::gil_scoped_release release;
+        auto &invoker = to_native<HttpSession::HttpAccessPathInvoker>(cap);
+        invoker(errMsg, accessPath, cookieLifeSecond);
+    });
+
     m.def("set_fastapi", [](const py::object &check_route, const py::object &submit_coro) {
         static void *fastapi_tag = nullptr;
         NoticeCenter::Instance().delListener(&fastapi_tag, Broadcast::kBroadcastHttpRequest);
@@ -274,7 +282,8 @@ PYBIND11_EMBEDDED_MODULE(mk_loader, m) {
         .def("setupRecord", &MediaSource::setupRecord)
         .def("isRecording", &MediaSource::isRecording)
         .def("stopSendRtp", &MediaSource::stopSendRtp)
-        .def("getLossRate", &MediaSource::getLossRate);
+        .def("getLossRate", &MediaSource::getLossRate)
+        .def("getMuxer", &MediaSource::getMuxer);
 
     py::class_<MediaTuple, std::shared_ptr<MediaTuple>>(m, "MediaTuple")
         .def_readwrite("vhost", &MediaTuple::vhost)
@@ -284,6 +293,46 @@ PYBIND11_EMBEDDED_MODULE(mk_loader, m) {
         .def("shortUrl", &MediaTuple::shortUrl);
 
     py::class_<SockException, std::shared_ptr<SockException>>(m, "SockException").def("what", &SockException::what).def("code", &SockException::getErrCode);
+
+    py::class_<Parser, std::shared_ptr<Parser>>(m, "Parser")
+        .def("method", &Parser::method)
+        .def("url", &Parser::url)
+        .def("status", &Parser::status)
+        .def("fullUrl", &Parser::fullUrl)
+        .def("protocol", &Parser::protocol)
+        .def("statusStr", &Parser::statusStr)
+        .def("content", &Parser::content)
+        .def("params", &Parser::params)
+        .def("getHeader", [](Parser *thiz) {
+            py::dict ret;
+            for (auto &pr : thiz->getHeader()) {
+                ret[pr.first.data()] = pr.second;
+            }
+            return ret;
+        });
+
+    py::enum_<Recorder::type>(m, "RecordType")
+        .value("hls", Recorder::type_hls)
+        .value("mp4", Recorder::type_mp4)
+        .value("hls_fmp4", Recorder::type_hls_fmp4)
+        .value("fmp4", Recorder::type_fmp4)
+        .value("ts", Recorder::type_ts)
+        .export_values();
+
+#define OPT(key) .def_readwrite(#key, &ProtocolOption::key)
+    py::class_<ProtocolOption, std::shared_ptr<ProtocolOption>>(m, "ProtocolOption") OPT_VALUE(OPT);
+#undef OPT
+
+    py::class_<MultiMediaSourceMuxer, std::shared_ptr<MultiMediaSourceMuxer>>(m, "MultiMediaSourceMuxer")
+        .def("totalReaderCount", static_cast<int (MultiMediaSourceMuxer::*)() const>(&MultiMediaSourceMuxer::totalReaderCount))
+        .def("isEnabled", &MultiMediaSourceMuxer::isEnabled)
+        .def("setupRecord", &MultiMediaSourceMuxer::setupRecord)
+        .def("startRecord", &MultiMediaSourceMuxer::startRecord)
+        .def("isRecording", &MultiMediaSourceMuxer::isRecording)
+        .def("startSendRtp", &MultiMediaSourceMuxer::startSendRtp)
+        .def("stopSendRtp", &MultiMediaSourceMuxer::stopSendRtp)
+        .def("getOption", &MultiMediaSourceMuxer::getOption)
+        .def("getMediaTuple", &MultiMediaSourceMuxer::getMediaTuple);
 }
 
 namespace mediakit {
@@ -361,6 +410,10 @@ PythonInvoker::~PythonInvoker() {
         _on_stream_not_found = py::function();
         _on_record_mp4 = py::function();
         _on_record_ts = py::function();
+        _on_stream_none_reader = py::function();
+        _on_send_rtp_stopped = py::function();
+        _on_http_access = py::function();
+        _on_rtp_server_timeout = py::function();
         _module = py::module();
     }
     delete _rel;
@@ -388,6 +441,10 @@ void PythonInvoker::load(const std::string &module_name) {
         GET_FUNC(_module, on_stream_not_found);
         GET_FUNC(_module, on_record_mp4);
         GET_FUNC(_module, on_record_ts);
+        GET_FUNC(_module, on_stream_none_reader);
+        GET_FUNC(_module, on_send_rtp_stopped);
+        GET_FUNC(_module, on_http_access);
+        GET_FUNC(_module, on_rtp_server_timeout);
 
         if (hasattr(_module, "on_start")) {
             py::object on_start = _module.attr("on_start");
@@ -478,6 +535,38 @@ bool PythonInvoker::on_record_ts(BroadcastRecordTsArgs) const {
         return false;
     }
     return _on_record_ts(to_python(info)).cast<bool>();
+}
+
+bool PythonInvoker::on_stream_none_reader(BroadcastStreamNoneReaderArgs) const {
+    py::gil_scoped_acquire gil; // 确保在 Python 调用期间持有 GIL
+    if (!_on_stream_none_reader) {
+        return false;
+    }
+    return _on_stream_none_reader(to_python_ref(sender)).cast<bool>();
+}
+
+bool PythonInvoker::on_send_rtp_stopped(BroadcastSendRtpStoppedArgs) const {
+    py::gil_scoped_acquire gil; // 确保在 Python 调用期间持有 GIL
+    if (!_on_send_rtp_stopped) {
+        return false;
+    }
+    return _on_send_rtp_stopped(to_python_ref(sender), ssrc, to_python_ref(ex)).cast<bool>();
+}
+
+bool PythonInvoker::on_http_access(BroadcastHttpAccessArgs) const {
+    py::gil_scoped_acquire gil; // 确保在 Python 调用期间持有 GIL
+    if (!_on_http_access) {
+        return false;
+    }
+    return _on_http_access(to_python_ref(parser), path, is_dir, to_python(invoker), to_python(sender)).cast<bool>();
+}
+
+bool PythonInvoker::on_rtp_server_timeout(BroadcastRtpServerTimeoutArgs) const {
+    py::gil_scoped_acquire gil; // 确保在 Python 调用期间持有 GIL
+    if (!_on_rtp_server_timeout) {
+        return false;
+    }
+    return _on_rtp_server_timeout(local_port, to_python_ref(tuple), tcp_mode, re_use_port, ssrc).cast<bool>();
 }
 
 } // namespace mediakit
