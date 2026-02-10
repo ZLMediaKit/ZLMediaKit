@@ -81,6 +81,8 @@ const string kBroadcastRtcSctpClosed = "kBroadcastRtcSctpClosed";
 const string kBroadcastRtcSctpSend = "kBroadcastRtcSctpSend";
 const string kBroadcastRtcSctpReceived = "kBroadcastRtcSctpReceived";
 const string kBroadcastPlayerCountChanged = "kBroadcastPlayerCountChanged";
+const string kBroadcastPlayerProxyFailed = "kBroadcastPlayerProxyFailed";
+const string kBroadcastCreateMuxer = "kBroadcastCreateMuxer";
 
 } // namespace Broadcast
 

@@ -238,6 +238,7 @@ uint16_t openRtpServer(uint16_t local_port, const mediakit::MediaTuple &tuple, i
 #endif
 
 Json::Value makeMediaSourceJson(mediakit::MediaSource &media);
+ApiArgsType getAllArgs(const mediakit::Parser &parser);
 void getStatisticJson(const std::function<void(Json::Value &val)> &cb);
 void addStreamProxy(const mediakit::MediaTuple &tuple, const std::string &url, int retry_count,
                     const mediakit::ProtocolOption &option, int rtp_type, float timeout_sec, const toolkit::mINI &args,

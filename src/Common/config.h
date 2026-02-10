@@ -126,7 +126,7 @@ extern const std::string kBroadcastStreamNoneReader;
 // rtp推流被动停止时触发  [AUTO-TRANSLATED:43881965]
 // Triggered when rtp push stream is passively stopped.
 extern const std::string kBroadcastSendRtpStopped;
-#define BroadcastSendRtpStoppedArgs MultiMediaSourceMuxer &sender, const std::string &ssrc, const SockException &ex
+#define BroadcastSendRtpStoppedArgs MultiMediaSourceMuxer &sender, const std::string &ssrc, const toolkit::SockException &ex
 
 // 更新配置文件事件广播,执行loadIniConfig函数加载配置文件成功后会触发该广播  [AUTO-TRANSLATED:ad4e167d]
 // Update configuration file event broadcast. This broadcast will be triggered after the loadIniConfig function loads the configuration file successfully.
@@ -160,6 +160,12 @@ extern const std::string kBroadcastRtcSctpReceived;
 // broadcast viewer count changes
 extern const std::string kBroadcastPlayerCountChanged;
 #define BroadcastPlayerCountChangedArgs const MediaTuple& args, const int& count
+
+extern const std::string kBroadcastPlayerProxyFailed;
+#define BroadcastPlayerProxyFailedArgs const PlayerProxy& sender, const toolkit::SockException &ex
+
+extern const std::string kBroadcastCreateMuxer;
+#define BroadcastCreateMuxerArgs MediaSinkInterface::Ptr &delegate, const MultiMediaSourceMuxer &sender
 
 #define ReloadConfigTag ((void *)(0xFF))
 #define RELOAD_KEY(arg, key)                                                                                           \

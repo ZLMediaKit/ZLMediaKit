@@ -243,6 +243,8 @@ MultiMediaSourceMuxer::MultiMediaSourceMuxer(const MediaTuple& tuple, float dur_
     // Audio related settings
     enableAudio(option.enable_audio);
     enableMuteAudio(option.add_mute_audio);
+
+    NOTICE_EMIT(BroadcastCreateMuxerArgs, Broadcast::kBroadcastCreateMuxer, _delegate, *this);
 }
 
 void MultiMediaSourceMuxer::setMediaListener(const std::weak_ptr<MediaSourceEvent> &listener) {
@@ -705,6 +707,9 @@ bool MultiMediaSourceMuxer::onTrackReady(const Track::Ptr &track) {
     if (_mp4) {
         ret = _mp4->addTrack(track) ? true : ret;
     }
+    if (_delegate) {
+        _delegate->addTrack(track);
+    }
     return ret;
 }
 
@@ -763,6 +768,9 @@ void MultiMediaSourceMuxer::onAllTrackReady() {
         } else {
             pr.second.syncTo(*first);
         }
+    }
+    if (_delegate) {
+        _delegate->addTrackCompleted();
     }
     InfoL << "stream: " << shortUrl() << " , codec info: " << getTrackInfoStr(this);
 }
@@ -846,6 +854,9 @@ bool MultiMediaSourceMuxer::onTrackFrame_l(const Frame::Ptr &frame_in) {
     }
     if (_fmp4) {
         ret = _fmp4->inputFrame(frame) ? true : ret;
+    }
+    if (_delegate) {
+        _delegate->inputFrame(frame);
     }
     if (_ring) {
         // 此场景由于直接转发，可能存在切换线程引起的数据被缓存在管道，所以需要CacheAbleFrame  [AUTO-TRANSLATED:528afbb7]

@@ -18,8 +18,13 @@
 #include "Http/HttpRequester.h"
 #include "Network/Session.h"
 #include "Rtsp/RtspSession.h"
+#include "Player/PlayerProxy.h"
 #include "WebHook.h"
 #include "WebApi.h"
+
+#if defined(ENABLE_PYTHON)
+#include "pyinvoker.h"
+#endif
 
 using namespace std;
 using namespace Json;
@@ -226,7 +231,7 @@ void do_http_hook(const string &url, const ArgsType &body, const function<void(c
 
 void dumpMediaTuple(const MediaTuple &tuple, Json::Value& item);
 
-static ArgsType make_json(const MediaInfo &args) {
+ArgsType make_json(const MediaInfo &args) {
     ArgsType body;
     body["schema"] = args.schema;
     if(!args.protocol.empty()){
@@ -354,10 +359,29 @@ static mINI jsonToMini(const Value &obj) {
     return ret;
 }
 
+ArgsType getRecordInfo(const RecordInfo &info) {
+    ArgsType body;
+    body["start_time"] = (Json::UInt64)info.start_time;
+    body["file_size"] = (Json::UInt64)info.file_size;
+    body["time_len"] = info.time_len;
+    body["file_path"] = info.file_path;
+    body["file_name"] = info.file_name;
+    body["folder"] = info.folder;
+    body["url"] = info.url;
+    dumpMediaTuple(info, body);
+    return body;
+}
+
 void installWebHook() {
     GET_CONFIG(bool, hook_enable, Hook::kEnable);
 
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastMediaPublish, [](BroadcastMediaPublishArgs) {
+#if defined(ENABLE_PYTHON)
+        if (PythonInvoker::Instance().on_publish(type, args, invoker, sender)) {
+            return;
+        }
+#endif
+
         GET_CONFIG(string, hook_publish, Hook::kOnPublish);
         if (!hook_enable || hook_publish.empty()) {
             invoker("", ProtocolOption());
@@ -387,6 +411,11 @@ void installWebHook() {
     });
 
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastMediaPlayed, [](BroadcastMediaPlayedArgs) {
+#if defined(ENABLE_PYTHON)
+        if (PythonInvoker::Instance().on_play(args, invoker, sender)) {
+            return;
+        }
+#endif
         GET_CONFIG(string, hook_play, Hook::kOnPlay);
         if (!hook_enable || hook_play.empty()) {
             invoker("");
@@ -402,6 +431,11 @@ void installWebHook() {
     });
 
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastFlowReport, [](BroadcastFlowReportArgs) {
+#if defined(ENABLE_PYTHON)
+        if (PythonInvoker::Instance().on_flow_report(args, totalBytes, totalDuration, isPlayer, sender)) {
+            return;
+        }
+#endif
         GET_CONFIG(string, hook_flowreport, Hook::kOnFlowReport);
         if (!hook_enable || hook_flowreport.empty()) {
             return;
@@ -423,6 +457,11 @@ void installWebHook() {
     // 监听kBroadcastOnGetRtspRealm事件决定rtsp链接是否需要鉴权(传统的rtsp鉴权方案)才能访问  [AUTO-TRANSLATED:00dc9fa3]
     // Listen to the kBroadcastOnGetRtspRealm event to determine whether the rtsp link needs authentication (traditional rtsp authentication scheme) to access
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastOnGetRtspRealm, [](BroadcastOnGetRtspRealmArgs) {
+#if defined(ENABLE_PYTHON)
+        if (PythonInvoker::Instance().on_get_rtsp_realm(args, invoker, sender)) {
+            return;
+        }
+#endif
         GET_CONFIG(string, hook_rtsp_realm, Hook::kOnRtspRealm);
         if (!hook_enable || hook_rtsp_realm.empty()) {
             // 无需认证  [AUTO-TRANSLATED:77728e07]
@@ -450,6 +489,11 @@ void installWebHook() {
     // 监听kBroadcastOnRtspAuth事件返回正确的rtsp鉴权用户密码  [AUTO-TRANSLATED:bcf1754e]
     // Listen to the kBroadcastOnRtspAuth event to return the correct rtsp authentication username and password
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastOnRtspAuth, [](BroadcastOnRtspAuthArgs) {
+#if defined(ENABLE_PYTHON)
+        if (PythonInvoker::Instance().on_rtsp_auth(args, realm, user_name, must_no_encrypt, invoker, sender)) {
+            return;
+        }
+#endif
         GET_CONFIG(string, hook_rtsp_auth, Hook::kOnRtspAuth);
         if (unAuthedRealm == realm || !hook_enable || hook_rtsp_auth.empty()) {
             // 认证失败  [AUTO-TRANSLATED:70cf56ff]
@@ -480,10 +524,6 @@ void installWebHook() {
     // 监听rtsp、rtmp源注册或注销事件  [AUTO-TRANSLATED:6396afa8]
     // Listen to rtsp, rtmp source registration or deregistration events
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastMediaChanged, [](BroadcastMediaChangedArgs) {
-        GET_CONFIG(string, hook_stream_changed, Hook::kOnStreamChanged);
-        if (!hook_enable || hook_stream_changed.empty()) {
-            return;
-        }
         GET_CONFIG_FUNC(std::set<std::string>, stream_changed_set, Hook::kStreamChangedSchemas, [](const std::string &str) {
             std::set<std::string> ret;
             auto vec = split(str, "/");
@@ -498,6 +538,15 @@ void installWebHook() {
         if (!stream_changed_set.empty() && stream_changed_set.find(sender.getSchema()) == stream_changed_set.end()) {
             // 该协议注册注销事件被忽略  [AUTO-TRANSLATED:87299c9d]
             // This protocol registration deregistration event is ignored
+            return;
+        }
+#if defined(ENABLE_PYTHON)
+        if (PythonInvoker::Instance().on_media_changed(bRegist, sender)) {
+            return;
+        }
+#endif
+        GET_CONFIG(string, hook_stream_changed, Hook::kOnStreamChanged);
+        if (!hook_enable || hook_stream_changed.empty()) {
             return;
         }
 
@@ -545,6 +594,12 @@ void installWebHook() {
             return;
         }
 
+#if defined(ENABLE_PYTHON)
+        if (PythonInvoker::Instance().on_stream_not_found(args, sender, closePlayer)) {
+            return;
+        }
+#endif
+
         GET_CONFIG(string, hook_stream_not_found, Hook::kOnStreamNotFound);
         if (!hook_enable || hook_stream_not_found.empty()) {
             return;
@@ -568,23 +623,15 @@ void installWebHook() {
         do_http_hook(hook_stream_not_found, body, res_cb);
     });
 
-    static auto getRecordInfo = [](const RecordInfo &info) {
-        ArgsType body;
-        body["start_time"] = (Json::UInt64)info.start_time;
-        body["file_size"] = (Json::UInt64)info.file_size;
-        body["time_len"] = info.time_len;
-        body["file_path"] = info.file_path;
-        body["file_name"] = info.file_name;
-        body["folder"] = info.folder;
-        body["url"] = info.url;
-        dumpMediaTuple(info, body);
-        return body;
-    };
-
 #ifdef ENABLE_MP4
     // 录制mp4文件成功后广播  [AUTO-TRANSLATED:479ec954]
     // Broadcast after recording the mp4 file successfully
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastRecordMP4, [](BroadcastRecordMP4Args) {
+#if defined(ENABLE_PYTHON)
+        if (PythonInvoker::Instance().on_record_mp4(info)) {
+            return;
+        }
+#endif
         GET_CONFIG(string, hook_record_mp4, Hook::kOnRecordMp4);
         if (!hook_enable || hook_record_mp4.empty()) {
             return;
@@ -596,6 +643,11 @@ void installWebHook() {
 #endif // ENABLE_MP4
 
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastRecordTs, [](BroadcastRecordTsArgs) {
+#if defined(ENABLE_PYTHON)
+        if (PythonInvoker::Instance().on_record_ts(info)) {
+            return;
+        }
+#endif
         GET_CONFIG(string, hook_record_ts, Hook::kOnRecordTs);
         if (!hook_enable || hook_record_ts.empty()) {
             return;
@@ -643,6 +695,12 @@ void installWebHook() {
             return;
         }
 
+#if defined(ENABLE_PYTHON)
+        if (PythonInvoker::Instance().on_stream_none_reader(sender)) {
+            return;
+        }
+#endif
+
         GET_CONFIG(string, hook_stream_none_reader, Hook::kOnStreamNoneReader);
         if (!hook_enable || hook_stream_none_reader.empty()) {
             return;
@@ -670,6 +728,11 @@ void installWebHook() {
     });
 
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastSendRtpStopped, [](BroadcastSendRtpStoppedArgs) {
+#if defined(ENABLE_PYTHON)
+        if (PythonInvoker::Instance().on_send_rtp_stopped(sender, ssrc, ex)) {
+            return;
+        }
+#endif
         GET_CONFIG(string, hook_send_rtp_stopped, Hook::kOnSendRtpStopped);
         if (!hook_enable || hook_send_rtp_stopped.empty()) {
             return;
@@ -719,6 +782,11 @@ void installWebHook() {
     // 追踪用户的目的是为了缓存上次鉴权结果，减少鉴权次数，提高性能  [AUTO-TRANSLATED:22827145]
     // The purpose of tracking users is to cache the last authentication result, reduce the number of authentication times, and improve performance
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastHttpAccess, [](BroadcastHttpAccessArgs) {
+#if defined(ENABLE_PYTHON)
+        if (PythonInvoker::Instance().on_http_access(parser, path, is_dir, invoker, sender)) {
+            return;
+        }
+#endif
         GET_CONFIG(string, hook_http_access, Hook::kOnHttpAccess);
         if (!hook_enable || hook_http_access.empty()) {
             // 未开启http文件访问鉴权，那么允许访问，但是每次访问都要鉴权；  [AUTO-TRANSLATED:deb3a0ae]
@@ -763,6 +831,11 @@ void installWebHook() {
     });
 
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastRtpServerTimeout, [](BroadcastRtpServerTimeoutArgs) {
+#if defined(ENABLE_PYTHON)
+        if (PythonInvoker::Instance().on_rtp_server_timeout(local_port, tuple, tcp_mode, re_use_port, ssrc)) {
+            return;
+        }
+#endif
         GET_CONFIG(string, rtp_server_timeout, Hook::kOnRtpServerTimeout);
         if (!hook_enable || rtp_server_timeout.empty()) {
             return;
@@ -777,6 +850,14 @@ void installWebHook() {
         body["re_use_port"] = re_use_port;
         body["ssrc"] = ssrc;
         do_http_hook(rtp_server_timeout, body);
+    });
+
+    NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastPlayerProxyFailed, [](BroadcastPlayerProxyFailedArgs) {
+#if defined(ENABLE_PYTHON)
+        if (PythonInvoker::Instance().on_player_proxy_failed(sender, ex)) {
+            return;
+        }
+#endif
     });
 
     // 汇报服务器重新启动  [AUTO-TRANSLATED:bd7d83df]

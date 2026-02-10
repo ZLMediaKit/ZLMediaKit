@@ -110,7 +110,9 @@ void PlayerProxy::play(const string &strUrlTmp) {
         if (!strongSelf) {
             return;
         }
-
+        if (err) {
+            NOTICE_EMIT(BroadcastPlayerProxyFailedArgs, Broadcast::kBroadcastPlayerProxyFailed, *strongSelf, err);
+        }
         if (strongSelf->_on_play) {
             strongSelf->_on_play(err);
             strongSelf->_on_play = nullptr;
@@ -145,6 +147,9 @@ void PlayerProxy::play(const string &strUrlTmp) {
         auto strongSelf = weakSelf.lock();
         if (!strongSelf) {
             return;
+        }
+        if (err) {
+            NOTICE_EMIT(BroadcastPlayerProxyFailedArgs, Broadcast::kBroadcastPlayerProxyFailed, *strongSelf, err);
         }
 
         // 注销直接拉流代理产生的流：#532  [AUTO-TRANSLATED:c6343a3b]

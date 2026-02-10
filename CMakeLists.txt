@@ -65,6 +65,7 @@ option(USE_SOLUTION_FOLDERS "Enable solution dir supported" ON)
 option(ENABLE_OBJCOPY "Enable use objcopy to generate debug info file" ON)
 # 编译静态库
 option(BUILD_SHARED_LIBS "Build shared instead of static" OFF)
+option(ENABLE_PYTHON "Enable python plugin" OFF)
 
 ##############################################################################
 # 设置socket默认缓冲区大小为256k.如果设置为0则不设置socket的默认缓冲区大小,使用系统内核默认值(设置为0仅对linux有效)
@@ -603,6 +604,16 @@ endif ()
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/www" DESTINATION ${EXECUTABLE_OUTPUT_PATH})
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/conf/config.ini" DESTINATION ${EXECUTABLE_OUTPUT_PATH})
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/default.pem" DESTINATION ${EXECUTABLE_OUTPUT_PATH})
+if (ENABLE_PYTHON)
+  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/python" DESTINATION ${EXECUTABLE_OUTPUT_PATH})
+  file(GLOB FRONTEND_FILES
+          "${CMAKE_CURRENT_SOURCE_DIR}/python/StreamUI/frontend/*"
+  )
+  file(COPY ${FRONTEND_FILES}
+          DESTINATION "${EXECUTABLE_OUTPUT_PATH}/www/StreamUI/"
+  )
+endif ()
+
 if (ENABLE_FFMPEG)
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/DejaVuSans.ttf" DESTINATION ${EXECUTABLE_OUTPUT_PATH})
 endif ()
