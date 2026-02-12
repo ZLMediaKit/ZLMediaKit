@@ -2892,6 +2892,64 @@
 				}
 			},
 			"response": []
+		},
+		{
+			"name": "onvif 搜索",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/searchOnvifDevice?secret={{ZLMediaKit_secret}}&timeout_ms=5000",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"searchOnvifDevice"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}"
+						},
+						{
+							"key": "subnet_prefix",
+							"value": "192.168.1"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "获取 onvif 设备url",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/getStreamUrl?secret={{ZLMediaKit_secret}}&onvif_url=http://xxxx/onvif/device_service",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"getStreamUrl"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}"
+						},
+						{
+							"key": "onvif_url",
+							"value": "http://xxxx/onvif/device_service"
+						}
+					]
+				}
+			},
+			"response": []
 		}
 	],
 	"event": [
