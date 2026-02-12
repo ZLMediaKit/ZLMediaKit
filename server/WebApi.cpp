@@ -2344,23 +2344,26 @@ void installWebApi() {
        CHECK_SECRET();
        CHECK_ARGS("timeout_ms");
 
-       auto result = std::make_shared<Value>(std::move(val));
-       auto complete_token = std::make_shared<onceToken>(nullptr, [result, headerOut, invoker]() {
-           invoker(200, headerOut, result->toStyledString());
-       });
-       auto lam_search = [complete_token, result](const std::map<string, string> &device_info,
-                                                  const std::string &onvif_url) {
-           Value obj;
-           obj["onvif_url"] = onvif_url;
-           for (auto &pr : device_info) {
-               obj[pr.first] = pr.second;
-           }
-           (*result)["data"].append(std::move(obj));
-           //继续等待扫描
-           return true;
-       };
-       OnvifSearcher::Instance().sendSearchBroadcast(std::move(lam_search), allArgs["timeout_ms"]);
-   });
+        string subnet_prefix = allArgs["subnet_prefix"];
+
+        // if (subnet_prefix.empty()) {
+        //     subnet_prefix = "192.168.1"; //default ip prefix
+        // }
+
+        auto result = std::make_shared<Value>(std::move(val));
+        auto complete_token = std::make_shared<onceToken>(nullptr, [result, headerOut, invoker]() { invoker(200, headerOut, result->toStyledString()); });
+        auto lam_search = [complete_token, result](const std::map<string, string> &device_info, const std::string &onvif_url) {
+            Value obj;
+            obj["onvif_url"] = onvif_url;
+            for (auto &pr : device_info) {
+                obj[pr.first] = pr.second;
+            }
+            (*result)["data"].append(std::move(obj));
+            //继续等待扫描
+            return true;
+        };
+        OnvifSearcher::Instance().sendSearchBroadcast(move(subnet_prefix), std::move(lam_search), allArgs["timeout_ms"]);
+    });
 
     api_regist("/index/api/getStreamUrl", [](API_ARGS_MAP_ASYNC) {
         CHECK_SECRET();
