@@ -23,12 +23,12 @@ public:
     OnvifSearcher();
 
     static OnvifSearcher &Instance();
-    void sendSearchBroadcast(onDevice cb = nullptr, uint64_t timeout_ms = 10 * 1000);
+    void sendSearchBroadcast(std::string subnet_prefix, onDevice cb = nullptr, uint64_t timeout_ms = 10 * 1000);
 
 private:
     void onDeviceResponse(const toolkit::Buffer::Ptr &buf, struct sockaddr *addr, int addr_len);
     void onGotDevice(const std::string &uuid, std::map<std::string, std::string> &device_info, const std::string &onvif_url);
-    void sendSearchBroadcast_l(onDevice cb, uint64_t timeout_ms);
+    void sendSearchBroadcast_l(const std::string &subnet_prefix, onDevice cb, uint64_t timeout_ms);
 
 private:
     struct onDeviceCB{

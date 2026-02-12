@@ -54,17 +54,17 @@ OnvifSearcher::OnvifSearcher() {
     _poller = EventPollerPool::Instance().getPoller();
 }
 
-void OnvifSearcher::sendSearchBroadcast(onDevice cb, uint64_t timeout_ms) {
+void OnvifSearcher::sendSearchBroadcast(std::string subnet_prefix, onDevice cb, uint64_t timeout_ms) {
     weak_ptr<OnvifSearcher> weak_self = shared_from_this();
-    _poller->async([weak_self, cb, timeout_ms]() mutable {
+    _poller->async([weak_self, cb, timeout_ms, subnet_prefix]() mutable {
         auto strong_self = weak_self.lock();
         if (strong_self) {
-            strong_self->sendSearchBroadcast_l(std::move(cb), timeout_ms);
+            strong_self->sendSearchBroadcast_l(move(subnet_prefix), std::move(cb), timeout_ms);
         }
     });
 }
 
-void OnvifSearcher::sendSearchBroadcast_l(onDevice cb, uint64_t timeout_ms) {
+void OnvifSearcher::sendSearchBroadcast_l(const std::string &subnet_prefix, onDevice cb, uint64_t timeout_ms) {
     static struct sockaddr_in s_search_address;
     static onceToken s_token([]() {
         s_search_address.sin_family = AF_INET;
@@ -113,9 +113,20 @@ void OnvifSearcher::sendSearchBroadcast_l(onDevice cb, uint64_t timeout_ms) {
     auto &ref = _cb_map[uuid];
     ref.cb = std::move(cb);
     ref.timeout_ms = timeout_ms;
+    std::string ip;
+    struct sockaddr_in target {};
 
     for (auto &sock : _sock_list) {
-        sock->send(xml, (struct sockaddr *) &s_search_address, sizeof(s_search_address));
+        sock->send(xml, (struct sockaddr *)&s_search_address, sizeof(s_search_address));        
+        if (!subnet_prefix.empty()) {
+            for (int i = 1; i <= 254; ++i) {
+                ip = subnet_prefix + "." + std::to_string(i);
+                target.sin_family = AF_INET;
+                target.sin_port = htons(3702);
+                inet_pton(AF_INET, ip.c_str(), &target.sin_addr);
+                sock->send(xml, (struct sockaddr *)&target, sizeof(target));
+            }
+        }
     }
 }
 
