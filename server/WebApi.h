@@ -23,6 +23,8 @@
 #include "webrtc/WebRtcTransport.h"
 #endif
 
+#include "Http/HttpCookieManager.h"
+
 // 配置文件路径  [AUTO-TRANSLATED:8a373c2f]
 // Configuration file path
 extern std::string g_ini_file;
@@ -53,31 +55,45 @@ typedef enum {
 } ApiErr;
 
 extern const std::string kSecret;
-}//namespace API
+extern const std::string kLegacyAuth;
+} // namespace API
 
-class ApiRetException: public std::runtime_error {
+class ApiRetException : public std::runtime_error {
 public:
-    ApiRetException(const char *str = "success" ,int code = API::Success):runtime_error(str){
+    ApiRetException(const char *str = "success", int code = API::Success, mediakit::StrCaseMap headers = {}, Json::Value body = {})
+        : runtime_error(str) {
         _code = code;
+        _headers = std::move(headers);
+        _body = std::move(body);
     }
-    int code(){ return _code; }
+    int code() { return _code; }
+
+    mediakit::StrCaseMap &getHeaders() { return _headers; }
+
+    Json::Value &getBody() { return _body; }
+
 private:
     int _code;
+    mediakit::StrCaseMap _headers;
+    Json::Value _body;
 };
 
 class AuthException : public ApiRetException {
 public:
-    AuthException(const char *str):ApiRetException(str,API::AuthFailed){}
+    AuthException(const char *str, mediakit::StrCaseMap headers = {}, Json::Value body = {})
+        : ApiRetException(str, API::AuthFailed, std::move(headers), std::move(body)) {}
 };
 
-class InvalidArgsException: public ApiRetException {
+class InvalidArgsException : public ApiRetException {
 public:
-    InvalidArgsException(const char *str):ApiRetException(str,API::InvalidArgs){}
+    InvalidArgsException(const char *str, mediakit::StrCaseMap headers = {}, Json::Value body = {})
+        : ApiRetException(str, API::InvalidArgs, std::move(headers), std::move(body)) {}
 };
 
-class SuccessException: public ApiRetException {
+class SuccessException : public ApiRetException {
 public:
-    SuccessException():ApiRetException("success",API::Success){}
+    SuccessException(mediakit::StrCaseMap headers = {}, Json::Value body = {})
+        : ApiRetException("success", API::Success, std::move(headers), std::move(body)) {}
 };
 
 using ApiArgsType = std::map<std::string, std::string, mediakit::StrCaseCompare>;
@@ -218,17 +234,8 @@ bool checkArgs(Args &args, const Key &key, const KeyTypes &...keys) {
 // Check whether the http parameters contain the secret key, the ip of 127.0.0.1 does not check the key
 // 同时检测是否在ip白名单内  [AUTO-TRANSLATED:d12f963d]
 // Check whether it is in the ip whitelist at the same time
-#define CHECK_SECRET() \
-    do { \
-        auto ip = sender.get_peer_ip(); \
-        if (!HttpFileManager::isIPAllowed(ip)) { \
-            throw AuthException("Your ip is not allowed to access the service."); \
-        } \
-        CHECK_ARGS("secret"); \
-        if (api_secret != allArgs["secret"]) { \
-            throw AuthException("Incorrect secret"); \
-        } \
-    } while(false);
+void check_secret(toolkit::SockInfo &sender, mediakit::HttpSession::KeyValue &headerOut, const ArgsMap &allArgs, Json::Value &val);
+#define CHECK_SECRET() check_secret(sender, headerOut, allArgs, val)
 
 void installWebApi();
 void unInstallWebApi();

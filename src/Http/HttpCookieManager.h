@@ -119,6 +119,11 @@ public:
     bool isExpired();
 
     /**
+     * 使cookie过期作废
+     */
+    void setExpired();
+
+    /**
      * 设置附加数据
      * Set additional data
      

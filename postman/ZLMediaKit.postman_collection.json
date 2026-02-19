@@ -2950,7 +2950,52 @@
 				}
 			},
 			"response": []
-		}
+		},
+        {
+          "name": "登录(login)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{ZLMediaKit_URL}}/index/api/login?digest=d00414822dfd8eabed87c5e24ffcdca7",
+              "host": [
+                "{{ZLMediaKit_URL}}"
+              ],
+              "path": [
+                "index",
+                "api",
+                "login"
+              ],
+              "query": [
+                {
+                  "key": "digest",
+                  "value": "",
+                  "description": "MD5(\"zlmediakit:\"+${secret}+\":\" +${cookie})"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "登出(logout)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{ZLMediaKit_URL}}/index/api/logout",
+              "host": [
+                "{{ZLMediaKit_URL}}"
+              ],
+              "path": [
+                "index",
+                "api",
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        }
 	],
 	"event": [
 		{

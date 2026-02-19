@@ -31,7 +31,7 @@ namespace mediakit {
 // If the player does not access the cookie within 60 seconds, the hls playback authentication will be triggered again.
 static size_t kHlsCookieSecond = 60;
 static size_t kFindSrcIntervalSecond = 3;
-static const string kCookieName = "ZL_COOKIE";
+static const string kCookieName = "ZLM_HTTP_COOKIE";
 static const string kHlsSuffix = "/hls.m3u8";
 static const string kHlsFMP4Suffix = "/hls.fmp4.m3u8";
 

@@ -123,18 +123,25 @@ void handle_http_request(const py::object &check_route, const py::object &submit
     }
     consumed = true;
 
+    Json::Value val;
+    HttpSession::KeyValue headerOut;
     // http api被python拦截了，再api统一鉴权
     try {
         auto args = getAllArgs(parser);
         auto allArgs = ArgsMap(parser, args);
-        GET_CONFIG(std::string, api_secret, API::kSecret);
-        // TODO python http api暂不开启secret鉴权
-        // CHECK_SECRET(); // 检测secret
+        GET_CONFIG(bool, legacy_auth , API::kLegacyAuth);
+        if (!legacy_auth) {
+            // 非传统secret鉴权模式，Python接口强制要求登录鉴权
+            CHECK_SECRET();
+        }
     } catch (std::exception &ex) {
-        Json::Value val;
-        val["code"] = API::Exception;
+        auto ex1 = dynamic_cast<ApiRetException *>(&ex);
+        if (ex1) {
+            val["code"] = ex1->code();
+        } else {
+            val["code"] = API::Exception;
+        }
         val["msg"] = ex.what();
-        HttpSession::KeyValue headerOut;
         headerOut["Content-Type"] = "application/json";
         invoker(200, headerOut, val.toStyledString());
         return;

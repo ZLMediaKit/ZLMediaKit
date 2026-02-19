@@ -61,6 +61,11 @@ bool HttpServerCookie::isExpired() {
     return _ticker.elapsedTime() > _max_elapsed * 1000;
 }
 
+void HttpServerCookie::setExpired() {
+    _ticker.resetTime();
+    _max_elapsed = 0;
+}
+
 void HttpServerCookie::setAttach(toolkit::Any attach) {
     _attach = std::move(attach);
 }
