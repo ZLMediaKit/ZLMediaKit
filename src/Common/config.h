@@ -184,7 +184,7 @@ extern const std::string kBroadcastCreateMuxer;
     do {                                                                                                               \
         static ::toolkit::onceToken s_token_listen([]() {                                                              \
             ::toolkit::NoticeCenter::Instance().addListener(                                                           \
-                ReloadConfigTag, Broadcast::kBroadcastReloadConfig, [](BroadcastReloadConfigArgs) { __VA_ARGS__; });   \
+                ReloadConfigTag, ::mediakit::Broadcast::kBroadcastReloadConfig, [](BroadcastReloadConfigArgs) { __VA_ARGS__; });   \
         });                                                                                                            \
     } while (0)
 
