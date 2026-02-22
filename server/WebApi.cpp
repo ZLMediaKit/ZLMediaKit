@@ -718,7 +718,8 @@ static constexpr char kLoginedCookieName[] = "ZLM_LOGINED";
 static constexpr size_t kUnLoginCookieLifeSeconds = 60;
 static constexpr size_t kLoginedCookieLifeSeconds = 24 * 3600;
 
-void check_secret(toolkit::SockInfo &sender, mediakit::HttpSession::KeyValue &headerOut, const ArgsMap &allArgs, Json::Value &val) {
+template <typename T>
+void check_secret(toolkit::SockInfo &sender, mediakit::HttpSession::KeyValue &headerOut, const HttpAllArgs<T> &allArgs, Json::Value &val) {
     GET_CONFIG(bool, legacy_auth , API::kLegacyAuth);
     GET_CONFIG(std::string, api_secret, API::kSecret);
 
@@ -744,6 +745,11 @@ void check_secret(toolkit::SockInfo &sender, mediakit::HttpSession::KeyValue &he
         }
     }
 }
+
+template void check_secret<ApiArgsType>(toolkit::SockInfo &, mediakit::HttpSession::KeyValue &, const HttpAllArgs<ApiArgsType> &, Json::Value &);
+template void check_secret<Json::Value>(toolkit::SockInfo &, mediakit::HttpSession::KeyValue &, const HttpAllArgs<Json::Value> &, Json::Value &);
+template void check_secret<std::string>(toolkit::SockInfo &, mediakit::HttpSession::KeyValue &, const HttpAllArgs<std::string> &, Json::Value &);
+
 /**
  * 安装api接口
  * 所有api都支持GET和POST两种方式

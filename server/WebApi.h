@@ -234,7 +234,8 @@ bool checkArgs(Args &args, const Key &key, const KeyTypes &...keys) {
 // Check whether the http parameters contain the secret key, the ip of 127.0.0.1 does not check the key
 // 同时检测是否在ip白名单内  [AUTO-TRANSLATED:d12f963d]
 // Check whether it is in the ip whitelist at the same time
-void check_secret(toolkit::SockInfo &sender, mediakit::HttpSession::KeyValue &headerOut, const ArgsMap &allArgs, Json::Value &val);
+template <typename T>
+void check_secret(toolkit::SockInfo &sender, mediakit::HttpSession::KeyValue &headerOut, const HttpAllArgs<T> &allArgs, Json::Value &val);
 #define CHECK_SECRET() check_secret(sender, headerOut, allArgs, val)
 
 void installWebApi();
