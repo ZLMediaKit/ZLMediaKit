@@ -230,11 +230,44 @@ bool checkArgs(Args &args, const Key &key, const KeyTypes &...keys) {
         throw InvalidArgsException("Required parameter missed: " #__VA_ARGS__); \
     }
 
+static constexpr char kLoginCookiePath[] = "/";
+static constexpr char kUnLoginCookieName[] = "ZLM_UNLOGIN";
+static constexpr char kLoginedCookieName[] = "ZLM_LOGINED";
+static constexpr size_t kUnLoginCookieLifeSeconds = 60;
+static constexpr size_t kLoginedCookieLifeSeconds = 24 * 3600;
+
 // 检查http参数中是否附带secret密钥的宏，127.0.0.1的ip不检查密钥  [AUTO-TRANSLATED:7546956c]
 // Check whether the http parameters contain the secret key, the ip of 127.0.0.1 does not check the key
 // 同时检测是否在ip白名单内  [AUTO-TRANSLATED:d12f963d]
 // Check whether it is in the ip whitelist at the same time
-void check_secret(toolkit::SockInfo &sender, mediakit::HttpSession::KeyValue &headerOut, const ArgsMap &allArgs, Json::Value &val);
+//void check_secret(toolkit::SockInfo &sender, mediakit::HttpSession::KeyValue &headerOut, const ArgsMap &allArgs, Json::Value &val);
+template<class T>
+void check_secret(toolkit::SockInfo &sender, mediakit::HttpSession::KeyValue &headerOut, const HttpAllArgs<T> &allArgs, Json::Value &val) {
+    GET_CONFIG(bool, legacy_auth , API::kLegacyAuth);
+    GET_CONFIG(std::string, api_secret, API::kSecret);
+
+    auto ip = sender.get_peer_ip();
+    if (!mediakit::HttpFileManager::isIPAllowed(ip)) {
+        throw AuthException("Your ip is not allowed to access the service.");
+    }
+    if (legacy_auth) {
+        CHECK_ARGS("secret");
+        if (api_secret != allArgs["secret"]) {
+            throw AuthException("Incorrect secret");
+        }
+    } else {
+        auto logined_cookie = mediakit::HttpCookieManager::Instance().getCookie(kLoginedCookieName, allArgs.getParser().getHeader());
+        if (!logined_cookie) {
+            auto unlogin_cookie = mediakit::HttpCookieManager::Instance().getCookie(kUnLoginCookieName, allArgs.getParser().getHeader());
+            if (!unlogin_cookie) {
+                unlogin_cookie = mediakit::HttpCookieManager::Instance().addCookie(kUnLoginCookieName, "", kUnLoginCookieLifeSeconds);
+                headerOut["Set-Cookie"] = unlogin_cookie->getCookie(kLoginCookiePath);
+            }
+            val["cookie"] = unlogin_cookie->getCookie();
+            throw AuthException("Please login first", headerOut, val);
+        }
+    }
+}
 #define CHECK_SECRET() check_secret(sender, headerOut, allArgs, val)
 
 void installWebApi();
@@ -370,3 +403,4 @@ private:
 #endif
 
 #endif //ZLMEDIAKIT_WEBAPI_H
+
