@@ -712,38 +712,6 @@ void getThreadsLoad(TaskExecutorGetterImp &getter, API_ARGS_MAP_ASYNC) {
     });
 }
 
-static constexpr char kLoginCookiePath[] = "/";
-static constexpr char kUnLoginCookieName[] = "ZLM_UNLOGIN";
-static constexpr char kLoginedCookieName[] = "ZLM_LOGINED";
-static constexpr size_t kUnLoginCookieLifeSeconds = 60;
-static constexpr size_t kLoginedCookieLifeSeconds = 24 * 3600;
-
-void check_secret(toolkit::SockInfo &sender, mediakit::HttpSession::KeyValue &headerOut, const ArgsMap &allArgs, Json::Value &val) {
-    GET_CONFIG(bool, legacy_auth , API::kLegacyAuth);
-    GET_CONFIG(std::string, api_secret, API::kSecret);
-
-    auto ip = sender.get_peer_ip();
-    if (!HttpFileManager::isIPAllowed(ip)) {
-        throw AuthException("Your ip is not allowed to access the service.");
-    }
-    if (legacy_auth) {
-        CHECK_ARGS("secret");
-        if (api_secret != allArgs["secret"]) {
-            throw AuthException("Incorrect secret");
-        }
-    } else {
-        auto logined_cookie = HttpCookieManager::Instance().getCookie(kLoginedCookieName, allArgs.getParser().getHeader());
-        if (!logined_cookie) {
-            auto unlogin_cookie = HttpCookieManager::Instance().getCookie(kUnLoginCookieName, allArgs.getParser().getHeader());
-            if (!unlogin_cookie) {
-                unlogin_cookie = HttpCookieManager::Instance().addCookie(kUnLoginCookieName, "", kUnLoginCookieLifeSeconds);
-                headerOut["Set-Cookie"] = unlogin_cookie->getCookie(kLoginCookiePath);
-            }
-            val["cookie"] = unlogin_cookie->getCookie();
-            throw AuthException("Please login first", headerOut, val);
-        }
-    }
-}
 /**
  * 安装api接口
  * 所有api都支持GET和POST两种方式
