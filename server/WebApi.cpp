@@ -225,16 +225,18 @@ ApiArgsType getAllArgs(const Parser &parser) {
             allArgs[pr.first] = strCoding::UrlDecodeComponent(pr.second);
         }
     } else if (parser["Content-Type"].find("application/json") == 0) {
-        try {
-            stringstream ss(parser.content());
-            Value jsonArgs;
-            ss >> jsonArgs;
-            auto keys = jsonArgs.getMemberNames();
-            for (auto key = keys.begin(); key != keys.end(); ++key) {
-                allArgs[*key] = jsonArgs[*key].asString();
+        if (!parser.content().empty()) {
+            try {
+                stringstream ss(parser.content());
+                Value jsonArgs;
+                ss >> jsonArgs;
+                auto keys = jsonArgs.getMemberNames();
+                for (auto key = keys.begin(); key != keys.end(); ++key) {
+                    allArgs[*key] = jsonArgs[*key].asString();
+                }
+            } catch (std::exception &ex) {
+                WarnL << ex.what();
             }
-        } catch (std::exception &ex) {
-            WarnL << ex.what();
         }
     } else if (!parser["Content-Type"].empty()) {
         WarnL << "invalid Content-Type:" << parser["Content-Type"];
