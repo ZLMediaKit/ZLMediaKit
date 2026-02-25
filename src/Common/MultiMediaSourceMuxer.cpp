@@ -731,13 +731,13 @@ bool MultiMediaSourceMuxer::isEnabled(){
     GET_CONFIG(uint32_t, stream_none_reader_delay_ms, General::kStreamNoneReaderDelayMS);
 
     uint32_t actual_delay_ms = stream_none_reader_delay_ms;
-    if (_tuple.app == "rtp"
-        && (_tuple.stream.find("Playback_") == 0
-            || _tuple.stream.find("Download_") == 0
-            || _tuple.stream.find("Talk_") == 0)) {
-        // 回放流无人观看时，最多等待3秒即触发on_stream_none_reader
-        // actual_delay_ms = 500;
-    }
+    // if (_tuple.app == "rtp"
+    //     && (_tuple.stream.find("Playback_") == 0
+    //         || _tuple.stream.find("Download_") == 0
+    //         || _tuple.stream.find("Talk_") == 0)) {
+    //     // 回放流无人观看时，最多等待3秒即触发on_stream_none_reader
+    //     // actual_delay_ms = 500;
+    // }
 
     if (!_is_enable || _last_check.elapsedTime() > actual_delay_ms) {
         // 无人观看时，每次检查是否真的无人观看  [AUTO-TRANSLATED:48bc59c6]
