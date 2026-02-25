@@ -674,12 +674,23 @@ void MediaSourceEvent::onReaderChanged(MediaSource &sender, int size){
     // No one is watching this video source, indicating that the source can be closed.
     GET_CONFIG(string, record_app, Record::kAppName);
     GET_CONFIG(int, stream_none_reader_delay, General::kStreamNoneReaderDelayMS);
+
+    // 对于app为rtp且流id以Playback_开头的回放流，缩短无人观看触发时间，不受配置文件约束
+    int actual_delay = stream_none_reader_delay;
+    if (sender.getMediaTuple().app == "rtp"
+        && (sender.getMediaTuple().stream.find("Playback_") == 0
+            || sender.getMediaTuple().stream.find("Download_") == 0
+            || sender.getMediaTuple().stream.find("Talk_") == 0)) {
+        actual_delay = 500;
+        //InfoL << "Playback/Download/Talk stream detected, force stream_none_reader_delay to " << actual_delay << "ms: " << sender.getUrl();
+    }
+
     // 如果mp4点播, 无人观看时我们强制关闭点播  [AUTO-TRANSLATED:9576e4b0]
     // If it's an mp4 on-demand, we force close the on-demand when no one is watching.
     bool is_mp4_vod = sender.getMediaTuple().app == record_app;
     weak_ptr<MediaSource> weak_sender = sender.shared_from_this();
 
-    _async_close_timer = std::make_shared<Timer>(stream_none_reader_delay / 1000.0f, [weak_sender, is_mp4_vod]() {
+    _async_close_timer = std::make_shared<Timer>(actual_delay / 1000.0f, [weak_sender, is_mp4_vod]() {
         auto strong_sender = weak_sender.lock();
         if (!strong_sender) {
             // 对象已经销毁  [AUTO-TRANSLATED:130328af]

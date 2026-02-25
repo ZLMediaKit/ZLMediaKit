@@ -204,6 +204,13 @@ MultiMediaSourceMuxer::MultiMediaSourceMuxer(const MediaTuple& tuple, float dur_
     _dur_sec = dur_sec;
     setMaxTrackCount(option.max_track);
 
+    // 对于app为rtp且流id以Playback_开头的流，强制关闭时间戳修改，不受配置文件约束
+    if (_tuple.app == "rtp" 
+    && (_tuple.stream.find("Playback_") == 0||_tuple.stream.find("Download_") == 0||_tuple.stream.find("Talk_") == 0)) {
+        InfoL << "Playback stream detected, force modify_stamp to kModifyStampOff: " << _tuple.shortUrl();
+        _option.modify_stamp = ProtocolOption::kModifyStampOff;
+    }
+
     if (option.enable_rtmp) {
         _rtmp = std::make_shared<RtmpMediaSourceMuxer>(_tuple, option, std::make_shared<TitleMeta>(dur_sec));
     }
@@ -722,7 +729,17 @@ bool MultiMediaSourceMuxer::onTrackFrame_l(const Frame::Ptr &frame_in) {
 
 bool MultiMediaSourceMuxer::isEnabled(){
     GET_CONFIG(uint32_t, stream_none_reader_delay_ms, General::kStreamNoneReaderDelayMS);
-    if (!_is_enable || _last_check.elapsedTime() > stream_none_reader_delay_ms) {
+
+    uint32_t actual_delay_ms = stream_none_reader_delay_ms;
+    if (_tuple.app == "rtp"
+        && (_tuple.stream.find("Playback_") == 0
+            || _tuple.stream.find("Download_") == 0
+            || _tuple.stream.find("Talk_") == 0)) {
+        // 回放流无人观看时，最多等待3秒即触发on_stream_none_reader
+        actual_delay_ms = 500;
+    }
+
+    if (!_is_enable || _last_check.elapsedTime() > actual_delay_ms) {
         // 无人观看时，每次检查是否真的无人观看  [AUTO-TRANSLATED:48bc59c6]
         // When no one is watching, check each time if there is really no one watching
         // 有人观看时，则延迟一定时间检查一遍是否无人观看了(节省性能)  [AUTO-TRANSLATED:a7dfddc4]
