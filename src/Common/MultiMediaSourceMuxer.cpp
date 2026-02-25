@@ -736,7 +736,7 @@ bool MultiMediaSourceMuxer::isEnabled(){
             || _tuple.stream.find("Download_") == 0
             || _tuple.stream.find("Talk_") == 0)) {
         // 回放流无人观看时，最多等待3秒即触发on_stream_none_reader
-        actual_delay_ms = 500;
+        // actual_delay_ms = 500;
     }
 
     if (!_is_enable || _last_check.elapsedTime() > actual_delay_ms) {
