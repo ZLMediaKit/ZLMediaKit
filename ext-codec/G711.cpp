@@ -97,11 +97,11 @@ RtpCodec::Ptr getRtpDecoderByCodecId_l(CodecId codec) {
     return std::make_shared<CommonRtpDecoder>(codec);
 }
 
-RtpCodec::Ptr getRtpDecoderByCodecIdA() {
+RtpCodec::Ptr getRtpDecoderByCodecIdA(const Track::Ptr &track) {
     return getRtpDecoderByCodecId_l(CodecG711A);
 }
 
-RtpCodec::Ptr getRtpDecoderByCodecIdU() {
+RtpCodec::Ptr getRtpDecoderByCodecIdU(const Track::Ptr &track) {
     return getRtpDecoderByCodecId_l(CodecG711U);
 }
 

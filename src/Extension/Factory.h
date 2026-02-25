@@ -35,7 +35,7 @@ struct CodecPlugin {
     Track::Ptr (*getTrackByCodecId)(int sample_rate, int channels, int sample_bit);
     Track::Ptr (*getTrackBySdp)(const SdpTrack::Ptr &track);
     RtpCodec::Ptr (*getRtpEncoderByCodecId)(uint8_t pt);
-    RtpCodec::Ptr (*getRtpDecoderByCodecId)();
+    RtpCodec::Ptr (*getRtpDecoderByCodecId)(const Track::Ptr &track);
     RtmpCodec::Ptr (*getRtmpEncoderByTrack)(const Track::Ptr &track);
     RtmpCodec::Ptr (*getRtmpDecoderByTrack)(const Track::Ptr &track);
     Frame::Ptr (*getFrameFromPtr)(const char *data, size_t bytes, uint64_t dts, uint64_t pts);
@@ -103,7 +103,7 @@ public:
      
      * [AUTO-TRANSLATED:50dbf826]
      */
-    static RtpCodec::Ptr getRtpDecoderByCodecId(CodecId codec);
+    static RtpCodec::Ptr getRtpDecoderByCodecId(const Track::Ptr& track);
 
 
     // //////////////////////////////rtmp相关//////////////////////////////////  [AUTO-TRANSLATED:df02d6fb]
