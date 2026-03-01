@@ -114,7 +114,7 @@ void WebRtcPusher::onRecvRtp(MediaTrack &track, const string &rid, RtpPacket::Pt
 void WebRtcPusher::onStartWebRTC() {
     WebRtcTransportImp::onStartWebRTC();
     _simulcast = _answer_sdp->supportSimulcast();
-    if (canRecvRtp()) {
+    if (canRecvRtp() && _push_src) {
         _push_src->setSdp(_answer_sdp->toRtspSdp());
     }
 }
