@@ -1,15 +1,37 @@
 ---
-name: ZLMediaKit Configuration Translation Guidelines
-description: Definitive guidelines, contextual awareness strategies, standard terminology, and anti-patterns for translating ZLMediaKit files from Chinese to English.
+name: Project General Translation & Terminology Guidelines
+description: Definitive guidelines, contextual awareness strategies, standard terminology, and comment formatting rules for translating code, configurations, and documentation from Chinese to English in this repository.
 ---
 
-# ZLMediaKit Translation Rules & Skills
+# Project General Translation Rules & Skills
 
-This document serves as the absolute source of truth for translating ZLMediaKit configuration files (`config.ini`), documentation, and comments from Chinese to English. Any AI agent (Claude Code, Gemini, etc.) MUST thoroughly read and apply these rules before performing any translation tasks in this repository.
+This document serves as the absolute source of truth for translating configuration files (e.g., `config.ini`), documentation, and inline comments from Chinese to English within this repository.
 
-## 1. Core Philosophy (The "Surface")
+**IMPORTANT**: Regardless of whether the project folder or repository name is changed (e.g., renaming the root directory), any AI agent MUST thoroughly read and apply these rules before performing any translation tasks in this project.
 
-Translating ZLMediaKit requires moving beyond literal word-for-word translation (the "points") into understanding the underlying technical mechanisms (the "surface").
+## 1. Comment Translation Strict Formatting Rules (CRITICAL)
+
+When asked to translate comments inside code files (`.cpp`, `.h`, etc.) or configuration files (`.ini`, `.conf`, etc.), you **MUST** strictly adhere to the following formatting constraints:
+
+- **Rule A: Default Bilingual Retention**: Unless the user explicitly instructs you to "delete the Chinese" or "replace with English", you must **ALWAYS retain the original Chinese comments**. The translation must be a bilingual process, not a destructive replacement.
+- **Rule B: Bottom Placement**: The translated English comment must be placed immediately **below** the original Chinese comment, ideally on a new line or block.
+- **Rule C: Block Translation for Multi-line Comments**: If the original Chinese comment spans multiple lines, you MUST translate the entire conceptual block as a whole, and then place the entire English block below the Chinese block.
+  - **🚫 FATAL ANTI-PATTERN**: Do **NOT** translate line-by-line, interleaving Chinese and English (e.g., `// [ZH Line 1] \n // [EN Line 1] \n // [ZH Line 2]...`). This breaks readability and coherence.
+  - **✅ CORRECT**:
+    ```cpp
+    /*
+     * 这里是第一行中文描述。
+     * 这里是第二行中文补充。
+     */
+    /*
+     * This is the English translation of the first line.
+     * This is the English translation of the second line.
+     */
+    ```
+
+## 2. Core Philosophy (The "Surface")
+
+Translating technical systems requires moving beyond literal word-for-word translation (the "points") into understanding the underlying technical mechanisms (the "surface").
 
 - **Technical Contextualization**: Before translating a comment, identify the specific domain of the configuration block.
   - `[http] / [api]`: Use standard Web developer terminology (e.g., `Request/Response`, `HTTP Headers`, `X-Forwarded-For`).
@@ -18,7 +40,7 @@ Translating ZLMediaKit requires moving beyond literal word-for-word translation 
 - **CBD Principle (Clarity, Brevity, Directness)**: Technical documentation must be clear, concise, and direct. Emulate the documentation style of top-tier open-source projects (e.g., Nginx, WebRTC).
 - **Action-Result Paradigm**: When a Chinese comment arbitrarily describes "this mechanism's logic," convert it into a direct Action-Result statement: `Setting this to 0 disables X and allows Y.` Explain _what happens_ when a user changes the value, not just the abstract theory.
 
-## 2. Standard Terminology Dictionary
+## 3. Standard Terminology Dictionary
 
 **CRITICAL:** Always use the exact terminology specified below when encountering the corresponding Chinese concepts.
 
@@ -58,7 +80,7 @@ Translating ZLMediaKit requires moving beyond literal word-for-word translation 
 - 鉴权 -> `Authentication`
 - 忽略 (非严重的丢弃) -> `Ignore` or `Skip` (Reserve "abandon" for critical, unrecoverable states)
 
-## 3. Standard Sentence Patterns
+## 4. Standard Sentence Patterns
 
 To maintain a consistent tone across the configuration file, strictly adhere to these sentence structures:
 
@@ -72,7 +94,7 @@ To maintain a consistent tone across the configuration file, strictly adhere to 
 - **Units**: Place units in parentheses or immediately after the noun.
   - _Example:_ `Cache size (in bytes)` or `Timeout in seconds`.
 
-## 4. Anti-Patterns to Avoid
+## 5. Anti-Patterns to Avoid
 
 - **De-jargonization Failure**: Failing to decode Chinese streaming slang (黑话) before translating.
   - _Bad:_ `cascading zero-delay startups`
@@ -84,13 +106,14 @@ To maintain a consistent tone across the configuration file, strictly adhere to 
   - _Bad:_ `This dictates the logic for...`
   - _Good:_ `Determines...` or directly state what it is.
 
-## 5. Pre-translation Checklist
+## 6. Pre-translation Checklist
 
 Before committing any translated text, verify against this checklist:
 
 1. [ ] **Context Check:** Did I tailor the vocabulary to the specific module (e.g., I/O terms for `general`, HTTP terms for `api`)?
-2. [ ] Did I use `Origin server` instead of `Source station`?
-3. [ ] Are boolean flags phrased as `Whether to...` and limits defined with clear `(in unit)` markings?
-4. [ ] Did I unpack Chinese jargon (e.g., interpreting "级联秒开" as an action rather than a literal noun)?
-5. [ ] Is the Action-Result logic clear (i.e., "Setting this to 0 does X", rather than translating vague explanations)?
-6. [ ] Have all filler words ("logic", "mechanism", "controls") been removed for maximum brevity?
+2. [ ] **Format Check:** If translating inline comments, did I retain the Chinese, place the English below it, and translate multi-line blocks as a single whole?
+3. [ ] Did I use `Origin server` instead of `Source station`?
+4. [ ] Are boolean flags phrased as `Whether to...` and limits defined with clear `(in unit)` markings?
+5. [ ] Did I unpack Chinese jargon (e.g., interpreting "级联秒开" as an action rather than a literal noun)?
+6. [ ] Is the Action-Result logic clear (i.e., "Setting this to 0 does X", rather than translating vague explanations)?
+7. [ ] Have all filler words ("logic", "mechanism", "controls") been removed for maximum brevity?
