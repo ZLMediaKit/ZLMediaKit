@@ -3,117 +3,108 @@ name: Project General Translation & Terminology Guidelines
 description: Definitive guidelines, contextual awareness strategies, standard terminology, and comment formatting rules for translating code, configurations, and documentation from Chinese to English in this repository.
 ---
 
-# Project General Translation Rules & Skills
+# 🤖 Systemic Translation & Terminology Instructions for AI Agents
 
-This document serves as the absolute source of truth for translating configuration files (e.g., `config.ini`), documentation, and inline comments from Chinese to English within this repository.
+This document is the absolute source of truth and **Standard Operating Procedure (SOP)** for translating Chinese comments, configurations, and documentation into English within this repository.
 
-**IMPORTANT**: Regardless of whether the project folder or repository name is changed (e.g., renaming the root directory), any AI agent MUST thoroughly read and apply these rules before performing any translation tasks in this project.
+**ATTENTION AI AGENTS:** You are NOT merely translating words; you are executing a systematic algorithm to localize complex streaming media and networking concepts. Do not rely solely on "passive reading" or "translation memory." You MUST follow the rigid workflow outlined below.
 
-## 1. Comment Translation Strict Formatting Rules (CRITICAL)
+---
 
-When asked to translate comments inside code files (`.cpp`, `.h`, etc.) or configuration files (`.ini`, `.conf`, etc.), you **MUST** strictly adhere to the following formatting constraints:
+## Phase 1: Contextual Anchoring (MANDATORY BEFORE TRANSLATION)
 
-- **Rule A: Default Bilingual Retention**: Unless the user explicitly instructs you to "delete the Chinese" or "replace with English", you must **ALWAYS retain the original Chinese comments**. The translation must be a bilingual process, not a destructive replacement.
-- **Rule B: Bottom Placement**: The translated English comment must be placed immediately **below** the original Chinese comment, ideally on a new line or block.
-- **Rule C: Block Translation for Multi-line Comments**: If the original Chinese comment spans multiple lines, you MUST translate the entire conceptual block as a whole, and then place the entire English block below the Chinese block.
-  - **🚫 FATAL ANTI-PATTERN**: Do **NOT** translate line-by-line, interleaving Chinese and English (e.g., `// [ZH Line 1] \n // [EN Line 1] \n // [ZH Line 2]...`). This breaks readability and coherence.
-  - **✅ CORRECT**:
-    ```cpp
-    /*
-     * 这里是第一行中文描述。
-     * 这里是第二行中文补充。
-     */
-    /*
-     * This is the English translation of the first line.
-     * This is the English translation of the second line.
-     */
-    ```
+Before translating any block of text, you must explicitly anchor yourself to the specific technical domain. **Literal translation of Chinese industry slang (黑话) is strictly prohibited.**
 
-## 2. Core Philosophy (The "Surface")
+1. **Identify the Domain:** Look at the module or configuration section (e.g., `[rtp_proxy]`, `[http]`, `[general]`, `[hls]`).
+2. **Setup the Mental Lexicon:**
+   - If `[api]/[http]`: Anchor to standard REST API and Web server concepts (e.g., `Requests/Responses`, `CORS`, `Forwarded IPs`).
+   - If `Network I/O / [general]`: Anchor to socket programming and OS-level terms (e.g., `Write coalescing`, `Buffers`, `File handles`).
+   - If `Media Streaming (RTSP/RTMP/RTC)`: Anchor to multimedia transport concepts (e.g., `GOP`, `Payload`, `B-frames`, `Jitter`, `Visual artifacts`).
+3. **Verification-Driven Translation:** If you encounter a Chinese term that sounds colloquial or metaphoric (e.g., “花屏” - flowered screen, “秒开” - open in seconds, “溯源” - trace back to origin), **DO NOT guess or translate literally**. Ask yourself: _"How do top-tier English open-source projects (FFmpeg, WebRTC, Nginx) refer to this specific technical phenomenon?"_
 
-Translating technical systems requires moving beyond literal word-for-word translation (the "points") into understanding the underlying technical mechanisms (the "surface").
+---
 
-- **Technical Contextualization**: Before translating a comment, identify the specific domain of the configuration block.
-  - `[http] / [api]`: Use standard Web developer terminology (e.g., `Request/Response`, `HTTP Headers`, `X-Forwarded-For`).
-  - `[general] / System Configs`: Use low-level OS and Socket I/O terminology (e.g., `Write coalescing`, `buffer allocation`). If dropping unused connections, use `ignore` or `skip` rather than the destructive `abandon`.
-  - `Media Streaming (RTSP/RTMP/RTC/HLS)`: Use industry-standard multimedia terms (e.g., `Visual artifacts` instead of screen tearing, `Grace period` instead of reconnection timeout).
-- **CBD Principle (Clarity, Brevity, Directness)**: Technical documentation must be clear, concise, and direct. Emulate the documentation style of top-tier open-source projects (e.g., Nginx, WebRTC).
-- **Action-Result Paradigm**: When a Chinese comment arbitrarily describes "this mechanism's logic," convert it into a direct Action-Result statement: `Setting this to 0 disables X and allows Y.` Explain _what happens_ when a user changes the value, not just the abstract theory.
+## Phase 2: Structural Translation & Anti-Pattern Detection
 
-## 3. Standard Terminology Dictionary
+LLMs naturally tend to follow the grammatical structure of the source text. Chinese technical writing often uses sprawling sentences and explanatory fillers. You must actively break these patterns.
 
-**CRITICAL:** Always use the exact terminology specified below when encountering the corresponding Chinese concepts.
+### 🚫 Rule 1: The "Action-Result" Paradigm
+
+- **Trigger:** When the Chinese text says "设置为0关闭此特性" (Setting this to 0 disables this feature) or "打开此选项会导致..." (Turning this on causes...).
+- **Execution:** Force your output to use the exact structure: `Setting this to [Value] disables [Feature] and allows [Consequence].` Do NOT translate explanatory filler like "This mechanism's logic dictates that...".
+
+### 🚫 Rule 2: Sub-clause Elimination (No "Chinglish")
+
+- **Trigger:** Long noun clusters or overly personified system descriptions (e.g., "服务器会认为这个流是断开的" - The server will think this stream is disconnected).
+- **Execution:** Use direct, objective voice: `The stream is considered disconnected.` or `The system drops the stream.`
+
+### 🚫 Rule 3: Clarifying Ambiguous Actions
+
+- **Trigger:** The word `忽略` (Ignore/Skip) vs. `丢弃/放弃` (Abandon/Drop).
+- **Execution:** Use `Ignore` or `Skip` for non-critical timeouts (e.g., waiting for a track to be ready). Reserve `Abandon`, `Drop`, or `Disconnect` only for fatal errors or closed sockets.
+
+---
+
+## Phase 3: The Hardcoded Terminology Dictionary
+
+**CRITICAL:** When translating, if you encounter these Chinese concepts, you MUST use the exact, first provided English term. **Do not mix or alternate synonyms.**
 
 ### Network & Architecture
 
-- 源站 -> `Origin server` (NEVER use "Source station" or "Origin site")
+- 源站 -> `Origin server`
 - 溯源 (拉流) -> `Origin pull`
-- 推流代理 / 拉流代理 -> `Publishing proxies` / `Pulling proxies` (Use gerunds for action consistency)
+- 推流代理 / 拉流代理 -> `Publishing proxies` / `Pulling proxies`
 - 按需拉流 -> `On-demand stream pulling`
 - 集群 -> `Cluster`
-- 虚拟主机 -> `Virtual hosting`
 - 推流断开后的超时等待 -> `Grace period for publisher reconnection`
 
 ### Video & Playback Experience
 
-- 秒开 / 极速秒开 -> `Instant playback` or `Zero-delay startup`
-  - _Example (级联秒开):_ `Instant playback for cascaded streams`
-- 花屏 -> `Visual artifacts` or `glitches` (NEVER use "Screen tearing", which is a monitor sync issue)
+- 秒开 / 极速秒开 -> `Instant playback (zero-delay startup)` (e.g., 级联秒开 -> `Instant playback for cascaded streams`)
+- 花屏 -> `Visual artifacts (glitches)` _(NEVER use "Screen tearing", which is a hardware V-sync issue)_
 - 卡顿 -> `Playback stuttering`
 
 ### System I/O & HTTP
 
-- 合并写 -> `Write coalescing` or `Batch writing` (NEVER use "Merged write")
-- 请求和回复 -> `Request and Response` (Avoid "reply" in HTTP contexts)
-- 在代理后方获取真实IP -> `Extract the real client IP when behind a proxy (e.g., via X-Forwarded-For)` (Avoid "Captures the true client IP...")
-
-### Protocols & Media
-
-- 切片 -> `Segment` or `Chunk` (e.g., HLS segment)
-- 封装 / 打包 -> `Packaging` (e.g., RTP packaging)
-- 负载 -> `Payload`
+- 合并写 -> `Write coalescing` _(NEVER use "Merged write")_
+- 请求和回复 -> `Requests and Responses` _(Avoid "Replies")_
+- 在代理后方获取真实IP -> `Extract the real client IP when behind a proxy (e.g., via X-Forwarded-For)`
 
 ### General Technical Terms
 
-- 处理 / 应对 (故障或异常情况) -> `Address` or `Handle` (Avoid "Resolve" unless the underlying root cause is completely eliminated)
-- 正整数 / 非负整数 -> `non-negative integer` (Particularly when 0 is used to disable a feature)
+- 切片 -> `Segment` (e.g., HLS segment)
+- 封装 / 打包 -> `Packaging`
+- 负载 -> `Payload`
 - 鉴权 -> `Authentication`
-- 忽略 (非严重的丢弃) -> `Ignore` or `Skip` (Reserve "abandon" for critical, unrecoverable states)
+- 处理 / 应对 (故障) -> `Handle` or `Address`
 
-## 4. Standard Sentence Patterns
+---
 
-To maintain a consistent tone across the configuration file, strictly adhere to these sentence structures:
+## Phase 4: Strict Formatting Rules (CRITICAL)
 
-- **Boolean Switches (0/1)**: Start with `Whether to [action]...`
-  - _Example:_ `Whether to enable virtual hosting.`
-- **Limits & Thresholds**: Start with `Maximum time/duration/size [in unit] for...`
-  - _Example:_ `Maximum wait duration for playback requests in milliseconds.`
-- **Event Callbacks / Webhooks**: Start with `Callback triggered when...` or simply `[Event Name] event.`
-  - _Example:_ `Callback triggered when RTP sending is passively closed.`
-- **Disabling Features**: When 0 disables a feature, do not fully translate "设置为0则关闭". Use a succinct suffix: `(0 to disable)`.
-- **Units**: Place units in parentheses or immediately after the noun.
-  - _Example:_ `Cache size (in bytes)` or `Timeout in seconds`.
+When translating comments inside code files (`.cpp`, `.h`) or configs (`.ini`), apply these hard constraints:
 
-## 5. Anti-Patterns to Avoid
+1. **Bilingual Retention:** Unless explicitly instructed to delete Chinese, **ALWAYS retain the original Chinese comments**.
+2. **Bottom Placement:** Place the English translation immediately **below** the Chinese line or block.
+3. **Block Uniformity:** Do NOT translate line-by-line (`ZH-EN-ZH-EN`). If a Chinese comment is a 3-line block, output it as a 3-line Chinese block followed by a 3-line English block.
 
-- **De-jargonization Failure**: Failing to decode Chinese streaming slang (黑话) before translating.
-  - _Bad:_ `cascading zero-delay startups`
-  - _Good:_ `instant playback for cascaded streams`
-- **Noun Clusters (Chinglish)**: Break up long strings of nouns using prepositions.
-  - _Bad:_ `stream pulling reconnection`
-  - _Good:_ `reconnection during stream pulling`
-- **Translating Filler Words**: Delete unnecessary Chinese filler words like "该参数控制" (This parameter controls), "的逻辑" (the logic of), "该机制的目的是" (the purpose of this mechanism is). Get straight to the point.
-  - _Bad:_ `This dictates the logic for...`
-  - _Good:_ `Determines...` or directly state what it is.
+```cpp
+/*
+ * 这里是第一行中文描述。
+ * 这里是第二行中文补充。
+ */
+/*
+ * This is the English translation of the first line.
+ * This is the English translation of the second line.
+ */
+```
 
-## 6. Pre-translation Checklist
+---
 
-Before committing any translated text, verify against this checklist:
+## Phase 5: The Post-Translation Verification Workflow (DO NOT SKIP)
 
-1. [ ] **Context Check:** Did I tailor the vocabulary to the specific module (e.g., I/O terms for `general`, HTTP terms for `api`)?
-2. [ ] **Format Check:** If translating inline comments, did I retain the Chinese, place the English below it, and translate multi-line blocks as a single whole?
-3. [ ] Did I use `Origin server` instead of `Source station`?
-4. [ ] Are boolean flags phrased as `Whether to...` and limits defined with clear `(in unit)` markings?
-5. [ ] Did I unpack Chinese jargon (e.g., interpreting "级联秒开" as an action rather than a literal noun)?
-6. [ ] Is the Action-Result logic clear (i.e., "Setting this to 0 does X", rather than translating vague explanations)?
-7. [ ] Have all filler words ("logic", "mechanism", "controls") been removed for maximum brevity?
+If you are asked to review or update translations in a long file, **you cannot rely solely on passive reading**. You MUST execute this workflow:
+
+1. **Active Scan (Regex/Search):** Before reading the document, use file search tools to actively scan for known anti-patterns in the current English text (e.g., search for `Screen tearing`, `Merged write`, `Replies`, `Source station`). Fix them immediately.
+2. **Format Review:** Scan for `ZH-EN-ZH-EN` interleaving and fix it to block format.
+3. **Blind English Review:** After translating, hide the Chinese text from your mental context. Read _only_ your English output constraint: _Does this sound like a snippet from the official Nginx or WebRTC manuals? Is it concise (CBD: Clarity, Brevity, Directness)?_ If it sounds like a literal word-for-word translation, rewrite it natively.
