@@ -43,6 +43,11 @@ LLMs naturally tend to follow the grammatical structure of the source text. Chin
 - **Trigger:** The word `忽略` (Ignore/Skip) vs. `丢弃/放弃` (Abandon/Drop).
 - **Execution:** Use `Ignore` or `Skip` for non-critical timeouts (e.g., waiting for a track to be ready). Reserve `Abandon`, `Drop`, or `Disconnect` only for fatal errors or closed sockets.
 
+### 🚫 Rule 4: Zero Information Loss & Causal Reconstruction
+
+- **Trigger:** When condensing text for native flow, or translating complex caveats (e.g., parenthetical conditions, "而不是" / instead of, side-effects).
+- **Execution:** You may reorganise syntax to sound professional, but you MUST NOT drop crucial qualifiers, modifiers, or side effects. If a Chinese config says "instead of returning X via hook", the English translation must explicitly mention "returning X". Information completeness supersedes structural brevity.
+
 ---
 
 ## Phase 3: The Hardcoded Terminology Dictionary
