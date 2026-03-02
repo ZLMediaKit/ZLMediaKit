@@ -41,12 +41,24 @@ LLMs naturally tend to follow the grammatical structure of the source text. Chin
 ### 🚫 Rule 3: Clarifying Ambiguous Actions
 
 - **Trigger:** The word `忽略` (Ignore/Skip) vs. `丢弃/放弃` (Abandon/Drop).
-- **Execution:** Use `Ignore` or `Skip` for non-critical timeouts (e.g., waiting for a track to be ready). Reserve `Abandon`, `Drop`, or `Disconnect` only for fatal errors or closed sockets.
+- **Execution:** Use `Ignore` or `Skip` for non-critical timeouts (e.g., waiting for a track to be ready). Reserve `Abandon`, `Drop` or `Disconnect` only for fatal errors or closed sockets.
 
 ### 🚫 Rule 4: Zero Information Loss & Causal Reconstruction
 
 - **Trigger:** When condensing text for native flow, or translating complex caveats (e.g., parenthetical conditions, "而不是" / instead of, side-effects).
 - **Execution:** You may reorganise syntax to sound professional, but you MUST NOT drop crucial qualifiers, modifiers, or side effects. If a Chinese config says "instead of returning X via hook", the English translation must explicitly mention "returning X". Information completeness supersedes structural brevity.
+
+### 🚫 Rule 5: The Golden Balance (Zero Info Loss vs. Native Phrasing)
+
+- **The Core Conflict:** You must achieve **Zero Information Loss** WITHOUT resorting to **Chinglish** or literal word-for-word translation.
+- **What "Information" Means:** "Retaining information" means capturing 100% of the **technical causality**, **side-effects**, **prerequisites**, and **system boundaries** present in the Chinese text.
+- **What "Information" DOES NOT Mean:** It does NOT mean preserving the Chinese grammatical structure, literal phrasing, or colloquialisms (啰嗦句子和字面用词).
+- **Execution (The Top-Down Conceptual Approach):**
+  1. **Contextual Override:** Never translate a noun literally if the surrounding constraints (e.g., units like "seconds", prefixes, or the specific protocol) dictate a domain term. For example, if a setting is measured in "seconds", the Chinese word "大小" (size) MUST logically translate to `Duration` or `Interval`, **NEVER** `Size`.
+  2. **Conceptual Compression:** When faced with a sprawling, explanatory Chinese sentence, distill the _technical payload_ and express it using concise, standard industry jargon.
+     - _Anti-pattern (Literal/Chinglish):_ `After disabling the traditional authentication mode, you must first call the API to log in. Upon success, a cookie will be set, and all APIs can be accessed without restriction as long as the cookie is valid.`
+     - _Pro-pattern (Native/Jargon):_ `When disabled, users must first call /index/api/login. Upon success, a cookie auth token is set for subsequent requests.` (Using "subsequent requests" efficiently compresses the lengthy Chinese explanation).
+  3. **Technical Abstraction:** Recognize standard operations (e.g., "拉流再推流"). Do not translate the physical actions (`pulling and then pushing`); translate the abstract technical process (`re-publishing` or `re-encoding`).
 
 ---
 
