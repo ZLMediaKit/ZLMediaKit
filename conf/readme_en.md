@@ -6,7 +6,7 @@ Controls the protocol conversion flags. Disabling unnecessary protocols will sav
 
 ### 2. protocol.xxx_demand
 
-Controls on-demand protocol conversion. When enabled along with protocol conversion, it saves CPU and memory when there are no active viewers. However, the first viewer will experience a delay before the playback starts, impacting the initial user experience.
+Controls on-demand protocol generation. When both this and the specific protocol are enabled, it saves CPU and memory when there are no active viewers. However, the first viewer will lose the instant playback capability, impacting the initial experience.
 
 ### 3. protocol.paced_sender_ms
 
@@ -19,7 +19,7 @@ Enables merged writes, which reduces the number of system calls and the frequenc
 
 ### 5. rtp_proxy.gop_cache
 
-Enables the GOP (Group of Pictures) caching feature for the `startSendRtp` cascaded interface, designed to allow instant playback for GB28181 (Chinese National Standard) cascading. Note that this setting does not affect the instant playback capability of ZLMediaKit's external live streaming services.
+Enables the GOP (Group of Pictures) caching feature for the `startSendRtp` cascaded interface, designed to allow instant playback for cascading setups (e.g., GB28181). Note that this setting does not affect the instant playback capability of ZLMediaKit's external live streaming services.
 Enabling this option increases memory usage but has a minimal impact on the CPU. We recommend disabling it if you don't use the `startSendRtp` interface.
 
 ### 6. hls.fileBufSize
