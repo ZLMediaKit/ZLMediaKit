@@ -16,6 +16,8 @@
 #include "Common/Parser.h"
 #include "Common/config.h"
 
+#include <exception>
+
 using namespace std;
 using namespace toolkit;
 
@@ -157,14 +159,23 @@ void RtmpPusher::send_connect() {
     sendInvoke("connect", obj);
     addOnResultCB([this](AMFDecoder &dec) {
         //TraceL << "connect result";
-        dec.load<AMFValue>();
-        auto val = dec.load<AMFValue>();
-        auto level = val["level"].as_string();
-        auto code = val["code"].as_string();
-        if (level != "status") {
-            throw std::runtime_error(StrPrinter << "connect 失败:" << level << " " << code << endl);
-        }
-        send_createStream();
+        do {
+            try {
+                auto val = dec.load<AMFValue>();
+                if(val["level"].type()== AMF_NULL && val["code"].type()== AMF_NULL){
+                    continue;
+                }
+                auto level = val["level"].as_string();
+                auto code = val["code"].as_string();
+                if (level != "status") {
+                    throw std::runtime_error(StrPrinter << "connect 失败:" << level << " " << code << endl);
+                }
+                send_createStream();
+                break;
+            } catch (const std::exception& ex) {
+                throw std::runtime_error(StrPrinter <<"connect 失败:AMF "<< ex.what());
+            }
+        } while(1);
     });
 }
 
