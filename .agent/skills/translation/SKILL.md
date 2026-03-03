@@ -60,6 +60,16 @@ LLMs naturally tend to follow the grammatical structure of the source text. Chin
      - _Pro-pattern (Native/Jargon):_ `When disabled, users must first call /index/api/login. Upon success, a cookie auth token is set for subsequent requests.` (Using "subsequent requests" efficiently compresses the lengthy Chinese explanation).
   3. **Technical Abstraction:** Recognize standard operations (e.g., "拉流再推流"). Do not translate the physical actions (`pulling and then pushing`); translate the abstract technical process (`re-publishing` or `re-encoding`).
 
+### 🚫 Rule 6: Anti-Summarization (Strict Boolean & Causality Preservation)
+
+- **Trigger:** When applying Conceptual Compression (Rule 5) to a text block containing conditionals or explanations.
+- **The Core Conflict:** _Compression_ reduces word count by using jargon. _Summarization_ drops critical logic. **Summarization is strictly forbidden.**
+- **Execution (The Boolean Mapping Rule):**
+  1. Treat Chinese comments like code blocks. Extract all `IF/THEN/ELSE` branches, prerequisites, and root causes before translating.
+  2. If the original text states a "success" path and a "failure" path, the English translation MUST explicitly state both paths. You cannot compress them into a single vague outcome.
+  3. If the original text states _why_ a feature exists (the exact cause or defect being prevented), the English translation MUST explicitly state that exact cause. You cannot compress it into generic "to improve performance" or "to prevent errors."
+  4. Perform a **Reverse Mapping Check**: After writing the English sentence, ask yourself—"If I reverse-compile this English back to Chinese, would any `IF` conditions or edge-case explanations be missing?" If yes, rewrite it completely to restore the dropped logic.
+
 ---
 
 ## Phase 3: The Hardcoded Terminology Dictionary
