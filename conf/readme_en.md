@@ -1,4 +1,4 @@
-## Parameters that affect performance in the configuration file
+## Key parameters that affect performance in the configuration file
 
 ### 1. Protocol enable flags (e.g., protocol.enable_hls, protocol.enable_rtsp)
 
