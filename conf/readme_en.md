@@ -1,10 +1,10 @@
 ## Parameters that affect performance in the configuration file
 
-### 1. protocol.enable_xxx
+### 1. Protocol enable flags (e.g., protocol.enable_hls, protocol.enable_rtsp)
 
 Controls the protocol conversion flags. Disabling unnecessary protocols will save CPU and memory resources.
 
-### 2. protocol.xxx_demand
+### 2. On-demand protocol flags (e.g., protocol.hls_demand, protocol.rtsp_demand)
 
 Controls on-demand protocol generation. When both this and the specific protocol are enabled, it saves CPU and memory when there are no active viewers. However, the first viewer will lose the instant playback capability, impacting the initial experience.
 
@@ -15,7 +15,7 @@ However, this increases CPU and memory consumption. A shorter timer interval res
 
 ### 4. general.mergeWriteMS
 
-Enables merged writes, which reduces the number of system calls and the frequency of data sharing between threads during transmission. This significantly boosts forwarding performance but comes at the cost of increased playback latency and reduced transmission smoothness.
+Enables write coalescing, which reduces the number of system calls and the frequency of data sharing between threads during transmission. This significantly boosts forwarding performance but comes at the cost of increased playback latency and reduced transmission smoothness.
 
 ### 5. rtp_proxy.gop_cache
 
