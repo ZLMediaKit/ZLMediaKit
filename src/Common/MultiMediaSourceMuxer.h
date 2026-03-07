@@ -25,7 +25,7 @@
 
 namespace mediakit {
 
-class MultiMediaSourceMuxer : public MediaSourceEventInterceptor, public MediaSink, public std::enable_shared_from_this<MultiMediaSourceMuxer>{
+class MultiMediaSourceMuxer : public MediaSourceEventInterceptor, public MediaSink, public toolkit::noncopyable, public std::enable_shared_from_this<MultiMediaSourceMuxer>{
 public:
     using Ptr = std::shared_ptr<MultiMediaSourceMuxer>;
     using RingType = toolkit::RingBuffer<Frame::Ptr>;

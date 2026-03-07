@@ -515,7 +515,7 @@ PythonInvoker::PythonInvoker() {
     NoticeCenter::Instance().addListener(this, Broadcast::kBroadcastCreateMuxer, [this](BroadcastCreateMuxerArgs) {
         py::gil_scoped_acquire guard;
         if (_on_create_muxer) {
-            auto py_muxer = _on_create_muxer(sender);
+            auto py_muxer = _on_create_muxer(to_python_ref(sender));
             if (py_muxer && !py_muxer.is_none()) {
                 delegate = std::make_shared<MuxerDelegatePython>(std::move(py_muxer));
             }
