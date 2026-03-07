@@ -239,8 +239,12 @@ PYBIND11_EMBEDDED_MODULE(mk_loader, m) {
 
     m.def("get_full_path", [](const std::string &path, const std::string &current_path) -> std::string {
         py::gil_scoped_release release;
-        return File::absolutePath(path, current_path);
-    });
+        switch (path.front()) {
+            case '/':
+            case '\\': return path;
+            default: return File::absolutePath(path, current_path);
+        }
+    }, py::arg("path"), py::arg("current_path") = "");
 
     m.def("set_config", [](const std::string &key, const std::string &value) -> bool {
         py::gil_scoped_release release;
