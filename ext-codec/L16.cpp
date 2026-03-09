@@ -44,8 +44,8 @@ RtpCodec::Ptr getRtpEncoderByCodecId(uint8_t pt) {
     return std::make_shared<CommonRtpEncoder>();
 }
 
-RtpCodec::Ptr getRtpDecoderByCodecId() {
-    return std::make_shared<CommonRtpDecoder>(CodecL16);
+RtpCodec::Ptr getRtpDecoderByCodecId(const Track::Ptr &track) {
+    return std::make_shared<CommonRtpDecoder>(CodecL16, track->getUseRtpMark() ? 32 * 1024 : 2 * 1024, track->getUseRtpMark());
 }
 
 RtmpCodec::Ptr getRtmpEncoderByTrack(const Track::Ptr &track) {

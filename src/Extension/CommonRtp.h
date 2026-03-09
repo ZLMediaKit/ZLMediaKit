@@ -36,7 +36,7 @@ public:
      
      * [AUTO-TRANSLATED:c6b0414f]
      */
-    CommonRtpDecoder(CodecId codec, size_t max_frame_size = 2 * 1024);
+    CommonRtpDecoder(CodecId codec, size_t max_frame_size = 2 * 1024, bool use_rtp_mark = false);
 
     /**
      * 输入rtp并解码
@@ -55,6 +55,7 @@ private:
 
 private:
     bool _drop_flag = false;
+    bool _use_rtp_mark = false;
     uint16_t _last_seq = 0;
     uint64_t _last_stamp = 0;
     size_t _max_frame_size;

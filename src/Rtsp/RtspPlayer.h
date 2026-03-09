@@ -183,6 +183,7 @@ private:
     std::string _control_url;
 protected:   
     Rtsp::eRtpType _rtp_type = Rtsp::RTP_TCP;
+    bool _use_rtp_mark = false;
 
 private:
     // 起始时间戳

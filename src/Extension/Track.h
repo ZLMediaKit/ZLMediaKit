@@ -123,8 +123,25 @@ public:
      */
     virtual void setBitRate(int bit_rate) { _bit_rate = bit_rate; }
 
+    /**
+     * 设置rtp解码器是否使用rtp标记作为帧的结束标志
+     * Set whether the rtp decoder uses rtp mark as the end of frame flag
+     * @param use_rtp_mark 是否使用rtp标记作为帧的结束标志
+     * @param use_rtp_mark Whether to use rtp mark as the end of frame flag
+     */
+    virtual void setUseRtpMark(bool use_rtp_mark) { _use_rtp_mark = use_rtp_mark; }
+
+    /**
+     * @brief 获取rtp解码器是否使用rtp标记作为帧的结束标志
+     * 
+     * @return 是否使用rtp标记作为帧的结束标志
+     * @return Whether to use rtp mark as the end of frame flag
+     */
+    virtual bool getUseRtpMark() const { return _use_rtp_mark; }   
+
 private:
     int _bit_rate = 0;
+    bool _use_rtp_mark = false;
 };
 
 /**

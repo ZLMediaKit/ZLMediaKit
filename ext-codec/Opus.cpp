@@ -57,7 +57,7 @@ RtpCodec::Ptr getRtpEncoderByCodecId(uint8_t pt) {
     return std::make_shared<CommonRtpEncoder>();
 }
 
-RtpCodec::Ptr getRtpDecoderByCodecId() {
+RtpCodec::Ptr getRtpDecoderByCodecId(const Track::Ptr &track) {
     return std::make_shared<CommonRtpDecoder>(CodecOpus);
 }
 

@@ -95,7 +95,7 @@ bool GB28181Process::inputRtp(bool, const char *data, size_t data_len) {
                     CHECK(track);
                     track->setIndex(pt);
                     _interface->addTrack(track);
-                    _rtp_decoder[pt] = Factory::getRtpDecoderByCodecId(track->getCodecId());
+                    _rtp_decoder[pt] = Factory::getRtpDecoderByCodecId(track);
                     break;
                 }
             }
@@ -107,7 +107,7 @@ bool GB28181Process::inputRtp(bool, const char *data, size_t data_len) {
                 CHECK(track);
                 track->setIndex(pt);
                 _interface->addTrack(track);
-                _rtp_decoder[pt] = Factory::getRtpDecoderByCodecId(track->getCodecId());
+                _rtp_decoder[pt] = Factory::getRtpDecoderByCodecId(track);
                 break;
             }
             if (pt == h265_pt) {
@@ -118,7 +118,7 @@ bool GB28181Process::inputRtp(bool, const char *data, size_t data_len) {
                 CHECK(track);
                 track->setIndex(pt);
                 _interface->addTrack(track);
-                _rtp_decoder[pt] = Factory::getRtpDecoderByCodecId(track->getCodecId());
+                _rtp_decoder[pt] = Factory::getRtpDecoderByCodecId(track);
                 break;
             }
             if (pt == h264_pt) {
@@ -129,7 +129,7 @@ bool GB28181Process::inputRtp(bool, const char *data, size_t data_len) {
                 CHECK(track);
                 track->setIndex(pt);
                 _interface->addTrack(track);
-                _rtp_decoder[pt] = Factory::getRtpDecoderByCodecId(track->getCodecId());
+                _rtp_decoder[pt] = Factory::getRtpDecoderByCodecId(track);
                 break;
             }
 

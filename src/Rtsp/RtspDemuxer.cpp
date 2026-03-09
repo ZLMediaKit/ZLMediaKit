@@ -19,7 +19,8 @@ using namespace std;
 
 namespace mediakit {
 
-void RtspDemuxer::loadSdp(const string &sdp) {
+void RtspDemuxer::loadSdp(const string &sdp, bool use_rtp_mark) {
+    _use_rtp_mark = use_rtp_mark;
     loadSdp(SdpParser(sdp));
 }
 
@@ -89,13 +90,14 @@ void RtspDemuxer::makeAudioTrack(const SdpTrack::Ptr &audio) {
     // 生成Track对象  [AUTO-TRANSLATED:c2f2ac3b]
     // Generate Track object
     _audio_track = dynamic_pointer_cast<AudioTrack>(Factory::getTrackBySdp(audio));
+    _audio_track->setUseRtpMark(_use_rtp_mark);
     if (!_audio_track) {
         return;
     }
     setBitRate(audio, _audio_track);
     // 生成RtpCodec对象以便解码rtp  [AUTO-TRANSLATED:889376fd]
     // Generate RtpCodec object to decode rtp
-    _audio_rtp_decoder = Factory::getRtpDecoderByCodecId(_audio_track->getCodecId());
+    _audio_rtp_decoder = Factory::getRtpDecoderByCodecId(_audio_track);
     if (!_audio_rtp_decoder) {
         // 找不到相应的rtp解码器，该track无效  [AUTO-TRANSLATED:1c8c5eab]
         // Cannot find the corresponding rtp decoder, the track is invalid
@@ -118,10 +120,11 @@ void RtspDemuxer::makeVideoTrack(const SdpTrack::Ptr &video) {
     if (!_video_track) {
         return;
     }
+    _video_track->setUseRtpMark(_use_rtp_mark);
     setBitRate(video, _video_track);
     // 生成RtpCodec对象以便解码rtp  [AUTO-TRANSLATED:889376fd]
     // Generate RtpCodec object to decode rtp
-    _video_rtp_decoder = Factory::getRtpDecoderByCodecId(_video_track->getCodecId());
+    _video_rtp_decoder = Factory::getRtpDecoderByCodecId(_video_track);
     if (!_video_rtp_decoder) {
         // 找不到相应的rtp解码器，该track无效  [AUTO-TRANSLATED:1c8c5eab]
         // Cannot find the corresponding rtp decoder, the track is invalid

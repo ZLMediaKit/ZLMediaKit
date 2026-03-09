@@ -85,6 +85,7 @@ void RtspPlayer::play(const string &strUrl) {
     }
 
     _play_url = url._url;
+    _use_rtp_mark = (*this)[Client::kUseRtpMark].as<bool>();
     _rtp_type = (Rtsp::eRtpType)(int)(*this)[Client::kRtpType];
     _beat_type = (*this)[Client::kRtspBeatType].as<int>();
     _beat_interval_ms = (*this)[Client::kBeatIntervalMS].as<int>();
@@ -918,7 +919,7 @@ bool RtspPlayerImp::onCheckSDP(const std::string &sdp) {
     }
     _demuxer = std::make_shared<RtspDemuxer>();
     _demuxer->setTrackListener(this, (*this)[Client::kWaitTrackReady].as<bool>());
-    _demuxer->loadSdp(sdp);
+    _demuxer->loadSdp(sdp, _use_rtp_mark);
     return true;
 }
 
