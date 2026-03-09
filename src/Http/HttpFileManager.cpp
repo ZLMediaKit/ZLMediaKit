@@ -17,6 +17,7 @@
 #include "HttpConst.h"
 #include "HttpSession.h"
 #include "HttpFileManager.h"
+#include "Common/MultiMediaSourceMuxer.h"
 
 using namespace std;
 using namespace toolkit;
@@ -48,6 +49,8 @@ struct HttpCookieAttachment {
     // 上次鉴权失败信息,为空则上次鉴权成功  [AUTO-TRANSLATED:de48b753]
     // Last authentication failure information, empty means last authentication succeeded
     string _err_msg;
+    // hls文件根目录
+    string _hls_root_path;
     // hls直播时的其他一些信息，主要用于播放器个数计数以及流量计数  [AUTO-TRANSLATED:790de53a]
     // Other information during hls live broadcast, mainly used for player count and traffic count
     HlsCookieData::Ptr _hls_data;
@@ -315,6 +318,10 @@ static bool emitHlsPlayed(const Parser &parser, const MediaInfo &media_info, con
     return flag;
 }
 
+static std::string getUidFromParams(const string &params) {
+    return params;
+}
+
 /**
  * 判断http客户端是否有权限访问文件的逻辑步骤
  * 1、根据http请求头查找cookie，找到进入步骤3
@@ -335,7 +342,7 @@ static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo
                           const function<void(const string &err_msg, const HttpServerCookie::Ptr &cookie)> &callback) {
     // 获取用户唯一id  [AUTO-TRANSLATED:5b1cf4bf]
     // Get the user's unique id
-    auto uid = parser.params();
+    auto uid = getUidFromParams(parser.params());
     auto path = parser.url();
 
     // 先根据http头中的cookie字段获取cookie  [AUTO-TRANSLATED:155cf682]
@@ -370,7 +377,7 @@ static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo
             }
             // 上次鉴权失败，但是如果url参数发生变更，那么也重新鉴权下  [AUTO-TRANSLATED:df9bd345]
             // Last authentication failed, but if the url parameter changes, then re-authenticate
-            if (parser.params().empty() || parser.params() == cookie->getUid()) {
+            if (parser.params().empty() || getUidFromParams(parser.params()) == cookie->getUid()) {
                 // url参数未变，或者本来就没有url参数，那么判断本次请求为重复请求，无访问权限  [AUTO-TRANSLATED:f46b4fca]
                 // The url parameter has not changed, or there is no url parameter at all, then determine that the current request is a duplicate request and has no access permission
                 callback(attach._err_msg, update_cookie ? cookie : nullptr);
@@ -419,9 +426,9 @@ static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo
                 // hls related information
                 attach->_hls_data = std::make_shared<HlsCookieData>(media_info, strong_session);
             }
-           toolkit::Any any;
-           any.set(std::move(attach));
-           callback(err_msg, HttpCookieManager::Instance().addCookie(kCookieName, uid, life_second, std::move(any)));
+            toolkit::Any any;
+            any.set(std::move(attach));
+            callback(err_msg, HttpCookieManager::Instance().addCookie(kCookieName, uid, life_second, std::move(any)));
         } else {
             callback(err_msg, nullptr);
         }
@@ -468,6 +475,8 @@ static string pathCat(const string &a, const string &b){
     return a + '/' + b;
 }
 
+static string getFilePath(const Parser &parser,const MediaInfo &media_info, Session *sender, const string &customRootPath = "");
+
 /**
  * 访问文件
  * @param sender 事件触发者
@@ -481,17 +490,11 @@ static string pathCat(const string &a, const string &b){
  * @param media_info http url information
  * @param file_path Absolute file path
  * @param cb Callback object
- 
+
  * [AUTO-TRANSLATED:2d840fe6]
  */
 static void accessFile(Session &sender, const Parser &parser, const MediaInfo &media_info, const string &file_path, const HttpFileManager::invoker &cb) {
     bool is_hls = end_with(file_path, kHlsSuffix) || end_with(file_path, kHlsFMP4Suffix);
-    if (!is_hls && !File::fileExist(file_path)) {
-        // 文件不存在且不是hls,那么直接返回404  [AUTO-TRANSLATED:7aae578b]
-        // The file does not exist and is not hls, so directly return 404
-        sendNotFound(cb);
-        return;
-    }
     if (is_hls) {
         // hls，那么移除掉后缀获取真实的stream_id并且修改协议为HLS  [AUTO-TRANSLATED:94b5818a]
         // hls, then remove the suffix to get the real stream_id and change the protocol to HLS
@@ -552,6 +555,13 @@ static void accessFile(Session &sender, const Parser &parser, const MediaInfo &m
             invoker.responseFile(parser.getHeader(), httpHeader, file_content.empty() ? file_path : file_content, !is_hls && !is_forbid_cache, file_content.empty());
         };
 
+        if (cookie) {
+            auto &attach = cookie->getAttach<HttpCookieAttachment>();
+            if (!attach._hls_root_path.empty()) {
+                // 强制替换为真实hls路径
+                const_cast<std::string &>(file_path) = getFilePath(parser, media_info, nullptr, attach._hls_root_path);
+            }
+        }
         if (!is_hls || !cookie) {
             // 不是hls或访问m3u8文件不带cookie, 直接回复文件或404  [AUTO-TRANSLATED:64e5d19b]
             // Not hls or accessing m3u8 files without cookies, directly reply to the file or 404
@@ -601,6 +611,10 @@ static void accessFile(Session &sender, const Parser &parser, const MediaInfo &m
             // Reset the MediaSource search timer
             attach._find_src_ticker.resetTime();
 
+            auto muxer = hls->getMuxer();
+            if (muxer) {
+                attach._hls_root_path = muxer->getOption().hls_save_path;
+            }
             // m3u8文件可能不存在, 等待m3u8索引文件按需生成  [AUTO-TRANSLATED:0dbd4df2]
             // The m3u8 file may not exist, wait for the m3u8 index file to be generated on demand
             hls->getIndexFile([response_file, file_path, cookie, cb, parser](const string &file) {
@@ -610,12 +624,14 @@ static void accessFile(Session &sender, const Parser &parser, const MediaInfo &m
     });
 }
 
-static string getFilePath(const Parser &parser,const MediaInfo &media_info, Session &sender) {
+static string getFilePath(const Parser &parser,const MediaInfo &media_info, Session *sender, const string &customRootPath) {
     GET_CONFIG(bool, enableVhost, General::kEnableVhost);
-    GET_CONFIG(string, rootPath, Http::kRootPath);
+    GET_CONFIG(string, httpRootPath, Http::kRootPath);
     GET_CONFIG_FUNC(StrCaseMap, virtualPathMap, Http::kVirtualPath, [](const string &str) {
         return Parser::parseArgs(str, ";", ",");
     });
+
+    auto rootPath = customRootPath.empty() ? httpRootPath : customRootPath;
 
     string url, path, virtual_app;
     auto it = virtualPathMap.find(media_info.app);
@@ -645,10 +661,12 @@ static string getFilePath(const Parser &parser,const MediaInfo &media_info, Sess
         // The accessed http file must not be outside the http root directory
         throw std::runtime_error("Attempting to access files outside of the http root directory");
     }
-    // 替换url，防止返回的目录索引网页被注入非法内容  [AUTO-TRANSLATED:463ad1b1]
-    // Replace the url to prevent the returned directory index page from being injected with illegal content
-    const_cast<Parser&>(parser).setUrl("/" + virtual_app + ret.substr(http_root.size()));
-    NOTICE_EMIT(BroadcastHttpBeforeAccessArgs, Broadcast::kBroadcastHttpBeforeAccess, parser, ret, sender);
+    if (sender) {
+        // 替换url，防止返回的目录索引网页被注入非法内容  [AUTO-TRANSLATED:463ad1b1]
+        // Replace the url to prevent the returned directory index page from being injected with illegal content
+        const_cast<Parser&>(parser).setUrl("/" + virtual_app + ret.substr(http_root.size()));
+        NOTICE_EMIT(BroadcastHttpBeforeAccessArgs, Broadcast::kBroadcastHttpBeforeAccess, parser, ret, *sender);
+    }
     return ret;
 }
 
@@ -661,14 +679,14 @@ static string getFilePath(const Parser &parser,const MediaInfo &media_info, Sess
  * @param sender Event trigger
  * @param parser http request
  * @param cb Callback object
- 
+
  * [AUTO-TRANSLATED:a79c824d]
  */
 void HttpFileManager::onAccessPath(Session &sender, Parser &parser, const HttpFileManager::invoker &cb) {
     auto fullUrl = "http://" + parser["Host"] + parser.fullUrl();
     MediaInfo media_info(fullUrl);
-    auto file_path = getFilePath(parser, media_info, sender);
-    if (file_path.size() == 0) {
+    auto file_path = getFilePath(parser, media_info, &sender);
+    if (file_path.empty()) {
         sendNotFound(cb);
         return;
     }

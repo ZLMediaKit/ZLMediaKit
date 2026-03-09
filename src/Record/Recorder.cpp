@@ -25,13 +25,15 @@ namespace mediakit {
 string Recorder::getRecordPath(Recorder::type type, const MediaTuple& tuple, const string &customized_path) {
     GET_CONFIG(bool, enableVhost, General::kEnableVhost);
     switch (type) {
+        case Recorder::type_hls_fmp4:
         case Recorder::type_hls: {
             GET_CONFIG(string, hlsPath, Protocol::kHlsSavePath);
             string m3u8FilePath;
+            auto tail =  type == Recorder::type_hls ? "/hls.m3u8" : "/hls.fmp4.m3u8";
             if (enableVhost) {
-                m3u8FilePath = tuple.shortUrl() + "/hls.m3u8";
+                m3u8FilePath = tuple.shortUrl() + tail;
             } else {
-                m3u8FilePath = tuple.app + "/" + tuple.stream + "/hls.m3u8";
+                m3u8FilePath = tuple.app + "/" + tuple.stream + tail;
             }
             //Here we use the customized file path.
             if (!customized_path.empty()) {
@@ -53,20 +55,6 @@ string Recorder::getRecordPath(Recorder::type type, const MediaTuple& tuple, con
                 return File::absolutePath(mp4FilePath, customized_path);
             }
             return File::absolutePath(mp4FilePath, recordPath);
-        }
-        case Recorder::type_hls_fmp4: {
-            GET_CONFIG(string, hlsPath, Protocol::kHlsSavePath);
-            string m3u8FilePath;
-            if (enableVhost) {
-                m3u8FilePath = tuple.shortUrl() + "/hls.fmp4.m3u8";
-            } else {
-                m3u8FilePath = tuple.app + "/" + tuple.stream + "/hls.fmp4.m3u8";
-            }
-            // Here we use the customized file path.
-            if (!customized_path.empty()) {
-                return File::absolutePath(m3u8FilePath, customized_path);
-            }
-            return File::absolutePath(m3u8FilePath, hlsPath);
         }
         default: return "";
     }
