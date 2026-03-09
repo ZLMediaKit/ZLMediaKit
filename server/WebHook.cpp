@@ -783,7 +783,7 @@ void installWebHook() {
     // The purpose of tracking users is to cache the last authentication result, reduce the number of authentication times, and improve performance
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastHttpAccess, [](BroadcastHttpAccessArgs) {
 #if defined(ENABLE_PYTHON)
-        if (PythonInvoker::Instance().on_http_access(parser, path, is_dir, invoker, sender)) {
+        if (PythonInvoker::Instance().on_http_access(parser, path, file_path, is_dir, invoker, sender)) {
             return;
         }
 #endif
@@ -806,6 +806,7 @@ void installWebHook() {
         body["port"] = sender.get_peer_port();
         body["id"] = sender.getIdentifier();
         body["path"] = path;
+        body["file_path"] = file_path;
         body["is_dir"] = is_dir;
         body["params"] = parser.params();
         for (auto &pr : parser.getHeader()) {

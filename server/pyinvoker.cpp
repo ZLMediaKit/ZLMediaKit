@@ -692,7 +692,7 @@ bool PythonInvoker::on_http_access(BroadcastHttpAccessArgs) const {
     if (!_on_http_access) {
         return false;
     }
-    return _on_http_access(to_python_ref(parser), path, is_dir, to_python(invoker), to_python(sender)).cast<bool>();
+    return _on_http_access(to_python_ref(parser), path, file_path, is_dir, to_python(invoker), to_python(sender)).cast<bool>();
 }
 
 bool PythonInvoker::on_rtp_server_timeout(BroadcastRtpServerTimeoutArgs) const {

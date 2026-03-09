@@ -338,7 +338,7 @@ static std::string getUidFromParams(const string &params) {
  
  * [AUTO-TRANSLATED:dfc0f15f]
  */
-static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo &media_info, bool is_dir,
+static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo &media_info, const std::string &file_path, bool is_dir,
                           const function<void(const string &err_msg, const HttpServerCookie::Ptr &cookie)> &callback) {
     // 获取用户唯一id  [AUTO-TRANSLATED:5b1cf4bf]
     // Get the user's unique id
@@ -443,7 +443,7 @@ static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo
 
     // 事件未被拦截，则认为是http下载请求  [AUTO-TRANSLATED:7d449ccc]
     // The event was not intercepted, it is considered an http download request
-    bool flag = NOTICE_EMIT(BroadcastHttpAccessArgs, Broadcast::kBroadcastHttpAccess, parser, path, is_dir, accessPathInvoker, sender);
+    bool flag = NOTICE_EMIT(BroadcastHttpAccessArgs, Broadcast::kBroadcastHttpAccess, parser, path, file_path, is_dir, accessPathInvoker, sender);
     if (!flag) {
         // 此事件无人监听，我们默认都有权限访问  [AUTO-TRANSLATED:e1524c0f]
         // No one is listening to this event, we assume that everyone has permission to access it by default
@@ -510,7 +510,7 @@ static void accessFile(Session &sender, const Parser &parser, const MediaInfo &m
     weak_ptr<Session> weakSession = static_pointer_cast<Session>(sender.shared_from_this());
     // 判断是否有权限访问该文件  [AUTO-TRANSLATED:b7f595f5]
     // Determine whether you have permission to access this file
-    canAccessPath(sender, parser, media_info, false, [cb, file_path, parser, is_hls, media_info, weakSession](const string &err_msg, const HttpServerCookie::Ptr &cookie) {
+    canAccessPath(sender, parser, media_info, file_path, false, [cb, file_path, parser, is_hls, media_info, weakSession](const string &err_msg, const HttpServerCookie::Ptr &cookie) {
         auto strongSession = weakSession.lock();
         if (!strongSession) {
             // http客户端已经断开，不需要回复  [AUTO-TRANSLATED:9a252e21]
@@ -717,7 +717,7 @@ void HttpFileManager::onAccessPath(Session &sender, Parser &parser, const HttpFi
         }
         // 判断是否有权限访问该目录  [AUTO-TRANSLATED:963d02a6]
         // Determine if there is permission to access this directory
-        canAccessPath(sender, parser, media_info, true, [strMenu, cb](const string &err_msg, const HttpServerCookie::Ptr &cookie) mutable{
+        canAccessPath(sender, parser, media_info, file_path, true, [strMenu, cb](const string &err_msg, const HttpServerCookie::Ptr &cookie) mutable{
             if (!err_msg.empty()) {
                 strMenu = err_msg;
             }

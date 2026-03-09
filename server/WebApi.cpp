@@ -2379,7 +2379,7 @@ void installWebApi() {
             // 校验secret成功，文件下载鉴权成功
             file_invoker("", "", 0);
         } catch (...) {
-            bool flag = NOTICE_EMIT(BroadcastHttpAccessArgs, Broadcast::kBroadcastHttpAccess, allArgs.parser, file_path, false, file_invoker, sender);
+            bool flag = NOTICE_EMIT(BroadcastHttpAccessArgs, Broadcast::kBroadcastHttpAccess, allArgs.parser,  allArgs.parser.url(), file_path, false, file_invoker, sender);
             if (!flag) {
                 // 文件下载鉴权事件无人监听，不允许下载  [AUTO-TRANSLATED:5e02f0ce]
                 // No one is listening to the file download authentication event, download is not allowed
