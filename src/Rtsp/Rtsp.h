@@ -53,7 +53,7 @@ typedef enum {
     XX(JPEG, TrackVideo, 26, 90000, 1, CodecJPEG)                                                                                                              \
     XX(nv, TrackVideo, 28, 90000, 1, CodecInvalid)                                                                                                             \
     XX(H261, TrackVideo, 31, 90000, 1, CodecInvalid)                                                                                                           \
-    XX(MPV, TrackVideo, 32, 90000, 1, CodecInvalid)                                                                                                            \
+    XX(MPV, TrackVideo, 32, 90000, 1, CodecMP2V)                                                                                                            \
     XX(MP2T, TrackVideo, 33, 90000, 1, CodecTS)                                                                                                           \
     XX(H263, TrackVideo, 34, 90000, 1, CodecInvalid)
 

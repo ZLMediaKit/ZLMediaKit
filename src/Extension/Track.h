@@ -195,7 +195,7 @@ public:
         _fps = fps;
     }
 
-    VideoTrackImp(CodecId codec_id) { 
+    VideoTrackImp(CodecId codec_id) {
         _codec_id = codec_id;
         _fps = 30;
     }
