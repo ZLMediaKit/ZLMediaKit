@@ -2374,14 +2374,19 @@ void installWebApi() {
             }
         };
 
-        bool flag = NOTICE_EMIT(BroadcastHttpAccessArgs, Broadcast::kBroadcastHttpAccess, allArgs.parser, file_path, false, file_invoker, sender);
-        if (!flag) {
-            // 文件下载鉴权事件无人监听，不允许下载  [AUTO-TRANSLATED:5e02f0ce]
-            // No one is listening to the file download authentication event, download is not allowed
-            invoker(401, StrCaseMap {}, "None http access event listener");
+        try {
+            CHECK_SECRET();
+            // 校验secret成功，文件下载鉴权成功
+            file_invoker("", "", 0);
+        } catch (...) {
+            bool flag = NOTICE_EMIT(BroadcastHttpAccessArgs, Broadcast::kBroadcastHttpAccess, allArgs.parser, file_path, false, file_invoker, sender);
+            if (!flag) {
+                // 文件下载鉴权事件无人监听，不允许下载  [AUTO-TRANSLATED:5e02f0ce]
+                // No one is listening to the file download authentication event, download is not allowed
+                invoker(401, StrCaseMap {}, "None http access event listener");
+            }
         }
     });
-
 
     api_regist("/index/api/searchOnvifDevice",[](API_ARGS_MAP_ASYNC){
        CHECK_SECRET();
