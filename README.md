@@ -36,7 +36,7 @@
 - [谁在使用zlmediakit?](https://github.com/ZLMediaKit/ZLMediaKit/issues/511)
 - 全面支持ipv6网络
 - 支持多轨道模式(一个流中多个视频/音频)
-- 全协议支持H264/H265/AAC/G711/OPUS/MP3/VP8/VP9/AV1，部分支持JPEG/H266/ADPCM/SVAC/G722/G723/G729
+- 全协议支持H264/H265/AAC/G711/OPUS/MP3/VP8/VP9/AV1，部分支持JPEG/H266/ADPCM/SVAC/G722/G723/G729/MP2
 
 ## 项目定位
 
@@ -57,7 +57,7 @@
   - 服务器/客户端完整支持Basic/Digest方式的登录鉴权，全异步可配置化的鉴权接口
   - 支持H265编码
   - 服务器支持RTSP推流(包括`rtp over udp` `rtp over tcp`方式)
-  - 支持H264/H265/AAC/G711/OPUS/MJPEG/MP3/VP8/VP9/AV1编码，其他编码能转发但不能转协议
+  - 支持H264/H265/AAC/G711/OPUS/MJPEG/MP3/VP8/VP9/AV1/MP2编码，其他编码能转发但不能转协议
 
 - RTMP[S]
   - RTMP[S] 播放服务器，支持RTSP/MP4/HLS转RTMP
@@ -76,19 +76,19 @@
   - 支持HLS文件(mpegts/fmp4)生成，自带HTTP文件服务器
   - 通过cookie追踪技术，可以模拟HLS播放为长连接，可以实现HLS按需拉流、播放统计等业务
   - 支持HLS播发器，支持拉流HLS转rtsp/rtmp/mp4
-  - 支持H264/H265/AAC/G711/OPUS/MP3/VP8/VP9/AV1编码
+  - 支持H264/H265/AAC/G711/OPUS/MP3/VP8/VP9/AV1/MP2编码
   - 支持多轨道模式
   
 - TS
   - 支持http[s]-ts直播
   - 支持ws[s]-ts直播
-  - 支持H264/H265/AAC/G711/OPUS/MP3/VP8/VP9/AV1编码
+  - 支持H264/H265/AAC/G711/OPUS/MP3/VP8/VP9/AV1/MP2编码
   - 支持多轨道模式
   
 - fMP4
   - 支持http[s]-fmp4直播
   - 支持ws[s]-fmp4直播
-  - 支持H264/H265/AAC/G711/OPUS/MJPEG/MP3/VP8/VP9/AV1编码
+  - 支持H264/H265/AAC/G711/OPUS/MJPEG/MP3/VP8/VP9/AV1/MP2编码
   - 支持多轨道模式
 
 - HTTP[S]与WebSocket
@@ -186,6 +186,10 @@
   - 支持onnxruntime(cpu/gpu) 推理。
   - 支持ascend cann加速推理。
   - python插件支持调用c++接口操作流媒体与绘制当前视频画面。
+  
+- WebRTC mcu语音聊天室
+  - 支持mcu多人语音聊天室，混音前支持背景噪声消除，静音不参与混音，解决超大规模多人语音聊天室sfu方案不可用的问题。
+  - 支持100人语音连麦，上千人旁听级会议。
 
 ## 编译以及测试
 **编译前务必仔细参考wiki:[快速开始](https://github.com/ZLMediaKit/ZLMediaKit/wiki/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B)操作!!!**
@@ -236,6 +240,7 @@ bash build_docker_images.sh
    - [zlm_webassist](https://github.com/1002victor/zlm_webassist) 本项目配套的前后端分离web管理项目
    - [AKStreamNVR](https://github.com/langmansh/AKStreamNVR) 前后端分离web项目,支持webrtc播放
    - [StreamUI](https://github.com/lmk123568/StreamUI) 一个极简、轻便的视频流媒体管理平台
+   - [PyMKUI](https://github.com/ZLMediaKit/pymkui) ZLMediaKit官方推出的管理平台网站
    
  - SDK
    - [spring-boot-starter](https://github.com/lunasaw/zlm-spring-boot-starter) 本项目hook和rest接口starter
