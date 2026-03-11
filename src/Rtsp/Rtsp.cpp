@@ -745,7 +745,7 @@ TitleSdp::TitleSdp(float dur_sec, const std::map<std::string, std::string> &head
 }
 
 DefaultSdp::DefaultSdp(int payload_type, const Track &track)
-    : Sdp(track.getTrackType() == TrackVideo ? 9000 : static_cast<const AudioTrack &>(track).getAudioSampleRate(), payload_type) {
+    : Sdp(track.getTrackType() == TrackVideo ? 90000 : static_cast<const AudioTrack &>(track).getAudioSampleRate(), payload_type) {
     _printer << "m=" << track.getTrackTypeStr() << " 0 RTP/AVP " << payload_type << "\r\n";
     auto bitrate = track.getBitRate() >> 10;
     if (bitrate) {
