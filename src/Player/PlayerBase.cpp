@@ -26,7 +26,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &in_poller, const string &url_in) {
+PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &in_poller, const string &url_in, const std::string &schema) {
     auto poller = in_poller ? in_poller : EventPollerPool::Instance().getPoller();
     std::weak_ptr<EventPoller> weak_poller = poller;
     auto release_func = [weak_poller](PlayerBase *ptr) {
@@ -70,13 +70,13 @@ PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &in_poller, cons
         return PlayerBase::Ptr(new RtmpPlayerImp(poller), release_func);
     }
     if ((strcasecmp("http", prefix.data()) == 0 || strcasecmp("https", prefix.data()) == 0)) {
-        if (end_with(url, ".m3u8") || end_with(url_in, ".m3u8")) {
+        if (end_with(url, ".m3u8") || end_with(url_in, ".m3u8") || schema == "hls") {
             return PlayerBase::Ptr(new HlsPlayerImp(poller), release_func);
         }
-        if (end_with(url, ".ts") || end_with(url_in, ".ts")) {
+        if (end_with(url, ".ts") || end_with(url_in, ".ts") || schema == "ts") {
             return PlayerBase::Ptr(new TsPlayerImp(poller), release_func);
         }
-        if (end_with(url, ".flv") || end_with(url_in, ".flv")) {
+        if (end_with(url, ".flv") || end_with(url_in, ".flv") || schema == "flv") {
             return PlayerBase::Ptr(new FlvPlayerImp(poller), release_func);
         }
     }

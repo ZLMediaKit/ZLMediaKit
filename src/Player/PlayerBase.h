@@ -42,7 +42,7 @@ public:
     using Ptr = std::shared_ptr<PlayerBase>;
     using Event = std::function<void(const toolkit::SockException &ex)>;
 
-    static Ptr createPlayer(const toolkit::EventPoller::Ptr &poller, const std::string &strUrl);
+    static Ptr createPlayer(const toolkit::EventPoller::Ptr &poller, const std::string &strUrl, const std::string &schema = "");
 
     PlayerBase();
 

@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include "MediaPlayer.h"
+#include "Common/config.h"
 
 using namespace std;
 using namespace toolkit;
@@ -36,7 +37,7 @@ static void setOnCreateSocket_l(const std::shared_ptr<PlayerBase> &delegate, con
 }
 
 void MediaPlayer::play(const string &url) {
-    _delegate = PlayerBase::createPlayer(_poller, url);
+    _delegate = PlayerBase::createPlayer(_poller, url, (*this)[Client::kSchema]);
     assert(_delegate);
     setOnCreateSocket_l(_delegate, _on_create_socket);
     _delegate->setOnShutdown(_on_shutdown);
