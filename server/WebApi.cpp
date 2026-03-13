@@ -379,10 +379,53 @@ Value ToJson(const PusherProxy::Ptr& p) {
     return item;
 }
 
+Json::Value dumpTracks(const std::vector<Track::Ptr> &tracks) {
+    Json::Value ret(arrayValue);
+    for (auto &track : tracks) {
+        Value obj;
+        auto codec_type = track->getTrackType();
+        obj["codec_id"] = track->getCodecId();
+        obj["codec_id_name"] = track->getCodecName();
+        obj["ready"] = track->ready();
+        obj["codec_type"] = codec_type;
+        obj["frames"] = track->getFrames();
+        obj["duration"] = track->getDuration();
+        switch (codec_type) {
+            case TrackAudio: {
+                auto audio_track = dynamic_pointer_cast<AudioTrack>(track);
+                obj["sample_rate"] = audio_track->getAudioSampleRate();
+                obj["channels"] = audio_track->getAudioChannel();
+                obj["sample_bit"] = audio_track->getAudioSampleBit();
+                break;
+            }
+            case TrackVideo: {
+                auto video_track = dynamic_pointer_cast<VideoTrack>(track);
+                obj["width"] = video_track->getVideoWidth();
+                obj["height"] = video_track->getVideoHeight();
+                obj["key_frames"] = video_track->getVideoKeyFrames();
+                int gop_size = video_track->getVideoGopSize();
+                int gop_interval_ms = video_track->getVideoGopInterval();
+                float fps = video_track->getVideoFps();
+                if (fps <= 1 && gop_interval_ms) {
+                    fps = gop_size * 1000.0 / gop_interval_ms;
+                }
+                obj["fps"] = round(fps);
+                obj["gop_size"] = gop_size;
+                obj["gop_interval_ms"] = gop_interval_ms;
+                break;
+            }
+            default: break;
+        }
+        ret.append(obj);
+    }
+    return ret;
+}
+
 Value ToJson(const PlayerProxy::Ptr& p) {
     Value item;
     item["url"] = p->getUrl();
     item["status"] = p->getStatus();
+    item["status_str"] = p->getStatusStr();
     item["liveSecs"] = p->getLiveSecs();
     item["rePullCount"] = p->getRePullCount();
     item["totalReaderCount"] = p->totalReaderCount();
@@ -390,10 +433,11 @@ Value ToJson(const PlayerProxy::Ptr& p) {
     item["totalBytes"] = (Json::UInt64) p->getRecvTotalBytes();
 
     dumpMediaTuple(p->getMediaTuple(), item["src"]);
+    item["tracks"] = dumpTracks(p->getTracks(false));
     return item;
 }
 
-Value makeMediaSourceJson(MediaSource &media){
+Value makeMediaSourceJson(MediaSource &media) {
     Value item;
     item["schema"] = media.getSchema();
     dumpMediaTuple(media.getMediaTuple(), item);
@@ -421,17 +465,13 @@ Value makeMediaSourceJson(MediaSource &media){
     auto current_thread = false;
     try { current_thread = media.getOwnerPoller()->isCurrentThread();} catch (...) {}
     float last_loss = -1;
-    for(auto &track : media.getTracks(false)){
-        Value obj;
-        auto codec_type = track->getTrackType();
-        obj["codec_id"] = track->getCodecId();
-        obj["codec_id_name"] = track->getCodecName();
-        obj["ready"] = track->ready();
-        obj["codec_type"] = codec_type;
-        if (current_thread) {
+    auto tracks = dumpTracks(media.getTracks(false));
+    if (current_thread) {
+        for (auto &obj : tracks) {
             // rtp推流只有一个统计器，但是可能有多个track，如果短时间多次获取间隔丢包率，第二次会获取为-1  [AUTO-TRANSLATED:5bfbc951]
-            // RTP push stream has only one statistics, but may have multiple tracks. If you get the interval packet loss rate multiple times in a short time, the second time will get -1
-            auto loss = media.getLossRate(codec_type);
+            // RTP push stream has only one statistics, but may have multiple tracks. If you get the interval packet loss rate multiple times in a short time,
+            // the second time will get -1
+            auto loss = media.getLossRate(getTrackType(static_cast<CodecId>(obj["codec_type"].asInt())));
             if (loss == -1) {
                 loss = last_loss;
             } else {
@@ -439,37 +479,8 @@ Value makeMediaSourceJson(MediaSource &media){
             }
             obj["loss"] = loss;
         }
-        obj["frames"] = track->getFrames();
-        obj["duration"] = track->getDuration();
-        switch(codec_type){
-            case TrackAudio : {
-                auto audio_track = dynamic_pointer_cast<AudioTrack>(track);
-                obj["sample_rate"] = audio_track->getAudioSampleRate();
-                obj["channels"] = audio_track->getAudioChannel();
-                obj["sample_bit"] = audio_track->getAudioSampleBit();
-                break;
-            }
-            case TrackVideo : {
-                auto video_track = dynamic_pointer_cast<VideoTrack>(track);
-                obj["width"] = video_track->getVideoWidth();
-                obj["height"] = video_track->getVideoHeight();
-                obj["key_frames"] = video_track->getVideoKeyFrames();
-                int gop_size = video_track->getVideoGopSize();
-                int gop_interval_ms = video_track->getVideoGopInterval();
-                float fps = video_track->getVideoFps();
-                if (fps <= 1 && gop_interval_ms) {
-                    fps = gop_size * 1000.0 / gop_interval_ms;
-                }
-                obj["fps"] = round(fps);
-                obj["gop_size"] = gop_size;
-                obj["gop_interval_ms"] = gop_interval_ms;
-                break;
-            }
-            default:
-                break;
-        }
-        item["tracks"].append(obj);
     }
+    item["tracks"] = std::move(tracks);
     return item;
 }
 

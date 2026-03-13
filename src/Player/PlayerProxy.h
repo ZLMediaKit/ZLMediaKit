@@ -129,6 +129,7 @@ public:
     int totalReaderCount();
 
     int getStatus();
+    std::string getStatusStr() const;
     uint64_t getLiveSecs();
     uint64_t getRePullCount();
 
@@ -155,6 +156,7 @@ private:
     void setTranslationInfo();
 
 private:
+    std::shared_ptr<std::string> _status;
     int _retry_count;
     int _reconnect_delay_min;
     int _reconnect_delay_max;
