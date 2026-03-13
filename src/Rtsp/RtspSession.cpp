@@ -1204,7 +1204,15 @@ void RtspSession::onBeforeRtpSorted(const RtpPacket::Ptr &rtp, int track_index){
 }
 
 void RtspSession::updateRtcpContext(const RtpPacket::Ptr &rtp){
+    if (!rtp) {
+        WarnL << "rtp packet is null when updating rtcp context";
+        return;
+    }
     int track_index = getTrackIndexByTrackType(rtp->type);
+    if (track_index < 0 || track_index >= (int)_rtcp_context.size()) {
+        WarnL << "invalid track index when updating rtcp context: " << track_index;
+        return;
+    }
     auto &rtcp_ctx = _rtcp_context[track_index];
     rtcp_ctx->onRtp(rtp->getSeq(), rtp->getStamp(), rtp->ntp_stamp, rtp->sample_rate, rtp->size() - RtpPacket::kRtpTcpHeaderSize);
     if (!rtp->ntp_stamp && !rtp->getStamp()) {
