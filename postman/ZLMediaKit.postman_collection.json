@@ -875,6 +875,12 @@
 							"description": "推流重试次数,不传此参数或传值<=0时，则无限重试",
 							"disabled": true
 						},
+						{
+							"key": "force",
+							"value": null,
+							"description": "是否强制添加代理，默认0，设置为1时如果拉流失败也会不断重试",
+							"disabled": true
+						},
                         {
 							"key": "latency",
 							"value": null,

@@ -583,7 +583,7 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
 #endif
 }
 
-void addStreamProxy(const MediaTuple &tuple, const string &url, int retry_count,
+void addStreamProxy(const MediaTuple &tuple, const string &url, int retry_count, bool force,
                     const ProtocolOption &option, int rtp_type, float timeout_sec, const mINI &args,
                     const function<void(const SockException &ex, const string &key)> &cb) {
     auto key = tuple.shortUrl();
@@ -615,11 +615,18 @@ void addStreamProxy(const MediaTuple &tuple, const string &url, int retry_count,
 
     // 开始播放，如果播放失败或者播放中止，将会自动重试若干次，默认一直重试  [AUTO-TRANSLATED:ac8499e5]
     // Start playing. If playback fails or is stopped, it will automatically retry several times, by default it will retry indefinitely
-    player->setPlayCallbackOnce([cb, key](const SockException &ex) {
-        if (ex) {
-            s_player_proxy.erase(key);
+    player->setPlayCallbackOnce([cb, key, force](const SockException &ex) {
+        if (force) {
+            // 强制添加成功
+            cb(SockException(), key);
+        } else {
+            // 非强制添加
+            if (ex) {
+                // 失败则移除记录
+                s_player_proxy.erase(key);
+            }
+            cb(ex, key);
         }
-        cb(ex, key);
     });
 
     // 被主动关闭拉流  [AUTO-TRANSLATED:41a19476]
@@ -1264,6 +1271,7 @@ void installWebApi() {
             addStreamProxy(tuple,
                            allArgs["url"],
                            retry_count,
+                           allArgs["force"],
                            option,
                            allArgs["rtp_type"],
                            allArgs["timeout_sec"],

@@ -46,6 +46,10 @@ void TsPlayerImp::onPlayResult(const SockException &ex) {
 }
 
 void TsPlayerImp::onShutdown(const SockException &ex) {
+    if (!ex) {
+        // http-ts拉流，如果为eof正常断开，那么强制为异常状态
+        const_cast<SockException &>(ex).reset(Err_other, ex.what());
+    }
     while (_demuxer) {
         try {
             // shared_from_this()可能抛异常  [AUTO-TRANSLATED:6af9bd3c]
