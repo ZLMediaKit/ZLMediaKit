@@ -65,7 +65,6 @@ void HttpClient::sendRequest(const string &url) {
     } else {
         _header.emplace("Connection", "close");
     }
-    _http_persistent = true;
     if (_body && _body->remainSize()) {
         _header.emplace("Content-Length", to_string(_body->remainSize()));
         GET_CONFIG(string, charSet, Http::kCharSet);
