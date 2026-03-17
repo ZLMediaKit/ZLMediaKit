@@ -46,7 +46,8 @@
 					"path": [
 						"index",
 						"api",
-						"getApiList"
+						"stack",
+						"stop"
 					],
 					"query": [
 						{
@@ -56,7 +57,44 @@
 						},
 						{
 							"key": "id",
-							"value": "stack_test"
+							"value": "stack_test",
+							"description": "多屏拼接id"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "重置多屏拼接(stack/reset)",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"gapv\": 0.002,\r\n    \"gaph\": 0.001,\r\n    \"width\": 1920,\r\n    \"url\": [\r\n        [\r\n            \"rtsp://kkem.me/live/test3\",\r\n            \"rtsp://kkem.me/live/cy1\",\r\n            \"rtsp://kkem.me/live/cy1\",\r\n            \"rtsp://kkem.me/live/cy2\"\r\n        ],\r\n        [\r\n            \"rtsp://kkem.me/live/cy1\",\r\n            \"rtsp://kkem.me/live/cy5\",\r\n            \"rtsp://kkem.me/live/cy3\",\r\n            \"rtsp://kkem.me/live/cy4\"\r\n        ],\r\n        [\r\n            \"rtsp://kkem.me/live/cy5\",\r\n            \"rtsp://kkem.me/live/cy6\",\r\n            \"rtsp://kkem.me/live/cy7\",\r\n            \"rtsp://kkem.me/live/cy8\"\r\n        ],\r\n        [\r\n            \"rtsp://kkem.me/live/cy9\",\r\n            \"rtsp://kkem.me/live/cy10\",\r\n            \"rtsp://kkem.me/live/cy11\",\r\n            \"rtsp://kkem.me/live/cy12\"\r\n        ]\r\n    ],\r\n    \"id\": \"89\",\r\n    \"row\": 4,\r\n    \"col\": 4,\r\n    \"height\": 1080,\r\n    \"span\": [\r\n        [\r\n            [\r\n                0,\r\n                0\r\n            ],\r\n            [\r\n                1,\r\n                1\r\n            ]\r\n        ],\r\n        [\r\n            [\r\n                3,\r\n                0\r\n            ],\r\n            [\r\n                3,\r\n                1\r\n            ]\r\n        ],\r\n        [\r\n            [\r\n                2,\r\n                3\r\n            ],\r\n            [\r\n                3,\r\n                3\r\n            ]\r\n        ]\r\n    ]\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/stack/reset?secret={{ZLMediaKit_secret}}",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"stack",
+						"reset"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)"
 						}
 					]
 				}
@@ -1232,19 +1270,19 @@
 			"response": []
 		},
 		{
-			"name": "获取流信息(getMp4RecordFile)",
+			"name": "获取录像文件列表(getMP4RecordFile)",
 			"request": {
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{ZLMediaKit_URL}}/index/api/getMp4RecordFile?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=proxy&stream=2&customized_path=/www&period=2020-05-26",
+					"raw": "{{ZLMediaKit_URL}}/index/api/getMP4RecordFile?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=proxy&stream=2&customized_path=/www&period=2020-05-26",
 					"host": [
 						"{{ZLMediaKit_URL}}"
 					],
 					"path": [
 						"index",
 						"api",
-						"getMp4RecordFile"
+						"getMP4RecordFile"
 					],
 					"query": [
 						{
@@ -2954,6 +2992,246 @@
 						}
 					]
 				}
+			},
+			"response": []
+		},
+		{
+			"name": "下载程序二进制文件(downloadBin)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/downloadBin?secret={{ZLMediaKit_secret}}",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"downloadBin"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "WebRTC交互(webrtc)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/webrtc?secret={{ZLMediaKit_secret}}&type=play&app=live&stream=test",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"webrtc"
+					],
+					"query": [
+						{
+							"key": "type",
+							"value": "play",
+							"description": "webrtc类型，play为播放，push为推流，echo为回显测试"
+						},
+						{
+							"key": "app",
+							"value": "live",
+							"description": "应用名"
+						},
+						{
+							"key": "stream",
+							"value": "test",
+							"description": "流id"
+						},
+						{
+							"key": "preferred_tcp",
+							"value": null,
+							"description": "是否webrtc over tcp优先模式",
+							"disabled": true
+						},
+						{
+							"key": "cand_udp",
+							"value": "test",
+							"description": "指定zlm服务器udp candidate",
+							"disabled": true
+						},
+						{
+							"key": "cand_tcp",
+							"value": null,
+							"description": "指定zlm服务器tcp candidate",
+							"disabled": true
+						}
+					]
+				},
+				"description": "WebRTC交互接口，body为SDP offer"
+			},
+			"response": []
+		},
+		{
+			"name": "WebRTC-WHIP推流(whip)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/sdp"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/whip?app=live&stream=test",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"whip"
+					],
+					"query": [
+						{
+							"key": "app",
+							"value": "live",
+							"description": "应用名"
+						},
+						{
+							"key": "stream",
+							"value": "test",
+							"description": "流id"
+						},
+						{
+							"key": "preferred_tcp",
+							"value": null,
+							"description": "是否webrtc over tcp优先模式",
+							"disabled": true
+						},
+						{
+							"key": "cand_udp",
+							"value": "test",
+							"description": "指定zlm服务器udp candidate",
+							"disabled": true
+						},
+						{
+							"key": "cand_tcp",
+							"value": null,
+							"description": "指定zlm服务器tcp candidate",
+							"disabled": true
+						}
+					]
+				},
+				"description": "WebRTC WHIP标准推流接口，body为SDP offer"
+			},
+			"response": []
+		},
+		{
+			"name": "WebRTC-WHEP播放(whep)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/sdp"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/whep?app=live&stream=test",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"whep"
+					],
+					"query": [
+						{
+							"key": "app",
+							"value": "live",
+							"description": "应用名"
+						},
+						{
+							"key": "stream",
+							"value": "test",
+							"description": "流id"
+						},
+						{
+							"key": "preferred_tcp",
+							"value": null,
+							"description": "是否webrtc over tcp优先模式",
+							"disabled": true
+						},
+						{
+							"key": "cand_udp",
+							"value": "test",
+							"description": "指定zlm服务器udp candidate",
+							"disabled": true
+						},
+						{
+							"key": "cand_tcp",
+							"value": null,
+							"description": "指定zlm服务器tcp candidate",
+							"disabled": true
+						}
+					]
+				},
+				"description": "WebRTC WHEP标准播放接口，body为SDP offer"
+			},
+			"response": []
+		},
+		{
+			"name": "WebRTC-删除连接(delete_webrtc)",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/delete_webrtc?id=&token=",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"delete_webrtc"
+					],
+					"query": [
+						{
+							"key": "id",
+							"value": "",
+							"description": "WebRTC连接的唯一标识"
+						},
+						{
+							"key": "token",
+							"value": "",
+							"description": "删除操作的验证token"
+						}
+					]
+				},
+				"description": "删除WebRTC连接，需要使用DELETE方法。id和token由whip/whep接口返回的Location头中获取。"
 			},
 			"response": []
 		},
