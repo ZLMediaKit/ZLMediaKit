@@ -60,7 +60,8 @@ void HttpClient::sendRequest(const string &url) {
     _header.emplace("User-Agent", kServerName);
     _header.emplace("Accept", "*/*");
     _header.emplace("Accept-Language", "zh-CN,zh;q=0.8");
-    if (_http_persistent) {
+    bool persistent = _http_persistent;
+    if (persistent) {
         _header.emplace("Connection", "keep-alive");
     } else {
         _header.emplace("Connection", "close");
@@ -84,7 +85,9 @@ void HttpClient::sendRequest(const string &url) {
         printer.pop_back();
         _header.emplace("Cookie", printer);
     }
-    if (!alive() || host_changed || !_http_persistent) {
+    if (!alive() || host_changed || !persistent) {
+        // Restore _http_persistent so that keep-alive can still be used for subsequent requests.
+        _http_persistent = true;
         if (isUsedProxy()) {
             _proxy_connected = false;
             startConnect(_proxy_host, _proxy_port, _wait_header_ms / 1000.0f);
