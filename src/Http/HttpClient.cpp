@@ -60,7 +60,14 @@ void HttpClient::sendRequest(const string &url) {
     _header.emplace("User-Agent", kServerName);
     _header.emplace("Accept", "*/*");
     _header.emplace("Accept-Language", "zh-CN,zh;q=0.8");
-    if (_http_persistent) {
+    bool persistent = _http_persistent;
+    // If persistent was explicitly disabled (e.g., by onError or redirect handling),
+    // honor it for this request but reset it for subsequent requests so that
+    // keep-alive is not permanently disabled for this HttpClient instance.
+    if (!persistent) {
+        _http_persistent = true;
+    }
+    if (persistent) {
         _header.emplace("Connection", "keep-alive");
     } else {
         _header.emplace("Connection", "close");
