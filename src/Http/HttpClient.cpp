@@ -219,12 +219,16 @@ void HttpClient::onError(const SockException &ex) {
 
 ssize_t HttpClient::onRecvHeader(const char *data, size_t len) {
     _parser.parse(data, len);
+    auto connection_close = !strcasecmp(_parser["Connection"].data(), "close");
     if (_parser.status() == "302" || _parser.status() == "301" || _parser.status() == "303") {
         auto new_url = Parser::mergeUrl(_url, _parser["Location"]);
         if (new_url.empty()) {
             throw invalid_argument("未找到Location字段(跳转url)");
         }
         if (onRedirectUrl(new_url, _parser.status() == "302")) {
+            if (connection_close) {
+                _http_persistent = false;
+            }
             HttpClient::sendRequest(new_url);
             return 0;
         }
