@@ -595,7 +595,7 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
 }
 
 void addStreamProxy(const MediaTuple &tuple, const string &url, int retry_count, bool force,
-                    const ProtocolOption &option, int rtp_type, float timeout_sec, const mINI &args,
+                    const ProtocolOption &option, float timeout_sec, const mINI &args,
                     const function<void(const SockException &ex, const string &key)> &cb) {
     auto key = tuple.shortUrl();
     if (s_player_proxy.find(key)) {
@@ -613,10 +613,6 @@ void addStreamProxy(const MediaTuple &tuple, const string &url, int retry_count,
     for (auto &pr : args) {
         (*player)[pr.first] = pr.second;
     }
-
-    // 指定RTP over TCP(播放rtsp时有效)  [AUTO-TRANSLATED:1a062656]
-    // Specify RTP over TCP (effective when playing RTSP)
-    (*player)[Client::kRtpType] = rtp_type;
 
     if (timeout_sec > 0.1f) {
         // 播放握手超时时间  [AUTO-TRANSLATED:5a29ae1f]
@@ -1284,7 +1280,6 @@ void installWebApi() {
                            retry_count,
                            allArgs["force"],
                            option,
-                           allArgs["rtp_type"],
                            allArgs["timeout_sec"],
                            args,
                            [invoker,val,headerOut](const SockException &ex,const string &key) mutable {

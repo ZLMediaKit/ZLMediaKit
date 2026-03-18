@@ -250,7 +250,7 @@ Json::Value makeMediaSourceJson(mediakit::MediaSource &media);
 ApiArgsType getAllArgs(const mediakit::Parser &parser);
 void getStatisticJson(const std::function<void(Json::Value &val)> &cb);
 void addStreamProxy(const mediakit::MediaTuple &tuple, const std::string &url, int retry_count, bool force,
-                    const mediakit::ProtocolOption &option, int rtp_type, float timeout_sec, const toolkit::mINI &args,
+                    const mediakit::ProtocolOption &option, float timeout_sec, const toolkit::mINI &args,
                     const std::function<void(const toolkit::SockException &ex, const std::string &key)> &cb);
 
 template <typename Type>

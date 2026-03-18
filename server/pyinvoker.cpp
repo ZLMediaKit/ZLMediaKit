@@ -12,7 +12,9 @@
 #include "Util/util.h"
 #include "Util/File.h"
 #include "Common/Parser.h"
+#include "Common/macros.h"
 #include "Http/HttpSession.h"
+#include "Poller/EventPoller.h"
 #include  "WebApi.h"
 
 using namespace toolkit;
@@ -328,6 +330,52 @@ PYBIND11_EMBEDDED_MODULE(mk_loader, m) {
         auto &invoker = to_native<HttpSession::HttpAccessPathInvoker>(cap);
         invoker(errMsg, accessPath, cookieLifeSecond);
     });
+
+    // add_stream_proxy(vhost, app, stream, url, cb, retry_count=-1, force=False,
+    //                  rtp_type=0, timeout_sec=0, opt={})
+    // opt 字典可包含 ProtocolOption 的所有字段，以及其他透传给 Player 的 key-value 参数
+    m.def("add_stream_proxy",
+        [](const std::string &vhost, const std::string &app, const std::string &stream,
+           const std::string &url, const py::object &cb,
+           int retry_count, bool force, float timeout_sec,
+           const py::dict &opt) {
+            mINI args = to_native(opt);
+            ProtocolOption option;
+            option.load(args);
+            MediaTuple tuple { vhost.empty() ? DEFAULT_VHOST : vhost, app, stream, "" };
+
+            // 用 shared_ptr 包裹 py::object，使其析构（dec_ref）可在受控环境下执行。
+            // 必须在 GIL 持有期间创建该 shared_ptr（此处仍在 GIL 内）。
+            // 自定义 deleter 保证即使在非 Python 线程析构时也会先获取 GIL。
+            auto cb_ptr = std::shared_ptr<py::object>(
+                new py::object(cb),
+                [](py::object *p) {
+                    // dec_ref / 析构 py::object 需要 GIL
+                    py::gil_scoped_acquire guard;
+                    delete p;
+                }
+            );
+
+            py::gil_scoped_release release;
+            EventPollerPool::Instance().getPoller(false)->async([=]() mutable {
+                addStreamProxy(tuple, url, retry_count, force, option, timeout_sec, args,
+                    [cb_ptr](const SockException &ex, const std::string &key) {
+                        // cb_ptr 按值捕获（shared_ptr 的拷贝，纯 C++ 操作，无需 GIL）
+                        // inc_ref/dec_ref/调用 Python 对象均在 gil_scoped_acquire 保护下进行
+                        py::gil_scoped_acquire guard;
+                        try {
+                            (*cb_ptr)(ex ? ex.what() : "", key);
+                        } catch (py::error_already_set &e) {
+                            WarnL << "Python exception in add_stream_proxy callback: " << e.what();
+                        }
+                        // cb_ptr 在此析构（局部副本），dec_ref 由自定义 deleter 在 GIL 下执行
+                    });
+            });
+        },
+        py::arg("vhost"), py::arg("app"), py::arg("stream"), py::arg("url"), py::arg("cb"),
+        py::arg("retry_count") = -1, py::arg("force") = false,
+        py::arg("timeout_sec") = 0.0f, py::arg("opt") = py::dict()
+    );
 
     m.def("set_fastapi", [](const py::object &check_route, const py::object &submit_coro) {
         static void *fastapi_tag = nullptr;
