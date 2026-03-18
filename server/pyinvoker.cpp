@@ -138,7 +138,8 @@ void handle_http_request(const py::object &check_route, const py::object &submit
     scope["query_string"] = parser.params();
     py::list hdrs;
     for (auto &kv : parser.getHeader()) {
-        hdrs.append(py::make_tuple(py::bytes(kv.first), py::bytes(kv.second)));
+        // Starlette/ASGI 规范要求 headers 的 key 必须全小写字节串
+        hdrs.append(py::make_tuple(py::bytes(toolkit::strToLower(kv.first.data())), py::bytes(kv.second)));
     }
     scope["headers"] = hdrs;
 
