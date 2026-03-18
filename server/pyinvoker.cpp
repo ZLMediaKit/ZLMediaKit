@@ -13,6 +13,7 @@
 #include "Util/File.h"
 #include "Common/Parser.h"
 #include "Http/HttpSession.h"
+#include  "WebApi.h"
 
 using namespace toolkit;
 using namespace mediakit;
@@ -102,6 +103,30 @@ mINI to_native(const py::dict &opt) {
     return ret;
 }
 
+void python_api_debug(const Parser &parser, const std::string &body) {
+    GET_CONFIG(bool, api_debug, API::kApiDebug);
+    if (!api_debug) {
+        return;
+    }
+    ssize_t size = body.size();
+    LogContextCapture log(getLogger(), toolkit::LDebug, __FILE__, "python http api debug", __LINE__);
+    log << "\r\n# request:\r\n" << parser.method() << " " << parser.fullUrl() << "\r\n";
+    log << "# header:\r\n";
+
+    for (auto &pr : parser.getHeader()) {
+        log << pr.first << " : " << pr.second << "\r\n";
+    }
+
+    auto &content = parser.content();
+    log << "# content:\r\n" << (content.size() > 4 * 1024 ? content.substr(0, 4 * 1024) : content) << "\r\n";
+
+    if (size > 0 && size < 4 * 1024) {
+        log << "# response:\r\n" << body << "\r\n";
+    } else {
+        log << "# response size:" << size << "\r\n";
+    }
+}
+
 void handle_http_request(const py::object &check_route, const py::object &submit_coro, const Parser &parser, const HttpSession::HttpResponseInvoker &invoker, bool &consumed, toolkit::SockInfo &sender) {
     py::gil_scoped_acquire guard;
 
@@ -150,7 +175,7 @@ void handle_http_request(const py::object &check_route, const py::object &submit
     StrCaseMap resp_headers;
     std::string resp_body;
     int status = 500;
-    auto send = py::cpp_function([invoker, status, resp_body, resp_headers](const py::dict &msg) mutable {
+    auto send = py::cpp_function([parser, invoker, status, resp_body, resp_headers](const py::dict &msg) mutable {
         auto type = msg["type"].cast<std::string>();
         if (type == "http.response.start") {
             status = msg["status"].cast<int>();
@@ -166,6 +191,7 @@ void handle_http_request(const py::object &check_route, const py::object &submit
             // 💥 只在 more_body=False 时回调
             bool more = msg.contains("more_body") && msg["more_body"].cast<bool>();
             if (!more) {
+                python_api_debug(parser, resp_body);
                 invoker(status, resp_headers, resp_body);
             }
         }

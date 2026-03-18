@@ -56,6 +56,7 @@ typedef enum {
 
 extern const std::string kSecret;
 extern const std::string kLegacyAuth;
+extern const std::string kApiDebug;
 } // namespace API
 
 class ApiRetException : public std::runtime_error {
