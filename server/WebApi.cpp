@@ -1243,19 +1243,19 @@ void installWebApi() {
     });
     api_regist("/index/api/listStreamPusherProxy", [](API_ARGS_MAP) {
         CHECK_SECRET();
-        s_pusher_proxy.for_each([&val](const std::string& key, const PusherProxy::Ptr& p) {
+        s_pusher_proxy.for_each([&val](const std::string &key, const PusherProxy::Ptr &p) {
             Json::Value item = ToJson(p);
             item["key"] = key;
             val["data"].append(item);
-        });
+        }, allArgs["key"]);
     });
     api_regist("/index/api/listStreamProxy", [](API_ARGS_MAP) {
         CHECK_SECRET();
-        s_player_proxy.for_each([&val](const std::string& key, const PlayerProxy::Ptr& p) {
+        s_player_proxy.for_each([&val](const std::string &key, const PlayerProxy::Ptr &p) {
             Json::Value item = ToJson(p);
             item["key"] = key;
             val["data"].append(item);
-        });
+        }, allArgs["key"]);
     });
     // 动态添加rtsp/rtmp拉流代理  [AUTO-TRANSLATED:2616537c]
     // Dynamically add rtsp/rtmp pull stream proxy
