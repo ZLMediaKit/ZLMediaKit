@@ -546,7 +546,7 @@ bool set_python_path() {
         PrintI("PYTHONPATH is already set to: %s", env_var);
         return false;
     }
-    auto default_path = exeDir() + "/python";
+    auto default_path = exeDir() + "/python:" + exeDir() + "/pymkui/backend";
     // 1 表示覆盖已存在的值
     if (!set_env("PYTHONPATH", default_path.data())) {
         PrintW("Failed to set PYTHONPATH");
