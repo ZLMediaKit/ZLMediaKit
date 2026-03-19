@@ -276,7 +276,6 @@ private:
     void onResponseCompleted_l(const toolkit::SockException &ex);
     void onConnect_l(const toolkit::SockException &ex);
     void checkCookie(HttpHeader &headers);
-
 private:
     //for http response
     bool _complete = false;
@@ -291,6 +290,7 @@ private:
     //for request args
     bool _is_https;
     std::string _url;
+    std::string _request_url;
     HttpHeader _user_set_header;
     HttpBody::Ptr _body;
     std::string _method;

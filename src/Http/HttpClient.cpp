@@ -18,6 +18,15 @@ using namespace toolkit;
 
 namespace mediakit {
 
+static bool connectionContainsClose(const string &connection) {
+    for (auto token : split(connection, ",")) {
+        if (strToLower(trim(std::move(token))) == "close") {
+            return true;
+        }
+    }
+    return false;
+}
+
 void HttpClient::sendRequest(const string &url) {
     clearResponse();
     _url = url;
@@ -56,6 +65,8 @@ void HttpClient::sendRequest(const string &url) {
     }
     auto host_header = host;
     splitUrl(host, host, port);
+    // Proxy forwarding for plain HTTP must use an absolute-form request target.
+    _request_url = StrPrinter << protocol << "://" << host_header << _path;
     _header.emplace("Host", host_header);
     _header.emplace("User-Agent", kServerName);
     _header.emplace("Accept", "*/*");
@@ -72,7 +83,8 @@ void HttpClient::sendRequest(const string &url) {
         _header.emplace("Content-Type", "application/x-www-form-urlencoded; charset=" + charSet);
     }
 
-    bool host_changed = (_last_host != host + ":" + to_string(port)) || (_is_https != is_https);
+    bool protocol_changed = (_is_https != is_https);
+    bool host_changed = (_last_host != host + ":" + to_string(port)) || protocol_changed;
     _last_host = host + ":" + to_string(port);
     _is_https = is_https;
 
@@ -85,15 +97,33 @@ void HttpClient::sendRequest(const string &url) {
         printer.pop_back();
         _header.emplace("Cookie", printer);
     }
+    if (isUsedProxy()) {
+        // Proxy configuration changes are invalidated in setProxyUrl(), so reuse
+        // decisions here only need to consider the target/protocol of the next request.
+        bool proxy_reuse = false;
+        if (_is_https) {
+            // HTTPS over proxy can only reuse an existing tunnel to the same target host.
+            proxy_reuse = alive() && persistent && !host_changed && _proxy_connected;
+        } else {
+            // Plain HTTP can reuse the same proxy connection across different targets.
+            proxy_reuse = alive() && persistent && !protocol_changed;
+        }
+
+        if (!proxy_reuse) {
+            _http_persistent = true;
+            _proxy_connected = !_is_https;
+            startConnectWithProxy(host, _proxy_host, _proxy_port, _wait_header_ms / 1000.0f);
+        } else {
+            SockException ex;
+            onConnect_l(ex);
+        }
+        return;
+    }
+
     if (!alive() || host_changed || !persistent) {
         // Restore _http_persistent so that keep-alive can still be used for subsequent requests.
         _http_persistent = true;
-        if (isUsedProxy()) {
-            _proxy_connected = false;
-            startConnect(_proxy_host, _proxy_port, _wait_header_ms / 1000.0f);
-        } else {
-            startConnect(host, port, _wait_header_ms / 1000.0f);
-        }
+        startConnect(host, port, _wait_header_ms / 1000.0f);
     } else {
         SockException ex;
         onConnect_l(ex);
@@ -102,11 +132,12 @@ void HttpClient::sendRequest(const string &url) {
 
 void HttpClient::clear() {
     _url.clear();
+    _request_url.clear();
     _user_set_header.clear();
     _body.reset();
     _method.clear();
-    // 重置代理连接状态
-    _proxy_connected = false;
+    // Keep transport-level state so a live direct/proxy connection can still
+    // be reused after the caller resets only the per-request state.
     clearResponse();
 }
 
@@ -177,7 +208,18 @@ void HttpClient::onConnect_l(const SockException &ex) {
     // 不使用代理或者代理服务器已经连接成功  [AUTO-TRANSLATED:e051567c]
     // No proxy is used or the proxy server has connected successfully
     if (_proxy_connected || !isUsedProxy()) {
-        printer << _method + " " << _path + " HTTP/1.1\r\n";
+        if (!isUsedProxy()) {
+            printer << _method + " " << _path + " HTTP/1.1\r\n";
+        } else if (!_is_https) {
+            printer << _method + " " << _request_url + " HTTP/1.1\r\n";
+            printer << "Proxy-Connection: keep-alive\r\n";
+            if (!_proxy_auth.empty()) {
+                printer << "Proxy-Authorization: Basic " << _proxy_auth << "\r\n";
+            }
+            _header.erase("Connection");
+        } else {
+            printer << _method + " " << _path + " HTTP/1.1\r\n";
+        }
         for (auto &pr : _header) {
             printer << pr.first + ": ";
             printer << pr.second + "\r\n";
@@ -221,7 +263,7 @@ void HttpClient::onError(const SockException &ex) {
 
 ssize_t HttpClient::onRecvHeader(const char *data, size_t len) {
     _parser.parse(data, len);
-    auto connection_close = !strcasecmp(_parser["Connection"].data(), "close");
+    auto connection_close = connectionContainsClose(_parser["Connection"]);
     if (_parser.status() == "302" || _parser.status() == "301" || _parser.status() == "303") {
         auto new_url = Parser::mergeUrl(_url, _parser["Location"]);
         if (new_url.empty()) {
@@ -482,12 +524,34 @@ bool HttpClient::isProxyConnected() const {
 }
 
 void HttpClient::setProxyUrl(string proxy_url) {
+    auto old_used_proxy = _used_proxy;
+    auto old_proxy_host = _proxy_host;
+    auto old_proxy_port = _proxy_port;
+    auto old_proxy_auth = _proxy_auth;
+
     _proxy_url = std::move(proxy_url);
     if (!_proxy_url.empty()) {
+        _proxy_host.clear();
+        _proxy_port = 0;
+        _proxy_auth.clear();
         parseProxyUrl(_proxy_url, _proxy_host, _proxy_port, _proxy_auth);
         _used_proxy = true;
     } else {
         _used_proxy = false;
+        _proxy_host.clear();
+        _proxy_port = 0;
+        _proxy_auth.clear();
+        _proxy_connected = false;
+    }
+
+    auto proxy_config_changed = old_used_proxy != _used_proxy
+                                || old_proxy_host != _proxy_host
+                                || old_proxy_port != _proxy_port
+                                || old_proxy_auth != _proxy_auth;
+    if (proxy_config_changed) {
+        // A proxy mode or endpoint change must not reuse the previous transport.
+        _http_persistent = false;
+        _proxy_connected = false;
     }
 }
 
