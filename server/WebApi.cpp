@@ -86,7 +86,6 @@ const string kSecret = API_FIELD"secret";
 const string kSnapRoot = API_FIELD"snapRoot";
 const string kDefaultSnap = API_FIELD"defaultSnap";
 const string kDownloadRoot = API_FIELD"downloadRoot";
-const string kLegacyAuth = API_FIELD"legacyAuth";
 
 static onceToken token([]() {
     mINI::Instance()[kApiDebug] = "1";
@@ -94,7 +93,6 @@ static onceToken token([]() {
     mINI::Instance()[kSnapRoot] = "./www/snap/";
     mINI::Instance()[kDefaultSnap] = "./www/logo.png";
     mINI::Instance()[kDownloadRoot] = "./www";
-    mINI::Instance()[kLegacyAuth] = 1;
 });
 }//namespace API
 
@@ -736,19 +734,14 @@ static constexpr size_t kLoginedCookieLifeSeconds = 24 * 3600;
 
 template <typename T>
 void check_secret(toolkit::SockInfo &sender, mediakit::HttpSession::KeyValue &headerOut, const HttpAllArgs<T> &allArgs, Json::Value &val) {
-    GET_CONFIG(bool, legacy_auth , API::kLegacyAuth);
     GET_CONFIG(std::string, api_secret, API::kSecret);
 
     auto ip = sender.get_peer_ip();
     if (!HttpFileManager::isIPAllowed(ip)) {
         throw AuthException("Your ip is not allowed to access the service.");
     }
-    if (legacy_auth) {
-        CHECK_ARGS("secret");
-        if (api_secret != allArgs["secret"]) {
-            throw AuthException("Incorrect secret");
-        }
-    } else {
+
+    try {
         auto logined_cookie = HttpCookieManager::Instance().getCookie(kLoginedCookieName, allArgs.getParser().getHeader());
         if (!logined_cookie) {
             auto unlogin_cookie = HttpCookieManager::Instance().getCookie(kUnLoginCookieName, allArgs.getParser().getHeader());
@@ -759,6 +752,20 @@ void check_secret(toolkit::SockInfo &sender, mediakit::HttpSession::KeyValue &he
             val["cookie"] = unlogin_cookie->getCookie();
             throw AuthException("Please login first", headerOut, val);
         }
+        // 优先cookie登陆鉴权
+    } catch (...) {
+        try {
+            // cookie登陆鉴权失败了再比对secret
+            CHECK_ARGS("secret");
+            if (api_secret != allArgs["secret"]) {
+                throw AuthException("Incorrect secret");
+            }
+            return;
+        } catch (...) {
+            // 未提供secret或secret不匹配，这个异常隐藏
+        }
+        // secret鉴权模式失败，抛出要求cookie登录的异常
+        throw;
     }
 }
 

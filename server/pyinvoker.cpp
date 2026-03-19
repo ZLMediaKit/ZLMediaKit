@@ -157,11 +157,8 @@ void handle_http_request(const py::object &check_route, const py::object &submit
     try {
         auto args = getAllArgs(parser);
         auto allArgs = ArgsMap(parser, args);
-        GET_CONFIG(bool, legacy_auth , API::kLegacyAuth);
-        if (!legacy_auth) {
-            // 非传统secret鉴权模式，Python接口强制要求登录鉴权
-            CHECK_SECRET();
-        }
+        // Python接口要求登录鉴权
+        CHECK_SECRET();
     } catch (std::exception &ex) {
         auto ex1 = dynamic_cast<ApiRetException *>(&ex);
         if (ex1) {

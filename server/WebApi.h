@@ -55,7 +55,6 @@ typedef enum {
 } ApiErr;
 
 extern const std::string kSecret;
-extern const std::string kLegacyAuth;
 extern const std::string kApiDebug;
 } // namespace API
 
