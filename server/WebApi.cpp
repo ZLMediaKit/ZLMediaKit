@@ -592,6 +592,17 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
 #endif
 }
 
+void updateStreamProxy(const mediakit::MediaTuple &tuple, const std::string &url, const toolkit::mINI &args) {
+    auto key = tuple.shortUrl();
+    auto player = s_player_proxy.find(key);
+    if (!player) {
+        throw std::runtime_error("proxy player not found: " + key);
+    }
+    player->getPoller()->async([url, args, player]() {
+        player->update(url, args);
+    });
+}
+
 void addStreamProxy(const MediaTuple &tuple, const string &url, int retry_count, bool force,
                     const ProtocolOption &option, float timeout_sec, const mINI &args,
                     const function<void(const SockException &ex, const string &key)> &cb) {

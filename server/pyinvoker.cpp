@@ -374,6 +374,20 @@ PYBIND11_EMBEDDED_MODULE(mk_loader, m) {
         py::arg("timeout_sec") = 0.0f, py::arg("opt") = py::dict()
     );
 
+    // update_stream_proxy(vhost, app, stream, url, opt={})
+    // 更新已有拉流代理的 url 和参数，流不存在时抛出异常
+    m.def("update_stream_proxy",
+        [](const std::string &vhost, const std::string &app, const std::string &stream,
+           const std::string &url, const py::dict &opt) {
+            mINI args = to_native(opt);
+            MediaTuple tuple { vhost.empty() ? DEFAULT_VHOST : vhost, app, stream, "" };
+            py::gil_scoped_release release;
+            updateStreamProxy(tuple, url, args);
+        },
+        py::arg("vhost"), py::arg("app"), py::arg("stream"), py::arg("url"),
+        py::arg("opt") = py::dict()
+    );
+
     m.def("set_fastapi", [](const py::object &check_route, const py::object &submit_coro) {
         static void *fastapi_tag = nullptr;
         NoticeCenter::Instance().delListener(&fastapi_tag, Broadcast::kBroadcastHttpRequest);
