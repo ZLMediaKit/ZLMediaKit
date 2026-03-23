@@ -130,6 +130,10 @@ private:
     int _timeout_multiple = MIN_TIMEOUT_MULTIPLE;
     int _try_fetch_index_times = 0;
     int _ts_download_failed_count = 0;
+    // RFC 8216 reload interval depends on whether the last media sequence
+    // changed. We intentionally keep this lightweight and only track the
+    // sequence number for live playlist refresh timing.
+    bool _playlist_reload_changed = true;
 
 protected:
     size_t _recvtotalbytes = 0;

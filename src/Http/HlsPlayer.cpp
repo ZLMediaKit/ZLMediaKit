@@ -22,6 +22,8 @@ HlsPlayer::HlsPlayer(const EventPoller::Ptr &poller) {
 void HlsPlayer::play(const string &url) {
     _play_result = false;
     _play_url = url;
+    _last_sequence = -1;
+    _playlist_reload_changed = true;
     setProxyUrl((*this)[Client::kProxyUrl]);
     setAllowResendRequest(true);
     fetchIndexFile();
@@ -202,10 +204,12 @@ void HlsPlayer::fetchSegment() {
 
 bool HlsPlayer::onParsed(bool is_m3u8_inner, int64_t sequence, const map<int, ts_segment> &ts_map) {
     if (!is_m3u8_inner) {
+        auto playlist_changed = _last_sequence != sequence;
+        _playlist_reload_changed = playlist_changed;
         // 这是ts播放列表  [AUTO-TRANSLATED:7ce3d81b]
         // This is the ts playlist
         // This is the ts playlist
-        if (_last_sequence == sequence) {
+        if (!playlist_changed) {
             // 如果是重复的ts列表，那么忽略  [AUTO-TRANSLATED:d15a47f3]
             // If it is a duplicate ts list, then ignore it
             // 但是需要注意, 如果当前ts列表为空了, 那么表明直播结束了或者m3u8文件有问题,需要重新拉流  [AUTO-TRANSLATED:438a8df0]
@@ -312,26 +316,22 @@ float HlsPlayer::delaySecond() {
     if (HlsParser::isM3u8() && HlsParser::getTargetDur() > 0) {
         float targetOffset;
         if (HlsParser::isLive()) {
-            // see RFC 8216, Section 4.4.3.8.
-            // 根据rfc刷新index列表的周期应该是分段时间x3, 因为根据规范播放器只处理最后3个Segment  [AUTO-TRANSLATED:07168708]
-            // According to the rfc, the refresh cycle of the index list should be 3 times the segment time, because according to the specification, the player only processes the last 3 Segments
-            // refresh the index list according to rfc cycle should be the segment time x3,
-            // because according to the specification, the player only handles the last 3 segments
-            targetOffset = (float)(3 * HlsParser::getTargetDur());
+            // RFC 8216 Section 6.3.4:
+            // after a changed playlist reload, wait at least one target
+            // duration; after an unchanged reload, wait half a target duration.
+            return _playlist_reload_changed ? (float) HlsParser::getTargetDur()
+                                            : (float) HlsParser::getTargetDur() / 2.0f;
         } else {
             // 点播则一般m3u8文件不会在改变了, 没必要频繁的刷新, 所以按照总时间来进行刷新  [AUTO-TRANSLATED:2ac0a29e]
             // On-demand generally does not change the m3u8 file, there is no need to refresh frequently, so refresh according to the total time
-            // On-demand, the m3u8 file will generally not change, so there is no need to refresh frequently,
             targetOffset = HlsParser::getTotalDuration();
         }
         // 取最小值, 避免因为分段时长不规则而导致的问题  [AUTO-TRANSLATED:073dff48]
         // Take the minimum value to avoid problems caused by irregular segment durations
-        // Take the minimum value to avoid problems caused by irregular segment duration
         if (targetOffset > HlsParser::getTotalDuration()) {
             targetOffset = HlsParser::getTotalDuration();
         }
         // 根据规范为一半的时间  [AUTO-TRANSLATED:07652637]
-        // According to the specification, it is half the time
         // According to the specification, it is half the time
         if (targetOffset / 2 > 1.0f) {
             return targetOffset / 2;

@@ -18,6 +18,15 @@ using namespace toolkit;
 
 namespace mediakit {
 
+static bool connectionContainsClose(const string &connection) {
+    for (auto token : split(connection, ",")) {
+        if (strToLower(trim(std::move(token))) == "close") {
+            return true;
+        }
+    }
+    return false;
+}
+
 void HttpClient::sendRequest(const string &url) {
     clearResponse();
     _url = url;
@@ -56,25 +65,23 @@ void HttpClient::sendRequest(const string &url) {
     }
     auto host_header = host;
     splitUrl(host, host, port);
+    auto keep_alive = _request_keep_alive;
+    auto persistent = _http_persistent && keep_alive;
+    bool protocol_changed = (_is_https != is_https);
+    bool host_changed = (_last_host != host + ":" + to_string(port)) || protocol_changed;
+    _last_host = host + ":" + to_string(port);
+    _is_https = is_https;
+
     _header.emplace("Host", host_header);
     _header.emplace("User-Agent", kServerName);
     _header.emplace("Accept", "*/*");
     _header.emplace("Accept-Language", "zh-CN,zh;q=0.8");
-    if (_http_persistent) {
-        _header.emplace("Connection", "keep-alive");
-    } else {
-        _header.emplace("Connection", "close");
-    }
-    _http_persistent = true;
+    _header.emplace("Connection", keep_alive ? "keep-alive" : "close");
     if (_body && _body->remainSize()) {
         _header.emplace("Content-Length", to_string(_body->remainSize()));
         GET_CONFIG(string, charSet, Http::kCharSet);
         _header.emplace("Content-Type", "application/x-www-form-urlencoded; charset=" + charSet);
     }
-
-    bool host_changed = (_last_host != host + ":" + to_string(port)) || (_is_https != is_https);
-    _last_host = host + ":" + to_string(port);
-    _is_https = is_https;
 
     auto cookies = HttpCookieStorage::Instance().get(_last_host, _path);
     _StrPrinter printer;
@@ -85,13 +92,24 @@ void HttpClient::sendRequest(const string &url) {
         printer.pop_back();
         _header.emplace("Cookie", printer);
     }
-    if (!alive() || host_changed || !_http_persistent) {
-        if (isUsedProxy()) {
+    if (isUsedProxy()) {
+        // All proxy traffic uses CONNECT, so reuse is limited to the same tunnel target.
+        bool proxy_reuse = alive() && persistent && !host_changed && _proxy_connected;
+
+        if (!proxy_reuse) {
+            _http_persistent = keep_alive;
             _proxy_connected = false;
-            startConnect(_proxy_host, _proxy_port, _wait_header_ms / 1000.0f);
+            startConnectWithProxy(host, _proxy_host, _proxy_port, _wait_header_ms / 1000.0f);
         } else {
-            startConnect(host, port, _wait_header_ms / 1000.0f);
+            SockException ex;
+            onConnect_l(ex);
         }
+        return;
+    }
+
+    if (!alive() || host_changed || !persistent) {
+        _http_persistent = keep_alive;
+        startConnect(host, port, _wait_header_ms / 1000.0f);
     } else {
         SockException ex;
         onConnect_l(ex);
@@ -103,8 +121,9 @@ void HttpClient::clear() {
     _user_set_header.clear();
     _body.reset();
     _method.clear();
-    // 重置代理连接状态
-    _proxy_connected = false;
+    _request_keep_alive = true;
+    // Keep transport-level state so a live direct/proxy connection can still
+    // be reused after the caller resets only the per-request state.
     clearResponse();
 }
 
@@ -202,9 +221,8 @@ void HttpClient::onRecv(const Buffer::Ptr &pBuf) {
 
 void HttpClient::onError(const SockException &ex) {
     if (ex.getErrCode() == Err_reset && _allow_resend_request && _http_persistent && _recved_body_size == 0 && !_header_recved) {
-        // 连接被重置，可能是服务器主动断开了连接, 或者服务器内核参数或防火墙的持久连接空闲时间超时或不一致.  [AUTO-TRANSLATED:8a78f452]
-        // The connection was reset, possibly because the server actively closed the connection, or the server kernel parameters or firewall's persistent connection idle timeout or inconsistency.
-        // 如果是持久化连接，那么我们可以通过重连来解决这个问题  [AUTO-TRANSLATED:6c113e17]
+        // 连接被重置，可能是服务器主动断开了连接, 或者服务器内核参数或防火墙的持久连接空闲时间超时或不一致.
+        // 如果是持久化连接，那么我们可以通过重连来解决这个问题
         // If it is a persistent connection, we can solve this problem by reconnecting
         // The connection was reset, possibly because the server actively disconnected the connection,
         // or the persistent connection idle time of the server kernel parameters or firewall timed out or inconsistent.
@@ -219,12 +237,17 @@ void HttpClient::onError(const SockException &ex) {
 
 ssize_t HttpClient::onRecvHeader(const char *data, size_t len) {
     _parser.parse(data, len);
-    if (_parser.status() == "302" || _parser.status() == "301" || _parser.status() == "303") {
+    auto connection_close = connectionContainsClose(_parser["Connection"]);
+    if (connection_close) {
+        _http_persistent = false;
+    }
+    if (_parser.status() == "302" || _parser.status() == "301" || _parser.status() == "303" || _parser.status() == "307") {
         auto new_url = Parser::mergeUrl(_url, _parser["Location"]);
         if (new_url.empty()) {
             throw invalid_argument("未找到Location字段(跳转url)");
         }
-        if (onRedirectUrl(new_url, _parser.status() == "302")) {
+        bool temporary_redirect = _parser.status() == "302" || _parser.status() == "307";
+        if (onRedirectUrl(new_url, temporary_redirect)) {
             HttpClient::sendRequest(new_url);
             return 0;
         }
@@ -467,6 +490,13 @@ void HttpClient::setCompleteTimeout(size_t timeout_ms) {
     _wait_complete_ms = timeout_ms;
 }
 
+void HttpClient::setRequestKeepAlive(bool enable) {
+    _request_keep_alive = enable;
+    if (!enable) {
+        _http_persistent = false;
+    }
+}
+
 bool HttpClient::isUsedProxy() const {
     return _used_proxy;
 }
@@ -476,12 +506,34 @@ bool HttpClient::isProxyConnected() const {
 }
 
 void HttpClient::setProxyUrl(string proxy_url) {
+    auto old_used_proxy = _used_proxy;
+    auto old_proxy_host = _proxy_host;
+    auto old_proxy_port = _proxy_port;
+    auto old_proxy_auth = _proxy_auth;
+
     _proxy_url = std::move(proxy_url);
     if (!_proxy_url.empty()) {
+        _proxy_host.clear();
+        _proxy_port = 0;
+        _proxy_auth.clear();
         parseProxyUrl(_proxy_url, _proxy_host, _proxy_port, _proxy_auth);
         _used_proxy = true;
     } else {
         _used_proxy = false;
+        _proxy_host.clear();
+        _proxy_port = 0;
+        _proxy_auth.clear();
+        _proxy_connected = false;
+    }
+
+    auto proxy_config_changed = old_used_proxy != _used_proxy
+                                || old_proxy_host != _proxy_host
+                                || old_proxy_port != _proxy_port
+                                || old_proxy_auth != _proxy_auth;
+    if (proxy_config_changed) {
+        // A proxy mode or endpoint change must not reuse the previous transport.
+        _http_persistent = false;
+        _proxy_connected = false;
     }
 }
 
@@ -493,6 +545,10 @@ bool HttpClient::checkProxyConnected(const char *data, size_t len) {
     }
 
     _proxy_connected = false;
+    // CONNECT failed, which usually means the proxy rejected the tunnel request,
+    // does not support CONNECT for this target, or the proxy authentication is invalid.
+    WarnL << "proxy CONNECT failed, status line: "
+          << response.substr(0, response.find("\r\n"));
     return false;
 }
 
