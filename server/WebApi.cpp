@@ -2534,8 +2534,8 @@ void installWebApi() {
     });
 #endif
 
-    // 设置流播放速度（仅支持RTSP流）  [AUTO-TRANSLATED]
-    // Set stream playback speed (RTSP streams only)
+    // 设置流播放速度
+    // Set stream playback speed
     api_regist("/index/api/setStreamSpeed", [](API_ARGS_JSON_ASYNC) {
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream", "speed");
@@ -2561,21 +2561,15 @@ void installWebApi() {
             throw ApiRetException("can not find the stream proxy", API::NotFound);
         }
         
-        // 检查是否是 RTSP 拉流（通过检查 URL 或 delegate 类型）
+        // 获取 delegate
         auto delegate = player_proxy->getDelegate();
         if (!delegate) {
             throw ApiRetException("player delegate not found", API::OtherFailed);
         }
         
-        // 检查是否是 RtspPlayer
-        auto rtsp_player = std::dynamic_pointer_cast<RtspPlayer>(delegate);
-        if (!rtsp_player) {
-            throw ApiRetException("this stream proxy is not an RTSP stream", API::OtherFailed);
-        }
-        
         // 在 PlayerProxy 的线程中异步调用 speed 方法
         player_proxy->getPoller()->async([=]() mutable {
-            rtsp_player->speed(speed);
+            delegate->speed(speed);
             val["result"] = 0;
             val["msg"] = "success";
             val["code"] = API::Success;
@@ -2583,8 +2577,8 @@ void installWebApi() {
         });
     });
 
-    // 暂停/恢复流播放（仅支持RTSP流）  [AUTO-TRANSLATED]
-    // Pause/Resume stream playback (RTSP streams only)
+    // 暂停/恢复流播放
+    // Pause/Resume stream playback
     api_regist("/index/api/pauseStream", [](API_ARGS_JSON_ASYNC) {
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream");
@@ -2609,21 +2603,15 @@ void installWebApi() {
             throw ApiRetException("can not find the stream proxy", API::NotFound);
         }
         
-        // 检查是否是 RTSP 拉流（通过检查 delegate 类型）
+        // 获取 delegate
         auto delegate = player_proxy->getDelegate();
         if (!delegate) {
             throw ApiRetException("player delegate not found", API::OtherFailed);
         }
         
-        // 检查是否是 RtspPlayer
-        auto rtsp_player = std::dynamic_pointer_cast<RtspPlayer>(delegate);
-        if (!rtsp_player) {
-            throw ApiRetException("this stream proxy is not an RTSP stream", API::OtherFailed);
-        }
-        
         // 在 PlayerProxy 的线程中异步调用 pause 方法
         player_proxy->getPoller()->async([=]() mutable {
-            rtsp_player->pause(true);
+            delegate->pause(true);
             val["result"] = 0;
             val["msg"] = "success";
             val["code"] = API::Success;
@@ -2631,8 +2619,8 @@ void installWebApi() {
         });
     });
 
-    // 跳转到指定位置（仅支持RTSP流）  [AUTO-TRANSLATED]
-    // Seek to specified position (RTSP streams only)
+    // 跳转到指定位置
+    // Seek to specified position
     api_regist("/index/api/seekStream", [](API_ARGS_JSON_ASYNC) {
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream");
@@ -2658,21 +2646,15 @@ void installWebApi() {
             throw ApiRetException("can not find the stream proxy", API::NotFound);
         }
         
-        // 检查是否是 RTSP 拉流（通过检查 delegate 类型）
+        // 获取 delegate
         auto delegate = player_proxy->getDelegate();
         if (!delegate) {
             throw ApiRetException("player delegate not found", API::OtherFailed);
         }
         
-        // 检查是否是 RtspPlayer
-        auto rtsp_player = std::dynamic_pointer_cast<RtspPlayer>(delegate);
-        if (!rtsp_player) {
-            throw ApiRetException("this stream proxy is not an RTSP stream", API::OtherFailed);
-        }
-        
         // 在 PlayerProxy 的线程中异步调用 seekTo 方法
         player_proxy->getPoller()->async([=]() mutable {
-            rtsp_player->seekTo(pos);
+            delegate->seekTo(pos);
             val["result"] = 0;
             val["msg"] = "success";
             val["code"] = API::Success;
