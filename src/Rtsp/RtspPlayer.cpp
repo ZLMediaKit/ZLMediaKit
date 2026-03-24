@@ -22,6 +22,10 @@
 #include <iomanip>
 #include <set>
 
+#if defined(_WIN32)
+#include "Util/strptime_win.h"
+#endif
+
 using namespace toolkit;
 using namespace std;
 
@@ -491,26 +495,41 @@ void RtspPlayer::sendPause(int type, uint32_t seekMS) {
                 if (_range_type == "clock" && !_range_start_str.empty()) {
                     // clock 格式：需要计算新的时间
                     // 解析起始时间：20251123T000000Z
-                    struct tm tm_start;
+                    struct tm tm_start = {};
                     const char* start_str = _range_start_str.c_str();
                     if (strptime(start_str, "%Y%m%dT%H%M%SZ", &tm_start) != nullptr) {
                         // 转换为 time_t，加上 seekMS 毫秒
+#if defined(_WIN32)
+                        time_t start_time = _mkgmtime(&tm_start);
+#else
                         time_t start_time = timegm(&tm_start);
+#endif
                         start_time += seekMS / 1000;  // 加上秒数
                         
                         // 格式化新的时间
-                        struct tm tm_new;
-                        gmtime_r(&start_time, &tm_new);
-                        char new_time[32];
-                        strftime(new_time, sizeof(new_time), "%Y%m%dT%H%M%SZ", &tm_new);
+                        struct tm tm_new = {};
+#if defined(_WIN32)
+                        auto gmtime_ret = gmtime_s(&tm_new, &start_time);
+                        if (gmtime_ret == 0)
+#else
+                        auto gmtime_ret = gmtime_r(&start_time, &tm_new);
+                        if (gmtime_ret != nullptr)
+#endif
+                        {
+                            char new_time[32];
+                            strftime(new_time, sizeof(new_time), "%Y%m%dT%H%M%SZ", &tm_new);
                         
-                        // 构建 Range 头
-                        range_header = StrPrinter << "clock=" << new_time << "-" << _range_end_str;
+                            // 构建 Range 头
+                            range_header = StrPrinter << "clock=" << new_time << "-" << _range_end_str;
+                        } else {
+                            // 解析失败，回退到 npt 格式
+                            range_header = StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << seekMS / 1000.0 << "-";
+                        }
                     } else {
                         // 解析失败，回退到 npt 格式
                         range_header = StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << seekMS / 1000.0 << "-";
                     }
-                } else {
+		} else {
                     // npt 格式或其他格式
                     range_header = StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << seekMS / 1000.0 << "-";
                 }
