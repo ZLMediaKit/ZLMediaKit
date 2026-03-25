@@ -12,6 +12,10 @@
 #include "Util/base64.h"
 #include "HttpClient.h"
 #include "Common/config.h"
+#include "HttpProtocolHint.h"
+#if defined(ENABLE_QUIC)
+#include "quic/QuicClientBackend.h"
+#endif
 
 using namespace std;
 using namespace toolkit;
@@ -27,18 +31,55 @@ static bool connectionContainsClose(const string &connection) {
     return false;
 }
 
+#if defined(ENABLE_QUIC)
+static std::string normalizeHttp3HeaderName(const std::string &name) {
+    auto copy = name;
+    return strToLower(copy);
+}
+#endif
+
 void HttpClient::sendRequest(const string &url) {
+    resetQuicRequest(false);
+    resetAutoHttp3ReplayBody();
+    auto plan = makeRequestPlan(url);
+    auto action = selectTransportAction(plan);
+    if (action == HttpClientTransportAction::ConnectQuic) {
+        detachTcpTransport();
+    }
     clearResponse();
-    _url = url;
-    auto protocol = findSubString(url.data(), NULL, "://");
-    uint16_t port;
-    bool is_https;
+    _active_plan = plan;
+    _quic_request_auto = false;
+    _quic_auto_fallback_attempted = false;
+    applyRequestPlan(plan);
+    switch (action) {
+    case HttpClientTransportAction::ConnectQuic:
+        beginQuicConnect(plan);
+        return;
+    case HttpClientTransportAction::ConnectProxyTunnel:
+        beginProxyConnect(plan);
+        return;
+    case HttpClientTransportAction::ConnectDirect:
+        beginDirectConnect(plan);
+        return;
+    case HttpClientTransportAction::ReuseConnection:
+    default: {
+        reuseTransport(plan);
+        return;
+    }
+    }
+}
+
+HttpClientRequestPlan HttpClient::makeRequestPlan(const string &url) {
+    HttpClientRequestPlan plan;
+    plan.url = url;
+
+    auto protocol = findSubString(url.data(), nullptr, "://");
     if (strcasecmp(protocol.data(), "http") == 0) {
-        port = 80;
-        is_https = false;
+        plan.port = 80;
+        plan.scheme = HttpClientScheme::Http;
     } else if (strcasecmp(protocol.data(), "https") == 0) {
-        port = 443;
-        is_https = true;
+        plan.port = 443;
+        plan.scheme = HttpClientScheme::Https;
     } else {
         auto strErr = StrPrinter << "非法的http url:" << url << endl;
         throw std::invalid_argument(strErr);
@@ -46,77 +87,270 @@ void HttpClient::sendRequest(const string &url) {
 
     auto host = findSubString(url.data(), "://", "/");
     if (host.empty()) {
-        host = findSubString(url.data(), "://", NULL);
+        host = findSubString(url.data(), "://", nullptr);
     }
-    _path = findSubString(url.data(), host.data(), NULL);
-    if (_path.empty()) {
-        _path = "/";
+
+    plan.path = findSubString(url.data(), host.data(), nullptr);
+    if (plan.path.empty()) {
+        plan.path = "/";
     }
-    // 重新设置header，防止上次请求的header干扰  [AUTO-TRANSLATED:d8d06841]
-    // Reset the header to prevent interference from the previous request's header
-    _header = _user_set_header;
+    plan.method = _method.empty() ? "GET" : _method;
+
+    // Reset request headers so the previous request cannot leak into the next one.
+    plan.header = _user_set_header;
     auto pos = host.find('@');
     if (pos != string::npos) {
-        // 去除？后面的字符串  [AUTO-TRANSLATED:0ccb41c2]
-        // Remove the string after the "?"
-        auto authStr = host.substr(0, pos);
+        auto auth_str = host.substr(0, pos);
         host = host.substr(pos + 1, host.size());
-        _header.emplace("Authorization", "Basic " + encodeBase64(authStr));
+        plan.header.emplace("Authorization", "Basic " + encodeBase64(auth_str));
     }
-    auto host_header = host;
-    splitUrl(host, host, port);
-    auto keep_alive = _request_keep_alive;
-    auto persistent = _http_persistent && keep_alive;
-    bool protocol_changed = (_is_https != is_https);
-    bool host_changed = (_last_host != host + ":" + to_string(port)) || protocol_changed;
-    _last_host = host + ":" + to_string(port);
-    _is_https = is_https;
 
-    _header.emplace("Host", host_header);
-    _header.emplace("User-Agent", kServerName);
-    _header.emplace("Accept", "*/*");
-    _header.emplace("Accept-Language", "zh-CN,zh;q=0.8");
-    _header.emplace("Connection", keep_alive ? "keep-alive" : "close");
+    plan.host_header = host;
+    plan.host = host;
+    splitUrl(plan.host, plan.host, plan.port);
+    plan.transport_host = plan.host;
+    plan.transport_port = plan.port;
+
+    plan.keep_alive = _request_keep_alive;
+    plan.persistent = _http_persistent && plan.keep_alive;
+    plan.protocol_changed = (_is_https != (plan.scheme == HttpClientScheme::Https));
+    plan.last_host = plan.host + ":" + to_string(plan.port);
+    plan.host_changed = (_last_host != plan.last_host) || plan.protocol_changed;
+
+    plan.header.emplace("Host", plan.host_header);
+    plan.header.emplace("User-Agent", kServerName);
+    plan.header.emplace("Accept", "*/*");
+    plan.header.emplace("Accept-Language", "zh-CN,zh;q=0.8");
+    plan.header.emplace("Connection", plan.keep_alive ? "keep-alive" : "close");
+    if (!_enable_http3 && _enable_http3_auto && !isUsedProxy() &&
+        plan.scheme == HttpClientScheme::Https) {
+        HttpAltSvcEndpoint endpoint;
+        if (lookupAltSvc(plan.host, plan.port, &endpoint) && prepareAutoHttp3ReplayBody()) {
+            plan.transport_host = endpoint.host;
+            plan.transport_port = endpoint.port;
+            plan.auto_http3 = true;
+        }
+    }
+
     if (_body && _body->remainSize()) {
-        _header.emplace("Content-Length", to_string(_body->remainSize()));
+        plan.header.emplace("Content-Length", to_string(_body->remainSize()));
         GET_CONFIG(string, charSet, Http::kCharSet);
-        _header.emplace("Content-Type", "application/x-www-form-urlencoded; charset=" + charSet);
+        plan.header.emplace("Content-Type", "application/x-www-form-urlencoded; charset=" + charSet);
     }
 
-    auto cookies = HttpCookieStorage::Instance().get(_last_host, _path);
+    auto cookies = HttpCookieStorage::Instance().get(plan.last_host, plan.path);
     _StrPrinter printer;
     for (auto &cookie : cookies) {
         printer << cookie->getKey() << "=" << cookie->getVal() << ";";
     }
     if (!printer.empty()) {
         printer.pop_back();
-        _header.emplace("Cookie", printer);
+        plan.header.emplace("Cookie", printer);
+    }
+
+    return plan;
+}
+
+HttpClientTransportAction HttpClient::selectTransportAction(const HttpClientRequestPlan &plan) const {
+    if (_enable_http3 && plan.scheme == HttpClientScheme::Https && !isUsedProxy()) {
+#if defined(ENABLE_QUIC)
+        return HttpClientTransportAction::ConnectQuic;
+#else
+        WarnL << "HTTP/3 was requested for " << plan.url << " but ENABLE_QUIC is off; falling back to HTTPS/TCP";
+#endif
+    }
+    if (plan.auto_http3 && !isUsedProxy()) {
+#if defined(ENABLE_QUIC)
+        return HttpClientTransportAction::ConnectQuic;
+#endif
     }
     if (isUsedProxy()) {
-        // All proxy traffic uses CONNECT, so reuse is limited to the same tunnel target.
-        bool proxy_reuse = alive() && persistent && !host_changed && _proxy_connected;
+        bool proxy_reuse = TcpClient::alive() && plan.persistent && !plan.host_changed && _proxy_connected;
+        return proxy_reuse ? HttpClientTransportAction::ReuseConnection
+                           : HttpClientTransportAction::ConnectProxyTunnel;
+    }
+    if (!TcpClient::alive() || plan.host_changed || !plan.persistent) {
+        return HttpClientTransportAction::ConnectDirect;
+    }
+    return HttpClientTransportAction::ReuseConnection;
+}
 
-        if (!proxy_reuse) {
-            _http_persistent = keep_alive;
-            _proxy_connected = false;
-            startConnectWithProxy(host, _proxy_host, _proxy_port, _wait_header_ms / 1000.0f);
-        } else {
-            SockException ex;
-            onConnect_l(ex);
+void HttpClient::beginDirectConnect(const HttpClientRequestPlan &plan) {
+    _http_persistent = plan.keep_alive;
+    startConnect(plan.host, plan.port, _wait_header_ms / 1000.0f);
+}
+
+void HttpClient::beginProxyConnect(const HttpClientRequestPlan &plan) {
+    _http_persistent = plan.keep_alive;
+    _proxy_connected = false;
+    startConnectWithProxy(plan.host, _proxy_host, _proxy_port, _wait_header_ms / 1000.0f);
+}
+
+void HttpClient::beginQuicConnect(const HttpClientRequestPlan &plan) {
+#if !defined(ENABLE_QUIC)
+    beginDirectConnect(plan);
+#else
+    detachTcpTransport();
+    _http_persistent = plan.keep_alive;
+    _quic_request_auto = plan.auto_http3 && !_enable_http3;
+    ensureQuicBackend();
+    if (!_quic_backend || !_quic_backend->available()) {
+        if (_quic_request_auto) {
+            eraseAltSvc(plan.host, plan.port);
+            _quic_request_auto = false;
+            beginDirectConnect(makeDirectFallbackPlan());
+            return;
         }
+        onResponseCompleted_l(SockException(Err_other, "http3 backend unavailable"));
         return;
     }
 
-    if (!alive() || host_changed || !persistent) {
-        _http_persistent = keep_alive;
-        startConnect(host, port, _wait_header_ms / 1000.0f);
-    } else {
-        SockException ex;
-        onConnect_l(ex);
+    auto restart_backend = !_quic_backend->alive() || _quic_host != plan.transport_host || _quic_port != plan.transport_port;
+    if (restart_backend) {
+        if (_quic_backend->alive()) {
+            _quic_backend->shutdown();
+        }
+
+        QuicClientConfig config;
+        config.verify_peer = _http3_verify_peer;
+        config.connect_timeout_ms = _wait_header_ms;
+        config.idle_timeout_ms = _wait_body_ms ? _wait_body_ms : _wait_header_ms;
+        if (!_http3_ca_file.empty()) {
+            config.ca_file.data = _http3_ca_file.data();
+            config.ca_file.len = _http3_ca_file.size();
+        }
+        if (_quic_backend->start(plan.transport_host, plan.transport_port, config) != 0) {
+            if (_quic_request_auto) {
+                eraseAltSvc(plan.host, plan.port);
+                _quic_request_auto = false;
+                restoreAutoHttp3ReplayBody();
+                beginDirectConnect(makeDirectFallbackPlan());
+                return;
+            }
+            onResponseCompleted_l(SockException(Err_other, "start http3 transport failed"));
+            return;
+        }
+        _quic_host = plan.transport_host;
+        _quic_port = plan.transport_port;
+        _quic_authority = plan.host_header;
     }
+
+    QuicClientRequest request;
+    request.request_id = ++_quic_request_id;
+    request.authority = plan.host_header;
+    request.path = plan.path;
+    request.method = plan.method;
+    request.end_stream = !_body || _body->remainSize() == 0;
+    for (auto &pr : plan.header) {
+        auto name = normalizeHttp3HeaderName(pr.first);
+        if (name == "host" || name == "connection" || name == "proxy-connection") {
+            continue;
+        }
+        request.headers.emplace_back(QuicClientOwnedHeader{name, pr.second});
+    }
+
+    _quic_request_active = true;
+    startQuicManagerTimer();
+    if (_quic_backend->startRequest(request) != 0) {
+        _quic_request_active = false;
+        stopQuicManagerTimer();
+        if (_quic_request_auto) {
+            eraseAltSvc(plan.host, plan.port);
+            _quic_request_auto = false;
+            restoreAutoHttp3ReplayBody();
+            beginDirectConnect(makeDirectFallbackPlan());
+            return;
+        }
+        onResponseCompleted_l(SockException(Err_other, "start http3 request failed"));
+        return;
+    }
+
+    GET_CONFIG(uint32_t, send_buf_size, Http::kSendBufSize);
+    while (_body && _body->remainSize()) {
+        auto buffer = _body->readData(send_buf_size);
+        if (!buffer) {
+            break;
+        }
+        auto fin = !_body->remainSize();
+        if (_quic_backend->sendBody(request.request_id, reinterpret_cast<const uint8_t *>(buffer->data()), buffer->size(), fin) != 0) {
+            _quic_request_active = false;
+            stopQuicManagerTimer();
+            if (_quic_request_auto) {
+                eraseAltSvc(plan.host, plan.port);
+                _quic_request_auto = false;
+                restoreAutoHttp3ReplayBody();
+                beginDirectConnect(makeDirectFallbackPlan());
+                return;
+            }
+            onResponseCompleted_l(SockException(Err_other, "send http3 request body failed"));
+            return;
+        }
+    }
+#endif
+}
+
+void HttpClient::reuseTransport(const HttpClientRequestPlan &) {
+    SockException ex;
+    onConnect_l(ex);
+}
+
+void HttpClient::applyRequestPlan(const HttpClientRequestPlan &plan) {
+    _url = plan.url;
+    _path = plan.path;
+    _method = plan.method;
+    _header = plan.header;
+    _last_host = plan.last_host;
+    _is_https = (plan.scheme == HttpClientScheme::Https);
+}
+
+string HttpClient::makeHttpRequestHeader() const {
+    _StrPrinter printer;
+    printer << (_method.empty() ? "GET" : _method) + " " << _path + " HTTP/1.1\r\n";
+    for (auto &pr : _header) {
+        printer << pr.first + ": ";
+        printer << pr.second + "\r\n";
+    }
+    return printer << "\r\n";
+}
+
+string HttpClient::makeProxyConnectHeader() const {
+    _StrPrinter printer;
+    printer << "CONNECT " << _last_host << " HTTP/1.1\r\n";
+    printer << "Host: " << _last_host << "\r\n";
+    printer << "User-Agent: " << kServerName << "\r\n";
+    printer << "Proxy-Connection: keep-alive\r\n";
+    if (!_proxy_auth.empty()) {
+        printer << "Proxy-Authorization: Basic " << _proxy_auth << "\r\n";
+    }
+    return printer << "\r\n";
+}
+
+ssize_t HttpClient::sendRequestHeaderData(const string &data) {
+    return SockSender::send(data);
+}
+
+ssize_t HttpClient::sendRequestBodyData(Buffer::Ptr buffer) {
+    return send(std::move(buffer));
+}
+
+void HttpClient::loadResponseParser(const string &protocol, const string &status,
+                                    const string &status_str, const HttpHeader &headers) {
+    _StrPrinter printer;
+    auto effective_protocol = protocol.empty() ? "HTTP/3" : protocol;
+    auto effective_status = status.empty() ? "500" : status;
+    auto effective_status_str = status_str.empty() ? "UNKNOWN" : status_str;
+    printer << effective_protocol << " " << effective_status << " " << effective_status_str << "\r\n";
+    for (auto &pr : headers) {
+        printer << pr.first << ": " << pr.second << "\r\n";
+    }
+    std::string serialized = printer;
+    serialized.append("\r\n");
+    _parser.parse(serialized.data(), serialized.size());
 }
 
 void HttpClient::clear() {
+    resetQuicRequest(false);
+    resetAutoHttp3ReplayBody();
     _url.clear();
     _user_set_header.clear();
     _body.reset();
@@ -125,6 +359,11 @@ void HttpClient::clear() {
     // Keep transport-level state so a live direct/proxy connection can still
     // be reused after the caller resets only the per-request state.
     clearResponse();
+    // A reused idle transport can still report a late close after the previous
+    // request has already completed. Keep the request state marked as complete
+    // until the next sendRequest() resets it, otherwise that late close can be
+    // misattributed to the next request.
+    _complete = true;
 }
 
 void HttpClient::clearResponse() {
@@ -158,10 +397,12 @@ HttpClient &HttpClient::addHeader(string key, string val, bool force) {
 }
 
 void HttpClient::setBody(string body) {
+    resetAutoHttp3ReplayBody();
     _body.reset(new HttpStringBody(std::move(body)));
 }
 
 void HttpClient::setBody(HttpBody::Ptr body) {
+    resetAutoHttp3ReplayBody();
     _body = std::move(body);
 }
 
@@ -190,27 +431,20 @@ void HttpClient::onConnect_l(const SockException &ex) {
         onResponseCompleted_l(ex);
         return;
     }
-    _StrPrinter printer;
-    // 不使用代理或者代理服务器已经连接成功  [AUTO-TRANSLATED:e051567c]
-    // No proxy is used or the proxy server has connected successfully
+    onTransportReady();
+}
+
+void HttpClient::onTransportReady() {
+    // No proxy is used or the proxy tunnel has already been established.
     if (_proxy_connected || !isUsedProxy()) {
-        printer << _method + " " << _path + " HTTP/1.1\r\n";
-        for (auto &pr : _header) {
-            printer << pr.first + ": ";
-            printer << pr.second + "\r\n";
-        }
+        auto request = makeHttpRequestHeader();
         _header.clear();
         _path.clear();
-    } else {
-        printer << "CONNECT " << _last_host << " HTTP/1.1\r\n";
-        printer << "Host: " << _last_host << "\r\n";
-        printer << "User-Agent: " << kServerName << "\r\n";
-        printer << "Proxy-Connection: keep-alive\r\n";
-        if (!_proxy_auth.empty()) {
-            printer << "Proxy-Authorization: Basic " << _proxy_auth << "\r\n";
-        }
+        sendRequestHeaderData(request);
+        onFlush();
+        return;
     }
-    SockSender::send(printer << "\r\n");
+    sendRequestHeaderData(makeProxyConnectHeader());
     onFlush();
 }
 
@@ -237,6 +471,10 @@ void HttpClient::onError(const SockException &ex) {
 
 ssize_t HttpClient::onRecvHeader(const char *data, size_t len) {
     _parser.parse(data, len);
+    return handleParsedResponseHeader(false);
+}
+
+ssize_t HttpClient::handleParsedResponseHeader(bool end_stream) {
     auto connection_close = connectionContainsClose(_parser["Connection"]);
     if (connection_close) {
         _http_persistent = false;
@@ -254,6 +492,10 @@ ssize_t HttpClient::onRecvHeader(const char *data, size_t len) {
     }
 
     checkCookie(_parser.getHeader());
+    auto alt_svc = _parser["Alt-Svc"];
+    if (!alt_svc.empty()) {
+        updateAltSvcCache(_active_plan.host, _active_plan.port, alt_svc);
+    }
     onResponseHeader(_parser.status(), _parser.getHeader());
     _header_recved = true;
 
@@ -294,6 +536,18 @@ ssize_t HttpClient::onRecvHeader(const char *data, size_t len) {
         return 0;
     }
 
+    if (end_stream) {
+        if (_total_body_size < 0) {
+            _total_body_size = 0;
+            onResponseCompleted_l(SockException(Err_success, "completed"));
+            return 0;
+        }
+        if (_total_body_size > 0) {
+            onResponseCompleted_l(SockException(Err_other, "response body ended before Content-Length was satisfied"));
+            return 0;
+        }
+    }
+
     // 当_total_body_size != 0时到达这里，代表后续有content  [AUTO-TRANSLATED:3a55b268]
     // When _total_body_size != 0, it means there is content afterwards
     // 虽然我们在_total_body_size >0 时知道content的确切大小，  [AUTO-TRANSLATED:af91f74f]
@@ -307,6 +561,10 @@ ssize_t HttpClient::onRecvHeader(const char *data, size_t len) {
 }
 
 void HttpClient::onRecvContent(const char *data, size_t len) {
+    handleResponseContentData(data, len, false);
+}
+
+void HttpClient::handleResponseContentData(const char *data, size_t len, bool fin) {
     if (_chunked_splitter) {
         _chunked_splitter->input(data, len);
         return;
@@ -315,7 +573,13 @@ void HttpClient::onRecvContent(const char *data, size_t len) {
     if (_total_body_size < 0) {
         // 不限长度的content  [AUTO-TRANSLATED:325a9dbc]
         // Unlimited length content
-        onResponseBody(data, len);
+        if (len > 0) {
+            onResponseBody(data, len);
+        }
+        if (fin) {
+            _total_body_size = _recved_body_size;
+            onResponseCompleted_l(SockException(Err_success, "completed"));
+        }
         return;
     }
 
@@ -324,21 +588,30 @@ void HttpClient::onRecvContent(const char *data, size_t len) {
     if (_recved_body_size < (size_t) _total_body_size) {
         // content还未接收完毕  [AUTO-TRANSLATED:b30ca92c]
         // Content has not been received yet
-        onResponseBody(data, len);
+        if (len > 0) {
+            onResponseBody(data, len);
+        }
+        if (fin) {
+            onResponseCompleted_l(SockException(Err_other, "response body ended before Content-Length was satisfied"));
+        }
         return;
     }
 
     if (_recved_body_size == (size_t)_total_body_size) {
         // content接收完毕  [AUTO-TRANSLATED:e730ea8c]
         // Content received
-        onResponseBody(data, len);
+        if (len > 0) {
+            onResponseBody(data, len);
+        }
         onResponseCompleted_l(SockException(Err_success, "completed"));
         return;
     }
 
     // 声明的content数据比真实的小，断开链接  [AUTO-TRANSLATED:38204302]
     // The declared content data is smaller than the real one, disconnect
-    onResponseBody(data, len);
+    if (len > 0) {
+        onResponseBody(data, len);
+    }
     throw invalid_argument("http response content size bigger than expected");
 }
 
@@ -351,7 +624,7 @@ void HttpClient::onFlush() {
             // Data transmission ends or data reading exception
             break;
         }
-        if (send(buffer) <= 0) {
+        if (sendRequestBodyData(buffer) <= 0) {
             // 发送数据失败，不需要回滚数据，因为发送前已经通过isSocketBusy()判断socket可写  [AUTO-TRANSLATED:30762202]
             // Data transmission failed, no need to roll back data, because the socket is writable before sending
             // 所以发送缓存区肯定未满,该buffer肯定已经写入socket  [AUTO-TRANSLATED:769fff52]
@@ -396,6 +669,16 @@ void HttpClient::onManager() {
     }
 }
 
+void HttpClient::shutdown(const SockException &ex) {
+    auto had_quic_request = _quic_request_active;
+    resetQuicRequest(true);
+    stopQuicManagerTimer();
+    TcpClient::shutdown(ex);
+    if (had_quic_request) {
+        onResponseCompleted_l(ex);
+    }
+}
+
 void HttpClient::onResponseCompleted_l(const SockException &ex) {
     if (_complete) {
         return;
@@ -433,6 +716,14 @@ void HttpClient::onResponseCompleted_l(const SockException &ex) {
 
 bool HttpClient::waitResponse() const {
     return !_complete && alive();
+}
+
+bool HttpClient::alive() const {
+    return TcpClient::alive()
+#if defined(ENABLE_QUIC)
+           || (_quic_backend && _quic_backend->alive())
+#endif
+        ;
 }
 
 bool HttpClient::isHttps() const {
@@ -475,6 +766,24 @@ void HttpClient::checkCookie(HttpClient::HttpHeader &headers) {
         }
         HttpCookieStorage::Instance().set(cookie);
     }
+}
+
+void HttpClient::detachTcpTransport() {
+    auto sock = getSock();
+    if (!sock) {
+        _proxy_connected = false;
+        return;
+    }
+    // Detach callbacks before dropping the old transport. When we switch from
+    // an HTTPS/TCP bootstrap connection to QUIC, the previous keep-alive
+    // socket can still report a late EOF. That stale TCP error must not be
+    // allowed to complete the new HTTP/3 request.
+    sock->setOnRead(nullptr);
+    sock->setOnErr(nullptr);
+    sock->setOnFlush(nullptr);
+    setSock(nullptr);
+    _proxy_connected = false;
+    TcpClient::shutdown(SockException(Err_shutdown, "switch transport"));
 }
 
 void HttpClient::setHeaderTimeout(size_t timeout_ms) {
@@ -537,6 +846,25 @@ void HttpClient::setProxyUrl(string proxy_url) {
     }
 }
 
+void HttpClient::setEnableHttp3(bool enable) {
+    _enable_http3 = enable;
+    if (!enable) {
+        resetQuicRequest(true);
+    }
+}
+
+void HttpClient::setEnableHttp3Auto(bool enable) {
+    _enable_http3_auto = enable;
+}
+
+void HttpClient::setHttp3VerifyPeer(bool verify) {
+    _http3_verify_peer = verify;
+}
+
+void HttpClient::setHttp3CAFile(std::string ca_file) {
+    _http3_ca_file = std::move(ca_file);
+}
+
 bool HttpClient::checkProxyConnected(const char *data, size_t len) {
     string response(data, len);
     if (response.find("HTTP/1.1 200") != string::npos || response.find("HTTP/1.0 200") != string::npos) {
@@ -554,5 +882,267 @@ bool HttpClient::checkProxyConnected(const char *data, size_t len) {
 
 void HttpClient::setAllowResendRequest(bool allow) {
     _allow_resend_request = allow;
+}
+
+void HttpClient::ensureQuicBackend() {
+#if defined(ENABLE_QUIC)
+    if (_quic_backend) {
+        return;
+    }
+    _quic_backend = std::make_shared<QuicClientBackend>(getPoller());
+    if (!_quic_backend->available()) {
+        _quic_backend.reset();
+        return;
+    }
+
+    std::weak_ptr<HttpClient> weak_self = std::static_pointer_cast<HttpClient>(shared_from_this());
+    QuicClientBackend::Callbacks callbacks;
+    callbacks.on_headers = [weak_self](const QuicClientResponseHeaders &headers) {
+        auto self = weak_self.lock();
+        if (!self) {
+            return;
+        }
+        HttpHeader map;
+        for (auto &header : headers.headers) {
+            map.emplace(header.name, header.value);
+        }
+        self->onQuicResponseHeaders(headers.request_id, headers.status_code, map, headers.fin);
+    };
+    callbacks.on_body = [weak_self](uint64_t request_id, const uint8_t *data, size_t len, bool fin) {
+        auto self = weak_self.lock();
+        if (!self) {
+            return;
+        }
+        self->onQuicResponseBody(request_id, reinterpret_cast<const char *>(data), len, fin);
+    };
+    callbacks.on_close = [weak_self](const QuicClientCloseInfo &close_info) {
+        auto self = weak_self.lock();
+        if (!self) {
+            return;
+        }
+        self->onQuicRequestClosed(close_info.request_id, static_cast<int>(close_info.state), close_info.reason);
+    };
+    _quic_backend->setCallbacks(std::move(callbacks));
+#endif
+}
+
+void HttpClient::resetQuicRequest(bool close_transport) {
+#if defined(ENABLE_QUIC)
+    stopQuicManagerTimer();
+    if (_quic_backend && _quic_request_active) {
+        _quic_backend->cancelRequest(_quic_request_id, 0);
+    }
+    _quic_request_active = false;
+    if (close_transport && _quic_backend) {
+        _quic_backend->shutdown();
+        _quic_backend.reset();
+        _quic_host.clear();
+        _quic_authority.clear();
+        _quic_port = 0;
+    }
+#else
+    (void)close_transport;
+#endif
+}
+
+void HttpClient::startQuicManagerTimer() {
+#if defined(ENABLE_QUIC)
+    if (_quic_timer || !_quic_request_active) {
+        return;
+    }
+    std::weak_ptr<HttpClient> weak_self = std::static_pointer_cast<HttpClient>(shared_from_this());
+    _quic_timer = std::make_shared<Timer>(0.2f, [weak_self]() {
+        auto self = weak_self.lock();
+        if (!self || !self->_quic_request_active) {
+            return false;
+        }
+
+        if (self->_wait_complete_ms > 0) {
+            if (!self->_complete && self->_wait_complete.elapsedTime() > self->_wait_complete_ms) {
+                if (self->tryFallbackToDirectFromAutoHttp3()) {
+                    return false;
+                }
+                self->shutdown(SockException(Err_timeout, "wait http3 response complete timeout"));
+                return false;
+            }
+            return true;
+        }
+
+        if (!self->_header_recved) {
+            if (self->_wait_header.elapsedTime() > self->_wait_header_ms) {
+                if (self->tryFallbackToDirectFromAutoHttp3()) {
+                    return false;
+                }
+                self->shutdown(SockException(Err_timeout, "wait http3 response header timeout"));
+                return false;
+            }
+            return true;
+        }
+
+        if (self->_wait_body_ms > 0 && self->_wait_body.elapsedTime() > self->_wait_body_ms) {
+            self->shutdown(SockException(Err_timeout, "wait http3 response body timeout"));
+            return false;
+        }
+        return true;
+    }, getPoller());
+#endif
+}
+
+void HttpClient::stopQuicManagerTimer() {
+    _quic_timer.reset();
+}
+
+void HttpClient::onQuicResponseHeaders(uint64_t request_id, int32_t status_code, const HttpHeader &headers, bool fin) {
+#if defined(ENABLE_QUIC)
+    if (!_quic_request_active || request_id != _quic_request_id) {
+        return;
+    }
+
+    _wait_header.resetTime();
+    _wait_body.resetTime();
+    try {
+        loadResponseParser("HTTP/3", std::to_string(status_code), "", headers);
+        handleParsedResponseHeader(fin);
+    } catch (std::exception &ex) {
+        onResponseCompleted_l(SockException(Err_other, ex.what()));
+    }
+#else
+    (void)request_id;
+    (void)status_code;
+    (void)headers;
+    (void)fin;
+#endif
+}
+
+void HttpClient::onQuicResponseBody(uint64_t request_id, const char *data, size_t len, bool fin) {
+#if defined(ENABLE_QUIC)
+    if (!_quic_request_active || request_id != _quic_request_id) {
+        return;
+    }
+
+    _wait_body.resetTime();
+    try {
+        handleResponseContentData(data, len, fin);
+    } catch (std::exception &ex) {
+        onResponseCompleted_l(SockException(Err_other, ex.what()));
+    }
+#else
+    (void)request_id;
+    (void)data;
+    (void)len;
+    (void)fin;
+#endif
+}
+
+void HttpClient::onQuicRequestClosed(uint64_t request_id, int state, const std::string &reason) {
+#if defined(ENABLE_QUIC)
+    if (!_quic_request_active || request_id != _quic_request_id) {
+        return;
+    }
+
+    _quic_request_active = false;
+    stopQuicManagerTimer();
+
+    if (tryFallbackToDirectFromAutoHttp3()) {
+        return;
+    }
+
+    if (_complete) {
+        if (!_http_persistent && _quic_backend) {
+            _quic_backend->shutdown();
+        }
+        return;
+    }
+
+    auto quic_state = static_cast<QuicClientState>(state);
+    if (quic_state == QuicClientState::Completed && _header_recved) {
+        onResponseCompleted_l(SockException(Err_success, reason.empty() ? "http3 request completed" : reason));
+    } else {
+        onResponseCompleted_l(SockException(Err_other, reason.empty() ? "http3 request closed" : reason));
+    }
+
+    if (!_http_persistent && _quic_backend) {
+        _quic_backend->shutdown();
+    }
+#else
+    (void)request_id;
+    (void)state;
+    (void)reason;
+#endif
+}
+
+bool HttpClient::tryFallbackToDirectFromAutoHttp3() {
+#if defined(ENABLE_QUIC)
+    if (!_quic_request_auto || _quic_auto_fallback_attempted || _header_recved || _recved_body_size != 0) {
+        return false;
+    }
+
+    _quic_auto_fallback_attempted = true;
+    _quic_request_auto = false;
+    _quic_request_active = false;
+    stopQuicManagerTimer();
+    eraseAltSvc(_active_plan.host, _active_plan.port);
+    if (_quic_backend) {
+        _quic_backend->shutdown();
+        _quic_host.clear();
+        _quic_authority.clear();
+        _quic_port = 0;
+    }
+    restoreAutoHttp3ReplayBody();
+    beginDirectConnect(makeDirectFallbackPlan());
+    return true;
+#else
+    return false;
+#endif
+}
+
+bool HttpClient::prepareAutoHttp3ReplayBody() {
+    resetAutoHttp3ReplayBody();
+    if (!_body) {
+        return true;
+    }
+
+    auto remain = _body->remainSize();
+    if (remain < 0) {
+        return false;
+    }
+    if (remain == 0) {
+        return true;
+    }
+
+    GET_CONFIG(uint32_t, replay_max_size, Http::kHttp3AutoReplayMaxSize);
+    if (static_cast<uint64_t>(remain) > replay_max_size) {
+        return false;
+    }
+
+    std::string snapshot;
+    if (!_body->snapshot(snapshot, replay_max_size)) {
+        return false;
+    }
+
+    _http3_auto_replay_body = std::move(snapshot);
+    _http3_auto_replay_ready = true;
+    _body = std::make_shared<HttpStringBody>(_http3_auto_replay_body);
+    return true;
+}
+
+void HttpClient::resetAutoHttp3ReplayBody() {
+    _http3_auto_replay_ready = false;
+    _http3_auto_replay_body.clear();
+}
+
+void HttpClient::restoreAutoHttp3ReplayBody() {
+    if (!_http3_auto_replay_ready) {
+        return;
+    }
+    _body = std::make_shared<HttpStringBody>(_http3_auto_replay_body);
+}
+
+HttpClientRequestPlan HttpClient::makeDirectFallbackPlan() const {
+    auto plan = _active_plan;
+    plan.auto_http3 = false;
+    plan.transport_host = plan.host;
+    plan.transport_port = plan.port;
+    return plan;
 }
 } /* namespace mediakit */

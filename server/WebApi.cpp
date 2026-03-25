@@ -2393,7 +2393,7 @@ void installWebApi() {
 
         // 通过on_http_access完成文件下载鉴权，请务必确认访问鉴权url参数以及访问文件路径是否合法  [AUTO-TRANSLATED:73507988]
         // File download authentication is completed through on_http_access. Please make sure that the access authentication URL parameters and the access file path are legal
-        HttpSession::HttpAccessPathInvoker file_invoker = [allArgs, invoker](const string &err_msg, const string &cookie_path_in, int life_second) mutable {
+        HttpAccessPathInvoker file_invoker = [allArgs, invoker](const string &err_msg, const string &cookie_path_in, int life_second) mutable {
             if (!err_msg.empty()) {
                 invoker(401, StrCaseMap{}, err_msg);
             } else {

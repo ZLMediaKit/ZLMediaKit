@@ -324,7 +324,7 @@ PYBIND11_EMBEDDED_MODULE(mk_loader, m) {
     m.def("http_access_invoker_do", [](const py::capsule &cap, const std::string &errMsg,const std::string &accessPath, int cookieLifeSecond) {
         // 执行c++代码时释放gil锁
         py::gil_scoped_release release;
-        auto &invoker = to_native<HttpSession::HttpAccessPathInvoker>(cap);
+        auto &invoker = to_native<HttpAccessPathInvoker>(cap);
         invoker(errMsg, accessPath, cookieLifeSecond);
     });
 
