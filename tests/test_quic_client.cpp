@@ -13,10 +13,12 @@
 #include <mutex>
 #include <unordered_map>
 
+#include "Common/config.h"
 #include "Common/Parser.h"
 #include "Thread/semaphore.h"
 #include "Util/logger.h"
 #include "quic/QuicClientBackend.h"
+#include "quic/QuicPluginABI.h"
 
 using namespace std;
 using namespace toolkit;
@@ -59,6 +61,14 @@ static string ensurePath(string path) {
 
 static bool isIpv6Literal(const string &host) {
     return host.find(':') != string::npos;
+}
+
+static QuicCongestionAlgo loadClientCongestionAlgo() {
+    auto value = mINI::Instance()[Http::kQuicClientCongestionControl].as<string>();
+    if (value.empty()) {
+        value = mINI::Instance()[Http::kQuicCongestionControl].as<string>();
+    }
+    return quicCongestionAlgoFromString(value);
 }
 
 class ClientHarness {
@@ -118,6 +128,7 @@ public:
         config.verify_peer = false;
         config.idle_timeout_ms = 10000;
         config.connect_timeout_ms = 5000;
+        config.congestion_algo = loadClientCongestionAlgo();
         return _backend->start(_host, _port, config) == 0;
     }
 

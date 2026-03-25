@@ -68,6 +68,23 @@ static void detachSocketCallbacks(const std::shared_ptr<toolkit::UdpClient> &tra
     sock->setOnFlush(nullptr);
 }
 
+struct ResolvedUdpEndpoint {
+    std::string ip;
+    uint16_t port = 0;
+    int family = AF_UNSPEC;
+};
+
+static bool resolveUdpEndpoint(const std::string &host, uint16_t port, ResolvedUdpEndpoint &endpoint) {
+    sockaddr_storage addr;
+    if (!SockUtil::getDomainIP(host.c_str(), port, addr, AF_UNSPEC, SOCK_DGRAM, IPPROTO_UDP)) {
+        return false;
+    }
+    endpoint.ip = SockUtil::inet_ntoa(reinterpret_cast<const sockaddr *>(&addr));
+    endpoint.port = SockUtil::inet_port(reinterpret_cast<const sockaddr *>(&addr));
+    endpoint.family = reinterpret_cast<const sockaddr *>(&addr)->sa_family;
+    return !endpoint.ip.empty() && endpoint.port != 0;
+}
+
 } // namespace
 
 QuicClientBackend::UdpTransport::UdpTransport(QuicClientBackend &owner, const EventPoller::Ptr &poller)
@@ -147,8 +164,19 @@ int QuicClientBackend::start(const std::string &peer_host, uint16_t peer_port, c
     }
 
     resetEngine();
-    _peer_host = peer_host;
-    _peer_port = peer_port;
+    ResolvedUdpEndpoint peer_endpoint;
+    if (!resolveUdpEndpoint(peer_host, peer_port, peer_endpoint)) {
+        WarnL << "failed to resolve QUIC peer host: " << peer_host << ":" << peer_port;
+        return -1;
+    }
+    {
+        std::string msg = StrPrinter << "quic client peer resolved: " << peer_host << ":" << peer_port
+                                     << " -> " << peer_endpoint.ip << ":" << peer_endpoint.port;
+        log(QuicLogLevel::Info, makeSlice(msg));
+    }
+
+    _peer_host = peer_endpoint.ip;
+    _peer_port = peer_endpoint.port;
     _alpn = quicSliceToString(config.alpn);
     _sni = quicSliceToString(config.sni);
     _ca_file = quicSliceToString(config.ca_file);
@@ -177,24 +205,34 @@ int QuicClientBackend::start(const std::string &peer_host, uint16_t peer_port, c
     owned_config.peer_port = _peer_port;
 
     _transport = std::make_shared<UdpTransport>(*this, _poller);
-    if (!_net_adapter.empty()) {
+    // Queue packets during one engine drive so ZLToolKit can batch UDP writes via sendmsg/sendmmsg.
+    _transport->setSendFlushFlag(false);
+    if (!_bind_ip.empty()) {
+        _transport->setNetAdapter(_bind_ip);
+    } else if (!_net_adapter.empty()) {
         _transport->setNetAdapter(_net_adapter);
+    } else {
+        _transport->setNetAdapter(peer_endpoint.family == AF_INET6 ? "::" : "0.0.0.0");
     }
-    _transport->startConnect(peer_host, peer_port, owned_config.local_port);
+    _transport->startConnect(peer_endpoint.ip, peer_endpoint.port, owned_config.local_port);
     if (auto sock = _transport->getSock()) {
         if (auto *peer_addr = sock->get_peer_addr()) {
             if (!sock->bindPeerAddr(peer_addr, 0, false)) {
                 WarnL << "failed to hard-connect QUIC client UDP socket to "
-                      << peer_host << ":" << peer_port;
+                      << peer_endpoint.ip << ":" << peer_endpoint.port;
             }
         }
     }
 
     auto local = getSocketLocalEndpoint(_transport->getSock());
     if (!local.first.empty() && local.second) {
+        _local_ip = local.first;
+        _local_port = local.second;
         _bind_ip = local.first;
         owned_config.bind_ip = makeSlice(_bind_ip);
         owned_config.local_port = local.second;
+        std::string msg = StrPrinter << "quic client UDP bound: " << _local_ip << ":" << _local_port;
+        log(QuicLogLevel::Info, makeSlice(msg));
     }
 
     _engine = _plugin.createClientEngine(*this, owned_config);
@@ -215,7 +253,7 @@ int QuicClientBackend::start(const std::string &peer_host, uint16_t peer_port, c
         return -1;
     }
 
-    armTimer(0);
+    flushTransport();
     return 0;
 }
 
@@ -246,7 +284,8 @@ int QuicClientBackend::startRequest(const QuicClientRequest &request) {
     desc.end_stream = state.request.end_stream;
 
     auto ret = _engine->startRequest(desc);
-    armTimer(0);
+    flushTransport();
+    refreshTimer();
     if (ret != 0) {
         _requests.erase(request.request_id);
     }
@@ -258,7 +297,8 @@ int QuicClientBackend::sendBody(uint64_t request_id, const uint8_t *data, size_t
         return -1;
     }
     auto ret = _engine->sendBody(request_id, data, len, fin);
-    armTimer(0);
+    flushTransport();
+    refreshTimer();
     return ret;
 }
 
@@ -267,7 +307,8 @@ int QuicClientBackend::cancelRequest(uint64_t request_id, uint64_t app_error_cod
         return -1;
     }
     auto ret = _engine->cancelRequest(request_id, app_error_code);
-    armTimer(0);
+    flushTransport();
+    refreshTimer();
     return ret;
 }
 
@@ -285,12 +326,14 @@ int QuicClientBackend::shutdown(uint64_t app_error_code, const std::string &reas
                 return;
             }
             ret = _engine->shutdown(app_error_code, makeSlice(reason_copy));
+            flushTransport();
             resetEngine();
         });
         return ret;
     }
 
     auto ret = _engine->shutdown(app_error_code, makeSlice(reason));
+    flushTransport();
     resetEngine();
     return ret;
 }
@@ -386,16 +429,16 @@ void QuicClientBackend::onTransportPacket(const Buffer::Ptr &buf, struct sockadd
         return;
     }
 
-    auto local = _transport ? getSocketLocalEndpoint(_transport->getSock()) : std::make_pair(std::string(), uint16_t(0));
     auto peer_ip = SockUtil::inet_ntoa(addr);
     auto peer_port = SockUtil::inet_port(addr);
-    auto packet = makePacketView(buf, local.first, local.second, peer_ip, peer_port);
+    auto packet = makePacketView(buf, _local_ip, _local_port, peer_ip, peer_port);
     auto rc = _engine->handlePacket(packet);
+    flushTransport();
     TraceL << "client transport received QUIC packet, size=" << packet.payload.len
-           << ", local=" << local.first << ":" << local.second
+           << ", local=" << _local_ip << ":" << _local_port
            << ", peer=" << peer_ip << ":" << peer_port
            << ", rc=" << rc;
-    armTimer(0);
+    refreshTimer();
 }
 
 void QuicClientBackend::onTransportError(const SockException &err) {
@@ -416,8 +459,18 @@ void QuicClientBackend::onTransportError(const SockException &err) {
 }
 
 void QuicClientBackend::resetEngine() {
-    ++_timer_generation;
+    {
+        std::lock_guard<std::mutex> lock(_timer_mutex);
+        ++_timer_seq;
+        _timer_due_ms = 0;
+        if (_timer_task) {
+            _timer_task->cancel();
+            _timer_task.reset();
+        }
+    }
     _requests.clear();
+    _local_ip.clear();
+    _local_port = 0;
 
     auto *engine = _engine;
     _engine = nullptr;
@@ -440,41 +493,85 @@ void QuicClientBackend::resetEngine() {
     }
 }
 
+void QuicClientBackend::flushTransport() {
+    if (!_transport) {
+        return;
+    }
+    auto ret = _transport->flushAll();
+    if (ret != 0 && _transport->alive()) {
+        DebugL << "client transport flush returned: " << ret;
+    }
+}
+
+void QuicClientBackend::refreshTimer() {
+    if (!_engine) {
+        return;
+    }
+
+    auto now = nowMS();
+    auto next = _engine->nextTimeoutMS(now);
+    if (next <= now) {
+        armTimer(0);
+    } else {
+        armTimer(next - now);
+    }
+}
+
 void QuicClientBackend::armTimer(uint64_t delay_ms) {
     auto poller = _poller;
     if (!poller || !_engine) {
         return;
     }
 
-    auto generation = ++_timer_generation;
+    auto due_ms = nowMS() + delay_ms;
     std::weak_ptr<QuicClientBackend> weak_self;
     try {
         weak_self = std::weak_ptr<QuicClientBackend>(shared_from_this());
     } catch (const std::bad_weak_ptr &) {
         return;
     }
-    poller->doDelayTask(delay_ms, [weak_self, generation]() -> uint64_t {
-        auto self = weak_self.lock();
-        if (!self) {
-            return 0;
+
+    uint64_t timer_seq = 0;
+    {
+        std::lock_guard<std::mutex> lock(_timer_mutex);
+        if (_timer_task && _timer_due_ms <= due_ms) {
+            return;
         }
-        return self->runTimerTask(generation);
-    });
+        if (_timer_task) {
+            _timer_task->cancel();
+            _timer_task.reset();
+        }
+        timer_seq = ++_timer_seq;
+        _timer_due_ms = due_ms;
+        _timer_task = poller->doDelayTask(delay_ms, [weak_self, timer_seq]() -> uint64_t {
+            auto self = weak_self.lock();
+            if (!self) {
+                return 0;
+            }
+            return self->runTimerTask(timer_seq);
+        });
+    }
 }
 
-uint64_t QuicClientBackend::runTimerTask(uint64_t generation) {
-    if (generation != _timer_generation.load() || !_engine) {
+uint64_t QuicClientBackend::runTimerTask(uint64_t timer_seq) {
+    {
+        std::lock_guard<std::mutex> lock(_timer_mutex);
+        if (timer_seq != _timer_seq) {
+            return 0;
+        }
+        _timer_due_ms = 0;
+        _timer_task.reset();
+    }
+
+    if (!_engine) {
         return 0;
     }
 
     auto now = nowMS();
     _engine->onTimer(now);
-    auto next = _engine->nextTimeoutMS(nowMS());
-    auto current = nowMS();
-    if (next <= current) {
-        return 1;
-    }
-    return next - current;
+    flushTransport();
+    refreshTimer();
+    return 0;
 }
 
 } // namespace mediakit

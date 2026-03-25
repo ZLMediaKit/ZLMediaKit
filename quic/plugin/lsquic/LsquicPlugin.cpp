@@ -14,6 +14,7 @@
 #include <deque>
 #include <memory>
 #include <mutex>
+#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -185,6 +186,7 @@ public:
             _settings.es_max_udp_payload_size_rx = config.max_udp_payload_size;
         }
         _settings.es_datagrams = config.enable_h3_datagram ? 1 : 0;
+        _settings.es_cc_algo = static_cast<unsigned>(config.congestion_algo);
 
         char err_buf[256] = {0};
         if (lsquic_engine_check_settings(&_settings, flags, err_buf, sizeof(err_buf)) != 0) {
@@ -214,6 +216,10 @@ public:
             return;
         }
 
+        {
+            auto msg = std::string("lsquic server congestion control: ") + quicCongestionAlgoName(config.congestion_algo);
+            _host.log(QuicLogLevel::Info, makeSlice(msg));
+        }
         _host.log(QuicLogLevel::Info, makeSlice("lsquic server engine initialized"));
         _available = true;
     }
@@ -599,7 +605,7 @@ private:
             ctx->request_emitted = true;
         }
 
-        char buf[4096];
+        char buf[16 * 1024];
         for (;;) {
             auto nread = lsquic_stream_read(stream, buf, sizeof(buf));
             if (nread > 0) {
@@ -682,6 +688,7 @@ private:
         if (ctx->response_fin && !ctx->write_shutdown) {
             ctx->write_shutdown = true;
             lsquic_stream_shutdown(stream, 1);
+            lsquic_stream_wantread(stream, 1);
             lsquic_stream_wantwrite(stream, 0);
         }
     }
@@ -947,6 +954,7 @@ public:
         lsquic_engine_init_settings(&_settings, flags);
         _settings.es_idle_timeout = std::max<unsigned>(1, config.idle_timeout_ms ? (config.idle_timeout_ms + 999) / 1000 : 30);
         _settings.es_support_push = 0;
+        _settings.es_cc_algo = static_cast<unsigned>(config.congestion_algo);
 
         char err_buf[256] = {0};
         if (lsquic_engine_check_settings(&_settings, flags, err_buf, sizeof(err_buf)) != 0) {
@@ -978,6 +986,10 @@ public:
             return;
         }
 
+        {
+            auto msg = std::string("lsquic client congestion control: ") + quicCongestionAlgoName(config.congestion_algo);
+            _host.log(QuicLogLevel::Info, makeSlice(msg));
+        }
         _host.log(QuicLogLevel::Info, makeSlice("lsquic client engine initialized"));
         _available = true;
     }
@@ -1177,6 +1189,8 @@ private:
         bool response_fin = false;
         bool close_reported = false;
         bool write_shutdown = false;
+        int reset_how = -1;
+        std::string close_reason;
     };
 
     struct ClientConnCtx {
@@ -1467,7 +1481,7 @@ private:
             static_cast<int>(xhdr.size()),
             xhdr.data(),
         };
-        return lsquic_stream_send_headers(stream, &ls_headers, req->request_fin && req->request_body.empty()) == 0;
+        return lsquic_stream_send_headers(stream, &ls_headers, 0) == 0;
     }
 
     void emitHeaders(const std::shared_ptr<ClientRequestCtx> &req) {
@@ -1506,7 +1520,7 @@ private:
             emitHeaders(req);
         }
 
-        char buf[4096];
+        char buf[16 * 1024];
         for (;;) {
             auto nread = lsquic_stream_read(stream, buf, sizeof(buf));
             if (nread > 0) {
@@ -1682,7 +1696,11 @@ private:
         for (auto &entry : engine->_requests) {
             auto &req = entry.second;
             auto state = req->response_fin ? QuicClientState::Completed : QuicClientState::Failed;
-            auto reason = engine->_shutdown_requested ? engine->_shutdown_reason : std::string("connection closed");
+            auto reason = engine->_shutdown_requested ? engine->_shutdown_reason
+                                                      : (!req->close_reason.empty() ? req->close_reason
+                                                                                    : (!engine->_peer_close_reason.empty()
+                                                                                           ? engine->_peer_close_reason
+                                                                                           : std::string("connection closed")));
             engine->reportClose(req, state, 0, reason);
         }
         engine->_requests.clear();
@@ -1691,6 +1709,7 @@ private:
         engine->_authority.clear();
         engine->_shutdown_requested = false;
         engine->_shutdown_reason.clear();
+        engine->_peer_close_reason.clear();
         delete conn_ctx;
     }
 
@@ -1753,11 +1772,30 @@ private:
                 state = QuicClientState::Failed;
             }
             if (engine) {
-                engine->reportClose(req, state, 0, state == QuicClientState::Completed ? std::string() : std::string("stream closed"));
+                auto reason = state == QuicClientState::Completed ? std::string()
+                                                                  : (!req->close_reason.empty() ? req->close_reason
+                                                                                                : std::string("stream closed"));
+                engine->reportClose(req, state, 0, reason);
                 engine->_requests.erase(req->request_id);
             }
         }
         delete stream_ctx;
+    }
+
+    static void onResetShim(lsquic_stream_t *stream, lsquic_stream_ctx_t *ctx, int how) {
+        auto *stream_ctx = reinterpret_cast<ClientStreamCtx *>(ctx);
+        if (!stream_ctx || !stream_ctx->engine || !stream_ctx->request) {
+            return;
+        }
+
+        auto &req = stream_ctx->request;
+        req->reset_how = how;
+        req->state = QuicClientState::Failed;
+        std::ostringstream ss;
+        ss << "stream reset by peer, how=" << how
+           << ", stream_id=" << lsquic_stream_id(stream);
+        req->close_reason = ss.str();
+        stream_ctx->engine->_host.log(QuicLogLevel::Warn, makeSlice(req->close_reason));
     }
 
     static void onHskDoneShim(lsquic_conn_t *conn, enum lsquic_hsk_status status) {
@@ -1780,6 +1818,29 @@ private:
         default:
             break;
         }
+    }
+
+    static void onConnCloseFrameReceivedShim(lsquic_conn_t *conn, int app_error, uint64_t error_code,
+                                             const char *reason, int reason_len) {
+        auto *conn_ctx = reinterpret_cast<ClientConnCtx *>(lsquic_conn_get_ctx(conn));
+        if (!conn_ctx || !conn_ctx->engine) {
+            return;
+        }
+
+        auto *engine = conn_ctx->engine;
+        std::string reason_text;
+        if (reason && reason_len > 0) {
+            reason_text.assign(reason, reason_len);
+        }
+        std::ostringstream ss;
+        ss << "peer CONNECTION_CLOSE"
+           << ", app_error=" << app_error
+           << ", error_code=" << error_code;
+        if (!reason_text.empty()) {
+            ss << ", reason=" << reason_text;
+        }
+        engine->_peer_close_reason = ss.str();
+        engine->_host.log(QuicLogLevel::Warn, makeSlice(engine->_peer_close_reason));
     }
 
     static int packetsOutShim(void *ctx, const struct lsquic_out_spec *out_spec, unsigned n_packets_out) {
@@ -1824,8 +1885,8 @@ private:
             &LsquicClientEngine::onHskDoneShim,
             nullptr,
             nullptr,
-            nullptr,
-            nullptr,
+            &LsquicClientEngine::onResetShim,
+            &LsquicClientEngine::onConnCloseFrameReceivedShim,
         };
         return s_if;
     }
@@ -1855,6 +1916,7 @@ private:
     bool _available = false;
     bool _shutdown_requested = false;
     std::string _shutdown_reason;
+    std::string _peer_close_reason;
     std::string _authority;
     std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)> _ssl_ctx{nullptr, &SSL_CTX_free};
     struct lsquic_engine_settings _settings;

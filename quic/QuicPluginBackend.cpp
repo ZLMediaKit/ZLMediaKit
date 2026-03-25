@@ -55,6 +55,31 @@ static std::string dateStr() {
 
 static constexpr size_t kDefaultQuicCidLen = 8;
 
+static QuicCongestionAlgo parseQuicCongestionAlgoConfig(const std::string &key, const std::string &value,
+                                                        QuicCongestionAlgo fallback) {
+    if (value.empty()) {
+        return fallback;
+    }
+    auto normalized = value;
+    strToLower(normalized);
+    auto algo = quicCongestionAlgoFromString(normalized);
+    if (algo == QuicCongestionAlgo::Default && normalized != "default" && normalized != "0") {
+        WarnL << "invalid " << key << "=" << value << ", fallback to " << quicCongestionAlgoName(fallback);
+        return fallback;
+    }
+    return algo;
+}
+
+static QuicCongestionAlgo loadQuicCongestionAlgoConfig() {
+    GET_CONFIG_FUNC(QuicCongestionAlgo, s_quic_cc_algo_default, Http::kQuicCongestionControl, [](const std::string &value) {
+        return parseQuicCongestionAlgoConfig(Http::kQuicCongestionControl, value, QuicCongestionAlgo::BBRv1);
+    });
+    GET_CONFIG_FUNC(QuicCongestionAlgo, s_quic_cc_algo_server, Http::kQuicServerCongestionControl, [](const std::string &value) {
+        return parseQuicCongestionAlgoConfig(Http::kQuicServerCongestionControl, value, s_quic_cc_algo_default);
+    });
+    return s_quic_cc_algo_server;
+}
+
 } // namespace
 
 struct QuicPluginBackend::PendingSession : public toolkit::Session {
@@ -141,6 +166,8 @@ struct QuicPluginBackend::PendingFlvSession : public PendingSession,
     }
 
     void startStream(const RtmpMediaSource::Ptr &src, uint32_t start_pts) {
+        DebugL << "HTTP/3 live flv start, has_source=" << static_cast<bool>(src)
+               << ", start_pts=" << start_pts;
         start(getPoller(), src, start_pts);
     }
 
@@ -158,6 +185,8 @@ protected:
         if (!request) {
             return;
         }
+        DebugL << "HTTP/3 live flv detach, conn=" << request->conn_id
+               << ", stream=" << request->stream_id;
         _owner.sendResponseBody(request, nullptr, 0, true);
     }
 
@@ -194,6 +223,7 @@ QuicPluginBackend::QuicPluginBackend() {
     config.max_udp_payload_size = 1350;
     config.enable_retry = false;
     config.enable_h3_datagram = false;
+    config.congestion_algo = loadQuicCongestionAlgoConfig();
     _engine = _plugin.createServerEngine(*this, config);
     if (!_engine) {
         WarnL << "failed to create QUIC server engine from plugin: " << _plugin.pluginName();
@@ -374,6 +404,12 @@ void QuicPluginBackend::onRequest(const QuicServerRequest &request) {
         _request_map[makeRequestKey(request.conn_id, request.stream_id)] = pending;
     }
 
+    DebugL << "HTTP/3 request received, conn=" << request.conn_id
+           << ", stream=" << request.stream_id
+           << ", method=" << pending->method
+           << ", path=" << pending->path
+           << ", end_stream=" << pending->body_finished;
+
     if (pending->body_finished) {
         dispatchRequest(pending);
     }
@@ -415,6 +451,9 @@ void QuicPluginBackend::onBody(uint64_t conn_id, uint64_t stream_id, const uint8
     }
     if (fin) {
         pending->body_finished = true;
+        DebugL << "HTTP/3 request body finished, conn=" << conn_id
+               << ", stream=" << stream_id
+               << ", body_bytes=" << pending->body.size();
         dispatchRequest(pending);
     }
 }
@@ -425,7 +464,7 @@ void QuicPluginBackend::onStreamClosed(const QuicServerStreamClose &close_info) 
 }
 
 void QuicPluginBackend::onConnectionClosed(const QuicServerConnectionClose &close_info) {
-    TraceL << "QUIC connection closed scaffold: conn=" << close_info.conn_id
+    TraceL << "QUIC connection closed: conn=" << close_info.conn_id
            << ", err=" << close_info.app_error_code;
 }
 
@@ -556,9 +595,14 @@ void QuicPluginBackend::sendResponseHeaders(const std::shared_ptr<PendingRequest
         quic_headers.emplace_back(item);
     }
 
-    _engine->sendHeaders(request->conn_id, request->stream_id, code,
-                         quic_headers.empty() ? nullptr : quic_headers.data(),
-                         quic_headers.size(), fin);
+    auto rc = _engine->sendHeaders(request->conn_id, request->stream_id, code,
+                                   quic_headers.empty() ? nullptr : quic_headers.data(),
+                                   quic_headers.size(), fin);
+    if (rc != 0) {
+        WarnL << "failed to send HTTP/3 response headers, conn=" << request->conn_id
+              << ", stream=" << request->stream_id << ", code=" << code
+              << ", fin=" << fin << ", rc=" << rc;
+    }
 }
 
 void QuicPluginBackend::sendResponseBody(const std::shared_ptr<PendingRequest> &request,
@@ -566,7 +610,12 @@ void QuicPluginBackend::sendResponseBody(const std::shared_ptr<PendingRequest> &
     if (!request || !_engine) {
         return;
     }
-    _engine->sendBody(request->conn_id, request->stream_id, data, len, fin);
+    auto rc = _engine->sendBody(request->conn_id, request->stream_id, data, len, fin);
+    if (rc != 0) {
+        WarnL << "failed to send HTTP/3 response body, conn=" << request->conn_id
+              << ", stream=" << request->stream_id << ", len=" << len
+              << ", fin=" << fin << ", rc=" << rc;
+    }
 }
 
 bool QuicPluginBackend::checkLiveStream(const std::shared_ptr<PendingRequest> &request, Parser &parser,
@@ -793,6 +842,10 @@ void QuicPluginBackend::dispatchRequest(const std::shared_ptr<PendingRequest> &r
         return;
     }
     request->dispatched = true;
+    DebugL << "HTTP/3 dispatch request, conn=" << request->conn_id
+           << ", stream=" << request->stream_id
+           << ", method=" << request->method
+           << ", path=" << request->path;
 
     std::ostringstream raw;
     raw << (request->method.empty() ? "GET" : request->method) << " "
@@ -821,6 +874,11 @@ void QuicPluginBackend::dispatchRequest(const std::shared_ptr<PendingRequest> &r
             response_headers.emplace("content-type", "text/plain; charset=utf-8");
         }
         bool fin = !body || body_size == 0;
+        DebugL << "HTTP/3 send response, conn=" << request->conn_id
+               << ", stream=" << request->stream_id
+               << ", code=" << code
+               << ", body_size=" << body_size
+               << ", fin=" << fin;
         sendResponseHeaders(request, code, response_headers, body_size, false, fin);
         if (!body || body_size == 0) {
             return;

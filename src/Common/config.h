@@ -384,6 +384,13 @@ extern const std::string kAllowCrossDomains;
 extern const std::string kAllowIPRange;
 // HTTP/3 QUIC listener port
 extern const std::string kQuicPort;
+// HTTP/3 QUIC congestion control algorithm: default/cubic/bbr/adaptive
+extern const std::string kQuicCongestionControl;
+// Optional server-side QUIC congestion control override; falls back to http.quic_cc when empty
+extern const std::string kQuicServerCongestionControl;
+// Optional client-side QUIC congestion control override; when unset in config.cpp it may still default to a
+// more conservative Internet-facing value than http.quic_cc
+extern const std::string kQuicClientCongestionControl;
 // Maximum request body size that auto HTTP/3 upgrade may buffer for safe replay
 extern const std::string kHttp3AutoReplayMaxSize;
 } // namespace Http

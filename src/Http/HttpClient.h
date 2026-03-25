@@ -51,6 +51,7 @@ class HttpClient : public toolkit::TcpClient, public HttpRequestSplitter {
 public:
     using HttpHeader = StrCaseMap;
     using Ptr = std::shared_ptr<HttpClient>;
+    ~HttpClient() override;
 
     /**
      * 发送http[s]请求
@@ -278,6 +279,16 @@ protected:
      * [AUTO-TRANSLATED:b96ed715]
      */
     virtual void onResponseCompleted(const toolkit::SockException &ex) = 0;
+
+    /**
+     * QUIC backend log event, mainly for diagnostics; default no-op.
+     * @param level log level
+     * @param message log message
+     */
+    virtual void onQuicBackendLog(int level, const std::string &message) {
+        (void) level;
+        (void) message;
+    }
 
     /**
      * 重定向事件

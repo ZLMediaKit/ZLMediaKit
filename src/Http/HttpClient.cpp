@@ -36,6 +36,31 @@ static std::string normalizeHttp3HeaderName(const std::string &name) {
     auto copy = name;
     return strToLower(copy);
 }
+
+static QuicCongestionAlgo parseQuicCongestionAlgoConfig(const std::string &key, const std::string &value,
+                                                        QuicCongestionAlgo fallback) {
+    if (value.empty()) {
+        return fallback;
+    }
+    auto normalized = value;
+    strToLower(normalized);
+    auto algo = quicCongestionAlgoFromString(normalized);
+    if (algo == QuicCongestionAlgo::Default && normalized != "default" && normalized != "0") {
+        WarnL << "invalid " << key << "=" << value << ", fallback to " << quicCongestionAlgoName(fallback);
+        return fallback;
+    }
+    return algo;
+}
+
+static QuicCongestionAlgo loadQuicCongestionAlgoConfig() {
+    GET_CONFIG_FUNC(QuicCongestionAlgo, s_quic_cc_algo_default, Http::kQuicCongestionControl, [](const std::string &value) {
+        return parseQuicCongestionAlgoConfig(Http::kQuicCongestionControl, value, QuicCongestionAlgo::BBRv1);
+    });
+    GET_CONFIG_FUNC(QuicCongestionAlgo, s_quic_cc_algo_client, Http::kQuicClientCongestionControl, [](const std::string &value) {
+        return parseQuicCongestionAlgoConfig(Http::kQuicClientCongestionControl, value, s_quic_cc_algo_default);
+    });
+    return s_quic_cc_algo_client;
+}
 #endif
 
 void HttpClient::sendRequest(const string &url) {
@@ -215,6 +240,7 @@ void HttpClient::beginQuicConnect(const HttpClientRequestPlan &plan) {
         config.verify_peer = _http3_verify_peer;
         config.connect_timeout_ms = _wait_header_ms;
         config.idle_timeout_ms = _wait_body_ms ? _wait_body_ms : _wait_header_ms;
+        config.congestion_algo = loadQuicCongestionAlgoConfig();
         if (!_http3_ca_file.empty()) {
             config.ca_file.data = _http3_ca_file.data();
             config.ca_file.len = _http3_ca_file.size();
@@ -348,8 +374,13 @@ void HttpClient::loadResponseParser(const string &protocol, const string &status
     _parser.parse(serialized.data(), serialized.size());
 }
 
+HttpClient::~HttpClient() {
+    stopQuicManagerTimer();
+    resetQuicRequest(true);
+}
+
 void HttpClient::clear() {
-    resetQuicRequest(false);
+    resetQuicRequest(!_request_keep_alive);
     resetAutoHttp3ReplayBody();
     _url.clear();
     _user_set_header.clear();
@@ -897,6 +928,13 @@ void HttpClient::ensureQuicBackend() {
 
     std::weak_ptr<HttpClient> weak_self = std::static_pointer_cast<HttpClient>(shared_from_this());
     QuicClientBackend::Callbacks callbacks;
+    callbacks.on_log = [weak_self](QuicLogLevel level, const std::string &message) {
+        auto self = weak_self.lock();
+        if (!self) {
+            return;
+        }
+        self->onQuicBackendLog(static_cast<int>(level), message);
+    };
     callbacks.on_headers = [weak_self](const QuicClientResponseHeaders &headers) {
         auto self = weak_self.lock();
         if (!self) {
@@ -929,10 +967,12 @@ void HttpClient::ensureQuicBackend() {
 void HttpClient::resetQuicRequest(bool close_transport) {
 #if defined(ENABLE_QUIC)
     stopQuicManagerTimer();
-    if (_quic_backend && _quic_request_active) {
-        _quic_backend->cancelRequest(_quic_request_id, 0);
-    }
+    auto had_active_request = _quic_request_active;
+    auto request_id = _quic_request_id;
     _quic_request_active = false;
+    if (_quic_backend && had_active_request && !close_transport) {
+        _quic_backend->cancelRequest(request_id, 0);
+    }
     if (close_transport && _quic_backend) {
         _quic_backend->shutdown();
         _quic_backend.reset();

@@ -60,7 +60,6 @@ option(ENABLE_SCTP "Enable SCTP" ON)
 option(ENABLE_WEBRTC "Enable WebRTC" ON)
 option(ENABLE_QUIC "Enable QUIC/HTTP3 support" OFF)
 option(ENABLE_LSQUIC_AUTO_BUILD "Automatically download and build a private BoringSSL+lsquic dependency bundle for QUIC" OFF)
-set(QUIC_BACKEND "lsquic" CACHE STRING "QUIC backend implementation")
 set(LSQUIC_VERSION "v4.6.0" CACHE STRING "LSQUIC git tag/branch used for auto-build")
 set(BORINGSSL_REVISION "9fc1c33e9c21439ce5f87855a6591a9324e569fd" CACHE STRING "BoringSSL git revision used for local auto-build when QUIC is enabled")
 set(GO_AUTO_VERSION "1.24.5" CACHE STRING "Go version used for local auto-build fallback when QUIC dependencies are enabled")
@@ -174,54 +173,6 @@ function(update_cached_list name)
   list(APPEND _tmp_list "${ARGN}")
   list(REMOVE_DUPLICATES _tmp_list)
   update_cached(${name} "${_tmp_list}")
-endfunction()
-
-function(zlm_get_openssl_version out_var)
-  set(_zlm_openssl_version "")
-  if(DEFINED OpenSSL_VERSION AND NOT "${OpenSSL_VERSION}" STREQUAL "")
-    set(_zlm_openssl_version "${OpenSSL_VERSION}")
-  elseif(DEFINED OPENSSL_VERSION AND NOT "${OPENSSL_VERSION}" STREQUAL "")
-    set(_zlm_openssl_version "${OPENSSL_VERSION}")
-  elseif(DEFINED _OPENSSL_VERSION AND NOT "${_OPENSSL_VERSION}" STREQUAL "")
-    set(_zlm_openssl_version "${_OPENSSL_VERSION}")
-  elseif(DEFINED OPENSSL_INCLUDE_DIR AND EXISTS "${OPENSSL_INCLUDE_DIR}/openssl/opensslv.h")
-    file(STRINGS "${OPENSSL_INCLUDE_DIR}/openssl/opensslv.h" _zlm_openssl_version_text REGEX "^# *define +OPENSSL_VERSION_TEXT +\"OpenSSL [^\"]+\"")
-    if(_zlm_openssl_version_text)
-      string(REGEX REPLACE ".*OpenSSL ([0-9]+\\.[0-9]+\\.[0-9]+[A-Za-z0-9_-]*).*" "\\1" _zlm_openssl_version "${_zlm_openssl_version_text}")
-    endif()
-  endif()
-  set(${out_var} "${_zlm_openssl_version}" PARENT_SCOPE)
-endfunction()
-
-function(zlm_normalize_version version out_var)
-  string(REGEX MATCH "([0-9]+)\\.([0-9]+)\\.([0-9]+)" _zlm_version_match "${version}")
-  if(_zlm_version_match)
-    set(${out_var} "${CMAKE_MATCH_1}.${CMAKE_MATCH_2}.${CMAKE_MATCH_3}" PARENT_SCOPE)
-  else()
-    set(${out_var} "" PARENT_SCOPE)
-  endif()
-endfunction()
-
-function(zlm_reset_openssl_cache)
-  foreach(_zlm_var
-    OPENSSL_FOUND
-    OPENSSL_INCLUDE_DIR
-    OPENSSL_CRYPTO_LIBRARY
-    OPENSSL_SSL_LIBRARY
-    OPENSSL_LIBRARIES
-    OPENSSL_VERSION
-    OpenSSL_VERSION
-    _OPENSSL_VERSION
-    _OPENSSL_INCLUDEDIR
-    _OPENSSL_INCLUDE_DIR
-    _OPENSSL_CRYPTO_LIBRARY
-    _OPENSSL_SSL_LIBRARY
-    _OPENSSL_applink_paths
-    _OPENSSL_found_openssl
-    _OPENSSL_found_crypto)
-    unset(${_zlm_var})
-    unset(${_zlm_var} CACHE)
-  endforeach()
 endfunction()
 
 # TODO:
@@ -493,15 +444,8 @@ endif()
 # 查找 openssl 是否安装
 # find openssl installed
 find_package(OpenSSL QUIET)
-zlm_get_openssl_version(ZLM_OPENSSL_VERSION_RAW)
-zlm_normalize_version("${ZLM_OPENSSL_VERSION_RAW}" ZLM_OPENSSL_VERSION)
-
 if(OPENSSL_FOUND AND ENABLE_OPENSSL)
-  if(NOT ZLM_OPENSSL_VERSION)
-    zlm_get_openssl_version(ZLM_OPENSSL_VERSION_RAW)
-    zlm_normalize_version("${ZLM_OPENSSL_VERSION_RAW}" ZLM_OPENSSL_VERSION)
-  endif()
-  message(STATUS "found library: ${OPENSSL_LIBRARIES}, OpenSSL ${ZLM_OPENSSL_VERSION_RAW}, ENABLE_OPENSSL defined")
+  message(STATUS "found library: ${OPENSSL_LIBRARIES}, ENABLE_OPENSSL defined")
   include_directories(${OPENSSL_INCLUDE_DIR})
   update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_OPENSSL)
   update_cached_list(MK_LINK_LIBRARIES ${OPENSSL_LIBRARIES})
@@ -516,57 +460,7 @@ else()
   message(WARNING "openssl 未找到, rtmp 将不支持 flash 播放器, https/wss/rtsps/rtmps/webrtc 也将失效")
 endif()
 
-if(ENABLE_QUIC)
-  if(NOT QUIC_BACKEND STREQUAL "lsquic")
-    message(FATAL_ERROR "Unsupported QUIC_BACKEND: ${QUIC_BACKEND}")
-  endif()
-
-  if(ENABLE_LSQUIC_AUTO_BUILD)
-    if(NOT EXISTS ${DEP_ROOT_DIR})
-      file(MAKE_DIRECTORY ${DEP_ROOT_DIR})
-    endif()
-    include(ZLMBoringSSL)
-  endif()
-
-  if((NOT DEFINED LSQUIC_ROOT_DIR OR NOT LSQUIC_ROOT_DIR) AND EXISTS "${DEP_ROOT_DIR}/lsquic-${LSQUIC_VERSION}/include/lsquic.h")
-    set(LSQUIC_ROOT_DIR "${DEP_ROOT_DIR}/lsquic-${LSQUIC_VERSION}" CACHE PATH "Bundled LSQUIC root directory" FORCE)
-  endif()
-  if((NOT DEFINED LSQUIC_INCLUDE_DIR OR NOT LSQUIC_INCLUDE_DIR) AND EXISTS "${DEP_ROOT_DIR}/lsquic-${LSQUIC_VERSION}/include/lsquic.h")
-    set(LSQUIC_INCLUDE_DIR "${DEP_ROOT_DIR}/lsquic-${LSQUIC_VERSION}/include" CACHE PATH "Bundled LSQUIC include directory" FORCE)
-  endif()
-  if((NOT DEFINED LSQUIC_SSL_LIBRARY OR NOT LSQUIC_SSL_LIBRARY) AND DEFINED BORINGSSL_LIB_ssl AND EXISTS "${BORINGSSL_LIB_ssl}")
-    set(LSQUIC_SSL_LIBRARY "${BORINGSSL_LIB_ssl}" CACHE FILEPATH "Bundled BoringSSL ssl library used by LSQUIC" FORCE)
-  endif()
-  if((NOT DEFINED LSQUIC_CRYPTO_LIBRARY OR NOT LSQUIC_CRYPTO_LIBRARY) AND DEFINED BORINGSSL_LIB_crypto AND EXISTS "${BORINGSSL_LIB_crypto}")
-    set(LSQUIC_CRYPTO_LIBRARY "${BORINGSSL_LIB_crypto}" CACHE FILEPATH "Bundled BoringSSL crypto library used by LSQUIC" FORCE)
-  endif()
-  if(NOT DEFINED LSQUIC_LIBRARY OR NOT LSQUIC_LIBRARY)
-    if(EXISTS "${DEP_ROOT_DIR}/lsquic-${LSQUIC_VERSION}/build-boringssl/src/liblsquic/liblsquic.a")
-      set(LSQUIC_LIBRARY "${DEP_ROOT_DIR}/lsquic-${LSQUIC_VERSION}/build-boringssl/src/liblsquic/liblsquic.a" CACHE FILEPATH "Bundled LSQUIC static library" FORCE)
-    elseif(EXISTS "${DEP_ROOT_DIR}/lsquic-${LSQUIC_VERSION}/build-boringssl/src/liblsquic/liblsquic.so")
-      set(LSQUIC_LIBRARY "${DEP_ROOT_DIR}/lsquic-${LSQUIC_VERSION}/build-boringssl/src/liblsquic/liblsquic.so" CACHE FILEPATH "Bundled LSQUIC shared library" FORCE)
-    elseif(EXISTS "${DEP_ROOT_DIR}/lsquic-${LSQUIC_VERSION}/build/src/liblsquic/liblsquic.a")
-      set(LSQUIC_LIBRARY "${DEP_ROOT_DIR}/lsquic-${LSQUIC_VERSION}/build/src/liblsquic/liblsquic.a" CACHE FILEPATH "Bundled LSQUIC static library" FORCE)
-    elseif(EXISTS "${DEP_ROOT_DIR}/lsquic-${LSQUIC_VERSION}/build/src/liblsquic/liblsquic.so")
-      set(LSQUIC_LIBRARY "${DEP_ROOT_DIR}/lsquic-${LSQUIC_VERSION}/build/src/liblsquic/liblsquic.so" CACHE FILEPATH "Bundled LSQUIC shared library" FORCE)
-    endif()
-  endif()
-
-  if(ENABLE_LSQUIC_AUTO_BUILD)
-    set(LSQUIC_PREFER_SHARED OFF)
-    include(LSQUIC)
-  else()
-    set(LSQUIC_PREFER_SHARED ON)
-  endif()
-
-  find_package(LSQUIC QUIET)
-  if(NOT LSQUIC_FOUND)
-    message(WARNING "ENABLE_QUIC is enabled but LSQUIC was not found. The shared-plugin scaffold will build without the real lsquic backend.")
-  else()
-    message(STATUS "found library: ${LSQUIC_LIBRARIES}, ENABLE_QUIC defined")
-  endif()
-  update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_QUIC)
-endif()
+# 查找 mysql 是否安装
 # find mysql installed
 find_package(MYSQL QUIET)
 if(MYSQL_FOUND AND ENABLE_MYSQL)

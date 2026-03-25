@@ -49,6 +49,9 @@ add_library(ZLMediaKit::MediaKit ALIAS zlmediakit)
 set(LINK_LIBRARIES ${MK_LINK_LIBRARIES})
 list(REMOVE_ITEM LINK_LIBRARIES ZLMediaKit::MediaKit)
 set(COMPILE_DEFINITIONS ${MK_COMPILE_DEFINITIONS})
+if(ENABLE_QUIC)
+  list(APPEND COMPILE_DEFINITIONS ENABLE_QUIC)
+endif()
 
 target_compile_definitions(zlmediakit
   PUBLIC ${COMPILE_DEFINITIONS})

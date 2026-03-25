@@ -1,8 +1,8 @@
 #ifndef ZLMEDIAKIT_QUICCLIENTBACKEND_H
 #define ZLMEDIAKIT_QUICCLIENTBACKEND_H
 
-#include <atomic>
 #include <functional>
+#include <mutex>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -103,8 +103,10 @@ private:
     void onTransportPacket(const toolkit::Buffer::Ptr &buf, struct sockaddr *addr);
     void onTransportError(const toolkit::SockException &err);
     void resetEngine();
+    void flushTransport();
+    void refreshTimer();
     void armTimer(uint64_t delay_ms);
-    uint64_t runTimerTask(uint64_t generation);
+    uint64_t runTimerTask(uint64_t timer_seq);
 
 private:
     toolkit::EventPoller::Ptr _poller;
@@ -119,9 +121,14 @@ private:
     std::string _sni;
     std::string _ca_file;
     std::string _bind_ip;
+    std::string _local_ip;
+    uint16_t _local_port = 0;
     Callbacks _callbacks;
     std::unordered_map<uint64_t, RequestState> _requests;
-    std::atomic<uint64_t> _timer_generation{0};
+    std::mutex _timer_mutex;
+    toolkit::EventPoller::DelayTask::Ptr _timer_task;
+    uint64_t _timer_due_ms = 0;
+    uint64_t _timer_seq = 0;
 };
 
 } // namespace mediakit

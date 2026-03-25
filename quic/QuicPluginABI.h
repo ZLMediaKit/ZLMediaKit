@@ -1,8 +1,11 @@
 #ifndef ZLMEDIAKIT_QUICPLUGINABI_H
 #define ZLMEDIAKIT_QUICPLUGINABI_H
 
+#include <algorithm>
+#include <cctype>
 #include <stddef.h>
 #include <stdint.h>
+#include <string>
 
 #if defined(_WIN32) && defined(_MSC_VER)
 #if defined(ZLM_QUIC_PLUGIN_EXPORTS)
@@ -57,6 +60,42 @@ enum class QuicClientState : uint32_t {
     Failed = 5
 };
 
+enum class QuicCongestionAlgo : uint32_t {
+    Default = 0,
+    Cubic = 1,
+    BBRv1 = 2,
+    Adaptive = 3
+};
+
+inline QuicCongestionAlgo quicCongestionAlgoFromString(std::string value) {
+    std::transform(value.begin(), value.end(), value.begin(),
+                   [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+    if (value == "cubic" || value == "1") {
+        return QuicCongestionAlgo::Cubic;
+    }
+    if (value == "bbr" || value == "bbrv1" || value == "2") {
+        return QuicCongestionAlgo::BBRv1;
+    }
+    if (value == "adaptive" || value == "3") {
+        return QuicCongestionAlgo::Adaptive;
+    }
+    return QuicCongestionAlgo::Default;
+}
+
+inline const char *quicCongestionAlgoName(QuicCongestionAlgo algo) {
+    switch (algo) {
+    case QuicCongestionAlgo::Cubic:
+        return "cubic";
+    case QuicCongestionAlgo::BBRv1:
+        return "bbr";
+    case QuicCongestionAlgo::Adaptive:
+        return "adaptive";
+    case QuicCongestionAlgo::Default:
+    default:
+        return "default";
+    }
+}
+
 struct QuicPacketView {
     QuicBytes payload;
     QuicSlice local_ip;
@@ -76,6 +115,7 @@ struct QuicServerConfig {
     uint16_t max_udp_payload_size = 0;
     bool enable_retry = false;
     bool enable_h3_datagram = false;
+    QuicCongestionAlgo congestion_algo = QuicCongestionAlgo::Default;
 };
 
 struct QuicClientConfig {
@@ -90,6 +130,7 @@ struct QuicClientConfig {
     uint16_t local_port = 0;
     uint16_t peer_port = 0;
     bool verify_peer = true;
+    QuicCongestionAlgo congestion_algo = QuicCongestionAlgo::Default;
 };
 
 struct QuicServerRequest {
