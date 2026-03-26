@@ -1,4 +1,4 @@
-#ifndef ZLMEDIAKIT_QUICPLUGIN_H
+﻿#ifndef ZLMEDIAKIT_QUICPLUGIN_H
 #define ZLMEDIAKIT_QUICPLUGIN_H
 
 #include <string>
