@@ -2,6 +2,7 @@
 
 #include "Common/config.h"
 #include "Common/macros.h"
+#include "QuicCongestionConfig.h"
 #include "Network/Buffer.h"
 #include "Network/Session.h"
 #include "Http/HttpConst.h"
@@ -26,12 +27,6 @@ using namespace toolkit;
 
 namespace {
 
-thread_local toolkit::EventPoller::Ptr s_quic_request_poller;
-thread_local std::string s_quic_request_local_ip;
-thread_local std::string s_quic_request_peer_ip;
-thread_local uint16_t s_quic_request_local_port = 0;
-thread_local uint16_t s_quic_request_peer_port = 0;
-
 static std::string quicSliceToString(QuicSlice slice) {
     if (!slice.data || !slice.len) {
         return std::string();
@@ -55,31 +50,6 @@ static std::string dateStr() {
 
 static constexpr size_t kDefaultQuicCidLen = 8;
 
-static QuicCongestionAlgo parseQuicCongestionAlgoConfig(const std::string &key, const std::string &value,
-                                                        QuicCongestionAlgo fallback) {
-    if (value.empty()) {
-        return fallback;
-    }
-    auto normalized = value;
-    strToLower(normalized);
-    auto algo = quicCongestionAlgoFromString(normalized);
-    if (algo == QuicCongestionAlgo::Default && normalized != "default" && normalized != "0") {
-        WarnL << "invalid " << key << "=" << value << ", fallback to " << quicCongestionAlgoName(fallback);
-        return fallback;
-    }
-    return algo;
-}
-
-static QuicCongestionAlgo loadQuicCongestionAlgoConfig() {
-    GET_CONFIG_FUNC(QuicCongestionAlgo, s_quic_cc_algo_default, Http::kQuicCongestionControl, [](const std::string &value) {
-        return parseQuicCongestionAlgoConfig(Http::kQuicCongestionControl, value, QuicCongestionAlgo::BBRv1);
-    });
-    GET_CONFIG_FUNC(QuicCongestionAlgo, s_quic_cc_algo_server, Http::kQuicServerCongestionControl, [](const std::string &value) {
-        return parseQuicCongestionAlgoConfig(Http::kQuicServerCongestionControl, value, s_quic_cc_algo_default);
-    });
-    return s_quic_cc_algo_server;
-}
-
 } // namespace
 
 struct QuicPluginBackend::PendingSession : public toolkit::Session {
@@ -95,6 +65,10 @@ struct QuicPluginBackend::PendingSession : public toolkit::Session {
           _peer_ip(std::move(peer_ip)),
           _peer_port(peer_port),
           _identifier(std::move(identifier)) {}
+
+    // HTTP/3 request dispatch still reuses existing HTTP helpers that expect a
+    // Session-like sender. This lightweight shim only carries peer/local identity
+    // and poller ownership; it does not own a real connected transport.
 
     std::string get_local_ip() override {
         return _local_ip;
@@ -223,7 +197,7 @@ QuicPluginBackend::QuicPluginBackend() {
     config.max_udp_payload_size = 1350;
     config.enable_retry = false;
     config.enable_h3_datagram = false;
-    config.congestion_algo = loadQuicCongestionAlgoConfig();
+    config.congestion_algo = loadServerQuicCongestionAlgoConfig();
     _engine = _plugin.createServerEngine(*this, config);
     if (!_engine) {
         WarnL << "failed to create QUIC server engine from plugin: " << _plugin.pluginName();
@@ -277,11 +251,6 @@ void QuicPluginBackend::inputPacket(const QuicPacket &packet) {
 
     rememberPacketConnectionIds(reinterpret_cast<const uint8_t *>(packet.buffer->data()), packet.buffer->size(), packet.poller);
     rememberRoute(packet);
-    s_quic_request_poller = packet.poller;
-    s_quic_request_local_ip = packet.local_ip;
-    s_quic_request_peer_ip = packet.peer_ip;
-    s_quic_request_local_port = packet.local_port;
-    s_quic_request_peer_port = packet.peer_port;
 
     QuicPacketView view;
     view.payload.data = reinterpret_cast<const uint8_t *>(packet.buffer->data());
@@ -297,12 +266,6 @@ void QuicPluginBackend::inputPacket(const QuicPacket &packet) {
            << ", local=" << packet.local_ip << ":" << packet.local_port
            << ", peer=" << packet.peer_ip << ":" << packet.peer_port
            << ", rc=" << rc;
-
-    s_quic_request_poller = nullptr;
-    s_quic_request_local_ip.clear();
-    s_quic_request_peer_ip.clear();
-    s_quic_request_local_port = 0;
-    s_quic_request_peer_port = 0;
 }
 
 void QuicPluginBackend::onManager(const toolkit::EventPoller::Ptr &) {
@@ -384,12 +347,24 @@ void QuicPluginBackend::onRequest(const QuicServerRequest &request) {
     pending->path = quicSliceToString(request.path);
     pending->request_received = true;
     pending->body_finished = request.end_stream;
-    auto poller = s_quic_request_poller ? s_quic_request_poller : toolkit::EventPollerPool::Instance().getPoller();
+    auto route_key = makeRouteKey(request.local_ip, request.local_port, request.peer_ip, request.peer_port);
+    toolkit::Socket::Ptr route_sock;
+    {
+        std::lock_guard<std::mutex> lock(_route_mutex);
+        auto it = _route_map.find(route_key);
+        if (it != _route_map.end()) {
+            route_sock = it->second.lock();
+            if (!route_sock) {
+                _route_map.erase(it);
+            }
+        }
+    }
+    auto poller = route_sock ? route_sock->getPoller() : toolkit::EventPollerPool::Instance().getPoller();
     pending->sender = std::make_shared<PendingSession>(poller,
-                                                       s_quic_request_local_ip,
-                                                       s_quic_request_local_port,
-                                                       s_quic_request_peer_ip,
-                                                       s_quic_request_peer_port,
+                                                       quicSliceToString(request.local_ip),
+                                                       request.local_port,
+                                                       quicSliceToString(request.peer_ip),
+                                                       request.peer_port,
                                                        StrPrinter << request.conn_id << "-" << request.stream_id);
 
     for (size_t i = 0; i < request.header_count; ++i) {
@@ -433,16 +408,7 @@ void QuicPluginBackend::onBody(uint64_t conn_id, uint64_t stream_id, const uint8
     if (len) {
         GET_CONFIG(size_t, max_req_size, Http::kMaxReqSize);
         if (pending->body.size() + len > max_req_size) {
-            auto body = std::make_shared<HttpStringBody>("request body too large");
-            StrCaseMap headers;
-            headers.emplace("content-type", "text/plain; charset=utf-8");
-            sendResponseHeaders(pending, 413, headers, body->remainSize(), false, false);
-            while (auto chunk = body->readData(64 * 1024)) {
-                sendResponseBody(pending,
-                                 reinterpret_cast<const uint8_t *>(chunk->data()),
-                                 chunk->size(),
-                                 body->remainSize() == 0);
-            }
+            sendTextResponse(pending, 413, "text/plain; charset=utf-8", "request body too large");
             pending->dispatched = true;
             pending->body_finished = true;
             return;
@@ -459,13 +425,17 @@ void QuicPluginBackend::onBody(uint64_t conn_id, uint64_t stream_id, const uint8
 }
 
 void QuicPluginBackend::onStreamClosed(const QuicServerStreamClose &close_info) {
-    std::lock_guard<std::mutex> lock(_request_mutex);
-    _request_map.erase(makeRequestKey(close_info.conn_id, close_info.stream_id));
+    removeRequest(close_info.conn_id, close_info.stream_id);
 }
 
 void QuicPluginBackend::onConnectionClosed(const QuicServerConnectionClose &close_info) {
+    // lsquic may report a connection close after or instead of individual stream
+    // close callbacks. Drain every pending request for this connection so live
+    // readers and fake-session wrappers release on the host side as well.
+    auto requests = removeConnectionRequests(close_info.conn_id);
     TraceL << "QUIC connection closed: conn=" << close_info.conn_id
-           << ", err=" << close_info.app_error_code;
+           << ", err=" << close_info.app_error_code
+           << ", cleaned_streams=" << requests.size();
 }
 
 QuicPluginBackend::RouteKey QuicPluginBackend::makeRouteKey(QuicSlice local_ip, uint16_t local_port, QuicSlice peer_ip, uint16_t peer_port) {
@@ -494,8 +464,36 @@ void QuicPluginBackend::rememberRoute(const QuicPacket &packet) {
     _route_map[makeRouteKey(packet)] = packet.sock;
 }
 
-uint64_t QuicPluginBackend::makeRequestKey(uint64_t conn_id, uint64_t stream_id) {
-    return (conn_id << 32) ^ stream_id;
+QuicPluginBackend::RequestKey QuicPluginBackend::makeRequestKey(uint64_t conn_id, uint64_t stream_id) {
+    RequestKey key;
+    key.conn_id = conn_id;
+    key.stream_id = stream_id;
+    return key;
+}
+
+std::shared_ptr<QuicPluginBackend::PendingRequest> QuicPluginBackend::removeRequest(uint64_t conn_id, uint64_t stream_id) {
+    std::lock_guard<std::mutex> lock(_request_mutex);
+    auto it = _request_map.find(makeRequestKey(conn_id, stream_id));
+    if (it == _request_map.end()) {
+        return nullptr;
+    }
+    auto request = std::move(it->second);
+    _request_map.erase(it);
+    return request;
+}
+
+std::vector<std::shared_ptr<QuicPluginBackend::PendingRequest>> QuicPluginBackend::removeConnectionRequests(uint64_t conn_id) {
+    std::vector<std::shared_ptr<PendingRequest>> requests;
+    std::lock_guard<std::mutex> lock(_request_mutex);
+    for (auto it = _request_map.begin(); it != _request_map.end();) {
+        if (it->first.conn_id != conn_id) {
+            ++it;
+            continue;
+        }
+        requests.emplace_back(std::move(it->second));
+        it = _request_map.erase(it);
+    }
+    return requests;
 }
 
 bool QuicPluginBackend::extractPacketConnectionIds(const uint8_t *data, size_t len,
@@ -661,16 +659,7 @@ bool QuicPluginBackend::checkLiveStream(const std::shared_ptr<PendingRequest> &r
         }
 
         if (!err.empty()) {
-            auto body = std::make_shared<HttpStringBody>(err);
-            StrCaseMap headers;
-            headers.emplace("content-type", "text/plain; charset=utf-8");
-            sendResponseHeaders(request, 401, headers, body->remainSize(), false, false);
-            while (auto chunk = body->readData(64 * 1024)) {
-                sendResponseBody(request,
-                                 reinterpret_cast<const uint8_t *>(chunk->data()),
-                                 chunk->size(),
-                                 body->remainSize() == 0);
-            }
+            sendTextResponse(request, 401, "text/plain; charset=utf-8", err);
             return;
         }
 
@@ -680,16 +669,7 @@ bool QuicPluginBackend::checkLiveStream(const std::shared_ptr<PendingRequest> &r
                 return;
             }
             if (!src) {
-                auto body = std::make_shared<HttpStringBody>(not_found);
-                StrCaseMap headers;
-                headers.emplace("content-type", "text/html; charset=utf-8");
-                sendResponseHeaders(request, 404, headers, body->remainSize(), false, false);
-                while (auto chunk = body->readData(64 * 1024)) {
-                    sendResponseBody(request,
-                                     reinterpret_cast<const uint8_t *>(chunk->data()),
-                                     chunk->size(),
-                                     body->remainSize() == 0);
-                }
+                sendTextResponse(request, 404, "text/html; charset=utf-8", not_found);
                 return;
             }
             request->live_stream = true;
@@ -699,6 +679,9 @@ bool QuicPluginBackend::checkLiveStream(const std::shared_ptr<PendingRequest> &r
 
     Broadcast::AuthInvoker invoker = [sender, on_res](const std::string &err) {
         if (sender) {
+            // Follow the same ownership rule as the existing SRT/WebRTC
+            // transports: auth completion is bounced back to the request poller
+            // before touching transport-bound state.
             sender->async([on_res, err]() { on_res(err); }, false);
         }
     };
@@ -725,16 +708,12 @@ bool QuicPluginBackend::checkLiveStreamTS(const std::shared_ptr<PendingRequest> 
         auto weak_request = std::weak_ptr<PendingRequest>(request);
         ts_src->pause(false);
         request->ts_reader = ts_src->getRing()->attach(request->sender->getPoller());
-        request->ts_reader->setGetInfoCB([weak_request]() {
-            toolkit::Any ret;
-            if (auto request = weak_request.lock()) {
-                ret.set(std::static_pointer_cast<toolkit::Session>(request->sender));
-            }
-            return ret;
-        });
+        request->ts_reader->setGetInfoCB([weak_request]() { return makeSenderInfo(weak_request); });
         request->ts_reader->setDetachCB([this, weak_request]() {
             if (auto request = weak_request.lock()) {
                 request->ts_reader = nullptr;
+                // Ring detach is the natural end of the live stream from the HTTP/3
+                // client's perspective. Finish the body instead of resetting the stream.
                 sendResponseBody(request, nullptr, 0, true);
             }
         });
@@ -809,16 +788,12 @@ bool QuicPluginBackend::checkLiveStreamFMP4(const std::shared_ptr<PendingRequest
         auto weak_request = std::weak_ptr<PendingRequest>(request);
         fmp4_src->pause(false);
         request->fmp4_reader = fmp4_src->getRing()->attach(request->sender->getPoller());
-        request->fmp4_reader->setGetInfoCB([weak_request]() {
-            toolkit::Any ret;
-            if (auto request = weak_request.lock()) {
-                ret.set(std::static_pointer_cast<toolkit::Session>(request->sender));
-            }
-            return ret;
-        });
+        request->fmp4_reader->setGetInfoCB([weak_request]() { return makeSenderInfo(weak_request); });
         request->fmp4_reader->setDetachCB([this, weak_request]() {
             if (auto request = weak_request.lock()) {
                 request->fmp4_reader = nullptr;
+                // Match the ts/flv live path: reader detach means the source stopped
+                // producing data, so close the response body cleanly.
                 sendResponseBody(request, nullptr, 0, true);
             }
         });
@@ -885,12 +860,7 @@ void QuicPluginBackend::dispatchRequest(const std::shared_ptr<PendingRequest> &r
         }
 
         GET_CONFIG(uint32_t, send_buf_size, Http::kSendBufSize);
-        while (auto chunk = body->readData(send_buf_size)) {
-            sendResponseBody(request,
-                             reinterpret_cast<const uint8_t *>(chunk->data()),
-                             chunk->size(),
-                             body->remainSize() == 0);
-        }
+        sendHttpBody(request, body, send_buf_size);
     };
 
     sender->getPoller()->async([this, sender, parser, invoker, weak_request]() mutable {
@@ -898,6 +868,10 @@ void QuicPluginBackend::dispatchRequest(const std::shared_ptr<PendingRequest> &r
         if (!request) {
             return;
         }
+
+        // Keep HTTP helper dispatch on the request poller. Existing HTTP file
+        // and auth code assumes sender/session lifetime is tied to that poller,
+        // even though HTTP/3 itself arrived from the lsquic engine callback path.
 
         if (strcasecmp(parser.method().data(), "OPTIONS") == 0) {
             StrCaseMap header;
@@ -941,7 +915,11 @@ void QuicPluginBackend::dispatchRequest(const std::shared_ptr<PendingRequest> &r
                         headers.emplace("content-type", content_type);
                     }
                     invoker(code, headers, body);
-                }, nullptr);
+                },
+                // HLS/file serving keeps async state in HttpFileManager via the
+                // Session lifetime. Reuse the PendingSession shim here instead
+                // of passing nullptr, otherwise HLS over HTTP/3 never replies.
+                sender.get());
             } catch (std::exception &ex) {
                 WarnL << "HTTP/3 access path failed: " << ex.what();
                 invoker(403, StrCaseMap(), std::make_shared<HttpStringBody>("forbidden"));
@@ -951,6 +929,37 @@ void QuicPluginBackend::dispatchRequest(const std::shared_ptr<PendingRequest> &r
 
         HttpRequestDispatcher::emitHttpEvent(parser, *sender, invoker, true);
     }, false);
+}
+
+toolkit::Any QuicPluginBackend::makeSenderInfo(const std::weak_ptr<PendingRequest> &weak_request) {
+    toolkit::Any ret;
+    if (auto request = weak_request.lock()) {
+        ret.set(std::static_pointer_cast<toolkit::Session>(request->sender));
+    }
+    return ret;
+}
+
+void QuicPluginBackend::sendHttpBody(const std::shared_ptr<PendingRequest> &request,
+                                     const HttpBody::Ptr &body, size_t chunk_size) {
+    if (!request || !body) {
+        return;
+    }
+
+    while (auto chunk = body->readData(chunk_size)) {
+        sendResponseBody(request,
+                         reinterpret_cast<const uint8_t *>(chunk->data()),
+                         chunk->size(),
+                         body->remainSize() == 0);
+    }
+}
+
+void QuicPluginBackend::sendTextResponse(const std::shared_ptr<PendingRequest> &request, int code,
+                                         const std::string &content_type, const std::string &text) {
+    auto body = std::make_shared<HttpStringBody>(text);
+    StrCaseMap headers;
+    headers.emplace("content-type", content_type);
+    sendResponseHeaders(request, code, headers, body->remainSize(), false, false);
+    sendHttpBody(request, body, 64 * 1024);
 }
 
 } // namespace mediakit

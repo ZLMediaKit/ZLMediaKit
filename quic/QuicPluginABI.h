@@ -136,6 +136,10 @@ struct QuicClientConfig {
 struct QuicServerRequest {
     uint64_t conn_id = 0;
     uint64_t stream_id = 0;
+    QuicSlice local_ip;
+    QuicSlice peer_ip;
+    uint16_t local_port = 0;
+    uint16_t peer_port = 0;
     QuicSlice method;
     QuicSlice scheme;
     QuicSlice authority;

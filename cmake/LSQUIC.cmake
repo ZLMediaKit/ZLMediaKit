@@ -4,6 +4,9 @@
 set(LSQUIC_SOURCE_DIR ${DEP_ROOT_DIR}/lsquic-${LSQUIC_VERSION})
 set(LSQUIC_BUILD_DIR ${LSQUIC_SOURCE_DIR}/build-boringssl)
 set(LSQUIC_LIBRARY_PATH ${LSQUIC_BUILD_DIR}/src/liblsquic/liblsquic.a)
+set(LSQUIC_PATCH_HTTP3_NO_SNI ${PROJECT_SOURCE_DIR}/cmake/patches/lsquic/0001-http3-default-cert-without-sni.patch)
+
+include(${PROJECT_SOURCE_DIR}/cmake/PatchUtils.cmake)
 
 function(zlm_run_checked)
   execute_process(${ARGN} RESULT_VARIABLE _zlm_result)
@@ -43,6 +46,8 @@ endif()
 
 zlm_run_checked(
   COMMAND ${GIT_EXECUTABLE} -C ${LSQUIC_SOURCE_DIR} submodule update --init)
+
+zlm_apply_git_patch(${LSQUIC_SOURCE_DIR} ${LSQUIC_PATCH_HTTP3_NO_SNI} "lsquic HTTP/3 default-cert fallback patch")
 
 if(NOT EXISTS ${LSQUIC_LIBRARY_PATH})
   message(STATUS "Building local static LSQUIC against BoringSSL")

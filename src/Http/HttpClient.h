@@ -356,6 +356,8 @@ private:
     void restoreAutoHttp3ReplayBody();
     bool tryFallbackToDirectFromAutoHttp3();
     HttpClientRequestPlan makeDirectFallbackPlan() const;
+    bool supportsHttp3Transport() const;
+    bool isQuicTransportAlive() const;
 private:
     //for http response
     bool _complete = false;

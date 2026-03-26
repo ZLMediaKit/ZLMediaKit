@@ -27,12 +27,12 @@ file(GLOB MediaKit_SRC_LIST
   ${CMAKE_CURRENT_SOURCE_DIR}/*/*.h)
 
 list(APPEND MediaKit_SRC_LIST
+  ${CMAKE_CURRENT_SOURCE_DIR}/Http/HttpClientQuic.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/Http/HttpProtocolHint.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/Http/HttpProtocolHint.h)
 
 if(ENABLE_QUIC)
   list(APPEND MediaKit_SRC_LIST
-    ${CMAKE_CURRENT_SOURCE_DIR}/../quic/QuicClientBackend.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../quic/QuicClientBackend.h)
 endif()
 

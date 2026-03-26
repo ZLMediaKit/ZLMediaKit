@@ -49,6 +49,10 @@ foreach(TEST_SRC ${TEST_SRC_LIST})
 
   target_compile_definitions(${TEST_EXE_NAME}
     PRIVATE ${MK_COMPILE_DEFINITIONS})
+  if(ENABLE_QUIC)
+    target_compile_definitions(${TEST_EXE_NAME}
+      PRIVATE ENABLE_QUIC)
+  endif()
 
   if(USE_SOLUTION_FOLDERS)
     SET_PROPERTY(TARGET ${TEST_EXE_NAME} PROPERTY FOLDER "test")

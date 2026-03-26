@@ -2,12 +2,24 @@
 
 #include "Common/config.h"
 #include "QuicDispatcher.h"
+#include "QuicSocketBufferConfig.h"
 
 using namespace toolkit;
 
 namespace mediakit {
 
 QuicSession::QuicSession(const Socket::Ptr &sock) : Session(sock) {}
+
+void QuicSession::attachServer(const toolkit::Server &) {
+    if (auto sock = getSock()) {
+        // Public QUIC traffic can arrive through UDP GRO/coalescing and exceed the
+        // default shared userspace packet buffer even when the logical QUIC packets
+        // are valid, so QUIC installs a larger recv path on its own sockets only.
+        // `attachServer()` runs before this UDP session starts receiving packets,
+        // which matches the setup-time contract of Socket::setReadBuffer().
+        sock->setReadBuffer(makeQuicSocketReadBuffer());
+    }
+}
 
 EventPoller::Ptr QuicSession::queryPoller(const Buffer::Ptr &buffer) {
     return QuicDispatcher::Instance().queryPoller(buffer);

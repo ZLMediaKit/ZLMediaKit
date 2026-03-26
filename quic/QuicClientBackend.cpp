@@ -2,6 +2,7 @@
 
 #include "Network/Buffer.h"
 #include "Network/sockutil.h"
+#include "QuicSocketBufferConfig.h"
 #include "Util/logger.h"
 #include "Util/util.h"
 
@@ -88,7 +89,15 @@ static bool resolveUdpEndpoint(const std::string &host, uint16_t port, ResolvedU
 } // namespace
 
 QuicClientBackend::UdpTransport::UdpTransport(QuicClientBackend &owner, const EventPoller::Ptr &poller)
-    : UdpClient(poller), _owner(&owner) {}
+    : UdpClient(poller), _owner(&owner) {
+    setOnCreateSocket([](const EventPoller::Ptr &poller) {
+        auto sock = Socket::createSocket(poller, true);
+        // Install the QUIC-specific recv buffer at socket creation time so the
+        // socket read path never needs runtime buffer reconfiguration.
+        sock->setReadBuffer(makeQuicSocketReadBuffer());
+        return sock;
+    });
+}
 
 void QuicClientBackend::UdpTransport::detachOwner() {
     _owner = nullptr;
@@ -238,18 +247,7 @@ int QuicClientBackend::start(const std::string &peer_host, uint16_t peer_port, c
     _engine = _plugin.createClientEngine(*this, owned_config);
     if (!_engine) {
         WarnL << "failed to create QUIC client engine from plugin: " << _plugin.pluginName();
-        if (_transport) {
-            auto transport = _transport;
-            auto cleanup = [transport]() {
-                transport->closeQuietly();
-            };
-            if (auto poller = transport->getPoller()) {
-                poller->sync(cleanup);
-            } else {
-                cleanup();
-            }
-            _transport.reset();
-        }
+        closeTransport();
         return -1;
     }
 
@@ -320,6 +318,8 @@ int QuicClientBackend::shutdown(uint64_t app_error_code, const std::string &reas
     if (_poller && !_poller->isCurrentThread()) {
         auto reason_copy = reason;
         int ret = 0;
+        // The QUIC engine owns timer state and pending UDP writes, so shutdown must
+        // run on the owner poller thread before transport callbacks are detached.
         _poller->sync([this, app_error_code, &ret, reason_copy]() {
             if (!_engine) {
                 ret = 0;
@@ -475,21 +475,27 @@ void QuicClientBackend::resetEngine() {
     auto *engine = _engine;
     _engine = nullptr;
 
-    if (_transport) {
-        auto transport = _transport;
-        auto cleanup = [transport]() {
-            transport->closeQuietly();
-        };
-        if (auto poller = transport->getPoller()) {
-            poller->sync(cleanup);
-        } else {
-            cleanup();
-        }
-        _transport.reset();
-    }
+    closeTransport();
 
     if (engine) {
         _plugin.destroyClientEngine(engine);
+    }
+}
+
+void QuicClientBackend::closeTransport() {
+    auto transport = _transport;
+    if (!transport) {
+        return;
+    }
+
+    _transport.reset();
+    auto cleanup = [transport]() {
+        transport->closeQuietly();
+    };
+    if (auto poller = transport->getPoller()) {
+        poller->sync(cleanup);
+    } else {
+        cleanup();
     }
 }
 
@@ -541,6 +547,8 @@ void QuicClientBackend::armTimer(uint64_t delay_ms) {
             _timer_task->cancel();
             _timer_task.reset();
         }
+        // Only keep the earliest timer task armed. Later callbacks are invalidated
+        // through _timer_seq so delayed tasks that race with shutdown become no-ops.
         timer_seq = ++_timer_seq;
         _timer_due_ms = due_ms;
         _timer_task = poller->doDelayTask(delay_ms, [weak_self, timer_seq]() -> uint64_t {

@@ -116,6 +116,9 @@ endif()
 ##############################################################################
 
 # toolkit
+include(${PROJECT_SOURCE_DIR}/cmake/PatchUtils.cmake)
+set(ZLTOOLKIT_PATCH_SOCKET_RECV_BUFFER ${PROJECT_SOURCE_DIR}/cmake/patches/zltoolkit/0001-socket-custom-recv-buffer.patch)
+zlm_apply_git_patch(${CMAKE_CURRENT_SOURCE_DIR}/ZLToolKit ${ZLTOOLKIT_PATCH_SOCKET_RECV_BUFFER} "ZLToolKit custom recv buffer patch")
 add_subdirectory(ZLToolKit)
 # 添加库别名
 add_library(ZLMediaKit::ToolKit ALIAS ZLToolKit)

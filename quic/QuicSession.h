@@ -15,6 +15,7 @@ public:
 
     static toolkit::EventPoller::Ptr queryPoller(const toolkit::Buffer::Ptr &buffer);
 
+    void attachServer(const toolkit::Server &server) override;
     void onRecv(const toolkit::Buffer::Ptr &buffer) override;
     void onError(const toolkit::SockException &err) override;
     void onManager() override;

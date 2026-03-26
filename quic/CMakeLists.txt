@@ -53,6 +53,8 @@ update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_QUIC)
 set(QUIC_HOST_SRC_LIST
   ${CMAKE_CURRENT_SOURCE_DIR}/QuicDispatcher.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/QuicDispatcher.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/QuicClientBackend.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/QuicClientBackend.h
   ${CMAKE_CURRENT_SOURCE_DIR}/QuicSession.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/QuicSession.h
   ${CMAKE_CURRENT_SOURCE_DIR}/QuicBackend.h
@@ -63,6 +65,12 @@ set(QUIC_HOST_SRC_LIST
 
 set(QUIC_PLUGIN_SRC_LIST
   ${CMAKE_CURRENT_SOURCE_DIR}/QuicPluginABI.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/plugin/lsquic/LsquicCommon.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/plugin/lsquic/LsquicCommon.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/plugin/lsquic/LsquicServerEngine.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/plugin/lsquic/LsquicServerEngine.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/plugin/lsquic/LsquicClientEngine.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/plugin/lsquic/LsquicClientEngine.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/plugin/lsquic/LsquicPlugin.cpp)
 
 set(QUIC_PLUGIN_EXPORT_MAP

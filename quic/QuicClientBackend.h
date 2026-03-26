@@ -102,6 +102,7 @@ private:
 private:
     void onTransportPacket(const toolkit::Buffer::Ptr &buf, struct sockaddr *addr);
     void onTransportError(const toolkit::SockException &err);
+    void closeTransport();
     void resetEngine();
     void flushTransport();
     void refreshTimer();
