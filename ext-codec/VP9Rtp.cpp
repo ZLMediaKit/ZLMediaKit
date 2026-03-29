@@ -109,7 +109,12 @@ struct RTPPayloadVP9 {
 #define kVBit 0x02
 int RTPPayloadVP9::parse(unsigned char *data, int dataLength) {
   const unsigned char* dataPtr = data;
+  const unsigned char* dataEnd = data + dataLength;
+
+#define VP9_CHECK_BOUNDS(n) do { if (dataPtr + (n) > dataEnd) return -1; } while (0)
+
   // Parse mandatory first byte of payload descriptor
+  VP9_CHECK_BOUNDS(1);
   this->hasPictureID = (*dataPtr & kIBit); // I bit
   this->interPicturePrediction = (*dataPtr & kPBit); // P bit
   this->hasLayerIndices = (*dataPtr & kLBit); // L bit
@@ -120,16 +125,19 @@ int RTPPayloadVP9::parse(unsigned char *data, int dataLength) {
   dataPtr++;
 
   if (this->hasPictureID) {
+    VP9_CHECK_BOUNDS(1);
     this->largePictureID = (*dataPtr & 0x80);  // M bit
     this->pictureID = (*dataPtr & 0x7F);
     if (this->largePictureID) {
       dataPtr++;
+      VP9_CHECK_BOUNDS(1);
       this->pictureID = ntohs((this->pictureID << 16) + (*dataPtr & 0xFF));
     }
     dataPtr++;
   }
 
   if (this->hasLayerIndices) {
+    VP9_CHECK_BOUNDS(1);
     this->temporalID = (*dataPtr & 0xE0) >> 5;  // T bits
     this->isSwitchingUp = (*dataPtr & 0x10);  // U bit
     this->spatialID = (*dataPtr & 0x0E) >> 1;  // S bits
@@ -137,11 +145,13 @@ int RTPPayloadVP9::parse(unsigned char *data, int dataLength) {
     if (this->flexibleMode) { // marked in webrtc code
       do {
         dataPtr++;
+        VP9_CHECK_BOUNDS(1);
         this->referenceIdx = (*dataPtr & 0xFE) >> 1;
         this->additionalReferenceIdx = (*dataPtr & 0x01);  // D bit
       } while (this->additionalReferenceIdx);
     } else {
       dataPtr++;
+      VP9_CHECK_BOUNDS(1);
       this->tl0PicIdx = (*dataPtr & 0xFF);
     }
     dataPtr++;
@@ -151,18 +161,21 @@ int RTPPayloadVP9::parse(unsigned char *data, int dataLength) {
       /* Skip reference indices */
       uint8_t nbit;
       do {
+          VP9_CHECK_BOUNDS(1);
           uint8_t p_diff = (*dataPtr & 0xFE) >> 1;
           nbit = (*dataPtr & 0x01);
           dataPtr++;
       } while (nbit);
   }
   if (this->hasScalabilityStructure) {
+    VP9_CHECK_BOUNDS(1);
     this->spatialLayers = (*dataPtr & 0xE0) >> 5;  // N_S bits
     this->hasResolution = (*dataPtr & 0x10);  // Y bit
     this->hasGof = (*dataPtr & 0x08);  // G bit
     dataPtr++;
     if (this->hasResolution) {
       for (int i = 0; i <= this->spatialLayers; i++) {
+        VP9_CHECK_BOUNDS(4);
         int width = (dataPtr[0] << 8) + dataPtr[1];
         dataPtr += 2;
         int height = (dataPtr[0] << 8) + dataPtr[1];
@@ -172,18 +185,23 @@ int RTPPayloadVP9::parse(unsigned char *data, int dataLength) {
       }
     }
     if (this->hasGof) {
+      VP9_CHECK_BOUNDS(1);
       this->numberOfFramesInGof = *dataPtr & 0xFF;  // N_G bits
       dataPtr++;
       for (int frame_index = 0; frame_index < this->numberOfFramesInGof; frame_index++) {
         // TODO(javierc): Read these values if needed
+        VP9_CHECK_BOUNDS(1);
         int reference_indices = (*dataPtr & 0x0C) >> 2;  // R bits
         dataPtr++;
+        VP9_CHECK_BOUNDS(reference_indices);
         for (int reference_index = 0; reference_index < reference_indices; reference_index++) {
           dataPtr++;
         }
       }
     }
   }
+
+#undef VP9_CHECK_BOUNDS
 
   return dataPtr - data;
 }
@@ -221,6 +239,10 @@ bool VP9RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtp) {
 
     RTPPayloadVP9 info;
     int offset = info.parse(payload, payload_size);
+    if (offset < 0) {
+        WarnL << "VP9 RTP payload parse failed, seq:" << seq;
+        return false;
+    }
     // InfoL << rtp->dumpString() << "\n" << info.dump();
     bool start = info.beginningOfLayerFrame;
     if (start) {
