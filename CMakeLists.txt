@@ -58,6 +58,11 @@ option(ENABLE_SRT "Enable SRT" ON)
 option(ENABLE_TESTS "Enable Tests" ON)
 option(ENABLE_SCTP "Enable SCTP" ON)
 option(ENABLE_WEBRTC "Enable WebRTC" ON)
+option(ENABLE_QUIC "Enable QUIC/HTTP3 support" ON)
+option(ENABLE_LSQUIC_AUTO_BUILD "Automatically download and build a private BoringSSL+lsquic dependency bundle for QUIC" ON)
+set(LSQUIC_VERSION "v4.6.0" CACHE STRING "LSQUIC git tag/branch used for auto-build")
+set(BORINGSSL_REVISION "9fc1c33e9c21439ce5f87855a6591a9324e569fd" CACHE STRING "BoringSSL git revision used for local auto-build when QUIC is enabled")
+set(GO_AUTO_VERSION "1.24.5" CACHE STRING "Go version used for local auto-build fallback when QUIC dependencies are enabled")
 option(ENABLE_X264 "Enable x264" OFF)
 option(ENABLE_VIDEOSTACK "Enable video stack" OFF)
 option(DISABLE_REPORT "Disable report to report.zlmediakit.com" OFF)
@@ -554,6 +559,10 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdpart)
 add_subdirectory(3rdpart)
 
 add_subdirectory(src)
+
+if(ENABLE_QUIC)
+  add_subdirectory(quic)
+endif()
 
 add_subdirectory(ext-codec)
 

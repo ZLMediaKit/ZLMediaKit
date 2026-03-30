@@ -22,10 +22,13 @@
 #include "HttpRequestSplitter.h"
 #include "HttpCookie.h"
 #include "HttpChunkedSplitter.h"
+#include "HttpClientTypes.h"
 #include "Common/strCoding.h"
 #include "HttpBody.h"
 
 namespace mediakit {
+
+class QuicClientBackend;
 
 class HttpArgs : public std::map<std::string, toolkit::variant, StrCaseCompare> {
 public:
@@ -48,13 +51,14 @@ class HttpClient : public toolkit::TcpClient, public HttpRequestSplitter {
 public:
     using HttpHeader = StrCaseMap;
     using Ptr = std::shared_ptr<HttpClient>;
+    ~HttpClient() override;
 
     /**
      * 发送http[s]请求
      * @param url 请求url
      * Send http[s] request
      * @param url Request url
-     
+
      * [AUTO-TRANSLATED:01b6c9ac]
      */
     virtual void sendRequest(const std::string &url);
@@ -62,7 +66,7 @@ public:
     /**
      * 重置当前请求相关状态，并尽量保留可复用的传输状态
      * Reset per-request state while preserving reusable transport state when possible
-     
+
      * [AUTO-TRANSLATED:d23b5bbb]
      */
     virtual void clear();
@@ -72,7 +76,7 @@ public:
      * @param method GET/POST等
      * Set http method
      * @param method GET/POST etc.
-     
+
      * [AUTO-TRANSLATED:5199546a]
      */
     void setMethod(std::string method);
@@ -149,6 +153,8 @@ public:
      */
     bool waitResponse() const;
 
+    bool alive() const override;
+
     /**
      * 判断是否为https
      * Determine if it is https
@@ -206,6 +212,31 @@ public:
     void setProxyUrl(std::string proxy_url);
 
     /**
+     * 显式启用HTTP/3请求路径；仅对https请求生效，不做自动升级
+     * Explicitly enable the HTTP/3 request path; only applies to https requests and does not auto-upgrade
+
+     * [AUTO-TRANSLATED:0e2f46b2]
+     */
+    void setEnableHttp3(bool enable);
+    void setEnableHttp3Auto(bool enable);
+
+    /**
+     * 设置HTTP/3证书校验；默认启用
+     * Set HTTP/3 peer verification; enabled by default
+
+     * [AUTO-TRANSLATED:dfdbba49]
+     */
+    void setHttp3VerifyPeer(bool verify);
+
+    /**
+     * 设置HTTP/3自定义CA文件
+     * Set custom CA file for HTTP/3
+
+     * [AUTO-TRANSLATED:d13e4141]
+     */
+    void setHttp3CAFile(std::string ca_file);
+
+    /**
      * 当重用连接失败时, 是否允许重新发起请求
      * If the reuse connection fails, whether to allow the request to be resent
      * @param allow true:允许重新发起请求 / true: allow the request to be resent
@@ -250,6 +281,16 @@ protected:
     virtual void onResponseCompleted(const toolkit::SockException &ex) = 0;
 
     /**
+     * QUIC backend log event, mainly for diagnostics; default no-op.
+     * @param level log level
+     * @param message log message
+     */
+    virtual void onQuicBackendLog(int level, const std::string &message) {
+        (void) level;
+        (void) message;
+    }
+
+    /**
      * 重定向事件
      * @param url 重定向url
      * @param temporary 是否为临时重定向
@@ -273,17 +314,50 @@ protected:
     void onError(const toolkit::SockException &ex) override;
     void onFlush() override;
     void onManager() override;
+    void shutdown(const toolkit::SockException &ex = toolkit::SockException(toolkit::Err_shutdown, "self shutdown")) override;
 
     void clearResponse();
+
+    virtual HttpClientTransportAction selectTransportAction(const HttpClientRequestPlan &plan) const;
+    virtual void beginDirectConnect(const HttpClientRequestPlan &plan);
+    virtual void beginProxyConnect(const HttpClientRequestPlan &plan);
+    virtual void beginQuicConnect(const HttpClientRequestPlan &plan);
+    virtual void reuseTransport(const HttpClientRequestPlan &plan);
+    virtual void onTransportReady();
+    virtual ssize_t sendRequestHeaderData(const std::string &data);
+    virtual ssize_t sendRequestBodyData(toolkit::Buffer::Ptr buffer);
+    void loadResponseParser(const std::string &protocol, const std::string &status,
+                            const std::string &status_str, const HttpHeader &headers);
+    ssize_t handleParsedResponseHeader(bool end_stream = false);
+    void handleResponseContentData(const char *data, size_t len, bool fin);
 
     bool checkProxyConnected(const char *data, size_t len);
     bool isUsedProxy() const;
     bool isProxyConnected() const;
 
 private:
+    HttpClientRequestPlan makeRequestPlan(const std::string &url);
+    void applyRequestPlan(const HttpClientRequestPlan &plan);
+    std::string makeHttpRequestHeader() const;
+    std::string makeProxyConnectHeader() const;
     void onResponseCompleted_l(const toolkit::SockException &ex);
     void onConnect_l(const toolkit::SockException &ex);
     void checkCookie(HttpHeader &headers);
+    void detachTcpTransport();
+    void ensureQuicBackend();
+    void resetQuicRequest(bool close_transport);
+    void startQuicManagerTimer();
+    void stopQuicManagerTimer();
+    void onQuicResponseHeaders(uint64_t request_id, int32_t status_code, const HttpHeader &headers, bool fin);
+    void onQuicResponseBody(uint64_t request_id, const char *data, size_t len, bool fin);
+    void onQuicRequestClosed(uint64_t request_id, int state, const std::string &reason);
+    bool prepareAutoHttp3ReplayBody();
+    void resetAutoHttp3ReplayBody();
+    void restoreAutoHttp3ReplayBody();
+    bool tryFallbackToDirectFromAutoHttp3();
+    HttpClientRequestPlan makeDirectFallbackPlan() const;
+    bool supportsHttp3Transport() const;
+    bool isQuicTransportAlive() const;
 private:
     //for http response
     bool _complete = false;
@@ -322,6 +396,23 @@ private:
     std::string _proxy_url;
     std::string _proxy_host;
     std::string _proxy_auth;
+
+    bool _enable_http3 = false;
+    bool _enable_http3_auto = true;
+    bool _http3_verify_peer = true;
+    std::string _http3_ca_file;
+    std::shared_ptr<toolkit::Timer> _quic_timer;
+    std::shared_ptr<QuicClientBackend> _quic_backend;
+    std::string _quic_host;
+    std::string _quic_authority;
+    uint16_t _quic_port = 0;
+    uint64_t _quic_request_id = 0;
+    bool _quic_request_active = false;
+    bool _quic_request_auto = false;
+    bool _quic_auto_fallback_attempted = false;
+    bool _http3_auto_replay_ready = false;
+    std::string _http3_auto_replay_body;
+    HttpClientRequestPlan _active_plan;
 };
 
 } /* namespace mediakit */

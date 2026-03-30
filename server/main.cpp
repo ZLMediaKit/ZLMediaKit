@@ -39,6 +39,10 @@
 #include "../srt/SrtTransport.hpp"
 #endif
 
+#if defined(ENABLE_QUIC)
+#include "../quic/QuicSession.h"
+#endif
+
 #if defined(ENABLE_VERSION)
 #include "ZLMVersion.h"
 #endif
@@ -337,6 +341,7 @@ int start_main(int argc,char *argv[]) {
         uint16_t rtmpsPort = mINI::Instance()[Rtmp::kSSLPort];
         uint16_t httpPort = mINI::Instance()[Http::kPort];
         uint16_t httpsPort = mINI::Instance()[Http::kSSLPort];
+        uint16_t http3Port = mINI::Instance()[Http::kQuicPort];
         uint16_t rtpPort = mINI::Instance()[RtpProxy::kPort];
 
         // 简单的telnet服务器，可用于服务器调试，但是不能使用23端口，否则telnet上了莫名其妙的现象  [AUTO-TRANSLATED:f9324c6e]
@@ -359,6 +364,17 @@ int start_main(int argc,char *argv[]) {
         // http[s] server
         auto httpSrv = std::make_shared<TcpServer>();
         auto httpsSrv = std::make_shared<TcpServer>();
+
+#if defined(ENABLE_QUIC)
+        auto http3Srv = std::make_shared<UdpServer>();
+        http3Srv->setOnCreateSocket([](const EventPoller::Ptr &poller, const Buffer::Ptr &buf, struct sockaddr *, int) {
+            if (!buf) {
+                return Socket::createSocket(poller, false);
+            }
+            auto new_poller = QuicSession::queryPoller(buf);
+            return Socket::createSocket(new_poller ? new_poller : poller, false);
+        });
+#endif // defined(ENABLE_QUIC)
 
 #if defined(ENABLE_RTPPROXY)
         // GB28181 rtp推流端口，支持UDP/TCP  [AUTO-TRANSLATED:8a9b2872]
@@ -441,6 +457,10 @@ int start_main(int argc,char *argv[]) {
             // https服务器，端口默认443  [AUTO-TRANSLATED:24999616]
             // https server, default port 443
             if (httpsPort) { httpsSrv->start<HttpsSession>(httpsPort, listen_ip); }
+
+#if defined(ENABLE_QUIC)
+            if (http3Port) { http3Srv->start<QuicSession>(http3Port, listen_ip); }
+#endif // defined(ENABLE_QUIC)
 
             // telnet远程调试服务器  [AUTO-TRANSLATED:577cb7cf]
             // telnet remote debug server

@@ -53,6 +53,15 @@ Buffer::Ptr HttpStringBody::readData(size_t size) {
     return ret;
 }
 
+bool HttpStringBody::snapshot(string &out, size_t max_size) const {
+    auto remain = _str.size() - _offset;
+    if (remain > max_size) {
+        return false;
+    }
+    out.assign(_str.data() + _offset, remain);
+    return true;
+}
+
 //////////////////////////////////////////////////////////////////
 static mutex s_mtx;
 static unordered_map<string /*file_path*/, std::tuple<char */*ptr*/, int64_t /*size*/, weak_ptr<char> /*mmap*/ > > s_shared_mmap;
@@ -398,6 +407,18 @@ int64_t HttpBufferBody::remainSize() {
 
 Buffer::Ptr HttpBufferBody::readData(size_t size) {
     return Buffer::Ptr(std::move(_buffer));
+}
+
+bool HttpBufferBody::snapshot(string &out, size_t max_size) const {
+    if (!_buffer) {
+        out.clear();
+        return true;
+    }
+    if (_buffer->size() > max_size) {
+        return false;
+    }
+    out.assign(_buffer->data(), _buffer->size());
+    return true;
 }
 
 } // namespace mediakit
