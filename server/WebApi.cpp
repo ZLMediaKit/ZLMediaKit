@@ -2539,37 +2539,25 @@ void installWebApi() {
     api_regist("/index/api/setStreamSpeed", [](API_ARGS_JSON_ASYNC) {
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream", "speed");
-        
-        // 从 JSON body 中获取参数
-        std::string vhost = allArgs["vhost"];
+
+        std::string vhost = DEFAULT_VHOST;
+        if (!allArgs["vhost"].empty()) {
+            vhost = allArgs["vhost"];
+        }
         std::string app = allArgs["app"];
         std::string stream = allArgs["stream"];
         float speed = allArgs["speed"].as<float>();
-        
-        // 如果 vhost 为空，使用默认值
-        if (vhost.empty()) {
-            vhost = DEFAULT_VHOST;
-        }
-        
-        // 生成 key，格式为 vhost/app/stream
+
         auto tuple = MediaTuple { vhost, app, stream, "" };
         std::string key = tuple.shortUrl();
         
-        // 查找对应的 PlayerProxy
         auto player_proxy = s_player_proxy.find(key);
         if (!player_proxy) {
             throw ApiRetException("can not find the stream proxy", API::NotFound);
         }
         
-        // 获取 delegate
-        auto delegate = player_proxy->getDelegate();
-        if (!delegate) {
-            throw ApiRetException("player delegate not found", API::OtherFailed);
-        }
-        
-        // 在 PlayerProxy 的线程中异步调用 speed 方法
         player_proxy->getPoller()->async([=]() mutable {
-            delegate->speed(speed);
+            player_proxy->MediaPlayer::speed(speed);
             val["result"] = 0;
             val["msg"] = "success";
             val["code"] = API::Success;
@@ -2583,35 +2571,23 @@ void installWebApi() {
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream");
         
-        // 从 JSON body 中获取参数
-        std::string vhost = allArgs["vhost"];
+        std::string vhost = DEFAULT_VHOST;
+        if (!allArgs["vhost"].empty()) {
+            vhost = allArgs["vhost"];
+        }
         std::string app = allArgs["app"];
         std::string stream = allArgs["stream"];
         
-        // 如果 vhost 为空，使用默认值
-        if (vhost.empty()) {
-            vhost = DEFAULT_VHOST;
-        }
-        
-        // 生成 key，格式为 vhost/app/stream
         auto tuple = MediaTuple { vhost, app, stream, "" };
         std::string key = tuple.shortUrl();
         
-        // 查找对应的 PlayerProxy
         auto player_proxy = s_player_proxy.find(key);
         if (!player_proxy) {
             throw ApiRetException("can not find the stream proxy", API::NotFound);
         }
         
-        // 获取 delegate
-        auto delegate = player_proxy->getDelegate();
-        if (!delegate) {
-            throw ApiRetException("player delegate not found", API::OtherFailed);
-        }
-        
-        // 在 PlayerProxy 的线程中异步调用 pause 方法
         player_proxy->getPoller()->async([=]() mutable {
-            delegate->pause(true);
+            player_proxy->MediaPlayer::pause(true);
             val["result"] = 0;
             val["msg"] = "success";
             val["code"] = API::Success;
@@ -2625,36 +2601,24 @@ void installWebApi() {
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream");
         
-        // 从 JSON body 中获取参数
-        std::string vhost = allArgs["vhost"];
+        std::string vhost = DEFAULT_VHOST;
+        if (!allArgs["vhost"].empty()) {
+            vhost = allArgs["vhost"];
+        }
         std::string app = allArgs["app"];
-        std::string stream = allArgs["stream"];
+        std::string stream = allArgs["stream"]; 
         uint32_t pos = allArgs["position"].as<uint32_t>();
         
-        // 如果 vhost 为空，使用默认值
-        if (vhost.empty()) {
-            vhost = DEFAULT_VHOST;
-        }
-        
-        // 生成 key，格式为 vhost/app/stream
         auto tuple = MediaTuple { vhost, app, stream, "" };
         std::string key = tuple.shortUrl();
         
-        // 查找对应的 PlayerProxy
         auto player_proxy = s_player_proxy.find(key);
         if (!player_proxy) {
             throw ApiRetException("can not find the stream proxy", API::NotFound);
         }
         
-        // 获取 delegate
-        auto delegate = player_proxy->getDelegate();
-        if (!delegate) {
-            throw ApiRetException("player delegate not found", API::OtherFailed);
-        }
-        
-        // 在 PlayerProxy 的线程中异步调用 seekTo 方法
         player_proxy->getPoller()->async([=]() mutable {
-            delegate->seekTo(pos);
+            player_proxy->MediaPlayer::seekTo(pos);
             val["result"] = 0;
             val["msg"] = "success";
             val["code"] = API::Success;

@@ -21,6 +21,8 @@
 #include <cmath>
 #include <iomanip>
 #include <set>
+#include <cstring>
+#include <ctime>
 
 #if defined(_WIN32)
 #include "Util/strptime_win.h"
@@ -495,7 +497,7 @@ void RtspPlayer::sendPause(int type, uint32_t seekMS) {
                 if (_range_type == "clock" && !_range_start_str.empty()) {
                     // clock 格式：需要计算新的时间
                     // 解析起始时间：20251123T000000Z
-                    struct tm tm_start = {};
+                    struct tm tm_start;
                     const char* start_str = _range_start_str.c_str();
                     if (strptime(start_str, "%Y%m%dT%H%M%SZ", &tm_start) != nullptr) {
                         // 转换为 time_t，加上 seekMS 毫秒
@@ -507,7 +509,7 @@ void RtspPlayer::sendPause(int type, uint32_t seekMS) {
                         start_time += seekMS / 1000;  // 加上秒数
                         
                         // 格式化新的时间
-                        struct tm tm_new = {};
+                        struct tm tm_new;
 #if defined(_WIN32)
                         auto gmtime_ret = gmtime_s(&tm_new, &start_time);
                         if (gmtime_ret == 0)
