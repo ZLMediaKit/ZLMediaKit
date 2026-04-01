@@ -7,6 +7,14 @@
 
 #include "EasyAACEncoder/EasyAACEncoderAPI.h"
 
+// Inline ADTS frame-length parser (mirrors the one in AAC.cpp)
+static int getAdtsFrameLength(const uint8_t *data, size_t bytes) {
+    if (bytes < 7) return -1;
+    if (0xFF != data[0] || 0xF0 != (data[1] & 0xF0)) return -1;
+    uint16_t len = ((uint16_t)(data[3] & 0x03) << 11) | ((uint16_t)data[4] << 3) | ((uint16_t)(data[5] >> 5) & 0x07);
+    return len;
+}
+
 #ifdef ENABLE_MP4
 #include "mpeg4-aac.h"
 #endif
@@ -101,13 +109,6 @@ bool G711ToAACTrack::inputFrame(const Frame::Ptr &frame) {
 
     // #define tempbuffer_size 4096
 
-    auto frame_aac = FrameImp::create();
-    frame_aac->_codec_id = CodecG711ToAAC;
-    frame_aac->_prefix_size = ADTS_HEADER_LEN;
-    frame_aac->_dts = frame->dts();
-    frame_aac->setIndex(frame->getIndex());
-
-    frame_aac->addOriginFrame(frame);
     
     assert(frame->size());
 
@@ -126,13 +127,48 @@ bool G711ToAACTrack::inputFrame(const Frame::Ptr &frame) {
         return false;
     }
 
-    frame_aac->_buffer.assign((char* )_ToAAcBuffer, outlen);
-    frame_aac->_prefix_size = ADTS_HEADER_LEN;
-
-    auto ptr = reinterpret_cast<const uint8_t *>(frame_aac->data());
-    assert ((ptr[0] == 0xFF && (ptr[1] & 0xF0) == 0xF0) );
-    
-    return AACTrack::inputFrame(frame_aac);
+    // Easy_AACEncoder_Encode may produce multiple concatenated ADTS frames in one call
+    // (internal ring buffer drains via while-loop). Manually split so each sub-frame is
+    // fed individually to AACTrack::inputFrame, and attach the original G711 frame as
+    // origin only to the FIRST sub-frame — subsequent sub-frames have no origin and will
+    // be skipped by the null guard in MultiMediaSourceMuxer::onTrackFrame_l.
+    bool result = false;
+    bool is_first = true;
+    int64_t dts = frame->dts();
+    int64_t pts = frame->pts();
+    auto ptr = reinterpret_cast<const uint8_t *>(_ToAAcBuffer);
+    auto end = ptr + outlen;
+    while (ptr < end) {
+        auto frame_len = getAdtsFrameLength(ptr, end - ptr);
+        if (frame_len < (int)ADTS_HEADER_LEN) {
+            WarnL << "G711ToAAC: invalid ADTS sync, stop splitting, remaining:" << (end - ptr);
+            break;
+        }
+        if (ptr + frame_len > end) {
+            WarnL << "G711ToAAC: ADTS frame_len exceeds buffer, frame_len:" << frame_len;
+            break;
+        }
+        auto sub_frame = FrameImp::create();
+        sub_frame->_codec_id = CodecG711ToAAC;
+        sub_frame->_prefix_size = ADTS_HEADER_LEN;
+        sub_frame->_dts = dts;
+        sub_frame->_pts = pts;
+        sub_frame->setIndex(frame->getIndex());
+        sub_frame->_buffer.assign((char *)ptr, frame_len);
+        if (is_first) {
+            sub_frame->addOriginFrame(frame);
+            is_first = false;
+        }
+        // Each sub_frame is a single complete ADTS frame, so AACTrack::inputFrame
+        // will take the fast path (frame_len == frame->size()) and not re-split.
+        if (AACTrack::inputFrame(sub_frame)) {
+            result = true;
+        }
+        ptr += frame_len;
+        dts += 1024 * 1000 / getAudioSampleRate();
+        pts += 1024 * 1000 / getAudioSampleRate();
+    }
+    return result;
 }
 
 void G711ToAACTrack::addOriginTrack(Track::Ptr track) {

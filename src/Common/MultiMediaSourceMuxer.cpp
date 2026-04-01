@@ -682,8 +682,10 @@ bool MultiMediaSourceMuxer::onTrackFrame_l(const Frame::Ptr &frame_in) {
         if(CodecG711ToAAC==frame->getCodecId()) {
             // InfoL << "G711转AAC, stream:" << shortUrl() << ", frame:" << frame->getCodecName() << ", dts:" << frame->dts() << ", pts:" << frame->pts();
             auto originframe = frame->getOriginFrame();
-
-            ret = _rtsp->inputFrame(originframe) ? true : ret;
+            if (originframe) {
+                ret = _rtsp->inputFrame(originframe) ? true : ret;
+            }
+            // else: non-first ADTS sub-frame has no origin; skip to avoid null deref in RtspMuxer
         } else {
             ret = _rtsp->inputFrame(frame) ? true : ret;
         }        
