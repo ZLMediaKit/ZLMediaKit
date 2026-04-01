@@ -48,7 +48,6 @@
 #include "Pusher/PusherProxy.h"
 #include "Rtp/RtpProcess.h"
 #include "Record/MP4Reader.h"
-#include "Rtsp/RtspPlayer.h"
 
 #if defined(ENABLE_RTPPROXY)
 #include "Rtp/RtpServer.h"
@@ -2572,10 +2571,7 @@ void installWebApi() {
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream", "speed");
 
-        std::string vhost = DEFAULT_VHOST;
-        if (!allArgs["vhost"].empty()) {
-            vhost = allArgs["vhost"];
-        }
+        std::string vhost = allArgs["vhost"];
         std::string app = allArgs["app"];
         std::string stream = allArgs["stream"];
         float speed = allArgs["speed"].as<float>();
@@ -2603,10 +2599,7 @@ void installWebApi() {
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream");
         
-        std::string vhost = DEFAULT_VHOST;
-        if (!allArgs["vhost"].empty()) {
-            vhost = allArgs["vhost"];
-        }
+        std::string vhost = allArgs["vhost"];
         std::string app = allArgs["app"];
         std::string stream = allArgs["stream"];
         
@@ -2633,10 +2626,7 @@ void installWebApi() {
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream");
         
-        std::string vhost = DEFAULT_VHOST;
-        if (!allArgs["vhost"].empty()) {
-            vhost = allArgs["vhost"];
-        }
+        std::string vhost = allArgs["vhost"];
         std::string app = allArgs["app"];
         std::string stream = allArgs["stream"]; 
         uint32_t pos = allArgs["position"].as<uint32_t>();

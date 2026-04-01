@@ -240,7 +240,6 @@ void SdpParser::load(const string &sdp) {
             if (3 == ret || 2 == ret) {
                 // 保存 range 类型
                 track._range_type = name;
-                
                 if (strcmp(name, "clock") == 0) {
                     // clock 格式：clock=20251123T000000Z-20251124T000000Z
                     track._range_start_str = start;
