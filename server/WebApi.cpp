@@ -2564,6 +2564,89 @@ void installWebApi() {
         invoker(200, headerOut, val.toStyledString());
     });
 #endif
+
+    // 设置流播放速度
+    // Set stream playback speed
+    api_regist("/index/api/setStreamSpeed", [](API_ARGS_JSON_ASYNC) {
+        CHECK_SECRET();
+        CHECK_ARGS("vhost", "app", "stream", "speed");
+
+        std::string vhost = allArgs["vhost"];
+        std::string app = allArgs["app"];
+        std::string stream = allArgs["stream"];
+        float speed = allArgs["speed"].as<float>();
+
+        auto tuple = MediaTuple { vhost, app, stream, "" };
+        std::string key = tuple.shortUrl();
+        
+        auto player_proxy = s_player_proxy.find(key);
+        if (!player_proxy) {
+            throw ApiRetException("can not find the stream proxy", API::NotFound);
+        }
+        
+        player_proxy->getPoller()->async([=]() mutable {
+            player_proxy->MediaPlayer::speed(speed);
+            val["result"] = 0;
+            val["msg"] = "success";
+            val["code"] = API::Success;
+            invoker(200, headerOut, val.toStyledString());
+        });
+    });
+
+    // 暂停/恢复流播放
+    // Pause/Resume stream playback
+    api_regist("/index/api/pauseStream", [](API_ARGS_JSON_ASYNC) {
+        CHECK_SECRET();
+        CHECK_ARGS("vhost", "app", "stream");
+        
+        std::string vhost = allArgs["vhost"];
+        std::string app = allArgs["app"];
+        std::string stream = allArgs["stream"];
+        
+        auto tuple = MediaTuple { vhost, app, stream, "" };
+        std::string key = tuple.shortUrl();
+        
+        auto player_proxy = s_player_proxy.find(key);
+        if (!player_proxy) {
+            throw ApiRetException("can not find the stream proxy", API::NotFound);
+        }
+        
+        player_proxy->getPoller()->async([=]() mutable {
+            player_proxy->MediaPlayer::pause(true);
+            val["result"] = 0;
+            val["msg"] = "success";
+            val["code"] = API::Success;
+            invoker(200, headerOut, val.toStyledString());
+        });
+    });
+
+    // 跳转到指定位置
+    // Seek to specified position
+    api_regist("/index/api/seekStream", [](API_ARGS_JSON_ASYNC) {
+        CHECK_SECRET();
+        CHECK_ARGS("vhost", "app", "stream");
+        
+        std::string vhost = allArgs["vhost"];
+        std::string app = allArgs["app"];
+        std::string stream = allArgs["stream"]; 
+        uint32_t pos = allArgs["position"].as<uint32_t>();
+        
+        auto tuple = MediaTuple { vhost, app, stream, "" };
+        std::string key = tuple.shortUrl();
+        
+        auto player_proxy = s_player_proxy.find(key);
+        if (!player_proxy) {
+            throw ApiRetException("can not find the stream proxy", API::NotFound);
+        }
+        
+        player_proxy->getPoller()->async([=]() mutable {
+            player_proxy->MediaPlayer::seekTo(pos);
+            val["result"] = 0;
+            val["msg"] = "success";
+            val["code"] = API::Success;
+            invoker(200, headerOut, val.toStyledString());
+        });
+    });
 }
 
 void unInstallWebApi(){

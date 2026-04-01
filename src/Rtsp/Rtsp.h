@@ -237,6 +237,9 @@ public:
     float _duration = 0;
     float _start = 0;
     float _end = 0;
+    std::string _range_type;  // 新增：保存 range 类型，如 "npt" 或 "clock"
+    std::string _range_start_str;  // 新增：保存原始 range start 字符串（用于 clock 格式）
+    std::string _range_end_str;    // 新增：保存原始 range end 字符串（用于 clock 格式）
 
     std::map<char, std::string> _other;
     std::multimap<std::string, std::string> _attr;
