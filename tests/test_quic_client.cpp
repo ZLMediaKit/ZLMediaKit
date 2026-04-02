@@ -36,7 +36,7 @@ struct RequestResult {
     string body;
 };
 
-static void dumpResultSnapshot(const char *prefix, uint64_t request_id, const RequestResult &result) {
+void dumpResultSnapshot(const char *prefix, uint64_t request_id, const RequestResult &result) {
     cerr << prefix
          << " request_id=" << request_id
          << " status=" << result.status_code
@@ -49,7 +49,7 @@ static void dumpResultSnapshot(const char *prefix, uint64_t request_id, const Re
          << endl;
 }
 
-static string ensurePath(string path) {
+string ensurePath(string path) {
     if (path.empty()) {
         return "/";
     }
@@ -59,11 +59,11 @@ static string ensurePath(string path) {
     return path;
 }
 
-static bool isIpv6Literal(const string &host) {
+bool isIpv6Literal(const string &host) {
     return host.find(':') != string::npos;
 }
 
-static QuicCongestionAlgo loadClientCongestionAlgo() {
+QuicCongestionAlgo loadClientCongestionAlgo() {
     auto value = mINI::Instance()[Http::kQuicClientCongestionControl].as<string>();
     if (value.empty()) {
         value = mINI::Instance()[Http::kQuicCongestionControl].as<string>();

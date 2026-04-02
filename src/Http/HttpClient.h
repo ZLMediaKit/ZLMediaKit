@@ -86,7 +86,7 @@ public:
      * @param header
      * Override http header
      * @param header
-     
+
      * [AUTO-TRANSLATED:ea31a471]
      */
     void setHeader(HttpHeader header);
@@ -98,7 +98,7 @@ public:
      * @param body http content
      * Set http content
      * @param body http content
-     
+
      * [AUTO-TRANSLATED:9993580c]
      */
     void setBody(std::string body);
@@ -108,7 +108,7 @@ public:
      * @param body http content
      * Set http content
      * @param body http content
-     
+
      * [AUTO-TRANSLATED:9993580c]
      */
     void setBody(HttpBody::Ptr body);
@@ -116,7 +116,7 @@ public:
     /**
      * 获取回复，在收到完整回复后有效
      * Get response, valid after receiving the complete response
-     
+
      * [AUTO-TRANSLATED:b107995e]
      */
     const Parser &response() const;
@@ -124,7 +124,7 @@ public:
     /**
      * 获取回复header声明的body大小
      * Get the body size declared in the response header
-     
+
      * [AUTO-TRANSLATED:65f8e782]
      */
     ssize_t responseBodyTotalSize() const;
@@ -132,7 +132,7 @@ public:
     /**
      * 获取已经下载body的大小
      * Get the size of the body that has been downloaded
-     
+
      * [AUTO-TRANSLATED:a3cde7b4]
      */
     size_t responseBodySize() const;
@@ -140,7 +140,7 @@ public:
     /**
      * 获取请求url
      * Get the request url
-     
+
      * [AUTO-TRANSLATED:cc7fe537]
      */
     const std::string &getUrl() const;
@@ -148,7 +148,7 @@ public:
     /**
      * 判断是否正在等待响应
      * Determine if the response is pending
-     
+
      * [AUTO-TRANSLATED:058719d7]
      */
     bool waitResponse() const;
@@ -158,7 +158,7 @@ public:
     /**
      * 判断是否为https
      * Determine if it is https
-     
+
      * [AUTO-TRANSLATED:9b3a0254]
      */
     bool isHttps() const;
@@ -168,7 +168,7 @@ public:
      * 此参数必须大于0
      * Set the delay from initiating the connection to receiving the header, default 10 seconds
      * This parameter must be greater than 0
-     
+
      * [AUTO-TRANSLATED:4cce3e85]
      */
     void setHeaderTimeout(size_t timeout_ms);
@@ -180,7 +180,7 @@ public:
      * Set the timeout for receiving body data, default 10 seconds
      * This parameter can be used to handle timeout issues for large body responses
      * This parameter can be equal to 0
-     
+     *
      * [AUTO-TRANSLATED:48585852]
      */
     void setBodyTimeout(size_t timeout_ms);
@@ -190,7 +190,7 @@ public:
      * 该值设置不为0后，HeaderTimeout和BodyTimeout无效
      * Set the timeout for the entire link, default 0
      * After this value is set to non-zero, HeaderTimeout and BodyTimeout are invalid
-     
+     *
      * [AUTO-TRANSLATED:df094868]
      */
     void setCompleteTimeout(size_t timeout_ms);
@@ -198,7 +198,7 @@ public:
     /**
      * 设置请求头中的 keep-alive 语义，默认启用
      * Set whether requests should advertise keep-alive semantics, enabled by default
-     
+     *
      * [AUTO-TRANSLATED:6f62f63c]
      */
     void setRequestKeepAlive(bool enable);
@@ -206,7 +206,7 @@ public:
     /**
      * 设置http代理url
      * Set http proxy url
-     
+     *
      * [AUTO-TRANSLATED:95df17e7]
      */
     void setProxyUrl(std::string proxy_url);
@@ -242,7 +242,7 @@ public:
      * @param allow true:允许重新发起请求 / true: allow the request to be resent
      * When the reuse connection fails, whether to allow the request to be resent
      * @param allow true: allow the request to be resent
-     
+
      * [AUTO-TRANSLATED:71bd8e67]
      */
     void setAllowResendRequest(bool allow);
@@ -255,7 +255,7 @@ protected:
      * Receive http response header
      * @param status Status code, such as: 200 OK
      * @param headers http header
-     
+
      * [AUTO-TRANSLATED:a685f8ef]
      */
     virtual void onResponseHeader(const std::string &status, const HttpHeader &headers) = 0;
@@ -267,7 +267,7 @@ protected:
      * Receive http content data
      * @param buf Data pointer
      * @param size Data size
-     
+
      * [AUTO-TRANSLATED:bee3bf62]
      */
     virtual void onResponseBody(const char *buf, size_t size) = 0;
@@ -275,7 +275,7 @@ protected:
     /**
      * 接收http回复完毕,
      * Receive http response complete,
-     
+
      * [AUTO-TRANSLATED:b96ed715]
      */
     virtual void onResponseCompleted(const toolkit::SockException &ex) = 0;
@@ -336,6 +336,7 @@ protected:
     bool isProxyConnected() const;
 
 private:
+    void sendRequestInternal(const std::string &url, bool reset_replay_body);
     HttpClientRequestPlan makeRequestPlan(const std::string &url);
     void applyRequestPlan(const HttpClientRequestPlan &plan);
     std::string makeHttpRequestHeader() const;
@@ -351,9 +352,11 @@ private:
     void onQuicResponseHeaders(uint64_t request_id, int32_t status_code, const HttpHeader &headers, bool fin);
     void onQuicResponseBody(uint64_t request_id, const char *data, size_t len, bool fin);
     void onQuicRequestClosed(uint64_t request_id, int state, const std::string &reason);
-    bool prepareAutoHttp3ReplayBody();
-    void resetAutoHttp3ReplayBody();
-    void restoreAutoHttp3ReplayBody();
+    bool prepareReplayableRequestBody();
+    void resetReplayableRequestBody();
+    bool restoreReplayableRequestBody();
+    bool canReplayRequestBody() const;
+    bool canFallbackToDirectFromAutoHttp3() const;
     bool tryFallbackToDirectFromAutoHttp3();
     HttpClientRequestPlan makeDirectFallbackPlan() const;
     bool supportsHttp3Transport() const;
@@ -404,14 +407,18 @@ private:
     std::shared_ptr<toolkit::Timer> _quic_timer;
     std::shared_ptr<QuicClientBackend> _quic_backend;
     std::string _quic_host;
-    std::string _quic_authority;
     uint16_t _quic_port = 0;
+    bool _quic_verify_peer = true;
+    std::string _quic_ca_file;
+    uint32_t _quic_congestion_algo = 0;
     uint64_t _quic_request_id = 0;
     bool _quic_request_active = false;
     bool _quic_request_auto = false;
     bool _quic_auto_fallback_attempted = false;
-    bool _http3_auto_replay_ready = false;
-    std::string _http3_auto_replay_body;
+    bool _quic_request_committed = false;
+    bool _request_body_has_content = false;
+    bool _request_body_replay_ready = false;
+    std::string _request_body_replay;
     HttpClientRequestPlan _active_plan;
 };
 

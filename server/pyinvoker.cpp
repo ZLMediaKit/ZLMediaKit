@@ -380,9 +380,11 @@ PYBIND11_EMBEDDED_MODULE(mk_loader, m) {
         [](const std::string &vhost, const std::string &app, const std::string &stream,
            const std::string &url, const py::dict &opt) {
             mINI args = to_native(opt);
+            ProtocolOption option;
+            option.load(args);
             MediaTuple tuple { vhost.empty() ? DEFAULT_VHOST : vhost, app, stream, "" };
             py::gil_scoped_release release;
-            updateStreamProxy(tuple, url, args);
+            updateStreamProxy(tuple, url, option, args);
         },
         py::arg("vhost"), py::arg("app"), py::arg("stream"), py::arg("url"),
         py::arg("opt") = py::dict()

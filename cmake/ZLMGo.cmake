@@ -1,6 +1,8 @@
 # Download a local Go toolchain used by the QUIC dependency build when the
 # host Go installation is incomplete.
 
+set(ZLM_GO_BOOTSTRAP_SUPPORTED TRUE)
+
 set(ZLM_GO_NAME go${GO_AUTO_VERSION}.linux-amd64)
 set(ZLM_GO_URL https://go.dev/dl/${ZLM_GO_NAME}.tar.gz)
 set(ZLM_GO_TAR_PATH ${DEP_ROOT_DIR}/${ZLM_GO_NAME}.tar.gz)
@@ -16,7 +18,9 @@ function(zlm_go_run_checked)
 endfunction()
 
 if(WIN32 OR APPLE OR NOT CMAKE_SYSTEM_NAME STREQUAL "Linux" OR NOT CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|amd64")
-  message(FATAL_ERROR "Automatic Go toolchain bootstrap is only implemented for Linux x86_64")
+  set(ZLM_GO_BOOTSTRAP_SUPPORTED FALSE)
+  message(STATUS "Automatic Go toolchain bootstrap is only implemented for Linux x86_64")
+  return()
 endif()
 
 if(NOT EXISTS ${ZLM_GO_TAR_PATH})

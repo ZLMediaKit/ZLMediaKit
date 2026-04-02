@@ -27,6 +27,11 @@ if(NOT GIT_FOUND)
 endif()
 
 include(ZLMGo)
+if(NOT ZLM_GO_BOOTSTRAP_SUPPORTED)
+  message(FATAL_ERROR
+    "ENABLE_LSQUIC_AUTO_BUILD is only supported on Linux x86_64 right now. "
+    "Disable ENABLE_LSQUIC_AUTO_BUILD and provide prebuilt BoringSSL/LSQUIC on this platform.")
+endif()
 
 find_program(ZLM_NINJA_EXECUTABLE ninja)
 if(NOT ZLM_NINJA_EXECUTABLE)

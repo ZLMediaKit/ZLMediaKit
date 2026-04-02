@@ -43,6 +43,12 @@ struct QuicClientCloseInfo {
     std::string reason;
 };
 
+struct QuicClientPeerEndpoint {
+    std::string ip;
+    uint16_t port = 0;
+    int family = AF_UNSPEC;
+};
+
 class QuicClientBackend final : public IQuicClientHost, public std::enable_shared_from_this<QuicClientBackend> {
 public:
     using Ptr = std::shared_ptr<QuicClientBackend>;
@@ -100,6 +106,13 @@ private:
     };
 
 private:
+    int startOnPoller(const std::string &peer_host, uint16_t peer_port, const QuicClientConfig &config);
+    int startResolvedEndpoint(const QuicClientPeerEndpoint &endpoint);
+    int startRequestOnPoller(const QuicClientRequest &request);
+    int sendBodyOnPoller(uint64_t request_id, const uint8_t *data, size_t len, bool fin);
+    int cancelRequestOnPoller(uint64_t request_id, uint64_t app_error_code);
+    bool shouldRetryNextEndpoint() const;
+    bool restartOnNextEndpoint();
     void onTransportPacket(const toolkit::Buffer::Ptr &buf, struct sockaddr *addr);
     void onTransportError(const toolkit::SockException &err);
     void closeTransport();
@@ -118,12 +131,22 @@ private:
     std::string _net_adapter;
     std::string _peer_host;
     uint16_t _peer_port = 0;
+    std::string _peer_resolve_host;
+    uint16_t _peer_resolve_port = 0;
+    std::vector<QuicClientPeerEndpoint> _peer_endpoints;
+    size_t _peer_endpoint_index = 0;
     std::string _alpn;
     std::string _sni;
     std::string _ca_file;
     std::string _bind_ip;
     std::string _local_ip;
     uint16_t _local_port = 0;
+    uint32_t _connect_timeout_ms = 0;
+    uint32_t _idle_timeout_ms = 0;
+    uint16_t _configured_local_port = 0;
+    bool _verify_peer = true;
+    QuicCongestionAlgo _congestion_algo = QuicCongestionAlgo::Default;
+    bool _handshake_completed = false;
     Callbacks _callbacks;
     std::unordered_map<uint64_t, RequestState> _requests;
     std::mutex _timer_mutex;

@@ -10,7 +10,7 @@
 
 #include "HttpProtocolHint.h"
 
-#include <algorithm>
+#include <atomic>
 #include <mutex>
 #include <unordered_map>
 
@@ -29,21 +29,28 @@ struct CachedAltSvc {
     uint64_t expire_at_ms = 0;
 };
 
-static mutex &altSvcMutex() {
+constexpr size_t kMaxCachedAltSvcEntries = 1024;
+
+mutex &altSvcCacheMutex() {
     static mutex s_mtx;
     return s_mtx;
 }
 
-static unordered_map<string, CachedAltSvc> &altSvcCache() {
+unordered_map<string, CachedAltSvc> &altSvcCache() {
     static unordered_map<string, CachedAltSvc> s_cache;
     return s_cache;
 }
 
-static string makeOriginKey(string host, uint16_t port) {
+std::atomic<uint32_t> &altSvcRuntimePort() {
+    static std::atomic<uint32_t> s_port{0};
+    return s_port;
+}
+
+string makeOriginKey(string host, uint16_t port) {
     return strToLower(std::move(host)) + ":" + to_string(port);
 }
 
-static string trimQuotes(string value) {
+string trimQuotes(string value) {
     trim(value);
     if (value.size() >= 2 && value.front() == '"' && value.back() == '"') {
         value = value.substr(1, value.size() - 2);
@@ -51,8 +58,8 @@ static string trimQuotes(string value) {
     return value;
 }
 
-static bool parseAltAuthority(const string &authority, const string &default_host,
-                              uint16_t default_port, HttpAltSvcEndpoint *endpoint) {
+bool parseAltAuthority(const string &authority, const string &default_host,
+                       uint16_t default_port, HttpAltSvcEndpoint *endpoint) {
     if (!endpoint) {
         return false;
     }
@@ -78,8 +85,8 @@ static bool parseAltAuthority(const string &authority, const string &default_hos
     return !endpoint->host.empty() && endpoint->port != 0;
 }
 
-static bool parseAltSvcItem(const string &item, const string &origin_host, uint16_t origin_port,
-                            HttpAltSvcEndpoint *endpoint, uint64_t *expire_at_ms) {
+bool parseAltSvcItem(const string &item, const string &origin_host, uint16_t origin_port,
+                     HttpAltSvcEndpoint *endpoint, uint64_t *expire_at_ms) {
     auto segments = split(item, ";");
     if (segments.empty()) {
         return false;
@@ -127,20 +134,35 @@ static bool parseAltSvcItem(const string &item, const string &origin_host, uint1
 } // namespace
 
 void appendAltSvcHeader(StrCaseMap &headers) {
-    GET_CONFIG(uint16_t, quic_port, Http::kQuicPort);
-    if (!quic_port) {
+#ifndef ENABLE_QUIC
+    (void)headers;
+    return;
+#else
+    auto port = static_cast<uint16_t>(altSvcRuntimePort().load(std::memory_order_acquire));
+    if (!port) {
         return;
     }
     headers.emplace("Alt-Svc", StrPrinter << "h3=\":"
-                                          << quic_port
+                                          << port
                                           << "\"; ma=86400");
+#endif
+}
+
+void setAltSvcQuicAvailability(bool enabled, uint16_t quic_port) {
+#ifndef ENABLE_QUIC
+    (void)enabled;
+    (void)quic_port;
+#else
+    altSvcRuntimePort().store(enabled && quic_port != 0 ? quic_port : 0, std::memory_order_release);
+#endif
 }
 
 void updateAltSvcCache(const string &origin_host, uint16_t origin_port, const string &alt_svc) {
     auto key = makeOriginKey(origin_host, origin_port);
     auto normalized = strToLower(trim(string(alt_svc)));
+    auto now_ms = getCurrentMillisecond();
 
-    lock_guard<mutex> lock(altSvcMutex());
+    lock_guard<mutex> lock(altSvcCacheMutex());
     auto &cache = altSvcCache();
     if (normalized.empty() || normalized == "clear") {
         cache.erase(key);
@@ -158,6 +180,29 @@ void updateAltSvcCache(const string &origin_host, uint16_t origin_port, const st
         cached.endpoint = std::move(endpoint);
         cached.expire_at_ms = expire_at_ms;
         cache[key] = std::move(cached);
+        if (cache.size() <= kMaxCachedAltSvcEntries) {
+            return;
+        }
+
+        for (auto it = cache.begin(); it != cache.end();) {
+            if (it->second.expire_at_ms <= now_ms) {
+                it = cache.erase(it);
+                continue;
+            }
+            ++it;
+        }
+
+        if (cache.size() <= kMaxCachedAltSvcEntries) {
+            return;
+        }
+
+        auto oldest_it = cache.begin();
+        for (auto it = std::next(cache.begin()); it != cache.end(); ++it) {
+            if (it->second.expire_at_ms < oldest_it->second.expire_at_ms) {
+                oldest_it = it;
+            }
+        }
+        cache.erase(oldest_it);
         return;
     }
 }
@@ -168,7 +213,7 @@ bool lookupAltSvc(const string &origin_host, uint16_t origin_port, HttpAltSvcEnd
     }
 
     auto key = makeOriginKey(origin_host, origin_port);
-    lock_guard<mutex> lock(altSvcMutex());
+    lock_guard<mutex> lock(altSvcCacheMutex());
     auto &cache = altSvcCache();
     auto it = cache.find(key);
     if (it == cache.end()) {
@@ -186,7 +231,7 @@ bool lookupAltSvc(const string &origin_host, uint16_t origin_port, HttpAltSvcEnd
 }
 
 void eraseAltSvc(const string &origin_host, uint16_t origin_port) {
-    lock_guard<mutex> lock(altSvcMutex());
+    lock_guard<mutex> lock(altSvcCacheMutex());
     altSvcCache().erase(makeOriginKey(origin_host, origin_port));
 }
 

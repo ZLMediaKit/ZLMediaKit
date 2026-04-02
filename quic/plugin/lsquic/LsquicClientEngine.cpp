@@ -24,6 +24,17 @@ namespace {
 
 using namespace lsquicplugin;
 
+bool isIpLiteral(const std::string &host) {
+    if (host.empty()) {
+        return false;
+    }
+
+    sockaddr_in addr4 = {};
+    sockaddr_in6 addr6 = {};
+    return inet_pton(AF_INET, host.c_str(), &addr4.sin_addr) == 1 ||
+           inet_pton(AF_INET6, host.c_str(), &addr6.sin6_addr) == 1;
+}
+
 class LsquicClientEngine final : public IQuicClientEngine {
 public:
     explicit LsquicClientEngine(IQuicClientHost &host, const QuicClientConfig &config)
@@ -243,8 +254,8 @@ private:
     struct PacketRoute {
         LsquicClientEngine *engine = nullptr;
         RouteKey key;
-        sockaddr_storage local_addr;
-        sockaddr_storage peer_addr;
+        sockaddr_storage local_addr = {};
+        sockaddr_storage peer_addr = {};
         socklen_t local_addr_len = 0;
         socklen_t peer_addr_len = 0;
     };
@@ -339,6 +350,13 @@ private:
         _route = route;
         _route->engine = this;
         _authority = req->authority;
+        auto authority_host = hostFromAuthority(req->authority);
+        const char *server_name = nullptr;
+        if (!_sni.empty()) {
+            server_name = _sni.c_str();
+        } else if (!authority_host.empty() && !isIpLiteral(authority_host)) {
+            server_name = authority_host.c_str();
+        }
         _conn_ctx = new ClientConnCtx();
         _conn_ctx->engine = this;
         _conn_ctx->conn = lsquic_engine_connect(_engine,
@@ -347,7 +365,7 @@ private:
                                                reinterpret_cast<const sockaddr *>(&_route->peer_addr),
                                                _route.get(),
                                                reinterpret_cast<lsquic_conn_ctx_t *>(_conn_ctx),
-                                               _sni.empty() ? hostFromAuthority(req->authority).c_str() : _sni.c_str(),
+                                               server_name,
                                                0,
                                                nullptr,
                                                0,
@@ -426,8 +444,7 @@ private:
             }
         }
 
-        addrinfo hints;
-        std::memset(&hints, 0, sizeof(hints));
+        addrinfo hints = {};
         hints.ai_socktype = SOCK_DGRAM;
         hints.ai_protocol = IPPROTO_UDP;
         hints.ai_family = AF_UNSPEC;
@@ -713,7 +730,7 @@ private:
         _host.onRequestClosed(close_info);
     }
 
-    static void destroyHeaderSet(ClientHeaderSet *header_set) {
+static void destroyHeaderSet(ClientHeaderSet *header_set) {
         if (!header_set) {
             return;
         }
@@ -724,11 +741,11 @@ private:
         delete header_set;
     }
 
-    static void *headerSetCreateShim(void *, lsquic_stream_t *, int) {
+static void *headerSetCreateShim(void *, lsquic_stream_t *, int) {
         return new ClientHeaderSet();
     }
 
-    static lsxpack_header *headerSetPrepareDecodeShim(void *hset, lsxpack_header *hdr, size_t req_space) {
+static lsxpack_header *headerSetPrepareDecodeShim(void *hset, lsxpack_header *hdr, size_t req_space) {
         auto *header_set = static_cast<ClientHeaderSet *>(hset);
         HeaderSlot *slot = nullptr;
         if (!hdr) {
@@ -755,7 +772,7 @@ private:
         return &slot->xhdr;
     }
 
-    static int headerSetProcessHeaderShim(void *hset, lsxpack_header *hdr) {
+static int headerSetProcessHeaderShim(void *hset, lsxpack_header *hdr) {
         auto *header_set = static_cast<ClientHeaderSet *>(hset);
         if (!hdr) {
             return header_set->status_code > 0 ? 0 : 1;
@@ -771,11 +788,11 @@ private:
         return 0;
     }
 
-    static void headerSetDiscardShim(void *hset) {
+static void headerSetDiscardShim(void *hset) {
         destroyHeaderSet(static_cast<ClientHeaderSet *>(hset));
     }
 
-    static lsquic_conn_ctx_t *onNewConnShim(void *ctx, lsquic_conn_t *conn) {
+static lsquic_conn_ctx_t *onNewConnShim(void *ctx, lsquic_conn_t *conn) {
         auto *self = static_cast<LsquicClientEngine *>(ctx);
         auto *conn_ctx = reinterpret_cast<ClientConnCtx *>(lsquic_conn_get_ctx(conn));
         if (!conn_ctx) {
@@ -787,7 +804,7 @@ private:
         return reinterpret_cast<lsquic_conn_ctx_t *>(conn_ctx);
     }
 
-    static void onConnClosedShim(lsquic_conn_t *conn) {
+static void onConnClosedShim(lsquic_conn_t *conn) {
         auto *conn_ctx = reinterpret_cast<ClientConnCtx *>(lsquic_conn_get_ctx(conn));
         if (!conn_ctx || !conn_ctx->engine) {
             return;
@@ -814,7 +831,7 @@ private:
         delete conn_ctx;
     }
 
-    static lsquic_stream_ctx_t *onNewStreamShim(void *ctx, lsquic_stream_t *stream) {
+static lsquic_stream_ctx_t *onNewStreamShim(void *ctx, lsquic_stream_t *stream) {
         auto *self = static_cast<LsquicClientEngine *>(ctx);
         if (!stream || !self->_conn_ctx) {
             return nullptr;
@@ -842,21 +859,21 @@ private:
         return nullptr;
     }
 
-    static void onReadShim(lsquic_stream_t *stream, lsquic_stream_ctx_t *ctx) {
+static void onReadShim(lsquic_stream_t *stream, lsquic_stream_ctx_t *ctx) {
         auto *stream_ctx = reinterpret_cast<ClientStreamCtx *>(ctx);
         if (stream_ctx && stream_ctx->engine && stream_ctx->request) {
             stream_ctx->engine->onRead(stream, stream_ctx->request);
         }
     }
 
-    static void onWriteShim(lsquic_stream_t *stream, lsquic_stream_ctx_t *ctx) {
+static void onWriteShim(lsquic_stream_t *stream, lsquic_stream_ctx_t *ctx) {
         auto *stream_ctx = reinterpret_cast<ClientStreamCtx *>(ctx);
         if (stream_ctx && stream_ctx->engine && stream_ctx->request) {
             stream_ctx->engine->onWrite(stream, stream_ctx->request);
         }
     }
 
-    static void onCloseShim(lsquic_stream_t *, lsquic_stream_ctx_t *ctx) {
+static void onCloseShim(lsquic_stream_t *, lsquic_stream_ctx_t *ctx) {
         auto *stream_ctx = reinterpret_cast<ClientStreamCtx *>(ctx);
         if (!stream_ctx) {
             return;
@@ -883,7 +900,7 @@ private:
         delete stream_ctx;
     }
 
-    static void onResetShim(lsquic_stream_t *stream, lsquic_stream_ctx_t *ctx, int how) {
+static void onResetShim(lsquic_stream_t *stream, lsquic_stream_ctx_t *ctx, int how) {
         auto *stream_ctx = reinterpret_cast<ClientStreamCtx *>(ctx);
         if (!stream_ctx || !stream_ctx->engine || !stream_ctx->request) {
             return;
@@ -899,7 +916,7 @@ private:
         stream_ctx->engine->_host.log(QuicLogLevel::Warn, makeSlice(req->close_reason));
     }
 
-    static void onHskDoneShim(lsquic_conn_t *conn, enum lsquic_hsk_status status) {
+static void onHskDoneShim(lsquic_conn_t *conn, enum lsquic_hsk_status status) {
         auto *conn_ctx = reinterpret_cast<ClientConnCtx *>(lsquic_conn_get_ctx(conn));
         if (!conn_ctx || !conn_ctx->engine) {
             return;
@@ -921,7 +938,7 @@ private:
         }
     }
 
-    static void onConnCloseFrameReceivedShim(lsquic_conn_t *conn, int app_error, uint64_t error_code,
+static void onConnCloseFrameReceivedShim(lsquic_conn_t *conn, int app_error, uint64_t error_code,
                                              const char *reason, int reason_len) {
         auto *conn_ctx = reinterpret_cast<ClientConnCtx *>(lsquic_conn_get_ctx(conn));
         if (!conn_ctx || !conn_ctx->engine) {
@@ -944,16 +961,16 @@ private:
         engine->_host.log(QuicLogLevel::Warn, makeSlice(engine->_peer_close_reason));
     }
 
-    static int packetsOutShim(void *ctx, const struct lsquic_out_spec *out_spec, unsigned n_packets_out) {
+static int packetsOutShim(void *ctx, const struct lsquic_out_spec *out_spec, unsigned n_packets_out) {
         return static_cast<LsquicClientEngine *>(ctx)->packetsOut(out_spec, n_packets_out);
     }
 
-    static SSL_CTX *getSslCtxShim(void *peer_ctx, const struct sockaddr *) {
+static SSL_CTX *getSslCtxShim(void *peer_ctx, const struct sockaddr *) {
         auto *route = static_cast<PacketRoute *>(peer_ctx);
         return route && route->engine ? route->engine->_ssl_ctx.get() : nullptr;
     }
 
-    static int verifyCertShim(void *ctx, STACK_OF(X509) *chain) {
+static int verifyCertShim(void *ctx, STACK_OF(X509) *chain) {
         auto *self = static_cast<LsquicClientEngine *>(ctx);
         if (!self || !self->_ssl_ctx || !chain || sk_X509_num(chain) <= 0) {
             return -1;
@@ -972,7 +989,7 @@ private:
         return ok ? 0 : -1;
     }
 
-    static const struct lsquic_stream_if &streamInterface() {
+static const struct lsquic_stream_if &streamInterface() {
         static const struct lsquic_stream_if s_if = {
             &LsquicClientEngine::onNewConnShim,
             nullptr,
@@ -992,7 +1009,7 @@ private:
         return s_if;
     }
 
-    static const struct lsquic_hset_if &headerSetInterface() {
+static const struct lsquic_hset_if &headerSetInterface() {
         static const struct lsquic_hset_if s_if = {
             &LsquicClientEngine::headerSetCreateShim,
             &LsquicClientEngine::headerSetPrepareDecodeShim,

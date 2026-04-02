@@ -9,6 +9,7 @@
  */
 
 #include <iomanip>
+#include <limits>
 #include "Util/File.h"
 #include "Common/Parser.h"
 #include "Common/config.h"
@@ -753,8 +754,8 @@ void HttpResponseInvokerImp::operator()(int code, const StrCaseMap &headerOut, c
 }
 
 void HttpResponseInvokerImp::operator()(int code, const StrCaseMap &headerOut, const HttpBody::Ptr &body) const{
-    if (_lambad) {
-        _lambad(code, headerOut, body);
+    if (_response_body_invoker) {
+        _response_body_invoker(code, headerOut, body);
     }
 }
 
@@ -762,21 +763,27 @@ void HttpResponseInvokerImp::operator()(int code, const StrCaseMap &headerOut, c
     this->operator()(code, headerOut, std::make_shared<HttpStringBody>(body));
 }
 
-HttpResponseInvokerImp::HttpResponseInvokerImp(const HttpResponseInvokerImp::HttpResponseInvokerLambda0 &lambda){
-    _lambad = lambda;
+HttpResponseInvokerImp::HttpResponseInvokerImp(const HttpResponseInvokerImp::HttpResponseBodyInvoker &invoker){
+    _response_body_invoker = invoker;
 }
 
-HttpResponseInvokerImp::HttpResponseInvokerImp(const HttpResponseInvokerImp::HttpResponseInvokerLambda1 &lambda){
-    if (!lambda) {
-        _lambad = nullptr;
+HttpResponseInvokerImp::HttpResponseInvokerImp(const HttpResponseInvokerImp::HttpResponseStringInvoker &invoker){
+    if (!invoker) {
+        _response_body_invoker = nullptr;
         return;
     }
-    _lambad = [lambda](int code, const StrCaseMap &headerOut, const HttpBody::Ptr &body) {
+    _response_body_invoker = [invoker](int code, const StrCaseMap &headerOut, const HttpBody::Ptr &body) {
         string str;
-        if (body && body->remainSize()) {
-            str = body->readData(body->remainSize())->toString();
+        if (body && !body->snapshot(str, std::numeric_limits<size_t>::max())) {
+            auto remain = body->remainSize();
+            if (remain > 0) {
+                auto buffer = body->readData(static_cast<size_t>(remain));
+                if (buffer) {
+                    str = buffer->toString();
+                }
+            }
         }
-        lambda(code, headerOut, str);
+        invoker(code, headerOut, str);
     };
 }
 
@@ -837,8 +844,8 @@ void HttpResponseInvokerImp::responseFile(const StrCaseMap &requestHeader,
     (*this)(code, httpHeader, fileBody);
 }
 
-HttpResponseInvokerImp::operator bool(){
-    return _lambad.operator bool();
+HttpResponseInvokerImp::operator bool() const{
+    return _response_body_invoker.operator bool();
 }
 
 

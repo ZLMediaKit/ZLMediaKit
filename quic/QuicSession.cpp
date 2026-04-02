@@ -12,12 +12,13 @@ QuicSession::QuicSession(const Socket::Ptr &sock) : Session(sock) {}
 
 void QuicSession::attachServer(const toolkit::Server &) {
     if (auto sock = getSock()) {
-        // Public QUIC traffic can arrive through UDP GRO/coalescing and exceed the
-        // default shared userspace packet buffer even when the logical QUIC packets
-        // are valid, so QUIC installs a larger recv path on its own sockets only.
-        // `attachServer()` runs before this UDP session starts receiving packets,
-        // which matches the setup-time contract of Socket::setReadBuffer().
-        sock->setReadBuffer(makeQuicSocketReadBuffer());
+        // Public QUIC traffic can arrive through UDP GRO/coalescing and exceed
+        // the default userspace packet buffer, and a connected per-peer UDP
+        // session can still receive a late ICMP port-unreachable after the
+        // remote peer has already closed. Install the QUIC-specific socket
+        // tuning up front so this session keeps the larger recv path while
+        // suppressing that expected UDP ECONNREFUSED log noise.
+        configureQuicServerSocket(sock);
     }
 }
 
@@ -43,6 +44,16 @@ void QuicSession::onRecv(const Buffer::Ptr &buffer) {
 }
 
 void QuicSession::onError(const SockException &err) {
+    if (err.getErrCode() == Err_refused || err.getErrCode() == Err_shutdown ||
+        std::string(err.what()) == "Server shutdown") {
+        // A connected per-peer UDP socket can receive a late ICMP
+        // port-unreachable after the QUIC peer has already closed, and server
+        // shutdown tears down all child UDP sessions explicitly. Neither case
+        // indicates a live QUIC transport failure, so keep them out of
+        // warning-level logs.
+        DebugL << getIdentifier() << " " << err;
+        return;
+    }
     WarnP(this) << err;
 }
 

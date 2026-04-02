@@ -48,7 +48,6 @@ if(NOT LSQUIC_FOUND)
     "Set LSQUIC_ROOT_DIR / LSQUIC_LIBRARY explicitly or enable ENABLE_LSQUIC_AUTO_BUILD=ON.")
 endif()
 message(STATUS "found library: ${LSQUIC_LIBRARIES}, ENABLE_QUIC defined")
-update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_QUIC)
 
 set(QUIC_HOST_SRC_LIST
   ${CMAKE_CURRENT_SOURCE_DIR}/QuicDispatcher.cpp

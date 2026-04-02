@@ -24,6 +24,7 @@ struct HttpAltSvcEndpoint {
 };
 
 void appendAltSvcHeader(StrCaseMap &headers);
+void setAltSvcQuicAvailability(bool enabled, uint16_t quic_port);
 void updateAltSvcCache(const std::string &origin_host, uint16_t origin_port, const std::string &alt_svc);
 bool lookupAltSvc(const std::string &origin_host, uint16_t origin_port, HttpAltSvcEndpoint *endpoint);
 void eraseAltSvc(const std::string &origin_host, uint16_t origin_port);

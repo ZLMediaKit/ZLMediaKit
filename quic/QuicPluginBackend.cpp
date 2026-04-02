@@ -27,28 +27,32 @@ using namespace toolkit;
 
 namespace {
 
-static std::string quicSliceToString(QuicSlice slice) {
+std::string quicSliceToString(QuicSlice slice) {
     if (!slice.data || !slice.len) {
         return std::string();
     }
     return std::string(slice.data, slice.len);
 }
 
-static QuicSlice makeSlice(const char *str) {
+QuicSlice makeSlice(const char *str) {
     QuicSlice ret;
     ret.data = str;
     ret.len = str ? strlen(str) : 0;
     return ret;
 }
 
-static std::string dateStr() {
+std::string dateStr() {
     char buf[64];
     time_t tt = time(nullptr);
     strftime(buf, sizeof(buf), "%a, %b %d %Y %H:%M:%S GMT", gmtime(&tt));
     return buf;
 }
 
-static constexpr size_t kDefaultQuicCidLen = 8;
+constexpr size_t kDefaultQuicCidLen = 8;
+constexpr size_t kMaxRememberedQuicCids = 4096;
+constexpr size_t kMaxRememberedQuicRoutes = 4096;
+constexpr uint64_t kQuicCidIdleTimeoutMs = 300000;
+constexpr uint64_t kQuicRouteIdleTimeoutMs = 60000;
 
 } // namespace
 
@@ -118,6 +122,7 @@ struct QuicPluginBackend::PendingRequest {
     bool body_finished = false;
     bool dispatched = false;
     bool live_stream = false;
+    bool response_send_failed = false;
     std::shared_ptr<PendingFlvSession> flv_session;
     TSMediaSource::RingType::RingReader::Ptr ts_reader;
     FMP4MediaSource::RingType::RingReader::Ptr fmp4_reader;
@@ -147,14 +152,26 @@ struct QuicPluginBackend::PendingFlvSession : public PendingSession,
 
 protected:
     void onWrite(const toolkit::Buffer::Ptr &data, bool) override {
+        if (_send_failed) {
+            return;
+        }
         auto request = _request.lock();
         if (!request || !data) {
             return;
         }
-        _owner.sendResponseBody(request, reinterpret_cast<const uint8_t *>(data->data()), data->size(), false);
+        if (!_owner.sendResponseBody(request, reinterpret_cast<const uint8_t *>(data->data()), data->size(), false)) {
+            // Stop the live reader as soon as the HTTP/3 stream can no longer
+            // accept body data, otherwise the muxer keeps producing data into a
+            // request that has already failed on the QUIC side.
+            _send_failed = true;
+            stop();
+        }
     }
 
     void onDetach() override {
+        if (_send_failed) {
+            return;
+        }
         auto request = _request.lock();
         if (!request) {
             return;
@@ -172,6 +189,7 @@ private:
     QuicPluginBackend &_owner;
     std::weak_ptr<PendingFlvSession> _self;
     std::weak_ptr<PendingRequest> _request;
+    bool _send_failed = false;
 };
 
 QuicPluginBackend::QuicPluginBackend() {
@@ -207,6 +225,7 @@ QuicPluginBackend::QuicPluginBackend() {
 }
 
 QuicPluginBackend::~QuicPluginBackend() {
+    resetEngineTimer();
     if (_engine) {
         _plugin.destroyServerEngine(_engine);
         _engine = nullptr;
@@ -232,14 +251,19 @@ toolkit::EventPoller::Ptr QuicPluginBackend::queryPoller(const toolkit::Buffer::
         std::lock_guard<std::mutex> lock(_cid_mutex);
         auto it = _cid_poller_map.find(dcid);
         if (it != _cid_poller_map.end()) {
-            return it->second;
+            if (it->second.last_seen_ms + kQuicCidIdleTimeoutMs <= nowMS() || !it->second.poller) {
+                _cid_poller_map.erase(it);
+            } else {
+                it->second.last_seen_ms = nowMS();
+                return it->second.poller;
+            }
         }
     }
 
     auto poller = toolkit::EventPollerPool::Instance().getPoller(false);
     if (poller) {
         std::lock_guard<std::mutex> lock(_cid_mutex);
-        _cid_poller_map.emplace(std::move(dcid), poller);
+        rememberCidLocked(dcid, poller, nowMS());
     }
     return poller;
 }
@@ -261,16 +285,27 @@ void QuicPluginBackend::inputPacket(const QuicPacket &packet) {
     view.peer_ip.len = packet.peer_ip.size();
     view.local_port = packet.local_port;
     view.peer_port = packet.peer_port;
+    // The shared HTTP/3 server engine is reused across all QUIC sessions. Each
+    // connection is pinned to one poller, but different connections can still
+    // arrive from different poller threads, so packet input/timer ticks/response
+    // writes must be serialized at the host boundary.
+    std::lock_guard<std::recursive_mutex> lock(_engine_mutex);
     auto rc = _engine->handlePacket(view);
     TraceL << "host->plugin QUIC packet handled, size=" << view.payload.len
            << ", local=" << packet.local_ip << ":" << packet.local_port
            << ", peer=" << packet.peer_ip << ":" << packet.peer_port
            << ", rc=" << rc;
+    refreshEngineTimer(packet.poller);
 }
 
-void QuicPluginBackend::onManager(const toolkit::EventPoller::Ptr &) {
+void QuicPluginBackend::onManager(const toolkit::EventPoller::Ptr &poller) {
     if (_engine) {
-        _engine->onTimer(nowMS());
+        std::lock_guard<std::recursive_mutex> lock(_engine_mutex);
+        auto now_ms = nowMS();
+        if (_engine->nextTimeoutMS(now_ms) <= now_ms) {
+            _engine->onTimer(now_ms);
+        }
+        refreshEngineTimer(poller);
     }
 }
 
@@ -308,9 +343,13 @@ int QuicPluginBackend::sendPacket(const QuicPacketView &packet) {
         std::lock_guard<std::mutex> lock(_route_mutex);
         auto it = _route_map.find(route_key);
         if (it != _route_map.end()) {
-            sock = it->second.lock();
-            if (!sock) {
+            if (it->second.last_seen_ms + kQuicRouteIdleTimeoutMs <= nowMS()) {
                 _route_map.erase(it);
+            } else {
+                sock = it->second.sock.lock();
+            }
+            if (!sock) {
+                _route_map.erase(route_key);
             }
         }
     }
@@ -335,7 +374,9 @@ int QuicPluginBackend::sendPacket(const QuicPacketView &packet) {
     return 0;
 }
 
-void QuicPluginBackend::wakeEngine(uint64_t) {}
+void QuicPluginBackend::wakeEngine(uint64_t delay_ms) {
+    armEngineTimer(toolkit::EventPoller::getCurrentPoller(), delay_ms);
+}
 
 void QuicPluginBackend::onRequest(const QuicServerRequest &request) {
     auto pending = std::make_shared<PendingRequest>();
@@ -353,9 +394,13 @@ void QuicPluginBackend::onRequest(const QuicServerRequest &request) {
         std::lock_guard<std::mutex> lock(_route_mutex);
         auto it = _route_map.find(route_key);
         if (it != _route_map.end()) {
-            route_sock = it->second.lock();
-            if (!route_sock) {
+            if (it->second.last_seen_ms + kQuicRouteIdleTimeoutMs <= nowMS()) {
                 _route_map.erase(it);
+            } else {
+                route_sock = it->second.sock.lock();
+            }
+            if (!route_sock) {
+                _route_map.erase(route_key);
             }
         }
     }
@@ -402,6 +447,9 @@ void QuicPluginBackend::onBody(uint64_t conn_id, uint64_t stream_id, const uint8
     }
 
     if (!pending) {
+        return;
+    }
+    if (pending->dispatched) {
         return;
     }
 
@@ -461,7 +509,45 @@ void QuicPluginBackend::rememberRoute(const QuicPacket &packet) {
         return;
     }
     std::lock_guard<std::mutex> lock(_route_mutex);
-    _route_map[makeRouteKey(packet)] = packet.sock;
+    rememberRouteLocked(makeRouteKey(packet), packet.sock, nowMS());
+}
+
+void QuicPluginBackend::rememberRouteLocked(const RouteKey &key, const std::weak_ptr<toolkit::Socket> &sock, uint64_t now_ms) {
+    auto it = _route_map.find(key);
+    if (it != _route_map.end()) {
+        it->second.sock = sock;
+        it->second.last_seen_ms = now_ms;
+        return;
+    }
+
+    RouteState state;
+    state.sock = sock;
+    state.last_seen_ms = now_ms;
+    _route_map.emplace(key, std::move(state));
+
+    if (_route_map.size() <= kMaxRememberedQuicRoutes) {
+        return;
+    }
+
+    for (auto route_it = _route_map.begin(); route_it != _route_map.end();) {
+        if (route_it->second.last_seen_ms + kQuicRouteIdleTimeoutMs <= now_ms || route_it->second.sock.expired()) {
+            route_it = _route_map.erase(route_it);
+            continue;
+        }
+        ++route_it;
+    }
+
+    if (_route_map.size() <= kMaxRememberedQuicRoutes) {
+        return;
+    }
+
+    auto oldest_it = _route_map.begin();
+    for (auto route_it = std::next(_route_map.begin()); route_it != _route_map.end(); ++route_it) {
+        if (route_it->second.last_seen_ms < oldest_it->second.last_seen_ms) {
+            oldest_it = route_it;
+        }
+    }
+    _route_map.erase(oldest_it);
 }
 
 QuicPluginBackend::RequestKey QuicPluginBackend::makeRequestKey(uint64_t conn_id, uint64_t stream_id) {
@@ -553,18 +639,60 @@ void QuicPluginBackend::rememberPacketConnectionIds(const uint8_t *data, size_t 
 
     std::lock_guard<std::mutex> lock(_cid_mutex);
     if (!dcid.empty()) {
-        _cid_poller_map[dcid] = poller;
+        rememberCidLocked(dcid, poller, nowMS());
     }
     if (!scid.empty()) {
-        _cid_poller_map[scid] = poller;
+        rememberCidLocked(scid, poller, nowMS());
     }
 }
 
-void QuicPluginBackend::sendResponseHeaders(const std::shared_ptr<PendingRequest> &request, int code,
+void QuicPluginBackend::rememberCidLocked(const std::string &cid, const toolkit::EventPoller::Ptr &poller, uint64_t now_ms) {
+    if (cid.empty() || !poller) {
+        return;
+    }
+
+    auto it = _cid_poller_map.find(cid);
+    if (it != _cid_poller_map.end()) {
+        it->second.poller = poller;
+        it->second.last_seen_ms = now_ms;
+        return;
+    }
+
+    CidState state;
+    state.poller = poller;
+    state.last_seen_ms = now_ms;
+    _cid_poller_map.emplace(cid, std::move(state));
+
+    if (_cid_poller_map.size() <= kMaxRememberedQuicCids) {
+        return;
+    }
+
+    for (auto cid_it = _cid_poller_map.begin(); cid_it != _cid_poller_map.end();) {
+        if (cid_it->second.last_seen_ms + kQuicCidIdleTimeoutMs <= now_ms || !cid_it->second.poller) {
+            cid_it = _cid_poller_map.erase(cid_it);
+            continue;
+        }
+        ++cid_it;
+    }
+
+    if (_cid_poller_map.size() <= kMaxRememberedQuicCids) {
+        return;
+    }
+
+    auto oldest_it = _cid_poller_map.begin();
+    for (auto cid_it = std::next(_cid_poller_map.begin()); cid_it != _cid_poller_map.end(); ++cid_it) {
+        if (cid_it->second.last_seen_ms < oldest_it->second.last_seen_ms) {
+            oldest_it = cid_it;
+        }
+    }
+    _cid_poller_map.erase(oldest_it);
+}
+
+bool QuicPluginBackend::sendResponseHeaders(const std::shared_ptr<PendingRequest> &request, int code,
                                             const StrCaseMap &header_out, int64_t body_size,
                                             bool no_content_length, bool fin) {
-    if (!request || !_engine) {
-        return;
+    if (!request || !_engine || request->response_send_failed) {
+        return false;
     }
 
     StrCaseMap response_headers = header_out;
@@ -593,26 +721,139 @@ void QuicPluginBackend::sendResponseHeaders(const std::shared_ptr<PendingRequest
         quic_headers.emplace_back(item);
     }
 
+    std::lock_guard<std::recursive_mutex> lock(_engine_mutex);
     auto rc = _engine->sendHeaders(request->conn_id, request->stream_id, code,
                                    quic_headers.empty() ? nullptr : quic_headers.data(),
                                    quic_headers.size(), fin);
     if (rc != 0) {
+        request->response_send_failed = true;
         WarnL << "failed to send HTTP/3 response headers, conn=" << request->conn_id
               << ", stream=" << request->stream_id << ", code=" << code
               << ", fin=" << fin << ", rc=" << rc;
+        return false;
     }
+    refreshEngineTimer(request->sender ? request->sender->getPoller() : nullptr);
+    return true;
 }
 
-void QuicPluginBackend::sendResponseBody(const std::shared_ptr<PendingRequest> &request,
+bool QuicPluginBackend::sendResponseBody(const std::shared_ptr<PendingRequest> &request,
                                          const uint8_t *data, size_t len, bool fin) {
-    if (!request || !_engine) {
-        return;
+    if (!request || !_engine || request->response_send_failed) {
+        return false;
     }
+    std::lock_guard<std::recursive_mutex> lock(_engine_mutex);
     auto rc = _engine->sendBody(request->conn_id, request->stream_id, data, len, fin);
     if (rc != 0) {
+        request->response_send_failed = true;
         WarnL << "failed to send HTTP/3 response body, conn=" << request->conn_id
               << ", stream=" << request->stream_id << ", len=" << len
               << ", fin=" << fin << ", rc=" << rc;
+        return false;
+    }
+    refreshEngineTimer(request->sender ? request->sender->getPoller() : nullptr);
+    return true;
+}
+
+void QuicPluginBackend::refreshEngineTimer(const toolkit::EventPoller::Ptr &poller) {
+    if (!_engine) {
+        return;
+    }
+
+    auto now_ms = nowMS();
+    auto next_ms = _engine->nextTimeoutMS(now_ms);
+    if (next_ms <= now_ms) {
+        armEngineTimer(poller, 0);
+    } else {
+        armEngineTimer(poller, next_ms - now_ms);
+    }
+}
+
+void QuicPluginBackend::armEngineTimer(const toolkit::EventPoller::Ptr &poller, uint64_t delay_ms) {
+    if (!_engine) {
+        return;
+    }
+
+    auto timer_poller = poller;
+    if (!timer_poller) {
+        std::lock_guard<std::mutex> lock(_timer_mutex);
+        timer_poller = _timer_poller;
+    }
+    if (!timer_poller) {
+        timer_poller = toolkit::EventPoller::getCurrentPoller();
+    }
+    if (!timer_poller) {
+        timer_poller = toolkit::EventPollerPool::Instance().getPoller(false);
+    }
+    if (!timer_poller) {
+        return;
+    }
+
+    auto due_ms = nowMS() + delay_ms;
+    std::weak_ptr<QuicPluginBackend> weak_self;
+    try {
+        weak_self = std::weak_ptr<QuicPluginBackend>(shared_from_this());
+    } catch (const std::bad_weak_ptr &) {
+        return;
+    }
+
+    uint64_t timer_seq = 0;
+    {
+        std::lock_guard<std::mutex> lock(_timer_mutex);
+        if (_timer_task && _timer_due_ms <= due_ms) {
+            return;
+        }
+        if (_timer_task) {
+            _timer_task->cancel();
+            _timer_task.reset();
+        }
+        timer_seq = ++_timer_seq;
+        _timer_due_ms = due_ms;
+        _timer_poller = timer_poller;
+        _timer_task = timer_poller->doDelayTask(delay_ms, [weak_self, timer_seq]() -> uint64_t {
+            auto self = weak_self.lock();
+            if (!self) {
+                return 0;
+            }
+            return self->runTimerTask(timer_seq);
+        });
+    }
+}
+
+uint64_t QuicPluginBackend::runTimerTask(uint64_t timer_seq) {
+    toolkit::EventPoller::Ptr timer_poller;
+    {
+        std::lock_guard<std::mutex> lock(_timer_mutex);
+        if (timer_seq != _timer_seq) {
+            return 0;
+        }
+        _timer_due_ms = 0;
+        _timer_task.reset();
+        timer_poller = _timer_poller;
+    }
+
+    if (!_engine) {
+        return 0;
+    }
+
+    {
+        std::lock_guard<std::recursive_mutex> lock(_engine_mutex);
+        if (!_engine) {
+            return 0;
+        }
+        _engine->onTimer(nowMS());
+        refreshEngineTimer(timer_poller);
+    }
+    return 0;
+}
+
+void QuicPluginBackend::resetEngineTimer() {
+    std::lock_guard<std::mutex> lock(_timer_mutex);
+    ++_timer_seq;
+    _timer_due_ms = 0;
+    _timer_poller.reset();
+    if (_timer_task) {
+        _timer_task->cancel();
+        _timer_task.reset();
     }
 }
 
@@ -653,27 +894,27 @@ bool QuicPluginBackend::checkLiveStream(const std::shared_ptr<PendingRequest> &r
     std::weak_ptr<PendingRequest> weak_request = request;
     auto sender = request->sender;
     auto on_res = [this, weak_request, media_info, cb](const std::string &err) {
-        auto request = weak_request.lock();
-        if (!request) {
+        auto current_request = weak_request.lock();
+        if (!current_request) {
             return;
         }
 
         if (!err.empty()) {
-            sendTextResponse(request, 401, "text/plain; charset=utf-8", err);
+            sendTextResponse(current_request, 401, "text/plain; charset=utf-8", err);
             return;
         }
 
-        MediaSource::findAsync(media_info, request->sender, [this, weak_request, cb](const MediaSource::Ptr &src) {
-            auto request = weak_request.lock();
-            if (!request) {
+        MediaSource::findAsync(media_info, current_request->sender, [this, weak_request, cb](const MediaSource::Ptr &src) {
+            auto resolved_request = weak_request.lock();
+            if (!resolved_request) {
                 return;
             }
             if (!src) {
-                sendTextResponse(request, 404, "text/html; charset=utf-8", not_found);
+                sendTextResponse(resolved_request, 404, "text/html; charset=utf-8", not_found);
                 return;
             }
-            request->live_stream = true;
-            cb(src, request);
+            resolved_request->live_stream = true;
+            cb(src, resolved_request);
         });
     };
 
@@ -695,38 +936,50 @@ bool QuicPluginBackend::checkLiveStream(const std::shared_ptr<PendingRequest> &r
 
 bool QuicPluginBackend::checkLiveStreamTS(const std::shared_ptr<PendingRequest> &request, Parser &parser) {
     return checkLiveStream(request, parser, TS_SCHEMA, ".live.ts",
-                           [this](const MediaSource::Ptr &src, const std::shared_ptr<PendingRequest> &request) {
+                           [this](const MediaSource::Ptr &src, const std::shared_ptr<PendingRequest> &live_request) {
         auto ts_src = std::dynamic_pointer_cast<TSMediaSource>(src);
-        if (!ts_src || !request || !request->sender) {
+        if (!ts_src || !live_request || !live_request->sender) {
             return;
         }
 
         StrCaseMap headers;
         headers.emplace("content-type", HttpFileManager::getContentType(".ts"));
-        sendResponseHeaders(request, 200, headers, -1, true, false);
+        if (!sendResponseHeaders(live_request, 200, headers, -1, true, false)) {
+            return;
+        }
 
-        auto weak_request = std::weak_ptr<PendingRequest>(request);
+        auto weak_request = std::weak_ptr<PendingRequest>(live_request);
         ts_src->pause(false);
-        request->ts_reader = ts_src->getRing()->attach(request->sender->getPoller());
-        request->ts_reader->setGetInfoCB([weak_request]() { return makeSenderInfo(weak_request); });
-        request->ts_reader->setDetachCB([this, weak_request]() {
-            if (auto request = weak_request.lock()) {
-                request->ts_reader = nullptr;
+        live_request->ts_reader = ts_src->getRing()->attach(live_request->sender->getPoller());
+        live_request->ts_reader->setGetInfoCB([weak_request]() { return makeSenderInfo(weak_request); });
+        live_request->ts_reader->setDetachCB([this, weak_request]() {
+            if (auto current_request = weak_request.lock()) {
+                current_request->ts_reader = nullptr;
+                if (current_request->response_send_failed) {
+                    return;
+                }
                 // Ring detach is the natural end of the live stream from the HTTP/3
                 // client's perspective. Finish the body instead of resetting the stream.
-                sendResponseBody(request, nullptr, 0, true);
+                sendResponseBody(current_request, nullptr, 0, true);
             }
         });
-        request->ts_reader->setReadCB([this, weak_request](const TSMediaSource::RingDataType &ts_list) {
-            auto request = weak_request.lock();
-            if (!request) {
+        live_request->ts_reader->setReadCB([this, weak_request](const TSMediaSource::RingDataType &ts_list) {
+            auto current_request = weak_request.lock();
+            if (!current_request) {
                 return;
             }
-            ts_list->for_each([this, request](const TSPacket::Ptr &ts) {
-                sendResponseBody(request,
-                                 reinterpret_cast<const uint8_t *>(ts->data()),
-                                 ts->size(),
-                                 false);
+            bool send_failed = false;
+            ts_list->for_each([this, current_request, &send_failed](const TSPacket::Ptr &ts) {
+                if (send_failed) {
+                    return;
+                }
+                if (!sendResponseBody(current_request,
+                                      reinterpret_cast<const uint8_t *>(ts->data()),
+                                      ts->size(),
+                                      false)) {
+                    send_failed = true;
+                    current_request->ts_reader = nullptr;
+                }
             });
         });
     });
@@ -735,9 +988,9 @@ bool QuicPluginBackend::checkLiveStreamTS(const std::shared_ptr<PendingRequest> 
 bool QuicPluginBackend::checkLiveStreamFlv(const std::shared_ptr<PendingRequest> &request, Parser &parser) {
     auto start_pts = static_cast<uint32_t>(atoll(parser.getUrlArgs()["starPts"].data()));
     return checkLiveStream(request, parser, RTMP_SCHEMA, ".live.flv",
-                           [this, start_pts](const MediaSource::Ptr &src, const std::shared_ptr<PendingRequest> &request) {
+                           [this, start_pts](const MediaSource::Ptr &src, const std::shared_ptr<PendingRequest> &live_request) {
         auto rtmp_src = std::dynamic_pointer_cast<RtmpMediaSource>(src);
-        if (!rtmp_src || !request || !request->sender) {
+        if (!rtmp_src || !live_request || !live_request->sender) {
             return;
         }
 
@@ -757,56 +1010,72 @@ bool QuicPluginBackend::checkLiveStreamFlv(const std::shared_ptr<PendingRequest>
         StrCaseMap headers;
         headers.emplace("cache-control", "no-store");
         headers.emplace("content-type", HttpFileManager::getContentType(".flv"));
-        sendResponseHeaders(request, 200, headers, -1, true, false);
+        if (!sendResponseHeaders(live_request, 200, headers, -1, true, false)) {
+            return;
+        }
 
-        auto flv_session = std::make_shared<PendingFlvSession>(*this, request);
+        auto flv_session = std::make_shared<PendingFlvSession>(*this, live_request);
         flv_session->setSelf(flv_session);
-        request->flv_session = flv_session;
+        live_request->flv_session = flv_session;
         flv_session->startStream(rtmp_src, start_pts);
     });
 }
 
 bool QuicPluginBackend::checkLiveStreamFMP4(const std::shared_ptr<PendingRequest> &request, Parser &parser) {
     return checkLiveStream(request, parser, FMP4_SCHEMA, ".live.mp4",
-                           [this](const MediaSource::Ptr &src, const std::shared_ptr<PendingRequest> &request) {
+                           [this](const MediaSource::Ptr &src, const std::shared_ptr<PendingRequest> &live_request) {
         auto fmp4_src = std::dynamic_pointer_cast<FMP4MediaSource>(src);
-        if (!fmp4_src || !request || !request->sender) {
+        if (!fmp4_src || !live_request || !live_request->sender) {
             return;
         }
 
         StrCaseMap headers;
         headers.emplace("content-type", HttpFileManager::getContentType(".mp4"));
-        sendResponseHeaders(request, 200, headers, -1, true, false);
+        if (!sendResponseHeaders(live_request, 200, headers, -1, true, false)) {
+            return;
+        }
         auto &init_segment = fmp4_src->getInitSegment();
         if (!init_segment.empty()) {
-            sendResponseBody(request,
-                             reinterpret_cast<const uint8_t *>(init_segment.data()),
-                             init_segment.size(),
-                             false);
-        }
-
-        auto weak_request = std::weak_ptr<PendingRequest>(request);
-        fmp4_src->pause(false);
-        request->fmp4_reader = fmp4_src->getRing()->attach(request->sender->getPoller());
-        request->fmp4_reader->setGetInfoCB([weak_request]() { return makeSenderInfo(weak_request); });
-        request->fmp4_reader->setDetachCB([this, weak_request]() {
-            if (auto request = weak_request.lock()) {
-                request->fmp4_reader = nullptr;
-                // Match the ts/flv live path: reader detach means the source stopped
-                // producing data, so close the response body cleanly.
-                sendResponseBody(request, nullptr, 0, true);
-            }
-        });
-        request->fmp4_reader->setReadCB([this, weak_request](const FMP4MediaSource::RingDataType &fmp4_list) {
-            auto request = weak_request.lock();
-            if (!request) {
+            if (!sendResponseBody(live_request,
+                                  reinterpret_cast<const uint8_t *>(init_segment.data()),
+                                  init_segment.size(),
+                                  false)) {
                 return;
             }
-            fmp4_list->for_each([this, request](const FMP4Packet::Ptr &pkt) {
-                sendResponseBody(request,
-                                 reinterpret_cast<const uint8_t *>(pkt->data()),
-                                 pkt->size(),
-                                 false);
+        }
+
+        auto weak_request = std::weak_ptr<PendingRequest>(live_request);
+        fmp4_src->pause(false);
+        live_request->fmp4_reader = fmp4_src->getRing()->attach(live_request->sender->getPoller());
+        live_request->fmp4_reader->setGetInfoCB([weak_request]() { return makeSenderInfo(weak_request); });
+        live_request->fmp4_reader->setDetachCB([this, weak_request]() {
+            if (auto current_request = weak_request.lock()) {
+                current_request->fmp4_reader = nullptr;
+                if (current_request->response_send_failed) {
+                    return;
+                }
+                // Match the ts/flv live path: reader detach means the source stopped
+                // producing data, so close the response body cleanly.
+                sendResponseBody(current_request, nullptr, 0, true);
+            }
+        });
+        live_request->fmp4_reader->setReadCB([this, weak_request](const FMP4MediaSource::RingDataType &fmp4_list) {
+            auto current_request = weak_request.lock();
+            if (!current_request) {
+                return;
+            }
+            bool send_failed = false;
+            fmp4_list->for_each([this, current_request, &send_failed](const FMP4Packet::Ptr &pkt) {
+                if (send_failed) {
+                    return;
+                }
+                if (!sendResponseBody(current_request,
+                                      reinterpret_cast<const uint8_t *>(pkt->data()),
+                                      pkt->size(),
+                                      false)) {
+                    send_failed = true;
+                    current_request->fmp4_reader = nullptr;
+                }
             });
         });
     });
@@ -838,8 +1107,8 @@ void QuicPluginBackend::dispatchRequest(const std::shared_ptr<PendingRequest> &r
     auto sender = request->sender;
     std::weak_ptr<PendingRequest> weak_request = request;
     HttpResponseInvokerImp invoker = [this, weak_request](int code, const StrCaseMap &headerOut, const HttpBody::Ptr &body) {
-        auto request = weak_request.lock();
-        if (!request || !_engine) {
+        auto current_request = weak_request.lock();
+        if (!current_request || !_engine) {
             return;
         }
 
@@ -849,23 +1118,25 @@ void QuicPluginBackend::dispatchRequest(const std::shared_ptr<PendingRequest> &r
             response_headers.emplace("content-type", "text/plain; charset=utf-8");
         }
         bool fin = !body || body_size == 0;
-        DebugL << "HTTP/3 send response, conn=" << request->conn_id
-               << ", stream=" << request->stream_id
+        DebugL << "HTTP/3 send response, conn=" << current_request->conn_id
+               << ", stream=" << current_request->stream_id
                << ", code=" << code
                << ", body_size=" << body_size
                << ", fin=" << fin;
-        sendResponseHeaders(request, code, response_headers, body_size, false, fin);
+        if (!sendResponseHeaders(current_request, code, response_headers, body_size, false, fin)) {
+            return;
+        }
         if (!body || body_size == 0) {
             return;
         }
 
         GET_CONFIG(uint32_t, send_buf_size, Http::kSendBufSize);
-        sendHttpBody(request, body, send_buf_size);
+        sendHttpBody(current_request, body, send_buf_size);
     };
 
     sender->getPoller()->async([this, sender, parser, invoker, weak_request]() mutable {
-        auto request = weak_request.lock();
-        if (!request) {
+        auto current_request = weak_request.lock();
+        if (!current_request) {
             return;
         }
 
@@ -898,13 +1169,13 @@ void QuicPluginBackend::dispatchRequest(const std::shared_ptr<PendingRequest> &r
             if (HttpRequestDispatcher::emitHttpEvent(parser, *sender, invoker, false)) {
                 return;
             }
-            if (checkLiveStreamFlv(request, parser)) {
+            if (checkLiveStreamFlv(current_request, parser)) {
                 return;
             }
-            if (checkLiveStreamTS(request, parser)) {
+            if (checkLiveStreamTS(current_request, parser)) {
                 return;
             }
-            if (checkLiveStreamFMP4(request, parser)) {
+            if (checkLiveStreamFMP4(current_request, parser)) {
                 return;
             }
             try {
@@ -946,10 +1217,12 @@ void QuicPluginBackend::sendHttpBody(const std::shared_ptr<PendingRequest> &requ
     }
 
     while (auto chunk = body->readData(chunk_size)) {
-        sendResponseBody(request,
-                         reinterpret_cast<const uint8_t *>(chunk->data()),
-                         chunk->size(),
-                         body->remainSize() == 0);
+        if (!sendResponseBody(request,
+                              reinterpret_cast<const uint8_t *>(chunk->data()),
+                              chunk->size(),
+                              body->remainSize() == 0)) {
+            break;
+        }
     }
 }
 
@@ -958,7 +1231,9 @@ void QuicPluginBackend::sendTextResponse(const std::shared_ptr<PendingRequest> &
     auto body = std::make_shared<HttpStringBody>(text);
     StrCaseMap headers;
     headers.emplace("content-type", content_type);
-    sendResponseHeaders(request, code, headers, body->remainSize(), false, false);
+    if (!sendResponseHeaders(request, code, headers, body->remainSize(), false, false)) {
+        return;
+    }
     sendHttpBody(request, body, 64 * 1024);
 }
 

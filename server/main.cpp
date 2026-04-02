@@ -23,6 +23,7 @@
 #include "Rtmp/RtmpSession.h"
 #include "Shell/ShellSession.h"
 #include "Http/WebSocketSession.h"
+#include "Http/HttpProtocolHint.h"
 #include "Rtp/RtpServer.h"
 #include "WebApi.h"
 #include "WebHook.h"
@@ -366,6 +367,7 @@ int start_main(int argc,char *argv[]) {
         auto httpsSrv = std::make_shared<TcpServer>();
 
 #if defined(ENABLE_QUIC)
+        setAltSvcQuicAvailability(false, 0);
         auto http3Srv = std::make_shared<UdpServer>();
         http3Srv->setOnCreateSocket([](const EventPoller::Ptr &poller, const Buffer::Ptr &buf, struct sockaddr *, int) {
             if (!buf) {
@@ -460,6 +462,7 @@ int start_main(int argc,char *argv[]) {
 
 #if defined(ENABLE_QUIC)
             if (http3Port) { http3Srv->start<QuicSession>(http3Port, listen_ip); }
+            if (http3Port) { setAltSvcQuicAvailability(true, http3Port); }
 #endif // defined(ENABLE_QUIC)
 
             // telnet远程调试服务器  [AUTO-TRANSLATED:577cb7cf]
@@ -559,5 +562,4 @@ int main(int argc,char *argv[]) {
     return start_main(argc,argv);
 }
 #endif //DISABLE_MAIN
-
 

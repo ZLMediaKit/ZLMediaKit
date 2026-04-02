@@ -2,65 +2,46 @@ diff --git a/src/Network/BufferSock.cpp b/src/Network/BufferSock.cpp
 index 37ca836..0d553b0 100644
 --- a/src/Network/BufferSock.cpp
 +++ b/src/Network/BufferSock.cpp
-@@ -611,12 +611,16 @@ static constexpr auto kPacketCount = 32;
- static constexpr auto kBufferCapacity = 4 * 1024u;
- 
- SocketRecvBuffer::Ptr SocketRecvBuffer::create(bool is_udp) {
+@@ -613,0 +614,4 @@ SocketRecvBuffer::Ptr SocketRecvBuffer::create(bool is_udp) {
 +    return create(is_udp, kPacketCount, kBufferCapacity);
 +}
 +
 +SocketRecvBuffer::Ptr SocketRecvBuffer::create(bool is_udp, size_t packet_count, size_t buffer_capacity) {
- #if defined(__linux) || defined(__linux__)
-     if (is_udp) {
+@@ -616 +620 @@ SocketRecvBuffer::Ptr SocketRecvBuffer::create(bool is_udp) {
 -        return std::make_shared<SocketRecvmmsgBuffer>(kPacketCount, kBufferCapacity);
 +        return std::make_shared<SocketRecvmmsgBuffer>(packet_count, buffer_capacity);
-     }
- #endif
+@@ -619 +623 @@ SocketRecvBuffer::Ptr SocketRecvBuffer::create(bool is_udp) {
 -    return std::make_shared<SocketRecvFromBuffer>(kPacketCount * kBufferCapacity);
 +    return std::make_shared<SocketRecvFromBuffer>(packet_count * buffer_capacity);
- }
- 
- } //toolkit
 diff --git a/src/Network/BufferSock.h b/src/Network/BufferSock.h
 index 1320f85..071253a 100644
 --- a/src/Network/BufferSock.h
 +++ b/src/Network/BufferSock.h
-@@ -81,6 +81,7 @@ public:
-     virtual struct sockaddr_storage &getAddress(size_t index) = 0;
- 
-     static Ptr create(bool is_udp);
+@@ -83,0 +84 @@ public:
 +    static Ptr create(bool is_udp, size_t packet_count, size_t buffer_capacity);
- };
- 
- }
 diff --git a/src/Network/Socket.cpp b/src/Network/Socket.cpp
-index e1b705c..3c462b0 100644
+index e1b705c..293fc2d 100644
 --- a/src/Network/Socket.cpp
 +++ b/src/Network/Socket.cpp
-@@ -276,14 +276,14 @@ bool Socket::attachEvent(const SockNum::Ptr &sock) {
- 
-     // tcp客户端或udp  [AUTO-TRANSLATED:00c16e7f]
-     //TCP client or UDP
+@@ -279,2 +279 @@ bool Socket::attachEvent(const SockNum::Ptr &sock) {
 -    auto read_buffer = _poller->getSharedBuffer(sock->type() == SockNum::Sock_UDP);
 -    auto result = _poller->addEvent(sock->rawFd(), EventPoller::Event_Read | EventPoller::Event_Error | EventPoller::Event_Write, [weak_self, sock, read_buffer](int event) {
 +    auto result = _poller->addEvent(sock->rawFd(), EventPoller::Event_Read | EventPoller::Event_Error | EventPoller::Event_Write, [weak_self, sock](int event) {
-         auto strong_self = weak_self.lock();
-         if (!strong_self) {
-             return;
-         }
- 
-         if (event & EventPoller::Event_Read) {
+@@ -286,0 +286 @@ bool Socket::attachEvent(const SockNum::Ptr &sock) {
 +            auto read_buffer = strong_self->getReadBuffer(sock->type() == SockNum::Sock_UDP);
-             strong_self->onRead(sock, read_buffer);
-         }
-         if (event & EventPoller::Event_Write) {
-@@ -1021,6 +1021,21 @@ void Socket::setSendFlags(int flags) {
-     _sock_flags = flags;
- }
- 
+@@ -324 +324,3 @@ ssize_t Socket::onRead(const SockNum::Ptr &sock, const SocketRecvBuffer::Ptr &bu
+-                    WarnL << "Recv err on udp socket[" << sock->rawFd() << "]: " << uv_strerror(err);
++                    if (!(err == UV_ECONNREFUSED && _ignore_udp_conn_refused.load(std::memory_order_acquire))) {
++                        WarnL << "Recv err on udp socket[" << sock->rawFd() << "]: " << uv_strerror(err);
++                    }
+@@ -1023,0 +1026,19 @@ void Socket::setSendFlags(int flags) {
 +void Socket::setReadBuffer(const SocketRecvBuffer::Ptr &buffer) {
 +    _read_buffer = buffer;
 +    _has_custom_read_buffer.store(static_cast<bool>(_read_buffer), std::memory_order_release);
++}
++
++void Socket::setIgnoreUdpConnRefused(bool ignore) {
++    _ignore_udp_conn_refused.store(ignore, std::memory_order_release);
 +}
 +
 +SocketRecvBuffer::Ptr Socket::getReadBuffer(bool is_udp) {
@@ -73,42 +54,27 @@ index e1b705c..3c462b0 100644
 +    return _read_buffer ? _read_buffer : _poller->getSharedBuffer(is_udp);
 +}
 +
- ///////////////SockSender///////////////////
- 
- SockSender &SockSender::operator<<(const char *buf) {
 diff --git a/src/Network/Socket.h b/src/Network/Socket.h
-index d883457..543638a 100644
+index d883457..93d3670 100644
 --- a/src/Network/Socket.h
 +++ b/src/Network/Socket.h
-@@ -651,6 +651,11 @@ public:
-      */
-     void setSendFlags(int flags = SOCKET_DEFAULE_FLAGS);
- 
+@@ -653,0 +654,10 @@ public:
 +    // Install a transport-specific recv buffer before the socket starts
 +    // receiving. This is intended for setup-time tuning, not runtime
 +    // reconfiguration after IO callbacks are active.
 +    void setReadBuffer(const SocketRecvBuffer::Ptr &buffer);
 +
-     /**
-      * 关闭套接字
-      * @param close_fd 是否关闭fd还是只移除io事件监听
-@@ -731,6 +736,7 @@ private:
-     void stopWriteAbleEvent(const SockNum::Ptr &sock);
-     bool flushData(const SockNum::Ptr &sock, bool poller_thread);
-     bool attachEvent(const SockNum::Ptr &sock);
++    // Suppress the UDP ECONNREFUSED read warning on sockets that intentionally
++    // communicate with transient peers, such as QUIC sessions that may receive
++    // a late ICMP port-unreachable after the peer has already closed.
++    void setIgnoreUdpConnRefused(bool ignore);
++
+@@ -733,0 +744 @@ private:
 +    SocketRecvBuffer::Ptr getReadBuffer(bool is_udp);
-     ssize_t send_l(Buffer::Ptr buf, bool is_buf_sock, bool try_flush = true);
-     void connect_l(const std::string &url, uint16_t port, const onErrCB &con_cb_in, float timeout_sec, const std::string &local_ip, uint16_t local_port);
-     bool fromSock_l(SockNum::Ptr sock);
-@@ -803,6 +809,11 @@ private:
-     // 设置上述回调函数的锁  [AUTO-TRANSLATED:302ca377]
-     //Set the lock for the above callback function
-     MutexWrapper<std::recursive_mutex> _mtx_event;
+@@ -805,0 +817,6 @@ private:
 +    // Optional per-socket recv path used by a small number of UDP transports.
 +    // This is configured during socket setup so the default read path does not
 +    // pay extra locking cost.
 +    std::atomic<bool> _has_custom_read_buffer{false};
 +    SocketRecvBuffer::Ptr _read_buffer;
- 
-     // 一级发送缓存, socket可写时，会把一级缓存批量送入到二级缓存  [AUTO-TRANSLATED:26f1da58]
-     //First-level send cache, when the socket is writable, it will batch the first-level cache into the second-level cache
++    std::atomic<bool> _ignore_udp_conn_refused{false};

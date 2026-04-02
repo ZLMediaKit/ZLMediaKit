@@ -1,6 +1,7 @@
 ﻿#ifndef ZLMEDIAKIT_QUICPLUGINBACKEND_H
 #define ZLMEDIAKIT_QUICPLUGINBACKEND_H
 
+#include <deque>
 #include <mutex>
 #include <memory>
 #include <unordered_map>
@@ -14,7 +15,9 @@
 
 namespace mediakit {
 
-class QuicPluginBackend final : public QuicBackend, public IQuicServerHost {
+class QuicPluginBackend final : public QuicBackend,
+                                public IQuicServerHost,
+                                public std::enable_shared_from_this<QuicPluginBackend> {
 public:
     QuicPluginBackend();
     ~QuicPluginBackend() override;
@@ -74,6 +77,14 @@ private:
             return seed;
         }
     };
+    struct CidState {
+        toolkit::EventPoller::Ptr poller;
+        uint64_t last_seen_ms = 0;
+    };
+    struct RouteState {
+        std::weak_ptr<toolkit::Socket> sock;
+        uint64_t last_seen_ms = 0;
+    };
 
     static RouteKey makeRouteKey(QuicSlice local_ip, uint16_t local_port, QuicSlice peer_ip, uint16_t peer_port);
     static RouteKey makeRouteKey(const QuicPacket &packet);
@@ -81,6 +92,8 @@ private:
     static bool extractPacketConnectionIds(const uint8_t *data, size_t len,
                                            std::string *dcid, std::string *scid);
     void rememberPacketConnectionIds(const uint8_t *data, size_t len, const toolkit::EventPoller::Ptr &poller);
+    void rememberCidLocked(const std::string &cid, const toolkit::EventPoller::Ptr &poller, uint64_t now_ms);
+    void rememberRouteLocked(const RouteKey &key, const std::weak_ptr<toolkit::Socket> &sock, uint64_t now_ms);
     void rememberRoute(const QuicPacket &packet);
     std::shared_ptr<PendingRequest> removeRequest(uint64_t conn_id, uint64_t stream_id);
     std::vector<std::shared_ptr<PendingRequest>> removeConnectionRequests(uint64_t conn_id);
@@ -96,21 +109,31 @@ private:
                       const HttpBody::Ptr &body, size_t chunk_size);
     void sendTextResponse(const std::shared_ptr<PendingRequest> &request, int code,
                           const std::string &content_type, const std::string &text);
-    void sendResponseHeaders(const std::shared_ptr<PendingRequest> &request, int code,
+    bool sendResponseHeaders(const std::shared_ptr<PendingRequest> &request, int code,
                              const StrCaseMap &header_out, int64_t body_size,
                              bool no_content_length, bool fin);
-    void sendResponseBody(const std::shared_ptr<PendingRequest> &request,
+    bool sendResponseBody(const std::shared_ptr<PendingRequest> &request,
                           const uint8_t *data, size_t len, bool fin);
+    void refreshEngineTimer(const toolkit::EventPoller::Ptr &poller);
+    void armEngineTimer(const toolkit::EventPoller::Ptr &poller, uint64_t delay_ms);
+    uint64_t runTimerTask(uint64_t timer_seq);
+    void resetEngineTimer();
 private:
     QuicPluginRef _plugin;
     IQuicPlugin *_plugin_raw = nullptr;
     IQuicServerEngine *_engine = nullptr;
+    mutable std::recursive_mutex _engine_mutex;
     mutable std::mutex _cid_mutex;
-    std::unordered_map<std::string, toolkit::EventPoller::Ptr> _cid_poller_map;
+    std::unordered_map<std::string, CidState> _cid_poller_map;
     mutable std::mutex _route_mutex;
-    std::unordered_map<RouteKey, std::weak_ptr<toolkit::Socket>, RouteKeyHash> _route_map;
+    std::unordered_map<RouteKey, RouteState, RouteKeyHash> _route_map;
     mutable std::mutex _request_mutex;
     std::unordered_map<RequestKey, std::shared_ptr<PendingRequest>, RequestKeyHash> _request_map;
+    mutable std::mutex _timer_mutex;
+    toolkit::EventPoller::Ptr _timer_poller;
+    toolkit::EventPoller::DelayTask::Ptr _timer_task;
+    uint64_t _timer_due_ms = 0;
+    uint64_t _timer_seq = 0;
 };
 
 } // namespace mediakit

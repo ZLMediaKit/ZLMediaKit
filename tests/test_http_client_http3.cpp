@@ -66,18 +66,18 @@ private:
     size_t _chunk_size = 1;
 };
 
-static bool looksLikeOkJsonResponse(const Parser &parser) {
+bool looksLikeOkJsonResponse(const Parser &parser) {
     auto body = parser.content();
     return parser.status() == "200" &&
            body.find("\"code\"") != string::npos &&
            body.find("\"data\"") != string::npos;
 }
 
-static const string &responseVersion(const Parser &parser) {
+const string &responseVersion(const Parser &parser) {
     return parser.method();
 }
 
-static pair<string, uint16_t> getOriginFromUrl(const string &url) {
+pair<string, uint16_t> getOriginFromUrl(const string &url) {
     auto protocol = findSubString(url.data(), nullptr, "://");
     uint16_t default_port = 0;
     if (strcasecmp(protocol.data(), "http") == 0) {
@@ -95,7 +95,7 @@ static pair<string, uint16_t> getOriginFromUrl(const string &url) {
     return make_pair(host, default_port);
 }
 
-static bool parseUint64(const string &value, uint64_t &out) {
+bool parseUint64(const string &value, uint64_t &out) {
     if (value.empty()) {
         return false;
     }
@@ -107,7 +107,7 @@ static bool parseUint64(const string &value, uint64_t &out) {
     }
 }
 
-static bool looksLikeText(const string &body) {
+bool looksLikeText(const string &body) {
     if (body.empty()) {
         return true;
     }
@@ -123,7 +123,7 @@ static bool looksLikeText(const string &body) {
     return control_count * 100 <= body.size();
 }
 
-static string formatDurationMs(std::chrono::steady_clock::duration duration) {
+string formatDurationMs(std::chrono::steady_clock::duration duration) {
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
     std::ostringstream ss;
     ss << ms << " ms";
@@ -232,7 +232,7 @@ private:
     string _body;
 };
 
-static void printUsage(const char *prog) {
+void printUsage(const char *prog) {
     cerr << "Usage:" << endl;
     cerr << "  " << prog << " [options] <https-url>" << endl;
     cerr << "  " << prog << " [url] [post-form-url] [post-json-url] [auto-url]" << endl;
@@ -252,7 +252,7 @@ static void printUsage(const char *prog) {
     cerr << "When multiple positional URLs are given, the built-in regression suite runs." << endl;
 }
 
-static bool parseHeaderArg(const string &arg, pair<string, string> &header) {
+bool parseHeaderArg(const string &arg, pair<string, string> &header) {
     auto pos = arg.find(':');
     if (pos == string::npos) {
         return false;
@@ -262,7 +262,7 @@ static bool parseHeaderArg(const string &arg, pair<string, string> &header) {
     return !header.first.empty();
 }
 
-static bool parseDiagnosticOptions(int argc, char *argv[], DiagnosticOptions &options, vector<string> &positionals) {
+bool parseDiagnosticOptions(int argc, char *argv[], DiagnosticOptions &options, vector<string> &positionals) {
     bool explicit_method = false;
     for (int i = 1; i < argc; ++i) {
         string arg = argv[i];
@@ -339,7 +339,7 @@ static bool parseDiagnosticOptions(int argc, char *argv[], DiagnosticOptions &op
     return true;
 }
 
-static int writeBodyToFile(const string &path, const string &body) {
+int writeBodyToFile(const string &path, const string &body) {
     ofstream output(path.c_str(), ios::binary | ios::out | ios::trunc);
     if (!output.is_open()) {
         cerr << "failed to open output file: " << path << endl;
@@ -354,7 +354,7 @@ static int writeBodyToFile(const string &path, const string &body) {
     return 0;
 }
 
-static int runDiagnosticClient(const DiagnosticOptions &options) {
+int runDiagnosticClient(const DiagnosticOptions &options) {
     semaphore sem;
     int exit_code = 0;
     SockException result_ex;
@@ -494,7 +494,7 @@ static int runDiagnosticClient(const DiagnosticOptions &options) {
     return exit_code;
 }
 
-static int runRegressionSuite(int argc, char *argv[]) {
+int runRegressionSuite(int argc, char *argv[]) {
     auto url = argc > 1 ? string(argv[1]) : string("https://127.0.0.1:18443/index/api/version");
     auto post_form_url = argc > 2 ? string(argv[2]) : string("https://127.0.0.1:18443/index/api/getServerConfig");
     auto post_json_url = argc > 3 ? string(argv[3]) : string("https://127.0.0.1:18443/index/api/version");
@@ -516,6 +516,7 @@ static int runRegressionSuite(int argc, char *argv[]) {
         requester->setEnableHttp3(false);
         requester->setEnableHttp3Auto(true);
         requester->setHttp3VerifyPeer(false);
+        requester->setRequestKeepAlive(true);
         configure_request(*requester);
         requester->startRequester(request_url, [&](const SockException &ex, const Parser &parser) {
             if (ex) {
@@ -604,6 +605,7 @@ static int runRegressionSuite(int argc, char *argv[]) {
                      auto_url,
                      [](HttpRequester &requester) {
                          requester.setMethod("GET");
+                         requester.setRequestKeepAlive(false);
                      },
                      8,
                      9,
@@ -621,6 +623,7 @@ static int runRegressionSuite(int argc, char *argv[]) {
                      auto_url,
                      [](HttpRequester &requester) {
                          requester.setMethod("GET");
+                         requester.setRequestKeepAlive(false);
                      },
                      10,
                      11,
@@ -638,6 +641,7 @@ static int runRegressionSuite(int argc, char *argv[]) {
                      auto_url,
                      [](HttpRequester &requester) {
                          requester.setMethod("GET");
+                         requester.setRequestKeepAlive(false);
                      },
                      12,
                      13,
@@ -655,6 +659,7 @@ static int runRegressionSuite(int argc, char *argv[]) {
                      auto_post_url,
                      [](HttpRequester &requester) {
                          requester.setMethod("POST");
+                         requester.setRequestKeepAlive(false);
                          requester.setBody(std::make_shared<ChunkedStringBody>("secret=quic-smoke-secret", 3));
                      },
                      14,
@@ -671,6 +676,7 @@ static int runRegressionSuite(int argc, char *argv[]) {
                      auto_url,
                      [](HttpRequester &requester) {
                          requester.setMethod("GET");
+                         requester.setRequestKeepAlive(false);
                          requester.setEnableHttp3Auto(false);
                      },
                      16,

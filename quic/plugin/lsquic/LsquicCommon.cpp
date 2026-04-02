@@ -78,8 +78,7 @@ bool sliceToSockaddr(QuicSlice ip, uint16_t port, sockaddr_storage &storage, soc
     }
 
     std::memset(&storage, 0, sizeof(storage));
-    sockaddr_in addr4;
-    std::memset(&addr4, 0, sizeof(addr4));
+    sockaddr_in addr4 = {};
     addr4.sin_family = AF_INET;
     addr4.sin_port = htons(port);
     if (inet_pton(AF_INET, text.c_str(), &addr4.sin_addr) == 1) {
@@ -88,8 +87,7 @@ bool sliceToSockaddr(QuicSlice ip, uint16_t port, sockaddr_storage &storage, soc
         return true;
     }
 
-    sockaddr_in6 addr6;
-    std::memset(&addr6, 0, sizeof(addr6));
+    sockaddr_in6 addr6 = {};
     addr6.sin6_family = AF_INET6;
     addr6.sin6_port = htons(port);
     if (inet_pton(AF_INET6, text.c_str(), &addr6.sin6_addr) == 1) {

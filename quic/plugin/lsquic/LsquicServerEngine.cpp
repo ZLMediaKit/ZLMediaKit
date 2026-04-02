@@ -22,6 +22,9 @@ namespace {
 
 using namespace lsquicplugin;
 
+constexpr size_t kMaxRememberedServerRoutes = 4096;
+constexpr uint64_t kServerRouteIdleTimeoutMs = 60000;
+
 class LsquicServerEngine final : public IQuicServerEngine {
 public:
     explicit LsquicServerEngine(IQuicServerHost &host, const QuicServerConfig &config)
@@ -236,10 +239,15 @@ private:
         std::string peer_ip;
         uint16_t local_port = 0;
         uint16_t peer_port = 0;
-        sockaddr_storage local_addr;
-        sockaddr_storage peer_addr;
+        sockaddr_storage local_addr = {};
+        sockaddr_storage peer_addr = {};
         socklen_t local_addr_len = 0;
         socklen_t peer_addr_len = 0;
+    };
+
+    struct RouteState {
+        std::shared_ptr<PacketRoute> route;
+        uint64_t last_seen_ms = 0;
     };
 
     struct ServerConnCtx {
@@ -295,7 +303,7 @@ private:
         }
     };
 
-    static RouteKey makeRouteKey(const QuicPacketView &packet) {
+static RouteKey makeRouteKey(const QuicPacketView &packet) {
         RouteKey key;
         key.local_ip = toString(packet.local_ip);
         key.peer_ip = toString(packet.peer_ip);
@@ -356,9 +364,11 @@ private:
 
     std::shared_ptr<PacketRoute> getOrCreateRoute(const QuicPacketView &packet) {
         auto key = makeRouteKey(packet);
+        auto now_ms = _host.nowMS();
         auto it = _route_map.find(key);
         if (it != _route_map.end()) {
-            return it->second;
+            it->second.last_seen_ms = now_ms;
+            return it->second.route;
         }
 
         auto route = std::make_shared<PacketRoute>();
@@ -371,7 +381,34 @@ private:
             !sliceToSockaddr(packet.peer_ip, packet.peer_port, route->peer_addr, route->peer_addr_len)) {
             return nullptr;
         }
-        _route_map.emplace(std::move(key), route);
+        RouteState state;
+        state.route = route;
+        state.last_seen_ms = now_ms;
+        _route_map.emplace(std::move(key), std::move(state));
+
+        if (_route_map.size() <= kMaxRememberedServerRoutes) {
+            return route;
+        }
+
+        for (auto route_it = _route_map.begin(); route_it != _route_map.end();) {
+            if (route_it->second.last_seen_ms + kServerRouteIdleTimeoutMs <= now_ms) {
+                route_it = _route_map.erase(route_it);
+                continue;
+            }
+            ++route_it;
+        }
+
+        if (_route_map.size() <= kMaxRememberedServerRoutes) {
+            return route;
+        }
+
+        auto oldest_it = _route_map.begin();
+        for (auto route_it = std::next(_route_map.begin()); route_it != _route_map.end(); ++route_it) {
+            if (route_it->second.last_seen_ms < oldest_it->second.last_seen_ms) {
+                oldest_it = route_it;
+            }
+        }
+        _route_map.erase(oldest_it);
         return route;
     }
 
@@ -611,7 +648,7 @@ private:
         return stream ? reinterpret_cast<ServerStreamCtx *>(lsquic_stream_get_ctx(stream)) : nullptr;
     }
 
-    static void destroyHeaderSet(HeaderSet *header_set) {
+static void destroyHeaderSet(HeaderSet *header_set) {
         if (!header_set) {
             return;
         }
@@ -622,11 +659,11 @@ private:
         delete header_set;
     }
 
-    static void *headerSetCreateShim(void *, lsquic_stream_t *, int) {
+static void *headerSetCreateShim(void *, lsquic_stream_t *, int) {
         return new HeaderSet();
     }
 
-    static lsxpack_header *headerSetPrepareDecodeShim(void *hset, lsxpack_header *hdr, size_t req_space) {
+static lsxpack_header *headerSetPrepareDecodeShim(void *hset, lsxpack_header *hdr, size_t req_space) {
         auto *header_set = static_cast<HeaderSet *>(hset);
         HeaderSlot *slot = nullptr;
         if (!hdr) {
@@ -653,7 +690,7 @@ private:
         return &slot->xhdr;
     }
 
-    static int headerSetProcessHeaderShim(void *hset, lsxpack_header *hdr) {
+static int headerSetProcessHeaderShim(void *hset, lsxpack_header *hdr) {
         auto *header_set = static_cast<HeaderSet *>(hset);
         if (!hdr) {
             return (!header_set->method.empty() && !header_set->path.empty()) ? 0 : 1;
@@ -675,11 +712,11 @@ private:
         return 0;
     }
 
-    static void headerSetDiscardShim(void *hset) {
+static void headerSetDiscardShim(void *hset) {
         destroyHeaderSet(static_cast<HeaderSet *>(hset));
     }
 
-    static int passwordCallbackShim(char *buf, int size, int, void *userdata) {
+static int passwordCallbackShim(char *buf, int size, int, void *userdata) {
         auto *password = static_cast<std::string *>(userdata);
         if (!password || size <= 0) {
             return 0;
@@ -690,7 +727,7 @@ private:
         return copy_len;
     }
 
-    static int selectAlpnShim(SSL *, const unsigned char **out, unsigned char *outlen,
+static int selectAlpnShim(SSL *, const unsigned char **out, unsigned char *outlen,
                               const unsigned char *in, unsigned int inlen, void *arg) {
         auto *self = static_cast<LsquicServerEngine *>(arg);
         int rc = SSL_select_next_proto(const_cast<unsigned char **>(out),
@@ -702,11 +739,11 @@ private:
         return rc == OPENSSL_NPN_NEGOTIATED ? SSL_TLSEXT_ERR_OK : SSL_TLSEXT_ERR_ALERT_FATAL;
     }
 
-    static lsquic_conn_ctx_t *onNewConnShim(void *ctx, lsquic_conn_t *conn) {
+static lsquic_conn_ctx_t *onNewConnShim(void *ctx, lsquic_conn_t *conn) {
         return reinterpret_cast<lsquic_conn_ctx_t *>(static_cast<LsquicServerEngine *>(ctx)->createConnCtx(conn));
     }
 
-    static void onConnClosedShim(lsquic_conn_t *conn) {
+static void onConnClosedShim(lsquic_conn_t *conn) {
         auto *ctx = reinterpret_cast<ServerConnCtx *>(lsquic_conn_get_ctx(conn));
         if (!ctx) {
             return;
@@ -721,7 +758,7 @@ private:
         delete ctx;
     }
 
-    static lsquic_stream_ctx_t *onNewStreamShim(void *ctx, lsquic_stream_t *stream) {
+static lsquic_stream_ctx_t *onNewStreamShim(void *ctx, lsquic_stream_t *stream) {
         auto *self = static_cast<LsquicServerEngine *>(ctx);
         auto *stream_ctx = self->createStreamCtx(stream);
         if (!stream_ctx) {
@@ -731,21 +768,21 @@ private:
         return reinterpret_cast<lsquic_stream_ctx_t *>(stream_ctx);
     }
 
-    static void onReadShim(lsquic_stream_t *stream, lsquic_stream_ctx_t *ctx) {
+static void onReadShim(lsquic_stream_t *stream, lsquic_stream_ctx_t *ctx) {
         auto *stream_ctx = reinterpret_cast<ServerStreamCtx *>(ctx);
         if (stream_ctx && stream_ctx->conn && stream_ctx->conn->engine) {
             stream_ctx->conn->engine->onRead(stream, stream_ctx);
         }
     }
 
-    static void onWriteShim(lsquic_stream_t *stream, lsquic_stream_ctx_t *ctx) {
+static void onWriteShim(lsquic_stream_t *stream, lsquic_stream_ctx_t *ctx) {
         auto *stream_ctx = reinterpret_cast<ServerStreamCtx *>(ctx);
         if (stream_ctx && stream_ctx->conn && stream_ctx->conn->engine) {
             stream_ctx->conn->engine->onWrite(stream, stream_ctx);
         }
     }
 
-    static void onCloseShim(lsquic_stream_t *, lsquic_stream_ctx_t *ctx) {
+static void onCloseShim(lsquic_stream_t *, lsquic_stream_ctx_t *ctx) {
         auto *stream_ctx = reinterpret_cast<ServerStreamCtx *>(ctx);
         if (!stream_ctx || !stream_ctx->conn || !stream_ctx->conn->engine) {
             if (stream_ctx) {
@@ -767,21 +804,21 @@ private:
         delete stream_ctx;
     }
 
-    static int packetsOutShim(void *ctx, const struct lsquic_out_spec *out_spec, unsigned n_packets_out) {
+static int packetsOutShim(void *ctx, const struct lsquic_out_spec *out_spec, unsigned n_packets_out) {
         return static_cast<LsquicServerEngine *>(ctx)->packetsOut(out_spec, n_packets_out);
     }
 
-    static SSL_CTX *lookupCertShim(void *ctx, const struct sockaddr *, const char *) {
+static SSL_CTX *lookupCertShim(void *ctx, const struct sockaddr *, const char *) {
         auto *self = static_cast<LsquicServerEngine *>(ctx);
         return self->_ssl_ctx.get();
     }
 
-    static SSL_CTX *getSslCtxShim(void *peer_ctx, const struct sockaddr *) {
+static SSL_CTX *getSslCtxShim(void *peer_ctx, const struct sockaddr *) {
         auto *route = static_cast<PacketRoute *>(peer_ctx);
         return route && route->engine ? route->engine->_ssl_ctx.get() : nullptr;
     }
 
-    static const struct lsquic_stream_if &streamInterface() {
+static const struct lsquic_stream_if &streamInterface() {
         static const struct lsquic_stream_if s_if = {
             &LsquicServerEngine::onNewConnShim,
             nullptr,
@@ -801,7 +838,7 @@ private:
         return s_if;
     }
 
-    static const struct lsquic_hset_if &headerSetInterface() {
+static const struct lsquic_hset_if &headerSetInterface() {
         static const struct lsquic_hset_if s_if = {
             &LsquicServerEngine::headerSetCreateShim,
             &LsquicServerEngine::headerSetPrepareDecodeShim,
@@ -828,7 +865,7 @@ private:
     struct lsquic_engine_settings _settings;
     struct lsquic_engine_api _api;
     lsquic_engine_t *_engine = nullptr;
-    std::unordered_map<RouteKey, std::shared_ptr<PacketRoute>, RouteKeyHash> _route_map;
+    std::unordered_map<RouteKey, RouteState, RouteKeyHash> _route_map;
     std::unordered_map<uint64_t, lsquic_conn_t *> _conn_map;
     std::unordered_map<StreamKey, lsquic_stream_t *, StreamKeyHash> _stream_map;
     std::atomic<uint64_t> _next_conn_id{1};

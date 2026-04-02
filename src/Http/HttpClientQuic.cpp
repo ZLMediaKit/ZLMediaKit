@@ -31,9 +31,11 @@ void HttpClient::beginQuicConnect(const HttpClientRequestPlan &plan) {
     detachTcpTransport();
     _http_persistent = plan.keep_alive;
     _quic_request_auto = plan.auto_http3 && !_enable_http3;
+    _quic_request_committed = false;
     ensureQuicBackend();
     if (!_quic_backend || !_quic_backend->available()) {
-        if (_quic_request_auto) {
+        if (_quic_request_auto && canFallbackToDirectFromAutoHttp3()) {
+            resetQuicRequest(true);
             eraseAltSvc(plan.host, plan.port);
             _quic_request_auto = false;
             beginDirectConnect(makeDirectFallbackPlan());
@@ -43,7 +45,13 @@ void HttpClient::beginQuicConnect(const HttpClientRequestPlan &plan) {
         return;
     }
 
-    auto restart_backend = !_quic_backend->alive() || _quic_host != plan.transport_host || _quic_port != plan.transport_port;
+    auto congestion_algo = loadClientQuicCongestionAlgoConfig();
+    auto restart_backend = !_quic_backend->alive()
+                        || _quic_host != plan.transport_host
+                        || _quic_port != plan.transport_port
+                        || _quic_verify_peer != _http3_verify_peer
+                        || _quic_ca_file != _http3_ca_file
+                        || _quic_congestion_algo != static_cast<uint32_t>(congestion_algo);
     if (restart_backend) {
         if (_quic_backend->alive()) {
             _quic_backend->shutdown();
@@ -53,16 +61,17 @@ void HttpClient::beginQuicConnect(const HttpClientRequestPlan &plan) {
         config.verify_peer = _http3_verify_peer;
         config.connect_timeout_ms = _wait_header_ms;
         config.idle_timeout_ms = _wait_body_ms ? _wait_body_ms : _wait_header_ms;
-        config.congestion_algo = loadClientQuicCongestionAlgoConfig();
+        config.congestion_algo = congestion_algo;
         if (!_http3_ca_file.empty()) {
             config.ca_file.data = _http3_ca_file.data();
             config.ca_file.len = _http3_ca_file.size();
         }
         if (_quic_backend->start(plan.transport_host, plan.transport_port, config) != 0) {
-            if (_quic_request_auto) {
+            if (_quic_request_auto && canFallbackToDirectFromAutoHttp3()) {
+                resetQuicRequest(true);
                 eraseAltSvc(plan.host, plan.port);
                 _quic_request_auto = false;
-                restoreAutoHttp3ReplayBody();
+                restoreReplayableRequestBody();
                 beginDirectConnect(makeDirectFallbackPlan());
                 return;
             }
@@ -71,7 +80,9 @@ void HttpClient::beginQuicConnect(const HttpClientRequestPlan &plan) {
         }
         _quic_host = plan.transport_host;
         _quic_port = plan.transport_port;
-        _quic_authority = plan.host_header;
+        _quic_verify_peer = _http3_verify_peer;
+        _quic_ca_file = _http3_ca_file;
+        _quic_congestion_algo = static_cast<uint32_t>(congestion_algo);
     }
 
     QuicClientRequest request;
@@ -91,18 +102,18 @@ void HttpClient::beginQuicConnect(const HttpClientRequestPlan &plan) {
     _quic_request_active = true;
     startQuicManagerTimer();
     if (_quic_backend->startRequest(request) != 0) {
-        _quic_request_active = false;
-        stopQuicManagerTimer();
-        if (_quic_request_auto) {
+        if (_quic_request_auto && canFallbackToDirectFromAutoHttp3()) {
+            resetQuicRequest(true);
             eraseAltSvc(plan.host, plan.port);
             _quic_request_auto = false;
-            restoreAutoHttp3ReplayBody();
+            restoreReplayableRequestBody();
             beginDirectConnect(makeDirectFallbackPlan());
             return;
         }
         onResponseCompleted_l(SockException(Err_other, "start http3 request failed"));
         return;
     }
+    _quic_request_committed = true;
 
     GET_CONFIG(uint32_t, send_buf_size, Http::kSendBufSize);
     while (_body && _body->remainSize()) {
@@ -112,12 +123,11 @@ void HttpClient::beginQuicConnect(const HttpClientRequestPlan &plan) {
         }
         auto fin = !_body->remainSize();
         if (_quic_backend->sendBody(request.request_id, reinterpret_cast<const uint8_t *>(buffer->data()), buffer->size(), fin) != 0) {
-            _quic_request_active = false;
-            stopQuicManagerTimer();
-            if (_quic_request_auto) {
+            if (_quic_request_auto && canFallbackToDirectFromAutoHttp3()) {
+                resetQuicRequest(true);
                 eraseAltSvc(plan.host, plan.port);
                 _quic_request_auto = false;
-                restoreAutoHttp3ReplayBody();
+                restoreReplayableRequestBody();
                 beginDirectConnect(makeDirectFallbackPlan());
                 return;
             }
@@ -179,6 +189,7 @@ void HttpClient::resetQuicRequest(bool close_transport) {
     auto had_active_request = _quic_request_active;
     auto request_id = _quic_request_id;
     _quic_request_active = false;
+    _quic_request_committed = false;
     if (_quic_backend && had_active_request && !close_transport) {
         _quic_backend->cancelRequest(request_id, 0);
     }
@@ -186,8 +197,10 @@ void HttpClient::resetQuicRequest(bool close_transport) {
         _quic_backend->shutdown();
         _quic_backend.reset();
         _quic_host.clear();
-        _quic_authority.clear();
         _quic_port = 0;
+        _quic_verify_peer = true;
+        _quic_ca_file.clear();
+        _quic_congestion_algo = 0;
     }
 }
 
@@ -199,6 +212,9 @@ void HttpClient::startQuicManagerTimer() {
     _quic_timer = std::make_shared<Timer>(0.2f, [weak_self]() {
         auto self = weak_self.lock();
         if (!self || !self->_quic_request_active) {
+            return false;
+        }
+        if (self->_complete) {
             return false;
         }
 
@@ -292,7 +308,8 @@ void HttpClient::onQuicRequestClosed(uint64_t request_id, int state, const std::
 }
 
 bool HttpClient::tryFallbackToDirectFromAutoHttp3() {
-    if (!_quic_request_auto || _quic_auto_fallback_attempted || _header_recved || _recved_body_size != 0) {
+    if (!_quic_request_auto || _quic_auto_fallback_attempted || _header_recved || _recved_body_size != 0 ||
+        !canFallbackToDirectFromAutoHttp3()) {
         return false;
     }
 
@@ -304,10 +321,9 @@ bool HttpClient::tryFallbackToDirectFromAutoHttp3() {
     if (_quic_backend) {
         _quic_backend->shutdown();
         _quic_host.clear();
-        _quic_authority.clear();
         _quic_port = 0;
     }
-    restoreAutoHttp3ReplayBody();
+    restoreReplayableRequestBody();
     beginDirectConnect(makeDirectFallbackPlan());
     return true;
 }
@@ -318,6 +334,42 @@ bool HttpClient::supportsHttp3Transport() const {
 
 bool HttpClient::isQuicTransportAlive() const {
     return _quic_backend && _quic_backend->alive();
+}
+
+} // namespace mediakit
+
+#else
+
+namespace mediakit {
+
+void HttpClient::beginQuicConnect(const HttpClientRequestPlan &) {
+    onResponseCompleted_l(toolkit::SockException(toolkit::Err_other, "http3 transport not compiled in"));
+}
+
+void HttpClient::ensureQuicBackend() {}
+
+void HttpClient::resetQuicRequest(bool) {
+    _quic_request_active = false;
+}
+
+void HttpClient::startQuicManagerTimer() {}
+
+void HttpClient::onQuicResponseHeaders(uint64_t, int32_t, const HttpHeader &, bool) {}
+
+void HttpClient::onQuicResponseBody(uint64_t, const char *, size_t, bool) {}
+
+void HttpClient::onQuicRequestClosed(uint64_t, int, const std::string &) {}
+
+bool HttpClient::tryFallbackToDirectFromAutoHttp3() {
+    return false;
+}
+
+bool HttpClient::supportsHttp3Transport() const {
+    return false;
+}
+
+bool HttpClient::isQuicTransportAlive() const {
+    return false;
 }
 
 } // namespace mediakit

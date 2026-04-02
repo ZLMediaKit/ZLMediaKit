@@ -21,6 +21,7 @@
 #include "Common/config.h"
 #include "Http/HttpClientImp.h"
 #include "Http/HttpConst.h"
+#include "Http/HttpProtocolHint.h"
 #include "Http/WebSocketSession.h"
 #include "Network/TcpServer.h"
 #include "Network/UdpServer.h"
@@ -39,7 +40,7 @@ using namespace mediakit;
 
 namespace {
 
-static const uint8_t kMuteAdts[] = {
+const uint8_t kMuteAdts[] = {
     0xff, 0xf1, 0x6c, 0x40, 0x2d, 0x3f, 0xfc, 0x00, 0xe0, 0x34, 0x20, 0xad, 0xf2, 0x3f, 0xb5, 0xdd,
     0x73, 0xac, 0xbd, 0xca, 0xd7, 0x7d, 0x4a, 0x13, 0x2d, 0x2e, 0xa2, 0x62, 0x02, 0x70, 0x3c, 0x1c,
     0xc5, 0x63, 0x55, 0x69, 0x94, 0xb5, 0x8d, 0x70, 0xd7, 0x24, 0x6a, 0x9e, 0x2e, 0x86, 0x24, 0xea,
@@ -65,13 +66,13 @@ static const uint8_t kMuteAdts[] = {
     0xc5, 0x97, 0x39, 0x6a, 0xb8, 0xa2, 0x55, 0xa8, 0xf8
 };
 
-static const uint64_t kMuteAdtsMs = 128;
-static const char *kStaticFileName = "http3_static.txt";
-static const char *kStaticFileBody = "ZLMediaKit HTTP/3 server regression static body.\n";
-static const uint16_t kHttpPort = 19080;
-static const uint16_t kHttpsPort = 19444;
-static const uint16_t kQuicPort = 19443;
-static const size_t kLiveBodyLimit = 8192;
+const uint64_t kMuteAdtsMs = 128;
+const char *kStaticFileName = "http3_static.txt";
+const char *kStaticFileBody = "ZLMediaKit HTTP/3 server regression static body.\n";
+const uint16_t kHttpPort = 19080;
+const uint16_t kHttpsPort = 19444;
+const uint16_t kQuicPort = 19443;
+const size_t kLiveBodyLimit = 8192;
 
 struct RequestOptions {
     string url;
@@ -85,14 +86,14 @@ struct RequestOptions {
     size_t body_limit = 0;
 };
 
-static RequestOptions makeRequest(const string &url, bool enable_http3 = false) {
+RequestOptions makeRequest(const string &url, bool enable_http3 = false) {
     RequestOptions options;
     options.url = url;
     options.enable_http3 = enable_http3;
     return options;
 }
 
-static const string &responseVersion(const Parser &parser) {
+const string &responseVersion(const Parser &parser) {
     return parser.method();
 }
 
@@ -158,39 +159,39 @@ private:
     RequestResult _result;
 };
 
-static string ensureSlash(string path) {
+string ensureSlash(string path) {
     if (path.empty() || path[0] != '/') {
         path.insert(path.begin(), '/');
     }
     return path;
 }
 
-static void expectTrue(bool expr, const string &message) {
+void expectTrue(bool expr, const string &message) {
     if (!expr) {
         throw runtime_error(message);
     }
 }
 
-static void expectStatus(const RequestResult &result, const string &status, const string &context) {
+void expectStatus(const RequestResult &result, const string &status, const string &context) {
     if (result.parser.status() != status) {
         throw runtime_error(context + ": unexpected status " + result.parser.status());
     }
 }
 
-static void expectBodyContains(const RequestResult &result, const string &needle, const string &context) {
+void expectBodyContains(const RequestResult &result, const string &needle, const string &context) {
     if (result.body.find(needle) == string::npos) {
         throw runtime_error(context + ": response body missing expected text");
     }
 }
 
-static bool requestSucceeded(const RequestResult &result) {
+bool requestSucceeded(const RequestResult &result) {
     if (!result.ex) {
         return true;
     }
     return result.aborted_by_limit && result.ex.getErrCode() == Err_shutdown;
 }
 
-static void expectSucceeded(const RequestResult &result, const string &context) {
+void expectSucceeded(const RequestResult &result, const string &context) {
     if (!requestSucceeded(result)) {
         std::ostringstream ss;
         ss << context << ": request failed: " << result.ex.what()
@@ -199,6 +200,10 @@ static void expectSucceeded(const RequestResult &result, const string &context) 
            << ", body_bytes=" << result.body.size();
         throw runtime_error(ss.str());
     }
+}
+
+void announceStep(const char *step) {
+    cout << "[test_http3_server] " << step << endl;
 }
 
 class ServerFixture {
@@ -245,6 +250,25 @@ public:
                 invoker(200, headers, make_shared<HttpStringBody>(parser.content()));
                 return;
             }
+            if (parser.url() == "/test/api/redirect-hello") {
+                consumed = true;
+                StrCaseMap headers;
+                headers.emplace("Location", "/test/api/hello?name=redirected");
+                invoker(302, headers, make_shared<HttpStringBody>(""));
+                return;
+            }
+            if (parser.url() == "/test/api/redirect-echo") {
+                consumed = true;
+                auto code = 307;
+                auto it = parser.getUrlArgs().find("code");
+                if (it != parser.getUrlArgs().end()) {
+                    code = std::stoi(it->second);
+                }
+                StrCaseMap headers;
+                headers.emplace("Location", "/test/api/echo");
+                invoker(code, headers, make_shared<HttpStringBody>(""));
+                return;
+            }
             if (parser.url() == "/test/api/forbidden") {
                 consumed = true;
                 StrCaseMap headers;
@@ -275,6 +299,7 @@ public:
         _http_server->start<HttpSession>(kHttpPort, "127.0.0.1");
         _https_server->start<HttpsSession>(kHttpsPort, "127.0.0.1");
         _quic_server->start<QuicSession>(kQuicPort, "127.0.0.1");
+        setAltSvcQuicAvailability(true, kQuicPort);
 
         startLiveSource();
         try {
@@ -294,6 +319,7 @@ public:
             _live_thread.join();
         }
         _live_channel.reset();
+        setAltSvcQuicAvailability(false, 0);
         _quic_server.reset();
         _https_server.reset();
         _http_server.reset();
@@ -381,29 +407,33 @@ private:
     int _play_tag = 0;
 };
 
-static void runServerRegression() {
+void runServerRegression() {
     ServerFixture fixture;
     auto http_client = make_shared<BlockingHttpClient>();
     auto https_client = make_shared<BlockingHttpClient>();
     auto http3_client = make_shared<BlockingHttpClient>();
 
+    announceStep("http static GET");
     auto http_static = http_client->request(makeRequest(fixture.httpUrl(kStaticFileName)));
     expectSucceeded(http_static, "http static GET");
     expectStatus(http_static, "200", "http static GET");
     expectTrue(http_static.body == kStaticFileBody, "http static GET: unexpected body");
 
+    announceStep("https static GET");
     auto https_static = https_client->request(makeRequest(fixture.httpsUrl(kStaticFileName)));
     expectSucceeded(https_static, "https static GET");
     expectStatus(https_static, "200", "https static GET");
     expectTrue(https_static.body == kStaticFileBody, "https static GET: unexpected body");
     expectTrue(https_static.parser["Alt-Svc"].find("h3=\":19443\"") != string::npos, "https static GET: missing Alt-Svc");
 
+    announceStep("http3 static GET");
     auto http3_static = http3_client->request(makeRequest(fixture.http3Url(kStaticFileName), true));
     expectSucceeded(http3_static, "http3 static GET");
     expectStatus(http3_static, "200", "http3 static GET");
     expectTrue(http3_static.body == kStaticFileBody, "http3 static GET: unexpected body");
     expectTrue(responseVersion(http3_static.parser) == "HTTP/3", "http3 static GET: protocol mismatch");
 
+    announceStep("http3 HEAD");
     RequestOptions head_options;
     head_options.url = fixture.http3Url(kStaticFileName);
     head_options.method = "HEAD";
@@ -413,6 +443,7 @@ static void runServerRegression() {
     expectStatus(http3_head, "200", "http3 HEAD");
     expectTrue(http3_head.body.empty(), "http3 HEAD: body must be empty");
 
+    announceStep("http3 OPTIONS");
     RequestOptions options_request;
     options_request.url = fixture.http3Url("/test/api/hello");
     options_request.method = "OPTIONS";
@@ -422,16 +453,25 @@ static void runServerRegression() {
     expectStatus(http3_options, "200", "http3 OPTIONS");
     expectTrue(http3_options.parser["Allow"].find("OPTIONS") != string::npos, "http3 OPTIONS: missing Allow");
 
+    announceStep("https api GET");
     auto https_hello = https_client->request(makeRequest(fixture.httpsUrl("/test/api/hello?name=quic")));
     expectSucceeded(https_hello, "https api GET");
     expectStatus(https_hello, "200", "https api GET");
     expectTrue(https_hello.body == "hello:quic", "https api GET: body mismatch");
 
+    announceStep("https redirect GET");
+    auto https_redirect_get = https_client->request(makeRequest(fixture.httpsUrl("/test/api/redirect-hello")));
+    expectSucceeded(https_redirect_get, "https redirect GET");
+    expectStatus(https_redirect_get, "200", "https redirect GET");
+    expectTrue(https_redirect_get.body == "hello:redirected", "https redirect GET: body mismatch");
+
+    announceStep("http3 api GET");
     auto http3_hello = http3_client->request(makeRequest(fixture.http3Url("/test/api/hello?name=quic"), true));
     expectSucceeded(http3_hello, "http3 api GET");
     expectStatus(http3_hello, "200", "http3 api GET");
     expectTrue(http3_hello.body == "hello:quic", "http3 api GET: body mismatch");
 
+    announceStep("http3 api POST");
     RequestOptions echo_options;
     echo_options.url = fixture.http3Url("/test/api/echo");
     echo_options.method = "POST";
@@ -443,15 +483,38 @@ static void runServerRegression() {
     expectStatus(http3_echo, "200", "http3 api POST");
     expectTrue(http3_echo.body == echo_options.body, "http3 api POST: body mismatch");
 
+    announceStep("https redirect POST 307");
+    RequestOptions https_redirect_post;
+    https_redirect_post.url = fixture.httpsUrl("/test/api/redirect-echo?code=307");
+    https_redirect_post.method = "POST";
+    https_redirect_post.body = "message=https-redirect-post";
+    https_redirect_post.headers.emplace("content-type", "application/x-www-form-urlencoded");
+    auto https_redirect_echo = https_client->request(https_redirect_post);
+    expectSucceeded(https_redirect_echo, "https redirect POST 307");
+    expectStatus(https_redirect_echo, "200", "https redirect POST 307");
+    expectTrue(https_redirect_echo.body == https_redirect_post.body, "https redirect POST 307: body mismatch");
+
+    announceStep("http3 redirect POST 307");
+    RequestOptions http3_redirect_post = https_redirect_post;
+    http3_redirect_post.url = fixture.http3Url("/test/api/redirect-echo?code=307");
+    http3_redirect_post.enable_http3 = true;
+    auto http3_redirect_echo = http3_client->request(http3_redirect_post);
+    expectSucceeded(http3_redirect_echo, "http3 redirect POST 307");
+    expectStatus(http3_redirect_echo, "200", "http3 redirect POST 307");
+    expectTrue(http3_redirect_echo.body == http3_redirect_post.body, "http3 redirect POST 307: body mismatch");
+
+    announceStep("http3 forbidden api");
     auto http3_forbidden = http3_client->request(makeRequest(fixture.http3Url("/test/api/forbidden"), true));
     expectSucceeded(http3_forbidden, "http3 forbidden api");
     expectStatus(http3_forbidden, "403", "http3 forbidden api");
     expectBodyContains(http3_forbidden, "forbidden", "http3 forbidden api");
 
+    announceStep("http3 missing static");
     auto http3_missing = http3_client->request(makeRequest(fixture.http3Url("/missing-not-found.txt"), true));
     expectSucceeded(http3_missing, "http3 missing static");
     expectStatus(http3_missing, "404", "http3 missing static");
 
+    announceStep("https live flv");
     RequestOptions flv_h1;
     flv_h1.url = fixture.httpsUrl("/live/test.live.flv");
     flv_h1.body_limit = kLiveBodyLimit;
@@ -461,6 +524,7 @@ static void runServerRegression() {
     expectTrue(https_flv.parser["Content-Type"].find("video/x-flv") != string::npos, "https live flv: content-type mismatch");
     expectTrue(https_flv.body.size() >= kLiveBodyLimit, "https live flv: not enough body bytes");
 
+    announceStep("http3 live flv");
     RequestOptions flv_h3;
     flv_h3.url = fixture.http3Url("/live/test.live.flv");
     flv_h3.enable_http3 = true;
@@ -471,6 +535,7 @@ static void runServerRegression() {
     expectTrue(http3_flv.parser["Content-Type"].find("video/x-flv") != string::npos, "http3 live flv: content-type mismatch");
     expectTrue(http3_flv.body.size() >= kLiveBodyLimit, "http3 live flv: not enough body bytes");
 
+    announceStep("http3 live ts");
     RequestOptions ts_h3;
     ts_h3.url = fixture.http3Url("/live/test.live.ts");
     ts_h3.enable_http3 = true;
@@ -481,6 +546,7 @@ static void runServerRegression() {
     expectTrue(http3_ts.parser["Content-Type"].find("video/mp2t") != string::npos, "http3 live ts: content-type mismatch");
     expectTrue(http3_ts.body.size() >= kLiveBodyLimit, "http3 live ts: not enough body bytes");
 
+    announceStep("http3 live fmp4");
     RequestOptions mp4_h3;
     mp4_h3.url = fixture.http3Url("/live/test.live.mp4");
     mp4_h3.enable_http3 = true;
@@ -491,11 +557,13 @@ static void runServerRegression() {
     expectTrue(http3_mp4.parser["Content-Type"].find("video/mp4") != string::npos, "http3 live fmp4: content-type mismatch");
     expectTrue(http3_mp4.body.size() >= kLiveBodyLimit, "http3 live fmp4: not enough body bytes");
 
+    announceStep("http3 live auth fail");
     auto http3_live_auth_fail = http3_client->request(makeRequest(fixture.http3Url("/live/test.live.flv?deny=1"), true));
     expectSucceeded(http3_live_auth_fail, "http3 live auth fail");
     expectStatus(http3_live_auth_fail, "401", "http3 live auth fail");
     expectBodyContains(http3_live_auth_fail, "denied", "http3 live auth fail");
 
+    announceStep("http3 static GET after live abort");
     auto http3_after_abort = http3_client->request(makeRequest(fixture.http3Url(kStaticFileName), true));
     expectSucceeded(http3_after_abort, "http3 static GET after live abort");
     expectStatus(http3_after_abort, "200", "http3 static GET after live abort");
