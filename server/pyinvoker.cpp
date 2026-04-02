@@ -324,7 +324,7 @@ PYBIND11_EMBEDDED_MODULE(mk_loader, m) {
     m.def("http_access_invoker_do", [](const py::capsule &cap, const std::string &errMsg,const std::string &accessPath, int cookieLifeSecond) {
         // 执行c++代码时释放gil锁
         py::gil_scoped_release release;
-        auto &invoker = to_native<HttpSession::HttpAccessPathInvoker>(cap);
+        auto &invoker = to_native<HttpAccessPathInvoker>(cap);
         invoker(errMsg, accessPath, cookieLifeSecond);
     });
 
@@ -380,9 +380,11 @@ PYBIND11_EMBEDDED_MODULE(mk_loader, m) {
         [](const std::string &vhost, const std::string &app, const std::string &stream,
            const std::string &url, const py::dict &opt) {
             mINI args = to_native(opt);
+            ProtocolOption option;
+            option.load(args);
             MediaTuple tuple { vhost.empty() ? DEFAULT_VHOST : vhost, app, stream, "" };
             py::gil_scoped_release release;
-            updateStreamProxy(tuple, url, args);
+            updateStreamProxy(tuple, url, option, args);
         },
         py::arg("vhost"), py::arg("app"), py::arg("stream"), py::arg("url"),
         py::arg("opt") = py::dict()

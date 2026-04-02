@@ -26,6 +26,16 @@ file(GLOB MediaKit_SRC_LIST
   ${CMAKE_CURRENT_SOURCE_DIR}/*/*.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/*/*.h)
 
+list(APPEND MediaKit_SRC_LIST
+  ${CMAKE_CURRENT_SOURCE_DIR}/Http/HttpClientQuic.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/Http/HttpProtocolHint.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/Http/HttpProtocolHint.h)
+
+if(ENABLE_QUIC)
+  list(APPEND MediaKit_SRC_LIST
+    ${CMAKE_CURRENT_SOURCE_DIR}/../quic/QuicClientBackend.h)
+endif()
+
 if(USE_SOLUTION_FOLDERS AND (NOT GROUP_BY_EXPLORER))
   # 在 IDE 中对文件进行分组, 源文件和头文件分开
   set_file_group("${CMAKE_CURRENT_SOURCE_DIR}" ${MediaKit_SRC_LIST})
@@ -39,6 +49,9 @@ add_library(ZLMediaKit::MediaKit ALIAS zlmediakit)
 set(LINK_LIBRARIES ${MK_LINK_LIBRARIES})
 list(REMOVE_ITEM LINK_LIBRARIES ZLMediaKit::MediaKit)
 set(COMPILE_DEFINITIONS ${MK_COMPILE_DEFINITIONS})
+if(ENABLE_QUIC)
+  list(APPEND COMPILE_DEFINITIONS ENABLE_QUIC)
+endif()
 
 target_compile_definitions(zlmediakit
   PUBLIC ${COMPILE_DEFINITIONS})
