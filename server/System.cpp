@@ -83,7 +83,7 @@ static std::string get_func_symbol(const std::string &symbol) {
     return ret;
 }
 
-static LONG __stdcall UnhandledExceptionFilter(EXCEPTION_POINTERS *pException) {
+static LONG __stdcall customUnhandledExceptionFilter(EXCEPTION_POINTERS *pException) {
     // 生成 dump 文件名，带时间戳
     char dumpPath[MAX_PATH];
     std::time_t t = std::time(nullptr);
@@ -262,7 +262,7 @@ void System::systemSetup(){
     std::ios_base::sync_with_stdio(false);
 
       // 注册crash自动生成dump（等价core dump）
-    SetUnhandledExceptionFilter(UnhandledExceptionFilter);
+    SetUnhandledExceptionFilter(customUnhandledExceptionFilter);
 #endif//!defined(_WIN32)
 }
 
