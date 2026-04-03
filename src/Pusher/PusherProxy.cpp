@@ -115,7 +115,13 @@ void PusherProxy::rePublish(const string &dst_url, int failed_cnt) {
                 return false;
             }
             WarnL << "推流重试[" << failed_cnt << "]:" << dst_url;
-            strong_self->MediaPusher::publish(dst_url);
+            try {
+                strong_self->MediaPusher::publish(dst_url);
+            } catch (std::exception &e) {
+                WarnL << e.what();
+                // 回调推流失败，一般是媒体注销了
+                strong_self->_on_close(SockException(Err_other, e.what()));
+            }
             return false;
         },
         getPoller());

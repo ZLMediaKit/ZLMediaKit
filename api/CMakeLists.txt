@@ -1,6 +1,6 @@
 ﻿# MIT License
 #
-# Copyright (c) 2016-2022 The ZLMediaKit project authors. All Rights Reserved.
+# Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -76,6 +76,31 @@ install(TARGETS mk_api
   ARCHIVE DESTINATION ${INSTALL_PATH_LIB}
   LIBRARY DESTINATION ${INSTALL_PATH_LIB}
   RUNTIME DESTINATION ${INSTALL_PATH_RUNTIME})
+
+if(MSVC)
+  set(RESOURCE_FILE "${CMAKE_SOURCE_DIR}/resource.rc")
+  set_source_files_properties(${RESOURCE_FILE} PROPERTIES LANGUAGE RC)
+  target_sources(mk_api PRIVATE ${RESOURCE_FILE})
+endif()
+
+#relase 类型时额外输出debug调试信息
+string(TOLOWER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE_LOWER)
+if(UNIX AND ENABLE_OBJCOPY)
+  if("${CMAKE_BUILD_TYPE_LOWER}" STREQUAL "release")
+    find_program(OBJCOPY_FOUND objcopy)
+    if (OBJCOPY_FOUND)
+      add_custom_command(TARGET mk_api
+        POST_BUILD
+        COMMAND objcopy --only-keep-debug ${EXECUTABLE_OUTPUT_PATH}/libmk_api.so ${EXECUTABLE_OUTPUT_PATH}/libmk_api.so.debug
+        COMMAND objcopy --strip-all ${EXECUTABLE_OUTPUT_PATH}/libmk_api.so
+        COMMAND objcopy --add-gnu-debuglink=${EXECUTABLE_OUTPUT_PATH}/libmk_api.so.debug ${EXECUTABLE_OUTPUT_PATH}/libmk_api.so
+      )
+      install(FILES ${EXECUTABLE_OUTPUT_PATH}/libmk_api.so.debug DESTINATION ${INSTALL_PATH_RUNTIME})
+    else()
+      message(STATUS "not found objcopy, generate libmk_api.so.debug skip")
+    endif()
+  endif()
+endif()
 
 # IOS 跳过测试代码
 if(IOS)

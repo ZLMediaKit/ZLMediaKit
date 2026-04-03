@@ -91,7 +91,7 @@ std::string PacketRecvRateContext::dump(){
     }
     printer <<"\r\n";
 
-    return std::move(printer);
+    return printer;
 }
 EstimatedLinkCapacityContext::EstimatedLinkCapacityContext(TimePoint start) : _start(start) {
     for (size_t i = 0; i < SIZE; i++) {

@@ -3,7 +3,7 @@
 
 #ifdef ENABLE_SCTP
 #include <usrsctp.h>
-#include "Utils.hpp"
+#include "Util/Byte.hpp"
 #include "Poller/EventPoller.h"
 
 namespace RTC
@@ -62,8 +62,8 @@ namespace RTC
             return (
                 (len >= 12) &&
                 // Must have Source Port Number and Destination Port Number set to 5000 (hack).
-                (Utils::Byte::Get2Bytes(data, 0) == 5000) &&
-                (Utils::Byte::Get2Bytes(data, 2) == 5000)
+                (toolkit::Byte::Get2Bytes(data, 0) == 5000) &&
+                (toolkit::Byte::Get2Bytes(data, 2) == 5000)
             );
             // clang-format on
         }

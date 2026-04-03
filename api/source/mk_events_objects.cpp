@@ -296,6 +296,13 @@ API_EXPORT int API_CALL mk_media_source_seek_to(const mk_media_source ctx,uint32
     MediaSource *src = (MediaSource *)ctx;
     return src->seekTo(stamp);
 }
+
+API_EXPORT void API_CALL mk_media_source_set_speed(const mk_media_source ctx, float speed) {
+    assert(ctx);
+    MediaSource *src = (MediaSource *)ctx;
+    src->getOwnerPoller()->async([=]() mutable {  src->speed(speed); });
+}
+
 API_EXPORT void API_CALL mk_media_source_start_send_rtp(const mk_media_source ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int con_type, on_mk_media_source_send_rtp_result cb, void *user_data) {
     mk_media_source_start_send_rtp2(ctx, dst_url, dst_port, ssrc, con_type, cb, user_data, nullptr);
 }
@@ -347,6 +354,7 @@ API_EXPORT void API_CALL mk_media_source_start_send_rtp4(const mk_media_source c
     args.close_delay_ms = (*ini_ptr)["close_delay_ms"].empty() ? 0 : (*ini_ptr)["close_delay_ms"].as<int>();
     args.rtcp_timeout_ms = (*ini_ptr)["rtcp_timeout_ms"].empty() ? 30000 : (*ini_ptr)["rtcp_timeout_ms"].as<int>();
     args.rtcp_send_interval_ms = (*ini_ptr)["rtcp_send_interval_ms"].empty() ? 5000 : (*ini_ptr)["rtcp_send_interval_ms"].as<int>();
+    args.enable_origin_recv_limit = (*ini_ptr)["enable_origin_recv_limit"].empty() ? false : (*ini_ptr)["enable_origin_recv_limit"].as<bool>();
     std::shared_ptr<void> ptr(
         user_data, user_data_free ? user_data_free : [](void *) {});
     src->getOwnerPoller()->async([=]() mutable {

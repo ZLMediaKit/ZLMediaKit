@@ -16,15 +16,17 @@
 #include "Http/HlsPlayer.h"
 #include "Http/TsPlayerImp.h"
 #ifdef ENABLE_SRT
-#include "Srt/SrtPlayerImp.h"
+#include "../srt/SrtPlayerImp.h"
 #endif // ENABLE_SRT
-
+#ifdef ENABLE_WEBRTC
+#include "../webrtc/WebRtcProxyPlayerImp.h"
+#endif // ENABLE_WEBRTC
 using namespace std;
 using namespace toolkit;
 
 namespace mediakit {
 
-PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &in_poller, const string &url_in) {
+PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &in_poller, const string &url_in, const std::string &schema) {
     auto poller = in_poller ? in_poller : EventPollerPool::Instance().getPoller();
     std::weak_ptr<EventPoller> weak_poller = poller;
     auto release_func = [weak_poller](PlayerBase *ptr) {
@@ -37,7 +39,13 @@ PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &in_poller, cons
             delete ptr;
         }
     };
+
     string url = url_in;
+    trim(url);
+    if (url.empty()) {
+        throw std::invalid_argument("invalid play url: " + url_in);
+    }
+
     string prefix = findSubString(url.data(), NULL, "://");
     auto pos = url.find('?');
     if (pos != string::npos) {
@@ -62,13 +70,13 @@ PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &in_poller, cons
         return PlayerBase::Ptr(new RtmpPlayerImp(poller), release_func);
     }
     if ((strcasecmp("http", prefix.data()) == 0 || strcasecmp("https", prefix.data()) == 0)) {
-        if (end_with(url, ".m3u8") || end_with(url_in, ".m3u8")) {
+        if (end_with(url, ".m3u8") || end_with(url_in, ".m3u8") || schema == "hls") {
             return PlayerBase::Ptr(new HlsPlayerImp(poller), release_func);
         }
-        if (end_with(url, ".ts") || end_with(url_in, ".ts")) {
+        if (end_with(url, ".ts") || end_with(url_in, ".ts") || schema == "ts") {
             return PlayerBase::Ptr(new TsPlayerImp(poller), release_func);
         }
-        if (end_with(url, ".flv") || end_with(url_in, ".flv")) {
+        if (end_with(url, ".flv") || end_with(url_in, ".flv") || schema == "flv") {
             return PlayerBase::Ptr(new FlvPlayerImp(poller), release_func);
         }
     }
@@ -78,6 +86,11 @@ PlayerBase::Ptr PlayerBase::createPlayer(const EventPoller::Ptr &in_poller, cons
         return PlayerBase::Ptr(new SrtPlayerImp(poller), release_func);
     }
 #endif//ENABLE_SRT
+#ifdef ENABLE_WEBRTC
+    if ((strcasecmp("webrtc", prefix.data()) == 0 || strcasecmp("webrtcs", prefix.data()) == 0)) {
+        return PlayerBase::Ptr(new WebRtcProxyPlayerImp(poller), release_func);
+    }
+#endif//ENABLE_WEBRTC
 
     throw std::invalid_argument("not supported play schema:" + url_in);
 }

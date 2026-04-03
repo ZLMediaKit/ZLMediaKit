@@ -46,6 +46,10 @@ void TsPlayerImp::onPlayResult(const SockException &ex) {
 }
 
 void TsPlayerImp::onShutdown(const SockException &ex) {
+    if (!ex) {
+        // http-ts拉流，如果为eof正常断开，那么强制为异常状态
+        const_cast<SockException &>(ex).reset(Err_other, ex.what());
+    }
     while (_demuxer) {
         try {
             // shared_from_this()可能抛异常  [AUTO-TRANSLATED:6af9bd3c]
@@ -77,4 +81,11 @@ vector<Track::Ptr> TsPlayerImp::getTracks(bool ready) const {
     return static_pointer_cast<HlsDemuxer>(_demuxer)->getTracks(ready);
 }
 
+size_t TsPlayerImp::getRecvSpeed() {
+    return TcpClient::getRecvSpeed();
+}
+
+size_t TsPlayerImp::getRecvTotalBytes() {
+    return TcpClient::getRecvTotalBytes();
+}
 }//namespace mediakit

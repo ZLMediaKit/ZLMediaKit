@@ -26,7 +26,7 @@ void AudioSRC::setOutputAudioConfig(const SDL_AudioSpec &cfg) {
     int format = _delegate->getPCMFormat();
     int channels = _delegate->getPCMChannel();
     if (-1 == SDL_BuildAudioCVT(&_audio_cvt, format, channels, freq, cfg.format, cfg.channels, cfg.freq)) {
-        throw std::runtime_error("the format conversion is not supported");
+        throw std::runtime_error("the format conversion is not supported, " + string(SDL_GetError()));
     }
     InfoL << "audio cvt origin format, freq:" << freq << ", format:" << hex << format  << dec << ", channels:" << channels;
     InfoL << "audio cvt info, "

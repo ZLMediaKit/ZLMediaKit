@@ -21,6 +21,12 @@
 #include <cmath>
 #include <iomanip>
 #include <set>
+#include <cstring>
+#include <ctime>
+
+#if defined(_WIN32)
+#include "Util/strptime_win.h"
+#endif
 
 using namespace toolkit;
 using namespace std;
@@ -91,22 +97,22 @@ void RtspPlayer::play(const string &strUrl) {
     _speed = (*this)[Client::kRtspSpeed].as<float>();
     DebugL << url._url << " " << (url._user.size() ? url._user : "null") << " " << (url._passwd.size() ? url._passwd : "null") << " " << _rtp_type;
 
-    weak_ptr<RtspPlayer> weakSelf = static_pointer_cast<RtspPlayer>(shared_from_this());
+    weak_ptr<RtspPlayer> weak_self = static_pointer_cast<RtspPlayer>(shared_from_this());
     float playTimeOutSec = (*this)[Client::kTimeoutMS].as<int>() / 1000.0f;
-    _play_check_timer.reset(new Timer(
-        playTimeOutSec,
-        [weakSelf]() {
-            auto strongSelf = weakSelf.lock();
-            if (!strongSelf) {
-                return false;
-            }
-            strongSelf->onPlayResult_l(SockException(Err_timeout, "play rtsp timeout"), false);
-            return false;
-        },
-        getPoller()));
+    _play_check_timer.reset(new Timer(playTimeOutSec,[weak_self]() {
+        if (auto strong_self = weak_self.lock()) {
+            strong_self->onPlayResult_l(SockException(Err_timeout, "play rtsp timeout"), false);
+        }
+        return false;
+    }, getPoller()));
 
-    if (!(*this)[Client::kNetAdapter].empty()) {
-        setNetAdapter((*this)[Client::kNetAdapter]);
+    auto &adapter = (*this)[Client::kNetAdapter];
+    if (!adapter.empty()) {
+        setNetAdapter(std::move(adapter));
+    }
+    auto &custom_header = (*this)[Client::kCustomHeader];
+    if (!custom_header.empty()) {
+        _custom_header = mediakit::Parser::parseArgs(custom_header);
     }
     startConnect(url._host, url._port, playTimeOutSec);
 }
@@ -174,12 +180,12 @@ bool RtspPlayer::handleAuthenticationFailure(const string &paramsStr) {
     return false;
 }
 
-bool RtspPlayer::handleResponse(const string &cmd, const Parser &parser) {
+bool RtspPlayer::handleResponse(const std::string &cmd, const Parser &parser, send_method_handler handler) {
     string authInfo = parser["WWW-Authenticate"];
     // 发送DESCRIBE命令后的回复  [AUTO-TRANSLATED:39629cf0]
     // The response after sending the DESCRIBE command
     if ((parser.status() == "401") && handleAuthenticationFailure(authInfo)) {
-        sendOptions();
+        (this->*handler)();
         return false;
     }
     if (parser.status() == "302" || parser.status() == "301") {
@@ -197,7 +203,7 @@ bool RtspPlayer::handleResponse(const string &cmd, const Parser &parser) {
 }
 
 void RtspPlayer::handleResDESCRIBE(const Parser &parser) {
-    if (!handleResponse("DESCRIBE", parser)) {
+    if (!handleResponse("DESCRIBE", parser, &RtspPlayer::sendDescribe)) {
         return;
     }
     _content_base = parser["Content-Base"];
@@ -212,6 +218,20 @@ void RtspPlayer::handleResDESCRIBE(const Parser &parser) {
     // Parse SDP
     SdpParser sdpParser(parser.content());
 
+    // 保存 range 信息（从第一个 track 获取）
+    auto tracks = sdpParser.getAvailableTrack();
+    if (!tracks.empty()) {
+        auto title_track = sdpParser.getTrack(TrackTitle);
+        if (title_track && !title_track->_range_type.empty()) {
+            _range_type = title_track->_range_type;
+            _range_start_str = title_track->_range_start_str;
+            _range_end_str = title_track->_range_end_str;
+        } else if (!tracks.empty() && !tracks[0]->_range_type.empty()) {
+            _range_type = tracks[0]->_range_type;
+            _range_start_str = tracks[0]->_range_start_str;
+            _range_end_str = tracks[0]->_range_end_str;
+        }
+    }
     _control_url = sdpParser.getControlUrl(_content_base);
 
     string sdp;
@@ -265,7 +285,7 @@ void RtspPlayer::sendSetup(unsigned int track_idx) {
         case Rtsp::RTP_TCP: {
             sendRtspRequest(
                 "SETUP", control_url,
-                { "Transport", StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track->_type * 2 << "-" << track->_type * 2 + 1 << ";mode=play" });
+                { "Transport", StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track_idx * 2 << "-" << track_idx * 2 + 1 << ";mode=play" });
         } break;
         case Rtsp::RTP_MULTICAST: {
             sendRtspRequest("SETUP", control_url, { "Transport", "RTP/AVP;multicast;mode=play" });
@@ -411,12 +431,11 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int track_idx) {
     // All SETUP commands have been sent
     // 发送play命令  [AUTO-TRANSLATED:47a826d1]
     // Send PLAY command
-    if (_speed==0.0f) {
+    if (_speed == 0.0f) {
         sendPause(type_play, 0);
     } else {
         sendPause(type_speed, 0);
     }
-   
 }
 
 void RtspPlayer::sendDescribe() {
@@ -428,7 +447,7 @@ void RtspPlayer::sendDescribe() {
 
 void RtspPlayer::sendOptions() {
     _on_response = [this](const Parser &parser) {
-        if (!handleResponse("OPTIONS", parser)) {
+        if (!handleResponse("OPTIONS", parser, &RtspPlayer::sendOptions)) {
             return;
         }
         // 获取服务器支持的命令  [AUTO-TRANSLATED:8a6a12f1]
@@ -447,7 +466,11 @@ void RtspPlayer::sendOptions() {
 }
 
 void RtspPlayer::sendKeepAlive() {
-    _on_response = [](const Parser &parser) {};
+    if (_play_check_timer)
+    {
+        WarnL << "receive RTP packet before handleResPAUSE";
+    }
+    _on_keepalive_reponse = [](const Parser &parser) {};
     if (_supported_cmd.find("GET_PARAMETER") != _supported_cmd.end()) {
         // 支持GET_PARAMETER，用此命令保活  [AUTO-TRANSLATED:b45cd737]
         // Support GET_PARAMETER, use this command to keep alive
@@ -465,15 +488,53 @@ void RtspPlayer::sendPause(int type, uint32_t seekMS) {
     // Start or pause RTSP
     switch (type) {
         case type_pause: sendRtspRequest("PAUSE", _control_url, {}); break;
-        case type_play:
-            // sendRtspRequest("PLAY", _content_base);
-            // break;
-        case type_seek:
-            sendRtspRequest("PLAY", _control_url, { "Range", StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << seekMS / 1000.0 << "-" });
-            break;
-        case type_speed:
-            speed(_speed);
-            break;
+        case type_play: sendRtspRequest("PLAY", _content_base); break;
+        case type_seek: {
+            std::string range_header;
+            if (_range_type == "clock" && !_range_start_str.empty()) {
+                // clock 格式：需要计算新的时间
+                // 解析起始时间：20251123T000000Z
+                struct tm tm_start;
+                const char *start_str = _range_start_str.c_str();
+                if (strptime(start_str, "%Y%m%dT%H%M%SZ", &tm_start) != nullptr) {
+                    // 转换为 time_t，加上 seekMS 毫秒
+#if defined(_WIN32)
+                    time_t start_time = _mkgmtime(&tm_start);
+#else
+                    time_t start_time = timegm(&tm_start);
+#endif
+                    start_time += seekMS / 1000; // 加上秒数
+
+                    // 格式化新的时间
+                    struct tm tm_new;
+#if defined(_WIN32)
+                    auto gmtime_ret = gmtime_s(&tm_new, &start_time);
+                    if (gmtime_ret == 0)
+#else
+                    auto gmtime_ret = gmtime_r(&start_time, &tm_new);
+                    if (gmtime_ret != nullptr)
+#endif
+                    {
+                        char new_time[32];
+                        strftime(new_time, sizeof(new_time), "%Y%m%dT%H%M%SZ", &tm_new);
+
+                        // 构建 Range 头
+                        range_header = StrPrinter << "clock=" << new_time << "-" << _range_end_str;
+                    } else {
+                        // 解析失败，回退到 npt 格式
+                        range_header = StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << seekMS / 1000.0 << "-";
+                    }
+                } else {
+                    // 解析失败，回退到 npt 格式
+                    range_header = StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << seekMS / 1000.0 << "-";
+                }
+            } else {
+                // npt 格式或其他格式
+                range_header = StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << seekMS / 1000.0 << "-";
+            }
+            sendRtspRequest("PLAY", _control_url, { "Range", range_header });
+        } break;
+        case type_speed: speed(_speed); break;
         default:
             WarnL << "unknown type : " << type;
             _on_response = nullptr;
@@ -487,6 +548,10 @@ void RtspPlayer::pause(bool bPause) {
 
 void RtspPlayer::speed(float speed) {
     sendRtspRequest("PLAY", _control_url, { "Scale", StrPrinter << speed });
+}
+
+void RtspPlayer::seekTo(uint32_t pos) {
+    seekToMilliSecond(pos * 1000);
 }
 
 void RtspPlayer::handleResPAUSE(const Parser &parser, int type) {
@@ -537,6 +602,10 @@ void RtspPlayer::onWholeRtspPacket(Parser &parser) {
     try {
         decltype(_on_response) func;
         _on_response.swap(func);
+        if (!func)
+        {
+            _on_keepalive_reponse.swap(func);
+        }
         if (func) {
             func(parser);
         }
@@ -552,7 +621,9 @@ void RtspPlayer::onRtpPacket(const char *data, size_t len) {
     int trackIdx = -1;
     uint8_t interleaved = data[1];
     if (interleaved % 2 == 0) {
-        trackIdx = getTrackIndexByInterleaved(interleaved);
+        CHECK(len > RtpPacket::kRtpHeaderSize + RtpPacket::kRtpTcpHeaderSize);
+        RtpHeader *header = (RtpHeader *)(data + RtpPacket::kRtpTcpHeaderSize);
+        trackIdx = getTrackIndexByPT(header->pt);
         if (trackIdx == -1) {
             return;
         }
@@ -585,6 +656,9 @@ void RtspPlayer::onRtcpPacket(int track_idx, SdpTrack::Ptr &track, uint8_t *data
 
 void RtspPlayer::onRtpSorted(RtpPacket::Ptr rtppt, int trackidx) {
     _stamp[trackidx] = rtppt->getStampMS();
+    if (!_first_stamp[trackidx]) {
+        _first_stamp[trackidx] = _stamp[trackidx];
+    }
     _rtp_recv_ticker.resetTime();
     onRecvRTP(std::move(rtppt), _sdp_track[trackidx]);
 }
@@ -612,7 +686,7 @@ float RtspPlayer::getPacketLossRate(TrackType type) const {
 }
 
 uint32_t RtspPlayer::getProgressMilliSecond() const {
-    return MAX(_stamp[0], _stamp[1]);
+    return MAX(_stamp[0] - _first_stamp[0], _stamp[1] - _first_stamp[1]);
 }
 
 void RtspPlayer::seekToMilliSecond(uint32_t ms) {
@@ -630,7 +704,6 @@ void RtspPlayer::sendRtspRequest(const string &cmd, const string &url, const std
             key = val;
         }
     }
-
     sendRtspRequest(cmd, url, header_map);
 }
 
@@ -689,9 +762,18 @@ void RtspPlayer::sendRtspRequest(const string &cmd, const string &url, const Str
     printer << cmd << " " << url << " RTSP/1.0\r\n";
 
     TraceL << cmd << " "<< url;
+
+    if (cmd == "PLAY") {
+        // play命令时支持覆盖更新rtsp头，用于onvif点播等场景
+        for (auto &pr : _custom_header) {
+            header[pr.first] = pr.second;
+        }
+    }
+
     for (auto &pr : header) {
         printer << pr.first << ": " << pr.second << "\r\n";
     }
+
     printer << "\r\n";
     SockSender::send(std::move(printer));
 }
@@ -798,10 +880,23 @@ void RtspPlayer::onPlayResult_l(const SockException &ex, bool handshake_done) {
         };
         // 创建rtp数据接收超时检测定时器  [AUTO-TRANSLATED:edbffc19]
         // Create RTP data receive timeout detection timer
-        _rtp_check_timer = std::make_shared<Timer>(timeoutMS / 2000.0f, lam, getPoller());
+        _rtp_check_timer = std::make_shared<Timer>(timeoutMS / 2000.0f, std::move(lam), getPoller());
     } else {
         sendTeardown();
     }
+}
+
+int RtspPlayer::getTrackIndexByPT(int pt) const {
+    for (size_t i = 0; i < _sdp_track.size(); ++i) {
+        if (_sdp_track[i]->_pt == pt) {
+            return i;
+        }
+    }
+    if (_sdp_track.size() == 1) {
+        return 0;
+    }
+    WarnL << "no such track with pt:" << pt;
+    return -1;
 }
 
 int RtspPlayer::getTrackIndexByInterleaved(int interleaved) const {
@@ -827,6 +922,36 @@ int RtspPlayer::getTrackIndexByTrackType(TrackType track_type) const {
         return 0;
     }
     throw SockException(Err_other, StrPrinter << "no such track with type:" << getTrackString(track_type));
+}
+
+size_t RtspPlayer::getRecvSpeed() {
+    size_t ret = TcpClient::getRecvSpeed();
+    for (auto &rtp : _rtp_sock) {
+        if (rtp) {
+            ret += rtp->getRecvSpeed();
+        }
+    }
+    for (auto &rtcp : _rtcp_sock) {
+        if (rtcp) {
+            ret += rtcp->getRecvSpeed();
+        }
+    }
+    return ret;
+}
+
+size_t RtspPlayer::getRecvTotalBytes() {
+    size_t ret = TcpClient::getRecvTotalBytes();
+    for (auto &rtp : _rtp_sock) {
+        if (rtp) {
+            ret += rtp->getRecvTotalBytes();
+        }
+    }
+    for (auto &rtcp : _rtcp_sock) {
+        if (rtcp) {
+            ret += rtcp->getRecvTotalBytes();
+        }
+    }
+    return ret;
 }
 
 ///////////////////////////////////////////////////

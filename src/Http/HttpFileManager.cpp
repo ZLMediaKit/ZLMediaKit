@@ -17,6 +17,7 @@
 #include "HttpConst.h"
 #include "HttpSession.h"
 #include "HttpFileManager.h"
+#include "Common/MultiMediaSourceMuxer.h"
 
 using namespace std;
 using namespace toolkit;
@@ -31,7 +32,7 @@ namespace mediakit {
 // If the player does not access the cookie within 60 seconds, the hls playback authentication will be triggered again.
 static size_t kHlsCookieSecond = 60;
 static size_t kFindSrcIntervalSecond = 3;
-static const string kCookieName = "ZL_COOKIE";
+static const string kCookieName = "ZLM_HTTP_COOKIE";
 static const string kHlsSuffix = "/hls.m3u8";
 static const string kHlsFMP4Suffix = "/hls.fmp4.m3u8";
 
@@ -48,6 +49,8 @@ struct HttpCookieAttachment {
     // 上次鉴权失败信息,为空则上次鉴权成功  [AUTO-TRANSLATED:de48b753]
     // Last authentication failure information, empty means last authentication succeeded
     string _err_msg;
+    // hls文件根目录
+    string _hls_root_path;
     // hls直播时的其他一些信息，主要用于播放器个数计数以及流量计数  [AUTO-TRANSLATED:790de53a]
     // Other information during hls live broadcast, mainly used for player count and traffic count
     HlsCookieData::Ptr _hls_data;
@@ -315,36 +318,9 @@ static bool emitHlsPlayed(const Parser &parser, const MediaInfo &media_info, con
     return flag;
 }
 
-class SockInfoImp : public SockInfo{
-public:
-    using Ptr = std::shared_ptr<SockInfoImp>;
-
-    string get_local_ip() override {
-        return _local_ip;
-    }
-
-    uint16_t get_local_port() override {
-        return _local_port;
-    }
-
-    string get_peer_ip() override {
-        return _peer_ip;
-    }
-
-    uint16_t get_peer_port() override {
-        return _peer_port;
-    }
-
-    string getIdentifier() const override {
-        return _identifier;
-    }
-
-    string _local_ip;
-    string _peer_ip;
-    string _identifier;
-    uint16_t _local_port;
-    uint16_t _peer_port;
-};
+static std::string getUidFromParams(const string &params) {
+    return params;
+}
 
 /**
  * 判断http客户端是否有权限访问文件的逻辑步骤
@@ -362,11 +338,11 @@ public:
  
  * [AUTO-TRANSLATED:dfc0f15f]
  */
-static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo &media_info, bool is_dir,
+static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo &media_info, const std::string &file_path, bool is_dir,
                           const function<void(const string &err_msg, const HttpServerCookie::Ptr &cookie)> &callback) {
     // 获取用户唯一id  [AUTO-TRANSLATED:5b1cf4bf]
     // Get the user's unique id
-    auto uid = parser.params();
+    auto uid = getUidFromParams(parser.params());
     auto path = parser.url();
 
     // 先根据http头中的cookie字段获取cookie  [AUTO-TRANSLATED:155cf682]
@@ -401,7 +377,7 @@ static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo
             }
             // 上次鉴权失败，但是如果url参数发生变更，那么也重新鉴权下  [AUTO-TRANSLATED:df9bd345]
             // Last authentication failed, but if the url parameter changes, then re-authenticate
-            if (parser.params().empty() || parser.params() == cookie->getUid()) {
+            if (parser.params().empty() || getUidFromParams(parser.params()) == cookie->getUid()) {
                 // url参数未变，或者本来就没有url参数，那么判断本次请求为重复请求，无访问权限  [AUTO-TRANSLATED:f46b4fca]
                 // The url parameter has not changed, or there is no url parameter at all, then determine that the current request is a duplicate request and has no access permission
                 callback(attach._err_msg, update_cookie ? cookie : nullptr);
@@ -415,17 +391,18 @@ static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo
 
     bool is_hls = media_info.schema == HLS_SCHEMA || media_info.schema == HLS_FMP4_SCHEMA;
 
-    SockInfoImp::Ptr info = std::make_shared<SockInfoImp>();
-    info->_identifier = sender.getIdentifier();
-    info->_peer_ip = sender.get_peer_ip();
-    info->_peer_port = sender.get_peer_port();
-    info->_local_ip = sender.get_local_ip();
-    info->_local_port = sender.get_local_port();
+    weak_ptr<Session> weak_session = static_pointer_cast<Session>(sender.shared_from_this());
 
     // 该用户从来未获取过cookie，这个时候我们广播是否允许该用户访问该http目录  [AUTO-TRANSLATED:8f4b3dd2]
     // This user has never obtained a cookie, at this time we broadcast whether to allow this user to access this http directory
-    HttpSession::HttpAccessPathInvoker accessPathInvoker = [callback, uid, path, is_dir, is_hls, media_info, info]
+    HttpSession::HttpAccessPathInvoker accessPathInvoker = [callback, uid, path, is_dir, is_hls, media_info, weak_session]
             (const string &err_msg, const string &cookie_path_in, int life_second) {
+        auto strong_session = weak_session.lock();
+        if (!strong_session) {
+            // http客户端已经断开，不需要回复  [AUTO-TRANSLATED:9a252e21]
+            // The http client has disconnected and does not need to reply
+            return;
+        }
         HttpServerCookie::Ptr cookie;
         if (life_second) {
             // 本次鉴权设置了有效期，我们把鉴权结果缓存在cookie中  [AUTO-TRANSLATED:5a12f48e]
@@ -447,11 +424,11 @@ static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo
             if (is_hls) {
                 // hls相关信息  [AUTO-TRANSLATED:37893a71]
                 // hls related information
-                attach->_hls_data = std::make_shared<HlsCookieData>(media_info, info);
+                attach->_hls_data = std::make_shared<HlsCookieData>(media_info, strong_session);
             }
-           toolkit::Any any;
-           any.set(std::move(attach));
-           callback(err_msg, HttpCookieManager::Instance().addCookie(kCookieName, uid, life_second, std::move(any)));
+            toolkit::Any any;
+            any.set(std::move(attach));
+            callback(err_msg, HttpCookieManager::Instance().addCookie(kCookieName, uid, life_second, std::move(any)));
         } else {
             callback(err_msg, nullptr);
         }
@@ -466,7 +443,7 @@ static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo
 
     // 事件未被拦截，则认为是http下载请求  [AUTO-TRANSLATED:7d449ccc]
     // The event was not intercepted, it is considered an http download request
-    bool flag = NOTICE_EMIT(BroadcastHttpAccessArgs, Broadcast::kBroadcastHttpAccess, parser, path, is_dir, accessPathInvoker, sender);
+    bool flag = NOTICE_EMIT(BroadcastHttpAccessArgs, Broadcast::kBroadcastHttpAccess, parser, path, file_path, is_dir, accessPathInvoker, sender);
     if (!flag) {
         // 此事件无人监听，我们默认都有权限访问  [AUTO-TRANSLATED:e1524c0f]
         // No one is listening to this event, we assume that everyone has permission to access it by default
@@ -498,6 +475,8 @@ static string pathCat(const string &a, const string &b){
     return a + '/' + b;
 }
 
+static string getFilePath(const Parser &parser,const MediaInfo &media_info, Session *sender, const string &customRootPath = "");
+
 /**
  * 访问文件
  * @param sender 事件触发者
@@ -511,17 +490,11 @@ static string pathCat(const string &a, const string &b){
  * @param media_info http url information
  * @param file_path Absolute file path
  * @param cb Callback object
- 
+
  * [AUTO-TRANSLATED:2d840fe6]
  */
 static void accessFile(Session &sender, const Parser &parser, const MediaInfo &media_info, const string &file_path, const HttpFileManager::invoker &cb) {
     bool is_hls = end_with(file_path, kHlsSuffix) || end_with(file_path, kHlsFMP4Suffix);
-    if (!is_hls && !File::fileExist(file_path)) {
-        // 文件不存在且不是hls,那么直接返回404  [AUTO-TRANSLATED:7aae578b]
-        // The file does not exist and is not hls, so directly return 404
-        sendNotFound(cb);
-        return;
-    }
     if (is_hls) {
         // hls，那么移除掉后缀获取真实的stream_id并且修改协议为HLS  [AUTO-TRANSLATED:94b5818a]
         // hls, then remove the suffix to get the real stream_id and change the protocol to HLS
@@ -537,7 +510,7 @@ static void accessFile(Session &sender, const Parser &parser, const MediaInfo &m
     weak_ptr<Session> weakSession = static_pointer_cast<Session>(sender.shared_from_this());
     // 判断是否有权限访问该文件  [AUTO-TRANSLATED:b7f595f5]
     // Determine whether you have permission to access this file
-    canAccessPath(sender, parser, media_info, false, [cb, file_path, parser, is_hls, media_info, weakSession](const string &err_msg, const HttpServerCookie::Ptr &cookie) {
+    canAccessPath(sender, parser, media_info, file_path, false, [cb, file_path, parser, is_hls, media_info, weakSession](const string &err_msg, const HttpServerCookie::Ptr &cookie) {
         auto strongSession = weakSession.lock();
         if (!strongSession) {
             // http客户端已经断开，不需要回复  [AUTO-TRANSLATED:9a252e21]
@@ -582,6 +555,13 @@ static void accessFile(Session &sender, const Parser &parser, const MediaInfo &m
             invoker.responseFile(parser.getHeader(), httpHeader, file_content.empty() ? file_path : file_content, !is_hls && !is_forbid_cache, file_content.empty());
         };
 
+        if (cookie) {
+            auto &attach = cookie->getAttach<HttpCookieAttachment>();
+            if (!attach._hls_root_path.empty()) {
+                // 强制替换为真实hls路径
+                const_cast<std::string &>(file_path) = getFilePath(parser, media_info, nullptr, attach._hls_root_path);
+            }
+        }
         if (!is_hls || !cookie) {
             // 不是hls或访问m3u8文件不带cookie, 直接回复文件或404  [AUTO-TRANSLATED:64e5d19b]
             // Not hls or accessing m3u8 files without cookies, directly reply to the file or 404
@@ -631,6 +611,10 @@ static void accessFile(Session &sender, const Parser &parser, const MediaInfo &m
             // Reset the MediaSource search timer
             attach._find_src_ticker.resetTime();
 
+            auto muxer = hls->getMuxer();
+            if (muxer) {
+                attach._hls_root_path = muxer->getOption().hls_save_path;
+            }
             // m3u8文件可能不存在, 等待m3u8索引文件按需生成  [AUTO-TRANSLATED:0dbd4df2]
             // The m3u8 file may not exist, wait for the m3u8 index file to be generated on demand
             hls->getIndexFile([response_file, file_path, cookie, cb, parser](const string &file) {
@@ -640,12 +624,14 @@ static void accessFile(Session &sender, const Parser &parser, const MediaInfo &m
     });
 }
 
-static string getFilePath(const Parser &parser,const MediaInfo &media_info, Session &sender) {
+static string getFilePath(const Parser &parser,const MediaInfo &media_info, Session *sender, const string &customRootPath) {
     GET_CONFIG(bool, enableVhost, General::kEnableVhost);
-    GET_CONFIG(string, rootPath, Http::kRootPath);
+    GET_CONFIG(string, httpRootPath, Http::kRootPath);
     GET_CONFIG_FUNC(StrCaseMap, virtualPathMap, Http::kVirtualPath, [](const string &str) {
         return Parser::parseArgs(str, ";", ",");
     });
+
+    auto rootPath = customRootPath.empty() ? httpRootPath : customRootPath;
 
     string url, path, virtual_app;
     auto it = virtualPathMap.find(media_info.app);
@@ -675,10 +661,12 @@ static string getFilePath(const Parser &parser,const MediaInfo &media_info, Sess
         // The accessed http file must not be outside the http root directory
         throw std::runtime_error("Attempting to access files outside of the http root directory");
     }
-    // 替换url，防止返回的目录索引网页被注入非法内容  [AUTO-TRANSLATED:463ad1b1]
-    // Replace the url to prevent the returned directory index page from being injected with illegal content
-    const_cast<Parser&>(parser).setUrl("/" + virtual_app + ret.substr(http_root.size()));
-    NOTICE_EMIT(BroadcastHttpBeforeAccessArgs, Broadcast::kBroadcastHttpBeforeAccess, parser, ret, sender);
+    if (sender) {
+        // 替换url，防止返回的目录索引网页被注入非法内容  [AUTO-TRANSLATED:463ad1b1]
+        // Replace the url to prevent the returned directory index page from being injected with illegal content
+        const_cast<Parser&>(parser).setUrl("/" + virtual_app + ret.substr(http_root.size()));
+        NOTICE_EMIT(BroadcastHttpBeforeAccessArgs, Broadcast::kBroadcastHttpBeforeAccess, parser, ret, *sender);
+    }
     return ret;
 }
 
@@ -691,14 +679,14 @@ static string getFilePath(const Parser &parser,const MediaInfo &media_info, Sess
  * @param sender Event trigger
  * @param parser http request
  * @param cb Callback object
- 
+
  * [AUTO-TRANSLATED:a79c824d]
  */
 void HttpFileManager::onAccessPath(Session &sender, Parser &parser, const HttpFileManager::invoker &cb) {
     auto fullUrl = "http://" + parser["Host"] + parser.fullUrl();
     MediaInfo media_info(fullUrl);
-    auto file_path = getFilePath(parser, media_info, sender);
-    if (file_path.size() == 0) {
+    auto file_path = getFilePath(parser, media_info, &sender);
+    if (file_path.empty()) {
         sendNotFound(cb);
         return;
     }
@@ -729,7 +717,7 @@ void HttpFileManager::onAccessPath(Session &sender, Parser &parser, const HttpFi
         }
         // 判断是否有权限访问该目录  [AUTO-TRANSLATED:963d02a6]
         // Determine if there is permission to access this directory
-        canAccessPath(sender, parser, media_info, true, [strMenu, cb](const string &err_msg, const HttpServerCookie::Ptr &cookie) mutable{
+        canAccessPath(sender, parser, media_info, file_path, true, [strMenu, cb](const string &err_msg, const HttpServerCookie::Ptr &cookie) mutable{
             if (!err_msg.empty()) {
                 strMenu = err_msg;
             }

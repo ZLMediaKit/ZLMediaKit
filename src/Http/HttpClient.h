@@ -60,8 +60,8 @@ public:
     virtual void sendRequest(const std::string &url);
 
     /**
-     * 重置对象
-     * Reset object
+     * 重置当前请求相关状态，并尽量保留可复用的传输状态
+     * Reset per-request state while preserving reusable transport state when possible
      
      * [AUTO-TRANSLATED:d23b5bbb]
      */
@@ -168,10 +168,10 @@ public:
     void setHeaderTimeout(size_t timeout_ms);
 
     /**
-     * 设置接收body数据超时时间, 默认5秒
+     * 设置接收body数据超时时间, 默认10秒
      * 此参数可以用于处理超大body回复的超时问题
      * 此参数可以等于0
-     * Set the timeout for receiving body data, default 5 seconds
+     * Set the timeout for receiving body data, default 10 seconds
      * This parameter can be used to handle timeout issues for large body responses
      * This parameter can be equal to 0
      
@@ -188,6 +188,14 @@ public:
      * [AUTO-TRANSLATED:df094868]
      */
     void setCompleteTimeout(size_t timeout_ms);
+
+    /**
+     * 设置请求头中的 keep-alive 语义，默认启用
+     * Set whether requests should advertise keep-alive semantics, enabled by default
+     
+     * [AUTO-TRANSLATED:6f62f63c]
+     */
+    void setRequestKeepAlive(bool enable);
 
     /**
      * 设置http代理url
@@ -276,7 +284,6 @@ private:
     void onResponseCompleted_l(const toolkit::SockException &ex);
     void onConnect_l(const toolkit::SockException &ex);
     void checkCookie(HttpHeader &headers);
-
 private:
     //for http response
     bool _complete = false;
@@ -289,7 +296,7 @@ private:
     std::shared_ptr<HttpChunkedSplitter> _chunked_splitter;
 
     //for request args
-    bool _is_https;
+    bool _is_https = false;
     std::string _url;
     HttpHeader _user_set_header;
     HttpBody::Ptr _body;
@@ -308,9 +315,10 @@ private:
     toolkit::Ticker _wait_body;
     toolkit::Ticker _wait_complete;
 
+    bool _request_keep_alive = true;
     bool _used_proxy = false;
     bool _proxy_connected = false;
-    uint16_t _proxy_port;
+    uint16_t _proxy_port = 0;
     std::string _proxy_url;
     std::string _proxy_host;
     std::string _proxy_auth;

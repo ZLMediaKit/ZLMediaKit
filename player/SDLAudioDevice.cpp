@@ -18,7 +18,10 @@ using namespace toolkit;
 INSTANCE_IMP(SDLAudioDevice);
 
 SDLAudioDevice::~SDLAudioDevice() {
-    SDL_CloseAudio();
+    if (_device) {
+        SDL_CloseAudioDevice(_device);
+        _device = 0;
+    }
 }
 
 SDLAudioDevice::SDLAudioDevice() {
@@ -33,9 +36,13 @@ SDLAudioDevice::SDLAudioDevice() {
         SDLAudioDevice *_this = (SDLAudioDevice *) userdata;
         _this->onReqPCM((char *) stream, len);
     };
-	if (SDL_OpenAudioDevice(NULL, 0, &wanted_spec, &_audio_config, SDL_AUDIO_ALLOW_ANY_CHANGE) < 0) {
-		throw std::runtime_error("SDL_OpenAudioDevice failed");
-	}
+
+    _device = SDL_OpenAudioDevice(NULL, 0, &wanted_spec, &_audio_config, 0);
+    if (_device <= 0)
+        _device = SDL_OpenAudioDevice(NULL, 0, &wanted_spec, &_audio_config, SDL_AUDIO_ALLOW_ANY_CHANGE);
+    if (_device <= 0) {
+        throw std::runtime_error("SDL_OpenAudioDevice failed");
+    }
 
     InfoL << "actual audioSpec, " << "freq:" << _audio_config.freq
           << ", format:" << hex << _audio_config.format << dec
@@ -51,7 +58,7 @@ SDLAudioDevice::SDLAudioDevice() {
 void SDLAudioDevice::addChannel(AudioSRC *chn) {
     lock_guard<recursive_mutex> lck(_channel_mtx);
     if (_channels.empty()) {
-        SDL_PauseAudio(0);
+        SDL_PauseAudioDevice(_device, false);
     }
     chn->setOutputAudioConfig(_audio_config);
     _channels.emplace(chn);
@@ -61,7 +68,7 @@ void SDLAudioDevice::delChannel(AudioSRC *chn) {
     lock_guard<recursive_mutex> lck(_channel_mtx);
     _channels.erase(chn);
     if (_channels.empty()) {
-        SDL_PauseAudio(true);
+        SDL_PauseAudioDevice(_device, true);
     }
 }
 

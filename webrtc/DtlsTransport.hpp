@@ -28,13 +28,13 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <vector>
 #include "Poller/Timer.h"
 #include "Poller/EventPoller.h"
-using namespace toolkit;
 
 namespace RTC
 {
     class DtlsTransport : public std::enable_shared_from_this<DtlsTransport>
     {
     public:
+        using Ptr = std::shared_ptr<DtlsTransport>;
         enum class DtlsState
         {
             NEW = 1,
@@ -175,7 +175,7 @@ namespace RTC
         static std::vector<SrtpCryptoSuiteMapEntry> srtpCryptoSuites;
 
     public:
-        DtlsTransport(EventPoller::Ptr poller, Listener* listener);
+        DtlsTransport(toolkit::EventPoller::Ptr poller, Listener* listener);
         ~DtlsTransport();
 
     public:
@@ -230,14 +230,14 @@ namespace RTC
 
     private:
         DtlsEnvironment::Ptr env;
-        EventPoller::Ptr poller;
+        toolkit::EventPoller::Ptr poller;
         // Passed by argument.
         Listener* listener{ nullptr };
         // Allocated by this.
         SSL* ssl{ nullptr };
         BIO* sslBioFromNetwork{ nullptr }; // The BIO from which ssl reads.
         BIO* sslBioToNetwork{ nullptr };   // The BIO in which ssl writes.
-        Timer::Ptr timer;
+        toolkit::Timer::Ptr timer;
         // Others.
         DtlsState state{ DtlsState::NEW };
         Role localRole{ Role::NONE };

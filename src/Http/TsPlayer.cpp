@@ -25,6 +25,7 @@ void TsPlayer::play(const string &url) {
     setHeaderTimeout((*this)[Client::kTimeoutMS].as<int>());
     setBodyTimeout((*this)[Client::kMediaTimeoutMS].as<int>());
     setMethod("GET");
+    addCustomHeader(this);
     sendRequest(url);
 }
 
@@ -57,4 +58,11 @@ void TsPlayer::onResponseBody(const char *buf, size_t size) {
     }
 }
 
+size_t TsPlayer::getRecvSpeed() {
+    return TcpClient::getRecvSpeed();
+}
+
+size_t TsPlayer::getRecvTotalBytes() {
+    return TcpClient::getRecvTotalBytes();
+}
 } // namespace mediakit

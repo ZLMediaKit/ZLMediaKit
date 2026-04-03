@@ -161,7 +161,7 @@ string SdpTrack::toString(uint16_t port) const {
         }
         default: break;
     }
-    return std::move(_printer);
+    return _printer;
 }
 
 static TrackType toTrackType(const string &str) {
@@ -235,15 +235,25 @@ void SdpParser::load(const string &sdp) {
         auto &track = *track_ptr;
         auto it = track._attr.find("range");
         if (it != track._attr.end()) {
-            char name[16] = { 0 }, start[16] = { 0 }, end[16] = { 0 };
-            int ret = sscanf(it->second.data(), "%15[^=]=%15[^-]-%15s", name, start, end);
+            char name[16] = { 0 }, start[17] = { 0 }, end[17] = { 0 };
+            int ret = sscanf(it->second.data(), "%15[^=]=%16[^-]-%16s", name, start, end);
             if (3 == ret || 2 == ret) {
-                if (strcmp(start, "now") == 0) {
-                    strcpy(start, "0");
+                // 保存 range 类型
+                track._range_type = name;
+                if (strcmp(name, "clock") == 0) {
+                    // clock 格式：clock=20251123T000000Z-20251124T000000Z
+                    track._range_start_str = start;
+                    track._range_end_str = end;
+                    // 对于 clock 格式，不解析为数值
+                } else {
+                    // npt 格式或其他格式
+                    if (strcmp(start, "now") == 0) {
+                        strcpy(start, "0");
+                    }
+                    track._start = (float)atof(start);
+                    track._end = (float)atof(end);
+                    track._duration = track._end - track._start;
                 }
-                track._start = (float)atof(start);
-                track._end = (float)atof(end);
-                track._duration = track._end - track._start;
             }
         }
 
@@ -644,7 +654,7 @@ string RtpHeader::dumpString(size_t rtp_size) const {
     printer << "rtp size:" << rtp_size << "\r\n";
     printer << "payload offset:" << getPayloadOffset() << "\r\n";
     printer << "payload size:" << getPayloadSize(rtp_size) << "\r\n";
-    return std::move(printer);
+    return printer;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -745,7 +755,7 @@ TitleSdp::TitleSdp(float dur_sec, const std::map<std::string, std::string> &head
 }
 
 DefaultSdp::DefaultSdp(int payload_type, const Track &track)
-    : Sdp(track.getTrackType() == TrackVideo ? 9000 : static_cast<const AudioTrack &>(track).getAudioSampleRate(), payload_type) {
+    : Sdp(track.getTrackType() == TrackVideo ? 90000 : static_cast<const AudioTrack &>(track).getAudioSampleRate(), payload_type) {
     _printer << "m=" << track.getTrackTypeStr() << " 0 RTP/AVP " << payload_type << "\r\n";
     auto bitrate = track.getBitRate() >> 10;
     if (bitrate) {

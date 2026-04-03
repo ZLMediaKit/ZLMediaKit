@@ -38,14 +38,14 @@ void UnicodeToUTF8(char *pOut, const wchar_t *pText) {
     return;
 }
 
-char HexCharToBin(char ch) {
+signed char HexCharToBin(char ch) {
     if (ch >= '0' && ch <= '9') return (char)(ch - '0');
     if (ch >= 'a' && ch <= 'f') return (char)(ch - 'a' + 10);
     if (ch >= 'A' && ch <= 'F') return (char)(ch - 'A' + 10);
     return -1;
 }
 
-char HexStrToBin(const char *str) {
+signed char HexStrToBin(const char *str) {
     auto high = HexCharToBin(str[0]);
     auto low = HexCharToBin(str[1]);
     if (high == -1 || low == -1) {
@@ -81,7 +81,7 @@ static string UrlDecodeCommon(const string &str,const char* dont_unescape){
                 output.append(str, i, len - i);
                 break;
             }
-            char ch = HexStrToBin(&(str[i + 1]));
+            signed char ch = HexStrToBin(&(str[i + 1]));
             if (ch == -1 || strchr(dont_unescape, (unsigned char)ch) != NULL) {
                 // %后面两个字节不是16进制字符串，转义失败；或者转义出来可能会造成url包含非path部分，比如#?，说明提交的是非法拼接的url；直接拼接3个原始字符  [AUTO-TRANSLATED:7c734054]
                 // The two bytes after % are not hexadecimal strings, the escape fails; or the escaped result may cause the url to contain non-path parts, such as #?, indicating that the submitted url is illegally spliced; directly splice the three original characters
@@ -142,7 +142,7 @@ std::string strCoding::UrlDecodeComponent(const std::string &str) {
                 output.append(str, i, len - i);
                 break;
             }
-            char ch = HexStrToBin(&(str[i + 1]));
+            signed char ch = HexStrToBin(&(str[i + 1]));
             if (ch == -1) {
                 // %后面两个字节不是16进制字符串，转义失败；直接拼接3个原始字符  [AUTO-TRANSLATED:10e614a4]
                 // The two bytes after % are not hexadecimal strings, the escape fails; directly splice the three original characters

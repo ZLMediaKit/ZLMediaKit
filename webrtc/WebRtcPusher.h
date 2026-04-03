@@ -12,6 +12,7 @@
 #define ZLMEDIAKIT_WEBRTCPUSHER_H
 
 #include "WebRtcTransport.h"
+#include "Rtsp/RtspDemuxer.h"
 #include "Rtsp/RtspMediaSource.h"
 
 namespace mediakit {
@@ -19,8 +20,9 @@ namespace mediakit {
 class WebRtcPusher : public WebRtcTransportImp, public MediaSourceEvent {
 public:
     using Ptr = std::shared_ptr<WebRtcPusher>;
-    static Ptr create(const EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src,
-                      const std::shared_ptr<void> &ownership, const MediaInfo &info, const ProtocolOption &option);
+    static Ptr create(const toolkit::EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src,
+                      const std::shared_ptr<void> &ownership, const MediaInfo &info, const ProtocolOption &option, 
+                      WebRtcTransport::Role role, WebRtcTransport::SignalingProtocols signaling_protocols);
 
 protected:
     ///////WebRtcTransportImp override///////
@@ -28,7 +30,7 @@ protected:
     void onDestory() override;
     void onRtcConfigure(RtcConfigure &configure) const override;
     void onRecvRtp(MediaTrack &track, const std::string &rid, RtpPacket::Ptr rtp) override;
-    void onShutdown(const SockException &ex) override;
+    void onShutdown(const toolkit::SockException &ex) override;
     void onRtcpBye() override;
     // //  dtls相关的回调 ////  [AUTO-TRANSLATED:31a1f32c]
     // //  dtls related callbacks ////
@@ -50,7 +52,7 @@ protected:
     std::string getOriginUrl(MediaSource &sender) const override;
     // 获取媒体源客户端相关信息  [AUTO-TRANSLATED:037ef910]
     // Get media source client related information
-    std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
+    std::shared_ptr<toolkit::SockInfo> getOriginSock(MediaSource &sender) const override;
     // 由于支持断连续推，存在OwnerPoller变更的可能  [AUTO-TRANSLATED:1c863b40]
     // Due to support for discontinuous pushing, there is a possibility of OwnerPoller changes
     toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;
@@ -59,7 +61,7 @@ protected:
     float getLossRate(MediaSource &sender,TrackType type) override;
 
 private:
-    WebRtcPusher(const EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src,
+    WebRtcPusher(const toolkit::EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src,
                  const std::shared_ptr<void> &ownership, const MediaInfo &info, const ProtocolOption &option);
 
 private:
@@ -81,6 +83,30 @@ private:
     std::recursive_mutex _mtx;
     std::unordered_map<std::string/*rid*/, RtspMediaSource::Ptr> _push_src_sim;
     std::unordered_map<std::string/*rid*/, std::shared_ptr<void> > _push_src_sim_ownership;
+};
+
+class WebRtcPlayerClient : public WebRtcTransportImp {
+public:
+    using Ptr = std::shared_ptr<WebRtcPlayerClient>;
+    static Ptr create(const toolkit::EventPoller::Ptr &poller, WebRtcTransport::Role role, WebRtcTransport::SignalingProtocols signaling_protocols);
+
+    void setMediaSource(RtspMediaSource::Ptr src);
+    std::vector<Track::Ptr> getTracks(bool ready) const;
+
+protected:
+    ///////WebRtcTransportImp override///////
+    void onStartWebRTC() override;
+    void onRtcConfigure(RtcConfigure &configure) const override;
+    void onRecvRtp(MediaTrack &track, const std::string &rid, RtpPacket::Ptr rtp) override;
+
+private:
+    WebRtcPlayerClient(const toolkit::EventPoller::Ptr &poller);
+
+private:
+    RtspDemuxer::Ptr _demuxer;
+    // 推流的rtsp源  [AUTO-TRANSLATED:4f976bca]
+    // Rtsp source of the stream
+    RtspMediaSource::Ptr _push_src;
 };
 
 }// namespace mediakit

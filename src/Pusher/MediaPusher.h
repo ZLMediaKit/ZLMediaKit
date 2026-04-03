@@ -35,6 +35,7 @@ public:
     void setOnCreateSocket(toolkit::Socket::onCreateSocket cb);
     std::shared_ptr<MediaSource> getSrc() { return _src.lock(); }
     const std::string& getUrl() const { return _url; }
+
 private:
     std::weak_ptr<MediaSource> _src;
     toolkit::EventPoller::Ptr _poller;

@@ -13,18 +13,35 @@
 #include "Extension/Factory.h"
 #include "Extension/CommonRtp.h"
 #include "Extension/CommonRtmp.h"
-
+#include "riff-acm.h"
 using namespace std;
 using namespace toolkit;
 
 namespace mediakit {
 
-Track::Ptr G711Track::clone() const {
-    return std::make_shared<G711Track>(*this);
+Buffer::Ptr G711Track::getExtraData() const {
+    struct wave_format_t wav {};
+    wav.wFormatTag = getCodecId() == CodecG711A ? WAVE_FORMAT_ALAW : WAVE_FORMAT_MULAW;
+    wav.nChannels = getAudioChannel();
+    wav.nSamplesPerSec = getAudioSampleRate();
+    wav.nAvgBytesPerSec = 8000;
+    wav.nBlockAlign = 1;
+    wav.wBitsPerSample = 8;
+    auto buff = BufferRaw::create(18 + wav.cbSize);
+    wave_format_save(&wav, (uint8_t*)buff->data(), buff->size());
+    return buff;
 }
 
-Sdp::Ptr G711Track::getSdp(uint8_t payload_type) const {
-    return std::make_shared<DefaultSdp>(payload_type, *this);
+void G711Track::setExtraData(const uint8_t *data, size_t size) {
+    struct wave_format_t wav;
+    if (wave_format_load(data, size, &wav) > 0) {
+        // Successfully parsed Opus header
+        _sample_rate = wav.nSamplesPerSec;
+        _channels = wav.nChannels;
+        _codecid = (wav.wFormatTag == WAVE_FORMAT_ALAW) ? CodecG711A : CodecG711U;
+    } else {
+        WarnL << "Failed to parse G711 extra data";
+    }
 }
 
 namespace {

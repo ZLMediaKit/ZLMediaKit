@@ -39,14 +39,15 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{ZLMediaKit_URL}}/index/api/getApiList?secret={{ZLMediaKit_secret}}&id=stack_test",
+					"raw": "{{ZLMediaKit_URL}}/index/api/stack/stop?secret={{ZLMediaKit_secret}}&id=stack_test",
 					"host": [
 						"{{ZLMediaKit_URL}}"
 					],
 					"path": [
 						"index",
 						"api",
-						"getApiList"
+						"stack",
+						"stop"
 					],
 					"query": [
 						{
@@ -56,7 +57,44 @@
 						},
 						{
 							"key": "id",
-							"value": "stack_test"
+							"value": "stack_test",
+							"description": "多屏拼接id"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "重置多屏拼接(stack/reset)",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"gapv\": 0.002,\r\n    \"gaph\": 0.001,\r\n    \"width\": 1920,\r\n    \"url\": [\r\n        [\r\n            \"rtsp://kkem.me/live/test3\",\r\n            \"rtsp://kkem.me/live/cy1\",\r\n            \"rtsp://kkem.me/live/cy1\",\r\n            \"rtsp://kkem.me/live/cy2\"\r\n        ],\r\n        [\r\n            \"rtsp://kkem.me/live/cy1\",\r\n            \"rtsp://kkem.me/live/cy5\",\r\n            \"rtsp://kkem.me/live/cy3\",\r\n            \"rtsp://kkem.me/live/cy4\"\r\n        ],\r\n        [\r\n            \"rtsp://kkem.me/live/cy5\",\r\n            \"rtsp://kkem.me/live/cy6\",\r\n            \"rtsp://kkem.me/live/cy7\",\r\n            \"rtsp://kkem.me/live/cy8\"\r\n        ],\r\n        [\r\n            \"rtsp://kkem.me/live/cy9\",\r\n            \"rtsp://kkem.me/live/cy10\",\r\n            \"rtsp://kkem.me/live/cy11\",\r\n            \"rtsp://kkem.me/live/cy12\"\r\n        ]\r\n    ],\r\n    \"id\": \"89\",\r\n    \"row\": 4,\r\n    \"col\": 4,\r\n    \"height\": 1080,\r\n    \"span\": [\r\n        [\r\n            [\r\n                0,\r\n                0\r\n            ],\r\n            [\r\n                1,\r\n                1\r\n            ]\r\n        ],\r\n        [\r\n            [\r\n                3,\r\n                0\r\n            ],\r\n            [\r\n                3,\r\n                1\r\n            ]\r\n        ],\r\n        [\r\n            [\r\n                2,\r\n                3\r\n            ],\r\n            [\r\n                3,\r\n                3\r\n            ]\r\n        ]\r\n    ]\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/stack/reset?secret={{ZLMediaKit_secret}}",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"stack",
+						"reset"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)"
 						}
 					]
 				}
@@ -311,6 +349,53 @@
 			"response": []
 		},
 		{
+			"name": "删除截图(deleteSnapDirectory)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/deleteSnapDirectory?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=live&stream=test&file=71_1740828613.jpg",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"deleteSnapDirectory"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "筛选虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "live",
+							"description": "筛选应用名，例如 live"
+						},
+						{
+							"key": "stream",
+							"value": "test",
+							"description": "筛选流id，例如 test"
+						},
+						{
+							"key": "file",
+							"value": "",
+							"disabled": true,
+							"description": "文件名，非必选"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "关断单个流(close_stream)",
 			"request": {
 				"method": "GET",
@@ -522,7 +607,7 @@
 			"response": []
 		},
 		{
-			"name": "添加rtsp/rtmp/hls/srt拉流代理(addStreamProxy)",
+			"name": "添加拉流代理(addStreamProxy)",
 			"request": {
 				"method": "GET",
 				"header": [],
@@ -560,7 +645,7 @@
 						{
 							"key": "url",
 							"value": "rtmp://live.hkstv.hk.lxdns.com/live/hks2",
-							"description": "拉流地址，例如rtmp://live.hkstv.hk.lxdns.com/live/hks2"
+							"description": "拉流地址，支持rtsp/rtmp/hls/srt/http-flv/http-ts协议"
 						},
 						{
 							"key": "rtp_type",
@@ -826,6 +911,12 @@
 							"key": "retry_count",
 							"value": null,
 							"description": "推流重试次数,不传此参数或传值<=0时，则无限重试",
+							"disabled": true
+						},
+						{
+							"key": "force",
+							"value": null,
+							"description": "是否强制添加代理，默认0，设置为1时如果拉流失败也会不断重试",
 							"disabled": true
 						},
                         {
@@ -1179,19 +1270,19 @@
 			"response": []
 		},
 		{
-			"name": "获取流信息(getMp4RecordFile)",
+			"name": "获取录像文件列表(getMP4RecordFile)",
 			"request": {
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{ZLMediaKit_URL}}/index/api/getMp4RecordFile?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=proxy&stream=2&customized_path=/www&period=2020-05-26",
+					"raw": "{{ZLMediaKit_URL}}/index/api/getMP4RecordFile?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=proxy&stream=2&customized_path=/www&period=2020-05-26",
 					"host": [
 						"{{ZLMediaKit_URL}}"
 					],
 					"path": [
 						"index",
 						"api",
-						"getMp4RecordFile"
+						"getMP4RecordFile"
 					],
 					"query": [
 						{
@@ -1327,6 +1418,62 @@
 							"value": "1000",
 							"description": "MP4录制的切片时间大小，单位秒",
 							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "开始事件视频录制(startRecordTask)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/startRecordTask?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=live&stream=test&path=1.mp4&back_ms=10000&forward_ms=10000",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"startRecordTask"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "live",
+							"description": "应用名，例如 live"
+						},
+						{
+							"key": "stream",
+							"value": "test",
+							"description": "流id，例如 obs"
+						},
+						{
+							"key": "path",
+							"value": "1.mp4",
+							"description": "录像文件保存相对路径，包括名称"
+						},
+						{
+							"key": "back_ms",
+							"value": "10000",
+							"description": "回溯录制时长"
+						},
+						{
+							"key": "forward_ms",
+							"value": "10000",
+							"description": "后续录制时长"
 						}
 					]
 				}
@@ -1552,6 +1699,12 @@
 							"key": "expire_sec",
 							"value": "1",
 							"description": "截图的过期时间，该时间内产生的截图都会作为缓存返回"
+						},
+						{
+							"key": "async",
+							"value": "0",
+							"disabled": true,
+							"description": "是否采用zlm内置播放器、解码器api异步截图，开启后截图速度提升但兼容性降低"
 						}
 					]
 				}
@@ -1910,6 +2063,12 @@
 							"key": "stream_id",
 							"value": "test",
 							"description": "该端口绑定的流id"
+						},
+						{
+							"key": "pause_seconds",
+							"value": "300",
+							"description": "暂停超时监测后，将在pause_seconds时间后恢复",
+							"disabled": true
 						}
 					]
 				}
@@ -2086,6 +2245,12 @@
 							"value": "",
 							"description": "发送rtp同时接收，一般用于双向语言对讲, 如果不为空，说明开启接收，值为接收流的id",
 							"disabled": true
+						},
+						{
+							"key": "enable_origin_recv_limit",
+							"value": "1",
+							"description": "转发rtp(tcp模式)时，如果发送不出去，是否限制源端收流速度，此参数在多倍速rtp转发时作用较大",
+							"disabled": true
 						}
 					]
 				}
@@ -2180,6 +2345,12 @@
 							"value": "5000",
 							"description": "等待tcp连接超时时间，单位毫秒，默认5000毫秒",
 							"disabled": true
+						},
+						{
+							"key": "enable_origin_recv_limit",
+							"value": "1",
+							"description": "转发rtp(tcp模式)时，如果发送不出去，是否限制源端收流速度，此参数在多倍速rtp转发时作用较大",
+							"disabled": true
 						}
 					]
 				}
@@ -2254,6 +2425,12 @@
 							"key": "only_audio",
 							"value": "1",
 							"description": "rtp es方式打包时，是否只打包音频；该参数非必选参数",
+							"disabled": true
+						},
+						{
+							"key": "enable_origin_recv_limit",
+							"value": "1",
+							"description": "转发rtp(tcp模式)时，如果发送不出去，是否限制源端收流速度，此参数在多倍速rtp转发时作用较大",
 							"disabled": true
 						}
 					]
@@ -2480,6 +2657,18 @@
 							"disabled": true
 						},
 						{
+							"key": "seek_ms",
+							"value": "0",
+							"description": "点播seek到特定位置，单位毫秒",
+							"disabled": true
+						},
+						{
+							"key": "speed",
+							"value": "1.0",
+							"description": "播放速度, float类型",
+							"disabled": true
+						},
+						{
 							"key": "enable_hls",
 							"value": "",
 							"description": "是否转hls-ts",
@@ -2599,7 +2788,498 @@
 				}
 			},
 			"response": []
-		}
+		},
+		{
+			"name": "WebRTC-注册到信令服务器(addWebrtcRoomKeeper)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/addWebrtcRoomKeeper?secret={{ZLMediaKit_secret}}&server_host=127.0.0.1&server_port=3000&room_id=peer_1",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"addWebrtcRoomKeeper"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}"
+						},
+						{
+							"key": "server_host",
+							"value": "127.0.0.1",
+							"description": "要注册到的信令服务器地址"
+						},
+						{
+							"key": "server_port",
+							"value": "3000",
+							"description": "要注册到的信令服务器端口"
+						},
+						{
+							"key": "room_id",
+							"value": "peer_1",
+							"description": "要注册到的roomid"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "WebRTC-从信令服务器注销(delWebrtcRoomKeeper)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/delWebrtcRoomKeeper?secret={{ZLMediaKit_secret}}&room_key=",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"delWebrtcRoomKeeper"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}"
+						},
+						{
+							"key": "room_key",
+							"value": ""
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "WebRTC-Peer查看注册信息(listWebrtcRoomKeepers)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/listWebrtcRoomKeepers?secret={{ZLMediaKit_secret}}",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"listWebrtcRoomKeepers"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "WebRTC-信令服务器查看注册信息(listWebrtcRooms)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/listWebrtcRooms?secret={{ZLMediaKit_secret}}",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"listWebrtcRooms"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "WebRTC-查看WebRTCProxyPlayer连接信息(getWebrtcProxyPlayerInfo)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/getWebrtcProxyPlayerInfo?secret={{ZLMediaKit_secret}}&key=__defaultVhost__/live/test",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"getWebrtcProxyPlayerInfo"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}"
+						},
+						{
+							"key": "key",
+							"value": "__defaultVhost__/live/test"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "onvif 搜索",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/searchOnvifDevice?secret={{ZLMediaKit_secret}}&timeout_ms=5000",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"searchOnvifDevice"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}"
+						},
+						{
+							"key": "subnet_prefix",
+							"value": "192.168.1"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "获取 onvif 设备url",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/getStreamUrl?secret={{ZLMediaKit_secret}}&onvif_url=http://xxxx/onvif/device_service",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"getStreamUrl"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}"
+						},
+						{
+							"key": "onvif_url",
+							"value": "http://xxxx/onvif/device_service"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "下载程序二进制文件(downloadBin)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/downloadBin?secret={{ZLMediaKit_secret}}",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"downloadBin"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "WebRTC交互(webrtc)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/webrtc?secret={{ZLMediaKit_secret}}&type=play&app=live&stream=test",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"webrtc"
+					],
+					"query": [
+						{
+							"key": "type",
+							"value": "play",
+							"description": "webrtc类型，play为播放，push为推流，echo为回显测试"
+						},
+						{
+							"key": "app",
+							"value": "live",
+							"description": "应用名"
+						},
+						{
+							"key": "stream",
+							"value": "test",
+							"description": "流id"
+						},
+						{
+							"key": "preferred_tcp",
+							"value": null,
+							"description": "是否webrtc over tcp优先模式",
+							"disabled": true
+						},
+						{
+							"key": "cand_udp",
+							"value": "test",
+							"description": "指定zlm服务器udp candidate",
+							"disabled": true
+						},
+						{
+							"key": "cand_tcp",
+							"value": null,
+							"description": "指定zlm服务器tcp candidate",
+							"disabled": true
+						}
+					]
+				},
+				"description": "WebRTC交互接口，body为SDP offer"
+			},
+			"response": []
+		},
+		{
+			"name": "WebRTC-WHIP推流(whip)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/sdp"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/whip?app=live&stream=test",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"whip"
+					],
+					"query": [
+						{
+							"key": "app",
+							"value": "live",
+							"description": "应用名"
+						},
+						{
+							"key": "stream",
+							"value": "test",
+							"description": "流id"
+						},
+						{
+							"key": "preferred_tcp",
+							"value": null,
+							"description": "是否webrtc over tcp优先模式",
+							"disabled": true
+						},
+						{
+							"key": "cand_udp",
+							"value": "test",
+							"description": "指定zlm服务器udp candidate",
+							"disabled": true
+						},
+						{
+							"key": "cand_tcp",
+							"value": null,
+							"description": "指定zlm服务器tcp candidate",
+							"disabled": true
+						}
+					]
+				},
+				"description": "WebRTC WHIP标准推流接口，body为SDP offer"
+			},
+			"response": []
+		},
+		{
+			"name": "WebRTC-WHEP播放(whep)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/sdp"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/whep?app=live&stream=test",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"whep"
+					],
+					"query": [
+						{
+							"key": "app",
+							"value": "live",
+							"description": "应用名"
+						},
+						{
+							"key": "stream",
+							"value": "test",
+							"description": "流id"
+						},
+						{
+							"key": "preferred_tcp",
+							"value": null,
+							"description": "是否webrtc over tcp优先模式",
+							"disabled": true
+						},
+						{
+							"key": "cand_udp",
+							"value": "test",
+							"description": "指定zlm服务器udp candidate",
+							"disabled": true
+						},
+						{
+							"key": "cand_tcp",
+							"value": null,
+							"description": "指定zlm服务器tcp candidate",
+							"disabled": true
+						}
+					]
+				},
+				"description": "WebRTC WHEP标准播放接口，body为SDP offer"
+			},
+			"response": []
+		},
+		{
+			"name": "WebRTC-删除连接(delete_webrtc)",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/delete_webrtc?id=&token=",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"delete_webrtc"
+					],
+					"query": [
+						{
+							"key": "id",
+							"value": "",
+							"description": "WebRTC连接的唯一标识"
+						},
+						{
+							"key": "token",
+							"value": "",
+							"description": "删除操作的验证token"
+						}
+					]
+				},
+				"description": "删除WebRTC连接，需要使用DELETE方法。id和token由whip/whep接口返回的Location头中获取。"
+			},
+			"response": []
+		},
+        {
+          "name": "登录(login)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{ZLMediaKit_URL}}/index/api/login?digest=d00414822dfd8eabed87c5e24ffcdca7",
+              "host": [
+                "{{ZLMediaKit_URL}}"
+              ],
+              "path": [
+                "index",
+                "api",
+                "login"
+              ],
+              "query": [
+                {
+                  "key": "digest",
+                  "value": "",
+                  "description": "MD5(\"zlmediakit:\"+${secret}+\":\" +${cookie})"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "登出(logout)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{ZLMediaKit_URL}}/index/api/logout",
+              "host": [
+                "{{ZLMediaKit_URL}}"
+              ],
+              "path": [
+                "index",
+                "api",
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        }
 	],
 	"event": [
 		{

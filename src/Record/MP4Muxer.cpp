@@ -19,7 +19,11 @@ using namespace toolkit;
 namespace mediakit {
 
 MP4Muxer::~MP4Muxer() {
-    closeMP4();
+    try {
+        closeMP4();
+    } catch (std::exception &e) {
+        WarnL << e.what();
+    }
 }
 
 void MP4Muxer::openMP4(const string &file) {

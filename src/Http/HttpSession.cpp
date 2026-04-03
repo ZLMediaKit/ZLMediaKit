@@ -61,6 +61,7 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
     static onceToken token([]() {
         s_func_map.emplace("GET", &HttpSession::onHttpRequest_GET);
         s_func_map.emplace("POST", &HttpSession::onHttpRequest_POST);
+        s_func_map.emplace("PUT", &HttpSession::onHttpRequest_POST);
         // DELETE命令用于whip/whep用，只用于触发http api  [AUTO-TRANSLATED:f3b7aaea]
         // DELETE command is used for whip/whep, only used to trigger http api
         s_func_map.emplace("DELETE", &HttpSession::onHttpRequest_POST);
@@ -213,6 +214,7 @@ bool HttpSession::checkWebSocket() {
     if (Sec_WebSocket_Key.empty()) {
         return false;
     }
+    _is_websocket = true;
     auto Sec_WebSocket_Accept = encodeBase64(SHA1::encode_bin(Sec_WebSocket_Key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"));
 
     KeyValue headerOut;
@@ -223,22 +225,22 @@ bool HttpSession::checkWebSocket() {
         headerOut["Sec-WebSocket-Protocol"] = _parser["Sec-WebSocket-Protocol"];
     }
 
-    auto res_cb = [this, headerOut]() {
-        _live_over_websocket = true;
-        sendResponse(101, false, nullptr, headerOut, nullptr, true);
+    auto res_cb = []() {
+        // 改成先回复http头模式，以解决按需播放场景下websocket请求pending问题：#4553
     };
 
-    auto res_cb_flv = [this, headerOut]() mutable {
-        _live_over_websocket = true;
+    auto res_immediately = [this, headerOut]() mutable {
         headerOut.emplace("Cache-Control", "no-store");
         sendResponse(101, false, nullptr, headerOut, nullptr, true);
+        _live_over_websocket = true;
     };
 
     // 判断是否为websocket-flv  [AUTO-TRANSLATED:31682d7a]
     // Determine whether it is websocket-flv
-    if (checkLiveStreamFlv(res_cb_flv)) {
+    if (checkLiveStreamFlv(res_cb)) {
         // 这里是websocket-flv直播请求  [AUTO-TRANSLATED:4bea5956]
         // This is a websocket-flv live request
+        res_immediately();
         return true;
     }
 
@@ -247,6 +249,7 @@ bool HttpSession::checkWebSocket() {
     if (checkLiveStreamTS(res_cb)) {
         // 这里是websocket-ts直播请求  [AUTO-TRANSLATED:8ab08dd6]
         // This is a websocket-ts live request
+        res_immediately();
         return true;
     }
 
@@ -255,6 +258,7 @@ bool HttpSession::checkWebSocket() {
     if (checkLiveStreamFMP4(res_cb)) {
         // 这里是websocket-fmp4直播请求  [AUTO-TRANSLATED:ccf0c1e2]
         // This is a websocket-fmp4 live request
+        res_immediately();
         return true;
     }
 
@@ -305,6 +309,12 @@ bool HttpSession::checkLiveStream(const string &schema, const string &url_suffix
         return false;
     }
 
+    if (_is_websocket) {
+        _media_info.protocol = overSsl() ? "wss" : "ws";
+    } else {
+        _media_info.protocol = overSsl() ? "https" : "http";
+    }
+
     bool close_flag = !strcasecmp(_parser["Connection"].data(), "close");
     weak_ptr<HttpSession> weak_self = static_pointer_cast<HttpSession>(shared_from_this());
 
@@ -349,7 +359,7 @@ bool HttpSession::checkLiveStream(const string &schema, const string &url_suffix
 
     Broadcast::AuthInvoker invoker = [weak_self, onRes](const string &err) {
         if (auto strong_self = weak_self.lock()) {
-            strong_self->async([onRes, err]() { onRes(err); });
+            strong_self->async([onRes, err]() { onRes(err); }, false);
         }
     };
 
@@ -357,7 +367,7 @@ bool HttpSession::checkLiveStream(const string &schema, const string &url_suffix
     if (!flag) {
         // 该事件无人监听,默认不鉴权  [AUTO-TRANSLATED:e1fbc6ae]
         // No one is listening to this event, no authentication by default
-        onRes("");
+        invoker("");
     }
     return true;
 }
@@ -387,7 +397,7 @@ bool HttpSession::checkLiveStreamFMP4(const function<void()> &cb) {
         _fmp4_reader = fmp4_src->getRing()->attach(getPoller());
         _fmp4_reader->setGetInfoCB([weak_self]() {
             Any ret;
-            ret.set(static_pointer_cast<SockInfo>(weak_self.lock()));
+            ret.set(static_pointer_cast<Session>(weak_self.lock()));
             return ret;
         });
         _fmp4_reader->setDetachCB([weak_self]() {
@@ -437,7 +447,7 @@ bool HttpSession::checkLiveStreamTS(const function<void()> &cb) {
         _ts_reader = ts_src->getRing()->attach(getPoller());
         _ts_reader->setGetInfoCB([weak_self]() {
             Any ret;
-            ret.set(static_pointer_cast<SockInfo>(weak_self.lock()));
+            ret.set(static_pointer_cast<Session>(weak_self.lock()));
             return ret;
         });
         _ts_reader->setDetachCB([weak_self]() {
@@ -652,6 +662,23 @@ void HttpSession::sendResponse(int code,
                                const HttpSession::KeyValue &header,
                                const HttpBody::Ptr &body,
                                bool no_content_length) {
+    if (_live_over_websocket) {
+        WebSocketHeader ws_header;
+        ws_header._fin = true;
+        ws_header._reserved = 0;
+        ws_header._opcode = WebSocketHeader::CLOSE;
+        ws_header._mask_flag = false;
+        uint16_t why = htons(0xFFFF & code);
+        std::string buffer;
+        buffer.append(reinterpret_cast<char *>(&why), 2);
+        if (body && code != 404) {
+            buffer.append(body->readData(body->remainSize())->toString());
+        } else {
+            buffer.append("unknown reason");
+        }
+        WebSocketSplitter::encode(ws_header, std::make_shared<BufferString>(std::move(buffer)));
+        return;
+    }
     GET_CONFIG(string, charSet, Http::kCharSet);
     GET_CONFIG(uint32_t, keepAliveSec, Http::kKeepAliveSecond);
 

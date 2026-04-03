@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright (c) 2016-2022 The ZLMediaKit project authors. All Rights Reserved.
+# Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +21,7 @@
 # SOFTWARE.
 #
 
-cmake_minimum_required(VERSION 3.1.3)
+cmake_minimum_required(VERSION 3.1.3...3.26)
 
 # 加载自定义模块
 # Load custom modules
@@ -32,6 +32,8 @@ project(ZLMediaKit LANGUAGES C CXX)
 # 使能 C++11
 # Enable C++11
 set(CMAKE_CXX_STANDARD 11)
+# -fPIC
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 option(ENABLE_API "Enable C API SDK" ON)
 option(ENABLE_API_STATIC_LIB "Enable mk_api static lib" OFF)
@@ -42,6 +44,7 @@ option(ENABLE_FFMPEG "Enable FFmpeg" OFF)
 option(ENABLE_HLS "Enable HLS" ON)
 option(ENABLE_JEMALLOC_STATIC "Enable static linking to the jemalloc library" OFF)
 option(ENABLE_JEMALLOC_DUMP "Enable jemalloc to dump malloc statistics" OFF)
+option(ENABLE_TCMALLOC "Enable linking to the tcmalloc library" OFF)
 option(ENABLE_MEM_DEBUG "Enable Memory Debug" OFF)
 option(ENABLE_MP4 "Enable MP4" ON)
 option(ENABLE_MSVC_MT "Enable MSVC Mt/Mtd lib" ON)
@@ -56,10 +59,14 @@ option(ENABLE_TESTS "Enable Tests" ON)
 option(ENABLE_SCTP "Enable SCTP" ON)
 option(ENABLE_WEBRTC "Enable WebRTC" ON)
 option(ENABLE_X264 "Enable x264" OFF)
-option(ENABLE_WEPOLL "Enable wepoll" ON)
 option(ENABLE_VIDEOSTACK "Enable video stack" OFF)
 option(DISABLE_REPORT "Disable report to report.zlmediakit.com" OFF)
 option(USE_SOLUTION_FOLDERS "Enable solution dir supported" ON)
+option(ENABLE_OBJCOPY "Enable use objcopy to generate debug info file" ON)
+# 编译静态库
+option(BUILD_SHARED_LIBS "Build shared instead of static" OFF)
+option(ENABLE_PYTHON "Enable python plugin" OFF)
+
 ##############################################################################
 # 设置socket默认缓冲区大小为256k.如果设置为0则不设置socket的默认缓冲区大小,使用系统内核默认值(设置为0仅对linux有效)
 # Set the default buffer size of the socket to 256k. If set to 0, the default buffer size of the socket will not be set,
@@ -198,7 +205,10 @@ if(UNIX)
   if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     set(COMPILE_OPTIONS_DEFAULT ${COMPILE_OPTIONS_DEFAULT} "-g3")
   else()
-    set(COMPILE_OPTIONS_DEFAULT ${COMPILE_OPTIONS_DEFAULT} "-g0")
+    find_program(OBJCOPY_FOUND objcopy)
+    if (OBJCOPY_FOUND AND ENABLE_OBJCOPY)
+      set(COMPILE_OPTIONS_DEFAULT ${COMPILE_OPTIONS_DEFAULT} "-g3")
+    endif()
   endif()
 elseif(WIN32)
   if (MSVC)
@@ -208,8 +218,8 @@ elseif(WIN32)
             # warning C4530: C++ exception handler used, but unwind semantics are not enabled.
             "/EHsc")
     # disable Windows logo
-    list(APPEND COMPILE_OPTIONS_DEFAULT "/nologo")
-    list(APPEND CMAKE_STATIC_LINKER_FLAGS "/nologo")
+   string(REPLACE "/nologo" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+   set(CMAKE_STATIC_LINKER_FLAGS "")
   endif()
 endif()
 
@@ -248,8 +258,8 @@ endif()
 # Multiple modules depend on ffmpeg related libraries, unified search
 if(ENABLE_FFMPEG)
   find_package(PkgConfig QUIET)
-  # 查找 ffmpeg/libutil 是否安装
-  # find ffmpeg/libutil installed
+  # 查找 ffmpeg/libavutil 是否安装
+  # find ffmpeg/libavutil installed
   if(PKG_CONFIG_FOUND)
     pkg_check_modules(AVUTIL QUIET IMPORTED_TARGET libavutil)
     if(AVUTIL_FOUND)
@@ -288,8 +298,19 @@ if(ENABLE_FFMPEG)
     endif()
   endif()
 
-  # 查找 ffmpeg/libutil 是否安装
-  # find ffmpeg/libutil installed
+  # 查找 ffmpeg/libavfilter 是否安装
+  # find ffmpeg/libavfilter installed
+  if(PKG_CONFIG_FOUND)
+    pkg_check_modules(AVFILTER QUIET IMPORTED_TARGET libavfilter)
+    if(AVFILTER_FOUND)
+      update_cached_list(MK_LINK_LIBRARIES PkgConfig::AVFILTER)
+      message(STATUS "found library: ${AVFILTER_LIBRARIES}")
+    endif()
+  endif()
+
+
+  # 查找 ffmpeg/libavutil 是否安装
+  # find ffmpeg/libavutil installed
   if(NOT AVUTIL_FOUND)
     find_package(AVUTIL QUIET)
     if(AVUTIL_FOUND)
@@ -332,7 +353,16 @@ if(ENABLE_FFMPEG)
     endif()
   endif()
 
-  if(AVUTIL_FOUND AND AVCODEC_FOUND AND SWSCALE_FOUND AND SWRESAMPLE_FOUND)
+  if(NOT AVFILTER_FOUND)
+    find_package(AVFILTER QUIET)
+    if(AVFILTER_FOUND)
+      include_directories(SYSTEM ${AVFILTER_INCLUDE_DIR})
+      update_cached_list(MK_LINK_LIBRARIES ${AVFILTER_LIBRARIES})
+      message(STATUS "found library: ${AVFILTER_LIBRARIES}")
+    endif()
+  endif()
+
+  if(AVUTIL_FOUND AND AVCODEC_FOUND AND SWSCALE_FOUND AND SWRESAMPLE_FOUND AND AVFILTER_FOUND)
     update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_FFMPEG)
     update_cached_list(MK_LINK_LIBRARIES ${CMAKE_DL_LIBS})
   else()
@@ -391,6 +421,19 @@ if(JEMALLOC_FOUND)
     add_definitions(-DENABLE_JEMALLOC_DUMP)
     message(STATUS "jemalloc will save memory usage statistics when the program exits")
   endif ()
+endif()
+
+# 查找 tcmalloc 是否安装
+# find tcmalloc installed
+if(ENABLE_TCMALLOC)
+  find_package(TCMALLOC QUIET)
+  if(TCMALLOC_FOUND)
+    message(STATUS "Link with tcmalloc library: ${TCMALLOC_LIBRARIES}")
+    update_cached_list(MK_LINK_LIBRARIES ${TCMALLOC_LIBRARIES})
+  else()
+    set(ENABLE_TCMALLOC OFF)
+    message(WARNING "tcmalloc 相关功能未找到")
+  endif()
 endif()
 
 # 查找 openssl 是否安装
@@ -467,6 +510,17 @@ if(ENABLE_SRT)
   update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_SRT)
 endif()
 
+if(ENABLE_WEBRTC)
+  # 查找 srtp 是否安装
+  find_package(SRTP QUIET)
+  if(SRTP_FOUND AND ENABLE_OPENSSL)
+    message(STATUS "found library: ${SRTP_LIBRARIES}, ENABLE_WEBRTC defined")
+    update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_WEBRTC)
+  else()
+    set(ENABLE_WEBRTC OFF)
+    message(WARNING "srtp 未找到, WebRTC 相关功能打开失败")
+  endif()
+endif()
 # ----------------------------------------------------------------------------
 # Solution folders:
 # ----------------------------------------------------------------------------
@@ -551,6 +605,9 @@ file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/www" DESTINATION ${EXECUTABLE_OUTPUT_PATH
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/conf/config.ini" DESTINATION ${EXECUTABLE_OUTPUT_PATH})
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/default.pem" DESTINATION ${EXECUTABLE_OUTPUT_PATH})
 
+if (ENABLE_FFMPEG)
+  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/DejaVuSans.ttf" DESTINATION ${EXECUTABLE_OUTPUT_PATH})
+endif ()
 # 拷贝VideoStack 无视频流时默认填充的背景图片
 # Copy the default background image used by VideoStack when there is no video stream
 if (ENABLE_VIDEOSTACK AND ENABLE_FFMPEG AND ENABLE_X264)

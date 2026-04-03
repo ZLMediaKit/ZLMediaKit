@@ -42,6 +42,9 @@ int domain(const string &file, const string &url) {
     // 根据url获取媒体协议类型，注意大小写  [AUTO-TRANSLATED:3cd6622a]
     // Get the media protocol type based on the URL, note the case
     auto schema = strToLower(findSubString(url.data(), nullptr, "://").substr(0, 4));
+    if (schema == "webr") {
+        schema = "rtsp";
+    }
 
     // 只开启推流协议对应的转协议  [AUTO-TRANSLATED:1c4975ae]
     // Only enable the protocol conversion corresponding to the push protocol

@@ -25,10 +25,11 @@ class TSMediaSourceMuxer;
 class FMP4MediaSourceMuxer;
 class RtpSender;
 
-class MultiMediaSourceMuxer : public MediaSourceEventInterceptor, public MediaSink, public std::enable_shared_from_this<MultiMediaSourceMuxer>{
+class MultiMediaSourceMuxer : public MediaSourceEventInterceptor, public MediaSink, public toolkit::noncopyable, public std::enable_shared_from_this<MultiMediaSourceMuxer>{
 public:
     using Ptr = std::shared_ptr<MultiMediaSourceMuxer>;
     using RingType = toolkit::RingBuffer<Frame::Ptr>;
+    using onCreateMuxer = std::function<MediaSinkInterface::Ptr()>;
 
     class Listener {
     public:
@@ -120,7 +121,16 @@ public:
      
      * [AUTO-TRANSLATED:cb1fd8a9]
      */
-    bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const std::string &custom_path, size_t max_second) override;
+    bool setupRecord(Recorder::type type, bool start, const std::string &custom_path, size_t max_second);
+
+    /**
+     * 开始录制mp4
+     * @param file_path mp4相对路径
+     * @param back_time_ms 回溯录制时长
+     * @param forward_time_ms 后续录制时长
+     * @return 录制文件绝对路径
+     */
+    std::string startRecord(const std::string &file_path, int back_time_ms, int forward_time_ms);
 
     /**
      * 获取录制状态
@@ -132,25 +142,13 @@ public:
      
      * [AUTO-TRANSLATED:798afa71]
      */
-    bool isRecording(MediaSource &sender, Recorder::type type) override;
+    bool isRecording(Recorder::type type);
 
     /**
      * 开始发送ps-rtp流
-     * @param dst_url 目标ip或域名
-     * @param dst_port 目标端口
-     * @param ssrc rtp的ssrc
-     * @param is_udp 是否为udp
      * @param cb 启动成功或失败回调
-     * Start sending ps-rtp stream
-     * @param dst_url Target ip or domain name
-     * @param dst_port Target port
-     * @param ssrc rtp's ssrc
-     * @param is_udp Whether it is udp
-     * @param cb Start success or failure callback
-     
-     * [AUTO-TRANSLATED:620416c2]
      */
-    void startSendRtp(MediaSource &sender, const MediaSourceEvent::SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb) override;
+    void startSendRtp(const MediaSourceEvent::SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb);
 
     /**
      * 停止ps-rtp发送
@@ -160,19 +158,7 @@ public:
      
      * [AUTO-TRANSLATED:b91e2055]
      */
-    bool stopSendRtp(MediaSource &sender, const std::string &ssrc) override;
-
-    /**
-     * 获取所有Track
-     * @param trackReady 是否筛选过滤未就绪的track
-     * @return 所有Track
-     * Get all Tracks
-     * @param trackReady Whether to filter out unready tracks
-     * @return All Tracks
-     
-     * [AUTO-TRANSLATED:53755f5d]
-     */
-    std::vector<Track::Ptr> getMediaTracks(MediaSource &sender, bool trackReady = true) const override;
+    bool stopSendRtp(const std::string &ssrc);
 
     /**
      * 获取所属线程
@@ -181,6 +167,12 @@ public:
      * [AUTO-TRANSLATED:a4dc847e]
      */
     toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;
+    
+    /**
+     * 关闭流
+     * @return 是否成功
+     */
+    bool close(MediaSource &sender) override;
 
     /**
      * 获取本对象
@@ -193,9 +185,9 @@ public:
     const ProtocolOption &getOption() const;
     const MediaTuple &getMediaTuple() const;
     std::string shortUrl() const;
-
-    void forEachRtpSender(const std::function<void(const std::string &ssrc)> &cb) const;
-
+#if defined(ENABLE_RTPPROXY)
+    void forEachRtpSender(const std::function<void(const std::string &ssrc, const RtpSender &sender)> &cb) const;
+#endif // ENABLE_RTPPROXY
 protected:
     /////////////////////////////////MediaSink override/////////////////////////////////
 
@@ -231,8 +223,8 @@ protected:
     bool onTrackFrame_l(const Frame::Ptr &frame);
 
 private:
-    void createGopCacheIfNeed();
-    std::shared_ptr<MediaSinkInterface> makeRecorder(MediaSource &sender, Recorder::type type);
+    void createGopCacheIfNeed(size_t gop_count);
+    std::shared_ptr<MediaSinkInterface> makeRecorder(Recorder::type type);
 
 private:
     bool _is_enable = false;
@@ -245,7 +237,9 @@ private:
     toolkit::Ticker _last_check;
     std::unordered_map<int, Stamp> _stamps;
     std::weak_ptr<Listener> _track_listener;
-    std::unordered_multimap<std::string, RingType::RingReader::Ptr> _rtp_sender;
+#if defined(ENABLE_RTPPROXY)
+    std::unordered_multimap<std::string, std::tuple<RingType::RingReader::Ptr, std::weak_ptr<RtpSender>>> _rtp_sender;
+#endif // ENABLE_RTPPROXY
     std::shared_ptr<FMP4MediaSourceMuxer> _fmp4;
     std::shared_ptr<RtmpMediaSourceMuxer> _rtmp;
     std::shared_ptr<RtspMediaSourceMuxer> _rtsp;
@@ -256,6 +250,8 @@ private:
     std::shared_ptr<HlsFMP4Recorder> _hls_fmp4;
     toolkit::EventPoller::Ptr _poller;
     RingType::Ptr _ring;
+
+    MediaSinkInterface::Ptr _delegate;
 
     // 对象个数统计  [AUTO-TRANSLATED:3b43e8c2]
     // Object count statistics

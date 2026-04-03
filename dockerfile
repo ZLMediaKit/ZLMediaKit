@@ -1,5 +1,5 @@
-FROM ubuntu:20.04 AS build
-ARG MODEL
+FROM ubuntu:24.04 AS build
+ARG MODEL=Release
 #shell,rtmp,rtsp,rtsps,http,https,rtp
 EXPOSE 1935/tcp
 EXPOSE 554/tcp
@@ -27,6 +27,7 @@ RUN apt-get update && \
          libssl-dev \
          gcc \
          g++ \
+         python3-dev \
          gdb && \
          apt-get autoremove -y && \
          apt-get clean -y && \
@@ -41,17 +42,17 @@ WORKDIR /opt/media/ZLMediaKit/3rdpart
 RUN wget https://github.com/cisco/libsrtp/archive/v2.3.0.tar.gz -O libsrtp-2.3.0.tar.gz && \
     tar xfv libsrtp-2.3.0.tar.gz && \
     mv libsrtp-2.3.0 libsrtp && \
-    cd libsrtp && ./configure --enable-openssl && make -j $(nproc) && make install
+    cd libsrtp && CFLAGS="-fcommon" ./configure --enable-openssl && make -j $(nproc) && make install
 #RUN git submodule update --init --recursive && \
 
 RUN mkdir -p build release/linux/${MODEL}/
 
 WORKDIR /opt/media/ZLMediaKit/build
-RUN cmake -DCMAKE_BUILD_TYPE=${MODEL} -DENABLE_WEBRTC=true -DENABLE_FFMPEG=true -DENABLE_TESTS=false -DENABLE_API=false .. && \
+RUN cmake -DENABLE_PYTHON=true -DCMAKE_BUILD_TYPE=${MODEL} -DENABLE_WEBRTC=true -DENABLE_FFMPEG=true -DENABLE_TESTS=false -DENABLE_API=false .. && \
     make -j $(nproc)
 
-FROM ubuntu:20.04
-ARG MODEL
+FROM ubuntu:24.04
+ARG MODEL=Release
 
 # ADD sources.list /etc/apt/sources.list
 
@@ -67,6 +68,10 @@ RUN apt-get update && \
          ffmpeg \
          gcc \
          g++ \
+         python3 \
+         python3-dev \
+         python3-venv \
+         python3-pip \
          gdb && \
          apt-get autoremove -y && \
          apt-get clean -y && \

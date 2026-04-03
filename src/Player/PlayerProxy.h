@@ -18,8 +18,7 @@
 
 namespace mediakit {
 
-struct StreamInfo
-{
+struct StreamInfo {
     TrackType codec_type;
     std::string codec_name;
     int bitrate;
@@ -30,8 +29,7 @@ struct StreamInfo
     int video_height;
     float video_fps;
 
-    StreamInfo()
-    {
+    StreamInfo() {
         codec_type = TrackInvalid;
         codec_name = "none";
         bitrate = -1;
@@ -44,14 +42,12 @@ struct StreamInfo
     }
 };
 
-struct TranslationInfo
-{
+struct TranslationInfo {
     std::vector<StreamInfo> stream_info;
     int byte_speed;
     uint64_t start_time_stamp;
 
-    TranslationInfo()
-    {
+    TranslationInfo() {
         byte_speed = -1;
         start_time_stamp = 0;
     }
@@ -133,6 +129,7 @@ public:
     int totalReaderCount();
 
     int getStatus();
+    std::string getStatusStr() const;
     uint64_t getLiveSecs();
     uint64_t getRePullCount();
 
@@ -143,6 +140,8 @@ public:
     const MediaTuple& getMediaTuple() const { return _tuple; }
     const ProtocolOption& getOption() const { return _option; }
 
+    void update(const std::string &url, const toolkit::mINI &args);
+
 private:
     // MediaSourceEvent override
     bool close(MediaSource &sender) override;
@@ -151,13 +150,15 @@ private:
     std::string getOriginUrl(MediaSource &sender) const override;
     std::shared_ptr<toolkit::SockInfo> getOriginSock(MediaSource &sender) const override;
     float getLossRate(MediaSource &sender, TrackType type) override;
+    toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;
 
-    void rePlay(const std::string &strUrl, int iFailedCnt);
+    void rePlay(int iFailedCnt);
     void onPlaySuccess();
     void setDirectProxy();
     void setTranslationInfo();
 
 private:
+    std::shared_ptr<std::string> _status;
     int _retry_count;
     int _reconnect_delay_min;
     int _reconnect_delay_max;

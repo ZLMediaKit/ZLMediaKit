@@ -83,6 +83,10 @@ struct sniff_tcp {
 #define TH_URG 0x20
 #define TH_ECE 0x40
 #define TH_CWR 0x80
+
+#if defined(TH_FLAGS)
+#undef TH_FLAGS
+#endif
 #define TH_FLAGS (TH_FINTH_SYNTH_RSTTH_ACKTH_URGTH_ECETH_CWR)
     u_short th_win; /* TCP滑动窗口 */
     u_short th_sum; /* 头部校验和 */
@@ -154,7 +158,7 @@ static bool loadFile(const char *path, const EventPoller::Ptr &poller) {
         return false;
     }
     auto total_size = std::make_shared<size_t>(0);
-    struct pcap_pkthdr header = {0};
+    struct pcap_pkthdr header {};
     while (true) {
         const u_char *pkt_buff = pcap_next(handle.get(), &header);
         if (!pkt_buff) {

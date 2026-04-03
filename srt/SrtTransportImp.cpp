@@ -117,6 +117,7 @@ bool SrtTransportImp::parseStreamid(std::string &streamid) {
 
     _media_info.app = app;
     _media_info.stream = stream_name;
+    _media_info.full_url = _media_info.getUrl() + "?" + _media_info.params;
 
     TraceL << " mediainfo=" << _media_info.shortUrl() << " params=" << _media_info.params;
 
@@ -144,16 +145,8 @@ void SrtTransportImp::onShutdown(const SockException &ex) {
 }
 
 bool SrtTransportImp::close(mediakit::MediaSource &sender) {
-    std::string err = StrPrinter << "close media: " << sender.getUrl();
-    weak_ptr<SrtTransportImp> weak_self = static_pointer_cast<SrtTransportImp>(shared_from_this());
-    getPoller()->async([weak_self, err]() {
-        auto strong_self = weak_self.lock();
-        if (strong_self) {
-            strong_self->onShutdown(SockException(Err_shutdown, err));
-            // 主动关闭推流，那么不延时注销
-            strong_self->_muxer = nullptr;
-        }
-    });
+    onShutdown(SockException(Err_shutdown, "close media: " + sender.getUrl()));
+    _muxer = nullptr;
     return true;
 }
 
@@ -252,7 +245,7 @@ void SrtTransportImp::doPlay() {
             weak_ptr<Session> weak_session = strong_self->getSession();
             strong_self->_ts_reader->setGetInfoCB([weak_session]() {
                 Any ret;
-                ret.set(static_pointer_cast<SockInfo>(weak_session.lock()));
+                ret.set(static_pointer_cast<Session>(weak_session.lock()));
                 return ret;
             });
             strong_self->_ts_reader->setDetachCB([weak_self]() {

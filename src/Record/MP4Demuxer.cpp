@@ -138,7 +138,7 @@ Frame::Ptr MP4Demuxer::readFrame(bool &keyFrame, bool &eof) {
     }
 }
 
-Frame::Ptr MP4Demuxer::makeFrame(uint32_t track_id, const Buffer::Ptr &buf, int64_t pts, int64_t dts) {
+Frame::Ptr MP4Demuxer::makeFrame(uint32_t track_id, Buffer::Ptr buf, int64_t pts, int64_t dts) {
     auto it = _tracks.find(track_id);
     if (it == _tracks.end()) {
         return nullptr;
@@ -198,11 +198,11 @@ void MultiMP4Demuxer::openMP4(const string &files_string) {
     std::vector<std::string> files;
     if (File::is_dir(files_string)) {
         File::scanDir(files_string, [&](const string &path, bool is_dir) {
-            if (!is_dir) {
+            if (!is_dir && end_with(path, ".mp4")) {
                 files.emplace_back(path);
             }
             return true;
-        });
+        }, true);
         std::sort(files.begin(), files.end());
     } else {
         files = split(files_string, ";");
@@ -218,7 +218,10 @@ void MultiMP4Demuxer::openMP4(const string &files_string) {
     CHECK(!_demuxers.empty());
     _it = _demuxers.begin();
     for (auto &track : _it->second->getTracks(false)) {
-        _tracks.emplace(track->getIndex(), track->clone());
+        auto clone_track(track->clone());
+        clone_track->setIndex(clone_track->getTrackType());
+        _tracks.emplace(clone_track->getIndex(), clone_track);
+        DebugL << "track index: " << track->getIndex() << " -> " << clone_track->getIndex();
     }
 }
 
@@ -244,6 +247,7 @@ Frame::Ptr MultiMP4Demuxer::readFrame(bool &keyFrame, bool &eof) {
     for (;;) {
         auto ret = _it->second->readFrame(keyFrame, eof);
         if (ret) {
+            ret->setIndex(ret->getTrackType());
             auto it = _tracks.find(ret->getIndex());
             if (it != _tracks.end()) {
                 auto ret2 = std::make_shared<FrameStamp>(ret);

@@ -59,13 +59,14 @@ private:
 private:
     bool _finished = false;
     bool _have_video = false;
+    bool _last_is_keyframe = false;
     Decoder::Ptr _decoder;
     MediaSinkInterface *_sink;
-
     class FrameMergerImp : public FrameMerger {
     public:
         FrameMergerImp() : FrameMerger(FrameMerger::none) {}
     };
+    FrameMergerImp *_video_merge = nullptr;
     std::unordered_map<int, std::pair<Track::Ptr, FrameMergerImp> > _tracks;
 };
 

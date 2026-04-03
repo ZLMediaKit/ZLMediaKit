@@ -26,6 +26,7 @@ void FlvPlayer::play(const string &url) {
     setHeaderTimeout((*this)[Client::kTimeoutMS].as<int>());
     setBodyTimeout((*this)[Client::kMediaTimeoutMS].as<int>());
     setMethod("GET");
+    addCustomHeader(this);
     sendRequest(url);
 }
 
@@ -74,6 +75,14 @@ void FlvPlayer::onRecvRtmpPacket(RtmpPacket::Ptr packet) {
         onPlayResult(SockException(Err_success, "play http-flv success"));
     }
     onRtmpPacket(std::move(packet));
+}
+
+size_t FlvPlayer::getRecvSpeed() {
+    return TcpClient::getRecvSpeed();
+}
+
+size_t FlvPlayer::getRecvTotalBytes() {
+    return TcpClient::getRecvTotalBytes();
 }
 
 }//mediakit

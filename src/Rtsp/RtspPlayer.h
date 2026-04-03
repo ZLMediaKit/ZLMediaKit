@@ -36,8 +36,12 @@ public:
     void play(const std::string &strUrl) override;
     void pause(bool pause) override;
     void speed(float speed) override;
+    void seekTo(uint32_t pos) override;  // 新增
     void teardown() override;
     float getPacketLossRate(TrackType type) const override;
+
+    size_t getRecvSpeed() override;
+    size_t getRecvTotalBytes() override;
 
 protected:
     // 派生类回调函数  [AUTO-TRANSLATED:61e20903]
@@ -117,6 +121,7 @@ protected:
 private:
     void onPlayResult_l(const toolkit::SockException &ex , bool handshake_done);
 
+    int getTrackIndexByPT(int pt) const;
     int getTrackIndexByInterleaved(int interleaved) const;
     int getTrackIndexByTrackType(TrackType track_type) const;
 
@@ -124,7 +129,8 @@ private:
     void handleResDESCRIBE(const Parser &parser);
     bool handleAuthenticationFailure(const std::string &wwwAuthenticateParamsStr);
     void handleResPAUSE(const Parser &parser, int type);
-    bool handleResponse(const std::string &cmd, const Parser &parser);
+    using send_method_handler = void (RtspPlayer::*)(void);
+    bool handleResponse(const std::string &cmd, const Parser &parser, send_method_handler handler);
 
     void sendOptions();
     void sendSetup(unsigned int track_idx);
@@ -154,9 +160,11 @@ private:
     std::string _play_url;
     // rtsp开始倍速  [AUTO-TRANSLATED:9ab84508]
     // Rtsp start speed
-    float _speed= 0.0f;
+    float _speed = 0.0f;
     std::vector<SdpTrack::Ptr> _sdp_track;
     std::function<void(const Parser&)> _on_response;
+    std::function<void(const Parser&)> _on_keepalive_reponse;
+ protected:   
     // RTP端口,trackid idx 为数组下标  [AUTO-TRANSLATED:77c186bb]
     // RTP port, trackid idx is the array subscript
     toolkit::Socket::Ptr _rtp_sock[2];
@@ -164,6 +172,7 @@ private:
     // RTCP port, trackid idx is the array subscript
     toolkit::Socket::Ptr _rtcp_sock[2];
 
+private:
     // rtsp鉴权相关  [AUTO-TRANSLATED:947dc6a3]
     // Rtsp authentication related
     std::string _md5_nonce;
@@ -173,11 +182,21 @@ private:
     uint32_t _cseq_send = 1;
     std::string _content_base;
     std::string _control_url;
+
+    std::string _range_type;  // 新增：保存 range 类型
+    std::string _range_start_str;  // 新增：保存 clock 格式的起始时间
+    std::string _range_end_str;    // 新增：保存 clock 格式的结束时间
+
+protected:   
     Rtsp::eRtpType _rtp_type = Rtsp::RTP_TCP;
+
+private:
+    // 起始时间戳
+    uint64_t _first_stamp[2] = {0, 0};
 
     // 当前rtp时间戳  [AUTO-TRANSLATED:410f2691]
     // Current rtp timestamp
-    uint32_t _stamp[2] = {0, 0};
+    uint64_t _stamp[2] = {0, 0};
 
     // 超时功能实现  [AUTO-TRANSLATED:1d603b3a]
     // Timeout function implementation
@@ -194,6 +213,8 @@ private:
     // 统计rtp并发送rtcp  [AUTO-TRANSLATED:0ac2b665]
     // Statistics rtp and send rtcp
     std::vector<RtcpContext::Ptr> _rtcp_context;
+    // 用户自定义rtsp头
+    StrCaseMap _custom_header;
 };
 
 } /* namespace mediakit */

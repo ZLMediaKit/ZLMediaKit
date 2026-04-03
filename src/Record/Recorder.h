@@ -13,6 +13,7 @@
 
 #include <memory>
 #include <string>
+#include <cstdint>
 
 namespace mediakit {
 class MediaSinkInterface;
@@ -25,6 +26,11 @@ struct MediaTuple {
     std::string params;
     std::string shortUrl() const {
         return vhost + '/' + app + '/' + stream;
+    }
+
+    MediaTuple() = default;
+    MediaTuple(std::string vhost, std::string app, std::string stream, std::string params = "")
+        : vhost(std::move(vhost)), app(std::move(app)), stream(std::move(stream)), params(std::move(params)) {
     }
 };
 

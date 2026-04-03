@@ -1,6 +1,6 @@
 ﻿# MIT License
 #
-# Copyright (c) 2016-2022 The ZLMediaKit project authors. All Rights Reserved.
+# Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -50,10 +50,43 @@ target_compile_definitions(MediaServer
 target_compile_options(MediaServer
   PRIVATE ${COMPILE_OPTIONS_DEFAULT})
 
+if(MINGW)
+  update_cached_list(MK_LINK_LIBRARIES dbghelp)
+endif()
+
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
   target_link_libraries(MediaServer -Wl,--start-group ${MK_LINK_LIBRARIES} -Wl,--end-group)
 else()
   target_link_libraries(MediaServer ${MK_LINK_LIBRARIES})
 endif()
 
+if(MSVC)
+  set(RESOURCE_FILE "${CMAKE_SOURCE_DIR}/resource.rc")
+  set_source_files_properties(${RESOURCE_FILE} PROPERTIES LANGUAGE RC)  
+  target_sources(MediaServer PRIVATE ${RESOURCE_FILE})
+else()
+  # Android, IOS, macOS ...
+  # CLion, GCC ...
+endif()
+
 install(TARGETS MediaServer DESTINATION ${INSTALL_PATH_RUNTIME})
+
+#relase 类型时额外输出debug调试信息
+string(TOLOWER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE_LOWER)
+if(UNIX AND ENABLE_OBJCOPY)
+  if("${CMAKE_BUILD_TYPE_LOWER}" STREQUAL "release")
+    find_program(OBJCOPY_FOUND objcopy)
+    if (OBJCOPY_FOUND)
+      add_custom_command(TARGET MediaServer
+        POST_BUILD
+        COMMAND objcopy --only-keep-debug ${EXECUTABLE_OUTPUT_PATH}/MediaServer ${EXECUTABLE_OUTPUT_PATH}/MediaServer.debug
+        COMMAND objcopy --strip-all ${EXECUTABLE_OUTPUT_PATH}/MediaServer
+        COMMAND objcopy --add-gnu-debuglink=${EXECUTABLE_OUTPUT_PATH}/MediaServer.debug ${EXECUTABLE_OUTPUT_PATH}/MediaServer
+      )
+      install(FILES ${EXECUTABLE_OUTPUT_PATH}/MediaServer.debug DESTINATION ${INSTALL_PATH_RUNTIME})
+    else()
+      message(STATUS "not found objcopy, generate MediaServer.debug skip")
+    endif()
+  endif()
+endif()
+

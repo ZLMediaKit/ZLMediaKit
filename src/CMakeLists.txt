@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright (c) 2016-2022 The ZLMediaKit project authors. All Rights Reserved.
+# Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -25,14 +25,6 @@ file(GLOB MediaKit_SRC_LIST
   ${CMAKE_CURRENT_SOURCE_DIR}/*/*.c
   ${CMAKE_CURRENT_SOURCE_DIR}/*/*.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/*/*.h)
-
-if(NOT ENABLE_SRT)
-    file(GLOB SRT_SRC_LIST
-        ${CMAKE_CURRENT_SOURCE_DIR}/Srt/*.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/Srt/*.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/Srt/*.h)
-    list(REMOVE_ITEM MediaKit_SRC_LIST ${SRT_SRC_LIST})
-endif()
 
 if(USE_SOLUTION_FOLDERS AND (NOT GROUP_BY_EXPLORER))
   # 在 IDE 中对文件进行分组, 源文件和头文件分开
@@ -67,8 +59,9 @@ update_cached_list(MK_LINK_LIBRARIES ZLMediaKit::MediaKit)
 if(ENABLE_CXX_API)
   # 保留目录结构
   install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
-    DESTINATION ${INSTALL_PATH_INCLUDE}/ZLMediaKit
-    REGEX ".*[.](md|cpp)$" EXCLUDE)
+      DESTINATION ${INSTALL_PATH_INCLUDE}/ZLMediaKit
+      FILES_MATCHING
+        PATTERN "*.h")
   install(TARGETS zlmediakit
     DESTINATION ${INSTALL_PATH_LIB})
 endif ()

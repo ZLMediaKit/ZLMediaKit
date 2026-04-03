@@ -279,7 +279,7 @@ std::string HandshakePacket::dump(){
     for(size_t i=0;i<ext_list.size();++i){
         printer<<ext_list[i]->dump()<<"\r\n";
     }
-    return std::move(printer);
+    return printer;
 }
 bool HandshakePacket::loadFromData(uint8_t *buf, size_t len) {
     if (HEADER_SIZE + HS_CONTENT_MIN_SIZE > len) {
@@ -353,7 +353,7 @@ bool HandshakePacket::loadExtMessage(uint8_t *buf, size_t len) {
             case HSExt::SRT_CMD_SID: ext = std::make_shared<HSExtStreamID>(); break;
             case HSExt::SRT_CMD_KMREQ:
             case HSExt::SRT_CMD_KMRSP: 
-				ext = std::make_shared<HSExtKeyMaterial>(); break;
+                ext = std::make_shared<HSExtKeyMaterial>(); break;
             default: WarnL << "not support ext " << type; break;
         }
         if (ext) {
@@ -627,7 +627,7 @@ std::string NAKPacket::dump() {
     for (auto it : lost_list) {
         printer << "[ " << it.first << " , " << it.second - 1 << " ]";
     }
-    return std::move(printer);
+    return printer;
 }
 
 bool MsgDropReqPacket::loadFromData(uint8_t *buf, size_t len) {

@@ -21,18 +21,18 @@ namespace toolkit {
 }
 
 namespace mediakit {
+
 class WebRtcTransportImp;
-using namespace toolkit;
 
-class WebRtcSession : public Session, public HttpRequestSplitter {
+class WebRtcSession : public toolkit::Session, public HttpRequestSplitter {
 public:
-    WebRtcSession(const Socket::Ptr &sock);
+    WebRtcSession(const toolkit::Socket::Ptr &sock);
 
-    void attachServer(const Server &server) override;
-    void onRecv(const Buffer::Ptr &) override;
-    void onError(const SockException &err) override;
+    void attachServer(const toolkit::Server &server) override;
+    void onRecv(const toolkit::Buffer::Ptr &) override;
+    void onError(const toolkit::SockException &err) override;
     void onManager() override;
-    static EventPoller::Ptr queryPoller(const Buffer::Ptr &buffer);
+    static toolkit::EventPoller::Ptr queryPoller(const toolkit::Buffer::Ptr &buffer);
 
 protected:
     WebRtcTransportImp::Ptr _transport;
@@ -47,7 +47,7 @@ private:
 private:
     bool _over_tcp = false;
     bool _find_transport = true;
-    Ticker _ticker;
+    toolkit::Ticker _ticker;
     std::weak_ptr<toolkit::TcpServer> _server;
 };
 

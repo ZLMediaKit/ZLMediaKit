@@ -36,7 +36,7 @@
 - [谁在使用zlmediakit?](https://github.com/ZLMediaKit/ZLMediaKit/issues/511)
 - 全面支持ipv6网络
 - 支持多轨道模式(一个流中多个视频/音频)
-- 全协议支持H264/H265/AAC/G711/OPUS/MP3，部分支持VP8/VP9/AV1/JPEG/MP3/H266/ADPCM/SVAC/G722/G723/G729
+- 全协议支持H264/H265/AAC/G711/OPUS/MP3/VP8/VP9/AV1，部分支持JPEG/H266/ADPCM/SVAC/G722/G723/G729/MP2
 
 ## 项目定位
 
@@ -47,7 +47,7 @@
 
 ## 功能清单
 ### 功能一览
-<img width="800" alt="功能一览" src="https://github.com/ZLMediaKit/ZLMediaKit/assets/11495632/481ea769-5b27-495e-bf7d-31191e6af9d2">
+<img width="749" alt="功能预览" src="https://github.com/user-attachments/assets/7072fe1c-e2b3-47e9-bd50-e5266523edf1">
 
 - RTSP[S]
   - RTSP[S] 服务器，支持RTMP/MP4/HLS转RTSP[S],支持亚马逊echo show这样的设备
@@ -57,7 +57,7 @@
   - 服务器/客户端完整支持Basic/Digest方式的登录鉴权，全异步可配置化的鉴权接口
   - 支持H265编码
   - 服务器支持RTSP推流(包括`rtp over udp` `rtp over tcp`方式)
-  - 支持H264/H265/AAC/G711/OPUS/MJPEG/MP3编码，其他编码能转发但不能转协议
+  - 支持H264/H265/AAC/G711/OPUS/MJPEG/MP3/VP8/VP9/AV1/MP2编码，其他编码能转发但不能转协议
 
 - RTMP[S]
   - RTMP[S] 播放服务器，支持RTSP/MP4/HLS转RTMP
@@ -70,25 +70,25 @@
   - 支持H264/H265/AAC/G711/OPUS/MP3编码，其他编码能转发但不能转协议
   - 支持[RTMP-H265](https://github.com/ksvc/FFmpeg/wiki)
   - 支持[RTMP-OPUS](https://github.com/ZLMediaKit/ZLMediaKit/wiki/RTMP%E5%AF%B9H265%E5%92%8COPUS%E7%9A%84%E6%94%AF%E6%8C%81)
-  - 支持[enhanced-rtmp(H265)](https://github.com/veovera/enhanced-rtmp)
+  - 支持[enhanced-rtmp(H265/VP8/VP9/AV1/OPUS)](https://github.com/veovera/enhanced-rtmp)
 
 - HLS
   - 支持HLS文件(mpegts/fmp4)生成，自带HTTP文件服务器
   - 通过cookie追踪技术，可以模拟HLS播放为长连接，可以实现HLS按需拉流、播放统计等业务
   - 支持HLS播发器，支持拉流HLS转rtsp/rtmp/mp4
-  - 支持H264/H265/AAC/G711/OPUS/MP3编码
+  - 支持H264/H265/AAC/G711/OPUS/MP3/VP8/VP9/AV1/MP2编码
   - 支持多轨道模式
   
 - TS
   - 支持http[s]-ts直播
   - 支持ws[s]-ts直播
-  - 支持H264/H265/AAC/G711/OPUS/MP3编码
+  - 支持H264/H265/AAC/G711/OPUS/MP3/VP8/VP9/AV1/MP2编码
   - 支持多轨道模式
   
 - fMP4
   - 支持http[s]-fmp4直播
   - 支持ws[s]-fmp4直播
-  - 支持H264/H265/AAC/G711/OPUS/MJPEG/MP3编码
+  - 支持H264/H265/AAC/G711/OPUS/MJPEG/MP3/VP8/VP9/AV1/MP2编码
   - 支持多轨道模式
 
 - HTTP[S]与WebSocket
@@ -103,7 +103,7 @@
 - GB28181与RTP推流
   - 支持UDP/TCP RTP(PS/TS/ES)推流服务器，可以转换成RTSP/RTMP/HLS等协议
   - 支持RTSP/RTMP/HLS等协议转rtp推流客户端，支持TCP/UDP模式，提供相应restful api，支持主动被动方式
-  - 支持H264/H265/AAC/G711/OPUS/MP3编码
+  - 支持H264/H265/AAC/G711/OPUS/MP3/VP8/VP9/AV1编码
   - 支持es/ps/ts/ehome rtp推流
   - 支持es/ps rtp转推
   - 支持GB28181主动拉流模式
@@ -113,7 +113,7 @@
 - MP4点播与录制
   - 支持录制为FLV/HLS/MP4
   - RTSP/RTMP/HTTP-FLV/WS-FLV支持MP4文件点播，支持seek
-  - 支持H264/H265/AAC/G711/OPUS/MP3编码
+  - 支持H264/H265/AAC/G711/OPUS/MP3/VP8/VP9/AV1编码
   - 支持多轨道模式
   
 - WebRTC
@@ -131,11 +131,13 @@
   - 支持webrtc over tcp模式
   - 优秀的nack、jitter buffer算法, 抗丢包能力卓越
   - 支持whip/whep协议
+  - 支持编码格式与rtsp协议一致
+  - [支持ice-full,支持作为webrtc客户端拉流、推流以及p2p模式](./webrtc/USAGE.md)
+  
 - [SRT支持](./srt/srt.md)
 - 其他
   - 支持丰富的restful api以及web hook事件 
-  - 支持简单的telnet调试
-  - 支持配置文件热加载
+  - 支持配置文件、ssl证书热加载
   - 支持流量统计、推拉流鉴权等事件
   - 支持虚拟主机,可以隔离不同域名
   - 支持按需拉流，无人观看自动关断拉流
@@ -146,7 +148,48 @@
   - 支持按需解复用、转协议，当有人观看时才开启转协议，降低cpu占用率
   - 支持溯源模式的集群部署，溯源方式支持rtsp/rtmp/hls/http-ts, 边沿站支持hls, 源站支持多个(采用round robin方式溯源)
   - rtsp/rtmp/webrtc推流异常断开后，可以在超时时间内重连推流，播放器无感知
+ 
+## 闭源专业版
+在最新开源代码的基础，新增以下[闭源专业版](https://github.com/xia-chu/zlmediakit-pro)
+- 音视频转码功能
+  - 1、音视频间任意转码(包括h265/h264/opus/g711/aac/g722/g722.1/mp3/svac/vp8/vp9/av1等。
+  - 2、基于配置文件的转码，支持设置比特率，codec类型等参数。
+  - 3、基于http api的动态增减转码，支持设置比特率，分辨率倍数，codec类型、滤镜等参数。
+  - 4、支持硬件、软件自适应转码。
+  - 5、支持按需转码，有人观看才转码，支持透明转码模式，业务无需感知转码的存在，业务代码无需做任何调整。
+  - 6、支持负载过高时，转码主动降低帧率且不花屏。
+  - 7、支持滤镜，支持添加osd文本以及logo角标等能力。
+  - 8、支持全GPU硬件编解码与滤镜，防止显存与内存频繁拷贝。
+    
+- JT1078部标版本
+  - 1、支持接收jt1078推流转其他协议；自适应音视频共享seq和单独seq模式。
+  - 2、支持jt1078级联，支持jt1078对讲。
+  - 3、jt1078相关接口、端口和用法与GB28181用法一致，保持兼容。
+  - 4、支持h264/h265/g711/aac/mp3/g721/g722/g723/g729/g726/adpcm等编码。
+
+- IPTV版本
+  - 1、支持rtsp-ts/hls/http-ts/rtp组播/udp组播拉流转协议，支持ts透传模式，无需解复用转rtsp-ts/hls/http-ts/srt协议。
+  - 2、支持接收rtsp-ts/srt/rtp-ts推流，支持ts透传模式，无需解复用转rtsp-ts/hls/http-ts/srt协议。
+  - 3、上述功能同时支持解复用ts为es流再转rtsp/rtmp/flv/http-ts/hls/hls-fmp4/mp4/fmp4/webrtc等协议。
+
+- S3云存储
+  - 支持s3/minio云存储内存流直接写入，解决录像文件io系统瓶颈问题
+  - 支持直接通过zlmediakit的http服务下载和点播云存储文件。
+  - 支持遍历云存储文件并生成http菜单网页。
+ 
+- WebRTC集群
+  - 支持rtc流量代理，解决k8s部署zlmediakit webrtc服务时，http信令交互与rtc流量打不到同一个pod实例的问题。
+ 
+- AI推理
+  - 支持yolo推理插件，支持人员、车辆等目标AI识别，支持目标跟踪，支持多边形布防，支持ocr，支持c++/python插件快速混合开发。
+  - 支持tensorRT 全cuda加速推理。
+  - 支持onnxruntime(cpu/gpu) 推理。
+  - 支持ascend cann加速推理。
+  - python插件支持调用c++接口操作流媒体与绘制当前视频画面。
   
+- WebRTC mcu语音聊天室
+  - 支持mcu多人语音聊天室，混音前支持背景噪声消除，静音不参与混音，解决超大规模多人语音聊天室sfu方案不可用的问题。
+  - 支持100人语音连麦，上千人旁听级会议。
 
 ## 编译以及测试
 **编译前务必仔细参考wiki:[快速开始](https://github.com/ZLMediaKit/ZLMediaKit/wiki/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B)操作!!!**
@@ -191,17 +234,22 @@ bash build_docker_images.sh
    - [jessibuca](https://github.com/langhuihui/jessibuca) 基于wasm支持H265的播放器
    - [wsPlayer](https://github.com/v354412101/wsPlayer) 基于MSE的websocket-fmp4播放器
    - [BXC_gb28181Player](https://github.com/any12345com/BXC_gb28181Player) C++开发的支持国标GB28181协议的视频流播放器
-   - [RTCPlayer](https://github.com/leo94666/RTCPlayer) 一个基于Android客户端的的RTC播放器
+   - [WebRTC-Vue-Demo](https://github.com/Heartbreaker16/ZLMediaKit-WebRTC-Vue-Demo) zlmediakit webrtc播放器vue版本
 
 - WEB管理网站
    - [zlm_webassist](https://github.com/1002victor/zlm_webassist) 本项目配套的前后端分离web管理项目
    - [AKStreamNVR](https://github.com/langmansh/AKStreamNVR) 前后端分离web项目,支持webrtc播放
+   - [StreamUI](https://github.com/lmk123568/StreamUI) 一个极简、轻便的视频流媒体管理平台
+   - [PyMKUI](https://github.com/ZLMediaKit/pymkui) ZLMediaKit官方推出的管理平台网站
    
  - SDK
    - [spring-boot-starter](https://github.com/lunasaw/zlm-spring-boot-starter) 本项目hook和rest接口starter
    - [java sdk](https://github.com/lidaofu-hub/j_zlm_sdk) 本项目c sdk完整java包装库
    - [c# sdk](https://github.com/malegend/ZLMediaKit.Autogen) 本项目c sdk完整c#包装库
    - [metaRTC](https://github.com/metartc/metaRTC) 全国产纯c webrtc sdk
+
+- 监控与运维
+   - [ZLMediaKit_exporter](https://github.com/guohuachan/ZLMediaKit_exporter) 一个用于采集 ZLMediaKit 核心指标的 Prometheus Exporter，搭配 Grafana 即可快速构建实时监控面板
    
  - 其他项目(已停止更新)
    - [NodeJS实现的GB28181平台](https://gitee.com/hfwudao/GB28181_Node_Http)
@@ -382,6 +430,9 @@ bash build_docker_images.sh
 [ss002012](https://github.com/ss002012)
 [a839419160](https://github.com/a839419160)
 [oldma3095](https://github.com/oldma3095)
+[Dary](https://github.com/watersounds)
+[N.z](https://github.com/neesonqk)
+[yanggs](https://github.com/callinglove)
 
 同时感谢JetBrains对开源项目的支持，本项目使用CLion开发与调试：
 

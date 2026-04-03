@@ -133,7 +133,7 @@ static inline void bytestream2_put_be16(PutByteContext *p, uint16_t value) {
     }
 }
 
-static inline void bytestream2_put_be24(PutByteContext *p, uint16_t value) {
+static inline void bytestream2_put_be24(PutByteContext *p, uint32_t value) {
     if (!p->eof && (p->buffer_end - p->buffer >= 2)) {
         p->buffer[0] = value >> 16;
         p->buffer[1] = value >> 8;

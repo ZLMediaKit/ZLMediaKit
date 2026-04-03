@@ -132,7 +132,7 @@ public:
      
      * [AUTO-TRANSLATED:24b0ee74]
      */
-    virtual uint16_t getSeqence(TrackType trackType) {
+    virtual uint16_t getSequence(TrackType trackType) {
         assert(trackType >= 0 && trackType < TrackMax);
         auto &track = _tracks[trackType];
         if (!track) {

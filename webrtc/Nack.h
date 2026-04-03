@@ -55,7 +55,7 @@ public:
     using Ptr = std::shared_ptr<NackContext>;
     using onNack = std::function<void(const FCI_NACK &nack)>;
 
-    NackContext();
+    NackContext(TrackType type = TrackVideo);
 
     void received(uint16_t seq, bool is_rtx = false);
     void setOnNack(onNack cb);
@@ -71,6 +71,7 @@ private:
 private:
     bool _started = false;
     int _rtt = 50;
+    TrackType _type;
     onNack _cb;
     std::set<uint16_t> _seq;
     // 最新nack包中的rtp seq值  [AUTO-TRANSLATED:6984d95a]

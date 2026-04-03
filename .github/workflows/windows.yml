@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: windows-2019
+    runs-on: windows-2022
 
     steps:
       - uses: actions/checkout@v1
@@ -17,8 +17,8 @@ jobs:
         with:
           vcpkgDirectory: '${{github.workspace}}/vcpkg'
           vcpkgTriplet: x64-windows-static
-          # 2024.06.01
-          vcpkgGitCommitId: '47364fbc300756f64f7876b549d9422d5f3ec0d3'
+          # 2025.07.11
+          vcpkgGitCommitId: 'efcfaaf60d7ec57a159fc3110403d939bfb69729'
           vcpkgArguments: 'openssl libsrtp[openssl] usrsctp'
 
       - name: 编译

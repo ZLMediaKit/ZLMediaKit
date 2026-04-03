@@ -26,9 +26,15 @@ extern "C" {
 #include "libswresample/swresample.h"
 #include "libavutil/audio_fifo.h"
 #include "libavutil/imgutils.h"
+#include "libavutil/frame.h"
+#include "libavfilter/avfilter.h"
+#include "libavfilter/buffersink.h"
+#include "libavfilter/buffersrc.h"
 #ifdef __cplusplus
 }
 #endif
+
+#define FF_CODEC_VER_7_1 AV_VERSION_INT(61, 0, 0)
 
 namespace mediakit {
 
@@ -41,9 +47,11 @@ public:
 
     AVFrame *get() const;
     void fillPicture(AVPixelFormat target_format, int target_width, int target_height);
+    int getChannels() const;
+    void reset();
 
 private:
-    char *_data = nullptr;
+    std::unique_ptr<char[]> _data;
     std::shared_ptr<AVFrame> _frame;
 };
 
@@ -51,16 +59,29 @@ class FFmpegSwr {
 public:
     using Ptr = std::shared_ptr<FFmpegSwr>;
 
+# if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
+    FFmpegSwr(AVSampleFormat output, AVChannelLayout *ch_layout, int samplerate);
+#else
     FFmpegSwr(AVSampleFormat output, int channel, int channel_layout, int samplerate);
+#endif
+
     ~FFmpegSwr();
     FFmpegFrame::Ptr inputFrame(const FFmpegFrame::Ptr &frame);
 
 private:
+
+# if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
+    AVChannelLayout _target_ch_layout;
+#else
     int _target_channels;
     int _target_channel_layout;
+#endif
+
     int _target_samplerate;
     AVSampleFormat _target_format;
     SwrContext *_ctx = nullptr;
+
+    toolkit::ResourcePool<FFmpegFrame> _swr_frame_pool;
 };
 
 class FFmpegAudioFifo {
@@ -138,6 +159,7 @@ private:
     onDec _cb;
     std::shared_ptr<AVCodecContext> _context;
     FrameMerger _merger{FrameMerger::h264_prefix};
+    toolkit::ResourcePool<FFmpegFrame> _frame_pool;
 };
 
 class FFmpegSws {
@@ -160,6 +182,21 @@ private:
     SwsContext *_ctx = nullptr;
     AVPixelFormat _src_format = AV_PIX_FMT_NONE;
     AVPixelFormat _target_format = AV_PIX_FMT_NONE;
+    toolkit::ResourcePool<FFmpegFrame> _sws_frame_pool;
+};
+
+class FFmpegUtils {
+public:
+    /**
+     * 保持图片为jpeg或png
+     * @param frame 解码后的帧
+     * @param filename 保存文件路径
+     * @param fmt jpg:AV_PIX_FMT_YUVJ420P，PNG:AV_PIX_FMT_RGB24
+     * @param w h (可选)裁剪的图片大小，默认和输入源一致
+     * @param font_path (可选), default DejaVuSans.ttf
+     * @return
+     */
+    static std::tuple<bool, std::string> saveFrame(const FFmpegFrame::Ptr &frame, const char *filename, AVPixelFormat fmt = AV_PIX_FMT_YUVJ420P, int w = 0, int h = 0, const char *font_path = nullptr);
 };
 
 class FFmpegEncoder : public TaskManager, public CodecInfo {

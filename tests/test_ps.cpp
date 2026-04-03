@@ -64,7 +64,6 @@ public:
 
 private:
     MultiMediaSourceMuxer::Ptr _muxer;
-    uint64_t timeStamp = 0;
     uint64_t timeStamp_last = 0;
 };
 

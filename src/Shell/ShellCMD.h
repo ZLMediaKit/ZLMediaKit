@@ -36,9 +36,9 @@ public:
                             if (!media) {
                                 break;
                             }
-                            if (!media->close(true)) {
-                                break;
-                            }
+                            media->getOwnerPoller()->async([media]() {
+                                media->close(true);
+                            });
                             (*stream) << "\t踢出成功:" << media->getUrl() << "\r\n";
                             return;
                         } while (0);

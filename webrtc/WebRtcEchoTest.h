@@ -18,7 +18,7 @@ namespace mediakit {
 class WebRtcEchoTest : public WebRtcTransportImp {
 public:
     using Ptr = std::shared_ptr<WebRtcEchoTest>;
-    static Ptr create(const EventPoller::Ptr &poller);
+    static Ptr create(const toolkit::EventPoller::Ptr &poller);
 
 protected:
     ///////WebRtcTransportImp override///////
@@ -31,7 +31,7 @@ protected:
     void onBeforeEncryptRtcp(const char *buf, int &len, void *ctx) override {};
 
 private:
-    WebRtcEchoTest(const EventPoller::Ptr &poller);
+    WebRtcEchoTest(const toolkit::EventPoller::Ptr &poller);
 };
 
 }// namespace mediakit

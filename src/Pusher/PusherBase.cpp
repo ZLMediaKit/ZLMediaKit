@@ -13,12 +13,44 @@
 #include "Rtsp/RtspPusher.h"
 #include "Rtmp/RtmpPusher.h"
 #ifdef ENABLE_SRT
-#include "Srt/SrtPusher.h"
+#include "../srt/SrtPusher.h"
 #endif // ENABLE_SRT
+#ifdef ENABLE_WEBRTC
+#include "../webrtc/WebRtcProxyPusher.h"
+#endif // ENABLE_WEBRTC
 
 using namespace toolkit;
 
 namespace mediakit {
+
+static bool checkMediaSourceAndUrlMatch(const MediaSource::Ptr &src, const std::string &url) {
+    std::string prefix = findSubString(url.data(), NULL, "://");
+
+    if (strcasecmp("rtsps", prefix.data()) == 0 || strcasecmp("rtsp", prefix.data()) == 0 ||
+        strcasecmp("webrtcs", prefix.data()) == 0 || strcasecmp("webrtc", prefix.data()) == 0 ) {
+        auto rtsp_src = std::dynamic_pointer_cast<RtspMediaSource>(src);
+        if (!rtsp_src) {
+            return false;
+        }
+    }
+
+    if (strcasecmp("rtmp", prefix.data()) == 0 || strcasecmp("rtmps", prefix.data()) == 0) {
+        auto rtmp_src = std::dynamic_pointer_cast<RtmpMediaSource>(src);
+        if (!rtmp_src) {
+            return false;
+        }
+    }
+
+#ifdef ENABLE_SRT
+    if (strcasecmp("srt", prefix.data()) == 0) {
+        auto ts_src = std::dynamic_pointer_cast<TSMediaSource>(src);
+        if (!ts_src) {
+            return false;
+        }
+    }
+#endif // ENABLE_SRT
+    return true;
+}
 
 PusherBase::Ptr PusherBase::createPusher(const EventPoller::Ptr &in_poller,
                                          const MediaSource::Ptr &src,
@@ -35,6 +67,10 @@ PusherBase::Ptr PusherBase::createPusher(const EventPoller::Ptr &in_poller,
             delete ptr;
         }
     };
+    if (!checkMediaSourceAndUrlMatch(src, url)) {
+        throw std::invalid_argument(" media source (schema) and  push url not match");
+    }
+
     std::string prefix = findSubString(url.data(), NULL, "://");
 
     if (strcasecmp("rtsps",prefix.data()) == 0) {
@@ -59,6 +95,11 @@ PusherBase::Ptr PusherBase::createPusher(const EventPoller::Ptr &in_poller,
     }
 #endif//ENABLE_SRT
 
+#ifdef ENABLE_WEBRTC
+    if ((strcasecmp("webrtc", prefix.data()) == 0 || strcasecmp("webrtcs", prefix.data()) == 0)) {
+        return PusherBase::Ptr(new WebRtcProxyPusherImp(poller, std::dynamic_pointer_cast<RtspMediaSource>(src)), release_func);
+    }
+#endif//ENABLE_WEBRTC
 
     throw std::invalid_argument("not supported push schema:" + url);
 }

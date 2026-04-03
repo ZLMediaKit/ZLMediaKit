@@ -10,6 +10,7 @@
 
 #include <limits.h>
 #include <sys/stat.h>
+#include "ShellParser.h"
 #ifndef _WIN32
 #include <sys/resource.h>
 #include <unistd.h>
@@ -86,20 +87,22 @@ static int runChildProcess(string cmd, string log_file) {
         // Close log file.
         ::fclose(fp);
     }
-    fprintf(stderr, "\r\n\r\n#### pid=%d,cmd=%s #####\r\n\r\n", getpid(), cmd.data());
+    fprintf(stderr, "\r\n#### pid=%d,cmd=%s #####\r\n", getpid(), cmd.data());
 
-    auto params = split(cmd, " ");
-    // memory leak in child process, it's ok.
-    char **charpv_params = new char *[params.size() + 1];
-    for (int i = 0; i < (int)params.size(); i++) {
-        std::string &p = params[i];
-        charpv_params[i] = (char *)p.data();
+    auto result = parse_shell_like(cmd);
+    if (!result.ok) {
+        fprintf(stderr, "parse cmd line failed: %s, pos: %ld", result.error_msg.data(), result.error_pos);
+        return -1;
     }
-    // EOF: NULL
-    charpv_params[params.size()] = NULL;
-    // TODO: execv or execvp
-    auto ret = execv(params[0].c_str(), charpv_params);
-    delete[] charpv_params;
+    auto argv = make_argv(result.args);
+    auto argc = 0u;
+    fprintf(stderr, "\r\n#### args #####\r\n");
+    for (auto &arg : argv) {
+        fprintf(stderr, "arg[%d]: %s\r\n", argc++, arg ? arg : "null");
+    }
+
+    fprintf(stderr, "\r\n#### process log #####\r\n");
+    auto ret = execv(argv[0], (char * const *)(argv.data()));
 
     if (ret < 0) {
         fprintf(stderr, "execv process failed:%d(%s)\r\n", get_uv_error(), get_uv_errmsg());
