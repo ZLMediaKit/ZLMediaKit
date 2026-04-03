@@ -83,6 +83,30 @@ static std::string get_func_symbol(const std::string &symbol) {
     return ret;
 }
 
+static LONG __stdcall UnhandledExceptionFilter(EXCEPTION_POINTERS *pException) {
+    // 生成 dump 文件名，带时间戳
+    char dumpPath[MAX_PATH];
+    std::time_t t = std::time(nullptr);
+    std::tm tm;
+#ifdef _MSC_VER
+    localtime_s(&tm, &t);
+#else
+    tm = *std::localtime(&t);
+#endif
+    std::strftime(dumpPath, sizeof(dumpPath), "crash_%Y%m%d_%H%M%S.dmp", &tm);
+
+    HANDLE hFile = CreateFileA(dumpPath, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (hFile != INVALID_HANDLE_VALUE) {
+        MINIDUMP_EXCEPTION_INFORMATION mdei;
+        mdei.ThreadId = GetCurrentThreadId();
+        mdei.ExceptionPointers = pException;
+        mdei.ClientPointers = FALSE;
+        MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), hFile, MiniDumpNormal, &mdei, nullptr, nullptr);
+        CloseHandle(hFile);
+    }
+    return EXCEPTION_EXECUTE_HANDLER;
+}
+
 static void sig_crash(int sig) {
     signal(sig, SIG_DFL);
     void *array[MAX_STACK_FRAMES];
@@ -238,29 +262,7 @@ void System::systemSetup(){
     std::ios_base::sync_with_stdio(false);
 
       // 注册crash自动生成dump（等价core dump）
-    SetUnhandledExceptionFilter([](EXCEPTION_POINTERS *pException) -> LONG {
-        // 生成 dump 文件名，带时间戳
-        char dumpPath[MAX_PATH];
-        std::time_t t = std::time(nullptr);
-        std::tm tm;
-#ifdef _MSC_VER
-        localtime_s(&tm, &t);
-#else
-        tm = *std::localtime(&t);
-#endif
-        std::strftime(dumpPath, sizeof(dumpPath), "crash_%Y%m%d_%H%M%S.dmp", &tm);
-
-        HANDLE hFile = CreateFileA(dumpPath, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-        if (hFile != INVALID_HANDLE_VALUE) {
-            MINIDUMP_EXCEPTION_INFORMATION mdei;
-            mdei.ThreadId = GetCurrentThreadId();
-            mdei.ExceptionPointers = pException;
-            mdei.ClientPointers = FALSE;
-            MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), hFile, MiniDumpNormal, &mdei, nullptr, nullptr);
-            CloseHandle(hFile);
-        }
-        return EXCEPTION_EXECUTE_HANDLER;
-    });
+    SetUnhandledExceptionFilter(UnhandledExceptionFilter);
 #endif//!defined(_WIN32)
 }
 
