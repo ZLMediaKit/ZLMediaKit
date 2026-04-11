@@ -185,6 +185,7 @@ void System::startDaemon(bool &kill_parent_if_failed) {
 #endif // _WIN32
 }
 
+#ifdef _WIN32
 static LONG __stdcall customUnhandledExceptionFilter(EXCEPTION_POINTERS *pException) {
     // 生成 dump 文件名，带时间戳
     char dumpPath[MAX_PATH];
@@ -208,6 +209,7 @@ static LONG __stdcall customUnhandledExceptionFilter(EXCEPTION_POINTERS *pExcept
     }
     return EXCEPTION_EXECUTE_HANDLER;
 }
+#endif//!defined(_WIN32)
 
 void System::systemSetup(){
 
