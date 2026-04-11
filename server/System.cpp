@@ -185,6 +185,32 @@ void System::startDaemon(bool &kill_parent_if_failed) {
 #endif // _WIN32
 }
 
+#ifdef _WIN32
+static LONG __stdcall customUnhandledExceptionFilter(EXCEPTION_POINTERS *pException) {
+    // 生成 dump 文件名，带时间戳
+    char dumpPath[MAX_PATH];
+    std::time_t t = std::time(nullptr);
+    std::tm tm;
+#ifdef _MSC_VER
+    localtime_s(&tm, &t);
+#else
+    tm = *std::localtime(&t);
+#endif
+    std::strftime(dumpPath, sizeof(dumpPath), "crash_%Y%m%d_%H%M%S.dmp", &tm);
+
+    HANDLE hFile = CreateFileA(dumpPath, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (hFile != INVALID_HANDLE_VALUE) {
+        MINIDUMP_EXCEPTION_INFORMATION mdei;
+        mdei.ThreadId = GetCurrentThreadId();
+        mdei.ExceptionPointers = pException;
+        mdei.ClientPointers = FALSE;
+        MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), hFile, MiniDumpNormal, &mdei, nullptr, nullptr);
+        CloseHandle(hFile);
+    }
+    return EXCEPTION_EXECUTE_HANDLER;
+}
+#endif//!defined(_WIN32)
+
 void System::systemSetup(){
 
 #ifdef ENABLE_JEMALLOC_DUMP
@@ -238,29 +264,7 @@ void System::systemSetup(){
     std::ios_base::sync_with_stdio(false);
 
       // 注册crash自动生成dump（等价core dump）
-    SetUnhandledExceptionFilter([](EXCEPTION_POINTERS *pException) -> LONG {
-        // 生成 dump 文件名，带时间戳
-        char dumpPath[MAX_PATH];
-        std::time_t t = std::time(nullptr);
-        std::tm tm;
-#ifdef _MSC_VER
-        localtime_s(&tm, &t);
-#else
-        tm = *std::localtime(&t);
-#endif
-        std::strftime(dumpPath, sizeof(dumpPath), "crash_%Y%m%d_%H%M%S.dmp", &tm);
-
-        HANDLE hFile = CreateFileA(dumpPath, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-        if (hFile != INVALID_HANDLE_VALUE) {
-            MINIDUMP_EXCEPTION_INFORMATION mdei;
-            mdei.ThreadId = GetCurrentThreadId();
-            mdei.ExceptionPointers = pException;
-            mdei.ClientPointers = FALSE;
-            MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), hFile, MiniDumpNormal, &mdei, nullptr, nullptr);
-            CloseHandle(hFile);
-        }
-        return EXCEPTION_EXECUTE_HANDLER;
-    });
+    SetUnhandledExceptionFilter(customUnhandledExceptionFilter);
 #endif//!defined(_WIN32)
 }
 
