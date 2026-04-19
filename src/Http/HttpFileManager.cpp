@@ -774,7 +774,7 @@ HttpResponseInvokerImp::HttpResponseInvokerImp(const HttpResponseInvokerImp::Htt
     }
     _response_body_invoker = [invoker](int code, const StrCaseMap &headerOut, const HttpBody::Ptr &body) {
         string str;
-        if (body && !body->snapshot(str, std::numeric_limits<size_t>::max())) {
+        if (body && !body->snapshot(str, (std::numeric_limits<size_t>::max)())) {
             auto remain = body->remainSize();
             if (remain > 0) {
                 auto buffer = body->readData(static_cast<size_t>(remain));
