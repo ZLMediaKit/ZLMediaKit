@@ -2,7 +2,6 @@
 
 #include "Common/config.h"
 #include "QuicDispatcher.h"
-#include "QuicSocketBufferConfig.h"
 
 using namespace toolkit;
 
@@ -10,17 +9,7 @@ namespace mediakit {
 
 QuicSession::QuicSession(const Socket::Ptr &sock) : Session(sock) {}
 
-void QuicSession::attachServer(const toolkit::Server &) {
-    if (auto sock = getSock()) {
-        // Public QUIC traffic can arrive through UDP GRO/coalescing and exceed
-        // the default userspace packet buffer, and a connected per-peer UDP
-        // session can still receive a late ICMP port-unreachable after the
-        // remote peer has already closed. Install the QUIC-specific socket
-        // tuning up front so this session keeps the larger recv path while
-        // suppressing that expected UDP ECONNREFUSED log noise.
-        configureQuicServerSocket(sock);
-    }
-}
+void QuicSession::attachServer(const toolkit::Server &) {}
 
 EventPoller::Ptr QuicSession::queryPoller(const Buffer::Ptr &buffer) {
     return QuicDispatcher::Instance().queryPoller(buffer);

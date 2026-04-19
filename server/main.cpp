@@ -41,6 +41,7 @@
 #endif
 
 #if defined(ENABLE_QUIC)
+#include "../quic/QuicSocketBufferConfig.h"
 #include "../quic/QuicSession.h"
 #endif
 
@@ -370,11 +371,16 @@ int start_main(int argc,char *argv[]) {
         setAltSvcQuicAvailability(false, 0);
         auto http3Srv = std::make_shared<UdpServer>();
         http3Srv->setOnCreateSocket([](const EventPoller::Ptr &poller, const Buffer::Ptr &buf, struct sockaddr *, int) {
-            if (!buf) {
-                return Socket::createSocket(poller, false);
+            auto socket_poller = poller;
+            if (buf) {
+                auto new_poller = QuicSession::queryPoller(buf);
+                if (new_poller) {
+                    socket_poller = new_poller;
+                }
             }
-            auto new_poller = QuicSession::queryPoller(buf);
-            return Socket::createSocket(new_poller ? new_poller : poller, false);
+            auto sock = Socket::createSocket(socket_poller, false);
+            configureQuicServerSocket(sock);
+            return sock;
         });
 #endif // defined(ENABLE_QUIC)
 
@@ -562,4 +568,3 @@ int main(int argc,char *argv[]) {
     return start_main(argc,argv);
 }
 #endif //DISABLE_MAIN
-

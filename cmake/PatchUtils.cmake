@@ -10,8 +10,8 @@ function(zlm_apply_git_patch repo_dir patch_file patch_name)
     message(FATAL_ERROR "Patch file not found: ${patch_file}")
   endif()
 
-  set(_patch_check_args --check --recount --ignore-space-change)
-  set(_patch_apply_args --recount --ignore-space-change)
+  set(_patch_check_args --check --recount --ignore-space-change --unidiff-zero)
+  set(_patch_apply_args --recount --ignore-space-change --unidiff-zero)
 
   execute_process(
     COMMAND ${GIT_EXECUTABLE} -C ${repo_dir} apply ${_patch_check_args} ${patch_file}

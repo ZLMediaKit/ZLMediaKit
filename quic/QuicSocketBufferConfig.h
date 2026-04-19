@@ -17,7 +17,9 @@ inline void configureQuicSocket(const toolkit::Socket::Ptr &sock) {
     if (!sock) {
         return;
     }
-    sock->setReadBuffer(makeQuicSocketReadBuffer());
+    // Keep the customization explicit and creation-time only so ordinary
+    // ZLToolKit users stay on the default shared-buffer path.
+    sock->setUdpRecvBuffer(makeQuicSocketReadBuffer());
 }
 
 inline void configureQuicServerSocket(const toolkit::Socket::Ptr &sock) {
