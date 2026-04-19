@@ -36,6 +36,7 @@ public:
     void play(const std::string &strUrl) override;
     void pause(bool pause) override;
     void speed(float speed) override;
+    void seekTo(uint32_t pos) override;  // 新增
     void teardown() override;
     float getPacketLossRate(TrackType type) const override;
 
@@ -181,6 +182,11 @@ private:
     uint32_t _cseq_send = 1;
     std::string _content_base;
     std::string _control_url;
+
+    std::string _range_type;  // 新增：保存 range 类型
+    std::string _range_start_str;  // 新增：保存 clock 格式的起始时间
+    std::string _range_end_str;    // 新增：保存 clock 格式的结束时间
+
 protected:   
     Rtsp::eRtpType _rtp_type = Rtsp::RTP_TCP;
 

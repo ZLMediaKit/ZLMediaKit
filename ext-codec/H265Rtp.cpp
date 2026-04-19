@@ -289,7 +289,7 @@ void H265RtpEncoder::packRtpFu(const char *ptr, size_t len, uint64_t pts, bool i
             // Pass in nullptr first, do not copy the payload memory
             // 只有FU的最后一个分片且整个帧需要设置mark时才设置mark位
             bool mark_bit = fu_end && is_mark;
-            auto rtp = getRtpInfo().makeRtp(TrackVideo, nullptr, max_size + 3, mark_bit, pts);
+            auto rtp = getRtpInfo().makeRtp(TrackVideo, nullptr, max_size + 3, mark_bit && is_mark, pts);  //yzw 帧(不是NALU，多TILE时一帧有多个NALU)最后一个rtp才设置mark位
             // rtp payload 负载部分  [AUTO-TRANSLATED:03a5ef9b]
             // rtp payload load part
             uint8_t *payload = rtp->getPayload();

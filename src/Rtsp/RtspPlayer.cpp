@@ -21,6 +21,12 @@
 #include <cmath>
 #include <iomanip>
 #include <set>
+#include <cstring>
+#include <ctime>
+
+#if defined(_WIN32)
+#include "Util/strptime_win.h"
+#endif
 
 using namespace toolkit;
 using namespace std;
@@ -212,6 +218,20 @@ void RtspPlayer::handleResDESCRIBE(const Parser &parser) {
     // Parse SDP
     SdpParser sdpParser(parser.content());
 
+    // 保存 range 信息（从第一个 track 获取）
+    auto tracks = sdpParser.getAvailableTrack();
+    if (!tracks.empty()) {
+        auto title_track = sdpParser.getTrack(TrackTitle);
+        if (title_track && !title_track->_range_type.empty()) {
+            _range_type = title_track->_range_type;
+            _range_start_str = title_track->_range_start_str;
+            _range_end_str = title_track->_range_end_str;
+        } else if (!tracks.empty() && !tracks[0]->_range_type.empty()) {
+            _range_type = tracks[0]->_range_type;
+            _range_start_str = tracks[0]->_range_start_str;
+            _range_end_str = tracks[0]->_range_end_str;
+        }
+    }
     _control_url = sdpParser.getControlUrl(_content_base);
 
     string sdp;
@@ -468,10 +488,52 @@ void RtspPlayer::sendPause(int type, uint32_t seekMS) {
     // Start or pause RTSP
     switch (type) {
         case type_pause: sendRtspRequest("PAUSE", _control_url, {}); break;
-        case type_play:
-        case type_seek:
-            sendRtspRequest("PLAY", _control_url, { "Range", StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << seekMS / 1000.0 << "-" });
-            break;
+        case type_play: sendRtspRequest("PLAY", _content_base); break;
+        case type_seek: {
+            std::string range_header;
+            if (_range_type == "clock" && !_range_start_str.empty()) {
+                // clock 格式：需要计算新的时间
+                // 解析起始时间：20251123T000000Z
+                struct tm tm_start;
+                const char *start_str = _range_start_str.c_str();
+                if (strptime(start_str, "%Y%m%dT%H%M%SZ", &tm_start) != nullptr) {
+                    // 转换为 time_t，加上 seekMS 毫秒
+#if defined(_WIN32)
+                    time_t start_time = _mkgmtime(&tm_start);
+#else
+                    time_t start_time = timegm(&tm_start);
+#endif
+                    start_time += seekMS / 1000; // 加上秒数
+
+                    // 格式化新的时间
+                    struct tm tm_new;
+#if defined(_WIN32)
+                    auto gmtime_ret = gmtime_s(&tm_new, &start_time);
+                    if (gmtime_ret == 0)
+#else
+                    auto gmtime_ret = gmtime_r(&start_time, &tm_new);
+                    if (gmtime_ret != nullptr)
+#endif
+                    {
+                        char new_time[32];
+                        strftime(new_time, sizeof(new_time), "%Y%m%dT%H%M%SZ", &tm_new);
+
+                        // 构建 Range 头
+                        range_header = StrPrinter << "clock=" << new_time << "-" << _range_end_str;
+                    } else {
+                        // 解析失败，回退到 npt 格式
+                        range_header = StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << seekMS / 1000.0 << "-";
+                    }
+                } else {
+                    // 解析失败，回退到 npt 格式
+                    range_header = StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << seekMS / 1000.0 << "-";
+                }
+            } else {
+                // npt 格式或其他格式
+                range_header = StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << seekMS / 1000.0 << "-";
+            }
+            sendRtspRequest("PLAY", _control_url, { "Range", range_header });
+        } break;
         case type_speed: speed(_speed); break;
         default:
             WarnL << "unknown type : " << type;
@@ -486,6 +548,10 @@ void RtspPlayer::pause(bool bPause) {
 
 void RtspPlayer::speed(float speed) {
     sendRtspRequest("PLAY", _control_url, { "Scale", StrPrinter << speed });
+}
+
+void RtspPlayer::seekTo(uint32_t pos) {
+    seekToMilliSecond(pos * 1000);
 }
 
 void RtspPlayer::handleResPAUSE(const Parser &parser, int type) {
