@@ -120,7 +120,7 @@ WORKDIR /opt/media/bin/
 COPY --from=build /opt/media/ZLMediaKit/release/linux/Release/MediaServer /opt/media/ZLMediaKit/default.pem /opt/media/bin/
 COPY --from=build /opt/media/ZLMediaKit/release/linux/Release/lib /opt/media/bin/lib
 COPY --from=build /opt/media/ZLMediaKit/release/linux/Release/config.ini /opt/media/conf/
-RUN echo -e "\n[python]\nplugin=mk_plugin" >> /opt/media/conf/config.ini
+RUN printf "\n[python]\nplugin=mk_plugin\n" >> /opt/media/conf/config.ini
 COPY --from=build /opt/media/ZLMediaKit/www/ /opt/media/bin/www/
 COPY --from=build /opt/media/ZLMediaKit/pymkui /opt/media/bin/pymkui
 RUN pip3 install --no-cache-dir --break-system-packages -r /opt/media/bin/pymkui/backend/requirements.txt
