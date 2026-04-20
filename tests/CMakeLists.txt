@@ -34,10 +34,10 @@ foreach(TEST_SRC ${TEST_SRC_LIST})
       continue()
     endif()
   endif()
-  
+
   if(NOT TARGET ZLMediaKit::WebRTC)
     # 暂时过滤掉依赖 WebRTC 的测试模块
-    if("${TEST_EXE_NAME}" MATCHES "test_rtcp_nack")
+    if("${TEST_EXE_NAME}" MATCHES "test_rtcp_nack|test_webrtc_regression")
       continue()
     endif()
   endif()

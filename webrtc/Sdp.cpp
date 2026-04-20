@@ -799,6 +799,7 @@ void RtcSession::loadFrom(const string &str) {
             rtc_media.fingerprint = sdp.getItemClass<SdpAttrFingerprint>('a', "fingerprint");
         }
         rtc_media.ice_lite = media.getItem('a', "ice-lite").operator bool();
+        rtc_media.bundle_only = media.getItem('a', "bundle-only").operator bool();
         auto ice_options = media.getItemClass<SdpAttrIceOption>('a', "ice-options");
         rtc_media.ice_trickle = ice_options.trickle;
         rtc_media.ice_renomination = ice_options.renomination;
@@ -1659,6 +1660,15 @@ static DtlsRole mathDtlsRole(DtlsRole role) {
     }
 }
 
+static uint16_t getAnswerMediaPort(const RtcMedia &offer_media) {
+    // RFC 8843: bundle-only m-lines may use port=0 in the offer but still need a
+    // real port placeholder in the accepted answer.
+    if (!offer_media.port && offer_media.bundle_only) {
+        return 9;
+    }
+    return offer_media.port;
+}
+
 void RtcConfigure::createMediaOffer(const std::shared_ptr<RtcSession> &ret) const {
     int index = 0;
     if (video.direction != RtpDirection::sendonly || _rtsp_video_plan)  {
@@ -1826,6 +1836,7 @@ RETRY:
 
     if (offer_media.type == TrackApplication) {
         RtcMedia answer_media = offer_media;
+        answer_media.port = getAnswerMediaPort(offer_media);
         answer_media.role = mathDtlsRole(offer_media.role);
         answer_media.ice_ufrag = configure.ice_ufrag;
         answer_media.ice_pwd = configure.ice_pwd;
@@ -1871,7 +1882,7 @@ RETRY:
         answer_media.type = offer_media.type;
         answer_media.mid = offer_media.mid;
         answer_media.proto = offer_media.proto;
-        answer_media.port = offer_media.port;
+        answer_media.port = getAnswerMediaPort(offer_media);
         answer_media.addr = offer_media.addr;
         answer_media.bandwidth = offer_media.bandwidth;
         answer_media.rtcp_addr = offer_media.rtcp_addr;
