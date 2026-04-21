@@ -2180,10 +2180,14 @@ void installWebApi() {
         WebRtcPluginManager::Instance().negotiateSdp(session, type, *args, [invoker, offer, headerOut, location](const WebRtcInterface &exchanger) mutable {
             auto &handler = const_cast<WebRtcInterface &>(exchanger);
             try {
+                // Encode query params since transport id/token may contain '+' or '/'.
+                HttpArgs delete_args;
+                delete_args["id"] = exchanger.getIdentifier();
+                delete_args["token"] = exchanger.deleteRandStr();
                 // 设置返回类型  [AUTO-TRANSLATED:ffc2a31a]
                 // Set return type
                 headerOut["Content-Type"] = "application/sdp";
-                headerOut["Location"] = location + "?id=" + exchanger.getIdentifier() + "&token=" + exchanger.deleteRandStr();
+                headerOut["Location"] = location + "?" + delete_args.make();
                 invoker(201, headerOut, handler.getAnswerSdp(offer));
             } catch (std::exception &ex) {
                 headerOut["Content-Type"] = "text/plain";
