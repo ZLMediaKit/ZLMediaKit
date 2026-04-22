@@ -38,7 +38,7 @@ public:
     /**
      * 剩余数据大小，如果返回-1, 那么就不设置content-length
      * Remaining data size, if -1 is returned, then content-length is not set
-     
+
      * [AUTO-TRANSLATED:75375ce7]
      */
     virtual int64_t remainSize() { return 0;};
@@ -76,6 +76,20 @@ public:
     }
 
     /**
+     * 尝试获取当前剩余body的可重放快照
+     * 默认返回false，表示该body不支持安全重放
+     * Try to get a replayable snapshot of the remaining body
+     * Returns false by default, meaning the body does not support safe replay
+
+     * [AUTO-TRANSLATED:9d2b3b20]
+     */
+    virtual bool snapshot(std::string &out, size_t max_size) const {
+        (void)out;
+        (void)max_size;
+        return false;
+    }
+
+    /**
      * 使用sendfile优化文件发送
      * @param fd socket fd
      * @return 0成功，其他为错误代码
@@ -103,6 +117,7 @@ public:
 
     int64_t remainSize() override;
     toolkit::Buffer::Ptr readData(size_t size) override ;
+    bool snapshot(std::string &out, size_t max_size) const override;
 
 private:
     size_t _offset = 0;
@@ -122,6 +137,7 @@ public:
 
     int64_t remainSize() override;
     toolkit::Buffer::Ptr readData(size_t size) override;
+    bool snapshot(std::string &out, size_t max_size) const override;
 
 private:
     toolkit::Buffer::Ptr _buffer;

@@ -28,6 +28,12 @@ find_package(PCAP QUIET)
 foreach(TEST_SRC ${TEST_SRC_LIST})
   get_filename_component(TEST_EXE_NAME ${TEST_SRC} NAME_WE)
 
+  if(NOT ENABLE_QUIC)
+    if("${TEST_EXE_NAME}" MATCHES "^(test_quic_client|test_http3_server|test_http_client_http3)$")
+      continue()
+    endif()
+  endif()
+
   if(NOT PCAP_FOUND)
     # message(WARNING "PCAP 未找到")
     if("${TEST_EXE_NAME}" MATCHES "test_rtp_pcap")
@@ -49,6 +55,10 @@ foreach(TEST_SRC ${TEST_SRC_LIST})
 
   target_compile_definitions(${TEST_EXE_NAME}
     PRIVATE ${MK_COMPILE_DEFINITIONS})
+  if(ENABLE_QUIC)
+    target_compile_definitions(${TEST_EXE_NAME}
+      PRIVATE ENABLE_QUIC)
+  endif()
 
   if(USE_SOLUTION_FOLDERS)
     SET_PROPERTY(TARGET ${TEST_EXE_NAME} PROPERTY FOLDER "test")
