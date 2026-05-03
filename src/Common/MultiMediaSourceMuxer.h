@@ -25,6 +25,18 @@
 
 namespace mediakit {
 
+struct FrameInfo {
+    CodecId codec_id = CodecInvalid;
+    int64_t dts = 0;
+    int64_t pts = 0;
+    int64_t recv_stamp = 0;
+    size_t frame_size = 0;
+
+    int index = 0;
+    bool key_frame = false;
+    bool config_frame = false;
+};
+
 class MultiMediaSourceMuxer : public MediaSourceEventInterceptor, public MediaSink, public toolkit::noncopyable, public std::enable_shared_from_this<MultiMediaSourceMuxer>{
 public:
     using Ptr = std::shared_ptr<MultiMediaSourceMuxer>;
@@ -188,6 +200,9 @@ public:
 #if defined(ENABLE_RTPPROXY)
     void forEachRtpSender(const std::function<void(const std::string &ssrc, const RtpSender &sender)> &cb) const;
 #endif // ENABLE_RTPPROXY
+
+    void addProbe(uint32_t probe_ms, const std::function<void(const std::list<FrameInfo> &info_list)> &cb);
+
 protected:
     /////////////////////////////////MediaSink override/////////////////////////////////
 
@@ -231,6 +246,7 @@ private:
     bool _create_in_poller = false;
     bool _video_key_pos = false;
     float _dur_sec;
+    std::function<void(const Frame::Ptr &frame)> _on_frame;
     std::shared_ptr<class FramePacedSender> _paced_sender;
     MediaTuple _tuple;
     ProtocolOption _option;

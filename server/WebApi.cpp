@@ -2651,6 +2651,39 @@ void installWebApi() {
             invoker(200, headerOut, val.toStyledString());
         });
     });
+
+    api_regist("/index/api/addProbe", [](API_ARGS_MAP_ASYNC) {
+        CHECK_SECRET();
+        CHECK_ARGS("vhost", "app", "stream", "probe_ms");
+
+        std::string vhost = allArgs["vhost"];
+        std::string app = allArgs["app"];
+        std::string stream = allArgs["stream"];
+        uint32_t probe_ms = allArgs["probe_ms"];
+
+        auto src = MediaSource::find(vhost, app, stream);
+        if (!src) {
+            throw ApiRetException("can not find the stream", API::NotFound);
+        }
+        src->getOwnerPoller()->async([=]() mutable {
+            src->getMuxer()->addProbe(probe_ms, [=](const std::list<FrameInfo> &info_list) mutable {
+                for (const auto &info : info_list) {
+                    Json::Value item;
+                    item["codec"] = getCodecName(info.codec_id);
+                    item["track_type"] = getTrackString(getTrackType(info.codec_id));
+                    item["dts"] = (Json::Int64)info.dts;
+                    item["pts"] = (Json::Int64)info.pts;
+                    item["recv_stamp"] = (Json::Int64)info.recv_stamp;
+                    item["frame_size"] = (Json::UInt)info.frame_size;
+                    item["index"] = info.index;
+                    item["key_frame"] = info.key_frame;
+                    item["config_frame"] = info.config_frame;
+                    val["data"].append(std::move(item));
+                }
+                invoker(200, headerOut, val.toStyledString());
+            });
+        });
+    });
 }
 
 void unInstallWebApi(){

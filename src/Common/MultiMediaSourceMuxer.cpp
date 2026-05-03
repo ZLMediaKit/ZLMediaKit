@@ -818,7 +818,36 @@ void MultiMediaSourceMuxer::resetTracks() {
     }
 }
 
+void MultiMediaSourceMuxer::addProbe(uint32_t probe_ms, const std::function<void(const std::list<FrameInfo> &info_list)> &cb) {
+    CHECK(getOwnerPoller(MediaSource::NullMediaSource())->isCurrentThread());
+    auto info_list = std::make_shared<std::list<FrameInfo>>();
+    Ticker ticker;
+    _on_frame = [info_list, ticker](const Frame::Ptr &frame) mutable {
+        FrameInfo info;
+        info.codec_id = frame->getCodecId();
+        info.dts = frame->dts();
+        info.pts = frame->pts();
+        info.recv_stamp = ticker.createdTime();
+        info.frame_size = frame->size();
+        info.index = frame->getIndex();
+        info.key_frame = frame->keyFrame();
+        info.config_frame = frame->configFrame();
+        info_list->emplace_back(info);
+    };
+    std::weak_ptr<MultiMediaSourceMuxer> weak_self = shared_from_this();
+    getOwnerPoller(MediaSource::NullMediaSource())->doDelayTask(probe_ms, [weak_self, cb, info_list]() {
+        if (auto strong_self = weak_self.lock()) {
+            strong_self->_on_frame = nullptr;
+        }
+        cb(*info_list);
+        return 0;
+    });
+}
+
 bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
+    if (_on_frame) {
+        _on_frame(frame_in);
+    }
     auto frame = frame_in;
     if (_option.modify_stamp != ProtocolOption::kModifyStampOff) {
         // 时间戳不采用原始的绝对时间戳  [AUTO-TRANSLATED:8beb3bf7]
