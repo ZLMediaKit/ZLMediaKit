@@ -319,7 +319,7 @@ bool MultiMediaSourceMuxer::setupRecord(Recorder::type type, bool start, const s
         if (_option.mp4_as_player && type == Recorder::type_mp4) {
             // 开启关闭mp4录制，触发观看人数变化相关事件  [AUTO-TRANSLATED:b63a8deb]
             // Turn on/off mp4 recording, trigger events related to changes in the number of viewers
-            onReaderChanged(MediaSource::NullMediaSource(_tuple), totalReaderCount());
+            onReaderChanged(MediaSource::NullMediaSource(), totalReaderCount());
         }
     });
     switch (type) {
