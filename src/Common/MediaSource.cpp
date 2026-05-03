@@ -67,12 +67,12 @@ ProtocolOption::ProtocolOption() {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 struct MediaSourceNull : public MediaSource {
-    MediaSourceNull() : MediaSource("schema", MediaTuple{"vhost", "app", "stream", ""}) {};
+    MediaSourceNull(const MediaTuple &tuple) : MediaSource("schema", tuple) {};
     int readerCount() override { return 0; }
 };
 
-MediaSource &MediaSource::NullMediaSource() {
-    static std::shared_ptr<MediaSource> s_null = std::make_shared<MediaSourceNull>();
+MediaSource &MediaSource::NullMediaSource(const MediaTuple &tuple) {
+    static std::shared_ptr<MediaSource> s_null = std::make_shared<MediaSourceNull>(tuple);
     return *s_null;
 }
 

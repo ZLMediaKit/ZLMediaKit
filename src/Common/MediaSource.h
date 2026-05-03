@@ -397,7 +397,8 @@ bool equalMediaTuple(const MediaTuple& a, const MediaTuple& b);
  */
 class MediaSource: public TrackSource, public std::enable_shared_from_this<MediaSource> {
 public:
-    static MediaSource& NullMediaSource();
+    static MediaSource &NullMediaSource(const MediaTuple &tuple = {"vhost", "app", "stream" });
+
     using Ptr = std::shared_ptr<MediaSource>;
 
     MediaSource(const std::string &schema, const MediaTuple& tuple);
