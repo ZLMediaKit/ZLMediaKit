@@ -77,6 +77,10 @@ public:
         return _option.hls_demand ? (_clear_cache ? true : _enabled) : true;
     }
 
+    MediaSource::Ptr getMediaSource() const {
+        return _hls ? _hls->getMediaSource() : nullptr;
+    }
+
 protected:
     bool _enabled = true;
     bool _clear_cache = false;

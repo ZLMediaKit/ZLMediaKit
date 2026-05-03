@@ -237,6 +237,8 @@ protected:
     bool onTrackFrame(const Frame::Ptr &frame) override;
     bool onTrackFrame_l(const Frame::Ptr &frame);
 
+    MediaSource::Ptr getAnyMediaSource() const;
+
 private:
     void createGopCacheIfNeed(size_t gop_count);
     std::shared_ptr<MediaSinkInterface> makeRecorder(Recorder::type type);

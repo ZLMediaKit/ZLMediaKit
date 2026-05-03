@@ -319,7 +319,7 @@ bool MultiMediaSourceMuxer::setupRecord(Recorder::type type, bool start, const s
         if (_option.mp4_as_player && type == Recorder::type_mp4) {
             // 开启关闭mp4录制，触发观看人数变化相关事件  [AUTO-TRANSLATED:b63a8deb]
             // Turn on/off mp4 recording, trigger events related to changes in the number of viewers
-            onReaderChanged(MediaSource::NullMediaSource(), totalReaderCount());
+            onReaderChanged(*getAnyMediaSource(), totalReaderCount());
         }
     });
     switch (type) {
@@ -906,6 +906,24 @@ bool MultiMediaSourceMuxer::onTrackFrame_l(const Frame::Ptr &frame_in) {
         }
     }
     return ret;
+}
+
+#define TRY_SRC(muxer) \
+    if (muxer) { \
+        auto src = muxer->getMediaSource(); \
+        if (src) { \
+            return src; \
+        } \
+    }
+
+MediaSource::Ptr MultiMediaSourceMuxer::getAnyMediaSource() const {
+    TRY_SRC(_fmp4)
+    TRY_SRC(_rtmp)
+    TRY_SRC(_rtsp)
+    TRY_SRC(_ts)
+    TRY_SRC(_hls)
+    TRY_SRC(_hls_fmp4)
+    return MediaSource::NullMediaSource().shared_from_this();
 }
 
 bool MultiMediaSourceMuxer::isEnabled(){
