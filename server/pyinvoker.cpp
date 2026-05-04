@@ -24,6 +24,7 @@ extern ArgsType make_json(const MediaInfo &args);
 extern void fillSockInfo(Json::Value & val, SockInfo* info);
 extern ArgsType getRecordInfo(const RecordInfo &info);
 extern std::string g_ini_file;
+static std::shared_ptr<PythonInvoker> g_instance;
 
 template <typename T>
 typename std::enable_if<std::is_copy_constructible<T>::value, py::capsule>::type to_python(const T &obj) {
@@ -388,11 +389,28 @@ PYBIND11_EMBEDDED_MODULE(mk_loader, m) {
         py::arg("opt") = py::dict()
     );
 
-    m.def("set_fastapi", [](const py::object &check_route, const py::object &submit_coro) {
+    m.def("set_fastapi", [](const py::function &check_route, const py::function &submit_coro) {
         static void *fastapi_tag = nullptr;
         NoticeCenter::Instance().delListener(&fastapi_tag, Broadcast::kBroadcastHttpRequest);
-        NoticeCenter::Instance().addListener(&fastapi_tag, Broadcast::kBroadcastHttpRequest, [check_route, submit_coro](BroadcastHttpRequestArgs) {
-            handle_http_request(check_route, submit_coro, parser, invoker, consumed, sender);
+        struct py_context {
+            py::function check_route;
+            py::function submit_coro;
+            std::shared_ptr<PythonInvoker> invoker;
+            ~py_context() {
+                {
+                    py::gil_scoped_acquire guard;
+                    check_route = py::function { };
+                    submit_coro = py::function { };
+                }
+                invoker = nullptr;
+            };
+        };
+        auto ptr = std::make_shared<py_context>();
+        ptr->check_route = check_route;
+        ptr->submit_coro = submit_coro;
+        ptr->invoker = g_instance;
+        NoticeCenter::Instance().addListener(&fastapi_tag, Broadcast::kBroadcastHttpRequest, [ptr](BroadcastHttpRequestArgs) {
+            handle_http_request(ptr->check_route, ptr->submit_coro, parser, invoker, consumed, sender);
         });
     });
 
@@ -569,8 +587,6 @@ bool set_python_path() {
     PrintI("PYTHONPATH was not set. Set to default: %s", default_path.data());
     return true;
 }
-
-static std::shared_ptr<PythonInvoker> g_instance;
 
 PythonInvoker &PythonInvoker::Instance() {
     static toolkit::onceToken s_token([]() {
