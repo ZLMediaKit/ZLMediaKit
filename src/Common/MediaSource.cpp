@@ -66,6 +66,11 @@ ProtocolOption::ProtocolOption() {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+struct MediaSourceNull : public MediaSource {
+    MediaSourceNull() : MediaSource("schema", MediaTuple{"vhost", "app", "stream", ""}) {};
+    int readerCount() override { return 0; }
+};
+
 MediaSource &MediaSource::NullMediaSource() {
     static std::shared_ptr<MediaSource> s_null = std::make_shared<MediaSourceNull>();
     return *s_null;
@@ -272,7 +277,7 @@ bool MediaSource::setupRecord(Recorder::type type, bool start, const string &cus
         WarnL << "未设置MediaSource的事件监听者，setupRecord失败:" << getUrl();
         return false;
     }
-    return listener->getMuxer(const_cast<MediaSource &>(*this))->setupRecord(type, start, custom_path, max_second);
+    return listener->getMuxer(const_cast<MediaSource &>(*this))->setupRecord(*this, type, start, custom_path, max_second);
 }
 
 bool MediaSource::isRecording(Recorder::type type){

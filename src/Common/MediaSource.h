@@ -573,11 +573,5 @@ private:
     toolkit::ObjectStatistic<MediaSource> _statistic;
 };
 
-struct MediaSourceNull : public MediaSource {
-    MediaSourceNull(const MediaTuple &tuple = { "vhost", "app", "stream", "" })
-        : MediaSource("schema", tuple) { };
-    int readerCount() override { return 0; }
-};
-
 } /* namespace mediakit */
 #endif //ZLMEDIAKIT_MEDIASOURCE_H
