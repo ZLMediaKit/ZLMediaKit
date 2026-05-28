@@ -156,8 +156,9 @@ int64_t MP4FileMemory::onTell(){
 int MP4FileMemory::onSeek(int64_t offset){
     if (offset < 0) {
         offset += _memory.size();
-        if (offset < 0)
+        if (offset < 0) {
             return -1;
+        }
         _offset = offset;
     } else {
         if (offset > _memory.size()) {
