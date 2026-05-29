@@ -118,7 +118,7 @@ public:
      
      * [AUTO-TRANSLATED:a2f0e859]
      */
-    void play(const std::string &strUrl) override;
+    void play(const std::string &url) override;
 
     /**
      * 获取观看总人数
@@ -140,7 +140,8 @@ public:
     const MediaTuple& getMediaTuple() const { return _tuple; }
     const ProtocolOption& getOption() const { return _option; }
 
-    void update(const std::string &url, const toolkit::mINI &args);
+    void setPlayerArgs(const toolkit::mINI &args);
+    void update(const std::string &url, const ProtocolOption &option, const toolkit::mINI &args);
 
 private:
     // MediaSourceEvent override
@@ -153,6 +154,7 @@ private:
     toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;
 
     void rePlay(int iFailedCnt);
+    void restartUpdatedStream();
     void onPlaySuccess();
     void setDirectProxy();
     void setTranslationInfo();
@@ -173,8 +175,10 @@ private:
     std::function<void(const toolkit::SockException &ex)> _on_play;
     TranslationInfo _transtalion_info;
     MultiMediaSourceMuxer::Ptr _muxer;
+    std::vector<std::string> _player_arg_keys;
 
     toolkit::Ticker _live_ticker;
+    bool _pending_reload = false;
     // 0 表示正常 1 表示正在尝试拉流  [AUTO-TRANSLATED:2080bedf]
     // 0 indicates normal, 1 indicates attempting to stream
     std::atomic<int> _live_status;

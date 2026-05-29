@@ -1,0 +1,24 @@
+diff --git a/src/liblsquic/lsquic_enc_sess_ietf.c b/src/liblsquic/lsquic_enc_sess_ietf.c
+index 9339dc3..bbebc9d 100644
+--- a/src/liblsquic/lsquic_enc_sess_ietf.c
++++ b/src/liblsquic/lsquic_enc_sess_ietf.c
+@@ -1331,12 +1331,14 @@ iquic_lookup_cert (SSL *ssl, void *arg)
+ #endif
+     if (!server_name)
+     {
++        /*
++         * Some interoperable HTTP/3 clients intentionally omit SNI when the URL
++         * host is an IP literal.  For single-certificate deployments, allow the
++         * certificate lookup callback to fall back to the default SSL_CTX
++         * instead of aborting the handshake before lookup runs.
++         */
+         if (enc_sess->esi_enpub->enp_flags & ENPUB_HTTP)
+-        {
+-            LSQ_DEBUG("SNI is not set, but is required in HTTP/3: "
+-                                                "fail certificate lookup");
+-            return 0;
+-        }
++            LSQ_DEBUG("SNI is not set in HTTP/3, falling back to default cert lookup");
+         else
+             LSQ_DEBUG("cert lookup: server name is not set");
+     }

@@ -9,6 +9,7 @@
  */
 
 #include <iomanip>
+#include <limits>
 #include "Util/File.h"
 #include "Common/Parser.h"
 #include "Common/config.h"
@@ -301,7 +302,7 @@ static bool makeFolderMenu(const string &httpPath, const string &strFullPath, st
 
 // 拦截hls的播放请求  [AUTO-TRANSLATED:dd1bbeec]
 // Intercept the hls playback request
-static bool emitHlsPlayed(const Parser &parser, const MediaInfo &media_info, const HttpSession::HttpAccessPathInvoker &invoker,Session &sender){
+static bool emitHlsPlayed(const Parser &parser, const MediaInfo &media_info, const HttpAccessPathInvoker &invoker,Session &sender){
     // 访问的hls.m3u8结尾，我们转换成kBroadcastMediaPlayed事件  [AUTO-TRANSLATED:b7a67c84]
     // The hls.m3u8 ending of the access, we convert it to the kBroadcastMediaPlayed event
     Broadcast::AuthInvoker auth_invoker = [invoker](const string &err) {
@@ -338,7 +339,7 @@ static std::string getUidFromParams(const string &params) {
  
  * [AUTO-TRANSLATED:dfc0f15f]
  */
-static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo &media_info, const std::string &file_path, bool is_dir,
+static void canAccessPath(SockInfo &sender, Session *session, const Parser &parser, const MediaInfo &media_info, const std::string &file_path, bool is_dir,
                           const function<void(const string &err_msg, const HttpServerCookie::Ptr &cookie)> &callback) {
     // 获取用户唯一id  [AUTO-TRANSLATED:5b1cf4bf]
     // Get the user's unique id
@@ -391,14 +392,17 @@ static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo
 
     bool is_hls = media_info.schema == HLS_SCHEMA || media_info.schema == HLS_FMP4_SCHEMA;
 
-    weak_ptr<Session> weak_session = static_pointer_cast<Session>(sender.shared_from_this());
+    weak_ptr<Session> weak_session;
+    if (session) {
+        weak_session = static_pointer_cast<Session>(session->shared_from_this());
+    }
 
     // 该用户从来未获取过cookie，这个时候我们广播是否允许该用户访问该http目录  [AUTO-TRANSLATED:8f4b3dd2]
     // This user has never obtained a cookie, at this time we broadcast whether to allow this user to access this http directory
-    HttpSession::HttpAccessPathInvoker accessPathInvoker = [callback, uid, path, is_dir, is_hls, media_info, weak_session]
+    HttpAccessPathInvoker accessPathInvoker = [callback, uid, path, is_dir, is_hls, media_info, weak_session]
             (const string &err_msg, const string &cookie_path_in, int life_second) {
         auto strong_session = weak_session.lock();
-        if (!strong_session) {
+        if (!strong_session && is_hls) {
             // http客户端已经断开，不需要回复  [AUTO-TRANSLATED:9a252e21]
             // The http client has disconnected and does not need to reply
             return;
@@ -421,7 +425,7 @@ static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo
             // 记录能否访问  [AUTO-TRANSLATED:972f6fc5]
             // Record whether access is allowed
             attach->_err_msg = err_msg;
-            if (is_hls) {
+            if (is_hls && strong_session) {
                 // hls相关信息  [AUTO-TRANSLATED:37893a71]
                 // hls related information
                 attach->_hls_data = std::make_shared<HlsCookieData>(media_info, strong_session);
@@ -434,10 +438,10 @@ static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo
         }
     };
 
-    if (is_hls) {
+    if (is_hls && session) {
         // 是hls的播放鉴权,拦截之  [AUTO-TRANSLATED:c5ba86bb]
         // This is hls playback authentication, intercept it
-        emitHlsPlayed(parser, media_info, accessPathInvoker, sender);
+        emitHlsPlayed(parser, media_info, accessPathInvoker, *session);
         return;
     }
 
@@ -475,7 +479,7 @@ static string pathCat(const string &a, const string &b){
     return a + '/' + b;
 }
 
-static string getFilePath(const Parser &parser,const MediaInfo &media_info, Session *sender, const string &customRootPath = "");
+static string getFilePath(const Parser &parser,const MediaInfo &media_info, SockInfo *sender, const string &customRootPath = "");
 
 /**
  * 访问文件
@@ -493,7 +497,7 @@ static string getFilePath(const Parser &parser,const MediaInfo &media_info, Sess
 
  * [AUTO-TRANSLATED:2d840fe6]
  */
-static void accessFile(Session &sender, const Parser &parser, const MediaInfo &media_info, const string &file_path, const HttpFileManager::invoker &cb) {
+static void accessFile(SockInfo &sender, Session *session, const Parser &parser, const MediaInfo &media_info, const string &file_path, const HttpFileManager::invoker &cb) {
     bool is_hls = end_with(file_path, kHlsSuffix) || end_with(file_path, kHlsFMP4Suffix);
     if (is_hls) {
         // hls，那么移除掉后缀获取真实的stream_id并且修改协议为HLS  [AUTO-TRANSLATED:94b5818a]
@@ -507,12 +511,15 @@ static void accessFile(Session &sender, const Parser &parser, const MediaInfo &m
         }
     }
 
-    weak_ptr<Session> weakSession = static_pointer_cast<Session>(sender.shared_from_this());
+    weak_ptr<Session> weakSession;
+    if (session) {
+        weakSession = static_pointer_cast<Session>(session->shared_from_this());
+    }
     // 判断是否有权限访问该文件  [AUTO-TRANSLATED:b7f595f5]
     // Determine whether you have permission to access this file
-    canAccessPath(sender, parser, media_info, file_path, false, [cb, file_path, parser, is_hls, media_info, weakSession](const string &err_msg, const HttpServerCookie::Ptr &cookie) {
+    canAccessPath(sender, session, parser, media_info, file_path, false, [cb, file_path, parser, is_hls, media_info, weakSession](const string &err_msg, const HttpServerCookie::Ptr &cookie) {
         auto strongSession = weakSession.lock();
-        if (!strongSession) {
+        if (!strongSession && is_hls) {
             // http客户端已经断开，不需要回复  [AUTO-TRANSLATED:9a252e21]
             // The http client has disconnected and does not need to reply
             return;
@@ -624,7 +631,7 @@ static void accessFile(Session &sender, const Parser &parser, const MediaInfo &m
     });
 }
 
-static string getFilePath(const Parser &parser,const MediaInfo &media_info, Session *sender, const string &customRootPath) {
+static string getFilePath(const Parser &parser,const MediaInfo &media_info, SockInfo *sender, const string &customRootPath) {
     GET_CONFIG(bool, enableVhost, General::kEnableVhost);
     GET_CONFIG(string, httpRootPath, Http::kRootPath);
     GET_CONFIG_FUNC(StrCaseMap, virtualPathMap, Http::kVirtualPath, [](const string &str) {
@@ -683,6 +690,10 @@ static string getFilePath(const Parser &parser,const MediaInfo &media_info, Sess
  * [AUTO-TRANSLATED:a79c824d]
  */
 void HttpFileManager::onAccessPath(Session &sender, Parser &parser, const HttpFileManager::invoker &cb) {
+    onAccessPath(static_cast<SockInfo &>(sender), parser, cb, &sender);
+}
+
+void HttpFileManager::onAccessPath(SockInfo &sender, Parser &parser, const HttpFileManager::invoker &cb, Session *session) {
     auto fullUrl = "http://" + parser["Host"] + parser.fullUrl();
     MediaInfo media_info(fullUrl);
     auto file_path = getFilePath(parser, media_info, &sender);
@@ -702,7 +713,7 @@ void HttpFileManager::onAccessPath(Session &sender, Parser &parser, const HttpFi
                 // 不是文件夹  [AUTO-TRANSLATED:af893469]
                 // Not a folder
                 parser.setUrl(pathCat(parser.url(), indexFile));
-                accessFile(sender, parser, media_info, file_path, cb);
+                accessFile(sender, session, parser, media_info, file_path, cb);
                 return;
             }
         }
@@ -717,7 +728,7 @@ void HttpFileManager::onAccessPath(Session &sender, Parser &parser, const HttpFi
         }
         // 判断是否有权限访问该目录  [AUTO-TRANSLATED:963d02a6]
         // Determine if there is permission to access this directory
-        canAccessPath(sender, parser, media_info, file_path, true, [strMenu, cb](const string &err_msg, const HttpServerCookie::Ptr &cookie) mutable{
+        canAccessPath(sender, session, parser, media_info, file_path, true, [strMenu, cb](const string &err_msg, const HttpServerCookie::Ptr &cookie) mutable{
             if (!err_msg.empty()) {
                 strMenu = err_msg;
             }
@@ -732,8 +743,8 @@ void HttpFileManager::onAccessPath(Session &sender, Parser &parser, const HttpFi
 
     // 访问的是文件  [AUTO-TRANSLATED:7a400b3c]
     // Accessing a file
-    accessFile(sender, parser, media_info, file_path, cb);
-};
+    accessFile(sender, session, parser, media_info, file_path, cb);
+}
 
 
 ////////////////////////////////////HttpResponseInvokerImp//////////////////////////////////////
@@ -743,8 +754,8 @@ void HttpResponseInvokerImp::operator()(int code, const StrCaseMap &headerOut, c
 }
 
 void HttpResponseInvokerImp::operator()(int code, const StrCaseMap &headerOut, const HttpBody::Ptr &body) const{
-    if (_lambad) {
-        _lambad(code, headerOut, body);
+    if (_response_body_invoker) {
+        _response_body_invoker(code, headerOut, body);
     }
 }
 
@@ -752,21 +763,27 @@ void HttpResponseInvokerImp::operator()(int code, const StrCaseMap &headerOut, c
     this->operator()(code, headerOut, std::make_shared<HttpStringBody>(body));
 }
 
-HttpResponseInvokerImp::HttpResponseInvokerImp(const HttpResponseInvokerImp::HttpResponseInvokerLambda0 &lambda){
-    _lambad = lambda;
+HttpResponseInvokerImp::HttpResponseInvokerImp(const HttpResponseInvokerImp::HttpResponseBodyInvoker &invoker){
+    _response_body_invoker = invoker;
 }
 
-HttpResponseInvokerImp::HttpResponseInvokerImp(const HttpResponseInvokerImp::HttpResponseInvokerLambda1 &lambda){
-    if (!lambda) {
-        _lambad = nullptr;
+HttpResponseInvokerImp::HttpResponseInvokerImp(const HttpResponseInvokerImp::HttpResponseStringInvoker &invoker){
+    if (!invoker) {
+        _response_body_invoker = nullptr;
         return;
     }
-    _lambad = [lambda](int code, const StrCaseMap &headerOut, const HttpBody::Ptr &body) {
+    _response_body_invoker = [invoker](int code, const StrCaseMap &headerOut, const HttpBody::Ptr &body) {
         string str;
-        if (body && body->remainSize()) {
-            str = body->readData(body->remainSize())->toString();
+        if (body && !body->snapshot(str, (std::numeric_limits<size_t>::max)())) {
+            auto remain = body->remainSize();
+            if (remain > 0) {
+                auto buffer = body->readData(static_cast<size_t>(remain));
+                if (buffer) {
+                    str = buffer->toString();
+                }
+            }
         }
-        lambda(code, headerOut, str);
+        invoker(code, headerOut, str);
     };
 }
 
@@ -827,8 +844,8 @@ void HttpResponseInvokerImp::responseFile(const StrCaseMap &requestHeader,
     (*this)(code, httpHeader, fileBody);
 }
 
-HttpResponseInvokerImp::operator bool(){
-    return _lambad.operator bool();
+HttpResponseInvokerImp::operator bool() const{
+    return _response_body_invoker.operator bool();
 }
 
 

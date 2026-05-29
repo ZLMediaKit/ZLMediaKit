@@ -1,0 +1,8 @@
+{
+  global:
+    zlm_quic_plugin_abi_version;
+    zlm_quic_plugin_create;
+    zlm_quic_plugin_destroy;
+  local:
+    *;
+};

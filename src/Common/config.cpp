@@ -200,6 +200,11 @@ const string kForbidCacheSuffix = HTTP_FIELD "forbidCacheSuffix";
 const string kForwardedIpHeader = HTTP_FIELD "forwarded_ip_header";
 const string kAllowCrossDomains = HTTP_FIELD "allow_cross_domains";
 const string kAllowIPRange = HTTP_FIELD "allow_ip_range";
+const string kQuicPort = HTTP_FIELD "quicport";
+const string kQuicCongestionControl = HTTP_FIELD "quic_cc";
+const string kQuicServerCongestionControl = HTTP_FIELD "quic_cc_server";
+const string kQuicClientCongestionControl = HTTP_FIELD "quic_cc_client";
+const string kHttp3AutoReplayMaxSize = HTTP_FIELD "http3_auto_replay_max_size";
 
 static onceToken token([]() {
     mINI::Instance()[kSendBufSize] = 64 * 1024;
@@ -224,6 +229,11 @@ static onceToken token([]() {
     mINI::Instance()[kForwardedIpHeader] = "";
     mINI::Instance()[kAllowCrossDomains] = 1;
     mINI::Instance()[kAllowIPRange] = "::1,127.0.0.1,172.16.0.0-172.31.255.255,192.168.0.0-192.168.255.255,10.0.0.0-10.255.255.255";
+    mINI::Instance()[kQuicPort] = 443;
+    mINI::Instance()[kQuicCongestionControl] = "bbr";
+    mINI::Instance()[kQuicServerCongestionControl] = "";
+    mINI::Instance()[kQuicClientCongestionControl] = "cubic";
+    mINI::Instance()[kHttp3AutoReplayMaxSize] = 64 * 1024;
 });
 
 } // namespace Http
