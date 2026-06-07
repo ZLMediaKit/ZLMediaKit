@@ -531,6 +531,9 @@ extern const std::string kDeleteDelaySec;
 // 如果设置为1，则第一个切片长度强制设置为1个GOP  [AUTO-TRANSLATED:fbbb651d]
 // If set to 1, the length of the first slice is forced to be 1 GOP
 extern const std::string kFastRegister;
+// fmp4 HLS切片文件的扩展名(例如 .mp4 或 .m4s)；mpegts切片始终为.ts
+// File extension for fMP4 HLS segment files (e.g. .mp4 or .m4s); mpegts segments are always .ts
+extern const std::string kFmp4SegExt;
 } // namespace Hls
 
 // //////////Rtp代理相关配置///////////  [AUTO-TRANSLATED:7b285587]
