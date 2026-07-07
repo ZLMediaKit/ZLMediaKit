@@ -42,7 +42,7 @@ public:
      *
      * [AUTO-TRANSLATED:2e733a35]
      **/
-    using HttpAccessPathInvoker = std::function<void(const std::string &errMsg,const std::string &accessPath, int cookieLifeSecond)>;
+    using HttpAccessPathInvoker = mediakit::HttpAccessPathInvoker;
 
     HttpSession(const toolkit::Socket::Ptr &pSock);
 

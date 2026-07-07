@@ -561,7 +561,7 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
     });
 
     auto pos = 0;
-    auto lam0 = [&](TaskExecutor &executor) {
+    auto collect_thread_mem = [&](TaskExecutor &executor) {
         auto &val = (*thread_mem_info)[pos++];
         executor.async([finished, &val]() {
             auto bytes = getThisThreadMemUsage();
@@ -582,24 +582,26 @@ void getStatisticJson(const function<void(Value &val)> &cb) {
             }
         });
     };
-    auto lam1 = [lam0](const TaskExecutor::Ptr &executor) {
-        lam0(*executor);
+    auto collect_thread_mem_from_ptr = [collect_thread_mem](const TaskExecutor::Ptr &executor) {
+        collect_thread_mem(*executor);
     };
-    EventPollerPool::Instance().for_each(lam1);
-    WorkThreadPool::Instance().for_each(lam1);
+    EventPollerPool::Instance().for_each(collect_thread_mem_from_ptr);
+    WorkThreadPool::Instance().for_each(collect_thread_mem_from_ptr);
 #else
     cb(*obj);
 #endif
 }
 
-void updateStreamProxy(const mediakit::MediaTuple &tuple, const std::string &url, const toolkit::mINI &args) {
+void updateStreamProxy(const mediakit::MediaTuple &tuple, const std::string &url,
+                       const mediakit::ProtocolOption &option, const toolkit::mINI &args) {
     auto key = tuple.shortUrl();
     auto player = s_player_proxy.find(key);
     if (!player) {
-        throw std::runtime_error("proxy player not found: " + key);
+        auto msg = std::string("proxy player not found: ") + key;
+        throw ApiRetException(msg.c_str(), API::NotFound);
     }
-    player->getPoller()->async([url, args, player]() {
-        player->update(url, args);
+    player->getPoller()->async([url, option, args, player]() {
+        player->update(url, option, args);
     });
 }
 
@@ -619,9 +621,7 @@ void addStreamProxy(const MediaTuple &tuple, const string &url, int retry_count,
 
     // 先透传拷贝参数  [AUTO-TRANSLATED:22b5605e]
     // First pass-through copy parameters
-    for (auto &pr : args) {
-        (*player)[pr.first] = pr.second;
-    }
+    player->setPlayerArgs(args);
 
     if (timeout_sec > 0.1f) {
         // 播放握手超时时间  [AUTO-TRANSLATED:5a29ae1f]
@@ -2397,7 +2397,7 @@ void installWebApi() {
 
         // 通过on_http_access完成文件下载鉴权，请务必确认访问鉴权url参数以及访问文件路径是否合法  [AUTO-TRANSLATED:73507988]
         // File download authentication is completed through on_http_access. Please make sure that the access authentication URL parameters and the access file path are legal
-        HttpSession::HttpAccessPathInvoker file_invoker = [allArgs, invoker](const string &err_msg, const string &cookie_path_in, int life_second) mutable {
+        HttpAccessPathInvoker file_invoker = [allArgs, invoker](const string &err_msg, const string &cookie_path_in, int life_second) mutable {
             if (!err_msg.empty()) {
                 invoker(401, StrCaseMap{}, err_msg);
             } else {

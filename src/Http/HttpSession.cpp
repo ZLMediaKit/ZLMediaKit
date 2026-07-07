@@ -14,7 +14,9 @@
 #include "Common/config.h"
 #include "Common/strCoding.h"
 #include "HttpSession.h"
+#include "HttpRequestDispatcher.h"
 #include "HttpConst.h"
+#include "HttpProtocolHint.h"
 #include "Util/base64.h"
 #include "Util/SHA1.h"
 
@@ -554,7 +556,7 @@ void HttpSession::onHttpRequest_GET() {
 
     bool bClose = !strcasecmp(_parser["Connection"].data(), "close");
     weak_ptr<HttpSession> weak_self = static_pointer_cast<HttpSession>(shared_from_this());
-    HttpFileManager::onAccessPath(*this, _parser, [weak_self, bClose](int code, const string &content_type,
+    HttpRequestDispatcher::onAccessPath(*this, _parser, [weak_self, bClose](int code, const string &content_type,
                                                                       const StrCaseMap &responseHeader, const HttpBody::Ptr &body) {
         auto strong_self = weak_self.lock();
         if (!strong_self) {
@@ -705,6 +707,7 @@ void HttpSession::sendResponse(int code,
     headerOut.emplace("Date", dateStr());
     headerOut.emplace("Server", kServerName);
     headerOut.emplace("Connection", bClose ? "close" : "keep-alive");
+    appendAltSvcHeader(headerOut);
 
     GET_CONFIG(bool, allow_cross_domains, Http::kAllowCrossDomains);
     if (allow_cross_domains && !_origin.empty()) {
@@ -801,8 +804,6 @@ void HttpSession::urlDecode(Parser &parser) {
 
 bool HttpSession::emitHttpEvent(bool doInvoke) {
     bool bClose = !strcasecmp(_parser["Connection"].data(), "close");
-    // ///////////////////异步回复Invoker///////////////////////////////  [AUTO-TRANSLATED:6d0c5fda]
-    // ///////////////////Asynchronous reply Invoker///////////////////////////////
     weak_ptr<HttpSession> weak_self = static_pointer_cast<HttpSession>(shared_from_this());
     HttpResponseInvoker invoker = [weak_self, bClose](int code, const KeyValue &headerOut, const HttpBody::Ptr &body) {
         auto strong_self = weak_self.lock();
@@ -812,23 +813,12 @@ bool HttpSession::emitHttpEvent(bool doInvoke) {
         strong_self->async([weak_self, bClose, code, headerOut, body]() {
             auto strong_self = weak_self.lock();
             if (!strong_self) {
-                // 本对象已经销毁  [AUTO-TRANSLATED:713e0f23]
-                // This object has been destroyed
                 return;
             }
             strong_self->sendResponse(code, bClose, nullptr, headerOut, body);
         });
     };
-    // /////////////////广播HTTP事件///////////////////////////  [AUTO-TRANSLATED:fff9769c]
-    // /////////////////Broadcast HTTP event///////////////////////////
-    bool consumed = false; // 该事件是否被消费
-    NOTICE_EMIT(BroadcastHttpRequestArgs, Broadcast::kBroadcastHttpRequest, _parser, invoker, consumed, *this);
-    if (!consumed && doInvoke) {
-        // 该事件无人消费，所以返回404  [AUTO-TRANSLATED:8a890dec]
-        // This event is not consumed, so return 404
-        invoker(404, KeyValue(), HttpBody::Ptr());
-    }
-    return consumed;
+    return HttpRequestDispatcher::emitHttpEvent(_parser, *this, invoker, doInvoke);
 }
 
 std::string HttpSession::get_peer_ip() {

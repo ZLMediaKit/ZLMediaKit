@@ -15,6 +15,7 @@
 #include "Util/mini.h"
 #include "Util/onceToken.h"
 #include "macros.h"
+#include "Http/HttpServerTypes.h"
 #include <functional>
 
 namespace mediakit {
@@ -55,12 +56,12 @@ extern const std::string kBroadcastRecordTs;
 // 收到http api请求广播  [AUTO-TRANSLATED:c72e7c3f]
 // Broadcast for receiving http api request
 extern const std::string kBroadcastHttpRequest;
-#define BroadcastHttpRequestArgs const Parser &parser, const HttpSession::HttpResponseInvoker &invoker, bool &consumed, toolkit::SockInfo &sender
+#define BroadcastHttpRequestArgs const Parser &parser, const HttpResponseInvokerImp &invoker, bool &consumed, toolkit::SockInfo &sender
 
 // 在http文件服务器中,收到http访问文件或目录的广播,通过该事件控制访问http目录的权限  [AUTO-TRANSLATED:2de426b4]
 // In the http file server, broadcast for receiving http access to files or directories. Control access permissions to the http directory through this event.
 extern const std::string kBroadcastHttpAccess;
-#define BroadcastHttpAccessArgs const Parser &parser, const std::string &path, const std::string &file_path, const bool &is_dir, const HttpSession::HttpAccessPathInvoker &invoker, toolkit::SockInfo &sender
+#define BroadcastHttpAccessArgs const Parser &parser, const std::string &path, const std::string &file_path, const bool &is_dir, const HttpAccessPathInvoker &invoker, toolkit::SockInfo &sender
 
 // 在http文件服务器中,收到http访问文件或目录前的广播,通过该事件可以控制http url到文件路径的映射  [AUTO-TRANSLATED:0294d0c5]
 // In the http file server, broadcast before receiving http access to files or directories. Control the mapping from http url to file path through this event.
@@ -381,6 +382,17 @@ extern const std::string kAllowCrossDomains;
 // 允许访问http api和http文件索引的ip地址范围白名单，置空情况下不做限制  [AUTO-TRANSLATED:ab939863]
 // Whitelist of IP address ranges allowed to access HTTP API and HTTP file index. No restrictions are imposed when empty
 extern const std::string kAllowIPRange;
+// HTTP/3 QUIC listener port
+extern const std::string kQuicPort;
+// HTTP/3 QUIC congestion control algorithm: default/cubic/bbr/adaptive
+extern const std::string kQuicCongestionControl;
+// Optional server-side QUIC congestion control override; falls back to http.quic_cc when empty
+extern const std::string kQuicServerCongestionControl;
+// Optional client-side QUIC congestion control override; when unset in config.cpp it may still default to a
+// more conservative Internet-facing value than http.quic_cc
+extern const std::string kQuicClientCongestionControl;
+// Maximum request body size that auto HTTP/3 upgrade may buffer for safe replay
+extern const std::string kHttp3AutoReplayMaxSize;
 } // namespace Http
 
 // //////////SHELL配置///////////  [AUTO-TRANSLATED:f023ec45]

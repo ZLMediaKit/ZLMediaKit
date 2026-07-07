@@ -49,3 +49,4 @@
 /ios/
 /cmake-build-*
 /3rdpart/ZLToolKit/cmake-build-mq/
+/3rdpart/external-*/
