@@ -44,6 +44,8 @@ public:
     // Speed bounds
     static constexpr float kMinSpeed = 0.5f;
     static constexpr float kMaxSpeed = 1.5f;
+    // Keep the cache bounded even when publisher timestamps are identical or tightly clustered.
+    static constexpr size_t kMaxCacheSize = 25 * 5;
 
     FramePacedSender(uint32_t paced_sender_ms, OnFrame cb)
         : _paced_sender_ms(paced_sender_ms), _cb(std::move(cb)) {}
@@ -74,6 +76,10 @@ public:
         }
         _cache.emplace(frame->dts(), Frame::getCacheAbleFrame(frame));
         last_dts = frame->dts();
+        if (_cache.size() > kMaxCacheSize) {
+            WarnL << "Force flush paced sender cache: size=" << _cache.size();
+            flushCache(frame->dts());
+        }
         return true;
     }
 
