@@ -67,10 +67,10 @@ void SrtSession::onError(const SockException &err) {
     // Prevent mutual reference from causing non-release
     auto transport = std::move(_transport);
     getPoller()->async(
-        [transport] {
+        [transport, err] {
             // 延时减引用，防止使用transport对象时，销毁对象  [AUTO-TRANSLATED:09dd6609]
             // Delayed dereference to prevent object destruction when using the transport object
-            //transport->onShutdown(err);
+            transport->onShutdown(err);
         },
         false);
 }
