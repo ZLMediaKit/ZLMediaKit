@@ -1,4 +1,4 @@
-﻿#if defined(ENABLE_PYTHON)
+#if defined(ENABLE_PYTHON)
 
 #include "pyinvoker.h"
 
@@ -16,6 +16,13 @@
 #include "Http/HttpSession.h"
 #include "Poller/EventPoller.h"
 #include  "WebApi.h"
+
+#include <pybind11/embed.h>
+#include <pybind11/numpy.h>
+#include <pybind11/stl.h>   // ⭐ 必须
+#include <pybind11/functional.h>  // ⭐ 必须
+#include <pybind11/numpy.h>
+namespace py = pybind11;
 
 using namespace toolkit;
 using namespace mediakit;
@@ -200,7 +207,8 @@ void handle_http_request(const py::object &check_route, const py::object &submit
 
     submit_coro(scope, py::bytes(parser.content()), send);
 }
-
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wattributes"
 class MuxerDelegatePython : public MediaSinkInterface {
 public:
     MuxerDelegatePython(py::object object) {
@@ -248,6 +256,7 @@ private:
     py::function _add_track;
     py::function _add_track_completed;
 };
+#pragma GCC diagnostic pop
 
 PYBIND11_EMBEDDED_MODULE(mk_loader, m) {
     m.def("log", [](int lev, const char *file, int line, const char *func, const char *content) {
@@ -561,6 +570,8 @@ PYBIND11_EMBEDDED_MODULE(mk_loader, m) {
         .def("decodeAble", &Frame::decodeAble);
 }
 
+
+
 namespace mediakit {
 
 inline bool set_env(const char *name, const char *value) {
@@ -588,6 +599,92 @@ bool set_python_path() {
     return true;
 }
 
+// ====================== 新增PIMPL实现结构体 ======================
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wattributes"
+struct PythonInvokerImpl {
+    toolkit::NoticeCenter::Ptr _notice_center;
+    py::gil_scoped_release *_rel = nullptr;
+    py::scoped_interpreter *_interpreter = nullptr;
+    std::shared_ptr<toolkit::Logger> _logger;
+    py::module _module;
+
+    py::function _on_exit;
+    py::function _on_publish;
+    py::function _on_play;
+    py::function _on_flow_report;
+    py::function _on_reload_config;
+    py::function _on_media_changed;
+    py::function _on_player_proxy_failed;
+    py::function _on_get_rtsp_realm;
+    py::function _on_rtsp_auth;
+    py::function _on_stream_not_found;
+    py::function _on_record_mp4;
+    py::function _on_record_ts;
+    py::function _on_stream_none_reader;
+    py::function _on_send_rtp_stopped;
+    py::function _on_http_access;
+    py::function _on_rtp_server_timeout;
+    py::function _on_create_muxer;
+
+    PythonInvokerImpl() {
+        // 确保日志一直可用
+        _logger = Logger::Instance().shared_from_this();
+        set_python_path(); // 确保 PYTHONPATH 在第一次调用时设置
+        _interpreter = new py::scoped_interpreter;
+        _rel = new py::gil_scoped_release;
+
+        NoticeCenter::Instance().addListener(this, Broadcast::kBroadcastReloadConfig, [this] (BroadcastReloadConfigArgs) {
+            py::gil_scoped_acquire guard;
+            if (_on_reload_config) {
+                _on_reload_config();
+            }
+        });
+
+        NoticeCenter::Instance().addListener(this, Broadcast::kBroadcastCreateMuxer, [this](BroadcastCreateMuxerArgs) {
+            py::gil_scoped_acquire guard;
+            if (_on_create_muxer) {
+                auto py_muxer = _on_create_muxer(to_python_ref(sender));
+                if (py_muxer && !py_muxer.is_none()) {
+                    delegate = std::make_shared<MuxerDelegatePython>(std::move(py_muxer));
+                }
+            }
+        });
+        _notice_center = NoticeCenter::Instance().shared_from_this();
+    }
+
+    ~PythonInvokerImpl() {
+        // 原有析构清理逻辑全部移这里
+        _notice_center->delListener(this, Broadcast::kBroadcastReloadConfig);
+        {
+            py::gil_scoped_acquire gil;
+            if (_on_exit) _on_exit();
+            _on_exit = py::function();
+            _on_publish = py::function();
+            _on_play = py::function();
+            _on_flow_report = py::function();
+            _on_reload_config = py::function();
+            _on_media_changed = py::function();
+            _on_player_proxy_failed = py::function();
+            _on_get_rtsp_realm = py::function();
+            _on_rtsp_auth = py::function();
+            _on_stream_not_found = py::function();
+            _on_record_mp4 = py::function();
+            _on_record_ts = py::function();
+            _on_stream_none_reader = py::function();
+            _on_send_rtp_stopped = py::function();
+            _on_http_access = py::function();
+            _on_rtp_server_timeout = py::function();
+            _on_create_muxer = py::function();
+            _module = py::module();
+        }
+        delete _rel;
+        delete _interpreter;
+    }
+};
+#pragma GCC diagnostic pop
+// =================================================================
+
 PythonInvoker &PythonInvoker::Instance() {
     static toolkit::onceToken s_token([]() {
         g_instance.reset(new PythonInvoker);
@@ -601,90 +698,41 @@ void PythonInvoker::release() {
 }
 
 PythonInvoker::PythonInvoker() {
-    // 确保日志一直可用
-    _logger = Logger::Instance().shared_from_this();
-    set_python_path(); // 确保 PYTHONPATH 在第一次调用时设置
-    _interpreter = new py::scoped_interpreter;
-    _rel = new py::gil_scoped_release;
-
-    NoticeCenter::Instance().addListener(this, Broadcast::kBroadcastReloadConfig, [this] (BroadcastReloadConfigArgs) {
-        py::gil_scoped_acquire guard;
-        if (_on_reload_config) {
-            _on_reload_config();
-        }
-    });
-
-    NoticeCenter::Instance().addListener(this, Broadcast::kBroadcastCreateMuxer, [this](BroadcastCreateMuxerArgs) {
-        py::gil_scoped_acquire guard;
-        if (_on_create_muxer) {
-            auto py_muxer = _on_create_muxer(to_python_ref(sender));
-            if (py_muxer && !py_muxer.is_none()) {
-                delegate = std::make_shared<MuxerDelegatePython>(std::move(py_muxer));
-            }
-        }
-    });
-    _notice_center = NoticeCenter::Instance().shared_from_this();
 }
 
 PythonInvoker::~PythonInvoker() {
-    _notice_center->delListener(this, Broadcast::kBroadcastReloadConfig);
-    {
-        py::gil_scoped_acquire gil; // 加锁
-        if (_on_exit) {
-            _on_exit();
-        }
-        _on_exit = py::function();
-        _on_publish = py::function();
-        _on_play = py::function();
-        _on_flow_report = py::function();
-        _on_reload_config = py::function();
-        _on_media_changed = py::function();
-        _on_player_proxy_failed = py::function();
-        _on_get_rtsp_realm = py::function();
-        _on_rtsp_auth = py::function();
-        _on_stream_not_found = py::function();
-        _on_record_mp4 = py::function();
-        _on_record_ts = py::function();
-        _on_stream_none_reader = py::function();
-        _on_send_rtp_stopped = py::function();
-        _on_http_access = py::function();
-        _on_rtp_server_timeout = py::function();
-        _on_create_muxer = py::function();
-        _module = py::module();
-    }
-    delete _rel;
-    delete _interpreter;
 }
 
-#define GET_FUNC(instance, name) \
+#define GET_FUNC(obj, instance, name) \
     if (hasattr(instance, #name)) { \
-        _##name = instance.attr(#name); \
+        obj._##name = instance.attr(#name); \
     }
 
 void PythonInvoker::load(const std::string &module_name) {
+    auto &p = *_impl;
     try {
         py::gil_scoped_acquire gil; // 加锁
-        _module = py::module::import(module_name.c_str());
-        GET_FUNC(_module, on_exit);
-        GET_FUNC(_module, on_publish);
-        GET_FUNC(_module, on_play);
-        GET_FUNC(_module, on_flow_report);
-        GET_FUNC(_module, on_reload_config);
-        GET_FUNC(_module, on_media_changed);
-        GET_FUNC(_module, on_player_proxy_failed);
-        GET_FUNC(_module, on_get_rtsp_realm);
-        GET_FUNC(_module, on_rtsp_auth);
-        GET_FUNC(_module, on_stream_not_found);
-        GET_FUNC(_module, on_record_mp4);
-        GET_FUNC(_module, on_record_ts);
-        GET_FUNC(_module, on_stream_none_reader);
-        GET_FUNC(_module, on_send_rtp_stopped);
-        GET_FUNC(_module, on_http_access);
-        GET_FUNC(_module, on_rtp_server_timeout);
-        GET_FUNC(_module, on_create_muxer);
+        p._module = py::module::import(module_name.c_str());
+        GET_FUNC(p, p._module, on_exit);
+        GET_FUNC(p, p._module, on_publish);
+        GET_FUNC(p, p._module, on_play);
+        GET_FUNC(p, p._module, on_flow_report);
+        GET_FUNC(p, p._module, on_reload_config);
+        GET_FUNC(p, p._module, on_media_changed);
+        GET_FUNC(p, p._module, on_player_proxy_failed);
+        GET_FUNC(p, p._module, on_get_rtsp_realm);
+        GET_FUNC(p, p._module, on_rtsp_auth);
+        GET_FUNC(p, p._module, on_stream_not_found);
+        GET_FUNC(p, p._module, on_record_mp4);
+        GET_FUNC(p, p._module, on_record_ts);
+        GET_FUNC(p, p._module, on_stream_none_reader);
+        GET_FUNC(p, p._module, on_send_rtp_stopped);
+        GET_FUNC(p, p._module, on_http_access);
+        GET_FUNC(p, p._module, on_rtp_server_timeout);
+        GET_FUNC(p, p._module, on_create_muxer);
 
-        if (hasattr(_module, "on_start")) {
-            py::object on_start = _module.attr("on_start");
+        if (hasattr(p._module, "on_start")) {
+            py::object on_start = p._module.attr("on_start");
             if (on_start) {
                 on_start();
             }
@@ -695,115 +743,129 @@ void PythonInvoker::load(const std::string &module_name) {
 }
 
 bool PythonInvoker::on_publish(BroadcastMediaPublishArgs) const {
+    auto &p = *_impl;
     py::gil_scoped_acquire gil; // 确保在 Python 调用期间持有 GIL
-    if (!_on_publish) {
+    if (!p._on_publish) {
         return false;
     }
-    return _on_publish(getOriginTypeString(type), to_python(args), to_python(invoker), to_python(sender)).cast<bool>();
+    return p._on_publish(getOriginTypeString(type), to_python(args), to_python(invoker), to_python(sender)).cast<bool>();
 }
 
 bool PythonInvoker::on_play(BroadcastMediaPlayedArgs) const {
+    auto &p = *_impl;
     py::gil_scoped_acquire gil; // 确保在 Python 调用期间持有 GIL
-    if (!_on_play) {
+    if (!p._on_play) {
         return false;
     }
-    return _on_play(to_python(args), to_python(invoker), to_python(sender)).cast<bool>();
+    return p._on_play(to_python(args), to_python(invoker), to_python(sender)).cast<bool>();
 }
 
 bool PythonInvoker::on_flow_report(BroadcastFlowReportArgs) const {
+    auto &p = *_impl;
     py::gil_scoped_acquire gil; // 确保在 Python 调用期间持有 GIL
-    if (!_on_flow_report) {
+    if (!p._on_flow_report) {
         return false;
     }
-    return _on_flow_report(to_python(args), totalBytes, totalDuration, isPlayer, to_python(sender)).cast<bool>();
+    return p._on_flow_report(to_python(args), totalBytes, totalDuration, isPlayer, to_python(sender)).cast<bool>();
 }
 
 bool PythonInvoker::on_media_changed(BroadcastMediaChangedArgs) const {
+    auto &p = *_impl;
     py::gil_scoped_acquire gil; // 确保在 Python 调用期间持有 GIL
-    if (!_on_media_changed) {
+    if (!p._on_media_changed) {
         return false;
     }
-    return _on_media_changed(bRegist, to_python_ref(sender)).cast<bool>();
+    return p._on_media_changed(bRegist, to_python_ref(sender)).cast<bool>();
 }
 
 bool PythonInvoker::on_player_proxy_failed(BroadcastPlayerProxyFailedArgs) const {
+    auto &p = *_impl;
     py::gil_scoped_acquire gil; // 确保在 Python 调用期间持有 GIL
-    if (!_on_player_proxy_failed) {
+    if (!p._on_player_proxy_failed) {
         return false;
     }
-    return _on_player_proxy_failed(sender.getUrl(), to_python_ref(sender.getMediaTuple()), to_python_ref(ex)).cast<bool>();
+    return p._on_player_proxy_failed(sender.getUrl(), to_python_ref(sender.getMediaTuple()), to_python_ref(ex)).cast<bool>();
 }
 
 bool PythonInvoker::on_get_rtsp_realm(BroadcastOnGetRtspRealmArgs) const {
+    auto &p = *_impl;
     py::gil_scoped_acquire gil; // 确保在 Python 调用期间持有 GIL
-    if (!_on_get_rtsp_realm) {
+    if (!p._on_get_rtsp_realm) {
         return false;
     }
-    return _on_get_rtsp_realm(to_python(args), to_python(invoker), to_python(sender)).cast<bool>();
+    return p._on_get_rtsp_realm(to_python(args), to_python(invoker), to_python(sender)).cast<bool>();
 }
 
 bool PythonInvoker::on_rtsp_auth(BroadcastOnRtspAuthArgs) const {
+    auto &p = *_impl;
     py::gil_scoped_acquire gil; // 确保在 Python 调用期间持有 GIL
-    if (!_on_rtsp_auth) {
+    if (!p._on_rtsp_auth) {
         return false;
     }
-    return _on_rtsp_auth(to_python(args), realm, user_name, must_no_encrypt, to_python(invoker), to_python(sender)).cast<bool>();
+    return p._on_rtsp_auth(to_python(args), realm, user_name, must_no_encrypt, to_python(invoker), to_python(sender)).cast<bool>();
 }
 
 bool PythonInvoker::on_stream_not_found(BroadcastNotFoundStreamArgs) const {
+    auto &p = *_impl;
     py::gil_scoped_acquire gil; // 确保在 Python 调用期间持有 GIL
-    if (!_on_stream_not_found) {
+    if (!p._on_stream_not_found) {
         return false;
     }
-    return _on_stream_not_found(to_python(args), to_python(sender), to_python(closePlayer)).cast<bool>();
+    return p._on_stream_not_found(to_python(args), to_python(sender), to_python(closePlayer)).cast<bool>();
 }
 
 bool PythonInvoker::on_record_mp4(BroadcastRecordMP4Args) const {
+    auto &p = *_impl;
     py::gil_scoped_acquire gil; // 确保在 Python 调用期间持有 GIL
-    if (!_on_record_mp4) {
+    if (!p._on_record_mp4) {
         return false;
     }
-    return _on_record_mp4(to_python(info)).cast<bool>();
+    return p._on_record_mp4(to_python(info)).cast<bool>();
 }
 
 bool PythonInvoker::on_record_ts(BroadcastRecordTsArgs) const {
+    auto &p = *_impl;
     py::gil_scoped_acquire gil; // 确保在 Python 调用期间持有 GIL
-    if (!_on_record_ts) {
+    if (!p._on_record_ts) {
         return false;
     }
-    return _on_record_ts(to_python(info)).cast<bool>();
+    return p._on_record_ts(to_python(info)).cast<bool>();
 }
 
 bool PythonInvoker::on_stream_none_reader(BroadcastStreamNoneReaderArgs) const {
+    auto &p = *_impl;
     py::gil_scoped_acquire gil; // 确保在 Python 调用期间持有 GIL
-    if (!_on_stream_none_reader) {
+    if (!p._on_stream_none_reader) {
         return false;
     }
-    return _on_stream_none_reader(to_python_ref(sender)).cast<bool>();
+    return p._on_stream_none_reader(to_python_ref(sender)).cast<bool>();
 }
 
 bool PythonInvoker::on_send_rtp_stopped(BroadcastSendRtpStoppedArgs) const {
+    auto &p = *_impl;
     py::gil_scoped_acquire gil; // 确保在 Python 调用期间持有 GIL
-    if (!_on_send_rtp_stopped) {
+    if (!p._on_send_rtp_stopped) {
         return false;
     }
-    return _on_send_rtp_stopped(to_python_ref(sender), ssrc, to_python_ref(ex)).cast<bool>();
+    return p._on_send_rtp_stopped(to_python_ref(sender), ssrc, to_python_ref(ex)).cast<bool>();
 }
 
 bool PythonInvoker::on_http_access(BroadcastHttpAccessArgs) const {
+    auto &p = *_impl;
     py::gil_scoped_acquire gil; // 确保在 Python 调用期间持有 GIL
-    if (!_on_http_access) {
+    if (!p._on_http_access) {
         return false;
     }
-    return _on_http_access(to_python_ref(parser), path, file_path, is_dir, to_python(invoker), to_python(sender)).cast<bool>();
+    return p._on_http_access(to_python_ref(parser), path, file_path, is_dir, to_python(invoker), to_python(sender)).cast<bool>();
 }
 
 bool PythonInvoker::on_rtp_server_timeout(BroadcastRtpServerTimeoutArgs) const {
+    auto &p = *_impl;
     py::gil_scoped_acquire gil; // 确保在 Python 调用期间持有 GIL
-    if (!_on_rtp_server_timeout) {
+    if (!p._on_rtp_server_timeout) {
         return false;
     }
-    return _on_rtp_server_timeout(local_port, to_python_ref(tuple), tcp_mode, re_use_port, ssrc).cast<bool>();
+    return p._on_rtp_server_timeout(local_port, to_python_ref(tuple), tcp_mode, re_use_port, ssrc).cast<bool>();
 }
 
 } // namespace mediakit
