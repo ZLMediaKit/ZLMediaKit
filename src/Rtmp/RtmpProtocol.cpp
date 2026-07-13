@@ -910,10 +910,7 @@ void RtmpProtocol::handle_chunk(RtmpPacket::Ptr packet) {
                 ts |= (*ptr << 24);
                 ptr += 1;
                 ptr += 3;
-                // 参考FFmpeg多拷贝了4个字节  [AUTO-TRANSLATED:d8aae4ae]
-                // Reference FFmpeg copied 4 more bytes
-                size += 4;
-                if (ptr + size > ptr_tail) {
+                if (ptr + size + 4 > ptr_tail) {
                     break;
                 }
                 if (!first_message) {
@@ -930,7 +927,7 @@ void RtmpProtocol::handle_chunk(RtmpPacket::Ptr packet) {
                 sub_packet.stream_index = chunk_data.stream_index;
                 sub_packet.chunk_id = chunk_data.chunk_id;
                 handle_chunk(std::move(sub_packet_ptr));
-                ptr += size;
+                ptr += size + 4;
             }
             break;
         }

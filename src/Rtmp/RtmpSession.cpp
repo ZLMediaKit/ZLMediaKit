@@ -273,17 +273,7 @@ void RtmpSession::sendPlayResponse(const string &err, const RtmpMediaSource::Ptr
                  "details", _media_info.stream,
                  "clientid", "0"});
 
-    // |RtmpSampleAccess(true, true)
     AMFEncoder invoke;
-    invoke << "|RtmpSampleAccess" << true << true;
-    sendResponse(MSG_DATA, invoke.data());
-
-    //onStatus(NetStream.Data.Start)
-    invoke.clear();
-    AMFValue obj(AMF_OBJECT);
-    obj.set("code", "NetStream.Data.Start");
-    invoke << "onStatus" << obj;
-    sendResponse(MSG_DATA, invoke.data());
 
     //onStatus(NetStream.Play.PublishNotify)
     sendStatus({ "level", "status",
@@ -587,7 +577,17 @@ void RtmpSession::onCmd_seek(AMFDecoder &dec) {
 }
 
 void RtmpSession::onSendMedia(const RtmpPacket::Ptr &pkt) {
-    sendRtmp(pkt->type_id, pkt->stream_index, pkt, pkt->time_stamp, pkt->chunk_id);
+    switch (pkt->type_id) {
+        case MSG_AUDIO:
+            sendRtmp(pkt->type_id, STREAM_MEDIA, pkt, pkt->time_stamp, CHUNK_AUDIO);
+            break;
+        case MSG_VIDEO:
+            sendRtmp(pkt->type_id, STREAM_MEDIA, pkt, pkt->time_stamp, CHUNK_VIDEO);
+            break;
+        default:
+            sendRtmp(pkt->type_id, pkt->stream_index, pkt, pkt->time_stamp, pkt->chunk_id);
+            break;
+    }
 }
 
 bool RtmpSession::close(MediaSource &sender) {

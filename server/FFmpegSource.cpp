@@ -363,42 +363,88 @@ void FFmpegSource::onGetMediaSource(const MediaSource::Ptr &src) {
 #include "Player/MediaPlayer.h"
 #include "Codec/Transcode.h"
 
-static void makeSnapAsync(const string &play_url, const string &save_path, float timeout_sec, const FFmpegSnap::onSnap &cb) {
-    struct Holder {
-        MediaPlayer::Ptr player;
-    };
-    auto holder = std::make_shared<Holder>();
-    auto player = std::make_shared<MediaPlayer>();
-    (*player)[mediakit::Client::kTimeoutMS] = timeout_sec * 1000;
+static std::string getStreamName(const std::string &input) {
+    // 先找 '/'
+    size_t pos = input.find('/');
+    if (pos != std::string::npos) {
+        return input.substr(0, pos);
+    }
 
-    player->setOnPlayResult([holder, save_path, cb, timeout_sec](const SockException &ex) mutable {
-        onceToken token(nullptr, [&]() { holder->player = nullptr; });
-        auto video = ex ? nullptr : dynamic_pointer_cast<VideoTrack>(holder->player->getTrack(TrackVideo, false));
-        if (!video) {
-            cb(false, ex ? ex.what() : "none video track");
-            return;
-        }
-        auto decoder = std::make_shared<FFmpegDecoder>(video);
-        auto new_holder = std::make_shared<Holder>(*holder);
-        auto timer = EventPollerPool::Instance().getPoller()->doDelayTask(1000 * timeout_sec, [cb, new_holder]() {
-            // 防止解码失败导致播放器无法释放
-            new_holder->player = nullptr;
-            cb(false, "decode frame timeout");
-            return 0;
+    // 如果没有 '/', 再找 '.'
+    pos = input.find('.');
+    if (pos != std::string::npos) {
+        return input.substr(0, pos);
+    }
+
+    // 都没有，返回原字符串
+    return input;
+}
+
+static bool makeSnapAsync(const string &play_url, const string &save_path, float timeout_sec, const FFmpegSnap::onSnap &cb) {
+    MediaInfo info(play_url);
+    info.stream = getStreamName(info.stream);
+    MediaSource::Ptr src;
+    Track::Ptr track;
+    MultiMediaSourceMuxer::Ptr muxer;
+    if (info.host == "127.0.0.1" || info.host == "localhost" || info.params.find("self=1") != std::string::npos) {
+        // 截图zlm本身
+        src = MediaSource::find(info.vhost, info.app, info.stream, false);
+        track = src ? src->getTrack(TrackVideo) : nullptr;
+        muxer = src ? src->getMuxer() : nullptr;
+    }
+    // 要求开启转码额度
+    if (src && track && muxer) {
+        DebugL << "start snap in fast mode: " << play_url;
+        src->getOwnerPoller()->async([muxer, track, timeout_sec, cb, save_path]() mutable {
+            auto done = std::make_shared<atomic<bool>>(false);
+            auto reader = muxer->getFrameReader();
+            auto timer = EventPollerPool::Instance().getPoller()->doDelayTask(1000 * timeout_sec, [reader, cb, done]() {
+                if (*done) {
+                    return 0;
+                }
+                *done = true;
+                // 防止解码失败导致播放器无法释放
+                cb(false, "decode frame timeout");
+                return 0;
+            });
+
+            // 单线程解码，没必要太快
+            auto decoder = std::make_shared<FFmpegDecoder>(track, 1);
+            decoder->setOnDecode([save_path, cb, done, timer](const FFmpegFrame::Ptr &frame) mutable {
+                if (*done) {
+                    return;
+                }
+                *done = true;
+                timer->cancel();
+
+                auto ret = FFmpegUtils::saveFrame(frame, save_path.data());
+                cb(std::get<0>(ret), std::get<1>(ret));
+            });
+
+            auto decode_poller = WorkThreadPool::Instance().getPoller();
+            reader->setReadCB([decoder, decode_poller, done](const Frame::Ptr &frame) mutable {
+                if (*done) {
+                    // 销毁解码器，防止无谓的解码
+                    decoder = nullptr;
+                    return;
+                }
+                if (frame->getTrackType() == TrackVideo) {
+                    // 异步解码，防止阻塞网络线程
+                    auto copy_frame = Frame::getCacheAbleFrame(frame);
+                    decode_poller->async([decoder, copy_frame, done]() mutable {
+                        if (*done) {
+                            // 销毁解码器，防止无谓的解码
+                            decoder = nullptr;
+                            return;
+                        }
+                        decoder->inputFrame(copy_frame, false, false, true);
+                    });
+                }
+            });
         });
-        auto done = false;
-        decoder->setOnDecode([save_path, new_holder, cb, done, timer](const FFmpegFrame::Ptr &frame) mutable {
-            if (done) {
-                return;
-            }
-            onceToken token(nullptr, [&]() { new_holder->player = nullptr; timer->cancel(); done = true; });
-            auto ret = FFmpegUtils::saveFrame(frame, save_path.data());
-            cb(std::get<0>(ret), std::get<1>(ret));
-        });
-        video->addDelegate([decoder](const Frame::Ptr &frame) { return decoder->inputFrame(frame, false, true); });
-    });
-    player->play(play_url);
-    holder->player = std::move(player);
+        return true;
+    }
+    return false;
 }
 
 #endif
@@ -406,8 +452,9 @@ static void makeSnapAsync(const string &play_url, const string &save_path, float
 void FFmpegSnap::makeSnap(bool async, const string &play_url, const string &save_path, float timeout_sec, const onSnap &cb) {
 #if defined(ENABLE_FFMPEG)
     if (async) {
-        makeSnapAsync(play_url, save_path, timeout_sec, cb);
-        return;
+        if (makeSnapAsync(play_url, save_path, timeout_sec, cb)) {
+            return;
+        }
     }
 #endif
 

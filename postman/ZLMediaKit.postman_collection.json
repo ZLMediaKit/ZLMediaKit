@@ -3279,6 +3279,57 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "添加探针(addProbe)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{ZLMediaKit_URL}}/index/api/addProbe?secret={{ZLMediaKit_secret}}&vhost={{defaultVhost}}&app=live&stream=test&probe_ms=5000",
+              "host": [
+                "{{ZLMediaKit_URL}}"
+              ],
+              "path": [
+                "index",
+                "api",
+                "addProbe"
+              ],
+              "query": [
+                {
+                  "key": "secret",
+                  "value": "{{ZLMediaKit_secret}}",
+                  "description": "api操作密钥(配置文件配置)",
+                  "type": "text"
+                },
+                {
+                  "key": "vhost",
+                  "value": "{{defaultVhost}}",
+                  "description": "流的虚拟主机，例如__defaultVhost__",
+                  "type": "text"
+                },
+                {
+                  "key": "app",
+                  "value": "live",
+                  "description": "流的应用名，例如live",
+                  "type": "text"
+                },
+                {
+                  "key": "stream",
+                  "value": "test",
+                  "description": "流的id名，例如test",
+                  "type": "text"
+                },
+                {
+                  "key": "probe_ms",
+                  "value": "5000",
+                  "description": "探针时长，单位毫秒",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": []
         }
 	],
 	"event": [

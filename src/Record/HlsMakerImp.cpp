@@ -31,13 +31,16 @@ std::string getDelayPath(const std::string& originalPath) {
 }
 
 HlsMakerImp::HlsMakerImp(bool is_fmp4, const string &m3u8_file, const string &params, uint32_t bufSize, float seg_duration,
-                         uint32_t seg_number, bool seg_keep) : HlsMaker(is_fmp4, seg_duration, seg_number, seg_keep) {
+                         uint32_t seg_number, bool seg_keep, const string &fmp4_seg_ext) : HlsMaker(is_fmp4, seg_duration, seg_number, seg_keep) {
     _poller = EventPollerPool::Instance().getPoller();
     _path_prefix = m3u8_file.substr(0, m3u8_file.rfind('/'));
     _path_hls = m3u8_file;
     _path_hls_delay = getDelayPath(m3u8_file);
     _params = params;
     _buf_size = bufSize;
+    // 兼容用户配置不带前导点的扩展名(例如 m4s)，统一补上"."  [AUTO-TRANSLATED]
+    // Tolerate user-configured extensions without a leading dot (e.g. m4s) by normalizing to ".m4s"
+    _fmp4_seg_ext = fmp4_seg_ext.empty() ? ".mp4" : (fmp4_seg_ext.front() == '.' ? fmp4_seg_ext : "." + fmp4_seg_ext);
     _file_buf.reset(new char[bufSize], [](char *ptr) { delete[] ptr; });
     _info.folder = _path_prefix;
 }
@@ -151,7 +154,7 @@ string HlsMakerImp::onOpenSegment(uint64_t index) {
         auto strHour = getTimeStr("%H");
         auto strTime = getTimeStr("%M-%S");
         auto current_dir = strDate + "/" + strHour + "/";
-        segment_name = current_dir + strTime + "_" + std::to_string(index) + (isFmp4() ? ".mp4" : ".ts");
+        segment_name = current_dir + strTime + "_" + std::to_string(index) + (isFmp4() ? _fmp4_seg_ext : ".ts");
         segment_path = _path_prefix + "/" + segment_name;
         if (isLive()) {
             // 直播

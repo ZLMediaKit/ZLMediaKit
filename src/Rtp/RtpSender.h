@@ -116,7 +116,6 @@ private:
 
 private:
     bool _is_connect = false;
-    toolkit::Socket::Ptr _origin_socket;
     MediaSourceEvent::SendRtpArgs _args;
     toolkit::Socket::Ptr _socket_rtp;
     toolkit::Socket::Ptr _socket_rtcp;
@@ -127,6 +126,7 @@ private:
     toolkit::Ticker _rtcp_recv_ticker;
     std::shared_ptr<RtpSession> _rtp_session;
     std::function<void(const toolkit::SockException &ex)> _on_close;
+    std::weak_ptr<MultiMediaSourceMuxer> _muxer;
 };
 
 }//namespace mediakit

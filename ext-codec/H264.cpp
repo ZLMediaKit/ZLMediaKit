@@ -11,7 +11,6 @@
 #include "H264.h"
 #include "H264Rtmp.h"
 #include "H264Rtp.h"
-#include "SPSParser.h"
 #include "Util/logger.h"
 #include "Util/base64.h"
 #include "Common/Parser.h"
@@ -22,28 +21,194 @@
 #include "mpeg4-avc.h"
 #endif
 
+#include <vector>
+#include <stdexcept>
+
 using namespace std;
 using namespace toolkit;
 
 namespace mediakit {
 
-static bool getAVCInfo(const char *sps, size_t sps_len, int &iVideoWidth, int &iVideoHeight, float &iVideoFps) {
-    if (sps_len < 4) {
-        return false;
+// ---- 内部比特流工具 ----
+namespace {
+
+// 去除 RBSP 防竞争字节 (0x00 0x00 0x03 -> 0x00 0x00)
+static std::vector<uint8_t> rbsp_from_nalu(const uint8_t *data, size_t size) {
+    std::vector<uint8_t> out;
+    out.reserve(size);
+    for (size_t i = 0; i < size; ) {
+        if (i + 2 < size && data[i] == 0x00 && data[i+1] == 0x00 && data[i+2] == 0x03) {
+            out.push_back(0x00);
+            out.push_back(0x00);
+            i += 3;
+        } else {
+            out.push_back(data[i++]);
+        }
     }
-    T_GetBitContext tGetBitBuf;
-    T_SPS tH264SpsInfo;
-    memset(&tGetBitBuf, 0, sizeof(tGetBitBuf));
-    memset(&tH264SpsInfo, 0, sizeof(tH264SpsInfo));
-    tGetBitBuf.pu8Buf = (uint8_t *)sps + 1;
-    tGetBitBuf.iBufSize = (int)(sps_len - 1);
-    if (0 != h264DecSeqParameterSet((void *)&tGetBitBuf, &tH264SpsInfo)) {
-        return false;
+    return out;
+}
+
+struct BitStream {
+    const uint8_t *buf;
+    size_t size; // bytes
+    size_t pos;  // bit position
+
+    BitStream(const uint8_t *b, size_t s) : buf(b), size(s), pos(0) {}
+
+    bool eof() const { return pos >= size * 8; }
+
+    size_t bits_left() const { return size * 8 - pos; }
+
+    uint32_t read_bits(int n) {
+        if (n < 0 || n > 32 || (size_t)n > bits_left()) {
+            throw std::runtime_error("eof");
+        }
+        uint32_t val = 0;
+        for (int i = 0; i < n; i++) {
+            val = (val << 1) | ((buf[pos / 8] >> (7 - pos % 8)) & 1);
+            pos++;
+        }
+        return val;
     }
-    h264GetWidthHeight(&tH264SpsInfo, &iVideoWidth, &iVideoHeight);
-    h264GeFramerate(&tH264SpsInfo, &iVideoFps);
-    // ErrorL << iVideoWidth << " " << iVideoHeight << " " << iVideoFps;
-    return true;
+
+    void skip_bits(int n) {
+        if (n < 0 || (size_t)n > bits_left()) {
+            throw std::runtime_error("eof");
+        }
+        pos += n;
+    }
+
+    uint32_t read_ue() { // Exp-Golomb unsigned
+        int zeros = 0;
+        while (!eof() && read_bits(1) == 0) zeros++;
+        if (zeros == 0) return 0;
+        if (zeros >= 32) throw std::runtime_error("exp-golomb overflow");
+        return (1u << zeros) - 1 + read_bits(zeros);
+    }
+
+    int32_t read_se() { // Exp-Golomb signed
+        uint32_t v = read_ue();
+        return (v & 1) ? (int32_t)((v + 1) >> 1) : -(int32_t)(v >> 1);
+    }
+};
+
+} // anonymous namespace
+
+// ---- H264 SPS 解析 ----
+static bool getAVCInfo(const char *sps_raw, size_t sps_len, int &iVideoWidth, int &iVideoHeight, float &iVideoFps) {
+    if (sps_len < 4) return false;
+    // sps_raw[0] 是 NAL header，从第 1 字节开始是 RBSP
+    auto rbsp = rbsp_from_nalu((const uint8_t *)sps_raw + 1, sps_len - 1);
+    if (rbsp.size() < 3) return false;
+
+    try {
+        BitStream bs(rbsp.data(), rbsp.size());
+
+        uint8_t profile_idc = (uint8_t)bs.read_bits(8); // profile_idc
+        bs.skip_bits(8); // constraint flags + reserved
+        bs.skip_bits(8); // level_idc
+        bs.read_ue();    // seq_parameter_set_id
+
+        uint32_t chroma_format_idc = 1;
+        if (profile_idc == 100 || profile_idc == 110 || profile_idc == 122 ||
+            profile_idc == 244 || profile_idc == 44  || profile_idc == 83  ||
+            profile_idc == 86  || profile_idc == 118 || profile_idc == 128) {
+            chroma_format_idc = bs.read_ue();
+            if (chroma_format_idc > 3) {
+                return false;
+            }
+            if (chroma_format_idc == 3) bs.skip_bits(1); // separate_colour_plane_flag
+            bs.read_ue(); // bit_depth_luma_minus8
+            bs.read_ue(); // bit_depth_chroma_minus8
+            bs.skip_bits(1); // qpprime_y_zero_transform_bypass_flag
+            if (bs.read_bits(1)) { // seq_scaling_matrix_present_flag
+                int cnt = (chroma_format_idc != 3) ? 8 : 12;
+                for (int i = 0; i < cnt; i++) {
+                    if (bs.read_bits(1)) { // seq_scaling_list_present_flag
+                        int sz = (i < 6) ? 16 : 64;
+                        int last = 8, next = 8;
+                        for (int j = 0; j < sz; j++) {
+                            if (next != 0) next = (last + bs.read_se() + 256) % 256;
+                            last = (next == 0) ? last : next;
+                        }
+                    }
+                }
+            }
+        }
+
+        bs.read_ue(); // log2_max_frame_num_minus4
+        uint32_t pic_order_cnt_type = bs.read_ue();
+        if (pic_order_cnt_type == 0) {
+            bs.read_ue(); // log2_max_pic_order_cnt_lsb_minus4
+        } else if (pic_order_cnt_type == 1) {
+            bs.skip_bits(1); // delta_pic_order_always_zero_flag
+            bs.read_se();    // offset_for_non_ref_pic
+            bs.read_se();    // offset_for_top_to_bottom_field
+            uint32_t n = bs.read_ue();
+            for (uint32_t i = 0; i < n; i++) bs.read_se();
+        }
+        bs.read_ue(); // max_num_ref_frames
+        bs.skip_bits(1); // gaps_in_frame_num_value_allowed_flag
+
+        uint32_t pic_width_in_mbs_minus1       = bs.read_ue();
+        uint32_t pic_height_in_map_units_minus1 = bs.read_ue();
+        uint32_t frame_mbs_only_flag            = bs.read_bits(1);
+        if (!frame_mbs_only_flag) bs.skip_bits(1); // mb_adaptive_frame_field_flag
+        bs.skip_bits(1); // direct_8x8_inference_flag
+
+        uint32_t crop_left = 0, crop_right = 0, crop_top = 0, crop_bottom = 0;
+        if (bs.read_bits(1)) { // frame_cropping_flag
+            crop_left   = bs.read_ue();
+            crop_right  = bs.read_ue();
+            crop_top    = bs.read_ue();
+            crop_bottom = bs.read_ue();
+        }
+
+        uint32_t crop_unit_x = 1;
+        uint32_t crop_unit_y = 2 - frame_mbs_only_flag;
+        if (chroma_format_idc == 1) {
+            crop_unit_x = 2;
+            crop_unit_y = 2 * (2 - frame_mbs_only_flag);
+        } else if (chroma_format_idc == 2) {
+            crop_unit_x = 2;
+            crop_unit_y = 2 - frame_mbs_only_flag;
+        }
+
+        uint64_t raw_width  = (uint64_t)(pic_width_in_mbs_minus1 + 1) * 16;
+        uint64_t raw_height = (uint64_t)(pic_height_in_map_units_minus1 + 1) * 16 * (2 - frame_mbs_only_flag);
+        uint64_t crop_w = ((uint64_t)crop_left + crop_right) * crop_unit_x;
+        uint64_t crop_h = ((uint64_t)crop_top  + crop_bottom) * crop_unit_y;
+        if (crop_w >= raw_width || crop_h >= raw_height) return false;
+        iVideoWidth  = (int)(raw_width  - crop_w);
+        iVideoHeight = (int)(raw_height - crop_h);
+
+        iVideoFps = 0.0f;
+        if (bs.read_bits(1)) { // vui_parameters_present_flag
+            if (bs.read_bits(1)) { // aspect_ratio_info_present_flag
+                uint32_t ar = bs.read_bits(8);
+                if (ar == 255) bs.skip_bits(32); // sar width+height
+            }
+            if (bs.read_bits(1)) bs.skip_bits(1); // overscan
+            if (bs.read_bits(1)) {                // video_signal_type_present_flag
+                bs.skip_bits(3 + 1); // video_format + video_full_range_flag
+                if (bs.read_bits(1)) bs.skip_bits(24); // colour_description_present_flag
+            }
+            if (bs.read_bits(1)) { // chroma_loc_info_present_flag
+                bs.read_ue(); bs.read_ue();
+            }
+            if (bs.read_bits(1)) { // timing_info_present_flag
+                uint32_t num_units_in_tick = bs.read_bits(32);
+                uint32_t time_scale        = bs.read_bits(32);
+                bs.skip_bits(1); // fixed_frame_rate_flag
+                if (num_units_in_tick > 0) {
+                    iVideoFps = (float)time_scale / (2.0f * (float)num_units_in_tick);
+                }
+            }
+        }
+        return iVideoWidth > 0 && iVideoHeight > 0;
+    } catch (...) {
+        return iVideoWidth > 0 && iVideoHeight > 0;
+    }
 }
 
 bool getAVCInfo(const string &strSps, int &iVideoWidth, int &iVideoHeight, float &iVideoFps) {

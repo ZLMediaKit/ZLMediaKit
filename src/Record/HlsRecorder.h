@@ -26,9 +26,10 @@ public:
         GET_CONFIG(bool, hlsKeep, Hls::kSegmentKeep);
         GET_CONFIG(uint32_t, hlsBufSize, Hls::kFileBufSize);
         GET_CONFIG(float, hlsDuration, Hls::kSegmentDuration);
+        GET_CONFIG(std::string, hlsFmp4SegExt, Hls::kFmp4SegExt);
 
         _option = option;
-        _hls = std::make_shared<HlsMakerImp>(is_fmp4, m3u8_file, params, hlsBufSize, hlsDuration, hlsNum, hlsKeep);
+        _hls = std::make_shared<HlsMakerImp>(is_fmp4, m3u8_file, params, hlsBufSize, hlsDuration, hlsNum, hlsKeep, hlsFmp4SegExt);
         // 清空上次的残余文件  [AUTO-TRANSLATED:e16122be]
         // Clear the residual files from the last time
         _hls->clearCache();
@@ -75,6 +76,10 @@ public:
         // 缓存尚未清空时，还允许触发inputFrame函数，以便及时清空缓存  [AUTO-TRANSLATED:7cfd4d49]
         // When the cache has not been cleared, it is still allowed to trigger the inputFrame function to clear the cache in time
         return _option.hls_demand ? (_clear_cache ? true : _enabled) : true;
+    }
+
+    MediaSource::Ptr getMediaSource() const {
+        return _hls ? _hls->getMediaSource() : nullptr;
     }
 
 protected:

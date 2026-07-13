@@ -1,0 +1,130 @@
+FROM ubuntu:24.04 AS build
+#shell,rtmp,rtsp,rtsps,http,https,rtp
+EXPOSE 1935/tcp
+EXPOSE 554/tcp
+EXPOSE 80/tcp
+EXPOSE 443/tcp
+EXPOSE 10000/udp
+EXPOSE 10000/tcp
+EXPOSE 8000/udp
+EXPOSE 8000/tcp
+EXPOSE 9000/udp
+
+# 设置环境变量，避免交互提示
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    git \
+    build-essential \
+    cmake \
+    curl \
+    unzip \
+    zip \
+    nasm \
+    autoconf \
+    automake \
+    libtool \
+    autoconf-archive \
+    pkg-config \
+    libavcodec-dev \
+    libavformat-dev \
+    libavutil-dev \
+    libswscale-dev \
+    libavfilter-dev \
+    python3 \
+    python3-dev \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN git clone https://github.com/ZLMediaKit/pymkui.git /opt/media/ZLMediaKit/pymkui
+
+# 克隆 vcpkg 并编译
+RUN git clone https://github.com/microsoft/vcpkg.git /opt/vcpkg \
+    && /opt/vcpkg/bootstrap-vcpkg.sh
+
+# 将 vcpkg 路径加入环境变量
+ENV PATH="/opt/vcpkg:$PATH"
+ENV VCPKG_ROOT=/opt/vcpkg
+ENV CMAKE_TOOLCHAIN_FILE=/opt/vcpkg/scripts/buildsystems/vcpkg.cmake
+
+# 自动选择 triplet（x64-linux 或 arm64-linux）
+RUN ARCH=$(dpkg --print-architecture) && \
+    if [ "$ARCH" = "amd64" ]; then \
+        TRIPLET="x64-linux"; \
+    elif [ "$ARCH" = "arm64" ]; then \
+        TRIPLET="arm64-linux"; \
+    else \
+        echo "Unsupported architecture: $ARCH" && exit 1; \
+    fi && \
+    echo "Using vcpkg triplet: $TRIPLET" && \
+    /opt/vcpkg/vcpkg install jemalloc openssl libsrtp[openssl] --triplet $TRIPLET-dynamic
+
+
+RUN mkdir -p /opt/media
+COPY . /opt/media/ZLMediaKit
+WORKDIR /opt/media/ZLMediaKit
+
+RUN mkdir -p build release/linux/Release/lib
+
+# 根据 dpkg 架构选择 vcpkg 动态库路径
+RUN ARCH=$(dpkg --print-architecture) && \
+    if [ "$ARCH" = "amd64" ]; then VCPKG_LIB_PATH="/opt/vcpkg/installed/x64-linux-dynamic/lib"; \
+    elif [ "$ARCH" = "arm64" ]; then VCPKG_LIB_PATH="/opt/vcpkg/installed/arm64-linux-dynamic/lib"; \
+    else echo "Unsupported architecture: $ARCH" && exit 1; fi && \
+    echo "Copying libs from $VCPKG_LIB_PATH" && \
+    cp -rfP $VCPKG_LIB_PATH/* release/linux/Release/lib/
+
+WORKDIR /opt/media/ZLMediaKit/build
+
+RUN ARCH=$(dpkg --print-architecture) && \
+    if [ "$ARCH" = "amd64" ]; then TRIPLET="x64-linux"; \
+    elif [ "$ARCH" = "arm64" ]; then TRIPLET="arm64-linux"; \
+    else echo "Unsupported architecture: $ARCH" && exit 1; fi && \
+    echo "Using vcpkg triplet: $TRIPLET" && \
+    cmake -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE} \
+          -DVCPKG_TARGET_TRIPLET=${TRIPLET}-dynamic \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DENABLE_PYTHON=ON \
+          -DPython3_EXECUTABLE=$(which python3) \
+          -DENABLE_WEBRTC=ON -DENABLE_FFMPEG=ON \
+          -DENABLE_TESTS=OFF -DENABLE_API=OFF .. && \
+    make -j $(nproc)
+
+FROM ubuntu:24.04
+
+RUN apt-get update && \
+         DEBIAN_FRONTEND="noninteractive" \
+         apt-get install -y --no-install-recommends \
+         ca-certificates \
+         tzdata \
+         libavcodec-dev \
+         libavformat-dev \
+         libavutil-dev \
+         libswscale-dev \
+         libavfilter-dev \
+         ffmpeg \
+         python3 \
+         python3-dev \
+         python3-pip && \
+         apt-get autoremove -y && \
+         apt-get clean -y && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV TZ=Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
+        && echo $TZ > /etc/timezone && \
+        mkdir -p /opt/media/bin/www &&  mkdir -p /opt/media/bin/lib
+
+WORKDIR /opt/media/bin/
+
+COPY --from=build /opt/media/ZLMediaKit/release/linux/Release/MediaServer /opt/media/ZLMediaKit/default.pem /opt/media/bin/
+COPY --from=build /opt/media/ZLMediaKit/release/linux/Release/lib /opt/media/bin/lib
+COPY --from=build /opt/media/ZLMediaKit/release/linux/Release/config.ini /opt/media/conf/
+RUN printf "\n[python]\nplugin=mk_plugin\n" >> /opt/media/conf/config.ini
+COPY --from=build /opt/media/ZLMediaKit/www/ /opt/media/bin/www/
+COPY --from=build /opt/media/ZLMediaKit/pymkui /opt/media/bin/pymkui
+RUN pip3 install --no-cache-dir --break-system-packages -r /opt/media/bin/pymkui/backend/requirements.txt
+ENV PATH="/opt/media/bin:$PATH"
+ENV PYTHONPATH="/opt/media/bin/pymkui/backend"
+ENV LD_LIBRARY_PATH="/opt/media/bin/lib"
+CMD ["./MediaServer","-s", "default.pem", "-c", "../conf/config.ini", "-l","1"]

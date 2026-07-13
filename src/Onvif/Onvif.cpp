@@ -59,7 +59,7 @@ void OnvifSearcher::sendSearchBroadcast(std::string subnet_prefix, onDevice cb, 
     _poller->async([weak_self, cb, timeout_ms, subnet_prefix]() mutable {
         auto strong_self = weak_self.lock();
         if (strong_self) {
-            strong_self->sendSearchBroadcast_l(move(subnet_prefix), std::move(cb), timeout_ms);
+            strong_self->sendSearchBroadcast_l(std::move(subnet_prefix), std::move(cb), timeout_ms);
         }
     });
 }

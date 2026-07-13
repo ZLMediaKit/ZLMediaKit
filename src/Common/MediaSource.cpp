@@ -238,7 +238,10 @@ toolkit::EventPoller::Ptr MediaSource::getOwnerPoller() {
 
 std::shared_ptr<MultiMediaSourceMuxer> MediaSource::getMuxer() const {
     auto listener = _listener.lock();
-    return listener ? listener->getMuxer(const_cast<MediaSource&>(*this)) : nullptr;
+    if (listener) {
+        return listener->getMuxer(const_cast<MediaSource &>(*this));
+    }
+    throw std::runtime_error("MediaSourceEvent is empty");
 }
 
 std::shared_ptr<RtpProcess> MediaSource::getRtpProcess() const {
@@ -277,7 +280,7 @@ bool MediaSource::setupRecord(Recorder::type type, bool start, const string &cus
         WarnL << "未设置MediaSource的事件监听者，setupRecord失败:" << getUrl();
         return false;
     }
-    return listener->getMuxer(const_cast<MediaSource &>(*this))->setupRecord(type, start, custom_path, max_second);
+    return listener->getMuxer(const_cast<MediaSource &>(*this))->setupRecord(*this, type, start, custom_path, max_second);
 }
 
 bool MediaSource::isRecording(Recorder::type type){

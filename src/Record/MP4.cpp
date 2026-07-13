@@ -35,7 +35,7 @@ static struct mov_buffer_t s_io = {
         },
         [](void *ctx) {
             MP4FileIO *thiz = (MP4FileIO *) ctx;
-            return (int64_t)thiz->onTell();
+            return thiz->onTell();
         }
 };
 
@@ -128,11 +128,11 @@ int MP4FileDisk::onWrite(const void *data, size_t bytes) {
     return bytes == fwrite(data, 1, bytes, _file.get()) ? 0 : ferror(_file.get());
 }
 
-int MP4FileDisk::onSeek(uint64_t offset) {
-    return fseek64(_file.get(), offset, SEEK_SET);
+int MP4FileDisk::onSeek(int64_t offset) {
+    return fseek64(_file.get(), offset, offset >= 0 ? SEEK_SET : SEEK_END);
 }
 
-uint64_t MP4FileDisk::onTell() {
+int64_t MP4FileDisk::onTell() {
     return ftell64(_file.get());
 }
 
@@ -149,15 +149,23 @@ size_t MP4FileMemory::fileSize() const{
     return _memory.size();
 }
 
-uint64_t MP4FileMemory::onTell(){
+int64_t MP4FileMemory::onTell(){
     return _offset;
 }
 
-int MP4FileMemory::onSeek(uint64_t offset){
-    if (offset > _memory.size()) {
-        return -1;
+int MP4FileMemory::onSeek(int64_t offset){
+    if (offset < 0) {
+        offset += _memory.size();
+        if (offset < 0) {
+            return -1;
+        }
+        _offset = offset;
+    } else {
+        if (offset > _memory.size()) {
+            return -1;
+        }
+        _offset = offset;
     }
-    _offset = offset;
     return 0;
 }
 
@@ -167,7 +175,7 @@ int MP4FileMemory::onRead(void *data, size_t bytes){
         return -1;
     }
     bytes = MIN(bytes, _memory.size() - _offset);
-    memcpy(data, _memory.data(), bytes);
+    memcpy(data, _memory.data() + _offset, bytes);
     _offset += bytes;
     return 0;
 }

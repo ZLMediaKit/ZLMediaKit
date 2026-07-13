@@ -192,6 +192,9 @@ using ArgsString = HttpAllArgs<std::string>;
 #define API_ARGS_STRING_ASYNC API_ARGS_STRING, const mediakit::HttpSession::HttpResponseInvoker &invoker
 #define API_ARGS_VALUE sender, headerOut, allArgs, val
 
+// upload_regist 参数宏，与 API_ARGS_MAP 相同 + HttpBody::Ptr &body，支持 CHECK_SECRET()
+#define UPLOAD_ARGS_MAP toolkit::SockInfo &sender, mediakit::HttpSession::KeyValue &headerOut, const ArgsMap &allArgs, Json::Value &val, mediakit::HttpBody::Ptr &body
+
 // 注册http请求参数是map<string, variant, StrCaseCompare>类型的http api  [AUTO-TRANSLATED:8a273897]
 // Register http request parameters as map<string, variant, StrCaseCompare> type http api
 void api_regist(const std::string &api_path, const std::function<void(API_ARGS_MAP)> &func);

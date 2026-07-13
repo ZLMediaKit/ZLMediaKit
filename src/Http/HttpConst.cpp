@@ -183,6 +183,7 @@ static const char *s_mime_src[][2] = {
         {"3gp", "video/3gpp"},
         {"ts", "video/mp2t"},
         {"mp4", "video/mp4"},
+        {"m4s", "video/mp4"},
         {"mpeg", "video/mpeg"},
         {"mpg", "video/mpeg"},
         {"mov", "video/quicktime"},

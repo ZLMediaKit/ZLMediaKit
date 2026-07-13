@@ -42,15 +42,15 @@ void HttpSession::onHttpRequest_HEAD() {
 
 void HttpSession::onHttpRequest_OPTIONS() {
     KeyValue header;
-    header.emplace("Allow", "GET, POST, HEAD, OPTIONS");
+    header.emplace("Allow", "GET, POST, PUT, HEAD, OPTIONS, DELETE");
     GET_CONFIG(bool, allow_cross_domains, Http::kAllowCrossDomains);
     if (allow_cross_domains) {
         header.emplace("Access-Control-Allow-Origin", "*");
         header.emplace("Access-Control-Allow-Headers", "*");
-        header.emplace("Access-Control-Allow-Methods", "GET, POST, HEAD, OPTIONS");
+        header.emplace("Access-Control-Allow-Methods", "GET, POST, PUT, HEAD, OPTIONS, DELETE");
     }
     header.emplace("Access-Control-Allow-Credentials", "true");
-    header.emplace("Access-Control-Request-Methods", "GET, POST, OPTIONS");
+    header.emplace("Access-Control-Request-Methods", "GET, POST, PUT, OPTIONS, DELETE");
     header.emplace("Access-Control-Request-Headers", "Accept,Accept-Language,Content-Language,Content-Type");
     sendResponse(200, true, nullptr, header);
 }
@@ -109,19 +109,28 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
         return _on_recv_body ? -1 : 0;
     }
 
-    if (content_len > _max_req_size) {
+    HttpBody::Ptr body;
+    if (_parser.method() == "PUT" || _parser.method() == "POST") {
+        NOTICE_EMIT(BroadcastBeforeHttpRequestArgs, Broadcast::kBroadcastBeforeHttpRequest, _parser, body, *this);
+    }
+
+    if (content_len > _max_req_size || body) {
         // // 不定长body或超大body ////  [AUTO-TRANSLATED:8d66ee77]
         // // Indefinite length body or oversized body ////
-        if (content_len != SIZE_MAX) {
+        if (content_len != SIZE_MAX && !body) {
             WarnL << "Http body size is too huge: " << content_len << " > " << _max_req_size
                   << ", please set " << Http::kMaxReqSize << " in config.ini file.";
         }
 
         size_t received = 0;
-        auto parser = std::move(_parser);
-        _on_recv_body = [this, parser, received, content_len](const char *data, size_t len) mutable {
+        _on_recv_body = [this, received, content_len, body, it](const char *data, size_t len) mutable {
             received += len;
-            onRecvUnlimitedContent(parser, data, len, content_len, received);
+            if (body) {
+                body->writeData(data, len);
+            } else {
+                onRecvUnlimitedContent(_parser, data, len, content_len, received);
+            }
+
             if (received < content_len) {
                 // 还没收满  [AUTO-TRANSLATED:cecc867e]
                 // Not yet received
@@ -131,6 +140,13 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
             // 收满了  [AUTO-TRANSLATED:0c9cebd7]
             // Received full
             setContentLen(0);
+
+            if (body) {
+                _parser.setBody(std::move(body));
+                (this->*(it->second))();
+            }
+            _parser.clear();
+
             return false;
         };
         // 声明后续都是body；Http body在本对象缓冲，不通过HttpRequestSplitter保存  [AUTO-TRANSLATED:0012b6c1]

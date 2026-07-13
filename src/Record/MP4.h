@@ -66,7 +66,7 @@ public:
      
      * [AUTO-TRANSLATED:f8a5b290]
      */
-    virtual uint64_t onTell() = 0;
+    virtual int64_t onTell() = 0;
 
     /**
      * seek至文件某处
@@ -78,7 +78,7 @@ public:
      
      * [AUTO-TRANSLATED:936089eb]
      */
-    virtual int onSeek(uint64_t offset) = 0;
+    virtual int onSeek(int64_t offset) = 0;
 
     /**
      * 从文件读取一定数据
@@ -136,8 +136,8 @@ public:
     void closeFile();
 
 protected:
-    uint64_t onTell() override;
-    int onSeek(uint64_t offset) override;
+    int64_t onTell() override;
+    int onSeek(int64_t offset) override;
     int onRead(void *data, size_t bytes) override;
     int onWrite(const void *data, size_t bytes) override;
 
@@ -167,13 +167,13 @@ public:
     std::string getAndClearMemory();
 
 protected:
-    uint64_t onTell() override;
-    int onSeek(uint64_t offset) override;
+    int64_t onTell() override;
+    int onSeek(int64_t offset) override;
     int onRead(void *data, size_t bytes) override;
     int onWrite(const void *data, size_t bytes) override;
 
 private:
-    uint64_t _offset = 0;
+    int64_t _offset = 0;
     std::string _memory;
 };
 

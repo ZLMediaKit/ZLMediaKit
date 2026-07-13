@@ -25,6 +25,18 @@
 
 namespace mediakit {
 
+struct FrameInfo {
+    CodecId codec_id = CodecInvalid;
+    int64_t dts = 0;
+    int64_t pts = 0;
+    int64_t recv_stamp = 0;
+    size_t frame_size = 0;
+
+    int index = 0;
+    bool key_frame = false;
+    bool config_frame = false;
+};
+
 class MultiMediaSourceMuxer : public MediaSourceEventInterceptor, public MediaSink, public toolkit::noncopyable, public std::enable_shared_from_this<MultiMediaSourceMuxer>{
 public:
     using Ptr = std::shared_ptr<MultiMediaSourceMuxer>;
@@ -121,7 +133,7 @@ public:
      
      * [AUTO-TRANSLATED:cb1fd8a9]
      */
-    bool setupRecord(Recorder::type type, bool start, const std::string &custom_path, size_t max_second);
+    bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const std::string &custom_path, size_t max_second);
 
     /**
      * 开始录制mp4
@@ -182,12 +194,18 @@ public:
      */
     std::shared_ptr<MultiMediaSourceMuxer> getMuxer(MediaSource &sender) const override;
 
+    // 获取frame ring reader
+    RingType::RingReader::Ptr getFrameReader();
+
     const ProtocolOption &getOption() const;
     const MediaTuple &getMediaTuple() const;
     std::string shortUrl() const;
 #if defined(ENABLE_RTPPROXY)
     void forEachRtpSender(const std::function<void(const std::string &ssrc, const RtpSender &sender)> &cb) const;
 #endif // ENABLE_RTPPROXY
+
+    void addProbe(uint32_t probe_ms, const std::function<void(const std::list<FrameInfo> &info_list)> &cb);
+
 protected:
     /////////////////////////////////MediaSink override/////////////////////////////////
 
@@ -223,7 +241,7 @@ protected:
     bool onTrackFrame_l(const Frame::Ptr &frame);
 
 private:
-    void createGopCacheIfNeed(size_t gop_count);
+    void createGopCacheIfNeed();
     std::shared_ptr<MediaSinkInterface> makeRecorder(Recorder::type type);
 
 private:
@@ -231,6 +249,7 @@ private:
     bool _create_in_poller = false;
     bool _video_key_pos = false;
     float _dur_sec;
+    std::function<void(const Frame::Ptr &frame)> _on_frame;
     std::shared_ptr<class FramePacedSender> _paced_sender;
     MediaTuple _tuple;
     ProtocolOption _option;
@@ -249,9 +268,7 @@ private:
     HlsFMP4Recorder::Ptr _hls_fmp4;
     toolkit::EventPoller::Ptr _poller;
     RingType::Ptr _ring;
-
     MediaSinkInterface::Ptr _delegate;
-
     // 对象个数统计  [AUTO-TRANSLATED:3b43e8c2]
     // Object count statistics
     toolkit::ObjectStatistic<MultiMediaSourceMuxer> _statistic;

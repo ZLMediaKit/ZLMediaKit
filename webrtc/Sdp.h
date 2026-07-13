@@ -652,6 +652,9 @@ public:
     bool rtcp_rsize { false };
     SdpAttrRtcp rtcp_addr;
 
+    //////// bundle ////////
+    bool bundle_only { false };
+
     //////// ice ////////
     bool ice_trickle { false };
     bool ice_lite { false };

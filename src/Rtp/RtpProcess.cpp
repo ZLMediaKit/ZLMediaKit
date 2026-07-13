@@ -329,6 +329,13 @@ bool RtpProcess::close(mediakit::MediaSource &sender) {
     return true;
 }
 
+bool RtpProcess::pause(MediaSource &sender, bool pause) {
+    if (_sock) {
+        _sock->enableRecv(!pause);
+    }
+    return static_cast<bool>(_sock);
+}
+
 toolkit::EventPoller::Ptr RtpProcess::getOwnerPoller(MediaSource &sender) {
     if (_sock) {
         return _sock->getPoller();

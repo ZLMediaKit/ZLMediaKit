@@ -400,4 +400,50 @@ Buffer::Ptr HttpBufferBody::readData(size_t size) {
     return Buffer::Ptr(std::move(_buffer));
 }
 
-} // namespace mediakit
+// ─────────────────────────────────────────────────────────────────────────────
+// HttpFileStorage — write-only body backed by a file on disk
+// ─────────────────────────────────────────────────────────────────────────────
+
+HttpFileStorage::HttpFileStorage(std::string file_path) {
+    _fp = fopen(file_path.data(), "ab");
+    if (!_fp) {
+        throw std::runtime_error("HttpFileStorage: failed to open file: " + file_path + ", err: " + toolkit::get_uv_errmsg());
+    }
+    _path = std::move(file_path);
+}
+
+HttpFileStorage::~HttpFileStorage() {
+    if (_fp) {
+        fflush(_fp);
+        fclose(_fp);
+        _fp = nullptr;
+    }
+}
+
+void HttpFileStorage::writeData(const char *data, size_t size) {
+    if (!_fp) {
+        throw std::runtime_error("HttpFileStorage: file not open");
+    }
+    if (size == 0) {
+        return;
+    }
+    auto written = fwrite(data, 1, size, _fp);
+    if (written != size) {
+        throw std::runtime_error("HttpFileStorage: fwrite failed, expected " + std::to_string(size) + ", got " + std::to_string(written));
+    }
+    _written += written;
+}
+
+int64_t HttpFileStorage::remainSize() {
+    return 0;
+}
+
+Buffer::Ptr HttpFileStorage::readData(size_t size) {
+    return nullptr;
+}
+
+const std::string &HttpFileStorage::filePath() const {
+    return _path;
+ }
+
+} // namespace kule

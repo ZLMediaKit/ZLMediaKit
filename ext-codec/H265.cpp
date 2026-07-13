@@ -11,10 +11,12 @@
 #include "H265.h"
 #include "H265Rtp.h"
 #include "H265Rtmp.h"
-#include "SPSParser.h"
 #include "Util/base64.h"
 #include "Common/Parser.h"
 #include "Extension/Factory.h"
+
+#include <vector>
+#include <stdexcept>
 
 #ifdef ENABLE_MP4
 #include "mpeg4-hevc.h"
@@ -25,35 +27,283 @@ using namespace toolkit;
 
 namespace mediakit {
 
-bool getHEVCInfo(const char * vps, size_t vps_len,const char * sps,size_t sps_len,int &iVideoWidth, int &iVideoHeight, float  &iVideoFps){
-    T_GetBitContext tGetBitBuf;
-    T_HEVCSPS tH265SpsInfo;	
-    T_HEVCVPS tH265VpsInfo;
-    if ( vps_len > 2 ){
-        memset(&tGetBitBuf,0,sizeof(tGetBitBuf));	
-        memset(&tH265VpsInfo,0,sizeof(tH265VpsInfo));
-        tGetBitBuf.pu8Buf = (uint8_t*)vps+2;
-        tGetBitBuf.iBufSize = (int)(vps_len-2);
-        if(0 != h265DecVideoParameterSet((void *) &tGetBitBuf, &tH265VpsInfo)){
+// ---- 内部比特流工具（H265） ----
+namespace {
+
+static std::vector<uint8_t> h265_rbsp_from_nalu(const uint8_t *data, size_t size) {
+    std::vector<uint8_t> out;
+    out.reserve(size);
+    for (size_t i = 0; i < size; ) {
+        if (i + 2 < size && data[i] == 0x00 && data[i+1] == 0x00 && data[i+2] == 0x03) {
+            out.push_back(0x00);
+            out.push_back(0x00);
+            i += 3;
+        } else {
+            out.push_back(data[i++]);
+        }
+    }
+    return out;
+}
+
+struct H265BS {
+    const uint8_t *buf;
+    size_t size;
+    size_t pos;
+    H265BS(const uint8_t *b, size_t s) : buf(b), size(s), pos(0) {}
+    bool eof() const { return pos >= size * 8; }
+    size_t bits_left() const { return size * 8 - pos; }
+    uint32_t read_bits(int n) {
+        if (n < 0 || n > 32 || (size_t)n > bits_left()) {
+            throw std::runtime_error("eof");
+        }
+        uint32_t val = 0;
+        for (int i = 0; i < n; i++) {
+            val = (val << 1) | ((buf[pos / 8] >> (7 - pos % 8)) & 1);
+            pos++;
+        }
+        return val;
+    }
+    void skip_bits(int n) {
+        if (n < 0 || (size_t)n > bits_left()) {
+            throw std::runtime_error("eof");
+        }
+        pos += n;
+    }
+    uint32_t read_ue() {
+        int z = 0;
+        while (!eof() && read_bits(1) == 0) z++;
+        if (z == 0) return 0;
+        if (z >= 32) throw std::runtime_error("exp-golomb overflow");
+        return (1u << z) - 1 + read_bits(z);
+    }
+    int32_t read_se() {
+        uint32_t v = read_ue();
+        return (v & 1) ? (int32_t)((v + 1) >> 1) : -(int32_t)(v >> 1);
+    }
+    // profile_tier_level(profilePresentFlag, maxNumSubLayersMinus1)
+    void skip_profile_tier_level(bool profilePresentFlag, uint32_t maxNumSubLayersMinus1) {
+        if (profilePresentFlag) {
+            skip_bits(2 + 1 + 5); // profile_space + tier_flag + profile_idc
+            skip_bits(32);        // profile_compatibility_flag[32]
+            skip_bits(4);         // progressive/interlaced/non_packed/frame_only
+            skip_bits(44);        // reserved_zero_44bits
+        }
+        skip_bits(8); // general_level_idc
+        // sub_layer flags
+        std::vector<bool> profile_present(maxNumSubLayersMinus1), level_present(maxNumSubLayersMinus1);
+        for (uint32_t i = 0; i < maxNumSubLayersMinus1; i++) {
+            profile_present[i] = read_bits(1) != 0;
+            level_present[i]   = read_bits(1) != 0;
+        }
+        if (maxNumSubLayersMinus1 > 0) {
+            for (uint32_t i = maxNumSubLayersMinus1; i < 8; i++) skip_bits(2);
+        }
+        for (uint32_t i = 0; i < maxNumSubLayersMinus1; i++) {
+            if (profile_present[i]) {
+                skip_bits(2 + 1 + 5 + 32 + 4 + 44);
+            }
+            if (level_present[i]) skip_bits(8);
+        }
+    }
+};
+
+} // anonymous namespace
+
+// ---- H265 VPS 解析（只提取帧率用的 timing info） ----
+static bool parse_hevc_vps_fps(const uint8_t *data, size_t size, float &fps) {
+    // data 为 NALU 原始数据（含 NAL header）
+    if (size < 3) return false;
+    auto rbsp = h265_rbsp_from_nalu(data, size);
+    try {
+        H265BS bs(rbsp.data(), rbsp.size());
+        // NALU header: forbidden_zero_bit(1) + nal_unit_type(6) + nuh_layer_id(6) + nuh_temporal_id_plus1(3)
+        bs.skip_bits(16);
+        // vps_video_parameter_set_id(4) + vps_reserved_three_2bits(2) + vps_max_layers_minus1(6)
+        bs.skip_bits(4 + 2 + 6);
+        uint32_t vps_max_sub_layers_minus1 = bs.read_bits(3);
+        bs.skip_bits(1); // vps_temporal_id_nesting_flag
+        bs.skip_bits(16); // vps_reserved_0xffff_16bits
+        bs.skip_profile_tier_level(true, vps_max_sub_layers_minus1);
+        bool vps_sub_layer_ordering_info_present_flag = bs.read_bits(1) != 0;
+        uint32_t start = vps_sub_layer_ordering_info_present_flag ? 0 : vps_max_sub_layers_minus1;
+        for (uint32_t i = start; i <= vps_max_sub_layers_minus1; i++) {
+            bs.read_ue(); // vps_max_dec_pic_buffering_minus1
+            bs.read_ue(); // vps_max_num_reorder_pics
+            bs.read_ue(); // vps_max_latency_increase_plus1
+        }
+        uint32_t vps_max_layer_id = bs.read_bits(6);
+        uint32_t vps_num_layer_sets_minus1 = bs.read_ue();
+        for (uint32_t i = 1; i <= vps_num_layer_sets_minus1; i++) {
+            for (uint32_t j = 0; j <= vps_max_layer_id; j++) bs.skip_bits(1);
+        }
+        if (bs.read_bits(1)) { // vps_timing_info_present_flag
+            uint32_t vps_num_units_in_tick = bs.read_bits(32);
+            uint32_t vps_time_scale        = bs.read_bits(32);
+            if (vps_num_units_in_tick > 0) {
+                fps = (float)vps_time_scale / (float)vps_num_units_in_tick;
+            }
+        }
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
+// ---- H265 SPS 解析（宽高 + 备用帧率） ----
+static bool parse_hevc_sps(const uint8_t *data, size_t size,
+                            int &width, int &height, float &fps) {
+    if (size < 3) return false;
+    auto rbsp = h265_rbsp_from_nalu(data, size);
+    try {
+        H265BS bs(rbsp.data(), rbsp.size());
+        bs.skip_bits(16); // NALU header
+        bs.skip_bits(4);  // sps_video_parameter_set_id
+        uint32_t sps_max_sub_layers_minus1 = bs.read_bits(3);
+        bs.skip_bits(1);  // sps_temporal_id_nesting_flag
+        bs.skip_profile_tier_level(true, sps_max_sub_layers_minus1);
+        bs.read_ue(); // sps_seq_parameter_set_id
+        uint32_t chroma_format_idc = bs.read_ue();
+        if (chroma_format_idc > 3) {
             return false;
         }
+        if (chroma_format_idc == 3) bs.skip_bits(1); // separate_colour_plane_flag
+        uint32_t pic_width  = bs.read_ue();
+        uint32_t pic_height = bs.read_ue();
+
+        if (bs.read_bits(1)) { // conformance_window_flag
+            uint32_t sub_width_c  = (chroma_format_idc == 1 || chroma_format_idc == 2) ? 2 : 1;
+            uint32_t sub_height_c = (chroma_format_idc == 1) ? 2 : 1;
+            uint32_t crop_left   = bs.read_ue() * sub_width_c;
+            uint32_t crop_right  = bs.read_ue() * sub_width_c;
+            uint32_t crop_top    = bs.read_ue() * sub_height_c;
+            uint32_t crop_bottom = bs.read_ue() * sub_height_c;
+            if (crop_left + crop_right > pic_width || crop_top + crop_bottom > pic_height) {
+                return false;
+            }
+            pic_width  -= crop_left + crop_right;
+            pic_height -= crop_top + crop_bottom;
+        }
+
+        width  = (int)pic_width;
+        height = (int)pic_height;
+
+        bs.read_ue(); // bit_depth_luma_minus8
+        bs.read_ue(); // bit_depth_chroma_minus8
+        uint32_t log2_max_pic_order_cnt_lsb_minus4 = bs.read_ue();
+
+        bool sps_sub_layer_ordering_info_present_flag = bs.read_bits(1) != 0;
+        uint32_t start = sps_sub_layer_ordering_info_present_flag ? 0 : sps_max_sub_layers_minus1;
+        for (uint32_t i = start; i <= sps_max_sub_layers_minus1; i++) {
+            bs.read_ue(); bs.read_ue(); bs.read_ue();
+        }
+        bs.read_ue(); // log2_min_luma_coding_block_size_minus3
+        bs.read_ue(); // log2_diff_max_min_luma_coding_block_size
+        bs.read_ue(); // log2_min_luma_transform_block_size_minus2
+        bs.read_ue(); // log2_diff_max_min_luma_transform_block_size
+        bs.read_ue(); // max_transform_hierarchy_depth_inter
+        bs.read_ue(); // max_transform_hierarchy_depth_intra
+
+        if (bs.read_bits(1)) { // scaling_list_enabled_flag
+            if (bs.read_bits(1)) { // sps_scaling_list_data_present_flag
+                for (int sizeId = 0; sizeId < 4; sizeId++) {
+                    for (int matrixId = 0; matrixId < (sizeId == 3 ? 2 : 6); matrixId++) {
+                        if (!bs.read_bits(1)) { // scaling_list_pred_mode_flag
+                            bs.read_ue(); // scaling_list_pred_matrix_id_delta
+                        } else {
+                            int coefNum = (std::min)(64, 1 << (4 + (sizeId << 1)));
+                            if (sizeId > 1) bs.read_se(); // scaling_list_dc_coef_minus8
+                            for (int i = 0; i < coefNum; i++) bs.read_se();
+                        }
+                    }
+                }
+            }
+        }
+
+        bs.skip_bits(2); // amp_enabled_flag + sample_adaptive_offset_enabled_flag
+        if (bs.read_bits(1)) { // pcm_enabled_flag
+            bs.skip_bits(4 + 4); // pcm_sample_bit_depth_luma/chroma_minus1
+            bs.read_ue(); bs.read_ue(); // log2_min/max pcm_luma_coding_block_size
+            bs.skip_bits(1); // pcm_loop_filter_disabled_flag
+        }
+
+        uint32_t num_short_term_ref_pic_sets = bs.read_ue();
+        uint32_t prev_num_delta_pocs = 0;
+        for (uint32_t i = 0; i < num_short_term_ref_pic_sets; i++) {
+            bool inter_ref = (i != 0) && bs.read_bits(1) != 0;
+            if (inter_ref) {
+                bs.skip_bits(1); // delta_rps_sign
+                bs.read_ue();    // abs_delta_rps_minus1
+                uint32_t n = prev_num_delta_pocs + 1;
+                uint32_t cnt = 0;
+                for (uint32_t j = 0; j < n; j++) {
+                    bool used = bs.read_bits(1) != 0;
+                    bool use  = !used && bs.read_bits(1) != 0;
+                    if (used || use) cnt++;
+                }
+                prev_num_delta_pocs = cnt;
+            } else {
+                uint32_t num_neg = bs.read_ue();
+                uint32_t num_pos = bs.read_ue();
+                prev_num_delta_pocs = num_neg + num_pos;
+                for (uint32_t j = 0; j < num_neg; j++) { bs.read_ue(); bs.skip_bits(1); }
+                for (uint32_t j = 0; j < num_pos; j++) { bs.read_ue(); bs.skip_bits(1); }
+            }
+        }
+
+        if (bs.read_bits(1)) { // long_term_ref_pics_present_flag
+            uint32_t n = bs.read_ue();
+            uint32_t log2_max = log2_max_pic_order_cnt_lsb_minus4 + 4;
+            for (uint32_t i = 0; i < n; i++) {
+                bs.skip_bits(log2_max); // lt_ref_pic_poc_lsb_sps
+                bs.skip_bits(1);        // used_by_curr_pic_lt_sps_flag
+            }
+        }
+
+        bs.skip_bits(2); // sps_temporal_mvp_enabled_flag + strong_intra_smoothing_enabled_flag
+
+        if (bs.read_bits(1)) { // vui_parameters_present_flag
+            if (bs.read_bits(1)) { // aspect_ratio_info_present_flag
+                if (bs.read_bits(8) == 255) bs.skip_bits(32);
+            }
+            if (bs.read_bits(1)) bs.skip_bits(1); // overscan
+            if (bs.read_bits(1)) { // video_signal_type_present_flag
+                bs.skip_bits(3 + 1);
+                if (bs.read_bits(1)) bs.skip_bits(24);
+            }
+            if (bs.read_bits(1)) { bs.read_ue(); bs.read_ue(); } // chroma_loc_info
+            bs.skip_bits(3); // neutral_chroma/field_seq/frame_field_info
+            if (bs.read_bits(1)) { // default_display_window_flag
+                bs.read_ue(); // def_disp_win_left_offset
+                bs.read_ue(); // def_disp_win_right_offset
+                bs.read_ue(); // def_disp_win_top_offset
+                bs.read_ue(); // def_disp_win_bottom_offset
+            }
+            if (bs.read_bits(1)) { // vui_timing_info_present_flag
+                uint32_t num_units = bs.read_bits(32);
+                uint32_t time_scale = bs.read_bits(32);
+                if (num_units > 0 && fps <= 0.0f) {
+                    fps = (float)time_scale / (float)num_units;
+                }
+            }
+        }
+        return width > 0 && height > 0;
+    } catch (...) {
+        return width > 0 && height > 0;
+    }
+}
+
+bool getHEVCInfo(const char *vps, size_t vps_len, const char *sps, size_t sps_len,
+                 int &iVideoWidth, int &iVideoHeight, float &iVideoFps) {
+    iVideoWidth = 0; iVideoHeight = 0; iVideoFps = 0.0f;
+
+    // 先从 VPS 提取帧率
+    if (vps_len > 2) {
+        parse_hevc_vps_fps((const uint8_t *)vps, vps_len, iVideoFps);
     }
 
-    if ( sps_len > 2 ){
-        memset(&tGetBitBuf,0,sizeof(tGetBitBuf));
-        memset(&tH265SpsInfo,0,sizeof(tH265SpsInfo));
-        tGetBitBuf.pu8Buf = (uint8_t*)sps+2;
-        tGetBitBuf.iBufSize = (int)(sps_len-2);
-        if(0 != h265DecSeqParameterSet((void *) &tGetBitBuf, &tH265SpsInfo)){
-            return false;
-        }
-    }
-    else 
-        return false;
-    h265GetWidthHeight(&tH265SpsInfo, &iVideoWidth, &iVideoHeight);
-    iVideoFps = 0;
-    h265GeFramerate(&tH265VpsInfo, &tH265SpsInfo, &iVideoFps);
-    return true;
+    // 再从 SPS 提取宽高（如果 VPS 没有帧率，SPS VUI 里也可能有）
+    if (sps_len <= 2) return false;
+    return parse_hevc_sps((const uint8_t *)sps, sps_len, iVideoWidth, iVideoHeight, iVideoFps);
 }
 
 bool getHEVCInfo(const string &strVps, const string &strSps, int &iVideoWidth, int &iVideoHeight, float &iVideoFps) {

@@ -68,6 +68,10 @@ public:
         return _option.ts_demand ? (_clear_cache ? true : _enabled) : true;
     }
 
+    MediaSource::Ptr getMediaSource() const {
+        return _media_src;
+    }
+
 protected:
     void onWrite(std::shared_ptr<toolkit::Buffer> buffer, uint64_t timestamp, bool key_pos) override {
         if (!buffer) {

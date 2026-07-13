@@ -81,6 +81,10 @@ public:
         return _option.rtmp_demand ? (_clear_cache ? true : _enabled) : true;
     }
 
+    MediaSource::Ptr getMediaSource() const {
+        return _media_src;
+    }
+
 private:
     bool _enabled = true;
     bool _clear_cache = false;

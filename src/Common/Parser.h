@@ -14,6 +14,7 @@
 #include <map>
 #include <string>
 #include "Util/util.h"
+#include "Http/HttpBody.h"
 
 namespace mediakit {
 
@@ -95,6 +96,7 @@ public:
     // 获取http body或sdp  [AUTO-TRANSLATED:d6fd1803]
     // Get http body or sdp
     const std::string &content() const;
+    const HttpBody::Ptr &body() const;
 
     // 清空，为了重用  [AUTO-TRANSLATED:cb7a16dd]
     // Clear, for reuse
@@ -111,6 +113,7 @@ public:
     // 重新设置content  [AUTO-TRANSLATED:ac8fc8c0]
     // Reset content
     void setContent(std::string content);
+    void setBody(HttpBody::Ptr body);
 
     // 获取header列表  [AUTO-TRANSLATED:90d90b03]
     // Get header list
@@ -131,6 +134,7 @@ private:
     std::string _url;
     std::string _protocol;
     std::string _content;
+    HttpBody::Ptr _body;
     std::string _params;
     mutable StrCaseMap _headers;
     mutable StrCaseMap _url_args;

@@ -137,7 +137,12 @@ static std::string getServerPrefix() {
     // 拷贝tcp端口  [AUTO-TRANSLATED:23191878]
     // Copy tcp port
     memcpy(buf + 6, &(reinterpret_cast<sockaddr_in *>(&addr)->sin_port), 2);
-    auto ret = encodeBase64(string(buf, 8)) + '_';
+    // RFC 5245 §15.4: ice-char = ALPHA / DIGIT / "+" / "/"
+    auto ret = encodeBase64(string(buf, 8));
+    // Remove base64 '=' padding (not a valid ice-char)
+    ret.erase(std::remove(ret.begin(), ret.end(), '='), ret.end());
+    // Use '/' separator instead of '_' (not a valid ice-char)
+    ret += '/';
     InfoL << "MediaServer(" << host << ":" << udp_port << ":" << tcp_port << ") prefix: " << ret;
     return ret;
 }

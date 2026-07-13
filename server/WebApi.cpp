@@ -213,6 +213,27 @@ void api_regist(const string &api_path, const function<void(API_ARGS_STRING_ASYN
     s_map_api.emplace(api_path, toApi(func));
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 文件上传处理器注册机制
+// File upload handler registration: intercepts PUT/POST body via kBroadcastBeforeHttpRequest
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Handler signature: same as API_ARGS_MAP + HttpBody::Ptr &body, so CHECK_SECRET() etc. work inside.
+using HttpBodyHandler = std::function<void(UPLOAD_ARGS_MAP)>;
+static std::map<std::string, HttpBodyHandler, StrCaseCompare> s_map_file_handler;
+
+/**
+ * Register a handler for a URL path. When a PUT/POST request arrives at that path,
+ * the handler is invoked to create an HttpBody (e.g. HttpFileStorage) that receives
+ * the request body stream directly. CHECK_SECRET() can be used inside the handler.
+ *
+ * @param url_path   the HTTP URL path to match
+ * @param handler    callback that sets body; may throw AuthException to reject
+ */
+void upload_regist(const std::string &url_path, HttpBodyHandler handler) {
+    s_map_file_handler.emplace(url_path, std::move(handler));
+}
+
 // 获取HTTP请求中url参数、content参数  [AUTO-TRANSLATED:d161a1e1]
 // Get URL parameters and content parameters from the HTTP request
 ApiArgsType getAllArgs(const Parser &parser) {
@@ -320,6 +341,19 @@ static inline void addHttpListener(){
                 responseApi(API::Exception, ex.what(), invoker);
             }
         },false);
+    });
+
+    // 监听 kBroadcastBeforeHttpRequest：对已注册的 URL 路径设置 HttpBody 以接管 PUT/POST 请求体
+    // Listen for kBroadcastBeforeHttpRequest: set HttpBody for registered URL paths to take over PUT/POST body
+    NoticeCenter::Instance().addListener(&web_api_tag, Broadcast::kBroadcastBeforeHttpRequest, [](BroadcastBeforeHttpRequestArgs) {
+        auto it = s_map_file_handler.find(parser.url());
+        if (it == s_map_file_handler.end()) {
+            return;
+        }
+        HttpSession::KeyValue headerOut;
+        Json::Value val;
+        auto args = getAllArgs(parser);
+        it->second(sender, headerOut, ArgsMap(parser, args), val, body);
     });
 }
 
@@ -771,6 +805,7 @@ void check_secret(toolkit::SockInfo &sender, mediakit::HttpSession::KeyValue &he
             if (api_secret != allArgs["secret"]) {
                 throw AuthException("Incorrect secret");
             }
+            val.removeMember("cookie");
             return;
         } catch (...) {
             // 未提供secret或secret不匹配，这个异常隐藏
@@ -2180,10 +2215,14 @@ void installWebApi() {
         WebRtcPluginManager::Instance().negotiateSdp(session, type, *args, [invoker, offer, headerOut, location](const WebRtcInterface &exchanger) mutable {
             auto &handler = const_cast<WebRtcInterface &>(exchanger);
             try {
+                // Encode query params since transport id/token may contain '+' or '/'.
+                HttpArgs delete_args;
+                delete_args["id"] = exchanger.getIdentifier();
+                delete_args["token"] = exchanger.deleteRandStr();
                 // 设置返回类型  [AUTO-TRANSLATED:ffc2a31a]
                 // Set return type
                 headerOut["Content-Type"] = "application/sdp";
-                headerOut["Location"] = location + "?id=" + exchanger.getIdentifier() + "&token=" + exchanger.deleteRandStr();
+                headerOut["Location"] = location + "?" + delete_args.make();
                 invoker(201, headerOut, handler.getAnswerSdp(offer));
             } catch (std::exception &ex) {
                 headerOut["Content-Type"] = "text/plain";
@@ -2645,6 +2684,39 @@ void installWebApi() {
             val["msg"] = "success";
             val["code"] = API::Success;
             invoker(200, headerOut, val.toStyledString());
+        });
+    });
+
+    api_regist("/index/api/addProbe", [](API_ARGS_MAP_ASYNC) {
+        CHECK_SECRET();
+        CHECK_ARGS("vhost", "app", "stream", "probe_ms");
+
+        std::string vhost = allArgs["vhost"];
+        std::string app = allArgs["app"];
+        std::string stream = allArgs["stream"];
+        uint32_t probe_ms = allArgs["probe_ms"];
+
+        auto src = MediaSource::find(vhost, app, stream);
+        if (!src) {
+            throw ApiRetException("can not find the stream", API::NotFound);
+        }
+        src->getOwnerPoller()->async([=]() mutable {
+            src->getMuxer()->addProbe(probe_ms, [=](const std::list<FrameInfo> &info_list) mutable {
+                for (const auto &info : info_list) {
+                    Json::Value item;
+                    item["codec"] = getCodecName(info.codec_id);
+                    item["track_type"] = getTrackString(getTrackType(info.codec_id));
+                    item["dts"] = (Json::Int64)info.dts;
+                    item["pts"] = (Json::Int64)info.pts;
+                    item["recv_stamp"] = (Json::Int64)info.recv_stamp;
+                    item["frame_size"] = (Json::UInt)info.frame_size;
+                    item["index"] = info.index;
+                    item["key_frame"] = info.key_frame;
+                    item["config_frame"] = info.config_frame;
+                    val["data"].append(std::move(item));
+                }
+                invoker(200, headerOut, val.toStyledString());
+            });
         });
     });
 }

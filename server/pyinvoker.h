@@ -8,6 +8,9 @@
 #include <string>
 #include <pybind11/embed.h>
 #include <pybind11/numpy.h>
+#include <pybind11/stl.h>   // ⭐ 必须
+#include <pybind11/functional.h>  // ⭐ 必须
+#include <pybind11/numpy.h>
 #include "Util/logger.h"
 #include "Common/config.h"
 #include "Common/MediaSource.h"
@@ -46,6 +49,7 @@ private:
     PythonInvoker();
 
 private:
+    toolkit::NoticeCenter::Ptr _notice_center;
     py::gil_scoped_release *_rel;
     py::scoped_interpreter *_interpreter;
     std::shared_ptr<toolkit::Logger> _logger;

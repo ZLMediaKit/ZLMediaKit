@@ -36,14 +36,19 @@ public:
 class FramePacedSender : public FrameWriterInterface, public std::enable_shared_from_this<FramePacedSender> {
 public:
     using OnFrame = std::function<void(const Frame::Ptr &frame)>;
-    // 最小缓存100ms数据  [AUTO-TRANSLATED:7b2fcb0d]
-    // Minimum cache 100ms data
-    static constexpr auto kMinCacheMS = 100;
 
-    FramePacedSender(uint32_t paced_sender_ms, OnFrame cb) {
-        _paced_sender_ms = paced_sender_ms;
-        _cb = std::move(cb);
-    }
+    // Buffer depth thresholds (ms)
+    static constexpr int kLowMS    = 100;  // Below this → slow down
+    static constexpr int kTargetMS = 200;  // Upper bound of normal-speed zone
+    static constexpr int kHighMS   = 500;  // Above this → max speed + force flush
+    // Speed bounds
+    static constexpr float kMinSpeed = 0.5f;
+    static constexpr float kMaxSpeed = 1.5f;
+    // Keep the cache bounded even when publisher timestamps are identical or tightly clustered.
+    static constexpr size_t kMaxCacheSize = 25 * 5;
+
+    FramePacedSender(uint32_t paced_sender_ms, OnFrame cb)
+        : _paced_sender_ms(paced_sender_ms), _cb(std::move(cb)) {}
 
     void resetTimer(const EventPoller::Ptr &poller) {
         std::lock_guard<std::recursive_mutex> lck(_mtx);
@@ -65,44 +70,70 @@ public:
         }
         auto &last_dts = _last_dts[frame->getTrackType()];
         if (last_dts > frame->dts()) {
-            // 时间戳回退了，点播流？
-            WarnL << "Dts decrease: " << last_dts << "->" << frame->dts() << ", flush all paced sender cache: " << _cache.size();
+            WarnL << "Dts decrease: " << last_dts << "->" << frame->dts()
+                  << ", flush paced sender cache: " << _cache.size();
             flushCache(frame->dts());
         }
         _cache.emplace(frame->dts(), Frame::getCacheAbleFrame(frame));
         last_dts = frame->dts();
+        if (_cache.size() > kMaxCacheSize) {
+            WarnL << "Force flush paced sender cache: size=" << _cache.size();
+            flushCache(frame->dts());
+        }
         return true;
     }
 
 private:
+    /**
+     * Compute playback speed multiplier from buffer depth (ms).
+     *
+     *   buf < kLowMS       → slow down  (kMinSpeed … 1.0)
+     *   kLowMS ≤ buf ≤ kTargetMS → normal     (1.0)
+     *   kTargetMS < buf ≤ kHighMS → speed up   (1.0 … kMaxSpeed)
+     *   buf > kHighMS      → max speed  (kMaxSpeed) + force flush
+     */
+    float calcSpeed(int buf_ms) const {
+        if (buf_ms < kLowMS) {
+            float t = (float)buf_ms / kLowMS;
+            return kMinSpeed + t * (1.0f - kMinSpeed);
+        }
+        if (buf_ms <= kTargetMS) {
+            return 1.0f;
+        }
+        if (buf_ms <= kHighMS) {
+            float t = (float)(buf_ms - kTargetMS) / (kHighMS - kTargetMS);
+            return 1.0f + t * (kMaxSpeed - 1.0f);
+        }
+        return kMaxSpeed;
+    }
+
     void onTick() {
         std::lock_guard<std::recursive_mutex> lck(_mtx);
-        auto max_dts = _cache.empty() ? 0 : _cache.rbegin()->first;
+
+        uint64_t wall_ms = _ticker.elapsedTime();
+        _ticker.resetTime();
+
+        // Buffer depth = newest dts − oldest dts in cache
+        int buf_ms = 0;
+        if (_cache.size() >= 2) {
+            buf_ms = (int)(_cache.rbegin()->first - _cache.begin()->first);
+        }
+
+        float speed = calcSpeed(buf_ms);
+        _virtual_pos += (uint64_t)(wall_ms * speed);
+
+        // Consume frames whose dts ≤ virtual position
         while (!_cache.empty()) {
             auto front = _cache.begin();
-            if (getCurrentStamp() < front->first + _cache_ms) {
-                // 还没到消费时间  [AUTO-TRANSLATED:09fb4c3d]
-                // Not yet time to consume
-                break;
-            }
-            // 时间到了，该消费frame了  [AUTO-TRANSLATED:2f007931]
-            // Time is up, it's time to consume the frame
+            if (front->first > _virtual_pos) break;
             _cb(front->second);
             _cache.erase(front);
         }
 
-        if (_cache.empty() && max_dts) {
-            // 消费太快，需要增加缓存大小  [AUTO-TRANSLATED:c05bfbcd]
-            // Consumption is too fast, need to increase cache size
-            setCurrentStamp(max_dts);
-            _cache_ms += kMinCacheMS;
-        }
-
-        // 消费太慢，需要强制flush数据  [AUTO-TRANSLATED:5613625e]
-        // Consumption is too slow, need to force flush data
-        if (_cache.size() > 25 * 5) {
-            WarnL << "Flush frame paced sender cache: " << _cache.size();
-            flushCache(max_dts);
+        // Safety flush when buffer grows too deep
+        if (buf_ms > kHighMS * 2) {
+            WarnL << "Force flush paced sender cache: buf=" << buf_ms << "ms";
+            flushCache(_cache.empty() ? _virtual_pos : _cache.rbegin()->first);
         }
     }
 
@@ -113,20 +144,16 @@ private:
             _cache.erase(front);
         }
         setCurrentStamp(dts);
-        _cache_ms = kMinCacheMS;
     }
 
-    uint64_t getCurrentStamp() { return _ticker.elapsedTime() + _stamp_offset; }
-
     void setCurrentStamp(uint64_t stamp) {
-        _stamp_offset = stamp;
+        _virtual_pos = stamp;
         _ticker.resetTime();
     }
 
 private:
     uint32_t _paced_sender_ms;
-    uint32_t _cache_ms = kMinCacheMS;
-    uint64_t _stamp_offset = 0;
+    uint64_t _virtual_pos = 0;
     uint64_t _last_dts[2] = {0, 0};
     OnFrame _cb;
     Ticker _ticker;
@@ -313,13 +340,13 @@ int MultiMediaSourceMuxer::totalReaderCount(MediaSource &sender) {
 
 // 此函数可能跨线程调用  [AUTO-TRANSLATED:e8c5f74d]
 // This function may be called across threads
-bool MultiMediaSourceMuxer::setupRecord(Recorder::type type, bool start, const string &custom_path, size_t max_second) {
+bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path, size_t max_second) {
     CHECK(getOwnerPoller(MediaSource::NullMediaSource())->isCurrentThread(), "Can only call setupRecord in it's owner poller");
     onceToken token(nullptr, [&]() {
         if (_option.mp4_as_player && type == Recorder::type_mp4) {
             // 开启关闭mp4录制，触发观看人数变化相关事件  [AUTO-TRANSLATED:b63a8deb]
             // Turn on/off mp4 recording, trigger events related to changes in the number of viewers
-            onReaderChanged(MediaSource::NullMediaSource(), totalReaderCount());
+            onReaderChanged(sender, totalReaderCount());
         }
     });
     switch (type) {
@@ -564,7 +591,7 @@ bool MultiMediaSourceMuxer::isRecording(Recorder::type type) {
 
 void MultiMediaSourceMuxer::startSendRtp(const MediaSourceEvent::SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb) {
 #if defined(ENABLE_RTPPROXY)
-    createGopCacheIfNeed(1);
+    createGopCacheIfNeed();
 
     auto ring = _ring;
     auto ssrc = args.ssrc;
@@ -634,6 +661,13 @@ bool MultiMediaSourceMuxer::stopSendRtp(const string &ssrc) {
 #else
     return false;
 #endif//ENABLE_RTPPROXY
+}
+
+MultiMediaSourceMuxer::RingType::RingReader::Ptr MultiMediaSourceMuxer::getFrameReader() {
+    auto poller = getOwnerPoller(MediaSource::NullMediaSource());
+    CHECK(poller->isCurrentThread());
+    createGopCacheIfNeed();
+    return _ring->attach(poller);
 }
 
 EventPoller::Ptr MultiMediaSourceMuxer::getOwnerPoller(MediaSource &sender) {
@@ -754,13 +788,7 @@ void MultiMediaSourceMuxer::onAllTrackReady() {
         listener->onAllTrackReady();
     }
 
-#if defined(ENABLE_RTPPROXY)
-    GET_CONFIG(size_t, gop_cache, RtpProxy::kGopCache);
-    if (gop_cache > 0) {
-        createGopCacheIfNeed(gop_cache);
-    }
-#endif
-
+    createGopCacheIfNeed();
     Stamp *first = nullptr;
     for (auto &pr : _stamps) {
         if (!first) {
@@ -775,10 +803,11 @@ void MultiMediaSourceMuxer::onAllTrackReady() {
     InfoL << "stream: " << shortUrl() << " , codec info: " << getTrackInfoStr(this);
 }
 
-void MultiMediaSourceMuxer::createGopCacheIfNeed(size_t gop_count) {
+void MultiMediaSourceMuxer::createGopCacheIfNeed() {
     if (_ring) {
         return;
     }
+    GET_CONFIG(size_t, gop_cache, RtpProxy::kGopCache);
     weak_ptr<MultiMediaSourceMuxer> weak_self = shared_from_this();
     auto src = std::make_shared<MediaSourceForMuxer>(weak_self.lock());
     _ring = std::make_shared<RingType>(1024, [weak_self, src](int size) {
@@ -789,7 +818,7 @@ void MultiMediaSourceMuxer::createGopCacheIfNeed(size_t gop_count) {
                 strong_self->onReaderChanged(*src, strong_self->totalReaderCount());
             });
         }
-    }, gop_count);
+    }, std::max<size_t>(gop_cache, 1));
 }
 
 void MultiMediaSourceMuxer::resetTracks() {
@@ -818,7 +847,36 @@ void MultiMediaSourceMuxer::resetTracks() {
     }
 }
 
+void MultiMediaSourceMuxer::addProbe(uint32_t probe_ms, const std::function<void(const std::list<FrameInfo> &info_list)> &cb) {
+    CHECK(getOwnerPoller(MediaSource::NullMediaSource())->isCurrentThread());
+    auto info_list = std::make_shared<std::list<FrameInfo>>();
+    Ticker ticker;
+    _on_frame = [info_list, ticker](const Frame::Ptr &frame) mutable {
+        FrameInfo info;
+        info.codec_id = frame->getCodecId();
+        info.dts = frame->dts();
+        info.pts = frame->pts();
+        info.recv_stamp = ticker.createdTime();
+        info.frame_size = frame->size();
+        info.index = frame->getIndex();
+        info.key_frame = frame->keyFrame();
+        info.config_frame = frame->configFrame();
+        info_list->emplace_back(info);
+    };
+    std::weak_ptr<MultiMediaSourceMuxer> weak_self = shared_from_this();
+    getOwnerPoller(MediaSource::NullMediaSource())->doDelayTask(probe_ms, [weak_self, cb, info_list]() {
+        if (auto strong_self = weak_self.lock()) {
+            strong_self->_on_frame = nullptr;
+        }
+        cb(*info_list);
+        return 0;
+    });
+}
+
 bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
+    if (_on_frame) {
+        _on_frame(frame_in);
+    }
     auto frame = frame_in;
     if (_option.modify_stamp != ProtocolOption::kModifyStampOff) {
         // 时间戳不采用原始的绝对时间戳  [AUTO-TRANSLATED:8beb3bf7]

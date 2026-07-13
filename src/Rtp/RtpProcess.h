@@ -115,8 +115,9 @@ protected:
     std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
     toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;
     float getLossRate(MediaSource &sender, TrackType type) override;
-    Ptr getRtpProcess(mediakit::MediaSource &sender) const override;
-    bool close(mediakit::MediaSource &sender) override;
+    Ptr getRtpProcess(MediaSource &sender) const override;
+    bool close(MediaSource &sender) override;
+    bool pause(MediaSource &sender, bool pause) override;
 
 private:
     RtpProcess(const MediaTuple &tuple);

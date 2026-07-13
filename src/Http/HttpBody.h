@@ -33,7 +33,11 @@ namespace mediakit {
 class HttpBody : public std::enable_shared_from_this<HttpBody>{
 public:
     using Ptr = std::shared_ptr<HttpBody>;
-    virtual ~HttpBody() = default;
+    virtual ~HttpBody() {
+        if (_on_completed) {
+            _on_completed();
+        }
+    }
 
     /**
      * 剩余数据大小，如果返回-1, 那么就不设置content-length
@@ -88,6 +92,19 @@ public:
     virtual int sendFile(int fd) {
         return -1;
     }
+
+    /**
+     * 写入数据，默认抛出异常表示不支持写入
+     * Write data, default throws exception indicating write not supported
+     */
+    virtual void writeData(const char *data, size_t size) {
+        throw std::runtime_error("HttpBody::writeData not supported");
+    }
+
+    void setOnCompleted(std::function<void()> on_completed) { _on_completed = std::move(on_completed); }
+
+private:
+    std::function<void()> _on_completed;
 };
 
 /**
@@ -127,13 +144,21 @@ private:
     toolkit::Buffer::Ptr _buffer;
 };
 
+class HttpFileBodyBase  : public HttpBody {
+public:
+    using Ptr = std::shared_ptr<HttpFileBodyBase>;
+
+    virtual void setRange(uint64_t offset, uint64_t max_size) = 0;
+    virtual ~HttpFileBodyBase() = default;
+};
+
 /**
  * 文件类型的content
  * File type content
  
  * [AUTO-TRANSLATED:baf9c0f3]
  */
-class HttpFileBody : public HttpBody {
+class HttpFileBody : public HttpFileBodyBase {
 public:
     using Ptr = std::shared_ptr<HttpFileBody>;
 
@@ -159,7 +184,7 @@ public:
      
      * [AUTO-TRANSLATED:30532a4e]
      */
-    void setRange(uint64_t offset, uint64_t max_size);
+    void setRange(uint64_t offset, uint64_t max_size) override;
 
     int64_t remainSize() override;
     toolkit::Buffer::Ptr readData(size_t size) override;
@@ -171,6 +196,32 @@ private:
     std::shared_ptr<FILE> _fp;
     std::shared_ptr<char> _map_addr;
     toolkit::ResourcePool<toolkit::BufferRaw> _pool;
+};
+
+/**
+ * 文件写入类型的content，支持通过writeData向文件追加写入
+ * File storage content, supports appending data to a file via writeData
+ */
+class HttpFileStorage : public HttpBody {
+public:
+    using Ptr = std::shared_ptr<HttpFileStorage>;
+
+    /**
+     * @param file_path 文件路径，文件以二进制追加模式打开
+     * @param file_path File path, opened in binary append mode
+     */
+    HttpFileStorage(std::string file_path);
+    ~HttpFileStorage() override;
+
+    void writeData(const char *data, size_t size) override;
+    int64_t remainSize() override;
+    toolkit::Buffer::Ptr readData(size_t size) override;
+    const std::string& filePath() const;
+
+private:
+    FILE *_fp = nullptr;
+    int64_t _written = 0;
+    std::string _path;
 };
 
 class HttpArgs;
@@ -212,7 +263,7 @@ private:
     int64_t _totalSize;
     std::string _bodyPrefix;
     std::string _bodySuffix;
-    HttpFileBody::Ptr _fileBody;
+    HttpFileBodyBase::Ptr _fileBody;
 };
 
 }//namespace mediakit

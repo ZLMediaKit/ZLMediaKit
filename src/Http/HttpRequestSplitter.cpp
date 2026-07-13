@@ -138,6 +138,7 @@ void HttpRequestSplitter::input(const char *data,size_t len) {
     // _content_len < 0; Data is processed according to variable length content
     onRecvContent(ptr,_remain_data_size);//消费掉所有剩余数据
     _remain_data.clear();
+    _remain_data_size = 0;
 }
 
 void HttpRequestSplitter::setContentLen(ssize_t content_len) {
