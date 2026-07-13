@@ -1,4 +1,4 @@
-#if defined(ENABLE_PYTHON)
+﻿#if defined(ENABLE_PYTHON)
 
 #include "pyinvoker.h"
 
