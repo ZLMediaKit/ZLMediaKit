@@ -114,6 +114,10 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
         NOTICE_EMIT(BroadcastBeforeHttpRequestArgs, Broadcast::kBroadcastBeforeHttpRequest, _parser, body, *this);
     }
 
+    // This branch only selects streamed body handling. It does not cap how many bytes
+    // HttpRequestSplitter will pass to _on_recv_body when the return value below is -1.
+    // Enforce Content-Length, or maxReqSize for unknown-length uploads, inside the callback
+    // before writing to HttpBody.
     if (content_len > _max_req_size || body) {
         // // 不定长body或超大body ////  [AUTO-TRANSLATED:8d66ee77]
         // // Indefinite length body or oversized body ////
@@ -124,6 +128,18 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
 
         size_t received = 0;
         _on_recv_body = [this, received, content_len, body, it](const char *data, size_t len) mutable {
+            auto max_body_size = content_len == SIZE_MAX ? _max_req_size : content_len;
+            auto remain = max_body_size - received;
+            if (len > remain) {
+                if (body && remain) {
+                    body->writeData(data, remain);
+                } else if (!body) {
+                    onRecvUnlimitedContent(_parser, data, remain, content_len, max_body_size);
+                }
+                sendResponse(413, true);
+                return false;
+            }
+
             received += len;
             if (body) {
                 body->writeData(data, len);
@@ -131,7 +147,7 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
                 onRecvUnlimitedContent(_parser, data, len, content_len, received);
             }
 
-            if (received < content_len) {
+            if (content_len == SIZE_MAX || received < content_len) {
                 // 还没收满  [AUTO-TRANSLATED:cecc867e]
                 // Not yet received
                 return true;
