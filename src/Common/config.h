@@ -356,6 +356,9 @@ extern const std::string kSendBufSize;
 // http 最大请求字节数  [AUTO-TRANSLATED:8239eb9c]
 // HTTP maximum request byte size
 extern const std::string kMaxReqSize;
+// 自定义HttpBody流式接收请求体的最大字节数
+// Maximum request body size streamed into a custom HttpBody
+extern const std::string kMaxUploadSize;
 // http keep-alive秒数  [AUTO-TRANSLATED:d4930c66]
 // HTTP keep-alive seconds
 extern const std::string kKeepAliveSecond;
