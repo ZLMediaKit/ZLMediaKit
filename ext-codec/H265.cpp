@@ -758,13 +758,28 @@ toolkit::Buffer::Ptr H265Track::getExtraData() const {
 #ifdef ENABLE_MP4
     struct mpeg4_hevc_t hevc;
     memset(&hevc, 0, sizeof(hevc));
+    // mpeg4_hevc_t 使用固定数组保存 VPS/SPS/PPS，第三方转换器在总长度超限时会触发断言；逐项减法检查既避免加法溢出，也把失败限制在本 Track 内。
+    // mpeg4_hevc_t stores VPS/SPS/PPS in a fixed array and its converter asserts when their total size exceeds it; staged subtraction avoids overflow and keeps failure in this Track.
+    if (_vps.size() > sizeof(hevc.data) || _sps.size() > sizeof(hevc.data) - _vps.size() ||
+        _pps.size() > sizeof(hevc.data) - _vps.size() - _sps.size()) {
+        WarnL << "H265参数集过大，无法生成extra_data: vps=" << _vps.size() << ", sps=" << _sps.size()
+              << ", pps=" << _pps.size() << ", capacity=" << sizeof(hevc.data);
+        return nullptr;
+    }
     string vps_sps_pps = string("\x00\x00\x00\x01", 4) + _vps + string("\x00\x00\x00\x01", 4) + _sps + string("\x00\x00\x00\x01", 4) + _pps;
-    h265_annexbtomp4(&hevc, vps_sps_pps.data(), (int) vps_sps_pps.size(), NULL, 0, NULL, NULL);
+    // annexbtomp4 在仅填充配置、没有媒体输出缓冲区时固定返回 0；from_nalu 是库为该场景提供的封装，并会确认参数集已写入 hevc。
+    // annexbtomp4 always returns zero when only populating configuration without a media output buffer; from_nalu wraps that use case and verifies parameter sets were stored in hevc.
+    if (mpeg4_hevc_from_nalu((const uint8_t *)vps_sps_pps.data(), vps_sps_pps.size(), &hevc) <= 0) {
+        WarnL << "生成H265 extra_data时转换参数集失败";
+        return nullptr;
+    }
 
+    // 固定的 1024 字节缓冲区小于 mpeg4_hevc_t 可保存的参数集；按输入大小分配，并为 HEVC 配置记录字段保留充足空间。
+    // A fixed 1024-byte buffer is smaller than the parameter sets held by mpeg4_hevc_t; size it from the input and leave ample room for HEVC record fields.
     std::string extra_data;
-    extra_data.resize(1024);
+    extra_data.resize(vps_sps_pps.size() + 64);
     auto extra_data_size = mpeg4_hevc_decoder_configuration_record_save(&hevc, (uint8_t *)extra_data.data(), extra_data.size());
-    if (extra_data_size == -1) {
+    if (extra_data_size <= 0) {
         WarnL << "生成H265 extra_data 失败";
         return nullptr;
     }

@@ -19,6 +19,11 @@
 #include "ext-codec/H264.h"
 #include "ext-codec/H265.h"
 
+#ifdef ENABLE_MP4
+#include "mpeg4-avc.h"
+#include "mpeg4-hevc.h"
+#endif
+
 using namespace std;
 
 namespace mediakit {
@@ -1198,6 +1203,67 @@ void testTrackParserRetry() {
            "a replacement H265 SPS should retry parsing and publish dimensions");
 }
 
+void testH264TrackExtraDataCapacity() {
+#ifdef ENABLE_MP4
+    mpeg4_avc_t avc = {};
+    string pps("\x68\x80", 2);
+    string sps = validH264Sps();
+    sps.resize(sizeof(avc.data) - pps.size(), '\xff');
+
+    mediakit::H264Track track(sps, pps, 0, 0);
+    auto extra_data = track.getExtraData();
+    expect(extra_data && extra_data->size() > 0,
+           "H264 parameter sets that exactly fit the AVC configuration storage must serialize");
+    mpeg4_avc_t decoded_avc = {};
+    expect(mpeg4_avc_decoder_configuration_record_load((const uint8_t *)extra_data->data(), extra_data->size(), &decoded_avc) > 0 &&
+               decoded_avc.off == sizeof(decoded_avc.data),
+           "the serialized AVC configuration must preserve all parameter-set bytes");
+
+    sps.push_back('\xff');
+    mediakit::H264Track oversized_track(sps, pps, 0, 0);
+    expect(oversized_track.getExtraData() == nullptr,
+           "H264 parameter sets larger than the AVC configuration storage must fail without entering the converter");
+#else
+    string pps("\x68\x80", 2);
+    string sps = validH264Sps();
+    sps.resize(UINT16_MAX, '\xff');
+
+    mediakit::H264Track track(sps, pps, 0, 0);
+    auto extra_data = track.getExtraData();
+    expect(extra_data && extra_data->size() > sps.size(),
+           "the largest H264 SPS representable by an AVC configuration record must serialize");
+
+    sps.push_back('\xff');
+    mediakit::H264Track oversized_track(sps, pps, 0, 0);
+    expect(oversized_track.getExtraData() == nullptr,
+           "an H264 SPS larger than the 16-bit AVC configuration record field must be rejected");
+#endif
+}
+
+void testH265TrackExtraDataCapacity() {
+#ifdef ENABLE_MP4
+    mpeg4_hevc_t hevc = {};
+    string vps = validH265Vps();
+    string pps("\x44\x01\x80", 3);
+    string sps = validH265Sps();
+    sps.resize(sizeof(hevc.data) - vps.size() - pps.size(), '\xff');
+
+    mediakit::H265Track track(vps, sps, pps, 0, 0, 0);
+    auto extra_data = track.getExtraData();
+    expect(extra_data && extra_data->size() > 0,
+           "H265 parameter sets that exactly fit the HEVC configuration storage must serialize");
+    mpeg4_hevc_t decoded_hevc = {};
+    expect(mpeg4_hevc_decoder_configuration_record_load((const uint8_t *)extra_data->data(), extra_data->size(), &decoded_hevc) > 0 &&
+               decoded_hevc.off == sizeof(decoded_hevc.data),
+           "the serialized HEVC configuration must preserve all parameter-set bytes");
+
+    sps.push_back('\xff');
+    mediakit::H265Track oversized_track(vps, sps, pps, 0, 0, 0);
+    expect(oversized_track.getExtraData() == nullptr,
+           "H265 parameter sets larger than the HEVC configuration storage must fail without entering the converter");
+#endif
+}
+
 } // namespace
 
 int main(int argc, char **argv) {
@@ -1215,8 +1281,14 @@ int main(int argc, char **argv) {
         if (group == "all" || group == "track-retry") {
             testTrackParserRetry();
         }
+        if (group == "all" || group == "h264-extra-data") {
+            testH264TrackExtraDataCapacity();
+        }
+        if (group == "all" || group == "h265-extra-data") {
+            testH265TrackExtraDataCapacity();
+        }
         expect(group == "all" || group == "h264-basic" || group == "h264-limits" || group == "h265" ||
-                   group == "track-retry",
+                   group == "track-retry" || group == "h264-extra-data" || group == "h265-extra-data",
                "unknown test group");
         cout << "test_sps_parser passed" << endl;
         return 0;

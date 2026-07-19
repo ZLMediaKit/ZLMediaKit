@@ -24,6 +24,7 @@
 #include <vector>
 #include <stdexcept>
 #include <climits>
+#include <limits>
 
 using namespace std;
 using namespace toolkit;
@@ -490,19 +491,40 @@ toolkit::Buffer::Ptr H264Track::getExtraData() const {
 #ifdef ENABLE_MP4
     struct mpeg4_avc_t avc;
     memset(&avc, 0, sizeof(avc));
+    // mpeg4_avc_t 使用固定数组保存 SPS/PPS，第三方转换器在总长度超限时会触发断言；这里用减法检查避免加法溢出，并在进入转换器前正常失败。
+    // mpeg4_avc_t stores SPS/PPS in a fixed array and its converter asserts when their total size exceeds it; subtraction-based checks avoid addition overflow and fail cleanly first.
+    if (_sps.size() > sizeof(avc.data) || _pps.size() > sizeof(avc.data) - _sps.size()) {
+        WarnL << "H264参数集过大，无法生成extra_data: sps=" << _sps.size() << ", pps=" << _pps.size()
+              << ", capacity=" << sizeof(avc.data);
+        return nullptr;
+    }
     string sps_pps = string("\x00\x00\x00\x01", 4) + _sps + string("\x00\x00\x00\x01", 4) + _pps;
-    h264_annexbtomp4(&avc, sps_pps.data(), (int)sps_pps.size(), NULL, 0, NULL, NULL);
+    // annexbtomp4 在仅填充配置、没有媒体输出缓冲区时固定返回 0；from_nalu 是库为该场景提供的封装，并会确认 SPS/PPS 已写入 avc。
+    // annexbtomp4 always returns zero when only populating configuration without a media output buffer; from_nalu wraps that use case and verifies SPS/PPS were stored in avc.
+    if (mpeg4_avc_from_nalu((const uint8_t *)sps_pps.data(), sps_pps.size(), &avc) <= 0) {
+        WarnL << "生成H264 extra_data时转换参数集失败";
+        return nullptr;
+    }
 
+    // 固定的 1024 字节缓冲区小于 mpeg4_avc_t 可保存的参数集；按输入大小分配，并为 AVC 配置记录字段保留充足空间。
+    // A fixed 1024-byte buffer is smaller than the parameter sets held by mpeg4_avc_t; size it from the input and leave ample room for AVC record fields.
     std::string extra_data;
-    extra_data.resize(1024);
+    extra_data.resize(sps_pps.size() + 64);
     auto extra_data_size = mpeg4_avc_decoder_configuration_record_save(&avc, (uint8_t *)extra_data.data(), extra_data.size());
-    if (extra_data_size == -1) {
+    if (extra_data_size <= 0) {
         WarnL << "生成H264 extra_data 失败";
         return nullptr;
     }
     extra_data.resize(extra_data_size);
     return std::make_shared<BufferString>(std::move(extra_data));
 #else
+    // AVCDecoderConfigurationRecord 使用 16 位字段保存单个 SPS/PPS 长度；拒绝截断转换，同时保证下方读取 profile/level 字节安全。
+    // AVCDecoderConfigurationRecord uses 16-bit SPS/PPS lengths; reject narrowing conversions and ensure the profile/level bytes read below are present.
+    if (_sps.size() < 4 || _sps.size() > std::numeric_limits<uint16_t>::max() ||
+        _pps.size() > std::numeric_limits<uint16_t>::max()) {
+        WarnL << "H264参数集长度无效，无法生成extra_data: sps=" << _sps.size() << ", pps=" << _pps.size();
+        return nullptr;
+    }
     std::string extra_data;
     // AVCDecoderConfigurationRecord start
     extra_data.push_back(1); // version
