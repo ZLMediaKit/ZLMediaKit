@@ -581,6 +581,7 @@ bool H264Track::inputFrame_l(const Frame::Ptr &frame) {
         // AUD帧丢弃
         return false;
     }
+    bool was_ready = ready();
     bool ret = true;
     switch (type) {
         case H264Frame::NAL_SPS: {
@@ -616,9 +617,10 @@ bool H264Track::inputFrame_l(const Frame::Ptr &frame) {
             break;
     }
 
-    // SPS/PPS 更新后需要重试以支持先到 PPS、后到 SPS 及替换无效 SPS；普通媒体帧不改变配置，不应反复解析同一份失败输入。
-    // Retry after SPS/PPS updates to support either arrival order and invalid-SPS replacement; ordinary media frames do not change configuration.
-    if (_width == 0 && ready() && (type == H264Frame::NAL_SPS || type == H264Frame::NAL_PPS)) {
+    // 仅当 SPS 改变或本帧首次补齐配置时重试：PPS 不包含宽高，配置已齐全后重复 PPS 只会反复解析同一份失败 SPS。
+    // Retry only when the SPS changes or this frame first completes configuration: PPS carries no dimensions, so repeated PPS after readiness would only reparse the same failed SPS.
+    bool configuration_became_ready = !was_ready && ready();
+    if (_width == 0 && ready() && (type == H264Frame::NAL_SPS || configuration_became_ready)) {
         update();
     }
     return ret;

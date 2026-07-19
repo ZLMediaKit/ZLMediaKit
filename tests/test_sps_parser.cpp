@@ -130,12 +130,25 @@ struct H264SpsOptions {
     bool frame_mbs_only = true;
     bool vui_hrd_parameters = false;
     uint32_t hrd_cpb_cnt_minus1 = 0;
+    bool vcl_hrd_parameters = false;
+    uint32_t vcl_hrd_cpb_cnt_minus1 = 0;
     bool include_rbsp_trailing_bits = true;
 };
 
 bool usesH264ExtendedSyntax(uint8_t profile) {
     return profile == 100 || profile == 110 || profile == 122 || profile == 244 || profile == 44 ||
            profile == 83 || profile == 86 || profile == 118 || profile == 128 || profile == 138 || profile == 144;
+}
+
+void writeH264Hrd(BitWriter &writer, uint32_t cpb_cnt_minus1) {
+    writer.writeUE(cpb_cnt_minus1);
+    writer.writeBits(0, 8); // bit_rate_scale + cpb_size_scale
+    for (uint32_t i = 0; i <= cpb_cnt_minus1; ++i) {
+        writer.writeUE(0); // bit_rate_value_minus1
+        writer.writeUE(0); // cpb_size_value_minus1
+        writer.writeBit(false); // cbr_flag
+    }
+    writer.writeBits(0, 20); // HRD delay lengths + time_offset_length
 }
 
 string makeH264Sps(const H264SpsOptions &options) {
@@ -183,15 +196,11 @@ string makeH264Sps(const H264SpsOptions &options) {
         writer.writeBits(60, 32); // time_scale
         writer.writeBit(true); // fixed_frame_rate_flag
         writer.writeBit(true); // nal_hrd_parameters_present_flag
-        writer.writeUE(options.hrd_cpb_cnt_minus1);
-        writer.writeBits(0, 8); // bit_rate_scale + cpb_size_scale
-        for (uint32_t i = 0; i <= options.hrd_cpb_cnt_minus1; ++i) {
-            writer.writeUE(0); // bit_rate_value_minus1
-            writer.writeUE(0); // cpb_size_value_minus1
-            writer.writeBit(false); // cbr_flag
+        writeH264Hrd(writer, options.hrd_cpb_cnt_minus1);
+        writer.writeBit(options.vcl_hrd_parameters);
+        if (options.vcl_hrd_parameters) {
+            writeH264Hrd(writer, options.vcl_hrd_cpb_cnt_minus1);
         }
-        writer.writeBits(0, 20); // HRD delay lengths + time_offset_length
-        writer.writeBit(false); // vcl_hrd_parameters_present_flag
         writer.writeBit(false); // low_delay_hrd_flag
         writer.writeBit(false); // pic_struct_present_flag
         writer.writeBit(true); // bitstream_restriction_flag
@@ -268,12 +277,33 @@ struct H265SpsOptions {
     uint32_t bit_depth_luma_minus8 = 0;
     uint32_t bit_depth_chroma_minus8 = 0;
     uint32_t log2_max_pic_order_cnt_lsb_minus4 = 0;
+    uint32_t log2_min_luma_coding_block_size_minus3 = 0;
+    uint32_t log2_diff_max_min_luma_coding_block_size = 0;
     uint32_t num_short_term_ref_pic_sets = 0;
     uint32_t first_num_negative_pics = 0;
     uint32_t first_num_positive_pics = 0;
     uint32_t num_long_term_ref_pics = 0;
     bool vui_hrd_parameters = false;
     uint32_t hrd_cpb_cnt_minus1 = 0;
+    bool hrd_vcl_parameters = false;
+    bool hrd_sub_pic_parameters = false;
+    bool hrd_fixed_pic_rate_general = true;
+    bool hrd_fixed_pic_rate_within_cvs = false;
+    bool hrd_low_delay = false;
+    bool range_extension = false;
+    bool multilayer_extension = false;
+    bool extension_3d = false;
+    uint32_t extension_4bits = 0;
+    uint32_t ivmc_sub_pb_size_minus3 = 0;
+    uint32_t texmc_sub_pb_size_minus3 = 0;
+    bool scc_extension = false;
+    bool palette_mode = false;
+    uint32_t palette_max_size = 0;
+    uint32_t delta_palette_max_predictor_size = 0;
+    bool palette_initializers = false;
+    uint32_t palette_initializer_count_minus1 = 0;
+    uint32_t motion_vector_resolution_control_idc = 0;
+    bool truncate_scc_extension = false;
     bool include_rbsp_trailing_bits = true;
 };
 
@@ -303,12 +333,26 @@ void writeH265Prefix(BitWriter &writer, const H265SpsOptions &options) {
     writer.writeUE(0);
     writer.writeUE(0);
     writer.writeUE(0);
-    for (unsigned i = 0; i < 6; ++i) {
+    writer.writeUE(options.log2_min_luma_coding_block_size_minus3);
+    writer.writeUE(options.log2_diff_max_min_luma_coding_block_size);
+    for (unsigned i = 0; i < 4; ++i) {
         writer.writeUE(0);
     }
     writer.writeBit(false); // scaling_list_enabled_flag
     writer.writeBits(0, 2); // amp_enabled_flag + sample_adaptive_offset_enabled_flag
     writer.writeBit(false); // pcm_enabled_flag
+}
+
+void writeH265SubLayerHrd(BitWriter &writer, uint32_t cpb_cnt_minus1, bool sub_pic_parameters) {
+    for (uint32_t j = 0; j <= cpb_cnt_minus1; ++j) {
+        writer.writeUE(0); // bit_rate_value_minus1
+        writer.writeUE(0); // cpb_size_value_minus1
+        if (sub_pic_parameters) {
+            writer.writeUE(0); // cpb_size_du_value_minus1
+            writer.writeUE(0); // bit_rate_du_value_minus1
+        }
+        writer.writeBit(false); // cbr_flag
+    }
 }
 
 void writeH265Tail(BitWriter &writer, const H265SpsOptions &options) {
@@ -324,18 +368,37 @@ void writeH265Tail(BitWriter &writer, const H265SpsOptions &options) {
         writer.writeBit(false); // vui_poc_proportional_to_timing_flag
         writer.writeBit(true); // vui_hrd_parameters_present_flag
         writer.writeBit(true); // nal_hrd_parameters_present_flag
-        writer.writeBit(false); // vcl_hrd_parameters_present_flag
-        writer.writeBit(false); // sub_pic_hrd_params_present_flag
+        writer.writeBit(options.hrd_vcl_parameters);
+        writer.writeBit(options.hrd_sub_pic_parameters);
+        if (options.hrd_sub_pic_parameters) {
+            writer.writeBits(0, 19); // sub-picture HRD lengths and flags
+        }
         writer.writeBits(0, 8); // bit_rate_scale + cpb_size_scale
+        if (options.hrd_sub_pic_parameters) {
+            writer.writeBits(0, 4); // cpb_size_du_scale
+        }
         writer.writeBits(0, 15); // HRD delay lengths
         for (uint32_t i = 0; i <= options.max_sub_layers_minus1; ++i) {
-            writer.writeBit(true); // fixed_pic_rate_general_flag
-            writer.writeUE(0); // elemental_duration_in_tc_minus1
-            writer.writeUE(options.hrd_cpb_cnt_minus1);
-            for (uint32_t j = 0; j <= options.hrd_cpb_cnt_minus1; ++j) {
-                writer.writeUE(0); // bit_rate_value_minus1
-                writer.writeUE(0); // cpb_size_value_minus1
-                writer.writeBit(false); // cbr_flag
+            writer.writeBit(options.hrd_fixed_pic_rate_general);
+            bool fixed_pic_rate_within_cvs = options.hrd_fixed_pic_rate_general;
+            if (!options.hrd_fixed_pic_rate_general) {
+                writer.writeBit(options.hrd_fixed_pic_rate_within_cvs);
+                fixed_pic_rate_within_cvs = options.hrd_fixed_pic_rate_within_cvs;
+            }
+            bool low_delay = false;
+            if (fixed_pic_rate_within_cvs) {
+                writer.writeUE(0); // elemental_duration_in_tc_minus1
+            } else {
+                writer.writeBit(options.hrd_low_delay);
+                low_delay = options.hrd_low_delay;
+            }
+            uint32_t cpb_cnt_minus1 = low_delay ? 0 : options.hrd_cpb_cnt_minus1;
+            if (!low_delay) {
+                writer.writeUE(options.hrd_cpb_cnt_minus1);
+            }
+            writeH265SubLayerHrd(writer, cpb_cnt_minus1, options.hrd_sub_pic_parameters);
+            if (options.hrd_vcl_parameters) {
+                writeH265SubLayerHrd(writer, cpb_cnt_minus1, options.hrd_sub_pic_parameters);
             }
         }
         writer.writeBit(true); // bitstream_restriction_flag
@@ -344,7 +407,65 @@ void writeH265Tail(BitWriter &writer, const H265SpsOptions &options) {
             writer.writeUE(0);
         }
     }
-    writer.writeBit(false); // sps_extension_present_flag
+    bool extension_present = options.range_extension || options.multilayer_extension ||
+                             options.extension_3d || options.scc_extension || options.extension_4bits;
+    writer.writeBit(extension_present); // sps_extension_present_flag
+    if (!extension_present) {
+        return;
+    }
+
+    writer.writeBit(options.range_extension);
+    writer.writeBit(options.multilayer_extension);
+    writer.writeBit(options.extension_3d);
+    writer.writeBit(options.scc_extension);
+    writer.writeBits(options.extension_4bits, 4);
+    if (options.range_extension) {
+        writer.writeBits(0, 9); // sps_range_extension flags
+    }
+    if (options.multilayer_extension) {
+        writer.writeBit(false); // inter_view_mv_vert_constraint_flag
+    }
+    if (options.extension_3d) {
+        for (unsigned d = 0; d <= 1; ++d) {
+            writer.writeBits(0, 2); // iv_di_mc_enabled_flag + iv_mv_scal_enabled_flag
+            if (d == 0) {
+                writer.writeUE(options.ivmc_sub_pb_size_minus3);
+                writer.writeBits(0, 4); // iv_res/depth_ref/vsp_mc/dbbp flags
+            } else {
+                writer.writeBit(false); // tex_mc_enabled_flag
+                writer.writeUE(options.texmc_sub_pb_size_minus3);
+                writer.writeBits(0, 5); // intra/inter prediction flags
+            }
+        }
+    }
+    if (options.scc_extension) {
+        writer.writeBit(true); // sps_curr_pic_ref_enabled_flag
+        if (options.truncate_scc_extension) {
+            return;
+        }
+        writer.writeBit(options.palette_mode);
+        if (options.palette_mode) {
+            writer.writeUE(options.palette_max_size);
+            writer.writeUE(options.delta_palette_max_predictor_size);
+            writer.writeBit(options.palette_initializers);
+            if (options.palette_initializers) {
+                writer.writeUE(options.palette_initializer_count_minus1);
+                uint32_t component_count = options.chroma_format_idc == 0 ? 1 : 3;
+                for (uint32_t component = 0; component < component_count; ++component) {
+                    uint32_t bit_depth = 8 + (component == 0 ? options.bit_depth_luma_minus8
+                                                            : options.bit_depth_chroma_minus8);
+                    for (uint32_t i = 0; i <= options.palette_initializer_count_minus1; ++i) {
+                        writer.writeBits(0, bit_depth);
+                    }
+                }
+            }
+        }
+        writer.writeBits(options.motion_vector_resolution_control_idc, 2);
+        writer.writeBit(false); // intra_boundary_filtering_disabled_flag
+    }
+    if (options.extension_4bits) {
+        writer.writeBits(5, 3); // future sps_extension_data_flag values
+    }
 }
 
 string makeH265Sps(const H265SpsOptions &options) {
@@ -401,7 +522,8 @@ string makeH265LongTermRefSps(uint32_t count) {
 }
 
 string makeH265VpsWithLayerSets(uint32_t count, uint32_t max_sub_layers_minus1 = 0,
-                                uint32_t max_layer_id = 0, bool include_rbsp_trailing_bits = true) {
+                                uint32_t max_layer_id = 0, bool include_rbsp_trailing_bits = true,
+                                uint32_t hrd_parameter_count = 0, bool second_common_info = false) {
     BitWriter writer;
     writer.writeBits(0, 4); // vps_video_parameter_set_id
     writer.writeBits(3, 2); // vps_reserved_three_2bits
@@ -425,7 +547,27 @@ string makeH265VpsWithLayerSets(uint32_t count, uint32_t max_sub_layers_minus1 =
     writer.writeBits(1, 32); // vps_num_units_in_tick
     writer.writeBits(60, 32); // vps_time_scale
     writer.writeBit(false); // vps_poc_proportional_to_timing_flag
-    writer.writeUE(0); // vps_num_hrd_parameters
+    writer.writeUE(hrd_parameter_count);
+    for (uint32_t i = 0; i < hrd_parameter_count; ++i) {
+        writer.writeUE((std::min)(i, count)); // hrd_layer_set_idx
+        bool common_info_present = i == 0 || second_common_info;
+        if (i != 0) {
+            writer.writeBit(common_info_present); // cprms_present_flag
+        }
+        if (common_info_present) {
+            writer.writeBit(true); // nal_hrd_parameters_present_flag
+            writer.writeBit(false); // vcl_hrd_parameters_present_flag
+            writer.writeBit(false); // sub_pic_hrd_params_present_flag
+            writer.writeBits(0, 8); // bit_rate_scale + cpb_size_scale
+            writer.writeBits(0, 15); // HRD delay lengths
+        }
+        for (uint32_t sub_layer = 0; sub_layer <= max_sub_layers_minus1; ++sub_layer) {
+            writer.writeBit(true); // fixed_pic_rate_general_flag
+            writer.writeUE(0); // elemental_duration_in_tc_minus1
+            writer.writeUE(0); // cpb_cnt_minus1
+            writeH265SubLayerHrd(writer, 0, false);
+        }
+    }
     writer.writeBit(false); // vps_extension_flag
     return makeNalu({ 0x40, 0x01 }, writer.finishRbsp(include_rbsp_trailing_bits));
 }
@@ -522,6 +664,15 @@ void testH264Basic() {
     options.hrd_cpb_cnt_minus1 = 32;
     expect(!mediakit::getAVCInfo(makeH264Sps(options), width, height, fps),
            "H264 HRD CPB count above the standard limit must fail");
+
+    options.hrd_cpb_cnt_minus1 = 0;
+    options.vcl_hrd_parameters = true;
+    options.vcl_hrd_cpb_cnt_minus1 = 31;
+    expect(mediakit::getAVCInfo(makeH264Sps(options), width, height, fps),
+           "complete H264 VCL HRD syntax at the CPB upper bound should parse");
+    options.vcl_hrd_cpb_cnt_minus1 = 32;
+    expect(!mediakit::getAVCInfo(makeH264Sps(options), width, height, fps),
+           "H264 VCL HRD CPB count above the standard limit must fail");
 }
 
 void testH264Limits() {
@@ -736,12 +887,59 @@ void testH265() {
     expect(!mediakit::getHEVCInfo("", makeH265Sps(vui_options), width, height, fps),
            "H265 HRD CPB count above the standard limit must fail");
 
+    vui_options.hrd_cpb_cnt_minus1 = 31;
+    vui_options.hrd_vcl_parameters = true;
+    vui_options.hrd_sub_pic_parameters = true;
+    expect(mediakit::getHEVCInfo("", makeH265Sps(vui_options), width, height, fps),
+           "H265 NAL/VCL sub-picture HRD syntax at the shared CPB upper bound should parse");
+
+    vui_options.hrd_cpb_cnt_minus1 = 32;
+    vui_options.hrd_fixed_pic_rate_general = false;
+    vui_options.hrd_fixed_pic_rate_within_cvs = false;
+    vui_options.hrd_low_delay = true;
+    expect(mediakit::getHEVCInfo("", makeH265Sps(vui_options), width, height, fps),
+           "H265 low-delay HRD must infer one CPB instead of consuming the absent count field");
+
+    H265SpsOptions extension_options;
+    extension_options.range_extension = true;
+    extension_options.multilayer_extension = true;
+    extension_options.extension_3d = true;
+    extension_options.scc_extension = true;
+    extension_options.extension_4bits = 1;
+    expect(mediakit::getHEVCInfo("", makeH265Sps(extension_options), width, height, fps),
+           "complete H265 structured SPS extensions should parse");
+
+    extension_options = H265SpsOptions();
+    extension_options.scc_extension = true;
+    extension_options.truncate_scc_extension = true;
+    extension_options.include_rbsp_trailing_bits = false;
+    width = 1920;
+    height = 1080;
+    fps = 25;
+    expect(!mediakit::getHEVCInfo("", makeH265Sps(extension_options), width, height, fps),
+           "a required SCC extension bit must not be mistaken for rbsp_stop_one_bit");
+    expect(width == 1920 && height == 1080 && fps == 25,
+           "truncated H265 SPS extensions must preserve caller outputs");
+
     width = height = 0;
     fps = 0;
     expect(mediakit::getHEVCInfo(makeH265VpsWithLayerSets(0, 0, 0, false), makeH265Sps(H265SpsOptions()),
                                  width, height, fps),
            "an incomplete VPS must not prevent valid SPS dimensions from being extracted");
     expect(fps == 0, "VPS timing must not be published before rbsp_trailing_bits validate");
+
+    width = height = 0;
+    fps = 0;
+    expect(mediakit::getHEVCInfo(makeH265VpsWithLayerSets(1, 0, 0, true, 2, false),
+                                 makeH265Sps(H265SpsOptions()), width, height, fps),
+           "multiple H265 VPS HRD entries should reuse common state when cprms_present_flag is false");
+    expect(fps == 60, "a complete VPS with inherited HRD common state should publish timing");
+
+    fps = 0;
+    expect(mediakit::getHEVCInfo(makeH265VpsWithLayerSets(1, 0, 0, true, 2, true),
+                                 makeH265Sps(H265SpsOptions()), width, height, fps),
+           "multiple H265 VPS HRD entries with repeated common state should parse");
+    expect(fps == 60, "a complete VPS with repeated HRD common state should publish timing");
 
     auto parses = [](const H265SpsOptions &options, int *parsed_width = nullptr, int *parsed_height = nullptr) {
         int width = 0;
@@ -803,6 +1001,59 @@ void testH265() {
     expect(parses(options), "H265 POC log2 upper bound should parse");
     options.log2_max_pic_order_cnt_lsb_minus4 = 13;
     expect(!parses(options), "H265 POC log2 value above the standard limit must fail");
+
+    options = H265SpsOptions();
+    options.log2_min_luma_coding_block_size_minus3 = 1;
+    expect(parses(options), "H265 minimum coding-block log2 value adjacent to the lower bound should parse");
+    options.log2_min_luma_coding_block_size_minus3 = 3;
+    expect(parses(options), "H265 minimum coding-block log2 upper bound should parse");
+    options.log2_min_luma_coding_block_size_minus3 = 4;
+    expect(!parses(options), "H265 minimum coding-block log2 value above the standard limit must fail");
+
+    options = H265SpsOptions();
+    options.log2_diff_max_min_luma_coding_block_size = 1;
+    expect(parses(options), "H265 coding-block log2 difference adjacent to the lower bound should parse");
+    options.log2_diff_max_min_luma_coding_block_size = 3;
+    expect(parses(options), "H265 coding-block log2 difference upper bound should parse");
+    options.log2_diff_max_min_luma_coding_block_size = 4;
+    expect(!parses(options), "H265 coding-block log2 difference above the standard limit must fail");
+
+    options = H265SpsOptions();
+    options.log2_min_luma_coding_block_size_minus3 = 1;
+    options.log2_diff_max_min_luma_coding_block_size = 1;
+    options.extension_3d = true;
+    options.ivmc_sub_pb_size_minus3 = 1;
+    options.texmc_sub_pb_size_minus3 = 1;
+    expect(parses(options), "H265 3D sub-block sizes at their derived lower bound should parse");
+    options.ivmc_sub_pb_size_minus3 = 2;
+    options.texmc_sub_pb_size_minus3 = 2;
+    expect(parses(options), "H265 3D sub-block sizes at their derived upper bound should parse");
+    options.ivmc_sub_pb_size_minus3 = 0;
+    expect(!parses(options), "H265 3D sub-block size below its derived lower bound must fail");
+    options.ivmc_sub_pb_size_minus3 = 1;
+    options.texmc_sub_pb_size_minus3 = 3;
+    expect(!parses(options), "H265 3D sub-block size above its derived upper bound must fail");
+
+    options = H265SpsOptions();
+    options.scc_extension = true;
+    options.palette_mode = true;
+    options.palette_max_size = 64;
+    options.delta_palette_max_predictor_size = 64;
+    options.palette_initializers = true;
+    options.palette_initializer_count_minus1 = 127;
+    options.motion_vector_resolution_control_idc = 2;
+    expect(parses(options), "H265 SCC palette and initializer upper bounds should parse");
+    options.palette_max_size = 65;
+    expect(!parses(options), "H265 SCC palette size above the profile limit must fail");
+    options.palette_max_size = 64;
+    options.delta_palette_max_predictor_size = 65;
+    expect(!parses(options), "H265 SCC derived predictor size above the profile limit must fail");
+    options.delta_palette_max_predictor_size = 64;
+    options.palette_initializer_count_minus1 = 128;
+    expect(!parses(options), "H265 SCC initializer count above the standard storage limit must fail");
+    options.palette_initializer_count_minus1 = 127;
+    options.motion_vector_resolution_control_idc = 3;
+    expect(!parses(options), "reserved H265 motion-vector resolution control must fail");
 
     options = H265SpsOptions();
     options.num_short_term_ref_pic_sets = 1;
@@ -921,6 +1172,8 @@ void testTrackParserRetry() {
     h264_track.inputFrame(mediakit::createConfigFrame<mediakit::H264Frame>(makeH264Sps(h264_options), 0, 0));
     h264_track.inputFrame(mediakit::createConfigFrame<mediakit::H264Frame>(string("\x68\x80", 2), 0, 0));
     expect(h264_track.update_count == 1, "H264 track should parse once when its initial configuration becomes ready");
+    h264_track.inputFrame(mediakit::createConfigFrame<mediakit::H264Frame>(string("\x68\x80", 2), 0, 0));
+    expect(h264_track.update_count == 1, "repeated H264 PPS frames must not reparse an unchanged invalid SPS");
     h264_track.inputFrame(mediakit::createConfigFrame<mediakit::H264Frame>(string("\x65\x80", 2), 0, 0));
     expect(h264_track.update_count == 1, "ordinary H264 frames must not retry an unchanged invalid SPS");
     h264_track.inputFrame(mediakit::createConfigFrame<mediakit::H264Frame>(makeH264Sps(H264SpsOptions()), 0, 0));
@@ -934,6 +1187,10 @@ void testTrackParserRetry() {
     h265_track.inputFrame(mediakit::createConfigFrame<mediakit::H265Frame>(makeH265Sps(h265_options), 0, 0));
     h265_track.inputFrame(mediakit::createConfigFrame<mediakit::H265Frame>(string("\x44\x01\x80", 3), 0, 0));
     expect(h265_track.update_count == 1, "H265 track should parse once when its initial configuration becomes ready");
+    h265_track.inputFrame(mediakit::createConfigFrame<mediakit::H265Frame>(string("\x44\x01\x80", 3), 0, 0));
+    expect(h265_track.update_count == 1, "repeated H265 PPS frames must not reparse an unchanged invalid SPS");
+    h265_track.inputFrame(mediakit::createConfigFrame<mediakit::H265Frame>(makeH265VpsWithLayerSets(0), 0, 0));
+    expect(h265_track.update_count == 1, "repeated H265 VPS frames must not reparse an unchanged invalid SPS");
     h265_track.inputFrame(mediakit::createConfigFrame<mediakit::H265Frame>(string("\x26\x01\x80", 3), 0, 0));
     expect(h265_track.update_count == 1, "ordinary H265 frames must not retry an unchanged invalid SPS");
     h265_track.inputFrame(mediakit::createConfigFrame<mediakit::H265Frame>(makeH265Sps(H265SpsOptions()), 0, 0));

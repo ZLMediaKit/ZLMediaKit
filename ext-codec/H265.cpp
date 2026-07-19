@@ -239,6 +239,63 @@ static void skip_h265_hrd_parameters(H265BS &bs, bool common_info_present,
     }
 }
 
+static void skip_h265_sps_3d_extension(H265BS &bs, uint32_t min_cb_log2_size_y,
+                                       uint32_t ctb_log2_size_y) {
+    for (uint32_t d = 0; d <= 1; ++d) {
+        bs.skip_bits(2); // iv_di_mc_enabled_flag + iv_mv_scal_enabled_flag
+        uint32_t sub_pb_size_minus3;
+        if (d == 0) {
+            sub_pb_size_minus3 = bs.read_ue(); // log2_ivmc_sub_pb_size_minus3
+            bs.skip_bits(4); // iv_res_pred/depth_ref/vsp_mc/dbbp flags
+        } else {
+            bs.skip_bits(1); // tex_mc_enabled_flag
+            sub_pb_size_minus3 = bs.read_ue(); // log2_texmc_sub_pb_size_minus3
+            bs.skip_bits(5); // intra_contour/intra_dc_only_wedge/cqt/inter_dc_only/skip_intra flags
+        }
+        // 3D 子块尺寸必须位于当前 SPS 派生的编码块范围内；先解析并校验，才能区分字段中的 1 与真正的 RBSP 停止位。
+        // 3D sub-block sizes must stay within the coding-block range derived by this SPS; parsing and validating them distinguishes field bits from the real RBSP stop bit.
+        if (sub_pb_size_minus3 < min_cb_log2_size_y - 3 || sub_pb_size_minus3 > ctb_log2_size_y - 3) {
+            throw std::runtime_error("invalid h265 3d sub-block size");
+        }
+    }
+}
+
+static void skip_h265_sps_scc_extension(H265BS &bs, uint32_t chroma_format_idc,
+                                        uint32_t bit_depth_luma, uint32_t bit_depth_chroma) {
+    bs.skip_bits(1); // sps_curr_pic_ref_enabled_flag
+    if (bs.read_bits(1)) { // palette_mode_enabled_flag
+        uint32_t palette_max_size = bs.read_ue();
+        uint32_t delta_palette_max_predictor_size = bs.read_ue();
+        // SCC 配置最多定义 64 个调色板项和 128 个预测项；限制派生总量，避免不可信计数放大初始化器循环。
+        // SCC profiles define at most 64 palette entries and 128 predictor entries; cap the derived total before untrusted counts amplify initializer loops.
+        uint64_t palette_max_predictor_size =
+            (uint64_t)palette_max_size + delta_palette_max_predictor_size;
+        if (palette_max_size > 64 || delta_palette_max_predictor_size > 128 ||
+            palette_max_predictor_size > 128 || (palette_max_size == 0 && delta_palette_max_predictor_size != 0)) {
+            throw std::runtime_error("invalid h265 palette size");
+        }
+        if (bs.read_bits(1)) { // sps_palette_predictor_initializers_present_flag
+            uint32_t initializer_count_minus1 = bs.read_ue();
+            uint64_t initializer_count = (uint64_t)initializer_count_minus1 + 1;
+            if (initializer_count > 128 || initializer_count > palette_max_predictor_size) {
+                throw std::runtime_error("invalid h265 palette initializer count");
+            }
+            uint32_t component_count = chroma_format_idc == 0 ? 1 : 3;
+            for (uint32_t component = 0; component < component_count; ++component) {
+                uint32_t bit_depth = component == 0 ? bit_depth_luma : bit_depth_chroma;
+                for (uint32_t i = 0; i < initializer_count; ++i) {
+                    bs.skip_bits((int)bit_depth); // sps_palette_predictor_initializer
+                }
+            }
+        }
+    }
+    uint32_t motion_vector_resolution_control_idc = bs.read_bits(2);
+    if (motion_vector_resolution_control_idc == 3) {
+        throw std::runtime_error("reserved h265 motion-vector resolution control");
+    }
+    bs.skip_bits(1); // intra_boundary_filtering_disabled_flag
+}
+
 } // anonymous namespace
 
 // ---- H265 VPS 解析（只提取帧率用的 timing info） ----
@@ -409,8 +466,16 @@ static bool parse_hevc_sps(const uint8_t *data, size_t size,
         for (uint32_t i = start; i <= sps_max_sub_layers_minus1; i++) {
             bs.read_ue(); bs.read_ue(); bs.read_ue();
         }
-        bs.read_ue(); // log2_min_luma_coding_block_size_minus3
-        bs.read_ue(); // log2_diff_max_min_luma_coding_block_size
+        uint32_t log2_min_luma_coding_block_size_minus3 = bs.read_ue();
+        uint32_t log2_diff_max_min_luma_coding_block_size = bs.read_ue();
+        // 两个字段各自仅允许 0..3；校验后再派生编码块范围，避免恶意 ue(v) 参与加法并污染 3D 扩展边界。
+        // Both fields are limited to 0..3; validate before deriving the coding-block range so hostile ue(v) values cannot enter addition or 3D-extension bounds.
+        if (log2_min_luma_coding_block_size_minus3 > 3 ||
+            log2_diff_max_min_luma_coding_block_size > 3) {
+            return false;
+        }
+        uint32_t min_cb_log2_size_y = log2_min_luma_coding_block_size_minus3 + 3;
+        uint32_t ctb_log2_size_y = min_cb_log2_size_y + log2_diff_max_min_luma_coding_block_size;
         bs.read_ue(); // log2_min_luma_transform_block_size_minus2
         bs.read_ue(); // log2_diff_max_min_luma_transform_block_size
         bs.read_ue(); // max_transform_hierarchy_depth_inter
@@ -543,9 +608,19 @@ static bool parse_hevc_sps(const uint8_t *data, size_t size,
             if (range_extension) {
                 bs.skip_bits(9); // sps_range_extension flags
             }
-            if (multilayer_extension || extension_3d || scc_extension || extension_4bits) {
-                // 宽高/帧率不依赖这些扩展。将其作为有界 extension_data_flag 消费到停止位，避免复制完整解码器的复杂状态机。
-                // Dimensions/timing do not depend on these extensions. Consume them as bounded extension_data_flag up to the stop bit instead of duplicating a decoder state machine.
+            if (multilayer_extension) {
+                bs.skip_bits(1); // inter_view_mv_vert_constraint_flag
+            }
+            if (extension_3d) {
+                skip_h265_sps_3d_extension(bs, min_cb_log2_size_y, ctb_log2_size_y);
+            }
+            if (scc_extension) {
+                skip_h265_sps_scc_extension(bs, chroma_format_idc,
+                                            bit_depth_luma_minus8 + 8, bit_depth_chroma_minus8 + 8);
+            }
+            if (extension_4bits) {
+                // 只有 sps_extension_4bits 对应的未来语法才是无结构 extension_data_flag；已标准化扩展必须逐字段消费，否则截断字段中的最后一个 1 会被误认成停止位。
+                // Only future syntax selected by sps_extension_4bits is unstructured extension_data_flag; standardized extensions must be consumed field by field or a final one-bit field in truncated data can masquerade as the stop bit.
                 bs.skip_extension_data();
             }
         }
@@ -636,6 +711,7 @@ bool H265Track::inputFrame(const Frame::Ptr &frame) {
 
 bool H265Track::inputFrame_l(const Frame::Ptr &frame) {
     int type = H265_TYPE(frame->data()[frame->prefixSize()]);
+    bool was_ready = ready();
     bool ret = true;
     switch (type) {
         case H265Frame::NAL_VPS: {
@@ -668,10 +744,10 @@ bool H265Track::inputFrame_l(const Frame::Ptr &frame) {
             break;
         }
     }
-    // VPS/SPS/PPS 更新后重试可覆盖任意到达顺序和无效 SPS 替换；普通媒体帧未改变配置，不应重复解析失败参数集。
-    // Retry after VPS/SPS/PPS updates for any arrival order and invalid-SPS replacement; ordinary media frames do not change configuration.
-    if (_width == 0 && ready() &&
-        (type == H265Frame::NAL_VPS || type == H265Frame::NAL_SPS || type == H265Frame::NAL_PPS)) {
+    // 仅当 SPS 改变或本帧首次补齐配置时重试：宽高解析失败后，重复 VPS/PPS 无法改变 SPS 结果，只会在媒体线程重复做无效工作。
+    // Retry only when the SPS changes or this frame first completes configuration: after dimension parsing fails, repeated VPS/PPS cannot change the SPS result and only repeat work on the media thread.
+    bool configuration_became_ready = !was_ready && ready();
+    if (_width == 0 && ready() && (type == H265Frame::NAL_SPS || configuration_became_ready)) {
         update();
     }
     return ret;
