@@ -23,6 +23,7 @@
 
 #include <vector>
 #include <stdexcept>
+#include <climits>
 
 using namespace std;
 using namespace toolkit;
@@ -80,9 +81,20 @@ struct BitStream {
 
     uint32_t read_ue() { // Exp-Golomb unsigned
         int zeros = 0;
-        while (!eof() && read_bits(1) == 0) zeros++;
+        // Exp-Golomb 编码必须包含值为 1 的停止位；此前在停止位前遇到 EOF 会被误判为数值 0，并可能驱动后续循环空转。
+        // Exp-Golomb codes require a one-bit terminator; treating EOF before it as zero could feed bogus counts into later loops.
+        while (true) {
+            if (eof()) {
+                throw std::runtime_error("eof before exp-golomb stop bit");
+            }
+            if (read_bits(1) != 0) {
+                break;
+            }
+            if (++zeros >= 32) {
+                throw std::runtime_error("exp-golomb overflow");
+            }
+        }
         if (zeros == 0) return 0;
-        if (zeros >= 32) throw std::runtime_error("exp-golomb overflow");
         return (1u << zeros) - 1 + read_bits(zeros);
     }
 
@@ -97,12 +109,17 @@ struct BitStream {
 // ---- H264 SPS 解析 ----
 static bool getAVCInfo(const char *sps_raw, size_t sps_len, int &iVideoWidth, int &iVideoHeight, float &iVideoFps) {
     if (sps_len < 4) return false;
-    // sps_raw[0] 是 NAL header，从第 1 字节开始是 RBSP
-    auto rbsp = rbsp_from_nalu((const uint8_t *)sps_raw + 1, sps_len - 1);
-    if (rbsp.size() < 3) return false;
-
     try {
+        // RBSP 分配也可能因恶意超大 NALU 抛出异常；将其纳入保护范围，才能维持本接口只返回 false 的失败语义。
+        // RBSP allocation can throw for a maliciously large NALU; keep it inside the guard so this boolean API fails with false.
+        // sps_raw[0] 是 NAL header，从第 1 字节开始是 RBSP
+        auto rbsp = rbsp_from_nalu((const uint8_t *)sps_raw + 1, sps_len - 1);
+        if (rbsp.size() < 3) return false;
+
         BitStream bs(rbsp.data(), rbsp.size());
+        int parsed_width = 0;
+        int parsed_height = 0;
+        float parsed_fps = 0.0f;
 
         uint8_t profile_idc = (uint8_t)bs.read_bits(8); // profile_idc
         bs.skip_bits(8); // constraint flags + reserved
@@ -110,9 +127,12 @@ static bool getAVCInfo(const char *sps_raw, size_t sps_len, int &iVideoWidth, in
         bs.read_ue();    // seq_parameter_set_id
 
         uint32_t chroma_format_idc = 1;
+        // profile 138 和 144 也使用高阶 SPS 语法；漏掉它们会从错误的位偏移继续解析并产生虚假宽高。
+        // Profiles 138 and 144 also use the extended SPS syntax; omitting them misaligns all following fields and yields false dimensions.
         if (profile_idc == 100 || profile_idc == 110 || profile_idc == 122 ||
             profile_idc == 244 || profile_idc == 44  || profile_idc == 83  ||
-            profile_idc == 86  || profile_idc == 118 || profile_idc == 128) {
+            profile_idc == 86  || profile_idc == 118 || profile_idc == 128 ||
+            profile_idc == 138 || profile_idc == 144) {
             chroma_format_idc = bs.read_ue();
             if (chroma_format_idc > 3) {
                 return false;
@@ -128,7 +148,15 @@ static bool getAVCInfo(const char *sps_raw, size_t sps_len, int &iVideoWidth, in
                         int sz = (i < 6) ? 16 : 64;
                         int last = 8, next = 8;
                         for (int j = 0; j < sz; j++) {
-                            if (next != 0) next = (last + bs.read_se() + 256) % 256;
+                            if (next != 0) {
+                                // delta_scale 来自不可信位流，直接用 int 相加可能触发有符号溢出；宽类型和规范化取模可保持标准语义。
+                                // delta_scale is untrusted and may overflow int addition; wide arithmetic plus normalized modulo preserves the SPS rule.
+                                int64_t value = (int64_t)last + bs.read_se() + 256;
+                                next = (int)(value % 256);
+                                if (next < 0) {
+                                    next += 256;
+                                }
+                            }
                             last = (next == 0) ? last : next;
                         }
                     }
@@ -145,7 +173,16 @@ static bool getAVCInfo(const char *sps_raw, size_t sps_len, int &iVideoWidth, in
             bs.read_se();    // offset_for_non_ref_pic
             bs.read_se();    // offset_for_top_to_bottom_field
             uint32_t n = bs.read_ue();
+            // 标准只允许最多 255 个 offset；先校验再循环，避免恶意计数长时间占用媒体输入线程。
+            // The standard allows at most 255 offsets; validate before looping so a hostile count cannot monopolize the media input thread.
+            if (n > 255) {
+                return false;
+            }
             for (uint32_t i = 0; i < n; i++) bs.read_se();
+        } else if (pic_order_cnt_type != 2) {
+            // 仅 0、1、2 是有效 POC 类型；继续解析未知类型会使后续字段错位并可能接受伪造尺寸。
+            // Only POC types 0, 1, and 2 are valid; continuing with another value misaligns later fields and may accept forged dimensions.
+            return false;
         }
         bs.read_ue(); // max_num_ref_frames
         bs.skip_bits(1); // gaps_in_frame_num_value_allowed_flag
@@ -179,10 +216,16 @@ static bool getAVCInfo(const char *sps_raw, size_t sps_len, int &iVideoWidth, in
         uint64_t crop_w = ((uint64_t)crop_left + crop_right) * crop_unit_x;
         uint64_t crop_h = ((uint64_t)crop_top  + crop_bottom) * crop_unit_y;
         if (crop_w >= raw_width || crop_h >= raw_height) return false;
-        iVideoWidth  = (int)(raw_width  - crop_w);
-        iVideoHeight = (int)(raw_height - crop_h);
+        uint64_t display_width = raw_width - crop_w;
+        uint64_t display_height = raw_height - crop_h;
+        // 输出接口使用 int；转换前限制范围，避免恶意尺寸触发实现定义的窄化并污染下游元数据。
+        // The output API uses int; range-check before narrowing so hostile dimensions cannot produce implementation-defined metadata.
+        if (display_width > INT_MAX || display_height > INT_MAX) {
+            return false;
+        }
+        parsed_width = (int)display_width;
+        parsed_height = (int)display_height;
 
-        iVideoFps = 0.0f;
         if (bs.read_bits(1)) { // vui_parameters_present_flag
             if (bs.read_bits(1)) { // aspect_ratio_info_present_flag
                 uint32_t ar = bs.read_bits(8);
@@ -201,13 +244,21 @@ static bool getAVCInfo(const char *sps_raw, size_t sps_len, int &iVideoWidth, in
                 uint32_t time_scale        = bs.read_bits(32);
                 bs.skip_bits(1); // fixed_frame_rate_flag
                 if (num_units_in_tick > 0) {
-                    iVideoFps = (float)time_scale / (2.0f * (float)num_units_in_tick);
+                    parsed_fps = (float)time_scale / (2.0f * (float)num_units_in_tick);
                 }
             }
         }
-        return iVideoWidth > 0 && iVideoHeight > 0;
+        if (parsed_width <= 0 || parsed_height <= 0) {
+            return false;
+        }
+        // 解析完成前不写回结果，防止截断 SPS 或异常把部分宽高当作成功结果发布。
+        // Commit outputs only after the parse completes so truncated SPS data cannot publish partial dimensions as a success.
+        iVideoWidth = parsed_width;
+        iVideoHeight = parsed_height;
+        iVideoFps = parsed_fps;
+        return true;
     } catch (...) {
-        return iVideoWidth > 0 && iVideoHeight > 0;
+        return false;
     }
 }
 
