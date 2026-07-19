@@ -33,6 +33,10 @@ namespace mediakit {
 // ---- 内部比特流工具 ----
 namespace {
 
+// SPS 的标准语法规模远小于 1 MiB；在复制并去除防竞争字节前设置宽松硬上限，避免单个恶意 NALU 触发同等规模的第二次分配。
+// Standard SPS syntax is far smaller than 1 MiB; a generous pre-copy cap prevents one hostile NALU from forcing a second allocation of the same scale.
+static constexpr size_t kMaxParameterSetSize = 1024 * 1024;
+
 // 去除 RBSP 防竞争字节 (0x00 0x00 0x03 -> 0x00 0x00)
 static std::vector<uint8_t> rbsp_from_nalu(const uint8_t *data, size_t size) {
     std::vector<uint8_t> out;
@@ -104,13 +108,56 @@ struct BitStream {
         uint32_t v = read_ue();
         return (v & 1) ? (int32_t)((v + 1) >> 1) : -(int32_t)(v >> 1);
     }
+
+    void read_rbsp_trailing_bits() {
+        // 参数集只有在 rbsp_stop_one_bit 及其对齐零位完整存在时才算解析完成；否则“已得到宽高”的截断 SPS 仍会被误报成功。
+        // A parameter set is complete only with its stop bit and alignment zeroes; otherwise a truncated SPS with dimensions already decoded looks valid.
+        if (read_bits(1) != 1) {
+            throw std::runtime_error("invalid rbsp stop bit");
+        }
+        while (pos & 7) {
+            if (read_bits(1) != 0) {
+                throw std::runtime_error("invalid rbsp alignment bit");
+            }
+        }
+        // 兼容项目既有输入中保留在 SPS 末尾的 trailing_zero_8bits 和终止起始码，但不接受其他非零尾部数据。
+        // Preserve compatibility with trailing_zero_8bits and a terminal Annex-B start code already present in project inputs, but reject other non-zero tails.
+        size_t zero_bytes = 0;
+        while (!eof()) {
+            uint32_t byte = read_bits(8);
+            if (byte == 0) {
+                ++zero_bytes;
+                continue;
+            }
+            if (byte == 1 && zero_bytes >= 2 && eof()) {
+                return;
+            }
+            throw std::runtime_error("invalid data after rbsp trailing bits");
+        }
+    }
 };
+
+static void skip_h264_hrd_parameters(BitStream &bs) {
+    uint32_t cpb_cnt_minus1 = bs.read_ue();
+    // cpb_cnt_minus1 的标准上限为 31；循环前校验，防止恶意计数放大媒体输入线程的工作量。
+    // cpb_cnt_minus1 is limited to 31; validate before looping so a hostile count cannot amplify media-input-thread work.
+    if (cpb_cnt_minus1 > 31) {
+        throw std::runtime_error("invalid h264 cpb count");
+    }
+    bs.skip_bits(8); // bit_rate_scale + cpb_size_scale
+    for (uint32_t i = 0; i <= cpb_cnt_minus1; ++i) {
+        bs.read_ue(); // bit_rate_value_minus1
+        bs.read_ue(); // cpb_size_value_minus1
+        bs.skip_bits(1); // cbr_flag
+    }
+    bs.skip_bits(20); // initial/cpb/dpb delay lengths + time_offset_length
+}
 
 } // anonymous namespace
 
 // ---- H264 SPS 解析 ----
 static bool getAVCInfo(const char *sps_raw, size_t sps_len, int &iVideoWidth, int &iVideoHeight, float &iVideoFps) {
-    if (sps_len < 4) return false;
+    if (sps_len < 4 || sps_len > kMaxParameterSetSize) return false;
     try {
         // RBSP 分配也可能因恶意超大 NALU 抛出异常；将其纳入保护范围，才能维持本接口只返回 false 的失败语义。
         // RBSP allocation can throw for a maliciously large NALU; keep it inside the guard so this boolean API fails with false.
@@ -277,7 +324,29 @@ static bool getAVCInfo(const char *sps_raw, size_t sps_len, int &iVideoWidth, in
                     parsed_fps = (float)time_scale / (2.0f * (float)num_units_in_tick);
                 }
             }
+            bool nal_hrd_parameters_present = bs.read_bits(1) != 0;
+            if (nal_hrd_parameters_present) {
+                skip_h264_hrd_parameters(bs);
+            }
+            bool vcl_hrd_parameters_present = bs.read_bits(1) != 0;
+            if (vcl_hrd_parameters_present) {
+                skip_h264_hrd_parameters(bs);
+            }
+            if (nal_hrd_parameters_present || vcl_hrd_parameters_present) {
+                bs.skip_bits(1); // low_delay_hrd_flag
+            }
+            bs.skip_bits(1); // pic_struct_present_flag
+            if (bs.read_bits(1)) { // bitstream_restriction_flag
+                bs.skip_bits(1); // motion_vectors_over_pic_boundaries_flag
+                bs.read_ue(); // max_bytes_per_pic_denom
+                bs.read_ue(); // max_bits_per_mb_denom
+                bs.read_ue(); // log2_max_mv_length_horizontal
+                bs.read_ue(); // log2_max_mv_length_vertical
+                bs.read_ue(); // max_num_reorder_frames
+                bs.read_ue(); // max_dec_frame_buffering
+            }
         }
+        bs.read_rbsp_trailing_bits();
         if (parsed_width <= 0 || parsed_height <= 0) {
             return false;
         }
@@ -547,11 +616,9 @@ bool H264Track::inputFrame_l(const Frame::Ptr &frame) {
             break;
     }
 
-    // 无效 SPS 会使 _width 持续为 0，并让当前条件在后续每帧重复解析。失败缓存与重试时机属于 Track 配置生命周期，
-    // 超出本次 SPS 解析器加固的边界；为保持 PR 职责清晰，应在独立 PR 中统一处理。
-    // A malformed SPS keeps _width at zero and makes this condition reparse it on every later frame. Failure caching and retry timing belong
-    // to the Track configuration lifecycle, outside this parser-hardening scope, and should be handled consistently in a separate PR.
-    if (_width == 0 && ready()) {
+    // SPS/PPS 更新后需要重试以支持先到 PPS、后到 SPS 及替换无效 SPS；普通媒体帧不改变配置，不应反复解析同一份失败输入。
+    // Retry after SPS/PPS updates to support either arrival order and invalid-SPS replacement; ordinary media frames do not change configuration.
+    if (_width == 0 && ready() && (type == H264Frame::NAL_SPS || type == H264Frame::NAL_PPS)) {
         update();
     }
     return ret;

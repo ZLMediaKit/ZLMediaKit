@@ -31,6 +31,10 @@ namespace mediakit {
 // ---- 内部比特流工具（H265） ----
 namespace {
 
+// VPS/SPS 的实际语法规模远小于 1 MiB；在复制 RBSP 前设置宽松上限，防止恶意参数集制造同等规模的额外分配。
+// Practical VPS/SPS syntax is far smaller than 1 MiB; a generous pre-copy cap prevents hostile parameter sets from forcing an equal-sized allocation.
+static constexpr size_t kMaxParameterSetSize = 1024 * 1024;
+
 static std::vector<uint8_t> h265_rbsp_from_nalu(const uint8_t *data, size_t size) {
     std::vector<uint8_t> out;
     out.reserve(size);
@@ -94,6 +98,58 @@ struct H265BS {
         uint32_t v = read_ue();
         return (v & 1) ? (int32_t)((v + 1) >> 1) : -(int32_t)(v >> 1);
     }
+
+    size_t rbsp_stop_bit_position() const {
+        size_t rbsp_end = size * 8;
+        // 项目既有输入偶尔在参数集末尾保留 Annex-B 起始码；判断扩展数据时先排除该终止分隔符。
+        // Existing project inputs occasionally retain a terminal Annex-B start code; exclude that delimiter when locating extension data.
+        if (size >= 3 && buf[size - 3] == 0 && buf[size - 2] == 0 && buf[size - 1] == 1) {
+            rbsp_end -= 24;
+        }
+        if (pos >= rbsp_end) {
+            throw std::runtime_error("missing rbsp stop bit");
+        }
+        // 从尾部一次定位停止位，避免逐位调用 more_rbsp_data() 导致长扩展数据退化为 O(n²)。
+        // Locate the stop bit once from the end so long extension data cannot turn repeated more_rbsp_data() scans into O(n²).
+        for (size_t i = rbsp_end; i-- > pos;) {
+            if ((buf[i / 8] >> (7 - i % 8)) & 1) {
+                return i;
+            }
+        }
+        throw std::runtime_error("missing rbsp stop bit");
+    }
+
+    void skip_extension_data() {
+        pos = rbsp_stop_bit_position();
+    }
+
+    void read_rbsp_trailing_bits() {
+        // 必须读到 rbsp_stop_one_bit 和对齐零位，防止仅解析出宽高便把截断的 VPS/SPS 当作完整参数集。
+        // Require the stop bit and alignment zeroes so a VPS/SPS truncated after dimensions cannot be mistaken for a complete parameter set.
+        if (read_bits(1) != 1) {
+            throw std::runtime_error("invalid rbsp stop bit");
+        }
+        while (pos & 7) {
+            if (read_bits(1) != 0) {
+                throw std::runtime_error("invalid rbsp alignment bit");
+            }
+        }
+        // 兼容 trailing_zero_8bits 与末尾 Annex-B 起始码，但拒绝其他未解析的非零尾部数据。
+        // Accept trailing_zero_8bits and a terminal Annex-B start code for compatibility, while rejecting other unparsed non-zero tails.
+        size_t zero_bytes = 0;
+        while (!eof()) {
+            uint32_t byte = read_bits(8);
+            if (byte == 0) {
+                ++zero_bytes;
+                continue;
+            }
+            if (byte == 1 && zero_bytes >= 2 && eof()) {
+                return;
+            }
+            throw std::runtime_error("invalid data after rbsp trailing bits");
+        }
+    }
+
     // profile_tier_level(profilePresentFlag, maxNumSubLayersMinus1)
     void skip_profile_tier_level(bool profilePresentFlag, uint32_t maxNumSubLayersMinus1) {
         if (profilePresentFlag) {
@@ -121,17 +177,80 @@ struct H265BS {
     }
 };
 
+struct H265HrdState {
+    bool nal_parameters_present = false;
+    bool vcl_parameters_present = false;
+    bool sub_pic_parameters_present = false;
+};
+
+static void skip_h265_sub_layer_hrd_parameters(H265BS &bs, uint32_t cpb_cnt_minus1,
+                                                bool sub_pic_parameters_present) {
+    for (uint32_t i = 0; i <= cpb_cnt_minus1; ++i) {
+        bs.read_ue(); // bit_rate_value_minus1
+        bs.read_ue(); // cpb_size_value_minus1
+        if (sub_pic_parameters_present) {
+            bs.read_ue(); // cpb_size_du_value_minus1
+            bs.read_ue(); // bit_rate_du_value_minus1
+        }
+        bs.skip_bits(1); // cbr_flag
+    }
+}
+
+static void skip_h265_hrd_parameters(H265BS &bs, bool common_info_present,
+                                     uint32_t max_sub_layers_minus1, H265HrdState &state) {
+    if (common_info_present) {
+        state.nal_parameters_present = bs.read_bits(1) != 0;
+        state.vcl_parameters_present = bs.read_bits(1) != 0;
+        state.sub_pic_parameters_present = false;
+        if (state.nal_parameters_present || state.vcl_parameters_present) {
+            state.sub_pic_parameters_present = bs.read_bits(1) != 0;
+            if (state.sub_pic_parameters_present) {
+                bs.skip_bits(8 + 5 + 1 + 5); // sub-picture HRD lengths and flags
+            }
+            bs.skip_bits(8); // bit_rate_scale + cpb_size_scale
+            if (state.sub_pic_parameters_present) {
+                bs.skip_bits(4); // cpb_size_du_scale
+            }
+            bs.skip_bits(15); // initial/au/dpb delay lengths
+        }
+    }
+
+    for (uint32_t i = 0; i <= max_sub_layers_minus1; ++i) {
+        bool fixed_pic_rate_general = bs.read_bits(1) != 0;
+        bool fixed_pic_rate_within_cvs = fixed_pic_rate_general || bs.read_bits(1) != 0;
+        bool low_delay_hrd = false;
+        if (fixed_pic_rate_within_cvs) {
+            bs.read_ue(); // elemental_duration_in_tc_minus1
+        } else {
+            low_delay_hrd = bs.read_bits(1) != 0;
+        }
+        uint32_t cpb_cnt_minus1 = low_delay_hrd ? 0 : bs.read_ue();
+        // HEVC 每个子层最多定义 32 个 CPB；先校验计数，避免 HRD 循环被恶意 ue(v) 无界放大。
+        // HEVC defines at most 32 CPBs per sub-layer; validate the count before an untrusted ue(v) can amplify HRD loops.
+        if (cpb_cnt_minus1 > 31) {
+            throw std::runtime_error("invalid h265 cpb count");
+        }
+        if (state.nal_parameters_present) {
+            skip_h265_sub_layer_hrd_parameters(bs, cpb_cnt_minus1, state.sub_pic_parameters_present);
+        }
+        if (state.vcl_parameters_present) {
+            skip_h265_sub_layer_hrd_parameters(bs, cpb_cnt_minus1, state.sub_pic_parameters_present);
+        }
+    }
+}
+
 } // anonymous namespace
 
 // ---- H265 VPS 解析（只提取帧率用的 timing info） ----
 static bool parse_hevc_vps_fps(const uint8_t *data, size_t size, float &fps) {
     // data 为 NALU 原始数据（含 NAL header）
-    if (size < 3) return false;
+    if (size < 3 || size > kMaxParameterSetSize) return false;
     try {
         // RBSP 分配必须处于异常保护内，避免超大恶意 VPS 让 bad_alloc 逃出布尔解析接口。
         // Keep RBSP allocation inside the guard so a huge hostile VPS cannot leak bad_alloc through the boolean parser API.
         auto rbsp = h265_rbsp_from_nalu(data, size);
         H265BS bs(rbsp.data(), rbsp.size());
+        float parsed_fps = fps;
         // NALU header: forbidden_zero_bit(1) + nal_unit_type(6) + nuh_layer_id(6) + nuh_temporal_id_plus1(3)
         bs.skip_bits(16);
         // vps_video_parameter_set_id(4) + vps_reserved_three_2bits(2) + vps_max_layers_minus1(6)
@@ -172,9 +291,36 @@ static bool parse_hevc_vps_fps(const uint8_t *data, size_t size, float &fps) {
             uint32_t vps_num_units_in_tick = bs.read_bits(32);
             uint32_t vps_time_scale        = bs.read_bits(32);
             if (vps_num_units_in_tick > 0) {
-                fps = (float)vps_time_scale / (float)vps_num_units_in_tick;
+                parsed_fps = (float)vps_time_scale / (float)vps_num_units_in_tick;
+            }
+            if (bs.read_bits(1)) { // vps_poc_proportional_to_timing_flag
+                bs.read_ue(); // vps_num_ticks_poc_diff_one_minus1
+            }
+            uint32_t vps_num_hrd_parameters = bs.read_ue();
+            // 每个 HRD 条目必须引用已声明的 layer set；上限校验同时约束后续嵌套子层/CPB 循环。
+            // Every HRD entry must reference a declared layer set; this limit also bounds the following nested sub-layer/CPB loops.
+            if ((uint64_t)vps_num_hrd_parameters > (uint64_t)vps_num_layer_sets_minus1 + 1) {
+                return false;
+            }
+            H265HrdState hrd_state;
+            for (uint32_t i = 0; i < vps_num_hrd_parameters; ++i) {
+                uint32_t hrd_layer_set_idx = bs.read_ue();
+                if (hrd_layer_set_idx > vps_num_layer_sets_minus1) {
+                    return false;
+                }
+                bool common_info_present = i == 0 || bs.read_bits(1) != 0;
+                skip_h265_hrd_parameters(bs, common_info_present, vps_max_sub_layers_minus1, hrd_state);
             }
         }
+        if (bs.read_bits(1)) { // vps_extension_flag
+            // VPS 扩展不参与帧率提取；按规范消费 extension_data_flag 至停止位，既保持扩展兼容性，也能验证参数集完整结束。
+            // VPS extensions do not affect extracted timing; consume extension_data_flag up to the stop bit to stay compatible and still validate completion.
+            bs.skip_extension_data();
+        }
+        bs.read_rbsp_trailing_bits();
+        // 帧率仅在所有尾部语法与停止位验证后写回，避免截断 VPS 发布部分解析结果。
+        // Publish timing only after all tail syntax and the stop bit validate, so a truncated VPS cannot leak partial output.
+        fps = parsed_fps;
         return true;
     } catch (...) {
         return false;
@@ -184,7 +330,7 @@ static bool parse_hevc_vps_fps(const uint8_t *data, size_t size, float &fps) {
 // ---- H265 SPS 解析（宽高 + 备用帧率） ----
 static bool parse_hevc_sps(const uint8_t *data, size_t size,
                             int &width, int &height, float &fps) {
-    if (size < 3) return false;
+    if (size < 3 || size > kMaxParameterSetSize) return false;
     try {
         // RBSP 分配也属于解析失败路径；纳入异常保护才能保证 malformed input 统一返回 false。
         // RBSP allocation is part of parsing failure; guard it so malformed input consistently returns false.
@@ -371,8 +517,39 @@ static bool parse_hevc_sps(const uint8_t *data, size_t size,
                 if (num_units > 0 && parsed_fps <= 0.0f) {
                     parsed_fps = (float)time_scale / (float)num_units;
                 }
+                if (bs.read_bits(1)) { // vui_poc_proportional_to_timing_flag
+                    bs.read_ue(); // vui_num_ticks_poc_diff_one_minus1
+                }
+                if (bs.read_bits(1)) { // vui_hrd_parameters_present_flag
+                    H265HrdState hrd_state;
+                    skip_h265_hrd_parameters(bs, true, sps_max_sub_layers_minus1, hrd_state);
+                }
+            }
+            if (bs.read_bits(1)) { // bitstream_restriction_flag
+                bs.skip_bits(3); // tiles_fixed_structure/motion_vectors/restricted_ref_pic_lists flags
+                bs.read_ue(); // min_spatial_segmentation_idc
+                bs.read_ue(); // max_bytes_per_pic_denom
+                bs.read_ue(); // max_bits_per_min_cu_denom
+                bs.read_ue(); // log2_max_mv_length_horizontal
+                bs.read_ue(); // log2_max_mv_length_vertical
             }
         }
+        if (bs.read_bits(1)) { // sps_extension_present_flag
+            bool range_extension = bs.read_bits(1) != 0;
+            bool multilayer_extension = bs.read_bits(1) != 0;
+            bool extension_3d = bs.read_bits(1) != 0;
+            bool scc_extension = bs.read_bits(1) != 0;
+            uint32_t extension_4bits = bs.read_bits(4);
+            if (range_extension) {
+                bs.skip_bits(9); // sps_range_extension flags
+            }
+            if (multilayer_extension || extension_3d || scc_extension || extension_4bits) {
+                // 宽高/帧率不依赖这些扩展。将其作为有界 extension_data_flag 消费到停止位，避免复制完整解码器的复杂状态机。
+                // Dimensions/timing do not depend on these extensions. Consume them as bounded extension_data_flag up to the stop bit instead of duplicating a decoder state machine.
+                bs.skip_extension_data();
+            }
+        }
+        bs.read_rbsp_trailing_bits();
         // 完成必需字段解析后再提交结果，避免截断 SPS 发布仅解析了一半的宽高。
         // Commit only after all required fields parse so truncated SPS data cannot publish half-validated dimensions.
         width = parsed_width;
@@ -491,11 +668,10 @@ bool H265Track::inputFrame_l(const Frame::Ptr &frame) {
             break;
         }
     }
-    // 无效 SPS 会使 _width 持续为 0，并让当前条件在后续每帧重复解析。失败缓存与重试时机属于 Track 配置生命周期，
-    // 超出本次 SPS 解析器加固的边界；为保持 PR 职责清晰，应在独立 PR 中统一处理。
-    // A malformed SPS keeps _width at zero and makes this condition reparse it on every later frame. Failure caching and retry timing belong
-    // to the Track configuration lifecycle, outside this parser-hardening scope, and should be handled consistently in a separate PR.
-    if (_width == 0 && ready()) {
+    // VPS/SPS/PPS 更新后重试可覆盖任意到达顺序和无效 SPS 替换；普通媒体帧未改变配置，不应重复解析失败参数集。
+    // Retry after VPS/SPS/PPS updates for any arrival order and invalid-SPS replacement; ordinary media frames do not change configuration.
+    if (_width == 0 && ready() &&
+        (type == H265Frame::NAL_VPS || type == H265Frame::NAL_SPS || type == H265Frame::NAL_PPS)) {
         update();
     }
     return ret;

@@ -16,6 +16,9 @@
 #include <string>
 #include <vector>
 
+#include "ext-codec/H264.h"
+#include "ext-codec/H265.h"
+
 using namespace std;
 
 namespace mediakit {
@@ -76,10 +79,12 @@ public:
         writeUE(encoded);
     }
 
-    vector<uint8_t> finishRbsp() {
-        writeBit(true);
-        while (_bit_pos & 7) {
-            writeBit(false);
+    vector<uint8_t> finishRbsp(bool include_trailing_bits = true) {
+        if (include_trailing_bits) {
+            writeBit(true);
+            while (_bit_pos & 7) {
+                writeBit(false);
+            }
         }
         return _data;
     }
@@ -123,6 +128,9 @@ struct H264SpsOptions {
     uint32_t pic_width_in_mbs_minus1 = 79;
     uint32_t pic_height_in_map_units_minus1 = 44;
     bool frame_mbs_only = true;
+    bool vui_hrd_parameters = false;
+    uint32_t hrd_cpb_cnt_minus1 = 0;
+    bool include_rbsp_trailing_bits = true;
 };
 
 bool usesH264ExtendedSyntax(uint8_t profile) {
@@ -167,8 +175,32 @@ string makeH264Sps(const H264SpsOptions &options) {
     }
     writer.writeBit(true); // direct_8x8_inference_flag
     writer.writeBit(false); // frame_cropping_flag
-    writer.writeBit(false); // vui_parameters_present_flag
-    return makeNalu({ 0x67 }, writer.finishRbsp());
+    writer.writeBit(options.vui_hrd_parameters);
+    if (options.vui_hrd_parameters) {
+        writer.writeBits(0, 4); // aspect_ratio/overscan/video_signal/chroma_loc_info_present_flag
+        writer.writeBit(true); // timing_info_present_flag
+        writer.writeBits(1, 32); // num_units_in_tick
+        writer.writeBits(60, 32); // time_scale
+        writer.writeBit(true); // fixed_frame_rate_flag
+        writer.writeBit(true); // nal_hrd_parameters_present_flag
+        writer.writeUE(options.hrd_cpb_cnt_minus1);
+        writer.writeBits(0, 8); // bit_rate_scale + cpb_size_scale
+        for (uint32_t i = 0; i <= options.hrd_cpb_cnt_minus1; ++i) {
+            writer.writeUE(0); // bit_rate_value_minus1
+            writer.writeUE(0); // cpb_size_value_minus1
+            writer.writeBit(false); // cbr_flag
+        }
+        writer.writeBits(0, 20); // HRD delay lengths + time_offset_length
+        writer.writeBit(false); // vcl_hrd_parameters_present_flag
+        writer.writeBit(false); // low_delay_hrd_flag
+        writer.writeBit(false); // pic_struct_present_flag
+        writer.writeBit(true); // bitstream_restriction_flag
+        writer.writeBit(true); // motion_vectors_over_pic_boundaries_flag
+        for (unsigned i = 0; i < 6; ++i) {
+            writer.writeUE(0);
+        }
+    }
+    return makeNalu({ 0x67 }, writer.finishRbsp(options.include_rbsp_trailing_bits));
 }
 
 string makeH264PocCycleSps(uint32_t cycle_count) {
@@ -240,6 +272,9 @@ struct H265SpsOptions {
     uint32_t first_num_negative_pics = 0;
     uint32_t first_num_positive_pics = 0;
     uint32_t num_long_term_ref_pics = 0;
+    bool vui_hrd_parameters = false;
+    uint32_t hrd_cpb_cnt_minus1 = 0;
+    bool include_rbsp_trailing_bits = true;
 };
 
 void writeH265Prefix(BitWriter &writer, const H265SpsOptions &options) {
@@ -276,9 +311,40 @@ void writeH265Prefix(BitWriter &writer, const H265SpsOptions &options) {
     writer.writeBit(false); // pcm_enabled_flag
 }
 
-void writeH265Tail(BitWriter &writer) {
+void writeH265Tail(BitWriter &writer, const H265SpsOptions &options) {
     writer.writeBits(0, 2); // sps_temporal_mvp_enabled_flag + strong_intra_smoothing_enabled_flag
-    writer.writeBit(false); // vui_parameters_present_flag
+    writer.writeBit(options.vui_hrd_parameters);
+    if (options.vui_hrd_parameters) {
+        writer.writeBits(0, 4); // aspect_ratio/overscan/video_signal/chroma_loc_info_present_flag
+        writer.writeBits(0, 3); // neutral_chroma/field_seq/frame_field_info_present_flag
+        writer.writeBit(false); // default_display_window_flag
+        writer.writeBit(true); // vui_timing_info_present_flag
+        writer.writeBits(1, 32); // vui_num_units_in_tick
+        writer.writeBits(60, 32); // vui_time_scale
+        writer.writeBit(false); // vui_poc_proportional_to_timing_flag
+        writer.writeBit(true); // vui_hrd_parameters_present_flag
+        writer.writeBit(true); // nal_hrd_parameters_present_flag
+        writer.writeBit(false); // vcl_hrd_parameters_present_flag
+        writer.writeBit(false); // sub_pic_hrd_params_present_flag
+        writer.writeBits(0, 8); // bit_rate_scale + cpb_size_scale
+        writer.writeBits(0, 15); // HRD delay lengths
+        for (uint32_t i = 0; i <= options.max_sub_layers_minus1; ++i) {
+            writer.writeBit(true); // fixed_pic_rate_general_flag
+            writer.writeUE(0); // elemental_duration_in_tc_minus1
+            writer.writeUE(options.hrd_cpb_cnt_minus1);
+            for (uint32_t j = 0; j <= options.hrd_cpb_cnt_minus1; ++j) {
+                writer.writeUE(0); // bit_rate_value_minus1
+                writer.writeUE(0); // cpb_size_value_minus1
+                writer.writeBit(false); // cbr_flag
+            }
+        }
+        writer.writeBit(true); // bitstream_restriction_flag
+        writer.writeBits(0, 3); // tiles_fixed/motion_vectors/restricted_ref_pic_lists flags
+        for (unsigned i = 0; i < 5; ++i) {
+            writer.writeUE(0);
+        }
+    }
+    writer.writeBit(false); // sps_extension_present_flag
 }
 
 string makeH265Sps(const H265SpsOptions &options) {
@@ -311,8 +377,8 @@ string makeH265Sps(const H265SpsOptions &options) {
             writer.writeBit(false);
         }
     }
-    writeH265Tail(writer);
-    return makeNalu({ 0x42, 0x01 }, writer.finishRbsp());
+    writeH265Tail(writer, options);
+    return makeNalu({ 0x42, 0x01 }, writer.finishRbsp(options.include_rbsp_trailing_bits));
 }
 
 string makeH265CropSps(uint32_t crop_left) {
@@ -334,7 +400,8 @@ string makeH265LongTermRefSps(uint32_t count) {
     return makeH265Sps(options);
 }
 
-string makeH265VpsWithLayerSets(uint32_t count, uint32_t max_sub_layers_minus1 = 0, uint32_t max_layer_id = 0) {
+string makeH265VpsWithLayerSets(uint32_t count, uint32_t max_sub_layers_minus1 = 0,
+                                uint32_t max_layer_id = 0, bool include_rbsp_trailing_bits = true) {
     BitWriter writer;
     writer.writeBits(0, 4); // vps_video_parameter_set_id
     writer.writeBits(3, 2); // vps_reserved_three_2bits
@@ -357,7 +424,10 @@ string makeH265VpsWithLayerSets(uint32_t count, uint32_t max_sub_layers_minus1 =
     writer.writeBit(true); // vps_timing_info_present_flag
     writer.writeBits(1, 32); // vps_num_units_in_tick
     writer.writeBits(60, 32); // vps_time_scale
-    return makeNalu({ 0x40, 0x01 }, writer.finishRbsp());
+    writer.writeBit(false); // vps_poc_proportional_to_timing_flag
+    writer.writeUE(0); // vps_num_hrd_parameters
+    writer.writeBit(false); // vps_extension_flag
+    return makeNalu({ 0x40, 0x01 }, writer.finishRbsp(include_rbsp_trailing_bits));
 }
 
 const string &validH264Sps() {
@@ -418,12 +488,40 @@ void testH264Basic() {
         fromHex("6742c01ed903c56840000003004000000c03c58b9200000001"),
         validHighProfileH264Sps(),
     };
-    for (const auto &sps : compatibility_samples) {
+    for (size_t i = 0; i < compatibility_samples.size(); ++i) {
+        const auto &sps = compatibility_samples[i];
         width = height = 0;
         fps = 0;
-        expect(mediakit::getAVCInfo(sps, width, height, fps), "existing H264 SDP sample should keep parsing");
+        expect(mediakit::getAVCInfo(sps, width, height, fps),
+               "existing H264 SDP sample should keep parsing: " + to_string(i));
         expect(width > 0 && height > 0, "existing H264 SDP sample should produce positive dimensions");
     }
+
+    H264SpsOptions options;
+    options.vui_hrd_parameters = true;
+    width = height = 0;
+    fps = 0;
+    expect(mediakit::getAVCInfo(makeH264Sps(options), width, height, fps),
+           "complete H264 VUI and HRD syntax should parse");
+    expect(width == 1280 && height == 720 && fps == 30,
+           "H264 VUI timing should remain available after complete tail validation");
+
+    options.include_rbsp_trailing_bits = false;
+    width = 1920;
+    height = 1080;
+    fps = 25;
+    expect(!mediakit::getAVCInfo(makeH264Sps(options), width, height, fps),
+           "H264 SPS without rbsp_trailing_bits must fail");
+    expect(width == 1920 && height == 1080 && fps == 25,
+           "H264 trailing-bit failure must preserve caller outputs");
+
+    options.include_rbsp_trailing_bits = true;
+    options.hrd_cpb_cnt_minus1 = 31;
+    expect(mediakit::getAVCInfo(makeH264Sps(options), width, height, fps),
+           "H264 HRD CPB count upper bound should parse");
+    options.hrd_cpb_cnt_minus1 = 32;
+    expect(!mediakit::getAVCInfo(makeH264Sps(options), width, height, fps),
+           "H264 HRD CPB count above the standard limit must fail");
 }
 
 void testH264Limits() {
@@ -560,6 +658,16 @@ void testH264Limits() {
     expect(!parses(options), "H264 31-bit ue(v) macroblock height must not wrap during plus-one derivation");
     options.pic_height_in_map_units_minus1 = UINT32_MAX;
     expect(!parses(options), "H264 32-bit ue(v) macroblock height must be rejected");
+
+    string oversized_sps = validH264Sps();
+    oversized_sps.resize(1024 * 1024 + 1, '\0');
+    width = 1920;
+    height = 1080;
+    fps = 25;
+    expect(!mediakit::getAVCInfo(oversized_sps, width, height, fps),
+           "oversized H264 parameter sets must be rejected before RBSP allocation");
+    expect(width == 1920 && height == 1080 && fps == 25,
+           "oversized H264 parameter sets must preserve caller outputs");
 }
 
 void testH265() {
@@ -601,6 +709,39 @@ void testH265() {
     expect(mediakit::getHEVCInfo(makeH265VpsWithLayerSets(1024), validH265Sps(), width, height, fps),
            "an invalid VPS must not prevent valid SPS dimensions from being extracted");
     expect(fps == 0, "VPS layer-set count above the standard limit must be rejected before publishing timing");
+
+    H265SpsOptions vui_options;
+    vui_options.vui_hrd_parameters = true;
+    width = height = 0;
+    fps = 0;
+    expect(mediakit::getHEVCInfo("", makeH265Sps(vui_options), width, height, fps),
+           "complete H265 VUI and HRD syntax should parse");
+    expect(width == 1280 && height == 720 && fps == 60,
+           "H265 VUI timing should remain available after complete tail validation");
+
+    vui_options.include_rbsp_trailing_bits = false;
+    width = 1920;
+    height = 1080;
+    fps = 25;
+    expect(!mediakit::getHEVCInfo("", makeH265Sps(vui_options), width, height, fps),
+           "H265 SPS without rbsp_trailing_bits must fail");
+    expect(width == 1920 && height == 1080 && fps == 25,
+           "H265 trailing-bit failure must preserve caller outputs");
+
+    vui_options.include_rbsp_trailing_bits = true;
+    vui_options.hrd_cpb_cnt_minus1 = 31;
+    expect(mediakit::getHEVCInfo("", makeH265Sps(vui_options), width, height, fps),
+           "H265 HRD CPB count upper bound should parse");
+    vui_options.hrd_cpb_cnt_minus1 = 32;
+    expect(!mediakit::getHEVCInfo("", makeH265Sps(vui_options), width, height, fps),
+           "H265 HRD CPB count above the standard limit must fail");
+
+    width = height = 0;
+    fps = 0;
+    expect(mediakit::getHEVCInfo(makeH265VpsWithLayerSets(0, 0, 0, false), makeH265Sps(H265SpsOptions()),
+                                 width, height, fps),
+           "an incomplete VPS must not prevent valid SPS dimensions from being extracted");
+    expect(fps == 0, "VPS timing must not be published before rbsp_trailing_bits validate");
 
     auto parses = [](const H265SpsOptions &options, int *parsed_width = nullptr, int *parsed_height = nullptr) {
         int width = 0;
@@ -733,6 +874,71 @@ void testH265() {
     expect(parses_vps_fps(1024, 0, 0) == 0, "H265 VPS layer-set count above the standard limit must fail");
     expect(parses_vps_fps(0, 7, 0) == 0, "H265 VPS sub-layer count above the standard limit must fail");
     expect(parses_vps_fps(0, 0, 63) == 0, "H265 VPS max-layer id above the standard limit must fail");
+
+    string oversized_sps = validH265Sps();
+    oversized_sps.resize(1024 * 1024 + 1, '\0');
+    width = 1920;
+    height = 1080;
+    fps = 25;
+    expect(!mediakit::getHEVCInfo("", oversized_sps, width, height, fps),
+           "oversized H265 SPS parameter sets must be rejected before RBSP allocation");
+    expect(width == 1920 && height == 1080 && fps == 25,
+           "oversized H265 SPS parameter sets must preserve caller outputs");
+
+    string oversized_vps = validH265Vps();
+    oversized_vps.resize(1024 * 1024 + 1, '\0');
+    width = height = 0;
+    fps = 0;
+    expect(mediakit::getHEVCInfo(oversized_vps, makeH265Sps(H265SpsOptions()), width, height, fps),
+           "an oversized VPS must not prevent valid SPS dimensions from being extracted");
+    expect(fps == 0, "oversized VPS data must not publish timing");
+}
+
+class CountingH264Track : public mediakit::H264Track {
+public:
+    bool update() override {
+        ++update_count;
+        return H264Track::update();
+    }
+
+    unsigned update_count = 0;
+};
+
+class CountingH265Track : public mediakit::H265Track {
+public:
+    bool update() override {
+        ++update_count;
+        return H265Track::update();
+    }
+
+    unsigned update_count = 0;
+};
+
+void testTrackParserRetry() {
+    H264SpsOptions h264_options;
+    h264_options.include_rbsp_trailing_bits = false;
+    CountingH264Track h264_track;
+    h264_track.inputFrame(mediakit::createConfigFrame<mediakit::H264Frame>(makeH264Sps(h264_options), 0, 0));
+    h264_track.inputFrame(mediakit::createConfigFrame<mediakit::H264Frame>(string("\x68\x80", 2), 0, 0));
+    expect(h264_track.update_count == 1, "H264 track should parse once when its initial configuration becomes ready");
+    h264_track.inputFrame(mediakit::createConfigFrame<mediakit::H264Frame>(string("\x65\x80", 2), 0, 0));
+    expect(h264_track.update_count == 1, "ordinary H264 frames must not retry an unchanged invalid SPS");
+    h264_track.inputFrame(mediakit::createConfigFrame<mediakit::H264Frame>(makeH264Sps(H264SpsOptions()), 0, 0));
+    expect(h264_track.update_count == 2 && h264_track.getVideoWidth() == 1280,
+           "a replacement H264 SPS should retry parsing and publish dimensions");
+
+    H265SpsOptions h265_options;
+    h265_options.include_rbsp_trailing_bits = false;
+    CountingH265Track h265_track;
+    h265_track.inputFrame(mediakit::createConfigFrame<mediakit::H265Frame>(makeH265VpsWithLayerSets(0), 0, 0));
+    h265_track.inputFrame(mediakit::createConfigFrame<mediakit::H265Frame>(makeH265Sps(h265_options), 0, 0));
+    h265_track.inputFrame(mediakit::createConfigFrame<mediakit::H265Frame>(string("\x44\x01\x80", 3), 0, 0));
+    expect(h265_track.update_count == 1, "H265 track should parse once when its initial configuration becomes ready");
+    h265_track.inputFrame(mediakit::createConfigFrame<mediakit::H265Frame>(string("\x26\x01\x80", 3), 0, 0));
+    expect(h265_track.update_count == 1, "ordinary H265 frames must not retry an unchanged invalid SPS");
+    h265_track.inputFrame(mediakit::createConfigFrame<mediakit::H265Frame>(makeH265Sps(H265SpsOptions()), 0, 0));
+    expect(h265_track.update_count == 2 && h265_track.getVideoWidth() == 1280,
+           "a replacement H265 SPS should retry parsing and publish dimensions");
 }
 
 } // namespace
@@ -749,7 +955,11 @@ int main(int argc, char **argv) {
         if (group == "all" || group == "h265") {
             testH265();
         }
-        expect(group == "all" || group == "h264-basic" || group == "h264-limits" || group == "h265",
+        if (group == "all" || group == "track-retry") {
+            testTrackParserRetry();
+        }
+        expect(group == "all" || group == "h264-basic" || group == "h264-limits" || group == "h265" ||
+                   group == "track-retry",
                "unknown test group");
         cout << "test_sps_parser passed" << endl;
         return 0;
