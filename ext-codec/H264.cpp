@@ -90,6 +90,8 @@ struct BitStream {
             if (read_bits(1) != 0) {
                 break;
             }
+            // 本读取器返回 uint32_t，最多只能接受 31 个前导零；32 个前导零需要 33 位编码，且会让后续 se(v) 映射越界。
+            // This uint32_t reader accepts at most 31 leading zeroes; 32 require a 33-bit code and would overflow later se(v) mapping.
             if (++zeros >= 32) {
                 throw std::runtime_error("exp-golomb overflow");
             }
@@ -124,7 +126,12 @@ static bool getAVCInfo(const char *sps_raw, size_t sps_len, int &iVideoWidth, in
         uint8_t profile_idc = (uint8_t)bs.read_bits(8); // profile_idc
         bs.skip_bits(8); // constraint flags + reserved
         bs.skip_bits(8); // level_idc
-        bs.read_ue();    // seq_parameter_set_id
+        uint32_t seq_parameter_set_id = bs.read_ue();
+        // H.264 只定义 0..31 的 SPS id；拒绝相邻越界值，避免接受无法由标准参数集表表示的配置。
+        // H.264 defines SPS ids only in 0..31; reject the adjacent out-of-range value instead of accepting an unrepresentable parameter set.
+        if (seq_parameter_set_id > 31) {
+            return false;
+        }
 
         uint32_t chroma_format_idc = 1;
         // profile 138 和 144 也使用高阶 SPS 语法；漏掉它们会从错误的位偏移继续解析并产生虚假宽高。
@@ -138,8 +145,14 @@ static bool getAVCInfo(const char *sps_raw, size_t sps_len, int &iVideoWidth, in
                 return false;
             }
             if (chroma_format_idc == 3) bs.skip_bits(1); // separate_colour_plane_flag
-            bs.read_ue(); // bit_depth_luma_minus8
-            bs.read_ue(); // bit_depth_chroma_minus8
+            uint32_t bit_depth_luma_minus8 = bs.read_ue();
+            uint32_t bit_depth_chroma_minus8 = bs.read_ue();
+            // 扩展 profile 的位深增量范围为 0..6，且亮度与色度位深必须一致；先校验可阻止非法字段继续驱动解析。
+            // Extended profiles limit both bit-depth offsets to 0..6 and require them to match; validate before malformed fields drive later parsing.
+            if (bit_depth_luma_minus8 > 6 || bit_depth_chroma_minus8 > 6 ||
+                bit_depth_luma_minus8 != bit_depth_chroma_minus8) {
+                return false;
+            }
             bs.skip_bits(1); // qpprime_y_zero_transform_bypass_flag
             if (bs.read_bits(1)) { // seq_scaling_matrix_present_flag
                 int cnt = (chroma_format_idc != 3) ? 8 : 12;
@@ -164,10 +177,20 @@ static bool getAVCInfo(const char *sps_raw, size_t sps_len, int &iVideoWidth, in
             }
         }
 
-        bs.read_ue(); // log2_max_frame_num_minus4
+        uint32_t log2_max_frame_num_minus4 = bs.read_ue();
+        // 规范范围为 0..12；即使当前只提取宽高，也不能把越界 SPS 当作有效配置发布。
+        // The specified range is 0..12; even a dimensions-only parser must not publish an out-of-range SPS as valid configuration.
+        if (log2_max_frame_num_minus4 > 12) {
+            return false;
+        }
         uint32_t pic_order_cnt_type = bs.read_ue();
         if (pic_order_cnt_type == 0) {
-            bs.read_ue(); // log2_max_pic_order_cnt_lsb_minus4
+            uint32_t log2_max_pic_order_cnt_lsb_minus4 = bs.read_ue();
+            // POC LSB 位数增量同样仅允许 0..12，越界值会描述标准外的帧序号空间。
+            // The POC-LSB bit-count offset is likewise limited to 0..12; larger values describe a non-standard picture-order space.
+            if (log2_max_pic_order_cnt_lsb_minus4 > 12) {
+                return false;
+            }
         } else if (pic_order_cnt_type == 1) {
             bs.skip_bits(1); // delta_pic_order_always_zero_flag
             bs.read_se();    // offset_for_non_ref_pic
@@ -184,7 +207,12 @@ static bool getAVCInfo(const char *sps_raw, size_t sps_len, int &iVideoWidth, in
             // Only POC types 0, 1, and 2 are valid; continuing with another value misaligns later fields and may accept forged dimensions.
             return false;
         }
-        bs.read_ue(); // max_num_ref_frames
+        uint32_t max_num_ref_frames = bs.read_ue();
+        // H.264 解码图像缓冲区最多表示 16 个参考帧；提前拒绝 17 可保持与原解析器的标准边界一致。
+        // The H.264 decoded-picture buffer represents at most 16 reference frames; rejecting 17 preserves the prior parser's standard boundary.
+        if (max_num_ref_frames > 16) {
+            return false;
+        }
         bs.skip_bits(1); // gaps_in_frame_num_value_allowed_flag
 
         uint32_t pic_width_in_mbs_minus1       = bs.read_ue();
@@ -211,8 +239,10 @@ static bool getAVCInfo(const char *sps_raw, size_t sps_len, int &iVideoWidth, in
             crop_unit_y = 2 - frame_mbs_only_flag;
         }
 
-        uint64_t raw_width  = (uint64_t)(pic_width_in_mbs_minus1 + 1) * 16;
-        uint64_t raw_height = (uint64_t)(pic_height_in_map_units_minus1 + 1) * 16 * (2 - frame_mbs_only_flag);
+        // 宏块计数来自不可信 ue(v)，必须在加一前提升到 64 位；否则未来若放宽读取上限，uint32_t 加法可能先回绕为零。
+        // Macroblock counts are untrusted ue(v) values and must be widened before adding one; otherwise a future reader extension could wrap uint32_t to zero first.
+        uint64_t raw_width  = ((uint64_t)pic_width_in_mbs_minus1 + 1) * 16;
+        uint64_t raw_height = ((uint64_t)pic_height_in_map_units_minus1 + 1) * 16 * (2 - frame_mbs_only_flag);
         uint64_t crop_w = ((uint64_t)crop_left + crop_right) * crop_unit_x;
         uint64_t crop_h = ((uint64_t)crop_top  + crop_bottom) * crop_unit_y;
         if (crop_w >= raw_width || crop_h >= raw_height) return false;
@@ -517,6 +547,10 @@ bool H264Track::inputFrame_l(const Frame::Ptr &frame) {
             break;
     }
 
+    // 无效 SPS 会使 _width 持续为 0，并让当前条件在后续每帧重复解析。失败缓存与重试时机属于 Track 配置生命周期，
+    // 超出本次 SPS 解析器加固的边界；为保持 PR 职责清晰，应在独立 PR 中统一处理。
+    // A malformed SPS keeps _width at zero and makes this condition reparse it on every later frame. Failure caching and retry timing belong
+    // to the Track configuration lifecycle, outside this parser-hardening scope, and should be handled consistently in a separate PR.
     if (_width == 0 && ready()) {
         update();
     }

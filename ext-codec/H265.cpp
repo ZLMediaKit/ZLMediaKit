@@ -81,6 +81,8 @@ struct H265BS {
             if (read_bits(1) != 0) {
                 break;
             }
+            // 本读取器返回 uint32_t，最多只能接受 31 个前导零；32 个前导零属于无法表示的 33 位 ue(v) 编码。
+            // This uint32_t reader accepts at most 31 leading zeroes; 32 form a 33-bit ue(v) code that cannot be represented here.
             if (++z >= 32) {
                 throw std::runtime_error("exp-golomb overflow");
             }
@@ -135,6 +137,11 @@ static bool parse_hevc_vps_fps(const uint8_t *data, size_t size, float &fps) {
         // vps_video_parameter_set_id(4) + vps_reserved_three_2bits(2) + vps_max_layers_minus1(6)
         bs.skip_bits(4 + 2 + 6);
         uint32_t vps_max_sub_layers_minus1 = bs.read_bits(3);
+        // HEVC 最多定义 7 个时间子层，因此 minus1 字段只允许 0..6；值 7 为保留值，不能继续控制后续循环。
+        // HEVC defines at most seven temporal sub-layers, so the minus-one field is limited to 0..6; reserved value 7 must not control later loops.
+        if (vps_max_sub_layers_minus1 > 6) {
+            return false;
+        }
         bs.skip_bits(1); // vps_temporal_id_nesting_flag
         bs.skip_bits(16); // vps_reserved_0xffff_16bits
         bs.skip_profile_tier_level(true, vps_max_sub_layers_minus1);
@@ -146,6 +153,11 @@ static bool parse_hevc_vps_fps(const uint8_t *data, size_t size, float &fps) {
             bs.read_ue(); // vps_max_latency_increase_plus1
         }
         uint32_t vps_max_layer_id = bs.read_bits(6);
+        // nuh_layer_id 的有效最大值为 62；63 是保留值，不能用于放大 layer-set 标志循环。
+        // The largest valid nuh_layer_id is 62; reserved value 63 must not amplify the layer-set flag loop.
+        if (vps_max_layer_id > 62) {
+            return false;
+        }
         uint32_t vps_num_layer_sets_minus1 = bs.read_ue();
         // 标准上限为 1023，并且每个 layer flag 都必须实际存在；预检可避免恶意计数长时间占用输入线程。
         // The standard limit is 1023 and every layer flag must be present; preflight checks prevent hostile counts from stalling the input thread.
@@ -184,9 +196,19 @@ static bool parse_hevc_sps(const uint8_t *data, size_t size,
         bs.skip_bits(16); // NALU header
         bs.skip_bits(4);  // sps_video_parameter_set_id
         uint32_t sps_max_sub_layers_minus1 = bs.read_bits(3);
+        // 与 VPS 相同，SPS 的时间子层 minus1 字段只允许 0..6；先拒绝保留值 7，避免错误位移和循环次数。
+        // As in the VPS, the SPS temporal-sub-layer minus-one field is limited to 0..6; reject reserved 7 before it skews offsets and loop counts.
+        if (sps_max_sub_layers_minus1 > 6) {
+            return false;
+        }
         bs.skip_bits(1);  // sps_temporal_id_nesting_flag
         bs.skip_profile_tier_level(true, sps_max_sub_layers_minus1);
-        bs.read_ue(); // sps_seq_parameter_set_id
+        uint32_t sps_seq_parameter_set_id = bs.read_ue();
+        // HEVC SPS id 的标准范围为 0..15；拒绝 16，避免接受参数集表无法索引的配置。
+        // HEVC SPS ids are defined in 0..15; reject 16 instead of accepting configuration that the parameter-set table cannot index.
+        if (sps_seq_parameter_set_id > 15) {
+            return false;
+        }
         uint32_t chroma_format_idc = bs.read_ue();
         if (chroma_format_idc > 3) {
             return false;
@@ -221,8 +243,14 @@ static bool parse_hevc_sps(const uint8_t *data, size_t size,
         parsed_width = (int)pic_width;
         parsed_height = (int)pic_height;
 
-        bs.read_ue(); // bit_depth_luma_minus8
-        bs.read_ue(); // bit_depth_chroma_minus8
+        uint32_t bit_depth_luma_minus8 = bs.read_ue();
+        uint32_t bit_depth_chroma_minus8 = bs.read_ue();
+        // HEVC 位深增量范围为 0..8；存在色度分量时两者必须一致，校验后再参与任何派生计算。
+        // HEVC bit-depth offsets are limited to 0..8 and must match when chroma is present; validate before any derived arithmetic can use them.
+        if (bit_depth_luma_minus8 > 8 || bit_depth_chroma_minus8 > 8 ||
+            (chroma_format_idc != 0 && bit_depth_luma_minus8 != bit_depth_chroma_minus8)) {
+            return false;
+        }
         uint32_t log2_max_pic_order_cnt_lsb_minus4 = bs.read_ue();
         // 该值标准范围为 0..12；限制后续 skip_bits 参数可表示且不会被恶意值扭曲。
         // Its standard range is 0..12; enforcing it keeps later skip_bits counts representable and input-safe.
@@ -372,8 +400,8 @@ bool getHEVCInfo(const char *vps, size_t vps_len, const char *sps, size_t sps_le
     if (!parse_hevc_sps((const uint8_t *)sps, sps_len, parsed_width, parsed_height, parsed_fps)) {
         return false;
     }
-    // 对外参数只在 VPS/SPS 解析成功后一次性更新，确保失败不会清空或污染调用方已有元数据。
-    // Update public outputs atomically after VPS/SPS parsing succeeds so failure cannot clear or corrupt existing caller metadata.
+    // 对外参数只在 VPS/SPS 解析成功后再依次发布，确保失败不会清空或污染调用方已有元数据；这不是跨线程原子更新。
+    // Publish public outputs only after VPS/SPS parsing succeeds so failure preserves caller metadata; these assignments are not cross-thread atomic.
     iVideoWidth = parsed_width;
     iVideoHeight = parsed_height;
     iVideoFps = parsed_fps;
@@ -463,6 +491,10 @@ bool H265Track::inputFrame_l(const Frame::Ptr &frame) {
             break;
         }
     }
+    // 无效 SPS 会使 _width 持续为 0，并让当前条件在后续每帧重复解析。失败缓存与重试时机属于 Track 配置生命周期，
+    // 超出本次 SPS 解析器加固的边界；为保持 PR 职责清晰，应在独立 PR 中统一处理。
+    // A malformed SPS keeps _width at zero and makes this condition reparse it on every later frame. Failure caching and retry timing belong
+    // to the Track configuration lifecycle, outside this parser-hardening scope, and should be handled consistently in a separate PR.
     if (_width == 0 && ready()) {
         update();
     }
