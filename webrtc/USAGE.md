@@ -234,6 +234,9 @@ portRange=50000-65000
 #ICE传输策略：0=不限制(默认)，1=仅支持Relay转发，2=仅支持P2P直连
 iceTransportPolicy=0
 
+#UDP ICE会话空闲超时时间，单位秒，0为关闭
+iceSessionTimeoutSec=60
+
 #STUN/TURN 服务Ice密码
 iceUfrag=ZLMediaKit
 icePwd=ZLMediaKit

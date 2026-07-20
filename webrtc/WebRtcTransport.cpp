@@ -72,6 +72,7 @@ const string kEnableTurn = RTC_FIELD "enableTurn";
 const string kIceUfrag = RTC_FIELD "iceUfrag";
 const string kIcePwd = RTC_FIELD "icePwd";
 const string kIceTransportPolicy = RTC_FIELD "iceTransportPolicy";
+const string kIceSessionTimeoutSec = RTC_FIELD "iceSessionTimeoutSec";
 
 // 比特率设置  [AUTO-TRANSLATED:2c75f5bc]
 // Bitrate setting
@@ -104,6 +105,7 @@ static onceToken token([]() {
     mINI::Instance()[kIceTcpPort] = 3478;
     mINI::Instance()[kEnableTurn] = 1;
     mINI::Instance()[kIceTransportPolicy] = 0;  // 默认值：不限制(kAll)
+    mINI::Instance()[kIceSessionTimeoutSec] = 60;
     mINI::Instance()[kIceUfrag] = "ZLMediaKit";
     mINI::Instance()[kIcePwd] = "ZLMediaKit";
     mINI::Instance()[kPreferredTcp] = 0;
