@@ -617,13 +617,20 @@ void testH264Basic() {
     expect(!mediakit::getAVCInfo(validH264Sps().substr(0, 9), width, height, fps),
            "H264 SPS truncated while parsing fields after dimensions must fail");
 
-    for (uint8_t profile : { (uint8_t)138, (uint8_t)144 }) {
-        auto sps = validHighProfileH264Sps();
-        sps[1] = (char)profile;
+    auto profile_144_sps = validHighProfileH264Sps();
+    profile_144_sps[1] = (char)144;
+    width = height = 0;
+    fps = 0;
+    expect(mediakit::getAVCInfo(profile_144_sps, width, height, fps), "H264 profile 144 SPS should parse");
+    expect(width == 1280 && height == 720, "H264 profile 144 must use extended SPS syntax");
+
+    for (uint8_t profile : { (uint8_t)134, (uint8_t)135, (uint8_t)138, (uint8_t)139 }) {
+        auto subset_profile_sps = validHighProfileH264Sps();
+        subset_profile_sps[1] = (char)profile;
         width = height = 0;
         fps = 0;
-        expect(mediakit::getAVCInfo(sps, width, height, fps), "H264 profile 138/144 SPS should parse");
-        expect(width == 1280 && height == 720, "H264 profile 138/144 must use high-profile syntax");
+        expect(!mediakit::getAVCInfo(subset_profile_sps, width, height, fps),
+               "H264 subset-SPS-only profiles must not be treated as regular SPS support");
     }
 
     // 使用项目已有 SDP 示例防止安全加固误伤常见 profile 和 VUI 组合。
@@ -752,7 +759,7 @@ void testH264Limits() {
     expect(!parses(options), "H264 bit depth above the standard limit must fail");
     options.bit_depth_luma_minus8 = 0;
     options.bit_depth_chroma_minus8 = 1;
-    expect(!parses(options), "H264 luma and chroma bit depths must match");
+    expect(parses(options), "H264 luma and chroma bit depths may differ within their individual limits");
 
     options = H264SpsOptions();
     options.log2_max_frame_num_minus4 = 1;
@@ -997,7 +1004,7 @@ void testH265() {
     expect(!parses(options), "H265 bit depth above the standard limit must fail");
     options.bit_depth_luma_minus8 = 0;
     options.bit_depth_chroma_minus8 = 1;
-    expect(!parses(options), "H265 luma and chroma bit depths must match");
+    expect(parses(options), "H265 luma and chroma bit depths may differ within their individual limits");
 
     options = H265SpsOptions();
     options.log2_max_pic_order_cnt_lsb_minus4 = 1;

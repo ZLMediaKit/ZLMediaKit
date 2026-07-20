@@ -182,12 +182,16 @@ static bool getAVCInfo(const char *sps_raw, size_t sps_len, int &iVideoWidth, in
         }
 
         uint32_t chroma_format_idc = 1;
-        // profile 138 和 144 也使用高阶 SPS 语法；漏掉它们会从错误的位偏移继续解析并产生虚假宽高。
-        // Profiles 138 and 144 also use the extended SPS syntax; omitting them misaligns all following fields and yields false dimensions.
+        // profile 144 是使用普通 SPS（NAL type 7）的旧版 High 4:4:4 profile，仍可能由旧设备产生；必须按扩展 SPS 语法解析，否则后续字段会错位。
+        // Profile 144 is the legacy High 4:4:4 profile carried in a regular SPS (NAL type 7) and may still be emitted by older devices; it must use the extended syntax to keep later fields aligned.
+        // 134、135、138、139 属于 MFC/多视图深度扩展，其完整语义依赖 subset SPS（NAL type 15）；当前 H264Track 只接收普通 SPS，单独加入这些编号会造成“已支持”的误解。
+        // Profiles 134, 135, 138, and 139 belong to MFC/multiview-depth extensions whose complete syntax depends on subset SPS (NAL type 15); H264Track only consumes regular SPS, so listing them here would imply unsupported end-to-end support.
+        // 83、86、118、128 是加固前已有的兼容范围，本次不缩减旧行为；以后若扩展 subset SPS，应连同真实码流和 NAL type 15 输入链路一并实现和测试。
+        // Profiles 83, 86, 118, and 128 predate this hardening and remain for compatibility; any future subset-SPS expansion must include real streams and the NAL type 15 input path.
         if (profile_idc == 100 || profile_idc == 110 || profile_idc == 122 ||
             profile_idc == 244 || profile_idc == 44  || profile_idc == 83  ||
             profile_idc == 86  || profile_idc == 118 || profile_idc == 128 ||
-            profile_idc == 138 || profile_idc == 144) {
+            profile_idc == 144) {
             chroma_format_idc = bs.read_ue();
             if (chroma_format_idc > 3) {
                 return false;
@@ -195,10 +199,9 @@ static bool getAVCInfo(const char *sps_raw, size_t sps_len, int &iVideoWidth, in
             if (chroma_format_idc == 3) bs.skip_bits(1); // separate_colour_plane_flag
             uint32_t bit_depth_luma_minus8 = bs.read_ue();
             uint32_t bit_depth_chroma_minus8 = bs.read_ue();
-            // 扩展 profile 的位深增量范围为 0..6，且亮度与色度位深必须一致；先校验可阻止非法字段继续驱动解析。
-            // Extended profiles limit both bit-depth offsets to 0..6 and require them to match; validate before malformed fields drive later parsing.
-            if (bit_depth_luma_minus8 > 6 || bit_depth_chroma_minus8 > 6 ||
-                bit_depth_luma_minus8 != bit_depth_chroma_minus8) {
+            // 两个位深字段分别受 0..6 限制，但语法允许它们取不同值；强制相等会拒绝可以安全提取尺寸的合法 SPS。
+            // Each bit-depth offset is independently limited to 0..6, while the syntax permits different values; requiring equality rejects valid SPS whose dimensions are still safe to extract.
+            if (bit_depth_luma_minus8 > 6 || bit_depth_chroma_minus8 > 6) {
                 return false;
             }
             bs.skip_bits(1); // qpprime_y_zero_transform_bypass_flag

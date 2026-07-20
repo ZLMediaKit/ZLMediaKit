@@ -448,10 +448,9 @@ static bool parse_hevc_sps(const uint8_t *data, size_t size,
 
         uint32_t bit_depth_luma_minus8 = bs.read_ue();
         uint32_t bit_depth_chroma_minus8 = bs.read_ue();
-        // HEVC 位深增量范围为 0..8；存在色度分量时两者必须一致，校验后再参与任何派生计算。
-        // HEVC bit-depth offsets are limited to 0..8 and must match when chroma is present; validate before any derived arithmetic can use them.
-        if (bit_depth_luma_minus8 > 8 || bit_depth_chroma_minus8 > 8 ||
-            (chroma_format_idc != 0 && bit_depth_luma_minus8 != bit_depth_chroma_minus8)) {
+        // HEVC 分别定义亮度和色度位深增量，两者各自限制为 0..8 但不要求相等；这里只校验参与派生计算所需的独立边界。
+        // HEVC defines separate luma and chroma bit-depth offsets, each limited to 0..8 without an equality requirement; validate only their independent bounds before derived arithmetic.
+        if (bit_depth_luma_minus8 > 8 || bit_depth_chroma_minus8 > 8) {
             return false;
         }
         uint32_t log2_max_pic_order_cnt_lsb_minus4 = bs.read_ue();
