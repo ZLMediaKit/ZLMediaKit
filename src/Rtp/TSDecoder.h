@@ -27,6 +27,7 @@ public:
     typedef std::function<void(const char *data,size_t len)> onSegment;
     TSSegment(size_t size = TS_PACKET_SIZE) : _size(size){}
     void setOnSegment(onSegment cb);
+    void reset();
     static bool isTSPacket(const char *data, size_t len);
 
 protected:
@@ -35,6 +36,7 @@ protected:
 
 private:
     size_t _size;
+    bool _is_synced = false;
     onSegment _onSegment;
 };
 

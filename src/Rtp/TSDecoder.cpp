@@ -19,6 +19,11 @@ void TSSegment::setOnSegment(TSSegment::onSegment cb) {
     _onSegment = std::move(cb);
 }
 
+void TSSegment::reset() {
+    HttpRequestSplitter::reset();
+    _is_synced = false;
+}
+
 ssize_t TSSegment::onRecvHeader(const char *data, size_t len) {
     if (!isTSPacket(data, len)) {
         WarnL << "不是ts包:" << (int) (data[0]) << " " << len;
@@ -29,22 +34,49 @@ ssize_t TSSegment::onRecvHeader(const char *data, size_t len) {
 }
 
 const char *TSSegment::onSearchPacketTail(const char *data, size_t len) {
-    if (len < _size + 1) {
-        if (len == _size && ((uint8_t *) data)[0] == TS_SYNC_BYTE) {
+    auto bytes = (const uint8_t *) data;
+    if (_is_synced) {
+        if (len < _size) {
+            return nullptr;
+        }
+        // 锁定后只按当前同步字节分包，TS 语义和错误处理交给 libmpegts
+        // Once locked, split only by the current sync byte; leave TS semantics and error handling to libmpegts
+        if (bytes[0] == TS_SYNC_BYTE) {
             return data + _size;
         }
-        return nullptr;
+        _is_synced = false;
     }
-    // 下一个包头  [AUTO-TRANSLATED:c653c49d]
-    // Next packet header
-    if (((uint8_t *) data)[_size] == TS_SYNC_BYTE) {
+
+    // 单个完整包可以直接转交，但不足以确认后续数据的包边界
+    // A single complete packet can be forwarded, but is insufficient to confirm subsequent packet boundaries
+    if (len == _size && bytes[0] == TS_SYNC_BYTE) {
         return data + _size;
     }
-    auto pos = memchr(data + _size, TS_SYNC_BYTE, len - _size);
-    if (pos) {
-        return (char *) pos;
+
+    if (len > _size) {
+        const char *candidate = data;
+        const char *search_end = data + len - _size;
+        while (candidate < search_end) {
+            candidate = (const char *) memchr(candidate, TS_SYNC_BYTE, search_end - candidate);
+            if (!candidate) {
+                break;
+            }
+            if ((uint8_t) candidate[_size] == TS_SYNC_BYTE) {
+                _is_synced = true;
+                return candidate == data ? data + _size : candidate;
+            }
+            ++candidate;
+        }
     }
-    if (remainDataSize() > 4 * _size) {
+
+    if (len > 4 * _size) {
+        // 尾部同步字节可能在下一次输入后组成同步对，因此只丢弃它之前的数据
+        // A trailing sync byte may form a sync pair after the next input, so discard only the data before it
+        const char *tail = data + len - _size;
+        auto candidate = memchr(tail, TS_SYNC_BYTE, data + len - tail);
+        if (candidate) {
+            return (const char *) candidate;
+        }
         // 数据这么多都没ts包，全部清空  [AUTO-TRANSLATED:95bece98]
         // So much data but no ts packets, clear all
         return data + len;
@@ -90,7 +122,7 @@ TSDecoder::~TSDecoder() {
 }
 
 ssize_t TSDecoder::input(const uint8_t *data, size_t bytes) {
-    if (TSSegment::isTSPacket((char *)data, bytes)) {
+    if (_ts_segment.remainDataSize() == 0 && TSSegment::isTSPacket((char *)data, bytes)) {
         return ts_demuxer_input(_demuxer_ctx, (uint8_t *) data, bytes);
     }
     try {
