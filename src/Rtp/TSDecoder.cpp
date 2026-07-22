@@ -53,6 +53,15 @@ const char *TSSegment::onSearchPacketTail(const char *data, size_t len) {
         return data + _size;
     }
 
+    return searchPacketTailUnSynced(data, len);
+}
+
+#if defined(_MSC_VER)
+__declspec(noinline)
+#elif defined(__GNUC__)
+__attribute__((noinline))
+#endif
+const char *TSSegment::searchPacketTailUnSynced(const char *data, size_t len) {
     if (len > _size) {
         const char *candidate = data;
         const char *search_end = data + len - _size;

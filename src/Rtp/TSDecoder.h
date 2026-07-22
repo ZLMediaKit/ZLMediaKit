@@ -35,6 +35,7 @@ protected:
     const char *onSearchPacketTail(const char *data, size_t len) override ;
 
 private:
+    const char *searchPacketTailUnSynced(const char *data, size_t len);
     size_t _size;
     bool _is_synced = false;
     onSegment _onSegment;
