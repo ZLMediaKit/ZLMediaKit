@@ -211,8 +211,8 @@ public:
     using Ptr = std::shared_ptr<HttpFileStorage>;
 
     /**
-     * @param file_path 文件路径，文件以二进制追加模式打开
-     * @param file_path File path, opened in binary append mode
+     * @param file_path 文件路径，文件以二进制写入模式打开（覆盖已有内容）
+     * @param file_path File path, opened in binary write mode (truncates existing content)
      */
     HttpFileStorage(std::string file_path);
     ~HttpFileStorage() override;

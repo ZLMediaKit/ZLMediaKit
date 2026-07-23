@@ -143,7 +143,7 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
                 body->writeData(data, len, content_len);
                 // 上传的数据超过声明的content-len， 直接拒绝
                 sendResponse(413, true);
-                WarnL << "Upload file size lagger then content_len: " << received + len << " > " << content_len;
+                WarnL << "Upload file size larger than content_len: " << received + len << " > " << content_len;
                 return false;
             }
 
