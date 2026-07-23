@@ -120,14 +120,8 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
     // only selects the buffering strategy and must not be used as the upload limit, or normal unknown-length uploads
     // would be rejected at roughly the default 40KB threshold.
     if (body) {
-        // GET_CONFIG在本调用点展开为函数静态配置值和静态热更新监听器，配置读取及监听器注册只执行一次。
-        // 再复制为局部变量，使lambda按值保存本次请求的固定上限，避免上传过程中配置变化导致判定标准改变。
-        // GET_CONFIG expands here to a function-static value and a static reload listener, both initialized only once.
-        // Copy it to an automatic variable so the lambda captures an immutable per-request limit instead of changing
-        // the limit in the middle of an upload.
         GET_CONFIG(size_t, max_upload_size_config, Http::kMaxUploadSize);
-
-        // 已知长度可以在接收body前判断是否超限，避免先向HttpBody写入数据再拒绝请求。
+        // 已知长度可以在接收body前判断是否超限，避免先向HttpBody写入数据再拒绝请求;
         // 如果上传文件时不指定content-len，也直接拒绝，因为后续没法触发文件上传完毕事件
         if (content_len > max_upload_size_config) {
             WarnL << "Http upload size is too huge or no content-len provided: " << content_len << " > " << max_upload_size_config
