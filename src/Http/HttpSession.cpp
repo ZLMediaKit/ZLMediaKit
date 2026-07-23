@@ -143,29 +143,21 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
 
         size_t received = 0;
         _on_recv_body = [this, received, content_len, body, it](const char *data, size_t len) mutable {
-            // received只会在len <= remain时累加，因此始终不大于max_body_size，减法不会下溢。
-            // 若当前分片跨越边界，只写允许的前缀，然后返回413，绝不把越界部分交给HttpBody。
-            // received is incremented only when len <= remain, so it never exceeds max_body_size and subtraction is safe.
-            // If a fragment crosses the boundary, write only its allowed prefix and reject the request with 413.
             auto remain = content_len - received;
             if (len > remain) {
-                if (remain) {
-                    received += remain;
-                    body->writeData(data, remain,  content_len);
-                }
+                // 上传的数据超过声明的content-len， 直接拒绝
                 sendResponse(413, true);
+                WarnL << "Upload file size lagger then content_len: " << received + len << " > " << content_len;
                 return false;
             }
 
             received += len;
             body->writeData(data, len, content_len);
-
-            if (content_len == SIZE_MAX || received < content_len) {
+            if (received < content_len) {
                 // 还没收满  [AUTO-TRANSLATED:cecc867e]
                 // Not yet received
                 return true;
             }
-
             // 收满了  [AUTO-TRANSLATED:0c9cebd7]
             // Received full
             setContentLen(0);
