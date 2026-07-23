@@ -156,14 +156,15 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
             auto remain = max_body_size - received;
             if (len > remain) {
                 if (remain) {
-                    body->writeData(data, remain);
+                    received += remain;
+                    body->writeData(data, remain,  content_len);
                 }
                 sendResponse(413, true);
                 return false;
             }
 
             received += len;
-            body->writeData(data, len);
+            body->writeData(data, len, content_len);
 
             if (content_len == SIZE_MAX || received < content_len) {
                 // 还没收满  [AUTO-TRANSLATED:cecc867e]
@@ -200,7 +201,6 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
         _on_recv_body = [this, received, content_len](const char *data, size_t len) mutable {
             received += len;
             onRecvUnlimitedContent(_parser, data, len, content_len, received);
-
             if (received < content_len) {
                 // 还没收满  [AUTO-TRANSLATED:cecc867e]
                 // Not yet received

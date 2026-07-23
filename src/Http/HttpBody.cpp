@@ -418,9 +418,13 @@ HttpFileStorage::~HttpFileStorage() {
         fclose(_fp);
         _fp = nullptr;
     }
+    if (_written < _content_size || !_written) {
+        // 删除不完整的文件
+        File::delete_file(_path);
+    }
 }
 
-void HttpFileStorage::writeData(const char *data, size_t size) {
+void HttpFileStorage::writeData(const char *data, size_t size, size_t content_size) {
     if (!_fp) {
         throw std::runtime_error("HttpFileStorage: file not open");
     }
