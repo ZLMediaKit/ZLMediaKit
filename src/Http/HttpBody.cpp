@@ -425,6 +425,7 @@ HttpFileStorage::~HttpFileStorage() {
 }
 
 void HttpFileStorage::writeData(const char *data, size_t size, size_t content_size) {
+    _content_size = content_size;
     if (!_fp) {
         throw std::runtime_error("HttpFileStorage: file not open");
     }
