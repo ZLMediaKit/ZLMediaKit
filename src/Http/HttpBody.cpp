@@ -405,7 +405,7 @@ Buffer::Ptr HttpBufferBody::readData(size_t size) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 HttpFileStorage::HttpFileStorage(std::string file_path) {
-    _fp = fopen(file_path.data(), "ab");
+    _fp = fopen(file_path.data(), "wb");
     if (!_fp) {
         throw std::runtime_error("HttpFileStorage: failed to open file: " + file_path + ", err: " + toolkit::get_uv_errmsg());
     }
@@ -418,13 +418,13 @@ HttpFileStorage::~HttpFileStorage() {
         fclose(_fp);
         _fp = nullptr;
     }
-    if (_written < _content_size || !_written) {
+    if (_written != _content_size || !_written) {
         // 删除不完整的文件
         File::delete_file(_path);
     }
 }
 
-void HttpFileStorage::writeData(const char *data, size_t size, size_t content_size) {
+void HttpFileStorage::writeData(const char *data, size_t size, uint64_t content_size) {
     _content_size = content_size;
     if (!_fp) {
         throw std::runtime_error("HttpFileStorage: file not open");

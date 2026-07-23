@@ -101,7 +101,7 @@ public:
      * 写入数据，默认抛出异常表示不支持写入
      * Write data, default throws exception indicating write not supported
      */
-    virtual void writeData(const char *data, size_t size, size_t content_size) {
+    virtual void writeData(const char *data, size_t size, uint64_t content_size) {
         throw std::runtime_error("HttpBody::writeData not supported");
     }
 
@@ -217,15 +217,15 @@ public:
     HttpFileStorage(std::string file_path);
     ~HttpFileStorage() override;
 
-    void writeData(const char *data, size_t size, size_t content_size) override;
+    void writeData(const char *data, size_t size, uint64_t content_size) override;
     int64_t remainSize() override;
     toolkit::Buffer::Ptr readData(size_t size) override;
     const std::string& filePath() const;
 
 private:
     FILE *_fp = nullptr;
-    int64_t _written = 0;
-    size_t _content_size = 0;
+    uint64_t _written = 0;
+    uint64_t _content_size = 0;
     std::string _path;
 };
 

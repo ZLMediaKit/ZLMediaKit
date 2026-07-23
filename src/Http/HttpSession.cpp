@@ -82,7 +82,7 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
         return 0;
     }
 
-    size_t content_len;
+    uint64_t content_len;
     auto &content_len_str = _parser["Content-Length"];
     if (content_len_str.empty()) {
         if (it->first == "POST") {
@@ -120,7 +120,7 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
     // only selects the buffering strategy and must not be used as the upload limit, or normal unknown-length uploads
     // would be rejected at roughly the default 40KB threshold.
     if (body) {
-        GET_CONFIG(size_t, max_upload_size_config, Http::kMaxUploadSize);
+        GET_CONFIG(uint64_t, max_upload_size_config, Http::kMaxUploadSize);
         // 已知长度可以在接收body前判断是否超限，避免先向HttpBody写入数据再拒绝请求;
         // 如果上传文件时不指定content-len，也直接拒绝，因为后续没法触发文件上传完毕事件
         if (content_len > max_upload_size_config) {
@@ -139,6 +139,8 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
         _on_recv_body = [this, received, content_len, body, it](const char *data, size_t len) mutable {
             auto remain = content_len - received;
             if (len > remain) {
+                // 告知HttpFileStorage，写入的数据长度超过content_len，触发文件删除操作
+                body->writeData(data, len, content_len);
                 // 上传的数据超过声明的content-len， 直接拒绝
                 sendResponse(413, true);
                 WarnL << "Upload file size lagger then content_len: " << received + len << " > " << content_len;
