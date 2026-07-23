@@ -77,7 +77,9 @@ const char *TSSegment::searchPacketTailUnSynced(const char *data, size_t len) {
         }
     }
 
-    if (len > 4 * _size) {
+    // 等价于 len > 4 * _size，但不会发生无符号整数溢出
+    // Equivalent to len > 4 * _size without unsigned integer overflow
+    if (len && _size <= (len - 1) / 4) {
         // 尾部同步字节可能在下一次输入后组成同步对，因此只丢弃它之前的数据
         // A trailing sync byte may form a sync pair after the next input, so discard only the data before it
         const char *tail = data + len - _size;
