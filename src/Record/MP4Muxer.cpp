@@ -20,7 +20,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-static constexpr int kMaxMovVideoDimension = std::numeric_limits<int>::max() >> 16;
+static constexpr int kMaxMovVideoDimension = (std::numeric_limits<int>::max)() >> 16;
 
 static bool isMovVideoDimensionSafe(int width, int height) {
     // libmov 将有符号 int 类型的视频宽高左移 16 位写入 16.16 定点数字段，超出此范围会触发未定义行为。
