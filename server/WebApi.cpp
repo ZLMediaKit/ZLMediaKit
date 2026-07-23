@@ -1488,7 +1488,8 @@ void installWebApi() {
             // Compatible with old version requests, the new version removes the only_audio parameter and adds the only_track parameter
             only_track = 1;
         }
-        GET_CONFIG(std::string, local_ip, General::kListenIP)
+        GET_CONFIG(std::string, s_local_ip, General::kListenIP)
+        auto local_ip = s_local_ip;
         if (!allArgs["local_ip"].empty()) {
             local_ip = allArgs["local_ip"];
         }

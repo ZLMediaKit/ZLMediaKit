@@ -173,14 +173,14 @@ extern const std::string kBroadcastCreateMuxer;
 #define BroadcastCreateMuxerArgs MediaSinkInterface::Ptr &delegate, const MultiMediaSourceMuxer &sender
 
 #define ReloadConfigTag ((void *)(0xFF))
-#define RELOAD_KEY(arg, key)                                                                                           \
-    do {                                                                                                               \
-        decltype(arg) arg##_tmp = ::toolkit::mINI::Instance()[key];                                                    \
-        if (arg == arg##_tmp) {                                                                                        \
-            return;                                                                                                    \
-        }                                                                                                              \
-        arg = arg##_tmp;                                                                                               \
-        InfoL << "reload config:" << key << "=" << arg;                                                                \
+#define RELOAD_KEY(arg, key)                                                                                                     \
+    do {                                                                                                                         \
+        decltype(arg) arg##_tmp = ::toolkit::mINI::Instance()[key];                                                              \
+        if (arg == arg##_tmp) {                                                                                                  \
+            return;                                                                                                              \
+        }                                                                                                                        \
+        const_cast<typename std::remove_const<typename std::remove_reference<decltype(arg)>::type >::type &>(arg) = arg##_tmp;   \
+        InfoL << "reload config:" << key << "=" << arg;                                                                          \
     } while (0)
 
 // 监听某个配置发送变更  [AUTO-TRANSLATED:7f46b5b1]
@@ -194,19 +194,19 @@ extern const std::string kBroadcastCreateMuxer;
     } while (0)
 
 #define GET_CONFIG(type, arg, key)                                                                                     \
-    static type arg = ::toolkit::mINI::Instance()[key];                                                                \
+    static const type arg = ::toolkit::mINI::Instance()[key];                                                          \
     LISTEN_RELOAD_KEY(arg, key, { RELOAD_KEY(arg, key); });
 
 #define GET_CONFIG_FUNC(type, arg, key, ...)                                                                           \
-    static type arg;                                                                                                   \
+    static const type arg{};                                                                                           \
     do {                                                                                                               \
         static ::toolkit::onceToken s_token_set([]() {                                                                 \
             static auto lam = __VA_ARGS__;                                                                             \
             static auto arg##_str = ::toolkit::mINI::Instance()[key];                                                  \
-            arg = lam(arg##_str);                                                                                      \
+            const_cast<type &>(arg) = lam(arg##_str);                                                                  \
             LISTEN_RELOAD_KEY(arg, key, {                                                                              \
                 RELOAD_KEY(arg##_str, key);                                                                            \
-                arg = lam(arg##_str);                                                                                  \
+                const_cast<type &>(arg) = lam(arg##_str);                                                              \
             });                                                                                                        \
         });                                                                                                            \
     } while (0)

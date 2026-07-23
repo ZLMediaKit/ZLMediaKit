@@ -126,12 +126,11 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
         // Copy it to an automatic variable so the lambda captures an immutable per-request limit instead of changing
         // the limit in the middle of an upload.
         GET_CONFIG(size_t, max_upload_size_config, Http::kMaxUploadSize);
-        auto max_upload_size = max_upload_size_config;
 
         // 已知长度可以在接收body前判断是否超限，避免先向HttpBody写入数据再拒绝请求。
-        // A known oversized length can be rejected before any request data is written into HttpBody.
-        if (content_len != SIZE_MAX && content_len > max_upload_size) {
-            WarnL << "Http upload size is too huge: " << content_len << " > " << max_upload_size
+        // 如果上传文件时不指定content-len，也直接拒绝，因为后续没法触发文件上传完毕事件
+        if (content_len > max_upload_size_config) {
+            WarnL << "Http upload size is too huge or no content-len provided: " << content_len << " > " << max_upload_size_config
                   << ", please set " << Http::kMaxUploadSize << " in config.ini file.";
             sendResponse(413, true);
             _parser.clear();
@@ -143,17 +142,12 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
         }
 
         size_t received = 0;
-        _on_recv_body = [this, received, content_len, max_upload_size, body, it](const char *data, size_t len) mutable {
-            // 已知长度时以Content-Length为写入边界；缺失长度时仍允许流式上传，但使用maxUploadSize作为硬上限。
-            // Use Content-Length as the write boundary when known. Otherwise preserve streaming uploads and use
-            // maxUploadSize as their hard limit.
-            auto max_body_size = content_len == SIZE_MAX ? max_upload_size : content_len;
-
+        _on_recv_body = [this, received, content_len, body, it](const char *data, size_t len) mutable {
             // received只会在len <= remain时累加，因此始终不大于max_body_size，减法不会下溢。
             // 若当前分片跨越边界，只写允许的前缀，然后返回413，绝不把越界部分交给HttpBody。
             // received is incremented only when len <= remain, so it never exceeds max_body_size and subtraction is safe.
             // If a fragment crosses the boundary, write only its allowed prefix and reject the request with 413.
-            auto remain = max_body_size - received;
+            auto remain = content_len - received;
             if (len > remain) {
                 if (remain) {
                     received += remain;
