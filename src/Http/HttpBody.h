@@ -35,7 +35,11 @@ public:
     using Ptr = std::shared_ptr<HttpBody>;
     virtual ~HttpBody() {
         if (_on_completed) {
-            _on_completed();
+            try {
+                _on_completed();
+            } catch (std::exception &ex) {
+                ErrorL << ex.what();
+            }
         }
     }
 
