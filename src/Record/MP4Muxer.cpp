@@ -20,10 +20,11 @@ using namespace toolkit;
 
 namespace mediakit {
 
+static constexpr int kMaxMovVideoDimension = std::numeric_limits<int>::max() >> 16;
+
 static bool isMovVideoDimensionSafe(int width, int height) {
     // libmov 将有符号 int 类型的视频宽高左移 16 位写入 16.16 定点数字段，超出此范围会触发未定义行为。
     // libmov shifts signed int video dimensions left by 16 for a 16.16 fixed-point field; values outside this range cause undefined behavior.
-    constexpr int kMaxMovVideoDimension = std::numeric_limits<int>::max() >> 16;
     return width >= 0 && height >= 0 &&
            width <= kMaxMovVideoDimension && height <= kMaxMovVideoDimension;
 }
@@ -195,7 +196,8 @@ bool MP4MuxerInterface::addTrack(const Track::Ptr &track) {
         auto width = video_track->getVideoWidth();
         auto height = video_track->getVideoHeight();
         if (!isMovVideoDimensionSafe(width, height)) {
-            WarnL << "Unsafe MP4 video dimensions: " << width << "x" << height;
+            WarnL << "Unsafe MP4 video dimensions: " << width << "x" << height
+                  << ", safe range for each dimension: [0, " << kMaxMovVideoDimension << "]";
             return false;
         }
         auto track_id = mp4_writer_add_video(_mov_writter.get(), mp4_object, width, height, extra_data, extra_size);
