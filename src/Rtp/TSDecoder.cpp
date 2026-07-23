@@ -19,8 +19,7 @@ void TSSegment::setOnSegment(TSSegment::onSegment cb) {
     _onSegment = std::move(cb);
 }
 
-void TSSegment::reset() {
-    HttpRequestSplitter::reset();
+void TSSegment::onReset() {
     _is_synced = false;
 }
 

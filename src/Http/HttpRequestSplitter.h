@@ -68,6 +68,8 @@ public:
     void setMaxCacheSize(size_t max_cache_size);
 
 protected:
+    virtual void onReset() {};
+
     /**
      * 收到请求头
      * @param data 请求头数据
