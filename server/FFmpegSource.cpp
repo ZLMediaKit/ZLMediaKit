@@ -449,6 +449,36 @@ static bool makeSnapAsync(const string &play_url, const string &save_path, float
 
 #endif
 
+static bool formatSnapCommand(const string &snap_template, const string &ffmpeg_bin, const string &play_url,
+                              const string &save_path, string &command) {
+    if (!start_with(snap_template, "%s")) {
+        return false;
+    }
+
+    const string *values[] = { &ffmpeg_bin, &play_url, &save_path };
+    size_t placeholder_count = 0;
+    command.clear();
+    command.reserve(snap_template.size() + ffmpeg_bin.size() + play_url.size() + save_path.size());
+    for (size_t i = 0; i < snap_template.size(); ++i) {
+        if (snap_template[i] != '%') {
+            command.push_back(snap_template[i]);
+            continue;
+        }
+        if (++i >= snap_template.size()) {
+            return false;
+        }
+        if (snap_template[i] == '%') {
+            command.push_back('%');
+            continue;
+        }
+        if (snap_template[i] != 's' || placeholder_count >= 3) {
+            return false;
+        }
+        command.append(*values[placeholder_count++]);
+    }
+    return placeholder_count == 3;
+}
+
 void FFmpegSnap::makeSnap(bool async, const string &play_url, const string &save_path, float timeout_sec, const onSnap &cb) {
 #if defined(ENABLE_FFMPEG)
     if (async) {
@@ -461,35 +491,16 @@ void FFmpegSnap::makeSnap(bool async, const string &play_url, const string &save
     GET_CONFIG(string, ffmpeg_bin, FFmpeg::kBin);
     GET_CONFIG(string, ffmpeg_snap, FFmpeg::kSnap);
     GET_CONFIG(string, ffmpeg_log, FFmpeg::kLog);
-    // The template is passed to snprintf and the resulting command is executed.
-    // Only accept the documented three string placeholders, with the executable
-    // as the first argument. This also rejects dangerous format specifiers such
-    // as %n and prevents a configured template from selecting another program.
-    size_t placeholder_count = 0;
-    bool valid_template = start_with(ffmpeg_snap, "%s");
-    for (size_t i = 0; valid_template && i < ffmpeg_snap.size(); ++i) {
-        if (ffmpeg_snap[i] != '%') {
-            continue;
-        }
-        if (++i >= ffmpeg_snap.size()) {
-            valid_template = false;
-            break;
-        }
-        if (ffmpeg_snap[i] == '%') {
-            continue;
-        }
-        if (ffmpeg_snap[i] != 's') {
-            valid_template = false;
-            break;
-        }
-        ++placeholder_count;
-    }
-    if (!valid_template || placeholder_count != 3) {
+    string cmd;
+    if (!formatSnapCommand(ffmpeg_snap, File::absolutePath("", ffmpeg_bin), play_url, save_path, cmd)) {
         cb(false, "invalid ffmpeg snap template: expected exactly three '%s' placeholders and no other format specifiers");
         return;
     }
+    // Capture the formatted command and log path by value. GET_CONFIG returns
+    // references whose contents may change on a concurrent configuration reload.
+    auto log_file = ffmpeg_log.empty() ? ffmpeg_log : File::absolutePath("", ffmpeg_log);
     Ticker ticker;
-    WorkThreadPool::Instance().getPoller()->async([timeout_sec, play_url, save_path, cb, ticker]() {
+    WorkThreadPool::Instance().getPoller()->async([timeout_sec, save_path, cb, ticker, cmd, log_file]() {
         auto elapsed_ms = ticker.elapsedTime();
         if (elapsed_ms > timeout_sec * 1000) {
             // 超时，后台线程负载太高，当代太久才启动该任务  [AUTO-TRANSLATED:815606d6]
@@ -497,11 +508,7 @@ void FFmpegSnap::makeSnap(bool async, const string &play_url, const string &save
             cb(false, "wait work poller schedule snap task timeout");
             return;
         }
-        char cmd[2048] = { 0 };
-        snprintf(cmd, sizeof(cmd), ffmpeg_snap.data(), File::absolutePath("", ffmpeg_bin).data(), play_url.data(), save_path.data());
-
         std::shared_ptr<Process> process = std::make_shared<Process>();
-        auto log_file = ffmpeg_log.empty() ? ffmpeg_log : File::absolutePath("", ffmpeg_log);
         process->run(cmd, log_file);
 
         // 定时器延时应该减去后台任务启动的延时  [AUTO-TRANSLATED:7d224687]
