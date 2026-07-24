@@ -49,6 +49,7 @@ public:
     TSDecoder();
     ~TSDecoder();
     ssize_t input(const uint8_t* data, size_t bytes) override ;
+    void clearInputCache() override;
 
 private:
     TSSegment _ts_segment;
