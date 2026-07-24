@@ -461,6 +461,33 @@ void FFmpegSnap::makeSnap(bool async, const string &play_url, const string &save
     GET_CONFIG(string, ffmpeg_bin, FFmpeg::kBin);
     GET_CONFIG(string, ffmpeg_snap, FFmpeg::kSnap);
     GET_CONFIG(string, ffmpeg_log, FFmpeg::kLog);
+    // The template is passed to snprintf and the resulting command is executed.
+    // Only accept the documented three string placeholders, with the executable
+    // as the first argument. This also rejects dangerous format specifiers such
+    // as %n and prevents a configured template from selecting another program.
+    size_t placeholder_count = 0;
+    bool valid_template = start_with(ffmpeg_snap, "%s");
+    for (size_t i = 0; valid_template && i < ffmpeg_snap.size(); ++i) {
+        if (ffmpeg_snap[i] != '%') {
+            continue;
+        }
+        if (++i >= ffmpeg_snap.size()) {
+            valid_template = false;
+            break;
+        }
+        if (ffmpeg_snap[i] == '%') {
+            continue;
+        }
+        if (ffmpeg_snap[i] != 's') {
+            valid_template = false;
+            break;
+        }
+        ++placeholder_count;
+    }
+    if (!valid_template || placeholder_count != 3) {
+        cb(false, "invalid ffmpeg snap template: expected exactly three '%s' placeholders and no other format specifiers");
+        return;
+    }
     Ticker ticker;
     WorkThreadPool::Instance().getPoller()->async([timeout_sec, play_url, save_path, cb, ticker]() {
         auto elapsed_ms = ticker.elapsedTime();
