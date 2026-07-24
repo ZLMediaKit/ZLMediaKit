@@ -679,7 +679,7 @@ AMFValue AMFDecoder::load_ecma() {
 }
 AMFValue AMFDecoder::load_arr() {
     DepthGuard depth_guard(*this);
-    /* ECMA array is the same as object, with 4 extra zero bytes */
+    /* Strict array is a count-prefixed list of AMF values. */
     AMFValue object(AMF_STRICT_ARRAY);
     if (pop_front() != AMF0_STRICT_ARRAY) {
         throw std::runtime_error("Expected an STRICT array");
