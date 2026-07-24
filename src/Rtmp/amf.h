@@ -89,6 +89,15 @@ public:
     TP load();
 
 private:
+    class DepthGuard {
+    public:
+        explicit DepthGuard(AMFDecoder &decoder);
+        ~DepthGuard();
+
+    private:
+        AMFDecoder &_decoder;
+    };
+
     std::string load_key();
     AMFValue load_object();
     AMFValue load_ecma();
@@ -100,6 +109,9 @@ private:
     const toolkit::BufferLikeString &buf;
     size_t pos;
     int version;
+    size_t depth = 0;
+
+    static constexpr size_t kMaxDepth = 64;
 };
 
 class AMFEncoder {
