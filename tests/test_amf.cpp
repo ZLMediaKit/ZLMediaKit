@@ -8,7 +8,7 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
-#include <cassert>
+#include <iostream>
 #include <stdexcept>
 #include <string>
 
@@ -34,17 +34,24 @@ int main() {
     {
         BufferLikeString input(make_nested_object(64));
         AMFDecoder decoder(input, 0);
-        assert(decoder.load<AMFValue>().type() == AMF_OBJECT);
+        if (decoder.load<AMFValue>().type() != AMF_OBJECT) {
+            cerr << "AMF object at the nesting limit was not decoded" << endl;
+            return 1;
+        }
     }
 
     {
         BufferLikeString input(make_nested_object(65));
         AMFDecoder decoder(input, 0);
+        bool depth_rejected = false;
         try {
             decoder.load<AMFValue>();
-            assert(false);
         } catch (const runtime_error &ex) {
-            assert(string(ex.what()) == "Maximum AMF nesting depth exceeded");
+            depth_rejected = string(ex.what()) == "Maximum AMF nesting depth exceeded";
+        }
+        if (!depth_rejected) {
+            cerr << "AMF object beyond the nesting limit was not rejected" << endl;
+            return 2;
         }
     }
 

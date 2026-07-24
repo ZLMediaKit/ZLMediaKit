@@ -93,6 +93,10 @@ private:
     public:
         explicit DepthGuard(AMFDecoder &decoder);
         ~DepthGuard();
+        DepthGuard(const DepthGuard &) = delete;
+        DepthGuard(DepthGuard &&) = delete;
+        DepthGuard &operator=(const DepthGuard &) = delete;
+        DepthGuard &operator=(DepthGuard &&) = delete;
 
     private:
         AMFDecoder &_decoder;
