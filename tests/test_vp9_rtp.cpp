@@ -59,6 +59,31 @@ void runCase(const ParseCase &test) {
     }
 }
 
+void testParseFailureDropsCurrentFrame() {
+    VP9RtpDecoder decoder;
+    std::vector<std::string> frames;
+    decoder.addDelegate([&](const Frame::Ptr &frame) {
+        frames.emplace_back(frame->data(), frame->size());
+        return true;
+    });
+
+    RtpInfo rtp_info(0x12345678, 1400, 90000, 98, 0, 0);
+    auto input = [&](const std::vector<unsigned char> &payload, bool mark) {
+        auto rtp = rtp_info.makeRtp(TrackVideo, payload.data(), payload.size(), mark, 100);
+        require(rtp != nullptr, "failed to create RTP packet for parse-failure recovery test");
+        decoder.inputRtp(rtp, false);
+    };
+
+    input({ 0x08, 0x80, 0x11 }, false); // B: begin assembling a frame.
+    input({ 0x50, 0x03 }, false);       // Truncated P_DIFF chain.
+    input({ 0x04, 0x22 }, true);        // E: must not emit the incomplete frame.
+    require(frames.empty(), "parse failure emitted a partial VP9 frame");
+
+    input({ 0x0C, 0x80, 0x33 }, true); // A new complete frame must recover normally.
+    require(frames.size() == 1, "decoder did not recover after a VP9 parse failure");
+    require(frames[0] == std::string("\x80\x33", 2), "recovered VP9 frame payload does not match");
+}
+
 } // namespace
 
 int main() {
@@ -94,5 +119,6 @@ int main() {
 
     runCase({ "descriptor only", { 0x00 }, -1 });
     runCase({ "layer descriptor only", { 0x30, 0x00 }, -1 });
+    testParseFailureDropsCurrentFrame();
     return 0;
 }
