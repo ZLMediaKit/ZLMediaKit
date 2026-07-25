@@ -13,8 +13,8 @@
 
 #include <string>
 #include <deque>
-#include <tuple>
 #include <cstdint>
+#include <utility>
 
 namespace mediakit {
 
@@ -25,14 +25,17 @@ public:
      * @param seg_duration 切片文件长度
      * @param seg_number 切片个数
      * @param seg_keep 是否保留切片文件
+     * @param seg_max_duration 异常流强制开片或切片的绝对最大时长，0表示关闭
      * @param is_fmp4 Use fmp4 or mpegts
      * @param seg_duration Segment file length
      * @param seg_number Number of segments
      * @param seg_keep Whether to keep the segment file
+     * @param seg_max_duration Absolute hard limit for force-opening or rotating abnormal streams; 0 disables it
      
      * [AUTO-TRANSLATED:260bbca3]
      */
-    HlsMaker(bool is_fmp4 = false, float seg_duration = 5, uint32_t seg_number = 3, bool seg_keep = false);
+    HlsMaker(bool is_fmp4 = false, float seg_duration = 5, uint32_t seg_number = 3, bool seg_keep = false,
+             float seg_max_duration = 0);
     virtual ~HlsMaker() = default;
 
     /**
@@ -161,6 +164,28 @@ protected:
     virtual void onFlushLastSegment(uint64_t duration_ms) {};
 
     /**
+     * 上一个切片写入完成，并提供生成归档索引所需的时间线元数据。
+     * 默认转发到旧回调，保持已有派生类的源代码兼容性。
+     * @param duration_ms 切片时长，单位毫秒
+     * @param discontinuity 该切片前是否存在时间线中断
+     * @param init_segment fMP4 初始化段 URI；TS 切片为空
+     * The previous segment is complete, with timeline metadata required by archive indexes.
+     * The default implementation forwards to the legacy callback for source compatibility.
+     * @param duration_ms Segment duration in milliseconds
+     * @param discontinuity Whether a timeline discontinuity precedes this segment
+     * @param init_segment fMP4 initialization segment URI; empty for TS
+     */
+    virtual void onFlushLastSegment(uint64_t duration_ms, bool discontinuity, const std::string &init_segment) {
+        onFlushLastSegment(duration_ms);
+    }
+
+    /**
+     * 获取当前 fMP4 初始化段 URI。
+     * Get the current fMP4 initialization segment URI.
+     */
+    const std::string &getCurrentInitSegment() const;
+
+    /**
      * 关闭上个ts切片并且写入m3u8索引
      * @param eof HLS直播是否已结束
      * Close the previous ts segment and write the m3u8 index
@@ -190,25 +215,86 @@ private:
     void delOldSegment();
 
     /**
-     * 添加新的ts切片
-     * @param timestamp
-     * Add new ts segments
-     * @param timestamp
-     
-     * [AUTO-TRANSLATED:e321e9f0]
+     * 打开新的切片
+     * @param timestamp 切片起始时间戳
+     * @param fast_register_pending 是否允许首片在下一个关键帧快速结束
+     * Open a new segment
+     * @param timestamp Segment start timestamp
+     * @param fast_register_pending Whether the first segment may end early at the next key frame
      */
-    void addNewSegment(uint64_t timestamp);
+    void openSegment(uint64_t timestamp, bool fast_register_pending);
+
+    /**
+     * 重置当前切片状态，但保留历史切片列表和文件序号
+     * Reset the current segment state while preserving segment history and file sequence
+     */
+    void resetSegmentState();
+
+    /**
+     * 判断当前是否存在已打开的切片
+     * Check whether a segment is currently open
+     */
+    bool segmentOpened() const;
+
+    /**
+     * 判断等待阶段是否应该开启首片
+     * Decide whether to open the first segment while waiting
+     */
+    bool shouldOpenFirstSegment(uint64_t timestamp, bool key_packet);
+
+    /**
+     * 判断当前切片是否应该轮转
+     * Decide whether the current segment should be rotated
+     */
+    bool shouldRotateSegment(uint64_t timestamp, bool key_packet) const;
 
 private:
+    struct SegmentInfo {
+        SegmentInfo(uint64_t duration, std::string file, std::string init, bool discontinuous)
+            : duration_ms(duration)
+            , file_name(std::move(file))
+            , init_segment(std::move(init))
+            , discontinuity(discontinuous) {}
+
+        uint64_t duration_ms;
+        std::string file_name;
+        std::string init_segment;
+        bool discontinuity;
+    };
+
+    // 时间戳 0 是合法值，使用最大值表示“未设置”。
+    // Timestamp 0 is valid, so use the maximum value as the unset sentinel.
+    static constexpr uint64_t kInvalidStamp = (uint64_t)-1;
+
     bool _is_fmp4 = false;
-    float _seg_duration = 0;
+    uint64_t _seg_duration_ms = 0;
+    uint64_t _seg_max_duration_ms = 0;
     uint32_t _seg_number = 0;
     bool _seg_keep = false;
     uint64_t _last_timestamp = 0;
-    uint64_t _last_seg_timestamp = 0;
+    uint64_t _segment_start_stamp = kInvalidStamp;
+    uint64_t _pending_first_stamp = kInvalidStamp;
     uint64_t _file_index = 0;
+    // 已从内部历史列表移除的 discontinuity 数量。
+    // Number of discontinuities removed from the internal segment history.
+    uint64_t _discontinuity_sequence = 0;
     std::string _last_file_name;
-    std::deque<std::tuple<int,std::string> > _seg_dur_list;
+    // 每个已完成切片都固化自己的时长、文件名、初始化段和时间线状态。
+    // Each completed segment owns its duration, file name, initialization segment, and timeline state.
+    std::deque<SegmentInfo> _seg_dur_list;
+    // 当前 fMP4 track generation 对应的初始化段 URI；clear() 后仍然有效。
+    // Initialization segment URI for the current fMP4 track generation; preserved by clear().
+    std::string _current_init_segment;
+    // 当前已打开切片在打开时固化的初始化段 URI。
+    // Initialization segment URI captured when the current segment was opened.
+    std::string _segment_init_segment;
+    uint64_t _init_segment_index = 0;
+    // 当前已打开或下一次成功打开的切片是否属于新时间线。
+    // Whether the current open segment, or the next successfully opened one, starts a new timeline.
+    bool _discontinuity = false;
+    // 首片由关键帧开启时保持为 true，直到该片因任意原因结束。
+    // Remains true when the first segment starts at a key frame, until that segment ends for any reason.
+    bool _fast_register_pending = false;
 };
 
 }//namespace mediakit

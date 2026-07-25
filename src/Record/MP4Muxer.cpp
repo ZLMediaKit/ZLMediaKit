@@ -227,9 +227,14 @@ const string &MP4MuxerMemory::getInitSegment() {
 }
 
 void MP4MuxerMemory::resetTracks() {
+    // writer 析构只会把尾片写入旧内存文件，必须在替换内存文件前显式交付。
+    // Writer destruction only saves into the old memory file, so emit the tail before replacing it.
+    flush();
     MP4MuxerInterface::resetTracks();
     _memory_file = std::make_shared<MP4FileMemory>();
     _init_segment.clear();
+    _key_frame = false;
+    _last_dst = 0;
 }
 
 bool MP4MuxerMemory::inputFrame(const Frame::Ptr &frame) {
@@ -239,17 +244,7 @@ bool MP4MuxerMemory::inputFrame(const Frame::Ptr &frame) {
         return false;
     }
 
-    // flush切片  [AUTO-TRANSLATED:c4358dce]
-    // Flush segment
-    saveSegment();
-
-    auto data = _memory_file->getAndClearMemory();
-    if (!data.empty()) {
-        // 输出切片数据  [AUTO-TRANSLATED:4bc994c9]
-        // Output segment data
-        onSegmentData(std::move(data), _last_dst, _key_frame);
-        _key_frame = false;
-    }
+    flushPendingSegment();
 
     // only audio all frame is key frame
     if (frame->keyFrame() || !haveVideo()) {
@@ -259,6 +254,30 @@ bool MP4MuxerMemory::inputFrame(const Frame::Ptr &frame) {
         _last_dst = frame->dts();
     }
     return MP4MuxerInterface::inputFrame(frame);
+}
+
+void MP4MuxerMemory::flush() {
+    // 先把 H264/H265 的 FrameMerger 尾帧写入 libmov，再保存并交付 fragment。
+    // Write the H264/H265 FrameMerger tail into libmov before saving and emitting the fragment.
+    MP4MuxerInterface::flush();
+    flushPendingSegment();
+}
+
+void MP4MuxerMemory::flushPendingSegment() {
+    if (_init_segment.empty()) {
+        // 未创建 init segment 时 inputFrame 不接受媒体帧，也就没有可交付的 fragment。
+        // Without an init segment inputFrame rejects media frames, so no fragment can be pending.
+        return;
+    }
+
+    saveSegment();
+    auto data = _memory_file->getAndClearMemory();
+    if (!data.empty()) {
+        // 输出切片数据  [AUTO-TRANSLATED:4bc994c9]
+        // Output segment data
+        onSegmentData(std::move(data), _last_dst, _key_frame);
+        _key_frame = false;
+    }
 }
 
 } // namespace mediakit

@@ -10,7 +10,10 @@
 
 #include <ctime>
 #include <iomanip> 
+#include <mutex>
+#include <set>
 #include <sys/stat.h>
+#include <unordered_map>
 #include "HlsMakerImp.h"
 #include "Util/util.h"
 #include "Util/uv_errno.h"
@@ -22,6 +25,86 @@ using namespace toolkit;
 
 namespace mediakit {
 
+namespace {
+
+void clearHls(const std::list<std::string> &files) {
+    for (auto &file : files) {
+        File::delete_file(file);
+    }
+    File::deleteEmptyDir(File::parentDir(files.back()));
+}
+
+// 延时任务与同路径新会话共享一次性票据，确保旧文件只被删除一次。
+// The delayed task and a replacement session share a once-only ticket so old files are deleted exactly once.
+struct CleanupTicket {
+    explicit CleanupTicket(std::list<std::string> files) : files(std::move(files)) {}
+
+    std::once_flag once;
+    std::list<std::string> files;
+};
+
+// 同一路径理论上只有一个 recorder；保留列表仍可安全容纳尚未注销的历史任务。
+// A path normally has one recorder; the list also safely retains historical tasks not yet unregistered.
+struct CleanupRegistry {
+    std::mutex mutex;
+    std::unordered_map<std::string, std::list<std::shared_ptr<CleanupTicket>>> pending;
+};
+
+std::shared_ptr<CleanupRegistry> getCleanupRegistry() {
+    static auto registry = std::make_shared<CleanupRegistry>();
+    return registry;
+}
+
+void runCleanup(const std::shared_ptr<CleanupTicket> &ticket) {
+    if (!ticket) {
+        return;
+    }
+    std::call_once(ticket->once, [&ticket]() { clearHls(ticket->files); });
+}
+
+void unregisterCleanup(const std::shared_ptr<CleanupRegistry> &registry, const std::string &path,
+                       const std::shared_ptr<CleanupTicket> &ticket) {
+    std::lock_guard<std::mutex> lock(registry->mutex);
+    auto it = registry->pending.find(path);
+    if (it == registry->pending.end()) {
+        return;
+    }
+    it->second.remove(ticket);
+    if (it->second.empty()) {
+        registry->pending.erase(it);
+    }
+}
+
+void drainPendingCleanup(const std::string &path) {
+    auto registry = getCleanupRegistry();
+    std::list<std::shared_ptr<CleanupTicket>> tickets;
+    {
+        std::lock_guard<std::mutex> lock(registry->mutex);
+        auto it = registry->pending.find(path);
+        if (it == registry->pending.end()) {
+            return;
+        }
+        tickets = std::move(it->second);
+        registry->pending.erase(it);
+    }
+    // 新会话必须等旧文件清理完成后再开始写入；延时回调随后由 call_once 保证不再重复删除。
+    // A replacement waits for old-file cleanup before writing; call_once makes the delayed callback a no-op later.
+    for (auto &ticket : tickets) {
+        runCleanup(ticket);
+    }
+}
+
+std::shared_ptr<CleanupTicket> registerCleanup(const std::string &path, std::list<std::string> files,
+                                               std::shared_ptr<CleanupRegistry> &registry) {
+    registry = getCleanupRegistry();
+    auto ticket = std::make_shared<CleanupTicket>(std::move(files));
+    std::lock_guard<std::mutex> lock(registry->mutex);
+    registry->pending[path].emplace_back(ticket);
+    return ticket;
+}
+
+} // namespace
+
 std::string getDelayPath(const std::string& originalPath) {
     std::size_t pos = originalPath.find(".m3u8");
     if (pos != std::string::npos) {
@@ -31,11 +114,13 @@ std::string getDelayPath(const std::string& originalPath) {
 }
 
 HlsMakerImp::HlsMakerImp(bool is_fmp4, const string &m3u8_file, const string &params, uint32_t bufSize, float seg_duration,
-                         uint32_t seg_number, bool seg_keep, const string &fmp4_seg_ext) : HlsMaker(is_fmp4, seg_duration, seg_number, seg_keep) {
+                         uint32_t seg_number, bool seg_keep, const string &fmp4_seg_ext, float seg_max_duration)
+    : HlsMaker(is_fmp4, seg_duration, seg_number, seg_keep, seg_max_duration) {
     _poller = EventPollerPool::Instance().getPoller();
     _path_prefix = m3u8_file.substr(0, m3u8_file.rfind('/'));
     _path_hls = m3u8_file;
     _path_hls_delay = getDelayPath(m3u8_file);
+    drainPendingCleanup(_path_hls);
     _params = params;
     _buf_size = bufSize;
     // 兼容用户配置不带前导点的扩展名(例如 m4s)，统一补上"."  [AUTO-TRANSLATED]
@@ -63,13 +148,6 @@ void HlsMakerImp::clearCache() {
     clearCache(true, false);
 }
 
-static void clearHls(const std::list<std::string> &files) {
-    for (auto &file : files) {
-        File::delete_file(file);
-    }
-    File::deleteEmptyDir(File::parentDir(files.back()));
-}
-
 void HlsMakerImp::clearCache(bool immediately, bool eof) {
     // 录制完了  [AUTO-TRANSLATED:5d3bfbeb]
     // Recording finished
@@ -82,11 +160,14 @@ void HlsMakerImp::clearCache(bool immediately, bool eof) {
         std::list<std::string> lst;
         lst.emplace_back(_path_hls);
         lst.emplace_back(_path_hls_delay);
-        if (!_path_init.empty() && eof) {
-            lst.emplace_back(_path_init);
+        auto &current_init_segment = getCurrentInitSegment();
+        for (auto &pr : _init_segment_paths) {
+            if (eof || pr.first != current_init_segment) {
+                lst.emplace_back(pr.second);
+            }
         }
-        for (auto &pr : _segment_file_paths) {
-            lst.emplace_back(std::move(pr.second));
+        for (auto &pr : _segment_files) {
+            lst.emplace_back(std::move(pr.second.file_path));
         }
 
         // hls直播才删除文件  [AUTO-TRANSLATED:81d2aaa5]
@@ -95,8 +176,12 @@ void HlsMakerImp::clearCache(bool immediately, bool eof) {
         if (!delay || immediately) {
             clearHls(lst);
         } else {
-            _poller->doDelayTask(delay * 1000, [lst]() {
-                clearHls(lst);
+            std::shared_ptr<CleanupRegistry> registry;
+            auto cleanup_path = _path_hls;
+            auto ticket = registerCleanup(cleanup_path, std::move(lst), registry);
+            _poller->doDelayTask(delay * 1000, [registry, cleanup_path, ticket]() {
+                runCleanup(ticket);
+                unregisterCleanup(registry, cleanup_path, ticket);
                 return 0;
             });
         }
@@ -104,24 +189,40 @@ void HlsMakerImp::clearCache(bool immediately, bool eof) {
 
     clear();
     _file = nullptr;
-    _segment_file_paths.clear();
+    _segment_files.clear();
+    _init_segment_last_indexes.clear();
+    if (eof) {
+        _init_segment_paths.clear();
+        _init_segments.clear();
+    } else {
+        auto &current_init_segment = getCurrentInitSegment();
+        for (auto it = _init_segment_paths.begin(); it != _init_segment_paths.end();) {
+            if (it->first == current_init_segment) {
+                ++it;
+            } else {
+                it = _init_segment_paths.erase(it);
+            }
+        }
+        for (auto it = _init_segments.begin(); it != _init_segments.end();) {
+            if (it->first == current_init_segment) {
+                ++it;
+            } else {
+                it = _init_segments.erase(it);
+            }
+        }
+    }
 }
 
-/** 写入该目录的init.mp4文件以及m3u8文件 **/
+/** 写入该目录引用的初始化段以及m3u8文件 **/
 void HlsMakerImp::saveCurrentDir() {
     if (_current_dir.empty() || _current_dir_seg_list.empty()) {
         return;
     }
-    if (isFmp4()) {
-        // 写入init.mp4文件
-        File::saveFile(_current_dir_init_file, _path_prefix + "/" + _current_dir + "init.mp4");
-    }
 
-    int maxSegmentDuration = 0;
-    for (auto &tp : _current_dir_seg_list) {
-        int dur = std::get<0>(tp);
-        if (dur > maxSegmentDuration) {
-            maxSegmentDuration = dur;
+    uint64_t max_segment_duration = 0;
+    for (auto &segment : _current_dir_seg_list) {
+        if (segment.duration_ms > max_segment_duration) {
+            max_segment_duration = segment.duration_ms;
         }
     }
 
@@ -130,14 +231,33 @@ void HlsMakerImp::saveCurrentDir() {
     index_str += "#EXTM3U\n";
     index_str += (isFmp4() ? "#EXT-X-VERSION:7\n" : "#EXT-X-VERSION:4\n");
     index_str += "#EXT-X-ALLOW-CACHE:YES\n";
-    index_str += "#EXT-X-TARGETDURATION:" + std::to_string((maxSegmentDuration + 999) / 1000) + "\n";
+    auto target_duration = max_segment_duration / 1000 + (max_segment_duration % 1000 != 0);
+    index_str += "#EXT-X-TARGETDURATION:" + std::to_string(target_duration) + "\n";
     index_str += "#EXT-X-MEDIA-SEQUENCE:0\n";
-    if (isFmp4()) {
-        index_str += "#EXT-X-MAP:URI=\"init.mp4\"\n";
-    }
+
     stringstream ss;
-    for (auto &t : _current_dir_seg_list) {
-        ss << "#EXTINF:" << std::setprecision(3) << std::get<0>(t) / 1000.0 << ",\n" << std::get<1>(t) << "\n";
+    string last_init_segment;
+    set<string> saved_init_segments;
+    for (auto &segment : _current_dir_seg_list) {
+        if (segment.discontinuity) {
+            ss << "#EXT-X-DISCONTINUITY\n";
+        }
+        if (isFmp4() && segment.init_segment != last_init_segment) {
+            ss << "#EXT-X-MAP:URI=\"" << segment.init_segment << "\"\n";
+            last_init_segment = segment.init_segment;
+        }
+        if (isFmp4() && saved_init_segments.emplace(segment.init_segment).second) {
+            auto it = _init_segments.find(segment.init_segment);
+            if (it == _init_segments.end()) {
+                WarnL << "Missing fMP4 init segment: " << segment.init_segment;
+            } else {
+                auto path = _path_prefix + "/" + _current_dir + segment.init_segment;
+                if (!File::saveFile(it->second, path)) {
+                    WarnL << "Save fMP4 init segment failed: " << path;
+                }
+            }
+        }
+        ss << "#EXTINF:" << std::setprecision(3) << segment.duration_ms / 1000.0 << ",\n" << segment.file_name << "\n";
     }
     _current_dir_seg_list.clear();
     index_str += ss.str();
@@ -145,6 +265,17 @@ void HlsMakerImp::saveCurrentDir() {
 
     /** 写入该目录的m3u8文件 **/
     File::saveFile(index_str, _path_prefix + "/" + _current_dir + (isFmp4() ? "vod.fmp4.m3u8" : "vod.m3u8"));
+
+    // 已归档的旧 generation 不再需要常驻内存；当前 generation 可能继续用于下一个小时目录。
+    // Archived generations need not stay in memory; the current one may still be used by the next hourly directory.
+    auto current_init_segment = getCurrentInitSegment();
+    for (auto it = _init_segments.begin(); it != _init_segments.end();) {
+        if (it->first == current_init_segment) {
+            ++it;
+        } else {
+            it = _init_segments.erase(it);
+        }
+    }
 }
 
 string HlsMakerImp::onOpenSegment(uint64_t index) {
@@ -156,9 +287,18 @@ string HlsMakerImp::onOpenSegment(uint64_t index) {
         auto current_dir = strDate + "/" + strHour + "/";
         segment_name = current_dir + strTime + "_" + std::to_string(index) + (isFmp4() ? _fmp4_seg_ext : ".ts");
         segment_path = _path_prefix + "/" + segment_name;
+        auto init_segment = isFmp4() ? getCurrentInitSegment() : string();
+        if (isFmp4() && (!isLive() || isKeep()) && init_segment == _last_written_init_segment) {
+            _last_written_init_segment_referenced = true;
+        }
         if (isLive()) {
             // 直播
-            _segment_file_paths.emplace(index, segment_path);
+            _segment_files.emplace(index, SegmentFileInfo(segment_path, init_segment));
+            if (isFmp4()) {
+                // segment index 单调递增，记录最后引用即可确定该 generation 的物理回收边界。
+                // Segment indexes are monotonic, so the last reference identifies the physical cleanup boundary.
+                _init_segment_last_indexes[init_segment] = index;
+            }
         }
         if (!isLive() || isKeep()) {
             // 目录将发生变更，保留ts切片时，每个目录都生成一个m3u8文件
@@ -187,25 +327,72 @@ string HlsMakerImp::onOpenSegment(uint64_t index) {
 }
 
 void HlsMakerImp::onDelSegment(uint64_t index) {
-    auto it = _segment_file_paths.find(index);
-    if (it == _segment_file_paths.end()) {
+    auto it = _segment_files.find(index);
+    if (it == _segment_files.end()) {
         return;
     }
-    File::delete_file(it->second.data(), true);
-    _segment_file_paths.erase(it);
+    auto init_segment = std::move(it->second.init_segment);
+    File::delete_file(it->second.file_path.data(), true);
+    _segment_files.erase(it);
+
+    auto last_it = _init_segment_last_indexes.find(init_segment);
+    if (last_it != _init_segment_last_indexes.end() && last_it->second == index) {
+        _init_segment_last_indexes.erase(last_it);
+    }
+    cleanupUnusedInitSegments();
 }
 
 void HlsMakerImp::onWriteInitSegment(const char *data, size_t len) {
-    if (!isLive() || isKeep()) {
-        _current_dir_init_file.assign(data, len);
-    }
-    string init_seg_path = _path_prefix + "/init.mp4";
+    auto &init_segment = getCurrentInitSegment();
+    string init_seg_path = _path_prefix + "/" + init_segment;
     auto file = makeFile(init_seg_path);
     if (file) {
         fwrite(data, len, 1, file.get());
-        _path_init = std::move(init_seg_path);
+        if (!isLive() || isKeep()) {
+            cleanupPreviousUnusedInitSegment(init_segment);
+            _init_segments[init_segment].assign(data, len);
+            _last_written_init_segment = init_segment;
+            _last_written_init_segment_referenced = false;
+        } else {
+            // 路径表只服务 live 非 keep 的物理文件回收；VOD/keep 无需永久保存历史路径。
+            // The path map only serves physical cleanup for non-kept live output; VOD/keep need no path history.
+            _init_segment_paths[init_segment] = std::move(init_seg_path);
+        }
+        cleanupUnusedInitSegments();
     } else {
         WarnL << "Create file failed," << init_seg_path << " " << get_uv_errmsg();
+    }
+}
+
+void HlsMakerImp::cleanupPreviousUnusedInitSegment(const std::string &next_init_segment) {
+    if (_last_written_init_segment.empty() || _last_written_init_segment == next_init_segment
+        || _last_written_init_segment_referenced) {
+        return;
+    }
+
+    // 没有媒体切片引用的 init 无需作为历史 generation 保留。
+    // An init never referenced by a media segment need not be retained as a historical generation.
+    auto previous_init_path = _path_prefix + "/" + _last_written_init_segment;
+    File::delete_file(previous_init_path.data(), true);
+    _init_segments.erase(_last_written_init_segment);
+}
+
+void HlsMakerImp::cleanupUnusedInitSegments() {
+    if (!isFmp4() || !isLive() || isKeep()) {
+        return;
+    }
+
+    auto &current_init_segment = getCurrentInitSegment();
+    for (auto it = _init_segment_paths.begin(); it != _init_segment_paths.end();) {
+        if (it->first == current_init_segment || _init_segment_last_indexes.count(it->first)) {
+            ++it;
+            continue;
+        }
+        // 与最后一个物理媒体片同步回收，避免破坏 delay/retain 窗口内的旧 playlist。
+        // Reclaim with the last physical media segment so old playlists remain valid through delay/retain.
+        File::delete_file(it->second.data(), true);
+        _init_segments.erase(it->first);
+        it = _init_segment_paths.erase(it);
     }
 }
 
@@ -232,12 +419,16 @@ void HlsMakerImp::onWriteHls(const std::string &data, bool include_delay) {
     }
 }
 
-void HlsMakerImp::onFlushLastSegment(uint64_t duration_ms) {
+void HlsMakerImp::onFlushLastSegment(uint64_t duration_ms, bool discontinuity, const std::string &init_segment) {
     // 关闭并flush文件到磁盘  [AUTO-TRANSLATED:9798ec4d]
     // Close and flush file to disk
     _file = nullptr;
     if (!isLive() || isKeep()) {
-        _current_dir_seg_list.emplace_back(duration_ms, _info.file_name.erase(0, _current_dir.size()));
+        auto file_name = _info.file_name;
+        if (file_name.compare(0, _current_dir.size(), _current_dir) == 0) {
+            file_name.erase(0, _current_dir.size());
+        }
+        _current_dir_seg_list.emplace_back(duration_ms, std::move(file_name), discontinuity, init_segment);
     }
     GET_CONFIG(bool, broadcastRecordTs, Hls::kBroadcastRecordTs);
     if (broadcastRecordTs) {

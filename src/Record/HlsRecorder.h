@@ -26,10 +26,12 @@ public:
         GET_CONFIG(bool, hlsKeep, Hls::kSegmentKeep);
         GET_CONFIG(uint32_t, hlsBufSize, Hls::kFileBufSize);
         GET_CONFIG(float, hlsDuration, Hls::kSegmentDuration);
+        GET_CONFIG(float, hlsMaxDuration, Hls::kSegmentMaxDuration);
         GET_CONFIG(std::string, hlsFmp4SegExt, Hls::kFmp4SegExt);
 
         _option = option;
-        _hls = std::make_shared<HlsMakerImp>(is_fmp4, m3u8_file, params, hlsBufSize, hlsDuration, hlsNum, hlsKeep, hlsFmp4SegExt);
+        _hls = std::make_shared<HlsMakerImp>(
+            is_fmp4, m3u8_file, params, hlsBufSize, hlsDuration, hlsNum, hlsKeep, hlsFmp4SegExt, hlsMaxDuration);
         // 清空上次的残余文件  [AUTO-TRANSLATED:e16122be]
         // Clear the residual files from the last time
         _hls->clearCache();
@@ -130,6 +132,13 @@ public:
         HlsRecorderBase<MP4MuxerMemory>::addTrackCompleted();
         auto data = getInitSegment();
         _hls->inputInitSegment(data.data(), data.size());
+    }
+
+    void resetTracks() override {
+        // 先交付旧 writer 的尾片，再通知 HLS 结束旧时间线；顺序不能颠倒。
+        // Emit the old writer tail before ending the old HLS timeline; the order is required.
+        MP4MuxerMemory::resetTracks();
+        _hls->inputData(nullptr, 0, 0, false);
     }
 
 private:

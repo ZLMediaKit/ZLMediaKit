@@ -91,6 +91,9 @@ bool MpegMuxer::inputFrame(const Frame::Ptr &frame) {
 }
 
 void MpegMuxer::resetTracks() {
+    // 在销毁旧 muxer 上下文前排空 H264/H265 合帧缓存，避免 reset 丢失最后一组视频帧。
+    // Drain the H264/H265 merger before destroying the old muxer context so reset does not drop the video tail.
+    flush();
     _have_video = false;
     // 通知片段中断  [AUTO-TRANSLATED:ed3d87ba]
     // Notify fragment interruption.
