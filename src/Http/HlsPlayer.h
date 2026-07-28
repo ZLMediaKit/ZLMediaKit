@@ -33,6 +33,9 @@ public:
     void addTrackCompleted() override { _delegate.addTrackCompleted(); }
     void resetTracks() override { ((MediaSink &)_delegate).resetTracks(); }
     std::vector<Track::Ptr> getTracks(bool ready = true) const override { return _delegate.getTracks(ready); }
+    // 返回已进入媒体消费链的 frame 数，用于 HTTP-TS 输入健康检查。
+    // Return the number of frames entering the media pipeline for HTTP-TS health checks.
+    uint64_t getInputFrameCount() const { return _input_frame_count; }
     void pushTask(std::function<void()> task);
 
 private:
@@ -47,6 +50,7 @@ private:
     toolkit::Timer::Ptr _timer;
     MediaSinkDelegate _delegate;
     std::deque<std::pair<int64_t, std::function<void()> > > _frame_cache;
+    uint64_t _input_frame_count = 0;
 };
 
 class HlsPlayer: public  HttpClientImp, public PlayerBase, public HlsParser {
