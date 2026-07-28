@@ -423,7 +423,15 @@ public:
     void relayBackingData(const toolkit::Buffer::Ptr& buffer, const Pair::Ptr& pair, const sockaddr_storage& peer_addr);
 
 protected:
+    enum class AllocateRequestState {
+        NewAllocation,
+        Retransmission,
+        AllocationMismatch,
+    };
+
     void processRelayPacket(const toolkit::Buffer::Ptr &buffer, const Pair::Ptr& pair);
+    bool hasRelayedAllocation(const Pair::Ptr &pair) const;
+    AllocateRequestState classifyAllocateRequest(const StunPacket::Ptr &packet, const Pair::Ptr &pair) const;
     void handleAllocateRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair);
     void handleRefreshRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair);
     void handleCreatePermissionRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair);
@@ -449,6 +457,7 @@ protected:
         toolkit::SockUtil::SockAddrHash, toolkit::SockUtil::SockAddrEqual> _relayed_pairs;
     std::weak_ptr<Pair> _session_pair;
     uint64_t _allocation_update_time = 0;
+    std::string _allocation_transaction_id;
     std::shared_ptr<toolkit::Timer> _allocation_timer;
 };
 

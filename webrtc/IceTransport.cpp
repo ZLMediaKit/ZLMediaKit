@@ -751,6 +751,7 @@ void IceServer::releaseAllocation() {
     _channel_bindings.clear();
     _channel_binding_times.clear();
     _allocation_update_time = 0;
+    _allocation_transaction_id.clear();
 }
 
 void IceServer::checkAllocationTimeout() {
@@ -794,8 +795,29 @@ void IceServer::processRelayPacket(const Buffer::Ptr &buffer, const Pair::Ptr& p
     }
 }
 
+bool IceServer::hasRelayedAllocation(const Pair::Ptr &pair) const {
+    auto peer_addr = SockUtil::make_sockaddr(pair->get_peer_ip().data(), pair->get_peer_port());
+    return _relayed_pairs.find(peer_addr) != _relayed_pairs.end();
+}
+
+IceServer::AllocateRequestState IceServer::classifyAllocateRequest(const StunPacket::Ptr &packet,
+                                                                   const Pair::Ptr &pair) const {
+    if (!hasRelayedAllocation(pair)) {
+        return AllocateRequestState::NewAllocation;
+    }
+    return packet->getTransactionId() == _allocation_transaction_id
+               ? AllocateRequestState::Retransmission
+               : AllocateRequestState::AllocationMismatch;
+}
+
 void IceServer::handleAllocateRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair) {
     // TraceL;
+    auto request_state = classifyAllocateRequest(packet, pair);
+    if (request_state == AllocateRequestState::AllocationMismatch) {
+        sendErrorResponse(packet, pair, StunAttrErrorCode::Code::AllocationMismatch);
+        return;
+    }
+
     auto response = packet->createSuccessResponse();
     response->setUfrag(_ufrag);
     response->setPassword(_password);
@@ -814,6 +836,9 @@ void IceServer::handleAllocateRequest(const StunPacket::Ptr& packet, const Pair:
         sendErrorResponse(packet, pair, StunAttrErrorCode::Code::InsuficientCapacity);
         return;
     }
+    if (request_state == AllocateRequestState::NewAllocation) {
+        _allocation_transaction_id = packet->getTransactionId();
+    }
 
     sockaddr_storage relayed_addr = SockUtil::make_sockaddr(socket->get_local_ip().data(), socket->get_local_port());
     auto attr_xor_relayed_address = std::make_shared<StunAttrXorRelayedAddress>(response->getTransactionId());
@@ -830,7 +855,7 @@ void IceServer::handleAllocateRequest(const StunPacket::Ptr& packet, const Pair:
 void IceServer::handleRefreshRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair) {
     // TraceL;
     auto attr_lifetime_request = packet->getAttribute<StunAttrLifeTime>();
-    if (_relayed_pairs.empty()) {
+    if (!hasRelayedAllocation(pair)) {
         sendErrorResponse(packet, pair, StunAttrErrorCode::Code::AllocationMismatch);
         return;
     }
@@ -1014,7 +1039,6 @@ SocketHelper::Ptr IceServer::allocateRelayed(const Pair::Ptr& pair) {
     auto peer_addr = SockUtil::make_sockaddr(pair->get_peer_ip().data(), pair->get_peer_port());
     auto relayed_it = _relayed_pairs.find(peer_addr);
     if (relayed_it != _relayed_pairs.end()) {
-        _allocation_update_time = toolkit::getCurrentMillisecond();
         return relayed_it->second.second->_socket;
     }
 

@@ -46,7 +46,7 @@ public:
     void onRecv_l(const char *data, size_t len);
 protected:
     bool _over_tcp = false;
-    uint64_t _last_recv_time = 0;
+    toolkit::Ticker _alive_ticker;
 
     RTC::IceTransport::Pair::Ptr _session_pair = nullptr;
     RTC::IceServer::Ptr _ice_transport;

@@ -33,7 +33,6 @@ static IceSession::Ptr queryIceTransport(uint8_t *data, size_t size) {
 IceSession::IceSession(const Socket::Ptr &sock) : Session(sock) {
     TraceL << getIdentifier();
     _over_tcp = sock->sockType() == SockNum::Sock_TCP;
-    _last_recv_time = toolkit::getCurrentMillisecond();
     GET_CONFIG(string, iceUfrag, Rtc::kIceUfrag);
     GET_CONFIG(string, icePwd, Rtc::kIcePwd);
     _ice_transport = std::make_shared<IceServer>(this, iceUfrag, icePwd, getPoller());
@@ -60,7 +59,7 @@ void IceSession::onRecv(const Buffer::Ptr &buffer) {
 }
 
 void IceSession::onRecv_l(const char* buffer, size_t size) {
-    _last_recv_time = toolkit::getCurrentMillisecond();
+    _alive_ticker.resetTime();
     if (!_session_pair) {
         _session_pair = std::make_shared<IceTransport::Pair>(shared_from_this());
     }
@@ -86,8 +85,7 @@ void IceSession::onManager() {
         return;
     }
 
-    uint64_t now = toolkit::getCurrentMillisecond();
-    if (now - _last_recv_time <= static_cast<uint64_t>(ice_session_timeout_sec) * 1000) {
+    if (_alive_ticker.elapsedTime() <= static_cast<uint64_t>(ice_session_timeout_sec) * 1000) {
         return;
     }
 
