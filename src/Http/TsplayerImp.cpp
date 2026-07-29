@@ -67,6 +67,31 @@ void TsPlayerImp::onPlayResult(const SockException &ex) {
 }
 
 void TsPlayerImp::onShutdown(const SockException &ex) {
+    while (_demuxer) {
+        try {
+            // shared_from_this()可能抛异常  [AUTO-TRANSLATED:6af9bd3c]
+            // shared_from_this() may throw an exception
+            std::weak_ptr<TsPlayerImp> weak_self = static_pointer_cast<TsPlayerImp>(shared_from_this());
+            if (_decoder) {
+                _decoder->flush();
+            }
+            // 等待所有frame flush输出后，再触发onShutdown事件  [AUTO-TRANSLATED:93982eb3]
+            // Wait for all frame flush output before triggering the onShutdown event
+            _demuxer->pushTask([weak_self, ex]() {
+                if (auto strong_self = weak_self.lock()) {
+                    strong_self->_demuxer = nullptr;
+                    strong_self->onShutdown(ex);
+                }
+            });
+            return;
+        } catch (...) {
+            break;
+        }
+    }
+    PlayerImp<TsPlayer, PlayerBase>::onShutdown(ex);
+}
+
+SockException TsPlayerImp::translateShutdownException(const SockException &ex) {
     auto shutdown_ex = ex;
     if (_media_frame_timeout) {
         // 无 Content-Length 的 HTTP body 在已收到数据后会把断开归一化为成功，
@@ -79,28 +104,7 @@ void TsPlayerImp::onShutdown(const SockException &ex) {
         // http-ts拉流，如果为eof正常断开，那么强制为异常状态
         shutdown_ex.reset(Err_other, ex.what());
     }
-    while (_demuxer) {
-        try {
-            // shared_from_this()可能抛异常  [AUTO-TRANSLATED:6af9bd3c]
-            // shared_from_this() may throw an exception
-            std::weak_ptr<TsPlayerImp> weak_self = static_pointer_cast<TsPlayerImp>(shared_from_this());
-            if (_decoder) {
-                _decoder->flush();
-            }
-            // 等待所有frame flush输出后，再触发onShutdown事件  [AUTO-TRANSLATED:93982eb3]
-            // Wait for all frame flush output before triggering the onShutdown event
-            _demuxer->pushTask([weak_self, shutdown_ex]() {
-                if (auto strong_self = weak_self.lock()) {
-                    strong_self->_demuxer = nullptr;
-                    strong_self->onShutdown(shutdown_ex);
-                }
-            });
-            return;
-        } catch (...) {
-            break;
-        }
-    }
-    PlayerImp<TsPlayer, PlayerBase>::onShutdown(shutdown_ex);
+    return shutdown_ex;
 }
 
 void TsPlayerImp::resetMediaFrameCheck() {

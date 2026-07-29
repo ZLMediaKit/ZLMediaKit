@@ -43,6 +43,9 @@ public:
 protected:
     void onResponseBody(const char *buf, size_t size) override;
     void onResponseCompleted(const toolkit::SockException &ex) override;
+    // 将 HTTP 完成状态转换为播放器最终的 shutdown 状态，确保所有完成回调语义一致。
+    // Convert the HTTP completion status to the final player shutdown status so all completion callbacks agree.
+    virtual toolkit::SockException translateShutdownException(const toolkit::SockException &ex) { return ex; }
 
 private:
     bool _play_result = true;

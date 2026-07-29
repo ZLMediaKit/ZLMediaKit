@@ -31,6 +31,7 @@ private:
     //// TsPlayer override////
     void onResponseBody(const char *buf, size_t size) override;
     void onManager() override;
+    toolkit::SockException translateShutdownException(const toolkit::SockException &ex) override;
 
 private:
     //// PlayerBase override////
