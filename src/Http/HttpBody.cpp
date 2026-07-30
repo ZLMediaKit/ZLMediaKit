@@ -587,6 +587,67 @@ static string makeUploadTempPath(const string &path) {
     return directory + ".upload-" + makeRandStr(16);
 }
 
+#if defined(_WIN32)
+static bool applyInheritedFileDacl(const string &path) {
+    string probe;
+    HANDLE handle = INVALID_HANDLE_VALUE;
+    for (size_t i = 0; i < 10; ++i) {
+        probe = makeUploadTempPath(path);
+        handle = CreateFileA(probe.c_str(), READ_CONTROL | DELETE, FILE_SHARE_DELETE, nullptr,
+                             CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr);
+        if (handle != INVALID_HANDLE_VALUE || GetLastError() != ERROR_FILE_EXISTS) {
+            break;
+        }
+    }
+    if (handle == INVALID_HANDLE_VALUE) {
+        return false;
+    }
+    DWORD size = 0;
+    GetKernelObjectSecurity(handle, DACL_SECURITY_INFORMATION, nullptr, 0, &size);
+    auto err = GetLastError();
+    if (!size || err != ERROR_INSUFFICIENT_BUFFER) {
+        DeleteFileA(probe.c_str());
+        CloseHandle(handle);
+        SetLastError(err);
+        return false;
+    }
+    vector<char> descriptor(size);
+    if (!GetKernelObjectSecurity(handle, DACL_SECURITY_INFORMATION,
+                                 (PSECURITY_DESCRIPTOR)descriptor.data(), size, &size)) {
+        err = GetLastError();
+        DeleteFileA(probe.c_str());
+        CloseHandle(handle);
+        SetLastError(err);
+        return false;
+    }
+    if (!DeleteFileA(probe.c_str())) {
+        err = GetLastError();
+        CloseHandle(handle);
+        SetLastError(err);
+        return false;
+    }
+    CloseHandle(handle);
+    BOOL present = FALSE;
+    BOOL defaulted = FALSE;
+    PACL dacl = nullptr;
+    if (!GetSecurityDescriptorDacl((PSECURITY_DESCRIPTOR)descriptor.data(), &present, &dacl, &defaulted)) {
+        return false;
+    }
+    if (!present) {
+        SetLastError(ERROR_INVALID_SECURITY_DESCR);
+        return false;
+    }
+    auto result = SetNamedSecurityInfoA((LPSTR)path.c_str(), SE_FILE_OBJECT,
+                                        DACL_SECURITY_INFORMATION | UNPROTECTED_DACL_SECURITY_INFORMATION,
+                                        nullptr, nullptr, dacl, nullptr);
+    if (result != ERROR_SUCCESS) {
+        SetLastError(result);
+        return false;
+    }
+    return true;
+}
+#endif
+
 static FILE *openUploadTemporary(const string &path, int dir_fd = -1, const string &name = string()) {
 #if defined(_WIN32)
     PSECURITY_DESCRIPTOR descriptor = nullptr;
@@ -836,6 +897,10 @@ void HttpFileStorage::finalize() {
 #if defined(_WIN32)
     auto replaced = ReplaceFileA(_storage_path.c_str(), _tmp_path.c_str(), nullptr, 0, nullptr, nullptr);
     if (!replaced && GetLastError() == ERROR_FILE_NOT_FOUND) {
+        if (!applyInheritedFileDacl(_tmp_path)) {
+            throw std::runtime_error("HttpFileStorage: failed to apply inherited destination permissions: " + _path +
+                                     ", err: " + std::to_string(GetLastError()));
+        }
         replaced = MoveFileExA(_tmp_path.c_str(), _storage_path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH);
     }
     if (!replaced) {
