@@ -1,6 +1,8 @@
 ﻿#include <cassert>
+#include <atomic>
 #include <fstream>
 #include <iterator>
+#include <thread>
 #include <type_traits>
 
 #ifdef _WIN32
@@ -86,11 +88,37 @@ int main() {
     auto new_data = new_reader->readData(6);
     assert(new_data && std::string(new_data->data(), new_data->size()) == "latest");
 
+    std::atomic<bool> reading(true);
+    std::atomic<bool> invalid_read(false);
+    std::thread reader([&]() {
+        while (reading.load()) {
+            HttpFileBody body(destination);
+            auto data = body.readData(6);
+            if (!data) {
+                invalid_read = true;
+                break;
+            }
+            auto value = std::string(data->data(), data->size());
+            if (value != "latest" && value != "aaaaaa" && value != "bbbbbb") {
+                invalid_read = true;
+                break;
+            }
+        }
+    });
+    for (size_t i = 0; i < 20; ++i) {
+        auto value = i % 2 ? "aaaaaa" : "bbbbbb";
+        HttpFileStorage storage(destination);
+        storage.writeData(value, 6, 6);
+    }
+    reading = false;
+    reader.join();
+    assert(!invalid_read);
+
     {
         HttpFileStorage storage(destination);
         storage.writeData("overflow", 8, 4);
     }
-    assert(readFile(destination) == "latest");
+    assert(readFile(destination) == "aaaaaa");
 
 #ifdef _WIN32
     // Keep the complete path below legacy MAX_PATH on Windows CI runners.
