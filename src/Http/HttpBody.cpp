@@ -111,8 +111,7 @@ static void delSharedMmap(const string &file_path, char *ptr) {
     }
 }
 
-static void invalidateSharedMmap() {
-    lock_guard<mutex> lck(s_mtx);
+static void invalidateSharedMmap_l() {
     s_shared_mmap.clear();
     ++s_mmap_generation;
 }
@@ -516,11 +515,18 @@ static string resolveUploadDestination(const string &path, size_t symlink_depth 
         if (symlink_depth >= 40) {
             throw std::runtime_error("HttpFileStorage: too many symbolic links in destination: " + path);
         }
-        vector<char> target(PATH_MAX + 1);
-        auto size = readlink(path.c_str(), target.data(), PATH_MAX);
-        if (size < 0) {
-            throw std::runtime_error("HttpFileStorage: failed to read symbolic link: " + path +
-                                     ", err: " + toolkit::get_uv_errmsg());
+        vector<char> target(status.st_size > 0 ? status.st_size + 1 : 256);
+        ssize_t size;
+        for (;;) {
+            size = readlink(path.c_str(), target.data(), target.size());
+            if (size < 0) {
+                throw std::runtime_error("HttpFileStorage: failed to read symbolic link: " + path +
+                                         ", err: " + toolkit::get_uv_errmsg());
+            }
+            if ((size_t)size < target.size()) {
+                break;
+            }
+            target.resize(target.size() * 2);
         }
         string target_path(target.data(), size);
         if (target_path.empty() || target_path[0] != '/') {
@@ -580,10 +586,21 @@ static FILE *openUploadTemporary(const string &path) {
     }
     return fp;
 #else
-    auto fd = open(path.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600);
+    auto flags = O_WRONLY | O_CREAT | O_EXCL;
+#ifdef O_CLOEXEC
+    flags |= O_CLOEXEC;
+#endif
+    auto fd = open(path.c_str(), flags, 0600);
     if (fd < 0) {
         return nullptr;
     }
+#ifndef O_CLOEXEC
+    if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
+        close(fd);
+        unlink(path.c_str());
+        return nullptr;
+    }
+#endif
     auto fp = fdopen(fd, "wb");
     if (!fp) {
         close(fd);
@@ -614,14 +631,20 @@ HttpFileStorage::HttpFileStorage(std::string file_path) {
 #endif
     for (size_t i = 0; i < 10; ++i) {
         _tmp_path = makeUploadTempPath(_storage_path);
+        errno = 0;
         _fp = openUploadTemporary(_tmp_path);
         if (_fp || errno != EEXIST) {
             break;
         }
     }
     if (!_fp) {
+#if defined(_WIN32)
+        auto err = std::to_string(GetLastError());
+#else
+        auto err = toolkit::get_uv_errmsg();
+#endif
         throw std::runtime_error("HttpFileStorage: failed to open temporary file: " + _tmp_path +
-                                 " for destination: " + _path + ", err: " + toolkit::get_uv_errmsg());
+                                 " for destination: " + _path + ", err: " + err);
     }
 }
 
@@ -648,9 +671,13 @@ void HttpFileStorage::finalize() {
             throw std::runtime_error("HttpFileStorage: destination is not a regular file: " + _path);
         }
         auto fd = fileno(_fp);
-        if (fchown(fd, destination_stat.st_uid, destination_stat.st_gid) != 0 && errno != EPERM) {
-            throw std::runtime_error("HttpFileStorage: failed to preserve destination metadata: " + _path +
-                                     ", err: " + toolkit::get_uv_errmsg());
+        if (fchown(fd, destination_stat.st_uid, destination_stat.st_gid) != 0) {
+            struct stat temporary_stat;
+            if (errno != EPERM || fstat(fd, &temporary_stat) != 0 || temporary_stat.st_uid != destination_stat.st_uid ||
+                temporary_stat.st_gid != destination_stat.st_gid) {
+                throw std::runtime_error("HttpFileStorage: failed to preserve destination ownership: " + _path +
+                                         ", err: " + toolkit::get_uv_errmsg());
+            }
         }
         _final_mode = destination_stat.st_mode & 0777;
     } else if (errno != ENOENT) {
@@ -669,6 +696,7 @@ void HttpFileStorage::finalize() {
     }
     _fp = nullptr;
 
+    lock_guard<mutex> lck(s_mtx);
 #if defined(_WIN32)
     auto replaced = ReplaceFileA(_storage_path.c_str(), _tmp_path.c_str(), nullptr, 0, nullptr, nullptr);
     if (!replaced && GetLastError() == ERROR_FILE_NOT_FOUND) {
@@ -684,7 +712,7 @@ void HttpFileStorage::finalize() {
                                  ", err: " + toolkit::get_uv_errmsg());
     }
 #endif
-    invalidateSharedMmap();
+    invalidateSharedMmap_l();
     _tmp_path.clear();
 }
 
