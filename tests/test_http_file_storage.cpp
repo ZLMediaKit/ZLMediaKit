@@ -78,7 +78,8 @@ int main() {
     assert(readFile(destination) == "latest");
 
 #ifdef _WIN32
-    auto long_name = directory + std::string(180, 'x');
+    // Keep the complete path below legacy MAX_PATH on Windows CI runners.
+    auto long_name = directory + std::string(120, 'x');
 #else
     auto long_name = directory + std::string(240, 'x');
 #endif
