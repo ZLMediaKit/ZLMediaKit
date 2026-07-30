@@ -13,9 +13,15 @@
 #include <tuple>
 
 #ifndef _WIN32
+#include <fcntl.h>
 #include <limits.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#else
+#include <aclapi.h>
+#include <fcntl.h>
+#include <io.h>
+#include <sddl.h>
 #endif
 #if defined(__linux__) || defined(__linux)
 #include <sys/sendfile.h>
@@ -75,6 +81,24 @@ static void mmap_close(HANDLE _hfile, HANDLE _hmapping, void *_addr) {
         ::CloseHandle(_hfile);
     }
 }
+
+static FILE *openReadFile(const string &path) {
+    auto handle = CreateFileA(path.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE,
+                              nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (handle == INVALID_HANDLE_VALUE) {
+        return nullptr;
+    }
+    auto fd = _open_osfhandle((intptr_t)handle, _O_BINARY | _O_RDONLY);
+    if (fd < 0) {
+        CloseHandle(handle);
+        return nullptr;
+    }
+    auto fp = _fdopen(fd, "rb");
+    if (!fp) {
+        _close(fd);
+    }
+    return fp;
+}
 #endif
 
 // 删除mmap记录  [AUTO-TRANSLATED:c956201d]
@@ -110,6 +134,7 @@ static std::shared_ptr<char> getSharedMmap(const string &file_path, int64_t &fil
         }
     }
 
+#ifndef _WIN32
     // 打开文件  [AUTO-TRANSLATED:55bfe68a]
     // Open file
     std::shared_ptr<FILE> fp(fopen(file_path.data(), "rb"), [](FILE *fp) {
@@ -125,20 +150,15 @@ static std::shared_ptr<char> getSharedMmap(const string &file_path, int64_t &fil
     }
 
 
-#if defined(_WIN32)
-    auto fd = _fileno(fp.get());
-#else
     // 获取文件大小  [AUTO-TRANSLATED:82974eea]
     // Get file size
     file_size = File::fileSize(fp.get());
     auto fd = fileno(fp.get());
-#endif
 
     if (fd < 0) {
         WarnL << "fileno failed:" << get_uv_errmsg(false);
         return nullptr;
     }
-#ifndef _WIN32
     auto ptr = (char *)mmap(NULL, file_size, PROT_READ, MAP_SHARED, fd, 0);
     if (ptr == MAP_FAILED) {
         WarnL << "mmap " << file_path << " failed:" << get_uv_errmsg(false);
@@ -223,7 +243,11 @@ HttpFileBody::HttpFileBody(const string &file_path, bool use_mmap) {
     if (!_map_addr && _read_to != -1) {
         // mmap失败(且不是由于文件不存在导致的)或未执行mmap时，才进入fread逻辑分支  [AUTO-TRANSLATED:8c7efed5]
         // Only enter the fread logic branch when mmap fails (and is not due to file not existing) or when mmap is not executed
+#if defined(_WIN32)
+        _fp.reset(openReadFile(file_path), [](FILE *fp) {
+#else
         _fp.reset(fopen(file_path.data(), "rb"), [](FILE *fp) {
+#endif
             if (fp) {
                 fclose(fp);
             }
@@ -527,12 +551,70 @@ static string makeUploadTempPath(const string &path) {
     return directory + ".upload-" + makeRandStr(16);
 }
 
+static FILE *openUploadTemporary(const string &path) {
+#if defined(_WIN32)
+    PSECURITY_DESCRIPTOR descriptor = nullptr;
+    if (!ConvertStringSecurityDescriptorToSecurityDescriptorA("D:P(A;;FA;;;OW)", SDDL_REVISION_1, &descriptor, nullptr)) {
+        return nullptr;
+    }
+    SECURITY_ATTRIBUTES attributes = { sizeof(attributes), descriptor, FALSE };
+    auto handle = CreateFileA(path.c_str(), GENERIC_READ | GENERIC_WRITE | DELETE, 0, &attributes,
+                              CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr);
+    auto create_error = GetLastError();
+    LocalFree(descriptor);
+    if (handle == INVALID_HANDLE_VALUE) {
+        errno = create_error == ERROR_FILE_EXISTS || create_error == ERROR_ALREADY_EXISTS ? EEXIST : 0;
+        SetLastError(create_error);
+        return nullptr;
+    }
+    auto fd = _open_osfhandle((intptr_t)handle, _O_BINARY | _O_WRONLY);
+    if (fd < 0) {
+        CloseHandle(handle);
+        DeleteFileA(path.c_str());
+        return nullptr;
+    }
+    auto fp = _fdopen(fd, "wb");
+    if (!fp) {
+        _close(fd);
+        DeleteFileA(path.c_str());
+    }
+    return fp;
+#else
+    auto fd = open(path.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600);
+    if (fd < 0) {
+        return nullptr;
+    }
+    auto fp = fdopen(fd, "wb");
+    if (!fp) {
+        close(fd);
+        unlink(path.c_str());
+    }
+    return fp;
+#endif
+}
+
 HttpFileStorage::HttpFileStorage(std::string file_path) {
     _path = std::move(file_path);
     _storage_path = resolveUploadDestination(_path);
+#if defined(_WIN32)
+    auto attributes = GetFileAttributesA(_storage_path.c_str());
+    if (attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY)) {
+        throw std::runtime_error("HttpFileStorage: destination is not a regular file: " + _path);
+    }
+#else
+    struct stat destination_stat;
+    if (stat(_storage_path.c_str(), &destination_stat) == 0) {
+        if (!S_ISREG(destination_stat.st_mode)) {
+            throw std::runtime_error("HttpFileStorage: destination is not a regular file: " + _path);
+        }
+    } else if (errno != ENOENT) {
+        throw std::runtime_error("HttpFileStorage: failed to inspect destination: " + _path +
+                                 ", err: " + toolkit::get_uv_errmsg());
+    }
+#endif
     for (size_t i = 0; i < 10; ++i) {
         _tmp_path = makeUploadTempPath(_storage_path);
-        _fp = fopen(_tmp_path.c_str(), "wbx");
+        _fp = openUploadTemporary(_tmp_path);
         if (_fp || errno != EEXIST) {
             break;
         }
@@ -541,17 +623,6 @@ HttpFileStorage::HttpFileStorage(std::string file_path) {
         throw std::runtime_error("HttpFileStorage: failed to open temporary file: " + _tmp_path +
                                  " for destination: " + _path + ", err: " + toolkit::get_uv_errmsg());
     }
-#ifndef _WIN32
-    struct stat temporary_stat;
-    if (fstat(fileno(_fp), &temporary_stat) != 0 || fchmod(fileno(_fp), 0600) != 0) {
-        auto err = toolkit::get_uv_errmsg();
-        fclose(_fp);
-        _fp = nullptr;
-        File::delete_file(_tmp_path);
-        throw std::runtime_error("HttpFileStorage: failed to secure temporary file: " + _tmp_path + ", err: " + err);
-    }
-    _final_mode = temporary_stat.st_mode & 0777;
-#endif
 }
 
 HttpFileStorage::~HttpFileStorage() {
@@ -573,6 +644,9 @@ void HttpFileStorage::finalize() {
 #ifndef _WIN32
     struct stat destination_stat;
     if (stat(_storage_path.c_str(), &destination_stat) == 0) {
+        if (!S_ISREG(destination_stat.st_mode)) {
+            throw std::runtime_error("HttpFileStorage: destination is not a regular file: " + _path);
+        }
         auto fd = fileno(_fp);
         if (fchown(fd, destination_stat.st_uid, destination_stat.st_gid) != 0 && errno != EPERM) {
             throw std::runtime_error("HttpFileStorage: failed to preserve destination metadata: " + _path +

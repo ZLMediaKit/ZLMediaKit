@@ -108,6 +108,17 @@ int main() {
     }
     assert(readFile(backslash_name) == "backslash");
 
+    auto fifo = directory + "fifo";
+    assert(mkfifo(fifo.c_str(), 0600) == 0);
+    bool fifo_rejected = false;
+    try {
+        HttpFileStorage storage(fifo);
+    } catch (const std::runtime_error &) {
+        fifo_rejected = true;
+    }
+    struct stat fifo_status;
+    assert(fifo_rejected && lstat(fifo.c_str(), &fifo_status) == 0 && S_ISFIFO(fifo_status.st_mode));
+
     assert(chmod(destination.c_str(), 0600) == 0);
     {
         HttpFileStorage storage(destination);
