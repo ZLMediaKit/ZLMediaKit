@@ -467,7 +467,20 @@ static string resolveUploadDestination(const string &path, size_t symlink_depth 
 #if defined(_WIN32)
     auto attributes = GetFileAttributesA(path.c_str());
     if (attributes == INVALID_FILE_ATTRIBUTES || !(attributes & FILE_ATTRIBUTE_REPARSE_POINT)) {
-        return path;
+        vector<char> absolute(1024);
+        auto size = GetFullPathNameA(path.c_str(), (DWORD)absolute.size(), absolute.data(), nullptr);
+        if (!size) {
+            throw std::runtime_error("HttpFileStorage: failed to resolve destination path: " + path +
+                                     ", err: " + std::to_string(GetLastError()));
+        }
+        if (size >= absolute.size()) {
+            absolute.resize(size + 1);
+            size = GetFullPathNameA(path.c_str(), (DWORD)absolute.size(), absolute.data(), nullptr);
+            if (!size || size >= absolute.size()) {
+                throw std::runtime_error("HttpFileStorage: failed to resolve destination path: " + path);
+            }
+        }
+        return string(absolute.data(), size);
     }
     auto handle = CreateFileA(path.c_str(), FILE_READ_ATTRIBUTES,
                               FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
@@ -493,11 +506,7 @@ static string resolveUploadDestination(const string &path, size_t symlink_depth 
         }
     }
     CloseHandle(handle);
-    string ret(resolved.data(), size);
-    if (ret.compare(0, 8, "\\\\?\\UNC\\") == 0) {
-        return "\\\\" + ret.substr(8);
-    }
-    return ret.compare(0, 4, "\\\\?\\") == 0 ? ret.substr(4) : ret;
+    return string(resolved.data(), size);
 #else
     char *resolved = realpath(path.c_str(), nullptr);
     if (resolved) {
@@ -557,7 +566,7 @@ static string makeUploadTempPath(const string &path) {
     return directory + ".upload-" + makeRandStr(16);
 }
 
-static FILE *openUploadTemporary(const string &path) {
+static FILE *openUploadTemporary(const string &path, int dir_fd = -1, const string &name = string()) {
 #if defined(_WIN32)
     PSECURITY_DESCRIPTOR descriptor = nullptr;
     if (!ConvertStringSecurityDescriptorToSecurityDescriptorA("D:P(A;;FA;;;OW)", SDDL_REVISION_1, &descriptor, nullptr)) {
@@ -590,21 +599,21 @@ static FILE *openUploadTemporary(const string &path) {
 #ifdef O_CLOEXEC
     flags |= O_CLOEXEC;
 #endif
-    auto fd = open(path.c_str(), flags, 0600);
+    auto fd = openat(dir_fd, name.c_str(), flags, 0600);
     if (fd < 0) {
         return nullptr;
     }
 #ifndef O_CLOEXEC
     if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
         close(fd);
-        unlink(path.c_str());
+        unlinkat(dir_fd, name.c_str(), 0);
         return nullptr;
     }
 #endif
     auto fp = fdopen(fd, "wb");
     if (!fp) {
         close(fd);
-        unlink(path.c_str());
+        unlinkat(dir_fd, name.c_str(), 0);
     }
     return fp;
 #endif
@@ -628,11 +637,36 @@ HttpFileStorage::HttpFileStorage(std::string file_path) {
         throw std::runtime_error("HttpFileStorage: failed to inspect destination: " + _path +
                                  ", err: " + toolkit::get_uv_errmsg());
     }
+    _storage_name = pathBasename(_storage_path);
+    auto directory = pathDirectory(_storage_path);
+    auto dir_flags = O_RDONLY;
+#ifdef O_DIRECTORY
+    dir_flags |= O_DIRECTORY;
+#endif
+#ifdef O_CLOEXEC
+    dir_flags |= O_CLOEXEC;
+#endif
+    _dir_fd = open(directory.c_str(), dir_flags);
+    if (_dir_fd < 0) {
+        throw std::runtime_error("HttpFileStorage: failed to open destination directory: " + directory +
+                                 ", err: " + toolkit::get_uv_errmsg());
+    }
+#ifndef O_CLOEXEC
+    if (fcntl(_dir_fd, F_SETFD, FD_CLOEXEC) != 0) {
+        auto err = toolkit::get_uv_errmsg();
+        close(_dir_fd);
+        _dir_fd = -1;
+        throw std::runtime_error("HttpFileStorage: failed to secure destination directory: " + directory + ", err: " + err);
+    }
+#endif
 #endif
     for (size_t i = 0; i < 10; ++i) {
         _tmp_path = makeUploadTempPath(_storage_path);
+#ifndef _WIN32
+        _tmp_name = pathBasename(_tmp_path);
+#endif
         errno = 0;
-        _fp = openUploadTemporary(_tmp_path);
+        _fp = openUploadTemporary(_tmp_path, _dir_fd, _tmp_name);
         if (_fp || errno != EEXIST) {
             break;
         }
@@ -642,6 +676,12 @@ HttpFileStorage::HttpFileStorage(std::string file_path) {
         auto err = std::to_string(GetLastError());
 #else
         auto err = toolkit::get_uv_errmsg();
+#endif
+#ifndef _WIN32
+        if (_dir_fd >= 0) {
+            close(_dir_fd);
+            _dir_fd = -1;
+        }
 #endif
         throw std::runtime_error("HttpFileStorage: failed to open temporary file: " + _tmp_path +
                                  " for destination: " + _path + ", err: " + err);
@@ -654,9 +694,20 @@ HttpFileStorage::~HttpFileStorage() {
         _fp = nullptr;
     }
     // 删除不完整的临时文件，保留原有目标文件。
+#ifndef _WIN32
+    if (_dir_fd >= 0 && !_tmp_name.empty()) {
+        unlinkat(_dir_fd, _tmp_name.c_str(), 0);
+    } else
+#endif
     if (!_tmp_path.empty()) {
         File::delete_file(_tmp_path);
     }
+#ifndef _WIN32
+    if (_dir_fd >= 0) {
+        close(_dir_fd);
+        _dir_fd = -1;
+    }
+#endif
 }
 
 void HttpFileStorage::finalize() {
@@ -666,7 +717,7 @@ void HttpFileStorage::finalize() {
     }
 #ifndef _WIN32
     struct stat destination_stat;
-    if (stat(_storage_path.c_str(), &destination_stat) == 0) {
+    if (fstatat(_dir_fd, _storage_name.c_str(), &destination_stat, 0) == 0) {
         if (!S_ISREG(destination_stat.st_mode)) {
             throw std::runtime_error("HttpFileStorage: destination is not a regular file: " + _path);
         }
@@ -707,13 +758,20 @@ void HttpFileStorage::finalize() {
                                  ", err: " + std::to_string(GetLastError()));
     }
 #else
-    if (rename(_tmp_path.c_str(), _storage_path.c_str()) != 0) {
+    if (renameat(_dir_fd, _tmp_name.c_str(), _dir_fd, _storage_name.c_str()) != 0) {
         throw std::runtime_error("HttpFileStorage: failed to replace file: " + _path +
                                  ", err: " + toolkit::get_uv_errmsg());
     }
 #endif
     invalidateSharedMmap_l();
     _tmp_path.clear();
+    _tmp_name.clear();
+#ifndef _WIN32
+    if (_dir_fd >= 0) {
+        close(_dir_fd);
+        _dir_fd = -1;
+    }
+#endif
 }
 
 void HttpFileStorage::writeData(const char *data, size_t size, uint64_t content_size) {

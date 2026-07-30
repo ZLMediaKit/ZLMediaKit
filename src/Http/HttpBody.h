@@ -232,9 +232,12 @@ private:
     bool _content_size_set = false;
     bool _discarded = false;
     uint32_t _final_mode = 0600;
+    int _dir_fd = -1;
     std::string _path;
     std::string _storage_path;
     std::string _tmp_path;
+    std::string _tmp_name;
+    std::string _storage_name;
 };
 
 class HttpArgs;

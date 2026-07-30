@@ -101,6 +101,16 @@ int main() {
     assert(replace_failed && File::is_dir(invalid_destination));
 
 #ifndef _WIN32
+    auto moving_directory = directory + "moving";
+    auto moved_directory = directory + "moved";
+    assert(makeDirectory(moving_directory) == 0);
+    {
+        HttpFileStorage storage(moving_directory + "/destination");
+        assert(rename(moving_directory.c_str(), moved_directory.c_str()) == 0);
+        storage.writeData("anchored", 8, 8);
+    }
+    assert(readFile(moved_directory + "/destination") == "anchored");
+
     auto backslash_name = directory + "back\\slash";
     {
         HttpFileStorage storage(backslash_name);
