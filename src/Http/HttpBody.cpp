@@ -87,9 +87,9 @@ static void delSharedMmap(const string &file_path, char *ptr) {
     }
 }
 
-static void invalidateSharedMmap(const string &file_path) {
+static void invalidateSharedMmap() {
     lock_guard<mutex> lck(s_mtx);
-    s_shared_mmap.erase(file_path);
+    s_shared_mmap.clear();
     ++s_mmap_generation;
 }
 
@@ -420,7 +420,11 @@ Buffer::Ptr HttpBufferBody::readData(size_t size) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 static string pathDirectory(const string &path) {
+#if defined(_WIN32)
     auto pos = path.find_last_of("/\\");
+#else
+    auto pos = path.find_last_of('/');
+#endif
     if (pos == string::npos) {
         return ".";
     }
@@ -428,7 +432,11 @@ static string pathDirectory(const string &path) {
 }
 
 static string pathBasename(const string &path) {
+#if defined(_WIN32)
     auto pos = path.find_last_of("/\\");
+#else
+    auto pos = path.find_last_of('/');
+#endif
     return pos == string::npos ? path : path.substr(pos + 1);
 }
 
@@ -510,7 +518,11 @@ static string resolveUploadDestination(const string &path, size_t symlink_depth 
 }
 
 static string makeUploadTempPath(const string &path) {
+#if defined(_WIN32)
     auto pos = path.find_last_of("/\\");
+#else
+    auto pos = path.find_last_of('/');
+#endif
     auto directory = pos == string::npos ? string() : path.substr(0, pos + 1);
     return directory + ".upload-" + makeRandStr(16);
 }
@@ -529,6 +541,17 @@ HttpFileStorage::HttpFileStorage(std::string file_path) {
         throw std::runtime_error("HttpFileStorage: failed to open temporary file: " + _tmp_path +
                                  " for destination: " + _path + ", err: " + toolkit::get_uv_errmsg());
     }
+#ifndef _WIN32
+    struct stat temporary_stat;
+    if (fstat(fileno(_fp), &temporary_stat) != 0 || fchmod(fileno(_fp), 0600) != 0) {
+        auto err = toolkit::get_uv_errmsg();
+        fclose(_fp);
+        _fp = nullptr;
+        File::delete_file(_tmp_path);
+        throw std::runtime_error("HttpFileStorage: failed to secure temporary file: " + _tmp_path + ", err: " + err);
+    }
+    _final_mode = temporary_stat.st_mode & 0777;
+#endif
 }
 
 HttpFileStorage::~HttpFileStorage() {
@@ -551,13 +574,17 @@ void HttpFileStorage::finalize() {
     struct stat destination_stat;
     if (stat(_storage_path.c_str(), &destination_stat) == 0) {
         auto fd = fileno(_fp);
-        if (fchown(fd, destination_stat.st_uid, destination_stat.st_gid) != 0 ||
-            fchmod(fd, destination_stat.st_mode & 07777) != 0) {
+        if (fchown(fd, destination_stat.st_uid, destination_stat.st_gid) != 0 && errno != EPERM) {
             throw std::runtime_error("HttpFileStorage: failed to preserve destination metadata: " + _path +
                                      ", err: " + toolkit::get_uv_errmsg());
         }
+        _final_mode = destination_stat.st_mode & 0777;
     } else if (errno != ENOENT) {
         throw std::runtime_error("HttpFileStorage: failed to inspect destination metadata: " + _path +
+                                 ", err: " + toolkit::get_uv_errmsg());
+    }
+    if (fchmod(fileno(_fp), _final_mode) != 0) {
+        throw std::runtime_error("HttpFileStorage: failed to preserve destination mode: " + _path +
                                  ", err: " + toolkit::get_uv_errmsg());
     }
 #endif
@@ -569,9 +596,10 @@ void HttpFileStorage::finalize() {
     _fp = nullptr;
 
 #if defined(_WIN32)
-    auto exists = GetFileAttributesA(_storage_path.c_str()) != INVALID_FILE_ATTRIBUTES;
-    auto replaced = exists ? ReplaceFileA(_storage_path.c_str(), _tmp_path.c_str(), nullptr, REPLACEFILE_WRITE_THROUGH, nullptr, nullptr) :
-                             MoveFileExA(_tmp_path.c_str(), _storage_path.c_str(), MOVEFILE_WRITE_THROUGH);
+    auto replaced = ReplaceFileA(_storage_path.c_str(), _tmp_path.c_str(), nullptr, 0, nullptr, nullptr);
+    if (!replaced && GetLastError() == ERROR_FILE_NOT_FOUND) {
+        replaced = MoveFileExA(_tmp_path.c_str(), _storage_path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH);
+    }
     if (!replaced) {
         throw std::runtime_error("HttpFileStorage: failed to replace file: " + _path +
                                  ", err: " + std::to_string(GetLastError()));
@@ -582,10 +610,7 @@ void HttpFileStorage::finalize() {
                                  ", err: " + toolkit::get_uv_errmsg());
     }
 #endif
-    invalidateSharedMmap(_path);
-    if (_storage_path != _path) {
-        invalidateSharedMmap(_storage_path);
-    }
+    invalidateSharedMmap();
     _tmp_path.clear();
 }
 
@@ -602,11 +627,15 @@ void HttpFileStorage::writeData(const char *data, size_t size, uint64_t content_
     if (_discarded) {
         return;
     }
-    if (size > _content_size - std::min(_written, _content_size)) {
+    auto remaining = _written < _content_size ? _content_size - _written : 0;
+    if (size > remaining) {
         _discarded = true;
         return;
     }
     if (size == 0) {
+        if (_written == _content_size) {
+            finalize();
+        }
         return;
     }
     auto written = fwrite(data, 1, size, _fp);

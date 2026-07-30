@@ -38,6 +38,24 @@ int main() {
     }
     assert(readFile(destination) == "old");
 
+    auto empty_destination = directory + "empty";
+    {
+        HttpFileStorage storage(empty_destination);
+#ifndef _WIN32
+        bool private_temporary = false;
+        File::scanDir(directory, [&](const std::string &path, bool is_dir) {
+            if (!is_dir && path.find(".upload-") != std::string::npos) {
+                struct stat status;
+                private_temporary = stat(path.c_str(), &status) == 0 && (status.st_mode & 0777) == 0600;
+            }
+            return true;
+        }, false, true);
+        assert(private_temporary);
+#endif
+        storage.writeData(nullptr, 0, 0);
+    }
+    assert(File::fileExist(empty_destination) && readFile(empty_destination).empty());
+
     {
         HttpFileStorage storage(destination);
         storage.writeData("new", 3, 3);
@@ -59,7 +77,11 @@ int main() {
     }
     assert(readFile(destination) == "latest");
 
+#ifdef _WIN32
+    auto long_name = directory + std::string(180, 'x');
+#else
     auto long_name = directory + std::string(240, 'x');
+#endif
     {
         HttpFileStorage storage(long_name);
         storage.writeData("long", 4, 4);
@@ -78,6 +100,13 @@ int main() {
     assert(replace_failed && File::is_dir(invalid_destination));
 
 #ifndef _WIN32
+    auto backslash_name = directory + "back\\slash";
+    {
+        HttpFileStorage storage(backslash_name);
+        storage.writeData("backslash", 9, 9);
+    }
+    assert(readFile(backslash_name) == "backslash");
+
     assert(chmod(destination.c_str(), 0600) == 0);
     {
         HttpFileStorage storage(destination);
