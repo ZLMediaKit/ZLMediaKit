@@ -593,7 +593,7 @@ static bool applyInheritedFileDacl(const string &path) {
     HANDLE handle = INVALID_HANDLE_VALUE;
     for (size_t i = 0; i < 10; ++i) {
         probe = makeUploadTempPath(path);
-        handle = CreateFileA(probe.c_str(), READ_CONTROL | DELETE, FILE_SHARE_DELETE, nullptr,
+        handle = CreateFileA(probe.c_str(), READ_CONTROL, FILE_SHARE_DELETE, nullptr,
                              CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr);
         if (handle != INVALID_HANDLE_VALUE || GetLastError() != ERROR_FILE_EXISTS) {
             break;
@@ -637,7 +637,9 @@ static bool applyInheritedFileDacl(const string &path) {
         SetLastError(ERROR_INVALID_SECURITY_DESCR);
         return false;
     }
-    auto result = SetNamedSecurityInfoA((LPSTR)path.c_str(), SE_FILE_OBJECT,
+    vector<char> mutable_path(path.begin(), path.end());
+    mutable_path.push_back('\0');
+    auto result = SetNamedSecurityInfoA(mutable_path.data(), SE_FILE_OBJECT,
                                         DACL_SECURITY_INFORMATION | UNPROTECTED_DACL_SECURITY_INFORMATION,
                                         nullptr, nullptr, dacl, nullptr);
     if (result != ERROR_SUCCESS) {
