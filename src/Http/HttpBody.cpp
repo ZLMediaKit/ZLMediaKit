@@ -624,6 +624,50 @@ static FILE *openUploadTemporary(const string &path, int dir_fd = -1, const stri
 #endif
 }
 
+#ifndef _WIN32
+static mode_t getUploadCreationMode(int dir_fd) {
+    for (size_t i = 0; i < 10; ++i) {
+        auto name = ".upload-mode-" + makeRandStr(16);
+        auto flags = O_WRONLY | O_CREAT | O_EXCL;
+#ifdef O_CLOEXEC
+        flags |= O_CLOEXEC;
+#endif
+        auto fd = openat(dir_fd, name.c_str(), flags, 0666);
+        if (fd < 0) {
+            if (errno == EEXIST) {
+                continue;
+            }
+            break;
+        }
+#ifndef O_CLOEXEC
+        if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
+            auto err = errno;
+            close(fd);
+            unlinkat(dir_fd, name.c_str(), 0);
+            errno = err;
+            break;
+        }
+#endif
+        // The probe never contains upload data and is unlinked immediately; it only captures the umask-derived mode.
+        if (unlinkat(dir_fd, name.c_str(), 0) != 0) {
+            auto err = errno;
+            close(fd);
+            errno = err;
+            break;
+        }
+        struct stat status;
+        auto success = fstat(fd, &status) == 0;
+        close(fd);
+        if (success) {
+            return status.st_mode & 0777;
+        }
+        break;
+    }
+    throw std::runtime_error(string("HttpFileStorage: failed to determine destination creation mode: ") +
+                             toolkit::get_uv_errmsg());
+}
+#endif
+
 HttpFileStorage::HttpFileStorage(std::string file_path) {
     _path = std::move(file_path);
     _storage_path = resolveUploadDestination(_path);
@@ -669,6 +713,13 @@ HttpFileStorage::HttpFileStorage(std::string file_path) {
         throw std::runtime_error("HttpFileStorage: failed to secure destination directory: " + directory + ", err: " + err);
     }
 #endif
+    try {
+        _final_mode = getUploadCreationMode(_dir_fd);
+    } catch (...) {
+        close(_dir_fd);
+        _dir_fd = -1;
+        throw;
+    }
 #endif
     for (size_t i = 0; i < 10; ++i) {
         _tmp_path = makeUploadTempPath(_storage_path);

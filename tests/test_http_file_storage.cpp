@@ -42,6 +42,9 @@ int main() {
     assert(readFile(destination) == "old");
 
     auto empty_destination = directory + "empty";
+#ifndef _WIN32
+    auto previous_umask = umask(0022);
+#endif
     {
         HttpFileStorage storage(empty_destination);
 #ifndef _WIN32
@@ -57,6 +60,11 @@ int main() {
 #endif
         storage.writeData(nullptr, 0, 0);
     }
+#ifndef _WIN32
+    umask(previous_umask);
+    struct stat empty_status;
+    assert(stat(empty_destination.c_str(), &empty_status) == 0 && (empty_status.st_mode & 0777) == 0644);
+#endif
     assert(File::fileExist(empty_destination) && readFile(empty_destination).empty());
 
     {
