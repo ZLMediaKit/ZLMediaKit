@@ -67,6 +67,7 @@ Buffer::Ptr HttpStringBody::readData(size_t size) {
 static mutex s_mtx;
 static unordered_map<string /*file_path*/, std::tuple<char */*ptr*/, int64_t /*size*/, weak_ptr<char> /*mmap*/ > > s_shared_mmap;
 static uint64_t s_mmap_generation = 0;
+static size_t s_mmap_replacements = 0;
 
 #if defined(_WIN32)
 static void mmap_close(HANDLE _hfile, HANDLE _hmapping, void *_addr) {
@@ -112,10 +113,25 @@ static void delSharedMmap(const string &file_path, char *ptr) {
     }
 }
 
-static void invalidateSharedMmap_l() {
-    s_shared_mmap.clear();
-    ++s_mmap_generation;
-}
+class MmapReplacementGuard {
+public:
+    MmapReplacementGuard() {
+        lock_guard<mutex> lck(s_mtx);
+        s_shared_mmap.clear();
+        ++s_mmap_generation;
+        ++s_mmap_replacements;
+    }
+
+    ~MmapReplacementGuard() {
+        lock_guard<mutex> lck(s_mtx);
+        s_shared_mmap.clear();
+        ++s_mmap_generation;
+        --s_mmap_replacements;
+    }
+
+    MmapReplacementGuard(const MmapReplacementGuard &) = delete;
+    MmapReplacementGuard &operator=(const MmapReplacementGuard &) = delete;
+};
 
 static std::shared_ptr<char> getSharedMmap(const string &file_path, int64_t &file_size) {
     uint64_t generation;
@@ -123,7 +139,7 @@ static std::shared_ptr<char> getSharedMmap(const string &file_path, int64_t &fil
         lock_guard<mutex> lck(s_mtx);
         generation = s_mmap_generation;
         auto it = s_shared_mmap.find(file_path);
-        if (it != s_shared_mmap.end()) {
+        if (!s_mmap_replacements && it != s_shared_mmap.end()) {
             auto ret = std::get<2>(it->second).lock();
             if (ret) {
                 // 命中mmap缓存  [AUTO-TRANSLATED:95131a66]
@@ -225,7 +241,7 @@ static std::shared_ptr<char> getSharedMmap(const string &file_path, int64_t &fil
 #endif
     {
         lock_guard<mutex> lck(s_mtx);
-        if (s_mmap_generation == generation) {
+        if (!s_mmap_replacements && s_mmap_generation == generation) {
             s_shared_mmap[file_path] = std::make_tuple(ret.get(), file_size, ret);
         }
     }
@@ -813,7 +829,10 @@ void HttpFileStorage::finalize() {
     }
     _fp = nullptr;
 
-    lock_guard<mutex> lck(s_mtx);
+    // Invalidate before replacement so readers that start during the filesystem operation cannot hit an old cached
+    // inode. Invalidate again afterward to discard mappings opened before replacement while avoiding filesystem I/O
+    // under the global mmap-cache mutex.
+    MmapReplacementGuard replacement_guard;
 #if defined(_WIN32)
     auto replaced = ReplaceFileA(_storage_path.c_str(), _tmp_path.c_str(), nullptr, 0, nullptr, nullptr);
     if (!replaced && GetLastError() == ERROR_FILE_NOT_FOUND) {
@@ -829,7 +848,6 @@ void HttpFileStorage::finalize() {
                                  ", err: " + toolkit::get_uv_errmsg());
     }
 #endif
-    invalidateSharedMmap_l();
     _tmp_path.clear();
     _tmp_name.clear();
 #ifndef _WIN32
