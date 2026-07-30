@@ -223,6 +223,8 @@ public:
     const std::string& filePath() const;
 
 private:
+    void finalize();
+
     FILE *_fp = nullptr;
     uint64_t _written = 0;
     uint64_t _content_size = 0;

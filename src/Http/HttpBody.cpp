@@ -414,18 +414,38 @@ HttpFileStorage::HttpFileStorage(std::string file_path) {
 }
 
 HttpFileStorage::~HttpFileStorage() {
-    auto complete = _written && _written == _content_size;
     if (_fp) {
-        auto flushed = fflush(_fp) == 0;
-        auto closed = fclose(_fp) == 0;
-        complete = complete && flushed && closed;
+        fclose(_fp);
         _fp = nullptr;
     }
-    if (complete && rename(_tmp_path.data(), _path.data()) == 0) {
-        return;
-    }
     // 删除不完整的临时文件，保留原有目标文件。
-    File::delete_file(_tmp_path);
+    if (!_tmp_path.empty()) {
+        File::delete_file(_tmp_path);
+    }
+}
+
+void HttpFileStorage::finalize() {
+    if (fflush(_fp) != 0) {
+        throw std::runtime_error("HttpFileStorage: failed to flush file: " + _tmp_path);
+    }
+    if (fclose(_fp) != 0) {
+        _fp = nullptr;
+        throw std::runtime_error("HttpFileStorage: failed to close file: " + _tmp_path);
+    }
+    _fp = nullptr;
+
+#if defined(_WIN32)
+    if (!MoveFileExA(_tmp_path.c_str(), _path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+        throw std::runtime_error("HttpFileStorage: failed to replace file: " + _path +
+                                 ", err: " + std::to_string(GetLastError()));
+    }
+#else
+    if (rename(_tmp_path.c_str(), _path.c_str()) != 0) {
+        throw std::runtime_error("HttpFileStorage: failed to replace file: " + _path +
+                                 ", err: " + toolkit::get_uv_errmsg());
+    }
+#endif
+    _tmp_path.clear();
 }
 
 void HttpFileStorage::writeData(const char *data, size_t size, uint64_t content_size) {
@@ -441,6 +461,9 @@ void HttpFileStorage::writeData(const char *data, size_t size, uint64_t content_
         throw std::runtime_error("HttpFileStorage: fwrite failed, expected " + std::to_string(size) + ", got " + std::to_string(written));
     }
     _written += written;
+    if (_written == _content_size) {
+        finalize();
+    }
 }
 
 int64_t HttpFileStorage::remainSize() {
