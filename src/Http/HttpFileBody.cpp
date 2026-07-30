@@ -1,0 +1,876 @@
+﻿/*
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
+ *
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
+ *
+ * Use of this source code is governed by MIT-like license that can be found in the
+ * LICENSE file in the root of the source tree. All contributing project authors
+ * may be found in the AUTHORS file in the root of the source tree.
+ */
+
+#include <cerrno>
+#include <csignal>
+#include <tuple>
+
+#ifndef _WIN32
+#include <fcntl.h>
+#include <limits.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#else
+#include <aclapi.h>
+#include <fcntl.h>
+#include <io.h>
+#include <sddl.h>
+#endif
+#if defined(__linux__) || defined(__linux)
+#include <sys/sendfile.h>
+#endif
+
+#include "HttpBody.h"
+#include "Common/macros.h"
+#include "Util/File.h"
+#include "Util/logger.h"
+#include "Util/onceToken.h"
+#include "Util/util.h"
+#include "Util/uv_errno.h"
+
+using namespace std;
+using namespace toolkit;
+
+namespace mediakit {
+
+// Keep file readers and upload storage in one translation unit: atomic upload replacement and the mmap cache share
+// synchronization state, while the generic in-memory and multipart body implementations remain in HttpBody.cpp.
+//////////////////////////////////////////////////////////////////
+static mutex s_mtx;
+static unordered_map<string /*file_path*/, std::tuple<char */*ptr*/, int64_t /*size*/, weak_ptr<char> /*mmap*/ > > s_shared_mmap;
+static uint64_t s_mmap_generation = 0;
+static size_t s_mmap_replacements = 0;
+
+#if defined(_WIN32)
+static void mmap_close(HANDLE _hfile, HANDLE _hmapping, void *_addr) {
+    if (_addr) {
+        ::UnmapViewOfFile(_addr);
+    }
+
+    if (_hmapping) {
+        ::CloseHandle(_hmapping);
+    }
+
+    if (_hfile != INVALID_HANDLE_VALUE) {
+        ::CloseHandle(_hfile);
+    }
+}
+
+static FILE *openReadFile(const string &path) {
+    auto handle = CreateFileA(path.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE,
+                              nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (handle == INVALID_HANDLE_VALUE) {
+        return nullptr;
+    }
+    auto fd = _open_osfhandle((intptr_t)handle, _O_BINARY | _O_RDONLY);
+    if (fd < 0) {
+        CloseHandle(handle);
+        return nullptr;
+    }
+    auto fp = _fdopen(fd, "rb");
+    if (!fp) {
+        _close(fd);
+    }
+    return fp;
+}
+#endif
+
+// 删除mmap记录  [AUTO-TRANSLATED:c956201d]
+// Delete mmap record
+static void delSharedMmap(const string &file_path, char *ptr) {
+    lock_guard<mutex> lck(s_mtx);
+    auto it = s_shared_mmap.find(file_path);
+    if (it != s_shared_mmap.end() && std::get<0>(it->second) == ptr) {
+        s_shared_mmap.erase(it);
+    }
+}
+
+class MmapReplacementGuard {
+public:
+    MmapReplacementGuard() {
+        lock_guard<mutex> lck(s_mtx);
+        s_shared_mmap.clear();
+        ++s_mmap_generation;
+        ++s_mmap_replacements;
+    }
+
+    ~MmapReplacementGuard() {
+        lock_guard<mutex> lck(s_mtx);
+        s_shared_mmap.clear();
+        ++s_mmap_generation;
+        --s_mmap_replacements;
+    }
+
+    MmapReplacementGuard(const MmapReplacementGuard &) = delete;
+    MmapReplacementGuard &operator=(const MmapReplacementGuard &) = delete;
+};
+
+static std::shared_ptr<char> getSharedMmap(const string &file_path, int64_t &file_size) {
+    uint64_t generation;
+    {
+        lock_guard<mutex> lck(s_mtx);
+        generation = s_mmap_generation;
+        auto it = s_shared_mmap.find(file_path);
+        if (!s_mmap_replacements && it != s_shared_mmap.end()) {
+            auto ret = std::get<2>(it->second).lock();
+            if (ret) {
+                // 命中mmap缓存  [AUTO-TRANSLATED:95131a66]
+                // Hit mmap cache
+                file_size = std::get<1>(it->second);
+                return ret;
+            }
+        }
+    }
+
+#ifndef _WIN32
+    // 打开文件  [AUTO-TRANSLATED:55bfe68a]
+    // Open file
+    std::shared_ptr<FILE> fp(fopen(file_path.data(), "rb"), [](FILE *fp) {
+        if (fp) {
+            fclose(fp);
+        }
+    });
+    if (!fp) {
+        // 文件不存在  [AUTO-TRANSLATED:ed160bcf]
+        // File does not exist
+        file_size = -1;
+        return nullptr;
+    }
+
+
+    // 获取文件大小  [AUTO-TRANSLATED:82974eea]
+    // Get file size
+    file_size = File::fileSize(fp.get());
+    auto fd = fileno(fp.get());
+
+    if (fd < 0) {
+        WarnL << "fileno failed:" << get_uv_errmsg(false);
+        return nullptr;
+    }
+    auto ptr = (char *)mmap(NULL, file_size, PROT_READ, MAP_SHARED, fd, 0);
+    if (ptr == MAP_FAILED) {
+        WarnL << "mmap " << file_path << " failed:" << get_uv_errmsg(false);
+        return nullptr;
+    }
+
+
+    std::shared_ptr<char> ret(ptr, [file_size, fp, file_path](char *ptr) {
+        delSharedMmap(file_path, ptr);
+        munmap(ptr, file_size);
+    });
+
+#else
+    auto hfile = ::CreateFileA(file_path.data(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE,
+                               NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+    if (hfile == INVALID_HANDLE_VALUE) {
+        WarnL << "CreateFileA() " << file_path << " failed:";
+        return nullptr;
+    }
+
+    LARGE_INTEGER fileSize;
+    if (!GetFileSizeEx(hfile, &fileSize)) {
+        WarnL << "GetFileSizeEx() " << file_path << " failed: " << GetLastError();
+        mmap_close(hfile, NULL, NULL);
+        return nullptr;
+    }
+    file_size = fileSize.QuadPart;
+
+    auto hmapping = ::CreateFileMapping(hfile, NULL, PAGE_READONLY, 0, 0, NULL);
+
+    if (hmapping == NULL) {
+        mmap_close(hfile, NULL, NULL);
+        WarnL << "CreateFileMapping() " << file_path << " failed:";
+        return nullptr;
+    }
+
+    auto addr_ = ::MapViewOfFile(hmapping, FILE_MAP_READ, 0, 0, 0);
+
+    if (addr_ == nullptr) {
+        mmap_close(hfile, hmapping, addr_);
+        WarnL << "MapViewOfFile() " << file_path << " failed:";
+        return nullptr;
+    }
+
+    std::shared_ptr<char> ret((char *)(addr_), [hfile, hmapping, file_path](char *addr_) {
+        delSharedMmap(file_path, addr_);
+        mmap_close(hfile, hmapping, addr_);
+    });
+
+#endif
+
+
+#if 0
+    if (file_size < 10 * 1024 * 1024 && file_path.rfind(".ts") != string::npos) {
+        // 如果是小ts文件，那么尝试先加载到内存  [AUTO-TRANSLATED:0d96c5cd]
+        // If it is a small ts file, try to load it into memory first
+        auto buf = BufferRaw::create();
+        buf->assign(ret.get(), file_size);
+        ret.reset(buf->data(), [buf, file_path](char *ptr) {
+            delSharedMmap(file_path, ptr);
+        });
+    }
+#endif
+    {
+        lock_guard<mutex> lck(s_mtx);
+        if (!s_mmap_replacements && s_mmap_generation == generation) {
+            s_shared_mmap[file_path] = std::make_tuple(ret.get(), file_size, ret);
+        }
+    }
+    return ret;
+}
+
+HttpFileBody::HttpFileBody(const string &file_path, bool use_mmap) {
+
+    // 判断是否为目录，避免对目录进行mmap操作，导致程序崩溃。
+    if (File::is_dir(file_path)) {
+        _read_to = -1;
+        return;
+    }
+
+    if (use_mmap ) {
+        _map_addr = getSharedMmap(file_path, _read_to);
+    }
+
+    if (!_map_addr && _read_to != -1) {
+        // mmap失败(且不是由于文件不存在导致的)或未执行mmap时，才进入fread逻辑分支  [AUTO-TRANSLATED:8c7efed5]
+        // Only enter the fread logic branch when mmap fails (and is not due to file not existing) or when mmap is not executed
+#if defined(_WIN32)
+        _fp.reset(openReadFile(file_path), [](FILE *fp) {
+#else
+        _fp.reset(fopen(file_path.data(), "rb"), [](FILE *fp) {
+#endif
+            if (fp) {
+                fclose(fp);
+            }
+        });
+        if (!_fp) {
+            // 文件不存在  [AUTO-TRANSLATED:ed160bcf]
+            // File does not exist
+            _read_to = -1;
+            return;
+        }
+        if (!_read_to) {
+            // _read_to等于0时，说明还未尝试获取文件大小  [AUTO-TRANSLATED:4e3ef6ca]
+            // When _read_to equals 0, it means that the file size has not been attempted to be obtained yet
+            // 加上该判断逻辑，在mmap失败时，可以省去一次该操作  [AUTO-TRANSLATED:b9b585de]
+            // Adding this judgment logic can save one operation when mmap fails
+            _read_to = File::fileSize(_fp.get());
+        }
+    }
+}
+
+void HttpFileBody::setRange(uint64_t offset, uint64_t max_size) {
+    CHECK((int64_t)offset <= _read_to && (int64_t)(max_size + offset) <= _read_to);
+    _read_to = max_size + offset;
+    _file_offset = offset;
+    if (_fp && !_map_addr) {
+        fseek64(_fp.get(), _file_offset, SEEK_SET);
+    }
+}
+
+int HttpFileBody::sendFile(int fd) {
+#if defined(__linux__) || defined(__linux)
+    if (!_fp) {
+        return -1;
+    }
+    static onceToken s_token([]() { signal(SIGPIPE, SIG_IGN); });
+    off_t off = _file_offset;
+    return sendfile(fd, fileno(_fp.get()), &off, _read_to - _file_offset);
+#else
+    return -1;
+#endif
+}
+
+class BufferMmap : public Buffer {
+public:
+    using Ptr = std::shared_ptr<BufferMmap>;
+    BufferMmap(const std::shared_ptr<char> &map_addr, size_t offset, size_t size) {
+        _map_addr = map_addr;
+        _data = map_addr.get() + offset;
+        _size = size;
+    }
+    // 返回数据长度  [AUTO-TRANSLATED:955f731c]
+    // Return data length
+    char *data() const override { return _data; }
+    size_t size() const override { return _size; }
+
+private:
+    char *_data;
+    size_t _size;
+    std::shared_ptr<char> _map_addr;
+};
+
+int64_t HttpFileBody::remainSize() {
+    return _read_to - _file_offset;
+}
+
+Buffer::Ptr HttpFileBody::readData(size_t size) {
+    size = (size_t)(MIN(remainSize(), (int64_t)size));
+    if (!size) {
+        // 没有剩余字节了  [AUTO-TRANSLATED:7bbaa343]
+        // No remaining bytes
+        return nullptr;
+    }
+    if (!_map_addr) {
+        // fread模式  [AUTO-TRANSLATED:c4dee2a3]
+        // fread mode
+        ssize_t iRead;
+        auto ret = _pool.obtain2();
+        ret->setCapacity(size + 1);
+        do {
+            iRead = fread(ret->data(), 1, size, _fp.get());
+        } while (-1 == iRead && UV_EINTR == get_uv_error(false));
+
+        if (iRead > 0) {
+            // 读到数据了  [AUTO-TRANSLATED:7e5ada62]
+            // Data is read
+            ret->setSize(iRead);
+            _file_offset += iRead;
+            return ret;
+        }
+        // 读取文件异常，文件真实长度小于声明长度  [AUTO-TRANSLATED:89d09f9b]
+        // File reading exception, the actual length of the file is less than the declared length
+        _file_offset = _read_to;
+        WarnL << "read file err:" << get_uv_errmsg();
+        return nullptr;
+    }
+
+    // mmap模式  [AUTO-TRANSLATED:b8d616f1]
+    // mmap mode
+    auto ret = std::make_shared<BufferMmap>(_map_addr, _file_offset, size);
+    _file_offset += size;
+    return ret;
+}
+
+//////////////////////////////////////////////////////////////////
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HttpFileStorage — write-only body backed by a file on disk
+// ─────────────────────────────────────────────────────────────────────────────
+
+static string pathDirectory(const string &path) {
+#if defined(_WIN32)
+    auto pos = path.find_last_of("/\\");
+#else
+    auto pos = path.find_last_of('/');
+#endif
+    if (pos == string::npos) {
+        return ".";
+    }
+    return pos ? path.substr(0, pos) : path.substr(0, 1);
+}
+
+static string pathBasename(const string &path) {
+#if defined(_WIN32)
+    auto pos = path.find_last_of("/\\");
+#else
+    auto pos = path.find_last_of('/');
+#endif
+    return pos == string::npos ? path : path.substr(pos + 1);
+}
+
+static string resolveUploadDestination(const string &path, size_t symlink_depth = 0) {
+#if defined(_WIN32)
+    auto attributes = GetFileAttributesA(path.c_str());
+    if (attributes == INVALID_FILE_ATTRIBUTES || !(attributes & FILE_ATTRIBUTE_REPARSE_POINT)) {
+        vector<char> absolute(1024);
+        auto size = GetFullPathNameA(path.c_str(), (DWORD)absolute.size(), absolute.data(), nullptr);
+        if (!size) {
+            throw std::runtime_error("HttpFileStorage: failed to resolve destination path: " + path +
+                                     ", err: " + std::to_string(GetLastError()));
+        }
+        if (size >= absolute.size()) {
+            absolute.resize(size + 1);
+            size = GetFullPathNameA(path.c_str(), (DWORD)absolute.size(), absolute.data(), nullptr);
+            if (!size || size >= absolute.size()) {
+                throw std::runtime_error("HttpFileStorage: failed to resolve destination path: " + path);
+            }
+        }
+        return string(absolute.data(), size);
+    }
+    auto handle = CreateFileA(path.c_str(), FILE_READ_ATTRIBUTES,
+                              FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                              nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
+    if (handle == INVALID_HANDLE_VALUE) {
+        throw std::runtime_error("HttpFileStorage: failed to resolve destination: " + path +
+                                 ", err: " + std::to_string(GetLastError()));
+    }
+    vector<char> resolved(1024);
+    auto size = GetFinalPathNameByHandleA(handle, resolved.data(), (DWORD)resolved.size(), FILE_NAME_NORMALIZED);
+    if (!size) {
+        auto err = GetLastError();
+        CloseHandle(handle);
+        throw std::runtime_error("HttpFileStorage: failed to resolve destination: " + path +
+                                 ", err: " + std::to_string(err));
+    }
+    if (size >= resolved.size()) {
+        resolved.resize(size + 1);
+        size = GetFinalPathNameByHandleA(handle, resolved.data(), (DWORD)resolved.size(), FILE_NAME_NORMALIZED);
+        if (!size || size >= resolved.size()) {
+            CloseHandle(handle);
+            throw std::runtime_error("HttpFileStorage: failed to resolve destination: " + path);
+        }
+    }
+    CloseHandle(handle);
+    return string(resolved.data(), size);
+#else
+    char *resolved = realpath(path.c_str(), nullptr);
+    if (resolved) {
+        string ret(resolved);
+        free(resolved);
+        return ret;
+    }
+    if (errno != ENOENT) {
+        throw std::runtime_error("HttpFileStorage: failed to resolve destination: " + path +
+                                 ", err: " + toolkit::get_uv_errmsg());
+    }
+
+    struct stat status;
+    if (lstat(path.c_str(), &status) == 0 && S_ISLNK(status.st_mode)) {
+        if (symlink_depth >= 40) {
+            throw std::runtime_error("HttpFileStorage: too many symbolic links in destination: " + path);
+        }
+        vector<char> target(status.st_size > 0 ? status.st_size + 1 : 256);
+        ssize_t size;
+        for (;;) {
+            size = readlink(path.c_str(), target.data(), target.size());
+            if (size < 0) {
+                throw std::runtime_error("HttpFileStorage: failed to read symbolic link: " + path +
+                                         ", err: " + toolkit::get_uv_errmsg());
+            }
+            if ((size_t)size < target.size()) {
+                break;
+            }
+            target.resize(target.size() * 2);
+        }
+        string target_path(target.data(), size);
+        if (target_path.empty() || target_path[0] != '/') {
+            target_path = pathDirectory(path) + "/" + target_path;
+        }
+        return resolveUploadDestination(target_path, symlink_depth + 1);
+    }
+
+    auto directory = pathDirectory(path);
+    resolved = realpath(directory.c_str(), nullptr);
+    if (!resolved) {
+        throw std::runtime_error("HttpFileStorage: failed to resolve destination directory: " + directory +
+                                 ", err: " + toolkit::get_uv_errmsg());
+    }
+    string ret = string(resolved) + "/" + pathBasename(path);
+    free(resolved);
+    return ret;
+#endif
+}
+
+static string makeUploadTempPath(const string &path) {
+#if defined(_WIN32)
+    auto pos = path.find_last_of("/\\");
+#else
+    auto pos = path.find_last_of('/');
+#endif
+    auto directory = pos == string::npos ? string() : path.substr(0, pos + 1);
+    return directory + ".upload-" + makeRandStr(16);
+}
+
+#if defined(_WIN32)
+static bool applyInheritedFileDacl(const string &path) {
+    string probe;
+    HANDLE handle = INVALID_HANDLE_VALUE;
+    for (size_t i = 0; i < 10; ++i) {
+        probe = makeUploadTempPath(path);
+        handle = CreateFileA(probe.c_str(), READ_CONTROL, FILE_SHARE_DELETE, nullptr,
+                             CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr);
+        if (handle != INVALID_HANDLE_VALUE || GetLastError() != ERROR_FILE_EXISTS) {
+            break;
+        }
+    }
+    if (handle == INVALID_HANDLE_VALUE) {
+        return false;
+    }
+    DWORD size = 0;
+    GetKernelObjectSecurity(handle, DACL_SECURITY_INFORMATION, nullptr, 0, &size);
+    auto err = GetLastError();
+    if (!size || err != ERROR_INSUFFICIENT_BUFFER) {
+        if (!DeleteFileA(probe.c_str())) {
+            CloseHandle(handle);
+            DeleteFileA(probe.c_str());
+        } else {
+            CloseHandle(handle);
+        }
+        SetLastError(err);
+        return false;
+    }
+    vector<char> descriptor(size);
+    if (!GetKernelObjectSecurity(handle, DACL_SECURITY_INFORMATION,
+                                 (PSECURITY_DESCRIPTOR)descriptor.data(), size, &size)) {
+        err = GetLastError();
+        if (!DeleteFileA(probe.c_str())) {
+            CloseHandle(handle);
+            DeleteFileA(probe.c_str());
+        } else {
+            CloseHandle(handle);
+        }
+        SetLastError(err);
+        return false;
+    }
+    if (!DeleteFileA(probe.c_str())) {
+        err = GetLastError();
+        CloseHandle(handle);
+        SetLastError(err);
+        return false;
+    }
+    CloseHandle(handle);
+    BOOL present = FALSE;
+    BOOL defaulted = FALSE;
+    PACL dacl = nullptr;
+    if (!GetSecurityDescriptorDacl((PSECURITY_DESCRIPTOR)descriptor.data(), &present, &dacl, &defaulted)) {
+        return false;
+    }
+    if (!present) {
+        SetLastError(ERROR_INVALID_SECURITY_DESCR);
+        return false;
+    }
+    vector<char> mutable_path(path.begin(), path.end());
+    mutable_path.push_back('\0');
+    auto result = SetNamedSecurityInfoA(mutable_path.data(), SE_FILE_OBJECT,
+                                        DACL_SECURITY_INFORMATION | UNPROTECTED_DACL_SECURITY_INFORMATION,
+                                        nullptr, nullptr, dacl, nullptr);
+    if (result != ERROR_SUCCESS) {
+        SetLastError(result);
+        return false;
+    }
+    return true;
+}
+#endif
+
+static FILE *openUploadTemporary(const string &path, int dir_fd = -1, const string &name = string()) {
+#if defined(_WIN32)
+    PSECURITY_DESCRIPTOR descriptor = nullptr;
+    if (!ConvertStringSecurityDescriptorToSecurityDescriptorA("D:P(A;;FA;;;OW)", SDDL_REVISION_1, &descriptor, nullptr)) {
+        return nullptr;
+    }
+    SECURITY_ATTRIBUTES attributes = { sizeof(attributes), descriptor, FALSE };
+    auto handle = CreateFileA(path.c_str(), GENERIC_READ | GENERIC_WRITE | DELETE, 0, &attributes,
+                              CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr);
+    auto create_error = GetLastError();
+    LocalFree(descriptor);
+    if (handle == INVALID_HANDLE_VALUE) {
+        errno = create_error == ERROR_FILE_EXISTS || create_error == ERROR_ALREADY_EXISTS ? EEXIST : 0;
+        SetLastError(create_error);
+        return nullptr;
+    }
+    auto fd = _open_osfhandle((intptr_t)handle, _O_BINARY | _O_WRONLY);
+    if (fd < 0) {
+        CloseHandle(handle);
+        DeleteFileA(path.c_str());
+        return nullptr;
+    }
+    auto fp = _fdopen(fd, "wb");
+    if (!fp) {
+        _close(fd);
+        DeleteFileA(path.c_str());
+    }
+    return fp;
+#else
+    auto flags = O_WRONLY | O_CREAT | O_EXCL;
+#ifdef O_CLOEXEC
+    flags |= O_CLOEXEC;
+#endif
+    auto fd = openat(dir_fd, name.c_str(), flags, 0600);
+    if (fd < 0) {
+        return nullptr;
+    }
+#ifndef O_CLOEXEC
+    if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
+        close(fd);
+        unlinkat(dir_fd, name.c_str(), 0);
+        return nullptr;
+    }
+#endif
+    auto fp = fdopen(fd, "wb");
+    if (!fp) {
+        close(fd);
+        unlinkat(dir_fd, name.c_str(), 0);
+    }
+    return fp;
+#endif
+}
+
+#ifndef _WIN32
+static mode_t getUploadCreationMode(int dir_fd) {
+    for (size_t i = 0; i < 10; ++i) {
+        auto name = ".upload-mode-" + makeRandStr(16);
+        auto flags = O_WRONLY | O_CREAT | O_EXCL;
+#ifdef O_CLOEXEC
+        flags |= O_CLOEXEC;
+#endif
+        auto fd = openat(dir_fd, name.c_str(), flags, 0666);
+        if (fd < 0) {
+            if (errno == EEXIST) {
+                continue;
+            }
+            break;
+        }
+#ifndef O_CLOEXEC
+        if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
+            auto err = errno;
+            close(fd);
+            unlinkat(dir_fd, name.c_str(), 0);
+            errno = err;
+            break;
+        }
+#endif
+        // The probe never contains upload data and is unlinked immediately; it only captures the umask-derived mode.
+        if (unlinkat(dir_fd, name.c_str(), 0) != 0) {
+            auto err = errno;
+            close(fd);
+            errno = err;
+            break;
+        }
+        struct stat status;
+        auto success = fstat(fd, &status) == 0;
+        close(fd);
+        if (success) {
+            return status.st_mode & 0777;
+        }
+        break;
+    }
+    throw std::runtime_error(string("HttpFileStorage: failed to determine destination creation mode: ") +
+                             toolkit::get_uv_errmsg());
+}
+#endif
+
+HttpFileStorage::HttpFileStorage(std::string file_path) {
+    _path = std::move(file_path);
+    _storage_path = resolveUploadDestination(_path);
+#if defined(_WIN32)
+    auto attributes = GetFileAttributesA(_storage_path.c_str());
+    if (attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY)) {
+        throw std::runtime_error("HttpFileStorage: destination is not a regular file: " + _path);
+    }
+#else
+    struct stat destination_stat;
+    if (stat(_storage_path.c_str(), &destination_stat) == 0) {
+        if (!S_ISREG(destination_stat.st_mode)) {
+            throw std::runtime_error("HttpFileStorage: destination is not a regular file: " + _path);
+        }
+    } else if (errno != ENOENT) {
+        throw std::runtime_error("HttpFileStorage: failed to inspect destination: " + _path +
+                                 ", err: " + toolkit::get_uv_errmsg());
+    }
+    _storage_name = pathBasename(_storage_path);
+    auto directory = pathDirectory(_storage_path);
+    auto dir_flags = O_RDONLY;
+#ifdef O_SEARCH
+    dir_flags = O_SEARCH;
+#elif defined(O_PATH)
+    dir_flags = O_PATH;
+#endif
+#ifdef O_DIRECTORY
+    dir_flags |= O_DIRECTORY;
+#endif
+#ifdef O_CLOEXEC
+    dir_flags |= O_CLOEXEC;
+#endif
+    _dir_fd = open(directory.c_str(), dir_flags);
+    if (_dir_fd < 0) {
+        throw std::runtime_error("HttpFileStorage: failed to open destination directory: " + directory +
+                                 ", err: " + toolkit::get_uv_errmsg());
+    }
+#ifndef O_CLOEXEC
+    if (fcntl(_dir_fd, F_SETFD, FD_CLOEXEC) != 0) {
+        auto err = toolkit::get_uv_errmsg();
+        close(_dir_fd);
+        _dir_fd = -1;
+        throw std::runtime_error("HttpFileStorage: failed to secure destination directory: " + directory + ", err: " + err);
+    }
+#endif
+    try {
+        _final_mode = getUploadCreationMode(_dir_fd);
+    } catch (...) {
+        close(_dir_fd);
+        _dir_fd = -1;
+        throw;
+    }
+#endif
+    for (size_t i = 0; i < 10; ++i) {
+        _tmp_path = makeUploadTempPath(_storage_path);
+#ifndef _WIN32
+        _tmp_name = pathBasename(_tmp_path);
+#endif
+        errno = 0;
+        _fp = openUploadTemporary(_tmp_path, _dir_fd, _tmp_name);
+        if (_fp || errno != EEXIST) {
+            break;
+        }
+    }
+    if (!_fp) {
+#if defined(_WIN32)
+        auto err = std::to_string(GetLastError());
+#else
+        auto err = toolkit::get_uv_errmsg();
+#endif
+#ifndef _WIN32
+        if (_dir_fd >= 0) {
+            close(_dir_fd);
+            _dir_fd = -1;
+        }
+#endif
+        throw std::runtime_error("HttpFileStorage: failed to open temporary file: " + _tmp_path +
+                                 " for destination: " + _path + ", err: " + err);
+    }
+}
+
+HttpFileStorage::~HttpFileStorage() {
+    if (_fp) {
+        fclose(_fp);
+        _fp = nullptr;
+    }
+    // 删除不完整的临时文件，保留原有目标文件。
+#ifndef _WIN32
+    if (_dir_fd >= 0 && !_tmp_name.empty()) {
+        unlinkat(_dir_fd, _tmp_name.c_str(), 0);
+    } else {
+        if (!_tmp_path.empty()) {
+            File::delete_file(_tmp_path);
+        }
+    }
+#else
+    if (!_tmp_path.empty()) {
+        File::delete_file(_tmp_path);
+    }
+#endif
+#ifndef _WIN32
+    if (_dir_fd >= 0) {
+        close(_dir_fd);
+        _dir_fd = -1;
+    }
+#endif
+}
+
+void HttpFileStorage::finalize() {
+    if (fflush(_fp) != 0) {
+        throw std::runtime_error("HttpFileStorage: failed to flush file: " + _tmp_path +
+                                 ", err: " + toolkit::get_uv_errmsg());
+    }
+#ifndef _WIN32
+    struct stat destination_stat;
+    if (fstatat(_dir_fd, _storage_name.c_str(), &destination_stat, 0) == 0) {
+        if (!S_ISREG(destination_stat.st_mode)) {
+            throw std::runtime_error("HttpFileStorage: destination is not a regular file: " + _path);
+        }
+        auto fd = fileno(_fp);
+        if (fchown(fd, destination_stat.st_uid, destination_stat.st_gid) != 0) {
+            struct stat temporary_stat;
+            if (errno != EPERM || fstat(fd, &temporary_stat) != 0 || temporary_stat.st_uid != destination_stat.st_uid ||
+                temporary_stat.st_gid != destination_stat.st_gid) {
+                throw std::runtime_error("HttpFileStorage: failed to preserve destination ownership: " + _path +
+                                         ", err: " + toolkit::get_uv_errmsg());
+            }
+        }
+        _final_mode = destination_stat.st_mode & 0777;
+    } else if (errno != ENOENT) {
+        throw std::runtime_error("HttpFileStorage: failed to inspect destination metadata: " + _path +
+                                 ", err: " + toolkit::get_uv_errmsg());
+    }
+    if (fchmod(fileno(_fp), _final_mode) != 0) {
+        throw std::runtime_error("HttpFileStorage: failed to preserve destination mode: " + _path +
+                                 ", err: " + toolkit::get_uv_errmsg());
+    }
+#endif
+    if (fclose(_fp) != 0) {
+        _fp = nullptr;
+        throw std::runtime_error("HttpFileStorage: failed to close file: " + _tmp_path +
+                                 ", err: " + toolkit::get_uv_errmsg());
+    }
+    _fp = nullptr;
+
+    // Invalidate before replacement so readers that start during the filesystem operation cannot hit an old cached
+    // inode. Invalidate again afterward to discard mappings opened before replacement while avoiding filesystem I/O
+    // under the global mmap-cache mutex.
+    MmapReplacementGuard replacement_guard;
+#if defined(_WIN32)
+    auto replaced = ReplaceFileA(_storage_path.c_str(), _tmp_path.c_str(), nullptr, 0, nullptr, nullptr);
+    if (!replaced && GetLastError() == ERROR_FILE_NOT_FOUND) {
+        if (!applyInheritedFileDacl(_tmp_path)) {
+            throw std::runtime_error("HttpFileStorage: failed to apply inherited destination permissions: " + _path +
+                                     ", err: " + std::to_string(GetLastError()));
+        }
+        replaced = MoveFileExA(_tmp_path.c_str(), _storage_path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH);
+    }
+    if (!replaced) {
+        throw std::runtime_error("HttpFileStorage: failed to replace file: " + _path +
+                                 ", err: " + std::to_string(GetLastError()));
+    }
+#else
+    if (renameat(_dir_fd, _tmp_name.c_str(), _dir_fd, _storage_name.c_str()) != 0) {
+        throw std::runtime_error("HttpFileStorage: failed to replace file: " + _path +
+                                 ", err: " + toolkit::get_uv_errmsg());
+    }
+#endif
+    _tmp_path.clear();
+    _tmp_name.clear();
+#ifndef _WIN32
+    if (_dir_fd >= 0) {
+        close(_dir_fd);
+        _dir_fd = -1;
+    }
+#endif
+}
+
+void HttpFileStorage::writeData(const char *data, size_t size, uint64_t content_size) {
+    if (!_fp) {
+        throw std::runtime_error("HttpFileStorage: file not open");
+    }
+    if (!_content_size_set) {
+        _content_size = content_size;
+        _content_size_set = true;
+    } else if (_content_size != content_size) {
+        _discarded = true;
+    }
+    if (_discarded) {
+        return;
+    }
+    auto remaining = _written < _content_size ? _content_size - _written : 0;
+    if (size > remaining) {
+        _discarded = true;
+        return;
+    }
+    if (size == 0) {
+        if (_written == _content_size) {
+            finalize();
+        }
+        return;
+    }
+    auto written = fwrite(data, 1, size, _fp);
+    if (written != size) {
+        throw std::runtime_error("HttpFileStorage: fwrite failed, expected " + std::to_string(size) + ", got " + std::to_string(written));
+    }
+    _written += written;
+    if (_written == _content_size) {
+        finalize();
+    }
+}
+
+int64_t HttpFileStorage::remainSize() {
+    return 0;
+}
+
+Buffer::Ptr HttpFileStorage::readData(size_t size) {
+    return nullptr;
+}
+
+const std::string &HttpFileStorage::filePath() const {
+    return _path;
+ }
+
+} // namespace mediakit
