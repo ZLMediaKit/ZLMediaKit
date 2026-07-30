@@ -183,8 +183,8 @@ static std::shared_ptr<char> getSharedMmap(const string &file_path, int64_t &fil
 
 
     std::shared_ptr<char> ret(ptr, [file_size, fp, file_path](char *ptr) {
-        munmap(ptr, file_size);
         delSharedMmap(file_path, ptr);
+        munmap(ptr, file_size);
     });
 
 #else
@@ -221,8 +221,8 @@ static std::shared_ptr<char> getSharedMmap(const string &file_path, int64_t &fil
     }
 
     std::shared_ptr<char> ret((char *)(addr_), [hfile, hmapping, file_path](char *addr_) {
-        mmap_close(hfile, hmapping, addr_);
         delSharedMmap(file_path, addr_);
+        mmap_close(hfile, hmapping, addr_);
     });
 
 #endif
@@ -606,8 +606,12 @@ static bool applyInheritedFileDacl(const string &path) {
     GetKernelObjectSecurity(handle, DACL_SECURITY_INFORMATION, nullptr, 0, &size);
     auto err = GetLastError();
     if (!size || err != ERROR_INSUFFICIENT_BUFFER) {
-        DeleteFileA(probe.c_str());
-        CloseHandle(handle);
+        if (!DeleteFileA(probe.c_str())) {
+            CloseHandle(handle);
+            DeleteFileA(probe.c_str());
+        } else {
+            CloseHandle(handle);
+        }
         SetLastError(err);
         return false;
     }
@@ -615,8 +619,12 @@ static bool applyInheritedFileDacl(const string &path) {
     if (!GetKernelObjectSecurity(handle, DACL_SECURITY_INFORMATION,
                                  (PSECURITY_DESCRIPTOR)descriptor.data(), size, &size)) {
         err = GetLastError();
-        DeleteFileA(probe.c_str());
-        CloseHandle(handle);
+        if (!DeleteFileA(probe.c_str())) {
+            CloseHandle(handle);
+            DeleteFileA(probe.c_str());
+        } else {
+            CloseHandle(handle);
+        }
         SetLastError(err);
         return false;
     }
