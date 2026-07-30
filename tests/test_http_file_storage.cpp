@@ -1,7 +1,10 @@
 ﻿#include <cassert>
 #include <fstream>
+#include <iterator>
 
-#ifndef _WIN32
+#ifdef _WIN32
+#include <direct.h>
+#else
 #include <sys/stat.h>
 #include <unistd.h>
 #endif
@@ -15,7 +18,7 @@ using namespace toolkit;
 
 static int makeDirectory(const std::string &path) {
 #ifdef _WIN32
-    return mkdir(path.c_str(), 0);
+    return _mkdir(path.c_str());
 #else
     return mkdir(path.c_str(), 0755);
 #endif

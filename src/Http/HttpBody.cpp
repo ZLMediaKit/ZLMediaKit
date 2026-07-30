@@ -17,6 +17,7 @@
 #include <limits.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #else
 #include <aclapi.h>
 #include <fcntl.h>
@@ -179,9 +180,13 @@ static std::shared_ptr<char> getSharedMmap(const string &file_path, int64_t &fil
         return nullptr;
     }
 
-     LARGE_INTEGER FileSize; 
-     GetFileSizeEx(hfile, &FileSize); //GetFileSize函数的拓展，可用于获取大于4G的文件大小
-     file_size = FileSize.QuadPart;
+    LARGE_INTEGER fileSize;
+    if (!GetFileSizeEx(hfile, &fileSize)) {
+        WarnL << "GetFileSizeEx() " << file_path << " failed: " << GetLastError();
+        mmap_close(hfile, NULL, NULL);
+        return nullptr;
+    }
+    file_size = fileSize.QuadPart;
 
     auto hmapping = ::CreateFileMapping(hfile, NULL, PAGE_READONLY, 0, 0, NULL);
 
@@ -640,6 +645,11 @@ HttpFileStorage::HttpFileStorage(std::string file_path) {
     _storage_name = pathBasename(_storage_path);
     auto directory = pathDirectory(_storage_path);
     auto dir_flags = O_RDONLY;
+#ifdef O_SEARCH
+    dir_flags = O_SEARCH;
+#elif defined(O_PATH)
+    dir_flags = O_PATH;
+#endif
 #ifdef O_DIRECTORY
     dir_flags |= O_DIRECTORY;
 #endif
@@ -697,11 +707,16 @@ HttpFileStorage::~HttpFileStorage() {
 #ifndef _WIN32
     if (_dir_fd >= 0 && !_tmp_name.empty()) {
         unlinkat(_dir_fd, _tmp_name.c_str(), 0);
-    } else
-#endif
+    } else {
+        if (!_tmp_path.empty()) {
+            File::delete_file(_tmp_path);
+        }
+    }
+#else
     if (!_tmp_path.empty()) {
         File::delete_file(_tmp_path);
     }
+#endif
 #ifndef _WIN32
     if (_dir_fd >= 0) {
         close(_dir_fd);

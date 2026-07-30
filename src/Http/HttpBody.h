@@ -211,9 +211,9 @@ public:
     using Ptr = std::shared_ptr<HttpFileStorage>;
 
     /**
-     * @param file_path 文件路径，上传完成后以原子替换方式写入，所在目录必须可写，新文件使用私有权限
+     * @param file_path 文件路径，上传完成后以原子替换方式写入，所在目录必须可写，新文件使用私有权限，已有文件的所有权必须可保留
      * @param file_path File path, atomically replaced after a complete upload. Its directory must be writable;
-     * newly created destinations use private permissions.
+     * newly created destinations use private permissions, and existing destination ownership must be preservable.
      */
     HttpFileStorage(std::string file_path);
     ~HttpFileStorage() override;
