@@ -9,10 +9,12 @@
  */
 
 #include <csignal>
+#include <cerrno>
 #include <tuple>
 
 #ifndef _WIN32
 #include <sys/mman.h>
+#include <sys/stat.h>
 #endif
 #if defined(__linux__) || defined(__linux)
 #include <sys/sendfile.h>
@@ -404,12 +406,76 @@ Buffer::Ptr HttpBufferBody::readData(size_t size) {
 // HttpFileStorage — write-only body backed by a file on disk
 // ─────────────────────────────────────────────────────────────────────────────
 
+static string resolveUploadDestination(const string &path) {
+#if defined(_WIN32)
+    auto attributes = GetFileAttributesA(path.c_str());
+    if (attributes == INVALID_FILE_ATTRIBUTES || !(attributes & FILE_ATTRIBUTE_REPARSE_POINT)) {
+        return path;
+    }
+    auto handle = CreateFileA(path.c_str(), FILE_READ_ATTRIBUTES,
+                              FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                              nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
+    if (handle == INVALID_HANDLE_VALUE) {
+        throw std::runtime_error("HttpFileStorage: failed to resolve destination: " + path +
+                                 ", err: " + std::to_string(GetLastError()));
+    }
+    vector<char> resolved(1024);
+    auto size = GetFinalPathNameByHandleA(handle, resolved.data(), (DWORD)resolved.size(), FILE_NAME_NORMALIZED);
+    if (!size) {
+        auto err = GetLastError();
+        CloseHandle(handle);
+        throw std::runtime_error("HttpFileStorage: failed to resolve destination: " + path +
+                                 ", err: " + std::to_string(err));
+    }
+    if (size >= resolved.size()) {
+        resolved.resize(size + 1);
+        size = GetFinalPathNameByHandleA(handle, resolved.data(), (DWORD)resolved.size(), FILE_NAME_NORMALIZED);
+        if (!size || size >= resolved.size()) {
+            CloseHandle(handle);
+            throw std::runtime_error("HttpFileStorage: failed to resolve destination: " + path);
+        }
+    }
+    CloseHandle(handle);
+    string ret(resolved.data(), size);
+    if (ret.compare(0, 8, "\\\\?\\UNC\\") == 0) {
+        return "\\\\" + ret.substr(8);
+    }
+    return ret.compare(0, 4, "\\\\?\\") == 0 ? ret.substr(4) : ret;
+#else
+    struct stat status;
+    if (lstat(path.c_str(), &status) != 0 || !S_ISLNK(status.st_mode)) {
+        return path;
+    }
+    char *resolved = realpath(path.c_str(), nullptr);
+    if (!resolved) {
+        throw std::runtime_error("HttpFileStorage: failed to resolve destination: " + path +
+                                 ", err: " + toolkit::get_uv_errmsg());
+    }
+    string ret(resolved);
+    free(resolved);
+    return ret;
+#endif
+}
+
+static string makeUploadTempPath(const string &path) {
+    auto pos = path.find_last_of("/\\");
+    auto directory = pos == string::npos ? string() : path.substr(0, pos + 1);
+    return directory + ".upload-" + makeRandStr(16);
+}
+
 HttpFileStorage::HttpFileStorage(std::string file_path) {
     _path = std::move(file_path);
-    _tmp_path = _path + ".tmp." + makeRandStr(16);
-    _fp = fopen(_tmp_path.data(), "wb");
+    _storage_path = resolveUploadDestination(_path);
+    for (size_t i = 0; i < 10; ++i) {
+        _tmp_path = makeUploadTempPath(_storage_path);
+        _fp = fopen(_tmp_path.c_str(), "wbx");
+        if (_fp || errno != EEXIST) {
+            break;
+        }
+    }
     if (!_fp) {
-        throw std::runtime_error("HttpFileStorage: failed to open file: " + _tmp_path + ", err: " + toolkit::get_uv_errmsg());
+        throw std::runtime_error("HttpFileStorage: failed to open temporary file: " + _tmp_path +
+                                 " for destination: " + _path + ", err: " + toolkit::get_uv_errmsg());
     }
 }
 
@@ -435,12 +501,12 @@ void HttpFileStorage::finalize() {
     _fp = nullptr;
 
 #if defined(_WIN32)
-    if (!MoveFileExA(_tmp_path.c_str(), _path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+    if (!MoveFileExA(_tmp_path.c_str(), _storage_path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
         throw std::runtime_error("HttpFileStorage: failed to replace file: " + _path +
                                  ", err: " + std::to_string(GetLastError()));
     }
 #else
-    if (rename(_tmp_path.c_str(), _path.c_str()) != 0) {
+    if (rename(_tmp_path.c_str(), _storage_path.c_str()) != 0) {
         throw std::runtime_error("HttpFileStorage: failed to replace file: " + _path +
                                  ", err: " + toolkit::get_uv_errmsg());
     }
