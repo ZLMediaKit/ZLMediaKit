@@ -211,8 +211,8 @@ public:
     using Ptr = std::shared_ptr<HttpFileStorage>;
 
     /**
-     * @param file_path 文件路径，文件以二进制写入模式打开（覆盖已有内容）
-     * @param file_path File path, opened in binary write mode (truncates existing content)
+     * @param file_path 文件路径，上传完成后以原子替换方式写入
+     * @param file_path File path, atomically replaced after a complete upload
      */
     HttpFileStorage(std::string file_path);
     ~HttpFileStorage() override;
@@ -227,6 +227,7 @@ private:
     uint64_t _written = 0;
     uint64_t _content_size = 0;
     std::string _path;
+    std::string _tmp_path;
 };
 
 class HttpArgs;

@@ -405,23 +405,27 @@ Buffer::Ptr HttpBufferBody::readData(size_t size) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 HttpFileStorage::HttpFileStorage(std::string file_path) {
-    _fp = fopen(file_path.data(), "wb");
-    if (!_fp) {
-        throw std::runtime_error("HttpFileStorage: failed to open file: " + file_path + ", err: " + toolkit::get_uv_errmsg());
-    }
     _path = std::move(file_path);
+    _tmp_path = _path + ".tmp." + makeRandStr(16);
+    _fp = fopen(_tmp_path.data(), "wb");
+    if (!_fp) {
+        throw std::runtime_error("HttpFileStorage: failed to open file: " + _tmp_path + ", err: " + toolkit::get_uv_errmsg());
+    }
 }
 
 HttpFileStorage::~HttpFileStorage() {
+    auto complete = _written && _written == _content_size;
     if (_fp) {
-        fflush(_fp);
-        fclose(_fp);
+        auto flushed = fflush(_fp) == 0;
+        auto closed = fclose(_fp) == 0;
+        complete = complete && flushed && closed;
         _fp = nullptr;
     }
-    if (_written != _content_size || !_written) {
-        // 删除不完整的文件
-        File::delete_file(_path);
+    if (complete && rename(_tmp_path.data(), _path.data()) == 0) {
+        return;
     }
+    // 删除不完整的临时文件，保留原有目标文件。
+    File::delete_file(_tmp_path);
 }
 
 void HttpFileStorage::writeData(const char *data, size_t size, uint64_t content_size) {
