@@ -228,6 +228,8 @@ private:
     FILE *_fp = nullptr;
     uint64_t _written = 0;
     uint64_t _content_size = 0;
+    bool _content_size_set = false;
+    bool _discarded = false;
     std::string _path;
     std::string _storage_path;
     std::string _tmp_path;

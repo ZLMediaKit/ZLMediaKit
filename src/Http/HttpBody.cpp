@@ -13,6 +13,7 @@
 #include <tuple>
 
 #ifndef _WIN32
+#include <limits.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #endif
@@ -58,6 +59,7 @@ Buffer::Ptr HttpStringBody::readData(size_t size) {
 //////////////////////////////////////////////////////////////////
 static mutex s_mtx;
 static unordered_map<string /*file_path*/, std::tuple<char */*ptr*/, int64_t /*size*/, weak_ptr<char> /*mmap*/ > > s_shared_mmap;
+static uint64_t s_mmap_generation = 0;
 
 #if defined(_WIN32)
 static void mmap_close(HANDLE _hfile, HANDLE _hmapping, void *_addr) {
@@ -85,9 +87,17 @@ static void delSharedMmap(const string &file_path, char *ptr) {
     }
 }
 
+static void invalidateSharedMmap(const string &file_path) {
+    lock_guard<mutex> lck(s_mtx);
+    s_shared_mmap.erase(file_path);
+    ++s_mmap_generation;
+}
+
 static std::shared_ptr<char> getSharedMmap(const string &file_path, int64_t &file_size) {
+    uint64_t generation;
     {
         lock_guard<mutex> lck(s_mtx);
+        generation = s_mmap_generation;
         auto it = s_shared_mmap.find(file_path);
         if (it != s_shared_mmap.end()) {
             auto ret = std::get<2>(it->second).lock();
@@ -142,7 +152,8 @@ static std::shared_ptr<char> getSharedMmap(const string &file_path, int64_t &fil
     });
 
 #else
-    auto hfile = ::CreateFileA(file_path.data(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    auto hfile = ::CreateFileA(file_path.data(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE,
+                               NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
     if (hfile == INVALID_HANDLE_VALUE) {
         WarnL << "CreateFileA() " << file_path << " failed:";
@@ -190,7 +201,9 @@ static std::shared_ptr<char> getSharedMmap(const string &file_path, int64_t &fil
 #endif
     {
         lock_guard<mutex> lck(s_mtx);
-        s_shared_mmap[file_path] = std::make_tuple(ret.get(), file_size, ret);
+        if (s_mmap_generation == generation) {
+            s_shared_mmap[file_path] = std::make_tuple(ret.get(), file_size, ret);
+        }
     }
     return ret;
 }
@@ -406,7 +419,20 @@ Buffer::Ptr HttpBufferBody::readData(size_t size) {
 // HttpFileStorage — write-only body backed by a file on disk
 // ─────────────────────────────────────────────────────────────────────────────
 
-static string resolveUploadDestination(const string &path) {
+static string pathDirectory(const string &path) {
+    auto pos = path.find_last_of("/\\");
+    if (pos == string::npos) {
+        return ".";
+    }
+    return pos ? path.substr(0, pos) : path.substr(0, 1);
+}
+
+static string pathBasename(const string &path) {
+    auto pos = path.find_last_of("/\\");
+    return pos == string::npos ? path : path.substr(pos + 1);
+}
+
+static string resolveUploadDestination(const string &path, size_t symlink_depth = 0) {
 #if defined(_WIN32)
     auto attributes = GetFileAttributesA(path.c_str());
     if (attributes == INVALID_FILE_ATTRIBUTES || !(attributes & FILE_ATTRIBUTE_REPARSE_POINT)) {
@@ -442,16 +468,42 @@ static string resolveUploadDestination(const string &path) {
     }
     return ret.compare(0, 4, "\\\\?\\") == 0 ? ret.substr(4) : ret;
 #else
-    struct stat status;
-    if (lstat(path.c_str(), &status) != 0 || !S_ISLNK(status.st_mode)) {
-        return path;
-    }
     char *resolved = realpath(path.c_str(), nullptr);
-    if (!resolved) {
+    if (resolved) {
+        string ret(resolved);
+        free(resolved);
+        return ret;
+    }
+    if (errno != ENOENT) {
         throw std::runtime_error("HttpFileStorage: failed to resolve destination: " + path +
                                  ", err: " + toolkit::get_uv_errmsg());
     }
-    string ret(resolved);
+
+    struct stat status;
+    if (lstat(path.c_str(), &status) == 0 && S_ISLNK(status.st_mode)) {
+        if (symlink_depth >= 40) {
+            throw std::runtime_error("HttpFileStorage: too many symbolic links in destination: " + path);
+        }
+        vector<char> target(PATH_MAX + 1);
+        auto size = readlink(path.c_str(), target.data(), PATH_MAX);
+        if (size < 0) {
+            throw std::runtime_error("HttpFileStorage: failed to read symbolic link: " + path +
+                                     ", err: " + toolkit::get_uv_errmsg());
+        }
+        string target_path(target.data(), size);
+        if (target_path.empty() || target_path[0] != '/') {
+            target_path = pathDirectory(path) + "/" + target_path;
+        }
+        return resolveUploadDestination(target_path, symlink_depth + 1);
+    }
+
+    auto directory = pathDirectory(path);
+    resolved = realpath(directory.c_str(), nullptr);
+    if (!resolved) {
+        throw std::runtime_error("HttpFileStorage: failed to resolve destination directory: " + directory +
+                                 ", err: " + toolkit::get_uv_errmsg());
+    }
+    string ret = string(resolved) + "/" + pathBasename(path);
     free(resolved);
     return ret;
 #endif
@@ -492,16 +544,35 @@ HttpFileStorage::~HttpFileStorage() {
 
 void HttpFileStorage::finalize() {
     if (fflush(_fp) != 0) {
-        throw std::runtime_error("HttpFileStorage: failed to flush file: " + _tmp_path);
+        throw std::runtime_error("HttpFileStorage: failed to flush file: " + _tmp_path +
+                                 ", err: " + toolkit::get_uv_errmsg());
     }
+#ifndef _WIN32
+    struct stat destination_stat;
+    if (stat(_storage_path.c_str(), &destination_stat) == 0) {
+        auto fd = fileno(_fp);
+        if (fchown(fd, destination_stat.st_uid, destination_stat.st_gid) != 0 ||
+            fchmod(fd, destination_stat.st_mode & 07777) != 0) {
+            throw std::runtime_error("HttpFileStorage: failed to preserve destination metadata: " + _path +
+                                     ", err: " + toolkit::get_uv_errmsg());
+        }
+    } else if (errno != ENOENT) {
+        throw std::runtime_error("HttpFileStorage: failed to inspect destination metadata: " + _path +
+                                 ", err: " + toolkit::get_uv_errmsg());
+    }
+#endif
     if (fclose(_fp) != 0) {
         _fp = nullptr;
-        throw std::runtime_error("HttpFileStorage: failed to close file: " + _tmp_path);
+        throw std::runtime_error("HttpFileStorage: failed to close file: " + _tmp_path +
+                                 ", err: " + toolkit::get_uv_errmsg());
     }
     _fp = nullptr;
 
 #if defined(_WIN32)
-    if (!MoveFileExA(_tmp_path.c_str(), _storage_path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+    auto exists = GetFileAttributesA(_storage_path.c_str()) != INVALID_FILE_ATTRIBUTES;
+    auto replaced = exists ? ReplaceFileA(_storage_path.c_str(), _tmp_path.c_str(), nullptr, REPLACEFILE_WRITE_THROUGH, nullptr, nullptr) :
+                             MoveFileExA(_tmp_path.c_str(), _storage_path.c_str(), MOVEFILE_WRITE_THROUGH);
+    if (!replaced) {
         throw std::runtime_error("HttpFileStorage: failed to replace file: " + _path +
                                  ", err: " + std::to_string(GetLastError()));
     }
@@ -511,13 +582,29 @@ void HttpFileStorage::finalize() {
                                  ", err: " + toolkit::get_uv_errmsg());
     }
 #endif
+    invalidateSharedMmap(_path);
+    if (_storage_path != _path) {
+        invalidateSharedMmap(_storage_path);
+    }
     _tmp_path.clear();
 }
 
 void HttpFileStorage::writeData(const char *data, size_t size, uint64_t content_size) {
-    _content_size = content_size;
     if (!_fp) {
         throw std::runtime_error("HttpFileStorage: file not open");
+    }
+    if (!_content_size_set) {
+        _content_size = content_size;
+        _content_size_set = true;
+    } else if (_content_size != content_size) {
+        _discarded = true;
+    }
+    if (_discarded) {
+        return;
+    }
+    if (size > _content_size - std::min(_written, _content_size)) {
+        _discarded = true;
+        return;
     }
     if (size == 0) {
         return;
