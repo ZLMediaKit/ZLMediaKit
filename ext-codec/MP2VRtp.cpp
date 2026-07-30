@@ -223,8 +223,23 @@ void MP2VRtpEncoder::buildMpvHeader(uint8_t *buf, const uint8_t *data, size_t si
 }
 
 bool MP2VRtpEncoder::inputFrame(const Frame::Ptr &frame) {
-    auto ptr = (const uint8_t *)frame->data() + frame->prefixSize();
-    auto size = frame->size() - frame->prefixSize();
+    if (!frame) {
+        return false;
+    }
+    auto frame_size = frame->size();
+    auto prefix_size = frame->prefixSize();
+    auto data = frame->data();
+    if (!data || prefix_size > frame_size) {
+        return false;
+    }
+    auto rtp_payload_size = getRtpInfo().getMaxSize();
+    if (rtp_payload_size <= kMP2VHeaderSize) {
+        // RTP 负载必须同时容纳 MPEG Video 头和至少一个 ES 字节。
+        // The RTP payload must hold both the MPEG Video header and at least one ES byte.
+        return false;
+    }
+    auto ptr = (const uint8_t *)data + prefix_size;
+    auto size = frame_size - prefix_size;
     if (size == 0) {
         return false;
     }
@@ -233,7 +248,7 @@ bool MP2VRtpEncoder::inputFrame(const Frame::Ptr &frame) {
     parsePictureInfo(ptr, size);
 
     bool is_key = frame->keyFrame();
-    auto max_payload = getRtpInfo().getMaxSize() - kMP2VHeaderSize;
+    auto max_payload = rtp_payload_size - kMP2VHeaderSize;
     size_t offset = 0;
 
     while (offset < size) {

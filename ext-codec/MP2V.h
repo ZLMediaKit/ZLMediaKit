@@ -13,6 +13,7 @@
 
 #include "Extension/Frame.h"
 #include "Extension/Track.h"
+#include "MpegVideoSequence.h"
 
 namespace mediakit {
 
@@ -40,14 +41,21 @@ public:
      * I-frame detection: picture_coding_type == 1 (I-Picture)
      */
     bool keyFrame() const override {
-        auto data = (const uint8_t *)this->data() + this->prefixSize();
-        auto size = this->size() - this->prefixSize();
-        return isMP2VKeyFrame(data, size);
+        auto size = this->size();
+        auto prefix_size = this->prefixSize();
+        auto data = this->data();
+        if (!data || prefix_size > size) {
+            return false;
+        }
+        return isMP2VKeyFrame((const uint8_t *)data + prefix_size, size - prefix_size);
     }
 
     bool configFrame() const override { return false; }
 
     static bool isMP2VKeyFrame(const uint8_t *data, size_t size) {
+        if (!data) {
+            return false;
+        }
         // 查找 picture start code (00 00 01 00)，然后检查 picture_coding_type
         // Look for picture start code (00 00 01 00), then check picture_coding_type
         for (size_t i = 0; i + 5 < size; ++i) {
@@ -82,14 +90,8 @@ public:
 private:
     Sdp::Ptr getSdp(uint8_t payload_type) const override;
 
-    /**
-     * 从 sequence header 中解析宽高和帧率
-     * Parse width, height and fps from sequence header
-     */
-    void parseSequenceHeader(const uint8_t *data, size_t size);
-
 private:
-    bool _seq_header_parsed = false;
+    MpegVideoSequenceParser _sequence_parser;
 };
 
 } // namespace mediakit

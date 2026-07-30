@@ -18,46 +18,21 @@ using namespace toolkit;
 
 namespace mediakit {
 
-// MPEG-2 sequence header 帧率表 (ISO 13818-2 Table 6-4)
-// MPEG-2 sequence header frame rate table
-static const float s_mp2v_frame_rate_table[] = {
-    0,       // 0000 forbidden
-    24000.0 / 1001, // 0001 23.976
-    24.0,    // 0010
-    25.0,    // 0011
-    30000.0 / 1001, // 0100 29.97
-    30.0,    // 0101
-    50.0,    // 0110
-    60000.0 / 1001, // 0111 59.94
-    60.0,    // 1000
-};
-
-void MP2VTrack::parseSequenceHeader(const uint8_t *data, size_t size) {
-    // 查找 sequence header start code: 00 00 01 B3
-    // Look for sequence header start code: 00 00 01 B3
-    for (size_t i = 0; i + 7 < size; ++i) {
-        if (data[i] == 0x00 && data[i + 1] == 0x00 && data[i + 2] == 0x01 && data[i + 3] == 0xB3) {
-            // sequence_header() 结构:
-            // horizontal_size_value: 12 bits
-            // vertical_size_value: 12 bits
-            // aspect_ratio_information: 4 bits
-            // frame_rate_code: 4 bits
-            _width = (data[i + 4] << 4) | ((data[i + 5] >> 4) & 0x0F);
-            _height = ((data[i + 5] & 0x0F) << 8) | data[i + 6];
-            uint8_t frame_rate_code = data[i + 7] & 0x0F;
-            if (frame_rate_code > 0 && frame_rate_code <= 8) {
-                _fps = s_mp2v_frame_rate_table[frame_rate_code];
-            }
-            _seq_header_parsed = true;
-            return;
-        }
-    }
-}
-
 bool MP2VTrack::inputFrame(const Frame::Ptr &frame) {
-    if (!_seq_header_parsed) {
-        parseSequenceHeader((const uint8_t *)frame->data() + frame->prefixSize(),
-                            frame->size() - frame->prefixSize());
+    if (!frame) {
+        return false;
+    }
+    auto size = frame->size();
+    auto prefix_size = frame->prefixSize();
+    auto data = frame->data();
+    if (!data || prefix_size > size) {
+        return false;
+    }
+    if (!_sequence_parser.parsed()
+        && _sequence_parser.input((const uint8_t *)data + prefix_size, size - prefix_size)) {
+        _width = _sequence_parser.width();
+        _height = _sequence_parser.height();
+        _fps = _sequence_parser.fps();
     }
     return VideoTrackImp::inputFrame(frame);
 }
