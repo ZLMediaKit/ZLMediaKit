@@ -1,6 +1,7 @@
 ﻿#include <cassert>
 #include <fstream>
 #include <iterator>
+#include <type_traits>
 
 #ifdef _WIN32
 #include <direct.h>
@@ -15,6 +16,9 @@
 
 using namespace mediakit;
 using namespace toolkit;
+
+static_assert(!std::is_copy_constructible<HttpFileStorage>::value, "HttpFileStorage must have unique file ownership");
+static_assert(!std::is_copy_assignable<HttpFileStorage>::value, "HttpFileStorage must have unique file ownership");
 
 static int makeDirectory(const std::string &path) {
 #ifdef _WIN32

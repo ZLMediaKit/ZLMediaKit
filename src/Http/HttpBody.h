@@ -217,6 +217,8 @@ public:
      */
     HttpFileStorage(std::string file_path);
     ~HttpFileStorage() override;
+    HttpFileStorage(const HttpFileStorage &) = delete;
+    HttpFileStorage &operator=(const HttpFileStorage &) = delete;
 
     void writeData(const char *data, size_t size, uint64_t content_size) override;
     int64_t remainSize() override;
