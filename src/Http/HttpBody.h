@@ -211,8 +211,10 @@ public:
     using Ptr = std::shared_ptr<HttpFileStorage>;
 
     /**
-     * @param file_path 文件路径，上传完成后以原子替换方式写入
-     * @param file_path File path, atomically replaced after a complete upload
+     * @param file_path 直接以二进制覆盖写入的路径；未完成的上传会删除该路径。需要保护正式文件时，调用方应
+     *                  传入临时路径，并在请求处理完成后自行发布到正式路径。
+     * @param file_path Path opened directly in binary truncate mode and removed after an incomplete upload. To protect
+     *                  a published file, pass a temporary path and publish it from the completed-request handler.
      */
     HttpFileStorage(std::string file_path);
     ~HttpFileStorage() override;
@@ -225,15 +227,10 @@ public:
     const std::string& filePath() const;
 
 private:
-    void finalize();
-
     FILE *_fp = nullptr;
     uint64_t _written = 0;
     uint64_t _content_size = 0;
-    bool _content_size_set = false;
-    bool _discarded = false;
     std::string _path;
-    std::string _tmp_path;
 };
 
 class HttpArgs;

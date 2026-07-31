@@ -226,6 +226,8 @@ static std::map<std::string, HttpBodyHandler, StrCaseCompare> s_map_file_handler
  * Register a handler for a URL path. When a PUT/POST request arrives at that path,
  * the handler is invoked to create an HttpBody (e.g. HttpFileStorage) that receives
  * the request body stream directly. CHECK_SECRET() can be used inside the handler.
+ * File publication policy belongs to the registered application: use a temporary
+ * storage path here and move it to the public path in the corresponding API handler.
  *
  * @param url_path   the HTTP URL path to match
  * @param handler    callback that sets body; may throw AuthException to reject
