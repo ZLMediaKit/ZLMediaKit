@@ -464,22 +464,12 @@ void HttpFileStorage::finalize() {
         throw std::runtime_error("HttpFileStorage: failed to flush file: " + _tmp_path +
                                  ", err: " + toolkit::get_uv_errmsg());
     }
-    if (!validateFileForAtomicReplace(_fp, _tmp_path)) {
-        throw std::runtime_error("HttpFileStorage: temporary file was replaced before publication: " + _tmp_path);
-    }
-    if (fclose(_fp) != 0) {
-        _fp = nullptr;
-        throw std::runtime_error("HttpFileStorage: failed to close file: " + _tmp_path +
-                                 ", err: " + toolkit::get_uv_errmsg());
-    }
-    _fp = nullptr;
-
     // Serialize publication with mmap cache lookup. Readers already holding a mapping keep a valid snapshot; readers
     // racing between lookup and insertion are rejected by the generation check above.
     lock_guard<mutex> lck(s_mtx);
     s_shared_mmap.clear();
     ++s_mmap_generation;
-    if (!atomicReplaceFile(_tmp_path, _path)) {
+    if (!atomicReplaceFile(_fp, _tmp_path, _path)) {
 #if defined(_WIN32)
         auto err = std::to_string(GetLastError());
 #else
@@ -488,6 +478,12 @@ void HttpFileStorage::finalize() {
         throw std::runtime_error("HttpFileStorage: failed to replace file: " + _path + ", err: " + err);
     }
     _tmp_path.clear();
+    auto file = _fp;
+    _fp = nullptr;
+    if (fclose(file) != 0) {
+        throw std::runtime_error("HttpFileStorage: failed to close published file: " + _path +
+                                 ", err: " + toolkit::get_uv_errmsg());
+    }
 }
 
 void HttpFileStorage::writeData(const char *data, size_t size, uint64_t content_size) {

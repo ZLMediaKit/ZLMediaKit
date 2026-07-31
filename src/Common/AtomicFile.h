@@ -19,11 +19,8 @@ namespace mediakit {
 // Create an exclusively named temporary sibling of target_path.
 FILE *createFileForAtomicReplace(const std::string &target_path, std::string &temporary_path);
 
-// Verify that path still names the file represented by file before publishing it.
-bool validateFileForAtomicReplace(FILE *file, const std::string &path);
-
-// Atomically publish temporary_path at target_path, replacing an existing file.
-bool atomicReplaceFile(const std::string &temporary_path, const std::string &target_path);
+// Atomically publish temporary_path at target_path while file keeps the opened temporary inode alive.
+bool atomicReplaceFile(FILE *file, const std::string &temporary_path, const std::string &target_path);
 
 // Remove a temporary file without recursively traversing a substituted path.
 bool removeFileForAtomicReplace(const std::string &temporary_path);

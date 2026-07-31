@@ -66,9 +66,8 @@ int main() {
     std::string temporary;
     auto file = createFileForAtomicReplace(destination, temporary);
     assert(file && fwrite("helper", 1, 6, file) == 6);
-    assert(validateFileForAtomicReplace(file, temporary));
+    assert(atomicReplaceFile(file, temporary, destination));
     assert(fclose(file) == 0);
-    assert(atomicReplaceFile(temporary, destination));
     assert(readFile(destination) == "helper");
 
     // Invalid declarations discard the upload without preventing HttpSession from returning its intended response.
@@ -92,7 +91,7 @@ int main() {
     auto moved_temporary = temporary + ".moved";
     assert(rename(temporary.c_str(), moved_temporary.c_str()) == 0);
     assert(symlink(".", temporary.c_str()) == 0);
-    assert(!validateFileForAtomicReplace(substituted_file, temporary));
+    assert(!atomicReplaceFile(substituted_file, temporary, substituted));
     assert(fclose(substituted_file) == 0);
     assert(removeFileForAtomicReplace(temporary));
     assert(removeFileForAtomicReplace(moved_temporary));

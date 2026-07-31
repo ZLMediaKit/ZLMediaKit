@@ -15,6 +15,7 @@
 
 #if defined(_WIN32)
 #include <Windows.h>
+#include <fcntl.h>
 #include <io.h>
 #else
 #include <sys/stat.h>
@@ -28,17 +29,47 @@ namespace mediakit {
 
 FILE *createFileForAtomicReplace(const string &target_path, string &temporary_path) {
     for (size_t i = 0; i < 10; ++i) {
-        temporary_path = target_path + ".tmp." + makeRandStr(16);
+        auto separator = target_path.find_last_of(
+#if defined(_WIN32)
+            "/\\"
+#else
+            "/"
+#endif
+        );
+        auto directory = separator == string::npos ? string() : target_path.substr(0, separator + 1);
+        temporary_path = directory + ".atomic-" + makeRandStr(16);
         errno = 0;
+#if defined(_WIN32)
+        auto handle = CreateFileA(temporary_path.c_str(), GENERIC_READ | GENERIC_WRITE | DELETE,
+                                  FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                  nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr);
+        if (handle != INVALID_HANDLE_VALUE) {
+            auto fd = _open_osfhandle((intptr_t)handle, _O_BINARY | _O_RDWR);
+            if (fd < 0) {
+                CloseHandle(handle);
+                removeFileForAtomicReplace(temporary_path);
+                return nullptr;
+            }
+            auto file = _fdopen(fd, "w+b");
+            if (!file) {
+                _close(fd);
+                removeFileForAtomicReplace(temporary_path);
+            }
+            return file;
+        }
+        auto error = GetLastError();
+        errno = error == ERROR_FILE_EXISTS || error == ERROR_ALREADY_EXISTS ? EEXIST : 0;
+#else
         auto file = fopen(temporary_path.c_str(), "wbx");
         if (file || errno != EEXIST) {
             return file;
         }
+#endif
     }
     return nullptr;
 }
 
-bool validateFileForAtomicReplace(FILE *file, const string &path) {
+static bool validateFileForAtomicReplace(FILE *file, const string &path) {
 #if defined(_WIN32)
     auto handle = (HANDLE)_get_osfhandle(_fileno(file));
     BY_HANDLE_FILE_INFORMATION opened_info;
@@ -67,7 +98,15 @@ bool validateFileForAtomicReplace(FILE *file, const string &path) {
 #endif
 }
 
-bool atomicReplaceFile(const string &temporary_path, const string &target_path) {
+bool atomicReplaceFile(FILE *file, const string &temporary_path, const string &target_path) {
+    if (!validateFileForAtomicReplace(file, temporary_path)) {
+#if defined(_WIN32)
+        SetLastError(ERROR_FILE_NOT_FOUND);
+#else
+        errno = ESTALE;
+#endif
+        return false;
+    }
 #if defined(_WIN32)
     if (ReplaceFileA(target_path.c_str(), temporary_path.c_str(), nullptr, 0, nullptr, nullptr)) {
         return true;
@@ -78,7 +117,11 @@ bool atomicReplaceFile(const string &temporary_path, const string &target_path) 
     return MoveFileExA(temporary_path.c_str(), target_path.c_str(), MOVEFILE_WRITE_THROUGH) != FALSE;
 #else
     struct stat status;
-    if (stat(target_path.c_str(), &status) == 0 && chmod(temporary_path.c_str(), status.st_mode & 0777) != 0) {
+    if (stat(target_path.c_str(), &status) == 0 && fchmod(fileno(file), status.st_mode & 0777) != 0) {
+        return false;
+    }
+    if (!validateFileForAtomicReplace(file, temporary_path)) {
+        errno = ESTALE;
         return false;
     }
     return rename(temporary_path.c_str(), target_path.c_str()) == 0;
