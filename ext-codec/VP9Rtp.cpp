@@ -208,6 +208,8 @@ int RTPPayloadVP9::parse(const unsigned char *data, int dataLength) {
       }
     }
   }
+  // Downstream VP9 frame inspection reads the first frame-data byte, so a
+  // payload descriptor without any frame data must not enter the frame path.
   if (remaining == 0) return -1;
   return dataPtr - data;
 }
@@ -245,6 +247,8 @@ bool VP9RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtp) {
 
     RTPPayloadVP9 info;
     int offset = info.parse(payload, payload_size);
+    // Keep this independent of the parser's internal checks: a successful
+    // descriptor must still leave at least one byte of VP9 frame payload.
     if (offset < 0 || static_cast<size_t>(offset) >= payload_size) {
         WarnL << "VP9 RTP payload parse failed, seq:" << seq;
         _frame_drop = true;

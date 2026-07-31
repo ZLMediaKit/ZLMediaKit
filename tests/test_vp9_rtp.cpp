@@ -59,7 +59,7 @@ void runCase(const ParseCase &test) {
     }
 }
 
-void testParseFailureDropsCurrentFrame() {
+void testParseFailureDropsCurrentFrame(const char *name, const std::vector<unsigned char> &invalid_payload) {
     VP9RtpDecoder decoder;
     std::vector<std::string> frames;
     decoder.addDelegate([&](const Frame::Ptr &frame) {
@@ -70,18 +70,19 @@ void testParseFailureDropsCurrentFrame() {
     RtpInfo rtp_info(0x12345678, 1400, 90000, 98, 0, 0);
     auto input = [&](const std::vector<unsigned char> &payload, bool mark) {
         auto rtp = rtp_info.makeRtp(TrackVideo, payload.data(), payload.size(), mark, 100);
-        require(rtp != nullptr, "failed to create RTP packet for parse-failure recovery test");
+        require(rtp != nullptr, std::string(name) + ": failed to create RTP packet");
         decoder.inputRtp(rtp, false);
     };
 
     input({ 0x08, 0x80, 0x11 }, false); // B: begin assembling a frame.
-    input({ 0x50, 0x03 }, false);       // Truncated P_DIFF chain.
+    input(invalid_payload, false);
     input({ 0x04, 0x22 }, true);        // E: must not emit the incomplete frame.
-    require(frames.empty(), "parse failure emitted a partial VP9 frame");
+    require(frames.empty(), std::string(name) + ": parse failure emitted a partial VP9 frame");
 
     input({ 0x0C, 0x80, 0x33 }, true); // A new complete frame must recover normally.
-    require(frames.size() == 1, "decoder did not recover after a VP9 parse failure");
-    require(frames[0] == std::string("\x80\x33", 2), "recovered VP9 frame payload does not match");
+    require(frames.size() == 1, std::string(name) + ": decoder did not recover after a parse failure");
+    require(frames[0] == std::string("\x80\x33", 2),
+            std::string(name) + ": recovered VP9 frame payload does not match");
 }
 
 } // namespace
@@ -117,8 +118,9 @@ int main() {
     runCase({ "GOF exact boundary", { 0x02, 0x08, 0x02, 0x04, 0x11, 0x08, 0x22, 0x33, 0xAA }, 8 });
     runCase({ "GOF truncated references", { 0x02, 0x08, 0x01, 0x08, 0x22 }, -1 });
 
-    runCase({ "descriptor only", { 0x00 }, -1 });
-    runCase({ "layer descriptor only", { 0x30, 0x00 }, -1 });
-    testParseFailureDropsCurrentFrame();
+    runCase({ "reject descriptor-only payload", { 0x00 }, -1 });
+    runCase({ "reject layer-descriptor-only payload", { 0x30, 0x00 }, -1 });
+    testParseFailureDropsCurrentFrame("truncated P_DIFF", { 0x50, 0x03 });
+    testParseFailureDropsCurrentFrame("descriptor-only middle packet", { 0x00 });
     return 0;
 }
