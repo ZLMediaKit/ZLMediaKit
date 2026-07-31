@@ -62,6 +62,7 @@ Buffer::Ptr HttpStringBody::readData(size_t size) {
 static mutex s_mtx;
 static unordered_map<string /*file_path*/, std::tuple<char */*ptr*/, int64_t /*size*/, weak_ptr<char> /*mmap*/ > > s_shared_mmap;
 static uint64_t s_mmap_generation = 0;
+static size_t s_mmap_replacements = 0;
 
 #if defined(_WIN32)
 static void mmap_close(HANDLE _hfile, HANDLE _hmapping, void *_addr) {
@@ -79,7 +80,7 @@ static void mmap_close(HANDLE _hfile, HANDLE _hmapping, void *_addr) {
 }
 
 static FILE *openReadFile(const string &path) {
-    auto handle = CreateFileA(path.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE,
+    auto handle = CreateFileA(path.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
                               nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
     if (handle == INVALID_HANDLE_VALUE) {
         return nullptr;
@@ -107,13 +108,33 @@ static void delSharedMmap(const string &file_path, char *ptr) {
     }
 }
 
+class MmapReplacementGuard {
+public:
+    MmapReplacementGuard() {
+        lock_guard<mutex> lck(s_mtx);
+        s_shared_mmap.clear();
+        ++s_mmap_generation;
+        ++s_mmap_replacements;
+    }
+
+    ~MmapReplacementGuard() {
+        lock_guard<mutex> lck(s_mtx);
+        s_shared_mmap.clear();
+        ++s_mmap_generation;
+        --s_mmap_replacements;
+    }
+
+    MmapReplacementGuard(const MmapReplacementGuard &) = delete;
+    MmapReplacementGuard &operator=(const MmapReplacementGuard &) = delete;
+};
+
 static std::shared_ptr<char> getSharedMmap(const string &file_path, int64_t &file_size) {
     uint64_t generation;
     {
         lock_guard<mutex> lck(s_mtx);
         generation = s_mmap_generation;
         auto it = s_shared_mmap.find(file_path);
-        if (it != s_shared_mmap.end()) {
+        if (!s_mmap_replacements && it != s_shared_mmap.end()) {
             auto ret = std::get<2>(it->second).lock();
             if (ret) {
                 // 命中mmap缓存  [AUTO-TRANSLATED:95131a66]
@@ -166,7 +187,8 @@ static std::shared_ptr<char> getSharedMmap(const string &file_path, int64_t &fil
     });
 
 #else
-    auto hfile = ::CreateFileA(file_path.data(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE,
+    auto hfile = ::CreateFileA(file_path.data(), GENERIC_READ,
+                               FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
                                NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
     if (hfile == INVALID_HANDLE_VALUE) {
@@ -218,7 +240,7 @@ static std::shared_ptr<char> getSharedMmap(const string &file_path, int64_t &fil
 #endif
     {
         lock_guard<mutex> lck(s_mtx);
-        if (s_mmap_generation == generation) {
+        if (!s_mmap_replacements && s_mmap_generation == generation) {
             s_shared_mmap[file_path] = std::make_tuple(ret.get(), file_size, ret);
         }
     }
@@ -464,11 +486,8 @@ void HttpFileStorage::finalize() {
         throw std::runtime_error("HttpFileStorage: failed to flush file: " + _tmp_path +
                                  ", err: " + toolkit::get_uv_errmsg());
     }
-    // Serialize publication with mmap cache lookup. Readers already holding a mapping keep a valid snapshot; readers
-    // racing between lookup and insertion are rejected by the generation check above.
-    lock_guard<mutex> lck(s_mtx);
-    s_shared_mmap.clear();
-    ++s_mmap_generation;
+    // Disable cache reuse while publishing without holding the global cache mutex across filesystem I/O.
+    MmapReplacementGuard replacement_guard;
     if (!atomicReplaceFile(_fp, _tmp_path, _path)) {
 #if defined(_WIN32)
         auto err = std::to_string(GetLastError());

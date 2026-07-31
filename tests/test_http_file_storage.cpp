@@ -1,6 +1,8 @@
 ﻿#include <cassert>
+#include <atomic>
 #include <fstream>
 #include <iterator>
+#include <thread>
 #include <type_traits>
 
 #ifdef _WIN32
@@ -70,18 +72,45 @@ int main() {
     assert(fclose(file) == 0);
     assert(readFile(destination) == "helper");
 
+    // Readers racing publication must see a complete old or new snapshot without retaining a stale cache entry.
+    std::atomic<bool> reading(true);
+    std::atomic<bool> invalid_read(false);
+    std::thread reader([&]() {
+        while (reading.load()) {
+            HttpFileBody body(destination);
+            auto data = body.readData(6);
+            if (!data) {
+                invalid_read = true;
+                break;
+            }
+            auto value = std::string(data->data(), data->size());
+            if (value != "helper" && value != "aaaaaa" && value != "bbbbbb") {
+                invalid_read = true;
+                break;
+            }
+        }
+    });
+    for (size_t i = 0; i < 20; ++i) {
+        auto value = i % 2 ? "aaaaaa" : "bbbbbb";
+        HttpFileStorage storage(destination);
+        storage.writeData(value, 6, 6);
+    }
+    reading = false;
+    reader.join();
+    assert(!invalid_read);
+
     // Invalid declarations discard the upload without preventing HttpSession from returning its intended response.
     {
         HttpFileStorage storage(destination);
         storage.writeData("a", 1, 2);
         storage.writeData("b", 1, 3);
     }
-    assert(readFile(destination) == "helper");
+    assert(readFile(destination) == "aaaaaa");
     {
         HttpFileStorage storage(destination);
         storage.writeData("oversized", 9, 4);
     }
-    assert(readFile(destination) == "helper");
+    assert(readFile(destination) == "aaaaaa");
 
 #ifndef _WIN32
     // A substituted temporary path must be rejected, and cleanup must not traverse it.
