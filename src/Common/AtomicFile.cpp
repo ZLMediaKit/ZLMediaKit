@@ -15,8 +15,10 @@
 
 #if defined(_WIN32)
 #include <Windows.h>
+#include <io.h>
 #else
 #include <sys/stat.h>
+#include <unistd.h>
 #endif
 
 using namespace std;
@@ -36,6 +38,35 @@ FILE *createFileForAtomicReplace(const string &target_path, string &temporary_pa
     return nullptr;
 }
 
+bool validateFileForAtomicReplace(FILE *file, const string &path) {
+#if defined(_WIN32)
+    auto handle = (HANDLE)_get_osfhandle(_fileno(file));
+    BY_HANDLE_FILE_INFORMATION opened_info;
+    if (handle == INVALID_HANDLE_VALUE || !GetFileInformationByHandle(handle, &opened_info)) {
+        return false;
+    }
+    auto path_handle = CreateFileA(path.c_str(), FILE_READ_ATTRIBUTES,
+                                   FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                   nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (path_handle == INVALID_HANDLE_VALUE) {
+        return false;
+    }
+    BY_HANDLE_FILE_INFORMATION path_info;
+    auto success = GetFileInformationByHandle(path_handle, &path_info) &&
+                   opened_info.dwVolumeSerialNumber == path_info.dwVolumeSerialNumber &&
+                   opened_info.nFileIndexHigh == path_info.nFileIndexHigh &&
+                   opened_info.nFileIndexLow == path_info.nFileIndexLow;
+    CloseHandle(path_handle);
+    return success;
+#else
+    struct stat opened_status;
+    struct stat path_status;
+    return fstat(fileno(file), &opened_status) == 0 && lstat(path.c_str(), &path_status) == 0 &&
+           S_ISREG(opened_status.st_mode) && opened_status.st_dev == path_status.st_dev &&
+           opened_status.st_ino == path_status.st_ino;
+#endif
+}
+
 bool atomicReplaceFile(const string &temporary_path, const string &target_path) {
 #if defined(_WIN32)
     if (ReplaceFileA(target_path.c_str(), temporary_path.c_str(), nullptr, 0, nullptr, nullptr)) {
@@ -51,6 +82,14 @@ bool atomicReplaceFile(const string &temporary_path, const string &target_path) 
         return false;
     }
     return rename(temporary_path.c_str(), target_path.c_str()) == 0;
+#endif
+}
+
+bool removeFileForAtomicReplace(const string &temporary_path) {
+#if defined(_WIN32)
+    return DeleteFileA(temporary_path.c_str()) != FALSE || GetLastError() == ERROR_FILE_NOT_FOUND;
+#else
+    return unlink(temporary_path.c_str()) == 0 || errno == ENOENT;
 #endif
 }
 

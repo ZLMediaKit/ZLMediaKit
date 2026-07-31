@@ -455,7 +455,7 @@ HttpFileStorage::~HttpFileStorage() {
     }
     // 删除不完整的临时文件，保留原有目标文件。
     if (!_tmp_path.empty()) {
-        File::delete_file(_tmp_path);
+        removeFileForAtomicReplace(_tmp_path);
     }
 }
 
@@ -463,6 +463,9 @@ void HttpFileStorage::finalize() {
     if (fflush(_fp) != 0) {
         throw std::runtime_error("HttpFileStorage: failed to flush file: " + _tmp_path +
                                  ", err: " + toolkit::get_uv_errmsg());
+    }
+    if (!validateFileForAtomicReplace(_fp, _tmp_path)) {
+        throw std::runtime_error("HttpFileStorage: temporary file was replaced before publication: " + _tmp_path);
     }
     if (fclose(_fp) != 0) {
         _fp = nullptr;
@@ -495,10 +498,14 @@ void HttpFileStorage::writeData(const char *data, size_t size, uint64_t content_
         _content_size = content_size;
         _content_size_set = true;
     } else if (_content_size != content_size) {
-        throw std::runtime_error("HttpFileStorage: content size changed while writing");
+        _discarded = true;
+    }
+    if (_discarded) {
+        return;
     }
     if (size > _content_size - _written) {
-        throw std::runtime_error("HttpFileStorage: received more data than declared");
+        _discarded = true;
+        return;
     }
     if (size == 0) {
         if (_written == _content_size) {

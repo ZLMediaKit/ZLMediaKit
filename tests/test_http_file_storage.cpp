@@ -7,6 +7,7 @@
 #include <direct.h>
 #else
 #include <sys/stat.h>
+#include <unistd.h>
 #endif
 
 #include "Common/AtomicFile.h"
@@ -64,20 +65,40 @@ int main() {
     // The reusable helper has the same replace-existing behavior as uploads.
     std::string temporary;
     auto file = createFileForAtomicReplace(destination, temporary);
-    assert(file && fwrite("helper", 1, 6, file) == 6 && fclose(file) == 0);
+    assert(file && fwrite("helper", 1, 6, file) == 6);
+    assert(validateFileForAtomicReplace(file, temporary));
+    assert(fclose(file) == 0);
     assert(atomicReplaceFile(temporary, destination));
     assert(readFile(destination) == "helper");
 
-    // A changing declaration is rejected and the original remains published.
-    bool rejected = false;
-    try {
+    // Invalid declarations discard the upload without preventing HttpSession from returning its intended response.
+    {
         HttpFileStorage storage(destination);
         storage.writeData("a", 1, 2);
         storage.writeData("b", 1, 3);
-    } catch (const std::runtime_error &) {
-        rejected = true;
     }
-    assert(rejected && readFile(destination) == "helper");
+    assert(readFile(destination) == "helper");
+    {
+        HttpFileStorage storage(destination);
+        storage.writeData("oversized", 9, 4);
+    }
+    assert(readFile(destination) == "helper");
+
+#ifndef _WIN32
+    // A substituted temporary path must be rejected, and cleanup must not traverse it.
+    auto substituted = directory + "substituted";
+    auto substituted_file = createFileForAtomicReplace(substituted, temporary);
+    assert(substituted_file);
+    auto moved_temporary = temporary + ".moved";
+    assert(rename(temporary.c_str(), moved_temporary.c_str()) == 0);
+    assert(symlink(".", temporary.c_str()) == 0);
+    assert(!validateFileForAtomicReplace(substituted_file, temporary));
+    assert(fclose(substituted_file) == 0);
+    assert(removeFileForAtomicReplace(temporary));
+    assert(removeFileForAtomicReplace(moved_temporary));
+    assert(removeFileForAtomicReplace(substituted));
+    assert(File::is_dir(directory));
+#endif
 
     assert(File::delete_file(directory) == 0);
     return 0;
