@@ -8,10 +8,30 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
+#include <csignal>
+#include <cerrno>
+#include <tuple>
+
+#ifndef _WIN32
+#include <sys/mman.h>
+#else
+#include <fcntl.h>
+#include <io.h>
+#endif
+#if defined(__linux__) || defined(__linux)
+#include <sys/sendfile.h>
+#endif
+
+#include "Util/File.h"
+#include "Util/logger.h"
+#include "Util/onceToken.h"
+#include "Util/util.h"
+#include "Util/uv_errno.h"
+
 #include "HttpBody.h"
 #include "HttpClient.h"
+#include "Common/AtomicFile.h"
 #include "Common/macros.h"
-#include "Util/uv_errno.h"
 
 using namespace std;
 using namespace toolkit;
@@ -37,6 +57,298 @@ Buffer::Ptr HttpStringBody::readData(size_t size) {
     _offset += size;
     return ret;
 }
+
+//////////////////////////////////////////////////////////////////
+static mutex s_mtx;
+static unordered_map<string /*file_path*/, std::tuple<char */*ptr*/, int64_t /*size*/, weak_ptr<char> /*mmap*/ > > s_shared_mmap;
+static uint64_t s_mmap_generation = 0;
+
+#if defined(_WIN32)
+static void mmap_close(HANDLE _hfile, HANDLE _hmapping, void *_addr) {
+    if (_addr) {
+        ::UnmapViewOfFile(_addr);
+    }
+
+    if (_hmapping) {
+        ::CloseHandle(_hmapping);
+    }
+
+    if (_hfile != INVALID_HANDLE_VALUE) {
+        ::CloseHandle(_hfile);
+    }
+}
+
+static FILE *openReadFile(const string &path) {
+    auto handle = CreateFileA(path.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE,
+                              nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (handle == INVALID_HANDLE_VALUE) {
+        return nullptr;
+    }
+    auto fd = _open_osfhandle((intptr_t)handle, _O_BINARY | _O_RDONLY);
+    if (fd < 0) {
+        CloseHandle(handle);
+        return nullptr;
+    }
+    auto fp = _fdopen(fd, "rb");
+    if (!fp) {
+        _close(fd);
+    }
+    return fp;
+}
+#endif
+
+// 删除mmap记录  [AUTO-TRANSLATED:c956201d]
+// Delete mmap record
+static void delSharedMmap(const string &file_path, char *ptr) {
+    lock_guard<mutex> lck(s_mtx);
+    auto it = s_shared_mmap.find(file_path);
+    if (it != s_shared_mmap.end() && std::get<0>(it->second) == ptr) {
+        s_shared_mmap.erase(it);
+    }
+}
+
+static std::shared_ptr<char> getSharedMmap(const string &file_path, int64_t &file_size) {
+    uint64_t generation;
+    {
+        lock_guard<mutex> lck(s_mtx);
+        generation = s_mmap_generation;
+        auto it = s_shared_mmap.find(file_path);
+        if (it != s_shared_mmap.end()) {
+            auto ret = std::get<2>(it->second).lock();
+            if (ret) {
+                // 命中mmap缓存  [AUTO-TRANSLATED:95131a66]
+                // Hit mmap cache
+                file_size = std::get<1>(it->second);
+                return ret;
+            }
+        }
+    }
+
+    // 打开文件  [AUTO-TRANSLATED:55bfe68a]
+    // Open file
+    std::shared_ptr<FILE> fp(fopen(file_path.data(), "rb"), [](FILE *fp) {
+        if (fp) {
+            fclose(fp);
+        }
+    });
+    if (!fp) {
+        // 文件不存在  [AUTO-TRANSLATED:ed160bcf]
+        // File does not exist
+        file_size = -1;
+        return nullptr;
+    }
+
+
+#if defined(_WIN32)
+    auto fd = _fileno(fp.get());
+#else
+    // 获取文件大小  [AUTO-TRANSLATED:82974eea]
+    // Get file size
+    file_size = File::fileSize(fp.get());
+    auto fd = fileno(fp.get());
+#endif
+
+    if (fd < 0) {
+        WarnL << "fileno failed:" << get_uv_errmsg(false);
+        return nullptr;
+    }
+#ifndef _WIN32
+    auto ptr = (char *)mmap(NULL, file_size, PROT_READ, MAP_SHARED, fd, 0);
+    if (ptr == MAP_FAILED) {
+        WarnL << "mmap " << file_path << " failed:" << get_uv_errmsg(false);
+        return nullptr;
+    }
+
+
+    std::shared_ptr<char> ret(ptr, [file_size, fp, file_path](char *ptr) {
+        delSharedMmap(file_path, ptr);
+        munmap(ptr, file_size);
+    });
+
+#else
+    auto hfile = ::CreateFileA(file_path.data(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE,
+                               NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+    if (hfile == INVALID_HANDLE_VALUE) {
+        WarnL << "CreateFileA() " << file_path << " failed:";
+        return nullptr;
+    }
+
+    LARGE_INTEGER FileSize;
+    if (!GetFileSizeEx(hfile, &FileSize)) {
+        mmap_close(hfile, NULL, NULL);
+        return nullptr;
+    }
+    file_size = FileSize.QuadPart;
+
+    auto hmapping = ::CreateFileMapping(hfile, NULL, PAGE_READONLY, 0, 0, NULL);
+
+    if (hmapping == NULL) {
+        mmap_close(hfile, NULL, NULL);
+        WarnL << "CreateFileMapping() " << file_path << " failed:";
+        return nullptr;
+    }
+
+    auto addr_ = ::MapViewOfFile(hmapping, FILE_MAP_READ, 0, 0, 0);
+
+    if (addr_ == nullptr) {
+        mmap_close(hfile, hmapping, addr_);
+        WarnL << "MapViewOfFile() " << file_path << " failed:";
+        return nullptr;
+    }
+
+    std::shared_ptr<char> ret((char *)(addr_), [hfile, hmapping, file_path](char *addr_) {
+        delSharedMmap(file_path, addr_);
+        mmap_close(hfile, hmapping, addr_);
+    });
+
+#endif
+
+
+#if 0
+    if (file_size < 10 * 1024 * 1024 && file_path.rfind(".ts") != string::npos) {
+        // 如果是小ts文件，那么尝试先加载到内存  [AUTO-TRANSLATED:0d96c5cd]
+        // If it is a small ts file, try to load it into memory first
+        auto buf = BufferRaw::create();
+        buf->assign(ret.get(), file_size);
+        ret.reset(buf->data(), [buf, file_path](char *ptr) {
+            delSharedMmap(file_path, ptr);
+        });
+    }
+#endif
+    {
+        lock_guard<mutex> lck(s_mtx);
+        if (s_mmap_generation == generation) {
+            s_shared_mmap[file_path] = std::make_tuple(ret.get(), file_size, ret);
+        }
+    }
+    return ret;
+}
+
+HttpFileBody::HttpFileBody(const string &file_path, bool use_mmap) {
+
+    // 判断是否为目录，避免对目录进行mmap操作，导致程序崩溃。
+    if (File::is_dir(file_path)) {
+        _read_to = -1;
+        return;
+    }
+
+    if (use_mmap ) {
+        _map_addr = getSharedMmap(file_path, _read_to);
+    }
+
+    if (!_map_addr && _read_to != -1) {
+        // mmap失败(且不是由于文件不存在导致的)或未执行mmap时，才进入fread逻辑分支  [AUTO-TRANSLATED:8c7efed5]
+        // Only enter the fread logic branch when mmap fails (and is not due to file not existing) or when mmap is not executed
+#if defined(_WIN32)
+        _fp.reset(openReadFile(file_path), [](FILE *fp) {
+#else
+        _fp.reset(fopen(file_path.data(), "rb"), [](FILE *fp) {
+#endif
+            if (fp) {
+                fclose(fp);
+            }
+        });
+        if (!_fp) {
+            // 文件不存在  [AUTO-TRANSLATED:ed160bcf]
+            // File does not exist
+            _read_to = -1;
+            return;
+        }
+        if (!_read_to) {
+            // _read_to等于0时，说明还未尝试获取文件大小  [AUTO-TRANSLATED:4e3ef6ca]
+            // When _read_to equals 0, it means that the file size has not been attempted to be obtained yet
+            // 加上该判断逻辑，在mmap失败时，可以省去一次该操作  [AUTO-TRANSLATED:b9b585de]
+            // Adding this judgment logic can save one operation when mmap fails
+            _read_to = File::fileSize(_fp.get());
+        }
+    }
+}
+
+void HttpFileBody::setRange(uint64_t offset, uint64_t max_size) {
+    CHECK((int64_t)offset <= _read_to && (int64_t)(max_size + offset) <= _read_to);
+    _read_to = max_size + offset;
+    _file_offset = offset;
+    if (_fp && !_map_addr) {
+        fseek64(_fp.get(), _file_offset, SEEK_SET);
+    }
+}
+
+int HttpFileBody::sendFile(int fd) {
+#if defined(__linux__) || defined(__linux)
+    if (!_fp) {
+        return -1;
+    }
+    static onceToken s_token([]() { signal(SIGPIPE, SIG_IGN); });
+    off_t off = _file_offset;
+    return sendfile(fd, fileno(_fp.get()), &off, _read_to - _file_offset);
+#else
+    return -1;
+#endif
+}
+
+class BufferMmap : public Buffer {
+public:
+    using Ptr = std::shared_ptr<BufferMmap>;
+    BufferMmap(const std::shared_ptr<char> &map_addr, size_t offset, size_t size) {
+        _map_addr = map_addr;
+        _data = map_addr.get() + offset;
+        _size = size;
+    }
+    // 返回数据长度  [AUTO-TRANSLATED:955f731c]
+    // Return data length
+    char *data() const override { return _data; }
+    size_t size() const override { return _size; }
+
+private:
+    char *_data;
+    size_t _size;
+    std::shared_ptr<char> _map_addr;
+};
+
+int64_t HttpFileBody::remainSize() {
+    return _read_to - _file_offset;
+}
+
+Buffer::Ptr HttpFileBody::readData(size_t size) {
+    size = (size_t)(MIN(remainSize(), (int64_t)size));
+    if (!size) {
+        // 没有剩余字节了  [AUTO-TRANSLATED:7bbaa343]
+        // No remaining bytes
+        return nullptr;
+    }
+    if (!_map_addr) {
+        // fread模式  [AUTO-TRANSLATED:c4dee2a3]
+        // fread mode
+        ssize_t iRead;
+        auto ret = _pool.obtain2();
+        ret->setCapacity(size + 1);
+        do {
+            iRead = fread(ret->data(), 1, size, _fp.get());
+        } while (-1 == iRead && UV_EINTR == get_uv_error(false));
+
+        if (iRead > 0) {
+            // 读到数据了  [AUTO-TRANSLATED:7e5ada62]
+            // Data is read
+            ret->setSize(iRead);
+            _file_offset += iRead;
+            return ret;
+        }
+        // 读取文件异常，文件真实长度小于声明长度  [AUTO-TRANSLATED:89d09f9b]
+        // File reading exception, the actual length of the file is less than the declared length
+        _file_offset = _read_to;
+        WarnL << "read file err:" << get_uv_errmsg();
+        return nullptr;
+    }
+
+    // mmap模式  [AUTO-TRANSLATED:b8d616f1]
+    // mmap mode
+    auto ret = std::make_shared<BufferMmap>(_map_addr, _file_offset, size);
+    _file_offset += size;
+    return ret;
+}
+
+//////////////////////////////////////////////////////////////////
 
 HttpMultiFormBody::HttpMultiFormBody(const HttpArgs &args, const string &filePath, const string &boundary) {
     _fileBody = std::make_shared<HttpFileBody>(filePath);
@@ -124,4 +436,96 @@ Buffer::Ptr HttpBufferBody::readData(size_t size) {
     return Buffer::Ptr(std::move(_buffer));
 }
 
-} // namespace mediakit
+// ─────────────────────────────────────────────────────────────────────────────
+// HttpFileStorage — write-only body backed by a file on disk
+// ─────────────────────────────────────────────────────────────────────────────
+
+HttpFileStorage::HttpFileStorage(std::string file_path) {
+    _path = std::move(file_path);
+    _fp = createFileForAtomicReplace(_path, _tmp_path);
+    if (!_fp) {
+        throw std::runtime_error("HttpFileStorage: failed to open file: " + _tmp_path + ", err: " + toolkit::get_uv_errmsg());
+    }
+}
+
+HttpFileStorage::~HttpFileStorage() {
+    if (_fp) {
+        fclose(_fp);
+        _fp = nullptr;
+    }
+    // 删除不完整的临时文件，保留原有目标文件。
+    if (!_tmp_path.empty()) {
+        File::delete_file(_tmp_path);
+    }
+}
+
+void HttpFileStorage::finalize() {
+    if (fflush(_fp) != 0) {
+        throw std::runtime_error("HttpFileStorage: failed to flush file: " + _tmp_path +
+                                 ", err: " + toolkit::get_uv_errmsg());
+    }
+    if (fclose(_fp) != 0) {
+        _fp = nullptr;
+        throw std::runtime_error("HttpFileStorage: failed to close file: " + _tmp_path +
+                                 ", err: " + toolkit::get_uv_errmsg());
+    }
+    _fp = nullptr;
+
+    // Serialize publication with mmap cache lookup. Readers already holding a mapping keep a valid snapshot; readers
+    // racing between lookup and insertion are rejected by the generation check above.
+    lock_guard<mutex> lck(s_mtx);
+    s_shared_mmap.clear();
+    ++s_mmap_generation;
+    if (!atomicReplaceFile(_tmp_path, _path)) {
+#if defined(_WIN32)
+        auto err = std::to_string(GetLastError());
+#else
+        auto err = toolkit::get_uv_errmsg();
+#endif
+        throw std::runtime_error("HttpFileStorage: failed to replace file: " + _path + ", err: " + err);
+    }
+    _tmp_path.clear();
+}
+
+void HttpFileStorage::writeData(const char *data, size_t size, uint64_t content_size) {
+    if (!_fp) {
+        throw std::runtime_error("HttpFileStorage: file not open");
+    }
+    if (!_content_size_set) {
+        _content_size = content_size;
+        _content_size_set = true;
+    } else if (_content_size != content_size) {
+        throw std::runtime_error("HttpFileStorage: content size changed while writing");
+    }
+    if (size > _content_size - _written) {
+        throw std::runtime_error("HttpFileStorage: received more data than declared");
+    }
+    if (size == 0) {
+        if (_written == _content_size) {
+            finalize();
+        }
+        return;
+    }
+    auto written = fwrite(data, 1, size, _fp);
+    if (written != size) {
+        throw std::runtime_error("HttpFileStorage: fwrite failed, expected " + std::to_string(size) + ", got " + std::to_string(written));
+    }
+    _written += written;
+    if (_written == _content_size) {
+        finalize();
+    }
+}
+
+int64_t HttpFileStorage::remainSize() {
+    return 0;
+}
+
+Buffer::Ptr HttpFileStorage::readData(size_t size) {
+    return nullptr;
+}
+
+const std::string &HttpFileStorage::filePath() const {
+    return _path;
+ }
+
+} // namespace kule

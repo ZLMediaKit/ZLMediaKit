@@ -211,9 +211,8 @@ public:
     using Ptr = std::shared_ptr<HttpFileStorage>;
 
     /**
-     * @param file_path 文件路径，上传完成后以原子替换方式写入，所在目录必须可写，临时文件使用私有权限，已有文件的所有权必须可保留
-     * @param file_path File path, atomically replaced after a complete upload. Its directory must be writable;
-     * temporary files use private permissions, and existing destination ownership must be preservable.
+     * @param file_path 文件路径，上传完成后以原子替换方式写入
+     * @param file_path File path, atomically replaced after a complete upload
      */
     HttpFileStorage(std::string file_path);
     ~HttpFileStorage() override;
@@ -232,14 +231,8 @@ private:
     uint64_t _written = 0;
     uint64_t _content_size = 0;
     bool _content_size_set = false;
-    bool _discarded = false;
-    uint32_t _final_mode = 0600;
-    int _dir_fd = -1;
     std::string _path;
-    std::string _storage_path;
     std::string _tmp_path;
-    std::string _tmp_name;
-    std::string _storage_name;
 };
 
 class HttpArgs;

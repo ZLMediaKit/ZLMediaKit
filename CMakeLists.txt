@@ -490,7 +490,7 @@ if(FAAC_FOUND AND ENABLE_FAAC)
 endif()
 
 if(WIN32)
-  update_cached_list(MK_LINK_LIBRARIES WS2_32 Iphlpapi shlwapi Advapi32)
+  update_cached_list(MK_LINK_LIBRARIES WS2_32 Iphlpapi shlwapi)
 elseif(ANDROID)
   update_cached_list(MK_LINK_LIBRARIES log)
 elseif(NOT ANDROID OR IOS)
