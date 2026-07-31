@@ -85,6 +85,32 @@ void testParseFailureDropsCurrentFrame(const char *name, const std::vector<unsig
             std::string(name) + ": recovered VP9 frame payload does not match");
 }
 
+void testParseFailureDropsGop() {
+    VP9RtpDecoder decoder;
+    std::vector<std::string> frames;
+    decoder.addDelegate([&](const Frame::Ptr &frame) {
+        frames.emplace_back(frame->data(), frame->size());
+        return true;
+    });
+
+    RtpInfo rtp_info(0x12345678, 1400, 90000, 98, 0, 0);
+    auto input = [&](const std::vector<unsigned char> &payload) {
+        auto rtp = rtp_info.makeRtp(TrackVideo, payload.data(), payload.size(), true, 100);
+        require(rtp != nullptr, "failed to create RTP packet for GOP recovery test");
+        decoder.inputRtp(rtp, false);
+    };
+
+    input({ 0x50, 0x03 });             // Reject a truncated P_DIFF chain.
+    input({ 0x4C, 0x00, 0x44 });       // Suppress a dependent P-frame.
+    require(frames.empty(), "parse failure did not suppress the damaged GOP");
+
+    input({ 0x0C, 0x80, 0x55 });       // A keyframe starts a new GOP.
+    input({ 0x4C, 0x00, 0x66 });       // Its dependent P-frame is valid again.
+    require(frames.size() == 2, "decoder did not recover at the next VP9 keyframe");
+    require(frames[0] == std::string("\x80\x55", 2), "recovery keyframe payload does not match");
+    require(frames[1] == std::string("\x00\x66", 2), "recovered P-frame payload does not match");
+}
+
 } // namespace
 
 int main() {
@@ -122,5 +148,6 @@ int main() {
     runCase({ "reject layer-descriptor-only payload", { 0x30, 0x00 }, -1 });
     testParseFailureDropsCurrentFrame("truncated P_DIFF", { 0x50, 0x03 });
     testParseFailureDropsCurrentFrame("descriptor-only middle packet", { 0x00 });
+    testParseFailureDropsGop();
     return 0;
 }

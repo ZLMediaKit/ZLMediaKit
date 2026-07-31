@@ -251,6 +251,7 @@ bool VP9RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtp) {
     // descriptor must still leave at least one byte of VP9 frame payload.
     if (offset < 0 || static_cast<size_t>(offset) >= payload_size) {
         WarnL << "VP9 RTP payload parse failed, seq:" << seq;
+        _gop_dropped = true;
         _frame_drop = true;
         _frame->_buffer.clear();
         return false;
