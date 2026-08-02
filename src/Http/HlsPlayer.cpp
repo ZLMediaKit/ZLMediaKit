@@ -396,6 +396,7 @@ void HlsDemuxer::pushTask(std::function<void()> task) {
 }
 
 bool HlsDemuxer::inputFrame(const Frame::Ptr &frame) {
+    ++_input_frame_count;
     // 为了避免track准备时间过长, 因此在没准备好之前, 直接消费掉所有的帧  [AUTO-TRANSLATED:72b35430]
     // To avoid the track preparation time being too long, all frames are directly consumed before it is ready
     // In order to avoid the track preparation time is too long, so before it is ready, all frames are consumed directly
