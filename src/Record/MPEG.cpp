@@ -157,6 +157,9 @@ void MpegMuxer::flush() {
     for (auto &pr : _tracks) {
         pr.second.merger.flush();
     }
+    if (_current_buffer && _current_buffer->size()) {
+        flushCache();
+    }
 }
 
 }//mediakit

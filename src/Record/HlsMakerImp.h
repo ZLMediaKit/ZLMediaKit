@@ -21,6 +21,8 @@
 
 namespace mediakit {
 
+struct HlsCleanupOwner;
+
 class HlsMakerImp : public HlsMaker {
 public:
     HlsMakerImp(bool is_fmp4, const std::string &m3u8_file, const std::string &params, uint32_t bufSize = 64 * 1024,
@@ -104,6 +106,7 @@ private:
     std::shared_ptr<char> _file_buf;
     HlsMediaSource::Ptr _media_src;
     toolkit::EventPoller::Ptr _poller;
+    std::shared_ptr<HlsCleanupOwner> _cleanup_owner;
     std::map<uint64_t/*index*/, SegmentFileInfo> _segment_files;
     std::map<std::string/*uri*/, std::string/*file_path*/> _init_segment_paths;
     std::map<std::string/*uri*/, uint64_t/*last_segment_index*/> _init_segment_last_indexes;

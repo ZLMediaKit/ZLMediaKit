@@ -25,6 +25,10 @@ using namespace toolkit;
 
 namespace mediakit {
 
+struct HlsCleanupOwner {
+    std::mutex mutex;
+};
+
 namespace {
 
 void clearHls(const std::list<std::string> &files) {
@@ -37,17 +41,30 @@ void clearHls(const std::list<std::string> &files) {
 // 延时任务与同路径新会话共享一次性票据，确保旧文件只被删除一次。
 // The delayed task and a replacement session share a once-only ticket so old files are deleted exactly once.
 struct CleanupTicket {
-    explicit CleanupTicket(std::list<std::string> files) : files(std::move(files)) {}
+    CleanupTicket(std::shared_ptr<HlsCleanupOwner> owner, std::list<std::string> files)
+        : owner(std::move(owner)), files(std::move(files)) {}
 
     std::once_flag once;
+    std::shared_ptr<HlsCleanupOwner> owner;
     std::list<std::string> files;
+    bool ready = false;
 };
+
+struct CleanupPathState {
+    std::weak_ptr<HlsCleanupOwner> latest_owner;
+    bool owner_active = false;
+    std::list<std::shared_ptr<CleanupTicket>> pending;
+};
+
+bool hasActiveCleanupOwner(const CleanupPathState &state) {
+    return state.owner_active && !state.latest_owner.expired();
+}
 
 // 同一路径理论上只有一个 recorder；保留列表仍可安全容纳尚未注销的历史任务。
 // A path normally has one recorder; the list also safely retains historical tasks not yet unregistered.
 struct CleanupRegistry {
     std::mutex mutex;
-    std::unordered_map<std::string, std::list<std::shared_ptr<CleanupTicket>>> pending;
+    std::unordered_map<std::string, CleanupPathState> paths;
 };
 
 std::shared_ptr<CleanupRegistry> getCleanupRegistry() {
@@ -62,16 +79,18 @@ void runCleanup(const std::shared_ptr<CleanupTicket> &ticket) {
     std::call_once(ticket->once, [&ticket]() { clearHls(ticket->files); });
 }
 
-void unregisterCleanup(const std::shared_ptr<CleanupRegistry> &registry, const std::string &path,
-                       const std::shared_ptr<CleanupTicket> &ticket) {
+void finishCleanup(const std::shared_ptr<CleanupRegistry> &registry, const std::string &path,
+                   const std::list<std::shared_ptr<CleanupTicket>> &tickets) {
     std::lock_guard<std::mutex> lock(registry->mutex);
-    auto it = registry->pending.find(path);
-    if (it == registry->pending.end()) {
+    auto it = registry->paths.find(path);
+    if (it == registry->paths.end()) {
         return;
     }
-    it->second.remove(ticket);
-    if (it->second.empty()) {
-        registry->pending.erase(it);
+    for (auto &ticket : tickets) {
+        it->second.pending.remove(ticket);
+    }
+    if (!hasActiveCleanupOwner(it->second) && it->second.pending.empty()) {
+        registry->paths.erase(it);
     }
 }
 
@@ -80,12 +99,14 @@ void drainPendingCleanup(const std::string &path) {
     std::list<std::shared_ptr<CleanupTicket>> tickets;
     {
         std::lock_guard<std::mutex> lock(registry->mutex);
-        auto it = registry->pending.find(path);
-        if (it == registry->pending.end()) {
+        auto it = registry->paths.find(path);
+        if (it == registry->paths.end()) {
             return;
         }
-        tickets = std::move(it->second);
-        registry->pending.erase(it);
+        tickets.splice(tickets.end(), it->second.pending);
+        if (!hasActiveCleanupOwner(it->second)) {
+            registry->paths.erase(it);
+        }
     }
     // 新会话必须等旧文件清理完成后再开始写入；延时回调随后由 call_once 保证不再重复删除。
     // A replacement waits for old-file cleanup before writing; call_once makes the delayed callback a no-op later.
@@ -94,13 +115,85 @@ void drainPendingCleanup(const std::string &path) {
     }
 }
 
+std::shared_ptr<HlsCleanupOwner> beginCleanupSession(const std::string &path) {
+    auto registry = getCleanupRegistry();
+    auto owner = std::make_shared<HlsCleanupOwner>();
+    std::shared_ptr<HlsCleanupOwner> previous_owner;
+    std::list<std::shared_ptr<CleanupTicket>> tickets;
+    {
+        std::lock_guard<std::mutex> lock(registry->mutex);
+        auto &state = registry->paths[path];
+        previous_owner = state.latest_owner.lock();
+        state.latest_owner = owner;
+        state.owner_active = true;
+        tickets.splice(tickets.end(), state.pending);
+    }
+    if (previous_owner) {
+        std::lock_guard<std::mutex> lock(previous_owner->mutex);
+    }
+    // 新 owner 返回前必须与已开始的旧清理会合，确保文件删除不会与新写入重叠。
+    // Join any old cleanup before returning the new owner so deletion cannot overlap new writes.
+    for (auto &ticket : tickets) {
+        runCleanup(ticket);
+    }
+    return owner;
+}
+
 std::shared_ptr<CleanupTicket> registerCleanup(const std::string &path, std::list<std::string> files,
+                                               const std::shared_ptr<HlsCleanupOwner> &owner,
                                                std::shared_ptr<CleanupRegistry> &registry) {
     registry = getCleanupRegistry();
-    auto ticket = std::make_shared<CleanupTicket>(std::move(files));
+    auto ticket = std::make_shared<CleanupTicket>(owner, std::move(files));
     std::lock_guard<std::mutex> lock(registry->mutex);
-    registry->pending[path].emplace_back(ticket);
+    auto &state = registry->paths[path];
+    state.pending.emplace_back(ticket);
+    auto latest_owner = state.latest_owner.lock();
+    if (!latest_owner) {
+        state.latest_owner = owner;
+        state.owner_active = false;
+    } else if (latest_owner == owner) {
+        state.owner_active = false;
+    }
     return ticket;
+}
+
+bool isLatestCleanupOwner(const std::string &path, const std::shared_ptr<HlsCleanupOwner> &owner) {
+    auto registry = getCleanupRegistry();
+    std::lock_guard<std::mutex> lock(registry->mutex);
+    auto it = registry->paths.find(path);
+    if (it == registry->paths.end()) {
+        return true;
+    }
+    auto latest_owner = it->second.latest_owner.lock();
+    return !latest_owner || latest_owner == owner;
+}
+
+void tryCleanup(const std::shared_ptr<CleanupRegistry> &registry, const std::string &path,
+                const std::shared_ptr<CleanupTicket> &ready_ticket) {
+    std::list<std::shared_ptr<CleanupTicket>> tickets;
+    {
+        std::lock_guard<std::mutex> lock(registry->mutex);
+        auto it = registry->paths.find(path);
+        if (it == registry->paths.end()) {
+            return;
+        }
+        ready_ticket->ready = true;
+        if (hasActiveCleanupOwner(it->second) || it->second.pending.empty()) {
+            return;
+        }
+        for (auto &ticket : it->second.pending) {
+            if (!ticket->ready) {
+                return;
+            }
+        }
+        // 执行期间保留登记，使并发构造能通过 call_once 等待同一批删除完成。
+        // Keep registration while running so a concurrent constructor can join through call_once.
+        tickets = it->second.pending;
+    }
+    for (auto &ticket : tickets) {
+        runCleanup(ticket);
+    }
+    finishCleanup(registry, path, tickets);
 }
 
 } // namespace
@@ -120,7 +213,6 @@ HlsMakerImp::HlsMakerImp(bool is_fmp4, const string &m3u8_file, const string &pa
     _path_prefix = m3u8_file.substr(0, m3u8_file.rfind('/'));
     _path_hls = m3u8_file;
     _path_hls_delay = getDelayPath(m3u8_file);
-    drainPendingCleanup(_path_hls);
     _params = params;
     _buf_size = bufSize;
     // 兼容用户配置不带前导点的扩展名(例如 m4s)，统一补上"."  [AUTO-TRANSLATED]
@@ -128,6 +220,11 @@ HlsMakerImp::HlsMakerImp(bool is_fmp4, const string &m3u8_file, const string &pa
     _fmp4_seg_ext = fmp4_seg_ext.empty() ? ".mp4" : (fmp4_seg_ext.front() == '.' ? fmp4_seg_ext : "." + fmp4_seg_ext);
     _file_buf.reset(new char[bufSize], [](char *ptr) { delete[] ptr; });
     _info.folder = _path_prefix;
+    if (isLive() && !isKeep()) {
+        _cleanup_owner = beginCleanupSession(_path_hls);
+    } else {
+        drainPendingCleanup(_path_hls);
+    }
 }
 
 HlsMakerImp::~HlsMakerImp() {
@@ -145,13 +242,26 @@ HlsMakerImp::~HlsMakerImp() {
 }
 
 void HlsMakerImp::clearCache() {
+    if (_cleanup_owner && isLatestCleanupOwner(_path_hls, _cleanup_owner)) {
+        drainPendingCleanup(_path_hls);
+    }
     clearCache(true, false);
 }
 
 void HlsMakerImp::clearCache(bool immediately, bool eof) {
     // 录制完了  [AUTO-TRANSLATED:5d3bfbeb]
     // Recording finished
-    flushLastSegment(eof);
+    std::unique_lock<std::mutex> owner_lock;
+    if (eof && _cleanup_owner) {
+        owner_lock = std::unique_lock<std::mutex>(_cleanup_owner->mutex);
+    }
+    if (!eof || !_cleanup_owner || isLatestCleanupOwner(_path_hls, _cleanup_owner)) {
+        flushLastSegment(eof);
+    } else {
+        // 被新 generation 替代后不得再重写共享 playlist；只关闭旧媒体文件并登记回收。
+        // A replaced generation must not rewrite the shared playlist; close its media file and only register cleanup.
+        _file = nullptr;
+    }
     if (!isLive() || isKeep()) {
         return;
     }
@@ -173,17 +283,20 @@ void HlsMakerImp::clearCache(bool immediately, bool eof) {
         // hls直播才删除文件  [AUTO-TRANSLATED:81d2aaa5]
         // Delete file only after hls live streaming
         GET_CONFIG(uint32_t, delay, Hls::kDeleteDelaySec);
-        if (!delay || immediately) {
+        if (!eof) {
             clearHls(lst);
         } else {
             std::shared_ptr<CleanupRegistry> registry;
             auto cleanup_path = _path_hls;
-            auto ticket = registerCleanup(cleanup_path, std::move(lst), registry);
-            _poller->doDelayTask(delay * 1000, [registry, cleanup_path, ticket]() {
-                runCleanup(ticket);
-                unregisterCleanup(registry, cleanup_path, ticket);
-                return 0;
-            });
+            auto ticket = registerCleanup(cleanup_path, std::move(lst), _cleanup_owner, registry);
+            if (!delay || immediately) {
+                tryCleanup(registry, cleanup_path, ticket);
+            } else {
+                _poller->doDelayTask(static_cast<uint64_t>(delay) * 1000, [registry, cleanup_path, ticket]() {
+                    tryCleanup(registry, cleanup_path, ticket);
+                    return 0;
+                });
+            }
         }
     }
 
