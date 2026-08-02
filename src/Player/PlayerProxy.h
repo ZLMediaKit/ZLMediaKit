@@ -156,6 +156,10 @@ private:
     void onPlaySuccess();
     void setDirectProxy();
     void setTranslationInfo();
+    static bool isTrackCompatible(const Track::Ptr &track, const Track::Ptr &last_track);
+    bool shouldResetTracks(const Track::Ptr &video_track, const Track::Ptr &audio_track,
+                           const Track::Ptr &last_video_track, const Track::Ptr &last_audio_track) const;
+    void attachPlayerTracks(const Track::Ptr &video_track, const Track::Ptr &audio_track, bool add_to_muxer);
 
 private:
     std::shared_ptr<std::string> _status;
