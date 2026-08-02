@@ -147,7 +147,7 @@ static std::shared_ptr<char> getSharedMmap(const string &file_path, int64_t &fil
         return nullptr;
     }
 
-     LARGE_INTEGER FileSize; 
+     LARGE_INTEGER FileSize;
      GetFileSizeEx(hfile, &FileSize); //GetFileSize函数的拓展，可用于获取大于4G的文件大小
      file_size = FileSize.QuadPart;
 
@@ -202,7 +202,7 @@ HttpFileBody::HttpFileBody(const string &file_path, bool use_mmap) {
     }
 
     if (use_mmap ) {
-        _map_addr = getSharedMmap(file_path, _read_to);       
+        _map_addr = getSharedMmap(file_path, _read_to);
     }
 
     if (!_map_addr && _read_to != -1) {

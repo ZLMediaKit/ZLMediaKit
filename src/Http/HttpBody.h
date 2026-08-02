@@ -211,11 +211,15 @@ public:
     using Ptr = std::shared_ptr<HttpFileStorage>;
 
     /**
-     * @param file_path 文件路径，文件以二进制写入模式打开（覆盖已有内容）
-     * @param file_path File path, opened in binary write mode (truncates existing content)
+     * @param file_path 直接以二进制覆盖写入的路径；未完成的上传会删除该路径。需要保护正式文件时，调用方应
+     *                  传入临时路径，并在请求处理完成后自行发布到正式路径。
+     * @param file_path Path opened directly in binary truncate mode and removed after an incomplete upload. To protect
+     *                  a published file, pass a temporary path and publish it from the completed-request handler.
      */
     HttpFileStorage(std::string file_path);
     ~HttpFileStorage() override;
+    HttpFileStorage(const HttpFileStorage &) = delete;
+    HttpFileStorage &operator=(const HttpFileStorage &) = delete;
 
     void writeData(const char *data, size_t size, uint64_t content_size) override;
     int64_t remainSize() override;
