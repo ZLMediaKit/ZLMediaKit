@@ -78,6 +78,8 @@ protected:
     virtual void onWrite(std::shared_ptr<toolkit::Buffer> buffer, uint64_t timestamp, bool key_pos) = 0;
 
 private:
+    friend class MpegMuxerTestAccess;
+
     void createContext();
     void releaseContext();
     void onWrite_l(const void *packet, size_t bytes);
