@@ -23,6 +23,32 @@ using namespace toolkit;
 
 namespace mediakit {
 
+namespace hls_file_detail {
+
+using BeforeClose = void (*)(FILE *);
+
+bool writeOpenedFileAndClose(const string &path, FILE *file, const char *data, size_t len,
+                             BeforeClose before_close) {
+    bool ok = file && data && len;
+    if (ok) {
+        ok = fwrite(data, 1, len, file) == len;
+    }
+    if (file) {
+        if (before_close) {
+            before_close(file);
+        }
+        if (fclose(file) != 0) {
+            ok = false;
+        }
+    }
+    if (!ok) {
+        File::delete_file(path);
+    }
+    return ok;
+}
+
+} // namespace hls_file_detail
+
 namespace {
 
 void clearHls(const std::list<std::string> &files) {
@@ -255,23 +281,23 @@ bool HlsMakerImp::onWriteInitSegment(const string &init_segment, const char *dat
     }
 
     string init_seg_path = _path_prefix + "/" + init_segment;
-    auto file = makeFile(init_seg_path);
-    if (file) {
-        fwrite(data, len, 1, file.get());
-        if (!isLive() || isKeep()) {
-            _init_segments[init_segment].assign(data, len);
-            _current_init_segment_referenced = false;
-        }
-        if (!previous_init_segment.empty() && !previous_init_referenced) {
-            auto previous_init_path = _path_prefix + "/" + previous_init_segment;
-            File::delete_file(previous_init_path.data(), true);
-            _init_segments.erase(previous_init_segment);
-        }
-        return true;
-    } else {
-        WarnL << "Create file failed," << init_seg_path << " " << get_uv_errmsg();
+    auto file = data && len ? File::create_file(init_seg_path.data(), "wb") : nullptr;
+    if (!hls_file_detail::writeOpenedFileAndClose(init_seg_path, file, data, len, nullptr)) {
+        WarnL << "Write init segment failed," << init_seg_path << " " << get_uv_errmsg();
         return false;
     }
+    if (!isLive() || isKeep()) {
+        _init_segments[init_segment].assign(data, len);
+        _current_init_segment_referenced = false;
+    }
+    if (!previous_init_segment.empty() && !previous_init_referenced) {
+        auto previous_init_path = _path_prefix + "/" + previous_init_segment;
+        if (File::delete_file(previous_init_path.data(), true) != 0) {
+            WarnL << "Delete unused init segment failed," << previous_init_path << " " << get_uv_errmsg();
+        }
+        _init_segments.erase(previous_init_segment);
+    }
+    return true;
 }
 
 void HlsMakerImp::onWriteSegment(const char *data, size_t len) {

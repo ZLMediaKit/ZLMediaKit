@@ -130,8 +130,18 @@ public:
 
     void addTrackCompleted() override {
         HlsRecorderBase<MP4MuxerMemory>::addTrackCompleted();
-        auto data = getInitSegment();
-        _hls->inputInitSegment(data.data(), data.size());
+        try {
+            auto data = getInitSegment();
+            if (!_hls->inputInitSegment(data.data(), data.size())) {
+                scheduleCloseOnInitFailure();
+            }
+        } catch (std::exception &ex) {
+            WarnL << "Generate fMP4 init segment failed: " << ex.what();
+            scheduleCloseOnInitFailure();
+        } catch (...) {
+            WarnL << "Generate fMP4 init segment failed: unknown exception";
+            scheduleCloseOnInitFailure();
+        }
     }
 
     void resetTracks() override {
@@ -142,6 +152,20 @@ public:
     }
 
 private:
+    void scheduleCloseOnInitFailure() {
+        if (_close_task_pending) {
+            return;
+        }
+        _close_task_pending = true;
+        auto source = _hls->getMediaSource();
+        std::weak_ptr<MediaSource> weak_source = source;
+        source->getOwnerPoller()->async([weak_source]() {
+            if (auto strong = weak_source.lock()) {
+                strong->close(true);
+            }
+        }, false);
+    }
+
     void onSegmentData(std::string buffer, uint64_t timestamp, bool key_pos) override {
         if (buffer.empty()) {
             // reset tracks
@@ -150,6 +174,8 @@ private:
             _hls->inputData((char *)buffer.data(), buffer.size(), timestamp, key_pos);
         }
     }
+
+    bool _close_task_pending = false;
 };
 
 }//namespace mediakit

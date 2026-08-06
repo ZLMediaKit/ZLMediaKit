@@ -164,6 +164,11 @@ private:
 
 std::shared_ptr<MediaSinkInterface> MultiMediaSourceMuxer::makeRecorder(Recorder::type type) {
     auto recorder = Recorder::createRecorder(type, getMediaTuple(), _option);
+    initializeRecorder(recorder);
+    return recorder;
+}
+
+void MultiMediaSourceMuxer::initializeRecorder(const MediaSinkInterface::Ptr &recorder) {
     for (auto &track : getTracks()) {
         recorder->addTrack(track);
     }
@@ -173,7 +178,6 @@ std::shared_ptr<MediaSinkInterface> MultiMediaSourceMuxer::makeRecorder(Recorder
             recorder->inputFrame(frame);
         });
     }
-    return recorder;
 }
 
 static string getTrackInfoStr(const TrackSource *track_src){
@@ -388,11 +392,13 @@ bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type
                 // 开始录制  [AUTO-TRANSLATED:36d99250]
                 // Start recording
                 _option.hls_save_path = custom_path;
-                auto hls = dynamic_pointer_cast<HlsFMP4Recorder>(makeRecorder(type));
+                auto hls = dynamic_pointer_cast<HlsFMP4Recorder>(
+                    Recorder::createRecorder(type, getMediaTuple(), _option));
                 if (hls) {
                     // 设置HlsMediaSource的事件监听器  [AUTO-TRANSLATED:69990c92]
                     // Set the event listener for HlsMediaSource
                     hls->setListener(shared_from_this());
+                    initializeRecorder(hls);
                 }
                 _hls_fmp4 = hls;
             } else if (!start && _hls_fmp4) {
