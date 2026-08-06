@@ -226,6 +226,8 @@ static std::map<std::string, HttpBodyHandler, StrCaseCompare> s_map_file_handler
  * Register a handler for a URL path. When a PUT/POST request arrives at that path,
  * the handler is invoked to create an HttpBody (e.g. HttpFileStorage) that receives
  * the request body stream directly. CHECK_SECRET() can be used inside the handler.
+ * File publication policy belongs to the registered application: use a temporary
+ * storage path here and move it to the public path in the corresponding API handler.
  *
  * @param url_path   the HTTP URL path to match
  * @param handler    callback that sets body; may throw AuthException to reject
@@ -888,8 +890,8 @@ void installWebApi() {
                 continue;
 #endif
             }
-            if (pr.first == FFmpeg::kBin) {
-                WarnL << "Configuration named " << FFmpeg::kBin << " is not allowed to be set by setServerConfig api.";
+            if (pr.first == FFmpeg::kBin || pr.first == FFmpeg::kSnap) {
+                WarnL << "Configuration named " << pr.first << " is not allowed to be set by setServerConfig api.";
                 continue;
             }
             if (ini[pr.first] == pr.second) {
@@ -1488,7 +1490,8 @@ void installWebApi() {
             // Compatible with old version requests, the new version removes the only_audio parameter and adds the only_track parameter
             only_track = 1;
         }
-        GET_CONFIG(std::string, local_ip, General::kListenIP)
+        GET_CONFIG(std::string, s_local_ip, General::kListenIP)
+        auto local_ip = s_local_ip;
         if (!allArgs["local_ip"].empty()) {
             local_ip = allArgs["local_ip"];
         }

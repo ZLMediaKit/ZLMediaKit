@@ -82,7 +82,7 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
         return 0;
     }
 
-    size_t content_len;
+    uint64_t content_len;
     auto &content_len_str = _parser["Content-Length"];
     if (content_len_str.empty()) {
         if (it->first == "POST") {
@@ -114,23 +114,75 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
         NOTICE_EMIT(BroadcastBeforeHttpRequestArgs, Broadcast::kBroadcastBeforeHttpRequest, _parser, body, *this);
     }
 
-    if (content_len > _max_req_size || body) {
+    // 自定义HttpBody直接消费网络分片，不经过HttpRequestSplitter的内存缓存；因此maxReqSize只负责选择缓存策略，
+    // 不能作为这里的上传上限，否则未携带Content-Length的正常流式上传会在默认40KB左右被错误拒绝。
+    // A custom HttpBody consumes network fragments directly without HttpRequestSplitter buffering. Therefore maxReqSize
+    // only selects the buffering strategy and must not be used as the upload limit, or normal unknown-length uploads
+    // would be rejected at roughly the default 40KB threshold.
+    if (body) {
+        GET_CONFIG(uint64_t, max_upload_size_config, Http::kMaxUploadSize);
+        // 已知长度可以在接收body前判断是否超限，避免先向HttpBody写入数据再拒绝请求;
+        // 如果上传文件时不指定content-len，也直接拒绝，因为后续没法触发文件上传完毕事件
+        if (content_len > max_upload_size_config) {
+            WarnL << "Http upload size is too huge or no content-len provided: " << content_len << " > " << max_upload_size_config
+                  << ", please set " << Http::kMaxUploadSize << " in config.ini file.";
+            sendResponse(413, true);
+            _parser.clear();
+            // 仍返回不定长body模式并丢弃连接关闭前可能到达的数据，防止splitter把body误当成下一条请求头。
+            // Keep the splitter in variable-body mode and discard data arriving before close, so body bytes are not
+            // interpreted as another request header.
+            _on_recv_body = [](const char *, size_t) { return true; };
+            return -1;
+        }
+
+        size_t received = 0;
+        _on_recv_body = [this, received, content_len, body, it](const char *data, size_t len) mutable {
+            auto remain = content_len - received;
+            if (len > remain) {
+                // 告知HttpFileStorage，写入的数据长度超过content_len，触发文件删除操作
+                body->writeData(data, len, content_len);
+                // 上传的数据超过声明的content-len， 直接拒绝
+                sendResponse(413, true);
+                WarnL << "Upload file size larger than content_len: " << received + len << " > " << content_len;
+                return false;
+            }
+
+            received += len;
+            body->writeData(data, len, content_len);
+            if (received < content_len) {
+                // 还没收满  [AUTO-TRANSLATED:cecc867e]
+                // Not yet received
+                return true;
+            }
+            // 收满了  [AUTO-TRANSLATED:0c9cebd7]
+            // Received full
+            setContentLen(0);
+            _parser.setBody(std::move(body));
+            (this->*(it->second))();
+            _parser.clear();
+            return false;
+        };
+        // 声明后续都是body；Http body在本对象缓冲，不通过HttpRequestSplitter保存  [AUTO-TRANSLATED:0012b6c1]
+        // Declare that the following is all body; Http body is buffered in this object, not saved through HttpRequestSplitter
+        return -1;
+    }
+
+    // 未提供自定义HttpBody时保持原有语义：maxReqSize仅决定是否放弃内存整包缓存并改为分片回调，
+    // 不在本分支中把它扩展为普通请求体的硬上限。
+    // Without a custom HttpBody, preserve the original behavior: maxReqSize only switches from whole-body buffering
+    // to fragment callbacks; it is not extended into a hard limit for ordinary request bodies in this branch.
+    if (content_len > _max_req_size) {
         // // 不定长body或超大body ////  [AUTO-TRANSLATED:8d66ee77]
         // // Indefinite length body or oversized body ////
-        if (content_len != SIZE_MAX && !body) {
+        if (content_len != SIZE_MAX) {
             WarnL << "Http body size is too huge: " << content_len << " > " << _max_req_size
                   << ", please set " << Http::kMaxReqSize << " in config.ini file.";
         }
 
         size_t received = 0;
-        _on_recv_body = [this, received, content_len, body, it](const char *data, size_t len) mutable {
+        _on_recv_body = [this, received, content_len](const char *data, size_t len) mutable {
             received += len;
-            if (body) {
-                body->writeData(data, len);
-            } else {
-                onRecvUnlimitedContent(_parser, data, len, content_len, received);
-            }
-
+            onRecvUnlimitedContent(_parser, data, len, content_len, received);
             if (received < content_len) {
                 // 还没收满  [AUTO-TRANSLATED:cecc867e]
                 // Not yet received
@@ -140,13 +192,7 @@ ssize_t HttpSession::onRecvHeader(const char *header, size_t len) {
             // 收满了  [AUTO-TRANSLATED:0c9cebd7]
             // Received full
             setContentLen(0);
-
-            if (body) {
-                _parser.setBody(std::move(body));
-                (this->*(it->second))();
-            }
             _parser.clear();
-
             return false;
         };
         // 声明后续都是body；Http body在本对象缓冲，不通过HttpRequestSplitter保存  [AUTO-TRANSLATED:0012b6c1]

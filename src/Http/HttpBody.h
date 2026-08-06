@@ -35,7 +35,11 @@ public:
     using Ptr = std::shared_ptr<HttpBody>;
     virtual ~HttpBody() {
         if (_on_completed) {
-            _on_completed();
+            try {
+                _on_completed();
+            } catch (std::exception &ex) {
+                ErrorL << ex.what();
+            }
         }
     }
 
@@ -97,7 +101,7 @@ public:
      * 写入数据，默认抛出异常表示不支持写入
      * Write data, default throws exception indicating write not supported
      */
-    virtual void writeData(const char *data, size_t size) {
+    virtual void writeData(const char *data, size_t size, uint64_t content_size) {
         throw std::runtime_error("HttpBody::writeData not supported");
     }
 
@@ -207,20 +211,25 @@ public:
     using Ptr = std::shared_ptr<HttpFileStorage>;
 
     /**
-     * @param file_path 文件路径，文件以二进制追加模式打开
-     * @param file_path File path, opened in binary append mode
+     * @param file_path 直接以二进制覆盖写入的路径；未完成的上传会删除该路径。需要保护正式文件时，调用方应
+     *                  传入临时路径，并在请求处理完成后自行发布到正式路径。
+     * @param file_path Path opened directly in binary truncate mode and removed after an incomplete upload. To protect
+     *                  a published file, pass a temporary path and publish it from the completed-request handler.
      */
     HttpFileStorage(std::string file_path);
     ~HttpFileStorage() override;
+    HttpFileStorage(const HttpFileStorage &) = delete;
+    HttpFileStorage &operator=(const HttpFileStorage &) = delete;
 
-    void writeData(const char *data, size_t size) override;
+    void writeData(const char *data, size_t size, uint64_t content_size) override;
     int64_t remainSize() override;
     toolkit::Buffer::Ptr readData(size_t size) override;
     const std::string& filePath() const;
 
 private:
     FILE *_fp = nullptr;
-    int64_t _written = 0;
+    uint64_t _written = 0;
+    uint64_t _content_size = 0;
     std::string _path;
 };
 
