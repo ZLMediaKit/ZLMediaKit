@@ -11,6 +11,7 @@
 #ifndef HLSMAKERIMP_H
 #define HLSMAKERIMP_H
 
+#include <deque>
 #include <memory>
 #include <map>
 #include <string>
@@ -64,10 +65,13 @@ protected:
     void onFlushLastSegment(uint64_t duration_ms, bool discontinuity, const std::string &init_segment) override;
 
 private:
-    struct SegmentFileInfo {
-        SegmentFileInfo(std::string path, std::string init)
-            : file_path(std::move(path)), init_segment(std::move(init)) {}
+    friend class HlsMakerImpTestAccess;
 
+    struct SegmentFileInfo {
+        SegmentFileInfo(uint64_t logical_index, std::string path, std::string init)
+            : index(logical_index), file_path(std::move(path)), init_segment(std::move(init)) {}
+
+        uint64_t index;
         std::string file_path;
         std::string init_segment;
     };
@@ -87,8 +91,6 @@ private:
 
     std::shared_ptr<FILE> makeFile(const std::string &file,bool setbuf = false);
     void clearCache(bool immediately, bool eof);
-    void cleanupPreviousUnusedInitSegment(const std::string &next_init_segment);
-    void cleanupUnusedInitSegments(const std::string &protected_init_segment = {});
     void saveCurrentDir();
 
 private:
@@ -104,14 +106,12 @@ private:
     std::shared_ptr<char> _file_buf;
     HlsMediaSource::Ptr _media_src;
     toolkit::EventPoller::Ptr _poller;
-    std::map<uint64_t/*index*/, SegmentFileInfo> _segment_files;
-    std::map<std::string/*uri*/, std::string/*file_path*/> _init_segment_paths;
-    std::map<std::string/*uri*/, uint64_t/*last_segment_index*/> _init_segment_last_indexes;
+    uint64_t _media_file_index = 0;
+    std::deque<SegmentFileInfo> _segment_files;
     std::map<std::string/*uri*/, std::string/*data*/> _init_segments;
-    // VOD/keep 最近成功写入的 init 及其媒体片引用状态。
-    // Most recently written VOD/keep init and whether a media segment references it.
-    std::string _last_written_init_segment;
-    bool _last_written_init_segment_referenced = false;
+    // VOD/keep 当前 init 是否已被媒体片引用；live/non-keep 从 FIFO 队尾直接判断。
+    // Whether VOD/keep media references the current init; live/non-keep derives this from the FIFO tail.
+    bool _current_init_segment_referenced = false;
     std::deque<DirSegmentInfo> _current_dir_seg_list;
 };
 
