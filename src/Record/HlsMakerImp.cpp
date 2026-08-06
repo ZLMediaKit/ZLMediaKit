@@ -8,6 +8,7 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
+#include <array>
 #include <ctime>
 #include <iomanip> 
 #include <set>
@@ -47,6 +48,40 @@ bool writeOpenedFileAndClose(const string &path, FILE *file, const char *data, s
     return ok;
 }
 
+using BeforeCopyClose = void (*)(FILE *, FILE *);
+
+bool copyOpenedFilesAndClose(const string &target_path, FILE *input, FILE *output,
+                             BeforeCopyClose before_close) {
+    bool ok = input && output;
+    if (ok) {
+        std::array<char, 64 * 1024> buffer;
+        while (true) {
+            auto bytes = fread(buffer.data(), 1, buffer.size(), input);
+            if (bytes && fwrite(buffer.data(), 1, bytes, output) != bytes) {
+                ok = false;
+                break;
+            }
+            if (bytes != buffer.size()) {
+                ok = !ferror(input);
+                break;
+            }
+        }
+    }
+    if (before_close) {
+        before_close(input, output);
+    }
+    if (input && fclose(input) != 0) {
+        ok = false;
+    }
+    if (output && fclose(output) != 0) {
+        ok = false;
+    }
+    if (!ok) {
+        File::delete_file(target_path);
+    }
+    return ok;
+}
+
 } // namespace hls_file_detail
 
 namespace {
@@ -56,6 +91,12 @@ void clearHls(const std::list<std::string> &files) {
         File::delete_file(file);
     }
     File::deleteEmptyDir(File::parentDir(files.back()));
+}
+
+bool copyFileChecked(const string &source_path, const string &target_path) {
+    auto input = fopen(source_path.data(), "rb");
+    auto output = input ? File::create_file(target_path.data(), "wb") : nullptr;
+    return hls_file_detail::copyOpenedFilesAndClose(target_path, input, output, nullptr);
 }
 
 } // namespace
@@ -107,6 +148,13 @@ void HlsMakerImp::clearCache(bool immediately, bool eof) {
     // Recording finished
     flushLastSegment(eof);
     if (!isLive() || isKeep()) {
+        if (eof && isFmp4() && !_current_init_segment_referenced) {
+            const auto &current_init_segment = getCurrentInitSegment();
+            if (!current_init_segment.empty()) {
+                auto init_path = _path_prefix + "/" + current_init_segment;
+                File::delete_file(init_path.data(), true);
+            }
+        }
         return;
     }
 
@@ -152,6 +200,22 @@ void HlsMakerImp::saveCurrentDir() {
         return;
     }
 
+    if (isFmp4()) {
+        set<string> init_segments;
+        for (auto &segment : _current_dir_seg_list) {
+            init_segments.emplace(segment.init_segment);
+        }
+        for (auto &init_segment : init_segments) {
+            auto source_path = _path_prefix + "/" + init_segment;
+            auto target_path = _path_prefix + "/" + _current_dir + init_segment;
+            if (!copyFileChecked(source_path, target_path)) {
+                WarnL << "Copy fMP4 init segment failed: " << source_path << " -> " << target_path;
+                _current_dir_seg_list.clear();
+                return;
+            }
+        }
+    }
+
     uint64_t max_segment_duration = 0;
     for (auto &segment : _current_dir_seg_list) {
         if (segment.duration_ms > max_segment_duration) {
@@ -170,7 +234,6 @@ void HlsMakerImp::saveCurrentDir() {
 
     stringstream ss;
     string last_init_segment;
-    set<string> saved_init_segments;
     for (auto &segment : _current_dir_seg_list) {
         if (segment.discontinuity) {
             ss << "#EXT-X-DISCONTINUITY\n";
@@ -178,17 +241,6 @@ void HlsMakerImp::saveCurrentDir() {
         if (isFmp4() && segment.init_segment != last_init_segment) {
             ss << "#EXT-X-MAP:URI=\"" << segment.init_segment << "\"\n";
             last_init_segment = segment.init_segment;
-        }
-        if (isFmp4() && saved_init_segments.emplace(segment.init_segment).second) {
-            auto it = _init_segments.find(segment.init_segment);
-            if (it == _init_segments.end()) {
-                WarnL << "Missing fMP4 init segment: " << segment.init_segment;
-            } else {
-                auto path = _path_prefix + "/" + _current_dir + segment.init_segment;
-                if (!File::saveFile(it->second, path)) {
-                    WarnL << "Save fMP4 init segment failed: " << path;
-                }
-            }
         }
         ss << "#EXTINF:" << std::setprecision(3) << segment.duration_ms / 1000.0 << ",\n" << segment.file_name << "\n";
     }
@@ -198,17 +250,6 @@ void HlsMakerImp::saveCurrentDir() {
 
     /** 写入该目录的m3u8文件 **/
     File::saveFile(index_str, _path_prefix + "/" + _current_dir + (isFmp4() ? "vod.fmp4.m3u8" : "vod.m3u8"));
-
-    // 已归档的旧 generation 不再需要常驻内存；当前 generation 可能继续用于下一个小时目录。
-    // Archived generations need not stay in memory; the current one may still be used by the next hourly directory.
-    auto current_init_segment = getCurrentInitSegment();
-    for (auto it = _init_segments.begin(); it != _init_segments.end();) {
-        if (it->first == current_init_segment) {
-            ++it;
-        } else {
-            it = _init_segments.erase(it);
-        }
-    }
 }
 
 string HlsMakerImp::onOpenSegment(uint64_t index) {
@@ -287,7 +328,6 @@ bool HlsMakerImp::onWriteInitSegment(const string &init_segment, const char *dat
         return false;
     }
     if (!isLive() || isKeep()) {
-        _init_segments[init_segment].assign(data, len);
         _current_init_segment_referenced = false;
     }
     if (!previous_init_segment.empty() && !previous_init_referenced) {
@@ -295,7 +335,6 @@ bool HlsMakerImp::onWriteInitSegment(const string &init_segment, const char *dat
         if (File::delete_file(previous_init_path.data(), true) != 0) {
             WarnL << "Delete unused init segment failed," << previous_init_path << " " << get_uv_errmsg();
         }
-        _init_segments.erase(previous_init_segment);
     }
     return true;
 }

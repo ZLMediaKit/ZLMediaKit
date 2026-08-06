@@ -13,7 +13,6 @@
 
 #include <deque>
 #include <memory>
-#include <map>
 #include <string>
 #include <stdlib.h>
 #include <utility>
@@ -108,7 +107,6 @@ private:
     toolkit::EventPoller::Ptr _poller;
     uint64_t _media_file_index = 0;
     std::deque<SegmentFileInfo> _segment_files;
-    std::map<std::string/*uri*/, std::string/*data*/> _init_segments;
     // VOD/keep 当前 init 是否已被媒体片引用；live/non-keep 从 FIFO 队尾直接判断。
     // Whether VOD/keep media references the current init; live/non-keep derives this from the FIFO tail.
     bool _current_init_segment_referenced = false;
