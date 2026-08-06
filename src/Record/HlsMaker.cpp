@@ -8,6 +8,7 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
+#include <atomic>
 #include <cmath>
 #include <iomanip>
 #include <limits>
@@ -20,6 +21,8 @@ namespace mediakit {
 
 constexpr uint64_t HlsMaker::kInvalidStamp;
 
+static std::atomic<uint64_t> s_hls_file_name_id{0};
+
 static uint64_t durationToMilliseconds(float duration) {
     auto duration_ms = std::ceil(static_cast<double>(duration) * 1000);
     if (!(duration_ms > 0)) {
@@ -31,11 +34,7 @@ static uint64_t durationToMilliseconds(float duration) {
 
 HlsMaker::HlsMaker(bool is_fmp4, float seg_duration, uint32_t seg_number, bool seg_keep, float seg_max_duration) {
     _is_fmp4 = is_fmp4;
-    if (_is_fmp4) {
-        // 首代名称保持兼容；收到后续 init segment 时再切换到带 generation 的 URI。
-        // Keep the first-generation name compatible; later init segments use generation-specific URIs.
-        _current_init_segment = "init.mp4";
-    }
+    _file_name_id = s_hls_file_name_id.fetch_add(1, std::memory_order_relaxed);
     // 最小允许设置为0，0个切片代表点播  [AUTO-TRANSLATED:19235e8e]
     // Minimum allowed setting is 0, 0 slices represent on-demand
     _seg_number = seg_number;
@@ -57,8 +56,9 @@ void HlsMaker::makeIndexFile(bool include_delay, bool eof) {
     GET_CONFIG(uint32_t, segRetain, Hls::kSegmentRetain);
     std::deque<SegmentInfo> temp(_seg_dur_list);
     auto discontinuity_sequence = _discontinuity_sequence;
-    if (!include_delay && _seg_number) {
-        while (temp.size() > _seg_number) {
+    if (_seg_number) {
+        const uint64_t view_window = uint64_t(_seg_number) + (include_delay ? uint64_t(segDelay) : 0);
+        while (temp.size() > view_window) {
             // 普通与延迟索引的窗口不同，按各自裁掉的标签计算 discontinuity sequence。
             // Normal and delayed indexes have different windows, so count tags trimmed from each view.
             if (temp.front().discontinuity) {
@@ -75,24 +75,7 @@ void HlsMaker::makeIndexFile(bool include_delay, bool eof) {
         }
         has_discontinuity = has_discontinuity || segment.discontinuity;
     }
-    uint64_t index_seq;
-    if (_seg_number) {
-        if (include_delay) {
-            if (_file_index > _seg_number + segDelay) {
-                index_seq = _file_index - _seg_number - segDelay;
-            } else {
-                index_seq = 0LL;
-            }
-        } else {
-            if (_file_index > _seg_number) {
-                index_seq = _file_index - _seg_number;
-            } else {
-                index_seq = 0LL;
-            }
-        }
-    } else {
-        index_seq = 0LL;
-    }
+    const uint64_t index_seq = _seg_number && _file_index >= temp.size() ? _file_index - temp.size() : 0;
 
     string index_str;
     index_str.reserve(2048);
@@ -129,9 +112,12 @@ void HlsMaker::makeIndexFile(bool include_delay, bool eof) {
     onWriteHls(index_str, include_delay);
 }
 
-void HlsMaker::inputInitSegment(const char *data, size_t len) {
+bool HlsMaker::inputInitSegment(const char *data, size_t len) {
     if (!_is_fmp4) {
         throw std::invalid_argument("Only fmp4-hls can input init segment");
+    }
+    if (_fatal_init_error) {
+        return false;
     }
     if (segmentOpened()) {
         // init segment 不能在媒体切片中途切换；先固化旧 generation，再开启新时间线。
@@ -139,16 +125,29 @@ void HlsMaker::inputInitSegment(const char *data, size_t len) {
         flushLastSegment(false);
         _discontinuity = true;
     }
-    if (_init_segment_index == 0) {
-        _current_init_segment = "init.mp4";
-    } else {
-        _current_init_segment = "init-" + std::to_string(_init_segment_index) + ".mp4";
+    try {
+        auto candidate = "init-" + std::to_string(_file_name_id) + "-"
+                       + std::to_string(_init_segment_index++) + ".mp4";
+        if (!onWriteInitSegment(candidate, data, len)) {
+            _fatal_init_error = true;
+            return false;
+        }
+        _current_init_segment.swap(candidate);
+        _init_segment_available = true;
+        return true;
+    } catch (std::exception &ex) {
+        WarnL << "Write fMP4 init segment failed: " << ex.what();
+    } catch (...) {
+        WarnL << "Write fMP4 init segment failed: unknown exception";
     }
-    ++_init_segment_index;
-    onWriteInitSegment(data, len);
+    _fatal_init_error = true;
+    return false;
 }
 
 void HlsMaker::inputData(const char *data, size_t len, uint64_t timestamp, bool is_idr_fast_packet) {
+    if (_fatal_init_error) {
+        return;
+    }
     if (!data || !len) {
         // resetTracks时触发此逻辑  [AUTO-TRANSLATED:0ba915ed]
         // This logic is triggered when resetTracks is called
@@ -156,6 +155,9 @@ void HlsMaker::inputData(const char *data, size_t len, uint64_t timestamp, bool 
         flushLastSegment(false);
         resetSegmentState();
         _discontinuity = had_timeline;
+        return;
+    }
+    if (_is_fmp4 && !_init_segment_available) {
         return;
     }
 
@@ -166,8 +168,8 @@ void HlsMaker::inputData(const char *data, size_t len, uint64_t timestamp, bool 
         WarnL << "Timestamp reduce: " << _last_timestamp << " -> " << timestamp;
         flushLastSegment(false);
         _discontinuity = true;
-        openSegment(timestamp, false);
-    } else if (!segmentOpened()) {
+    }
+    if (!segmentOpened()) {
         if (!shouldOpenFirstSegment(timestamp, key_packet)) {
             return;
         }
@@ -187,14 +189,13 @@ void HlsMaker::inputData(const char *data, size_t len, uint64_t timestamp, bool 
 
 void HlsMaker::delOldSegment() {
     GET_CONFIG(uint32_t, segDelay, Hls::kSegmentDelay);
-    if (_seg_number == 0 || _seg_keep) {
-        // 如果设置为保留0个切片，则认为是保存为点播；或者设置为一直保存，就不删除  [AUTO-TRANSLATED:5bf20108]
-        // If set to keep 0 or all slices, it is considered to be saved as on-demand
+    if (_seg_number == 0) {
+        // 保留 0 个切片代表 EVENT 点播，完整历史不能裁剪。
+        // Zero configured segments means EVENT VOD, whose complete history must be retained.
         return;
     }
-    // 在hls m3u8索引文件中,我们保存的切片个数跟_seg_number相关设置一致  [AUTO-TRANSLATED:b14b5b98]
-    // In the hls m3u8 index file, the number of slices we save is consistent with the _seg_number setting
-    if (_file_index > _seg_number + segDelay) {
+    const uint64_t playlist_window = uint64_t(_seg_number) + uint64_t(segDelay);
+    while (_seg_dur_list.size() > playlist_window) {
         // 删除带标签的历史切片时推进基准序号，避免滑动窗口改变剩余切片的 discontinuity sequence。
         // Advance the base when removing a tagged segment so remaining segments keep stable sequence numbers.
         if (_seg_dur_list.front().discontinuity) {
@@ -202,16 +203,22 @@ void HlsMaker::delOldSegment() {
         }
         _seg_dur_list.pop_front();
     }
+    if (_seg_keep) {
+        // segKeep 仅禁止物理删除，不改变直播 playlist 的有界窗口。
+        // segKeep only disables physical deletion; the live playlist window remains bounded.
+        return;
+    }
     GET_CONFIG(uint32_t, segRetain, Hls::kSegmentRetain);
     // 但是实际保存的切片个数比m3u8所述多若干个,这样做的目的是防止播放器在切片删除前能下载完毕  [AUTO-TRANSLATED:1688f857]
     // However, the actual number of slices saved is a few more than what is stated in the m3u8, this is done to prevent the player from downloading the slices before they are deleted
-    if (_file_index > _seg_number + segDelay + segRetain) {
-        onDelSegment(_file_index - _seg_number - segDelay - segRetain - 1);
+    const uint64_t physical_window = playlist_window + uint64_t(segRetain);
+    if (_file_index > physical_window) {
+        onDelSegment(_file_index - physical_window - 1);
     }
 }
 
 void HlsMaker::openSegment(uint64_t stamp, bool fast_register_pending) {
-    _last_file_name = onOpenSegment(_file_index++);
+    _last_file_name = onOpenSegment(_file_index);
     _pending_first_stamp = kInvalidStamp;
     if (_last_file_name.empty()) {
         _segment_start_stamp = kInvalidStamp;
@@ -220,6 +227,7 @@ void HlsMaker::openSegment(uint64_t stamp, bool fast_register_pending) {
         _fast_register_pending = false;
         return;
     }
+    ++_file_index;
     _segment_start_stamp = stamp;
     _last_timestamp = stamp;
     _segment_init_segment = _current_init_segment;
@@ -339,6 +347,10 @@ bool HlsMaker::isFmp4() const {
 
 const std::string &HlsMaker::getCurrentInitSegment() const {
     return _current_init_segment;
+}
+
+uint64_t HlsMaker::getFileNameId() const {
+    return _file_name_id;
 }
 
 void HlsMaker::clear() {

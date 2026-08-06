@@ -58,7 +58,7 @@ public:
 protected:
     std::string onOpenSegment(uint64_t index) override ;
     void onDelSegment(uint64_t index) override;
-    void onWriteInitSegment(const char *data, size_t len) override;
+    bool onWriteInitSegment(const std::string &candidate_uri, const char *data, size_t len) override;
     void onWriteSegment(const char *data, size_t len) override;
     void onWriteHls(const std::string &data, bool include_delay) override;
     void onFlushLastSegment(uint64_t duration_ms, bool discontinuity, const std::string &init_segment) override;
@@ -88,7 +88,7 @@ private:
     std::shared_ptr<FILE> makeFile(const std::string &file,bool setbuf = false);
     void clearCache(bool immediately, bool eof);
     void cleanupPreviousUnusedInitSegment(const std::string &next_init_segment);
-    void cleanupUnusedInitSegments();
+    void cleanupUnusedInitSegments(const std::string &protected_init_segment = {});
     void saveCurrentDir();
 
 private:

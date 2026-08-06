@@ -64,7 +64,7 @@ public:
      
      * [AUTO-TRANSLATED:8d613a42]
      */
-    void inputInitSegment(const char *data, size_t len);
+    bool inputInitSegment(const char *data, size_t len);
 
     /**
      * 是否为直播
@@ -131,7 +131,7 @@ protected:
      
      * [AUTO-TRANSLATED:e0021ec5]
      */
-    virtual void onWriteInitSegment(const char *data, size_t len) = 0;
+    virtual bool onWriteInitSegment(const std::string &candidate_uri, const char *data, size_t len) = 0;
 
     /**
      * 写ts切片文件回调
@@ -154,36 +154,28 @@ protected:
     virtual void onWriteHls(const std::string &data, bool include_delay) = 0;
 
     /**
-     * 上一个 ts 切片写入完成, 可在这里进行通知处理
-     * @param duration_ms 上一个 ts 切片的时长, 单位为毫秒
-     * The previous ts segment is written, you can notify here
-     * @param duration_ms The duration of the previous ts segment, in milliseconds
-     
-     * [AUTO-TRANSLATED:36b42bc0]
-     */
-    virtual void onFlushLastSegment(uint64_t duration_ms) {};
-
-    /**
      * 上一个切片写入完成，并提供生成归档索引所需的时间线元数据。
-     * 默认转发到旧回调，保持已有派生类的源代码兼容性。
      * @param duration_ms 切片时长，单位毫秒
      * @param discontinuity 该切片前是否存在时间线中断
      * @param init_segment fMP4 初始化段 URI；TS 切片为空
      * The previous segment is complete, with timeline metadata required by archive indexes.
-     * The default implementation forwards to the legacy callback for source compatibility.
      * @param duration_ms Segment duration in milliseconds
      * @param discontinuity Whether a timeline discontinuity precedes this segment
      * @param init_segment fMP4 initialization segment URI; empty for TS
      */
-    virtual void onFlushLastSegment(uint64_t duration_ms, bool discontinuity, const std::string &init_segment) {
-        onFlushLastSegment(duration_ms);
-    }
+    virtual void onFlushLastSegment(uint64_t duration_ms, bool discontinuity, const std::string &init_segment) = 0;
 
     /**
      * 获取当前 fMP4 初始化段 URI。
      * Get the current fMP4 initialization segment URI.
      */
     const std::string &getCurrentInitSegment() const;
+
+    /**
+     * 获取当前 maker 实例的唯一文件命名编号。
+     * Get the unique file-name identifier of this maker instance.
+     */
+    uint64_t getFileNameId() const;
 
     /**
      * 关闭上个ts切片并且写入m3u8索引
@@ -275,6 +267,7 @@ private:
     uint64_t _segment_start_stamp = kInvalidStamp;
     uint64_t _pending_first_stamp = kInvalidStamp;
     uint64_t _file_index = 0;
+    uint64_t _file_name_id = 0;
     // 已从内部历史列表移除的 discontinuity 数量。
     // Number of discontinuities removed from the internal segment history.
     uint64_t _discontinuity_sequence = 0;
@@ -289,6 +282,8 @@ private:
     // Initialization segment URI captured when the current segment was opened.
     std::string _segment_init_segment;
     uint64_t _init_segment_index = 0;
+    bool _init_segment_available = false;
+    bool _fatal_init_error = false;
     // 当前已打开或下一次成功打开的切片是否属于新时间线。
     // Whether the current open segment, or the next successfully opened one, starts a new timeline.
     bool _discontinuity = false;

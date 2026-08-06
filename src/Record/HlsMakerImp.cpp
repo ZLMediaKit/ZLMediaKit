@@ -266,8 +266,7 @@ void HlsMakerImp::onDelSegment(uint64_t index) {
     cleanupUnusedInitSegments();
 }
 
-void HlsMakerImp::onWriteInitSegment(const char *data, size_t len) {
-    auto &init_segment = getCurrentInitSegment();
+bool HlsMakerImp::onWriteInitSegment(const string &init_segment, const char *data, size_t len) {
     string init_seg_path = _path_prefix + "/" + init_segment;
     auto file = makeFile(init_seg_path);
     if (file) {
@@ -282,9 +281,11 @@ void HlsMakerImp::onWriteInitSegment(const char *data, size_t len) {
             // The path map only serves physical cleanup for non-kept live output; VOD/keep need no path history.
             _init_segment_paths[init_segment] = std::move(init_seg_path);
         }
-        cleanupUnusedInitSegments();
+        cleanupUnusedInitSegments(init_segment);
+        return true;
     } else {
         WarnL << "Create file failed," << init_seg_path << " " << get_uv_errmsg();
+        return false;
     }
 }
 
@@ -301,14 +302,15 @@ void HlsMakerImp::cleanupPreviousUnusedInitSegment(const std::string &next_init_
     _init_segments.erase(_last_written_init_segment);
 }
 
-void HlsMakerImp::cleanupUnusedInitSegments() {
+void HlsMakerImp::cleanupUnusedInitSegments(const string &protected_init_segment) {
     if (!isFmp4() || !isLive() || isKeep()) {
         return;
     }
 
     auto &current_init_segment = getCurrentInitSegment();
     for (auto it = _init_segment_paths.begin(); it != _init_segment_paths.end();) {
-        if (it->first == current_init_segment || _init_segment_last_indexes.count(it->first)) {
+        if (it->first == current_init_segment || it->first == protected_init_segment
+            || _init_segment_last_indexes.count(it->first)) {
             ++it;
             continue;
         }
