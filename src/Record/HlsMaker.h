@@ -18,6 +18,16 @@
 
 namespace mediakit {
 
+/**
+ * HLS playlist 与逻辑切片状态机。
+ * fMP4 init URI 使用 init-<file-name-id>-<revision>.mp4；生产文件实现生成的 TS/fMP4 媒体 URI
+ * 还包含文件命名号和 recorder 内媒体命名序号。这些唯一名称不是稳定 API，也不生成旧名兼容别名；
+ * 消费者必须以 playlist 发布的 URI 为准。
+ * HLS playlist and logical-segment state machine.
+ * fMP4 init URIs use init-<file-name-id>-<revision>.mp4. Production TS/fMP4 media URIs also contain
+ * the file-name ID and recorder-local media index. These unique names are not a stable API and have no
+ * legacy aliases; consumers must follow the URIs published by the playlist.
+ */
 class HlsMaker {
 public:
     /**
@@ -58,9 +68,11 @@ public:
      * 输入fmp4 init segment
      * @param data 数据
      * @param len 数据长度
+     * @return 是否成功提交新的 init URI
      * Input fmp4 init segment
      * @param data Data
      * @param len Data length
+     * @return Whether a new init URI was committed successfully
      
      * [AUTO-TRANSLATED:8d613a42]
      */
@@ -122,12 +134,16 @@ protected:
     virtual void onDelSegment(uint64_t index) = 0;
 
     /**
-     * 写init.mp4切片文件回调
+     * 写候选 init 切片文件回调
+     * @param candidate_uri 候选 init URI
      * @param data
      * @param len
-     * Write init.mp4 segment file callback
+     * @return 是否完整写入并成功关闭
+     * Write candidate init segment file callback
+     * @param candidate_uri Candidate init URI
      * @param data
      * @param len
+     * @return Whether the candidate was fully written and successfully closed
      
      * [AUTO-TRANSLATED:e0021ec5]
      */

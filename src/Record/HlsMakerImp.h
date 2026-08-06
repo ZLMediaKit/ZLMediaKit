@@ -90,6 +90,7 @@ private:
 
     std::shared_ptr<FILE> makeFile(const std::string &file,bool setbuf = false);
     void clearCache(bool immediately, bool eof);
+    void cleanupDelayPlaylistIfDisabled();
     void saveCurrentDir();
 
 private:
@@ -105,6 +106,7 @@ private:
     std::shared_ptr<char> _file_buf;
     HlsMediaSource::Ptr _media_src;
     toolkit::EventPoller::Ptr _poller;
+    bool _delay_playlist_may_exist = true;
     uint64_t _media_file_index = 0;
     std::deque<SegmentFileInfo> _segment_files;
     // VOD/keep 当前 init 是否已被媒体片引用；live/non-keep 从 FIFO 队尾直接判断。

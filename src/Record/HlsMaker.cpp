@@ -21,6 +21,8 @@ namespace mediakit {
 
 constexpr uint64_t HlsMaker::kInvalidStamp;
 
+// 该编号只用于 recorder 生命周期内的唯一物理命名，不构成对外稳定标识。
+// This ID only makes physical names unique across recorder lifetimes; it is not a stable public identifier.
 static std::atomic<uint64_t> s_hls_file_name_id{0};
 
 static uint64_t durationToMilliseconds(float duration) {
@@ -53,7 +55,6 @@ HlsMaker::HlsMaker(bool is_fmp4, float seg_duration, uint32_t seg_number, bool s
 
 void HlsMaker::makeIndexFile(bool include_delay, bool eof) {
     GET_CONFIG(uint32_t, segDelay, Hls::kSegmentDelay);
-    GET_CONFIG(uint32_t, segRetain, Hls::kSegmentRetain);
     std::deque<SegmentInfo> temp(_seg_dur_list);
     auto discontinuity_sequence = _discontinuity_sequence;
     if (_seg_number) {

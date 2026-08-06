@@ -147,6 +147,7 @@ void HlsMakerImp::clearCache(bool immediately, bool eof) {
     // 录制完了  [AUTO-TRANSLATED:5d3bfbeb]
     // Recording finished
     flushLastSegment(eof);
+    cleanupDelayPlaylistIfDisabled();
     if (!isLive() || isKeep()) {
         if (eof && isFmp4() && !_current_init_segment_referenced) {
             const auto &current_init_segment = getCurrentInitSegment();
@@ -160,7 +161,9 @@ void HlsMakerImp::clearCache(bool immediately, bool eof) {
 
     std::list<std::string> files;
     files.emplace_back(_path_hls);
-    files.emplace_back(_path_hls_delay);
+    if (_delay_playlist_may_exist) {
+        files.emplace_back(_path_hls_delay);
+    }
     std::set<std::string> init_segments;
     const auto &current_init_segment = getCurrentInitSegment();
     for (auto &segment : _segment_files) {
@@ -352,6 +355,11 @@ void HlsMakerImp::onWriteHls(const std::string &data, bool include_delay) {
     auto path = include_delay ? _path_hls_delay : _path_hls;
     auto hls = makeFile(path);
     if (hls) {
+        if (include_delay) {
+            // 以写模式打开后路径已可能被创建或截断，必须立即记录“可能存在”。
+            // Opening in write mode may create or truncate the path, so mark it as possibly present immediately.
+            _delay_playlist_may_exist = true;
+        }
         fwrite(data.data(), data.size(), 1, hls.get());
         hls.reset();
         if (_media_src && !include_delay) {
@@ -362,10 +370,21 @@ void HlsMakerImp::onWriteHls(const std::string &data, bool include_delay) {
     }
 }
 
+void HlsMakerImp::cleanupDelayPlaylistIfDisabled() {
+    GET_CONFIG(uint32_t, seg_delay, Hls::kSegmentDelay);
+    if (seg_delay || !_delay_playlist_may_exist) {
+        return;
+    }
+    if (File::delete_file(_path_hls_delay) == 0 || !File::fileExist(_path_hls_delay)) {
+        _delay_playlist_may_exist = false;
+    }
+}
+
 void HlsMakerImp::onFlushLastSegment(uint64_t duration_ms, bool discontinuity, const std::string &init_segment) {
     // 关闭并flush文件到磁盘  [AUTO-TRANSLATED:9798ec4d]
     // Close and flush file to disk
     _file = nullptr;
+    cleanupDelayPlaylistIfDisabled();
     if (!isLive() || isKeep()) {
         auto file_name = _info.file_name;
         if (file_name.compare(0, _current_dir.size(), _current_dir) == 0) {
