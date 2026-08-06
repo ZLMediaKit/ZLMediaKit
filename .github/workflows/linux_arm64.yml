@@ -1,0 +1,87 @@
+name: Linux_ARM64
+
+on: [push, pull_request]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-24.04-arm
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: 下载submodule源码
+      run: mv -f .gitmodules_github .gitmodules && git submodule sync && git submodule update --init
+
+    - name: 下载 SRTP
+      uses: actions/checkout@v4
+      with:
+        repository: cisco/libsrtp
+        fetch-depth: 1
+        ref: v2.3.0
+        path: 3rdpart/libsrtp
+
+    - name: 下载 openssl
+      uses: actions/checkout@v4
+      with:
+        repository: openssl/openssl
+        fetch-depth: 1
+        ref: OpenSSL_1_1_1
+        path: 3rdpart/openssl
+
+    - name: 下载 usrsctp
+      uses: actions/checkout@v4
+      with:
+        repository: sctplab/usrsctp
+        fetch-depth: 1
+        ref: 0.9.5.0
+        path: 3rdpart/usrsctp
+
+    # Use Debian 11 (glibc 2.31) for broader binary compatibility.
+    # ubuntu:20.04 is EOL and apt mirrors often fail in 2026.
+    - name: 在 Docker(debian:11/arm64) 中编译
+      run: |
+        set -eux
+        chmod +x package/build_linux_arm64.sh
+        docker version
+        docker pull --platform linux/arm64 debian:11
+        docker run --platform linux/arm64 --rm \
+          -v "${GITHUB_WORKSPACE}:/work" \
+          -w /work \
+          debian:11 \
+          bash /work/package/build_linux_arm64.sh
+
+    - name: 设置环境变量
+      run: |
+        echo "BRANCH=$(echo ${GITHUB_REF#refs/heads/} | tr -s "/\?%*:|\"<>" "_")" >> $GITHUB_ENV
+        echo "BRANCH2=$(echo ${GITHUB_REF#refs/heads/} )" >> $GITHUB_ENV
+        echo "DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
+
+    - name: 打包二进制
+      id: upload
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ github.workflow }}_${{ env.BRANCH }}_${{ env.DATE }}
+        path: release/*
+        if-no-files-found: error
+        retention-days: 90
+
+    - name: issue评论
+      if: github.event_name != 'pull_request' && github.ref != 'refs/heads/feature/test'
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          github.rest.issues.createComment({
+            issue_number: ${{vars.VERSION_ISSUE_NO}},
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '- 下载地址: [${{ github.workflow }}_${{ env.BRANCH }}_${{ env.DATE }}](${{ steps.upload.outputs.artifact-url }})\n'
+              + '- 分支: ${{ env.BRANCH2 }}\n'
+              + '- git hash: ${{ github.sha }} \n'
+              + '- 编译日期: ${{ env.DATE }}\n'
+              + '- 编译记录: [${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\n'
+              + '- 打包ci名: ${{ github.workflow }}\n'
+              + '- 开启特性: openssl/webrtc/datachannel\n'
+              + '- 说明: 本二进制为 linux/arm64(aarch64)，在 debian:11(arm64, glibc 2.31) 上编译，目标机需 arm64 且 glibc >= 2.31\n'
+          })

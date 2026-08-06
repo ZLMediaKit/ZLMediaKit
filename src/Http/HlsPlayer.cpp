@@ -153,6 +153,7 @@ void HlsPlayer::fetchSegment() {
             return;
         }
         if (err) {
+            strong_self->onSegmentDownloadFailed(err);
             WarnL << "Download ts segment " << url << " failed:" << err;
             if (err.getErrCode() == Err_timeout) {
                 strong_self->_timeout_multiple = MAX(strong_self->_timeout_multiple + 1, MAX_TIMEOUT_MULTIPLE);
@@ -490,6 +491,14 @@ void HlsPlayerImp::onPacket(const char *data, size_t len) {
         _decoder->input((uint8_t *) data, len);
     }
     _recvtotalbytes += HlsPlayer::getRecvTotalBytes();
+}
+
+void HlsPlayerImp::onSegmentDownloadFailed(const toolkit::SockException &ex) {
+    if (_decoder && ex) {
+        // 失败切片的输入残片不能与下一切片拼接；这里只清输入缓存，不 flush 解码帧。
+        // Input left by a failed segment must not join the next one; clear it without flushing decoded frames.
+        _decoder->clearInputCache();
+    }
 }
 
 void HlsPlayerImp::addTrackCompleted() {

@@ -146,6 +146,12 @@ ssize_t TSDecoder::input(const uint8_t *data, size_t bytes) {
     return bytes;
 }
 
+void TSDecoder::clearInputCache() {
+    // 只清理未完成的 TS 输入缓存，不重置 libmpegts 或 flush 残留帧。
+    // Clear only incomplete TS input; do not reset libmpegts or flush pending frames.
+    _ts_segment.reset();
+}
+
 #endif//defined(ENABLE_HLS)
 
 }//namespace mediakit

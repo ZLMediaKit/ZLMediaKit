@@ -90,6 +90,9 @@ protected:
      * [AUTO-TRANSLATED:159a6559]
      */
     virtual void onPacket(const char *data, size_t len) = 0;
+    // TS 切片下载失败通知；派生类可清理该切片遗留的输入状态。
+    // Notify derived classes to clear input state left by a failed TS segment.
+    virtual void onSegmentDownloadFailed(const toolkit::SockException &ex) {}
 
 private:
     bool onParsed(bool is_m3u8_inner, int64_t sequence, const map<int, ts_segment> &ts_map) override;
@@ -149,6 +152,7 @@ public:
 private:
     //// HlsPlayer override////
     void onPacket(const char *data, size_t len) override;
+    void onSegmentDownloadFailed(const toolkit::SockException &ex) override;
 
 private:
     //// PlayerBase override////
