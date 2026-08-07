@@ -30,6 +30,7 @@ using BeforeClose = void (*)(FILE *);
 
 bool writeOpenedFileAndClose(const string &path, FILE *file, const char *data, size_t len,
                              BeforeClose before_close) {
+    const bool target_opened = file != nullptr;
     bool ok = file && data && len;
     if (ok) {
         ok = fwrite(data, 1, len, file) == len;
@@ -42,7 +43,7 @@ bool writeOpenedFileAndClose(const string &path, FILE *file, const char *data, s
             ok = false;
         }
     }
-    if (!ok) {
+    if (!ok && target_opened) {
         File::delete_file(path);
     }
     return ok;
@@ -52,6 +53,7 @@ using BeforeCopyClose = void (*)(FILE *, FILE *);
 
 bool copyOpenedFilesAndClose(const string &target_path, FILE *input, FILE *output,
                              BeforeCopyClose before_close) {
+    const bool target_opened = output != nullptr;
     bool ok = input && output;
     if (ok) {
         std::array<char, 64 * 1024> buffer;
@@ -76,7 +78,7 @@ bool copyOpenedFilesAndClose(const string &target_path, FILE *input, FILE *outpu
     if (output && fclose(output) != 0) {
         ok = false;
     }
-    if (!ok) {
+    if (!ok && target_opened) {
         File::delete_file(target_path);
     }
     return ok;
@@ -94,9 +96,9 @@ void clearHls(const std::list<std::string> &files) {
 }
 
 bool copyFileChecked(const string &source_path, const string &target_path) {
-    auto input = fopen(source_path.data(), "rb");
+    std::unique_ptr<FILE, decltype(&fclose)> input(fopen(source_path.data(), "rb"), &fclose);
     auto output = input ? File::create_file(target_path.data(), "wb") : nullptr;
-    return hls_file_detail::copyOpenedFilesAndClose(target_path, input, output, nullptr);
+    return hls_file_detail::copyOpenedFilesAndClose(target_path, input.release(), output, nullptr);
 }
 
 } // namespace
