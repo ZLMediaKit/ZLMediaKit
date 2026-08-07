@@ -187,6 +187,12 @@ void HlsMakerImp::clearCache(bool immediately, bool eof) {
     if (!delay || immediately) {
         clearHls(files);
     } else {
+        // 主/延迟 playlist 使用固定路径，旧 recorder 的延迟任务可能在新 recorder 启动后删除它们。
+        // 媒体片和 init 使用 recorder 唯一文件名，不会被旧任务误删；playlist 会在下一次成功切片时重写，
+        // 若没有后续切片则保持缺失。不能简单排除 playlist，否则流真正结束后会遗留引用已删除切片的陈旧索引。
+        // Main/delay playlists use stable paths, so an old recorder's delayed task may delete them after a replacement starts.
+        // Media and init files have recorder-unique names and remain safe; playlists are rewritten by the next successful segment,
+        // or stay absent if no segment follows. Excluding playlists would leave a stale index after the stream actually ends.
         _poller->doDelayTask(uint64_t(delay) * 1000, [files]() {
             clearHls(files);
             return 0;
