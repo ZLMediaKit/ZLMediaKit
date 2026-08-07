@@ -230,7 +230,7 @@ private:
      * @param timestamp Segment start timestamp
      * @param fast_register_pending Whether the first segment may end early at the next key frame
      */
-    void openSegment(uint64_t timestamp, bool fast_register_pending);
+    bool openSegment(uint64_t timestamp, bool fast_register_pending);
 
     /**
      * 重置当前切片状态，但保留历史切片列表和文件序号
@@ -249,12 +249,6 @@ private:
      * Decide whether to open the first segment while waiting
      */
     bool shouldOpenFirstSegment(uint64_t timestamp, bool key_packet);
-
-    /**
-     * 判断当前切片是否应该轮转
-     * Decide whether the current segment should be rotated
-     */
-    bool shouldRotateSegment(uint64_t timestamp, bool key_packet) const;
 
 private:
     struct SegmentInfo {
@@ -294,9 +288,6 @@ private:
     // 当前 fMP4 track generation 对应的初始化段 URI；clear() 后仍然有效。
     // Initialization segment URI for the current fMP4 track generation; preserved by clear().
     std::string _current_init_segment;
-    // 当前已打开切片在打开时固化的初始化段 URI。
-    // Initialization segment URI captured when the current segment was opened.
-    std::string _segment_init_segment;
     uint64_t _init_segment_index = 0;
     bool _init_segment_available = false;
     bool _fatal_init_error = false;

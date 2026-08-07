@@ -55,28 +55,33 @@ HlsMaker::HlsMaker(bool is_fmp4, float seg_duration, uint32_t seg_number, bool s
 
 void HlsMaker::makeIndexFile(bool include_delay, bool eof) {
     GET_CONFIG(uint32_t, segDelay, Hls::kSegmentDelay);
-    std::deque<SegmentInfo> temp(_seg_dur_list);
     auto discontinuity_sequence = _discontinuity_sequence;
+    auto first_segment = _seg_dur_list.cbegin();
+    auto visible_size = _seg_dur_list.size();
     if (_seg_number) {
         const uint64_t view_window = uint64_t(_seg_number) + (include_delay ? uint64_t(segDelay) : 0);
-        while (temp.size() > view_window) {
+        auto trim_count = visible_size > view_window ? visible_size - view_window : 0;
+        visible_size -= trim_count;
+        while (trim_count) {
             // 普通与延迟索引的窗口不同，按各自裁掉的标签计算 discontinuity sequence。
             // Normal and delayed indexes have different windows, so count tags trimmed from each view.
-            if (temp.front().discontinuity) {
+            if (first_segment->discontinuity) {
                 ++discontinuity_sequence;
             }
-            temp.pop_front();
+            ++first_segment;
+            --trim_count;
         }
     }
     uint64_t max_segment_duration = 0;
     bool has_discontinuity = discontinuity_sequence != 0;
-    for (auto &segment : temp) {
+    for (auto it = first_segment; it != _seg_dur_list.cend(); ++it) {
+        auto &segment = *it;
         if (segment.duration_ms > max_segment_duration) {
             max_segment_duration = segment.duration_ms;
         }
         has_discontinuity = has_discontinuity || segment.discontinuity;
     }
-    const uint64_t index_seq = _seg_number && _file_index >= temp.size() ? _file_index - temp.size() : 0;
+    const uint64_t index_seq = _seg_number && _file_index >= visible_size ? _file_index - visible_size : 0;
 
     string index_str;
     index_str.reserve(2048);
@@ -94,14 +99,15 @@ void HlsMaker::makeIndexFile(bool include_delay, bool eof) {
         index_str += "#EXT-X-DISCONTINUITY-SEQUENCE:" + std::to_string(discontinuity_sequence) + "\n";
     }
     stringstream ss;
-    string last_init_segment;
-    for (auto &segment : temp) {
+    const string *last_init_segment = nullptr;
+    for (auto it = first_segment; it != _seg_dur_list.cend(); ++it) {
+        auto &segment = *it;
         if (segment.discontinuity) {
             ss << "#EXT-X-DISCONTINUITY\n";
         }
-        if (_is_fmp4 && segment.init_segment != last_init_segment) {
+        if (_is_fmp4 && (!last_init_segment || segment.init_segment != *last_init_segment)) {
             ss << "#EXT-X-MAP:URI=\"" << segment.init_segment << "\"\n";
-            last_init_segment = segment.init_segment;
+            last_init_segment = &segment.init_segment;
         }
         ss << "#EXTINF:" << std::setprecision(3) << segment.duration_ms / 1000.0 << ",\n" << segment.file_name << "\n";
     }
@@ -163,26 +169,44 @@ void HlsMaker::inputData(const char *data, size_t len, uint64_t timestamp, bool 
     }
 
     auto key_packet = is_idr_fast_packet;
-    if (segmentOpened() && timestamp < _last_timestamp) {
+    auto segment_opened = !_last_file_name.empty();
+    if (segment_opened && timestamp < _last_timestamp) {
         // 时间戳回退代表时间线发生变化，旧切片必须先结束，避免混入新时间线数据。
         // A timestamp rollback starts a new timeline, so close the old segment before writing new-timeline data.
         WarnL << "Timestamp reduce: " << _last_timestamp << " -> " << timestamp;
         flushLastSegment(false);
         _discontinuity = true;
+        segment_opened = false;
     }
-    if (!segmentOpened()) {
+    if (!segment_opened) {
         if (!shouldOpenFirstSegment(timestamp, key_packet)) {
             return;
         }
-        openSegment(timestamp, _file_index == 0 && key_packet);
-    } else if (shouldRotateSegment(timestamp, key_packet)) {
-        flushLastSegment(false);
-        openSegment(timestamp, false);
+        segment_opened = openSegment(timestamp, _file_index == 0 && key_packet);
+    } else {
+        auto rotate = false;
+        if (key_packet) {
+            if (_fast_register_pending) {
+                // 保留 fastRegister 的动态配置语义：首片仍有效时，以当前配置决定是否在下一关键帧结束。
+                // Preserve dynamic fastRegister behavior by checking the current setting at the next key frame.
+                GET_CONFIG(bool, fastRegister, Hls::kFastRegister);
+                rotate = fastRegister;
+            }
+            if (!rotate) {
+                rotate = timestamp - _segment_start_stamp >= _seg_duration_ms;
+            }
+        } else if (_seg_max_duration_ms) {
+            // 只有显式启用绝对最大时长时，才需要在非关键帧热路径计算持续时间。
+            // Only an explicit hard limit requires a duration check on the non-key-frame hot path.
+            rotate = timestamp - _segment_start_stamp >= _seg_max_duration_ms;
+        }
+        if (rotate) {
+            flushLastSegment(false);
+            segment_opened = openSegment(timestamp, false);
+        }
     }
 
-    if (segmentOpened()) {
-        // 存在切片才写入数据。
-        // Write data only when a segment is open.
+    if (segment_opened) {
         onWriteSegment(data, len);
         _last_timestamp = timestamp;
     }
@@ -218,21 +242,20 @@ void HlsMaker::delOldSegment() {
     }
 }
 
-void HlsMaker::openSegment(uint64_t stamp, bool fast_register_pending) {
+bool HlsMaker::openSegment(uint64_t stamp, bool fast_register_pending) {
     _last_file_name = onOpenSegment(_file_index);
     _pending_first_stamp = kInvalidStamp;
     if (_last_file_name.empty()) {
         _segment_start_stamp = kInvalidStamp;
         _last_timestamp = 0;
-        _segment_init_segment.clear();
         _fast_register_pending = false;
-        return;
+        return false;
     }
     ++_file_index;
     _segment_start_stamp = stamp;
     _last_timestamp = stamp;
-    _segment_init_segment = _current_init_segment;
     _fast_register_pending = fast_register_pending;
+    return true;
 }
 
 void HlsMaker::flushLastSegment(bool eof){
@@ -257,14 +280,13 @@ void HlsMaker::flushLastSegment(bool eof){
         seg_dur = 100;
     }
     auto discontinuity = _discontinuity;
-    auto init_segment = _segment_init_segment;
+    const auto &init_segment = _current_init_segment;
     _seg_dur_list.emplace_back(seg_dur, std::move(_last_file_name), init_segment, discontinuity);
     _discontinuity = false;
     _segment_start_stamp = kInvalidStamp;
     _pending_first_stamp = kInvalidStamp;
     _last_timestamp = 0;
     _last_file_name.clear();
-    _segment_init_segment.clear();
     _fast_register_pending = false;
     delOldSegment();
     // 先flush ts切片，否则可能存在ts文件未写入完毕就被访问的情况  [AUTO-TRANSLATED:f8d6dc87]
@@ -285,7 +307,6 @@ void HlsMaker::resetSegmentState() {
     _segment_start_stamp = kInvalidStamp;
     _pending_first_stamp = kInvalidStamp;
     _last_file_name.clear();
-    _segment_init_segment.clear();
     _fast_register_pending = false;
 }
 
@@ -313,25 +334,6 @@ bool HlsMaker::shouldOpenFirstSegment(uint64_t timestamp, bool key_packet) {
         return true;
     }
     return false;
-}
-
-bool HlsMaker::shouldRotateSegment(uint64_t timestamp, bool key_packet) const {
-    if (_fast_register_pending && key_packet) {
-        // 保留 fastRegister 的动态配置语义：首片仍有效时，以当前配置决定是否在下一关键帧结束。
-        // Preserve dynamic fastRegister behavior by checking the current setting at the next key frame.
-        GET_CONFIG(bool, fastRegister, Hls::kFastRegister);
-        if (fastRegister) {
-            return true;
-        }
-    }
-
-    // 达到目标时长后优先在关键帧切片；仅在启用绝对最大时长时允许从非关键帧强制切开。
-    // Prefer a key-frame boundary after the target; only an enabled hard limit permits forced non-key rotation.
-    auto duration = timestamp - _segment_start_stamp;
-    if (duration < _seg_duration_ms) {
-        return false;
-    }
-    return key_packet || (_seg_max_duration_ms && duration >= _seg_max_duration_ms);
 }
 
 bool HlsMaker::isLive() const {
