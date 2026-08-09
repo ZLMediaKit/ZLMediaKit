@@ -8,11 +8,20 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
+#include <algorithm>
 #include <array>
+#include <cerrno>
+#include <cmath>
 #include <ctime>
+#include <cstdlib>
+#include <functional>
 #include <iomanip> 
+#include <limits>
+#include <mutex>
 #include <set>
+#include <sstream>
 #include <sys/stat.h>
+#include <vector>
 #include "HlsMakerImp.h"
 #include "Util/util.h"
 #include "Util/uv_errno.h"
@@ -26,19 +35,13 @@ namespace mediakit {
 
 namespace hls_file_detail {
 
-using BeforeClose = void (*)(FILE *);
-
-bool writeOpenedFileAndClose(const string &path, FILE *file, const char *data, size_t len,
-                             BeforeClose before_close) {
+static bool writeOpenedFileAndClose(const string &path, FILE *file, const char *data, size_t len) {
     const bool target_opened = file != nullptr;
     bool ok = file && data && len;
     if (ok) {
         ok = fwrite(data, 1, len, file) == len;
     }
     if (file) {
-        if (before_close) {
-            before_close(file);
-        }
         if (fclose(file) != 0) {
             ok = false;
         }
@@ -49,10 +52,7 @@ bool writeOpenedFileAndClose(const string &path, FILE *file, const char *data, s
     return ok;
 }
 
-using BeforeCopyClose = void (*)(FILE *, FILE *);
-
-bool copyOpenedFilesAndClose(const string &target_path, FILE *input, FILE *output,
-                             BeforeCopyClose before_close) {
+static bool copyOpenedFilesAndClose(const string &target_path, FILE *input, FILE *output) {
     const bool target_opened = output != nullptr;
     bool ok = input && output;
     if (ok) {
@@ -68,9 +68,6 @@ bool copyOpenedFilesAndClose(const string &target_path, FILE *input, FILE *outpu
                 break;
             }
         }
-    }
-    if (before_close) {
-        before_close(input, output);
     }
     if (input && fclose(input) != 0) {
         ok = false;
@@ -98,7 +95,234 @@ void clearHls(const std::list<std::string> &files) {
 bool copyFileChecked(const string &source_path, const string &target_path) {
     std::unique_ptr<FILE, decltype(&fclose)> input(fopen(source_path.data(), "rb"), &fclose);
     auto output = input ? File::create_file(target_path.data(), "wb") : nullptr;
-    return hls_file_detail::copyOpenedFilesAndClose(target_path, input.release(), output, nullptr);
+    return hls_file_detail::copyOpenedFilesAndClose(target_path, input.release(), output);
+}
+
+struct VodSegmentRecord {
+    uint64_t session_id = 0;
+    uint64_t media_index = 0;
+    bool has_session_id = false;
+    bool discontinuity = false;
+    string file_name;
+    string init_segment;
+    string extinf_line;
+};
+
+bool parseUnsignedDecimal(const string &text, uint64_t &value) {
+    if (text.empty()) {
+        return false;
+    }
+    uint64_t result = 0;
+    const auto max = (numeric_limits<uint64_t>::max)();
+    for (auto ch : text) {
+        if (ch < '0' || ch > '9') {
+            return false;
+        }
+        auto digit = static_cast<uint64_t>(ch - '0');
+        if (result > (max - digit) / 10) {
+            return false;
+        }
+        result = result * 10 + digit;
+    }
+    value = result;
+    return true;
+}
+
+bool parseExtinfLine(const string &line, uint64_t &duration_ms) {
+    static const string prefix = "#EXTINF:";
+    if (line.compare(0, prefix.size(), prefix) != 0) {
+        return false;
+    }
+    errno = 0;
+    char *end = nullptr;
+    auto value = strtod(line.c_str() + prefix.size(), &end);
+    if (errno == ERANGE || end == line.c_str() + prefix.size() || !end || *end != ',' || end[1] != '\0'
+        || !std::isfinite(value) || value < 0
+        || value > static_cast<double>((numeric_limits<uint64_t>::max)()) / 1000.0) {
+        return false;
+    }
+    auto value_ms = std::ceil(value * 1000.0);
+    if (value_ms >= static_cast<double>((numeric_limits<uint64_t>::max)())) {
+        return false;
+    }
+    duration_ms = static_cast<uint64_t>(value_ms);
+    return true;
+}
+
+bool parseSessionCoordinates(const string &uri, uint64_t &session_id, uint64_t &media_index) {
+    auto file_begin = uri.find_last_of("/\\");
+    file_begin = file_begin == string::npos ? 0 : file_begin + 1;
+    auto extension = uri.find('.', file_begin);
+    if (extension == string::npos || extension == file_begin) {
+        return false;
+    }
+    auto index_separator = uri.rfind('_', extension);
+    if (index_separator == string::npos || index_separator < file_begin) {
+        return false;
+    }
+    auto session_separator = index_separator == 0 ? string::npos : uri.rfind('_', index_separator - 1);
+    if (session_separator == string::npos || session_separator < file_begin) {
+        return false;
+    }
+    return parseUnsignedDecimal(uri.substr(session_separator + 1, index_separator - session_separator - 1), session_id)
+        && parseUnsignedDecimal(uri.substr(index_separator + 1, extension - index_separator - 1), media_index);
+}
+
+bool readPlaylistLine(istringstream &input, string &line) {
+    if (!getline(input, line)) {
+        return false;
+    }
+    if (!line.empty() && line.back() == '\r') {
+        line.pop_back();
+    }
+    return true;
+}
+
+bool expectPlaylistLine(istringstream &input, const char *expected) {
+    string line;
+    return readPlaylistLine(input, line) && line == expected;
+}
+
+bool parseGeneratedVodPlaylist(const string &text, bool is_fmp4, uint64_t &target_duration,
+                               vector<VodSegmentRecord> &segments) {
+    // 这里只读取本项目生成的小时 VOD 子集；未知结构必须失败，避免合并时破坏已有归档。
+    // Parse only the hourly VOD subset emitted here; reject unknown structures instead of corrupting an archive.
+    istringstream input(text);
+    string line;
+    if (!expectPlaylistLine(input, "#EXTM3U")
+        || !expectPlaylistLine(input, is_fmp4 ? "#EXT-X-VERSION:7" : "#EXT-X-VERSION:4")
+        || !expectPlaylistLine(input, "#EXT-X-ALLOW-CACHE:YES")) {
+        return false;
+    }
+    static const string target_prefix = "#EXT-X-TARGETDURATION:";
+    if (!readPlaylistLine(input, line) || line.compare(0, target_prefix.size(), target_prefix) != 0
+        || !parseUnsignedDecimal(line.substr(target_prefix.size()), target_duration)) {
+        return false;
+    }
+    if (!expectPlaylistLine(input, "#EXT-X-MEDIA-SEQUENCE:0")) {
+        return false;
+    }
+
+    bool pending_discontinuity = false;
+    bool saw_endlist = false;
+    bool map_pending = false;
+    string current_init_segment;
+    while (readPlaylistLine(input, line)) {
+        if (line == "#EXT-X-ENDLIST") {
+            saw_endlist = true;
+            break;
+        }
+        if (line == "#EXT-X-DISCONTINUITY") {
+            if (pending_discontinuity) {
+                return false;
+            }
+            pending_discontinuity = true;
+            continue;
+        }
+        static const string map_prefix = "#EXT-X-MAP:URI=\"";
+        if (line.compare(0, map_prefix.size(), map_prefix) == 0) {
+            if (!is_fmp4 || map_pending || line.size() <= map_prefix.size() + 1 || line.back() != '\"') {
+                return false;
+            }
+            current_init_segment = line.substr(map_prefix.size(), line.size() - map_prefix.size() - 1);
+            map_pending = true;
+            continue;
+        }
+        uint64_t duration_ms = 0;
+        if (!parseExtinfLine(line, duration_ms)) {
+            return false;
+        }
+        string file_name;
+        if (!readPlaylistLine(input, file_name) || file_name.empty() || file_name[0] == '#') {
+            return false;
+        }
+        if (is_fmp4 && current_init_segment.empty()) {
+            return false;
+        }
+        auto segment_target = duration_ms / 1000 + (duration_ms % 1000 != 0);
+        if (segment_target > target_duration) {
+            return false;
+        }
+        VodSegmentRecord segment;
+        segment.discontinuity = pending_discontinuity;
+        segment.extinf_line = line;
+        segment.file_name = std::move(file_name);
+        segment.init_segment = current_init_segment;
+        segment.has_session_id = parseSessionCoordinates(segment.file_name, segment.session_id, segment.media_index);
+        segments.emplace_back(std::move(segment));
+        pending_discontinuity = false;
+        map_pending = false;
+    }
+    if (!saw_endlist || pending_discontinuity || map_pending || segments.empty()) {
+        return false;
+    }
+    while (readPlaylistLine(input, line)) {
+        if (!line.empty()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void orderVodSegments(vector<VodSegmentRecord> &segments) {
+    set<string> seen_uris;
+    segments.erase(remove_if(segments.begin(), segments.end(), [&](const VodSegmentRecord &segment) {
+        return !seen_uris.emplace(segment.file_name).second;
+    }), segments.end());
+
+    auto first_session = stable_partition(segments.begin(), segments.end(), [](const VodSegmentRecord &segment) {
+        return !segment.has_session_id;
+    });
+    // fileNameId 只提供同一进程内的 recorder 创建顺序；旧格式记录保持为不可重排的历史前缀。
+    // fileNameId orders recorder creation only within this process; legacy records remain an opaque history prefix.
+    stable_sort(first_session, segments.end(), [](const VodSegmentRecord &left, const VodSegmentRecord &right) {
+        return left.session_id < right.session_id
+            || (left.session_id == right.session_id && left.media_index < right.media_index);
+    });
+
+    for (size_t index = 1; index < segments.size(); ++index) {
+        auto &previous = segments[index - 1];
+        auto &current = segments[index];
+        if (current.has_session_id && (!previous.has_session_id || current.session_id != previous.session_id)) {
+            current.discontinuity = true;
+        }
+    }
+}
+
+string serializeVodPlaylist(bool is_fmp4, uint64_t target_duration, const vector<VodSegmentRecord> &segments) {
+    string index_str;
+    index_str.reserve(2048);
+    index_str += "#EXTM3U\n";
+    index_str += (is_fmp4 ? "#EXT-X-VERSION:7\n" : "#EXT-X-VERSION:4\n");
+    index_str += "#EXT-X-ALLOW-CACHE:YES\n";
+    index_str += "#EXT-X-TARGETDURATION:" + to_string(target_duration) + "\n";
+    index_str += "#EXT-X-MEDIA-SEQUENCE:0\n";
+
+    string last_init_segment;
+    for (auto &segment : segments) {
+        if (segment.discontinuity) {
+            index_str += "#EXT-X-DISCONTINUITY\n";
+        }
+        if (is_fmp4 && segment.init_segment != last_init_segment) {
+            index_str += "#EXT-X-MAP:URI=\"" + segment.init_segment + "\"\n";
+            last_init_segment = segment.init_segment;
+        }
+        index_str += segment.extinf_line;
+        index_str += '\n';
+        index_str += segment.file_name;
+        index_str += '\n';
+    }
+    index_str += "#EXT-X-ENDLIST\n";
+    return index_str;
+}
+
+mutex &vodPlaylistMutex(const string &path) {
+    // 仅串行化低频的小时归档 read-modify-write，不进入媒体或 live playlist 路径；固定锁池保留到进程退出，
+    // 避免晚销毁的 recorder 受静态对象析构顺序影响。
+    // Serialize only low-frequency hourly archive updates, never media/live paths; keep the fixed pool alive until exit
+    // so late recorder destruction cannot hit static teardown order.
+    static auto *locks = new array<mutex, 64>();
+    return (*locks)[hash<string>()(path) % locks->size()];
 }
 
 } // namespace
@@ -211,9 +435,14 @@ void HlsMakerImp::saveCurrentDir() {
         return;
     }
 
+    // 失败也必须结束本小时批次，避免后续目录保存时混入旧目录的相对 URI。
+    // A failed save still consumes this hourly batch so relative URIs cannot leak into the next directory.
+    deque<DirSegmentInfo> current_batch;
+    current_batch.swap(_current_dir_seg_list);
+
     if (isFmp4()) {
         set<string> init_segments;
-        for (auto &segment : _current_dir_seg_list) {
+        for (auto &segment : current_batch) {
             init_segments.emplace(segment.init_segment);
         }
         for (auto &init_segment : init_segments) {
@@ -221,46 +450,51 @@ void HlsMakerImp::saveCurrentDir() {
             auto target_path = _path_prefix + "/" + _current_dir + init_segment;
             if (!copyFileChecked(source_path, target_path)) {
                 WarnL << "Copy fMP4 init segment failed: " << source_path << " -> " << target_path;
-                _current_dir_seg_list.clear();
                 return;
             }
         }
     }
 
-    uint64_t max_segment_duration = 0;
-    for (auto &segment : _current_dir_seg_list) {
-        if (segment.duration_ms > max_segment_duration) {
-            max_segment_duration = segment.duration_ms;
+    auto vod_path = _path_prefix + "/" + _current_dir + (isFmp4() ? "vod.fmp4.m3u8" : "vod.m3u8");
+    lock_guard<mutex> lock(vodPlaylistMutex(vod_path));
+    uint64_t target_duration = 0;
+    vector<VodSegmentRecord> segments;
+    if (File::fileExist(vod_path)) {
+        auto previous = File::loadFile(vod_path);
+        if (previous.empty() || !parseGeneratedVodPlaylist(previous, isFmp4(), target_duration, segments)) {
+            WarnL << "Parse existing VOD playlist failed: " << vod_path;
+            return;
         }
     }
 
-    string index_str;
-    index_str.reserve(2048);
-    index_str += "#EXTM3U\n";
-    index_str += (isFmp4() ? "#EXT-X-VERSION:7\n" : "#EXT-X-VERSION:4\n");
-    index_str += "#EXT-X-ALLOW-CACHE:YES\n";
-    auto target_duration = max_segment_duration / 1000 + (max_segment_duration % 1000 != 0);
-    index_str += "#EXT-X-TARGETDURATION:" + std::to_string(target_duration) + "\n";
-    index_str += "#EXT-X-MEDIA-SEQUENCE:0\n";
+    stringstream extinf;
+    for (auto &segment : current_batch) {
+        VodSegmentRecord record;
+        record.discontinuity = segment.discontinuity;
+        record.file_name = std::move(segment.file_name);
+        record.init_segment = std::move(segment.init_segment);
+        extinf.str(string());
+        extinf.clear();
+        extinf << "#EXTINF:" << setprecision(3) << segment.duration_ms / 1000.0 << ',';
+        record.extinf_line = extinf.str();
+        record.has_session_id = parseSessionCoordinates(record.file_name, record.session_id, record.media_index);
+        segments.emplace_back(std::move(record));
 
-    stringstream ss;
-    string last_init_segment;
-    for (auto &segment : _current_dir_seg_list) {
-        if (segment.discontinuity) {
-            ss << "#EXT-X-DISCONTINUITY\n";
+        auto segment_target = segment.duration_ms / 1000 + (segment.duration_ms % 1000 != 0);
+        if (segment_target > target_duration) {
+            target_duration = segment_target;
         }
-        if (isFmp4() && segment.init_segment != last_init_segment) {
-            ss << "#EXT-X-MAP:URI=\"" << segment.init_segment << "\"\n";
-            last_init_segment = segment.init_segment;
-        }
-        ss << "#EXTINF:" << std::setprecision(3) << segment.duration_ms / 1000.0 << ",\n" << segment.file_name << "\n";
     }
-    _current_dir_seg_list.clear();
-    index_str += ss.str();
-    index_str += "#EXT-X-ENDLIST\n";
 
-    /** 写入该目录的m3u8文件 **/
-    File::saveFile(index_str, _path_prefix + "/" + _current_dir + (isFmp4() ? "vod.fmp4.m3u8" : "vod.m3u8"));
+    orderVodSegments(segments);
+
+    auto index_str = serializeVodPlaylist(isFmp4(), target_duration, segments);
+    // 沿用现有跨平台直接写入语义，不引入 Windows 行为不同的 rename 替换流程。
+    // Keep the existing cross-platform direct-write behavior; do not add rename-based replacement semantics.
+    auto output = File::create_file(vod_path.data(), "wb");
+    if (!hls_file_detail::writeOpenedFileAndClose(vod_path, output, index_str.data(), index_str.size())) {
+        WarnL << "Save VOD playlist failed: " << vod_path << " " << get_uv_errmsg();
+    }
 }
 
 string HlsMakerImp::onOpenSegment(uint64_t index) {
@@ -334,7 +568,7 @@ bool HlsMakerImp::onWriteInitSegment(const string &init_segment, const char *dat
 
     string init_seg_path = _path_prefix + "/" + init_segment;
     auto file = data && len ? File::create_file(init_seg_path.data(), "wb") : nullptr;
-    if (!hls_file_detail::writeOpenedFileAndClose(init_seg_path, file, data, len, nullptr)) {
+    if (!hls_file_detail::writeOpenedFileAndClose(init_seg_path, file, data, len)) {
         WarnL << "Write init segment failed," << init_seg_path << " " << get_uv_errmsg();
         return false;
     }

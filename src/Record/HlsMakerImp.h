@@ -64,8 +64,6 @@ protected:
     void onFlushLastSegment(uint64_t duration_ms, bool discontinuity, const std::string &init_segment) override;
 
 private:
-    friend class HlsMakerImpTestAccess;
-
     struct SegmentFileInfo {
         SegmentFileInfo(uint64_t logical_index, std::string path, std::string init)
             : index(logical_index), file_path(std::move(path)), init_segment(std::move(init)) {}
