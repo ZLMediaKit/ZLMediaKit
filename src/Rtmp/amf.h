@@ -88,6 +88,10 @@ public:
     template<typename TP>
     TP load();
 
+    // 剩余未解析的字节数
+    // Number of bytes not yet parsed
+    size_t remain() const;
+
 private:
     class DepthGuard {
     public:
@@ -117,6 +121,14 @@ private:
 
     static constexpr size_t kMaxDepth = 64;
 };
+
+// 加载首个字符串, 自动跳过前置的非字符串AMF值; 若不存在字符串则返回空字符串
+// 兼容某些不规范的推流器(例如宇视摄像机在@setDataFrame前插入多余的AMF number)
+// Load the first string, skipping any leading non-string AMF values;
+// returns an empty string if the stream contains none.
+// Compatible with some non-standard publishers (e.g. Uniview cameras insert
+// redundant AMF numbers before @setDataFrame)
+std::string amfLoadLeadingString(AMFDecoder &dec);
 
 class AMFEncoder {
 public:

@@ -463,6 +463,10 @@ AMFDecoder::DepthGuard::~DepthGuard() {
     --_decoder.depth;
 }
 
+size_t AMFDecoder::remain() const {
+    return pos < buf.size() ? buf.size() - pos : 0;
+}
+
 uint8_t AMFDecoder::front() {
     if (pos >= buf.size()) {
         throw std::runtime_error("Not enough data");
@@ -702,4 +706,14 @@ AMFValue AMFDecoder::load_arr() {
 
 AMFDecoder::AMFDecoder(const BufferLikeString &buf_in, size_t pos_in, int version_in) :
         buf(buf_in), pos(pos_in), version(version_in) {
+}
+
+std::string amfLoadLeadingString(AMFDecoder &dec) {
+    while (dec.remain()) {
+        auto val = dec.load<AMFValue>();
+        if (val.type() == AMF_STRING) {
+            return val.as_string();
+        }
+    }
+    return "";
 }
