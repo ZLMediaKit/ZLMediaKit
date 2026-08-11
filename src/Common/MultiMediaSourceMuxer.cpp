@@ -37,21 +37,17 @@ class FramePacedSender : public FrameWriterInterface, public std::enable_shared_
 public:
     using OnFrame = std::function<void(const Frame::Ptr &frame)>;
 
-    // Buffer depth thresholds (ms)
-    static constexpr int kLowMS    = 100;  // Below this → slow down
-    static constexpr int kTargetMS = 200;  // Upper bound of normal-speed zone
-    static constexpr int kHighMS   = 500;  // Above this → max speed + force flush
-    // Speed bounds
+    // 速度范围
     static constexpr float kMinSpeed = 0.5f;
     static constexpr float kMaxSpeed = 1.5f;
-    // Keep the cache bounded even when publisher timestamps are identical or tightly clustered.
-    static constexpr size_t kMaxCacheSize = 25 * 5;
 
-    FramePacedSender(uint32_t paced_sender_ms, OnFrame cb)
-        : _paced_sender_ms(paced_sender_ms), _cb(std::move(cb)) {}
+    FramePacedSender(uint32_t paced_sender_ms, std::string stream_id, EventPoller::Ptr poller, OnFrame cb)
+        : _paced_sender_ms(paced_sender_ms)
+        , _stream_id(std::move(stream_id))
+        , _poller(std::move(poller))
+        , _cb(std::move(cb)) { }
 
-    void resetTimer(const EventPoller::Ptr &poller) {
-        std::lock_guard<std::recursive_mutex> lck(_mtx);
+    void resetTimer() {
         std::weak_ptr<FramePacedSender> weak_self = shared_from_this();
         _timer = std::make_shared<Timer>(_paced_sender_ms / 1000.0f, [weak_self]() {
             if (auto strong_self = weak_self.lock()) {
@@ -59,107 +55,170 @@ public:
                 return true;
             }
             return false;
-        }, poller);
+        }, _poller);
     }
 
     bool inputFrame(const Frame::Ptr &frame) override {
-        std::lock_guard<std::recursive_mutex> lck(_mtx);
-        if (!_timer) {
-            setCurrentStamp(frame->dts());
-            resetTimer(EventPoller::getCurrentPoller());
+        if (!_poller->isCurrentThread()) {
+            std::weak_ptr<FramePacedSender> weak_self = shared_from_this();
+            _poller->async(
+                [weak_self, frame]() {
+                    if (auto strong_self = weak_self.lock()) {
+                        strong_self->inputFrame(frame);
+                    }
+                },
+                false);
+            return true;
         }
-        auto &last_dts = _last_dts[frame->getTrackType()];
-        if (last_dts > frame->dts()) {
-            WarnL << "Dts decrease: " << last_dts << "->" << frame->dts()
-                  << ", flush paced sender cache: " << _cache.size();
-            flushCache(frame->dts());
+        std::vector<Frame::Ptr> output;
+        auto type = frame->getTrackType();
+        if (type != TrackVideo && type != TrackAudio) {
+            output.emplace_back(frame);
+        } else {
+            int idx = type;
+            auto &st = _tracks[idx];
+
+            // 首帧初始化共享虚拟时钟（只初始化一次）
+            if (!_initialized) {
+                _virtual_pos = frame->dts();
+                _initialized = true;
+                _ticker.resetTime();
+            }
+
+            // DTS 回退检测（per-track）
+            if (st.last_dts > frame->dts()) {
+                WarnL << "Dts decrease[" << _stream_id << "][" << (type == TrackVideo ? "video" : "audio") << "]: " << st.last_dts << "->" << frame->dts()
+                      << ", flush paced sender cache: " << st.cache.size();
+                flushCache(type, output);
+            }
+
+            st.cache.emplace(frame->dts(), Frame::getCacheAbleFrame(frame));
+            st.last_dts = frame->dts();
+
+            if (st.cache.size() > st.max_cache_size) {
+                WarnL << "Force flush paced sender cache[" << _stream_id << "][" << (type == TrackVideo ? "video" : "audio") << "]: size=" << st.cache.size();
+                flushCache(type, output);
+            }
         }
-        _cache.emplace(frame->dts(), Frame::getCacheAbleFrame(frame));
-        last_dts = frame->dts();
-        if (_cache.size() > kMaxCacheSize) {
-            WarnL << "Force flush paced sender cache: size=" << _cache.size();
-            flushCache(frame->dts());
+        for (auto &f : output) {
+            _cb(f);
         }
         return true;
     }
 
+    /**
+     * 配置指定轨道的 flush 参数
+     */
+    void setTrackConfig(TrackType type, int high_ms, size_t max_cache_size) {
+        auto &st = _tracks[type];
+        st.high_ms = high_ms;
+        st.max_cache_size = max_cache_size;
+    }
+
 private:
     /**
-     * Compute playback speed multiplier from buffer depth (ms).
-     *
-     *   buf < kLowMS       → slow down  (kMinSpeed … 1.0)
-     *   kLowMS ≤ buf ≤ kTargetMS → normal     (1.0)
-     *   kTargetMS < buf ≤ kHighMS → speed up   (1.0 … kMaxSpeed)
-     *   buf > kHighMS      → max speed  (kMaxSpeed) + force flush
+     * 每条轨道独立的缓存状态（仅用于统计深度、DTS 回退、flush 判定）
+     * pacing 进度由共享的 _virtual_pos 统一控制，避免 A/V drift
+     */
+    struct TrackState {
+        std::multimap<uint64_t, Frame::Ptr> cache;
+        uint64_t last_dts = 0;
+        int high_ms = 500; // 强制刷新阈值
+        size_t max_cache_size = 150; // 最大缓存帧数
+    };
+
+    int bufDepth(int idx) const {
+        auto &st = _tracks[idx];
+        if (st.cache.size() < 2)
+            return 0;
+        return (int)(st.cache.rbegin()->first - st.cache.begin()->first);
+    }
+
+    /**
+     * 根据缓冲深度计算共享播放速度倍率
      */
     float calcSpeed(int buf_ms) const {
-        if (buf_ms < kLowMS) {
-            float t = (float)buf_ms / kLowMS;
+        if (buf_ms < _low_ms) {
+            float t = (float)buf_ms / _low_ms;
             return kMinSpeed + t * (1.0f - kMinSpeed);
         }
-        if (buf_ms <= kTargetMS) {
+        if (buf_ms <= _target_ms) {
             return 1.0f;
         }
-        if (buf_ms <= kHighMS) {
-            float t = (float)(buf_ms - kTargetMS) / (kHighMS - kTargetMS);
+        if (buf_ms <= _high_ms) {
+            float t = (float)(buf_ms - _target_ms) / (_high_ms - _target_ms);
             return 1.0f + t * (kMaxSpeed - 1.0f);
         }
         return kMaxSpeed;
     }
 
     void onTick() {
-        std::lock_guard<std::recursive_mutex> lck(_mtx);
-
+        std::vector<Frame::Ptr> output;
         uint64_t wall_ms = _ticker.elapsedTime();
         _ticker.resetTime();
 
-        // Buffer depth = newest dts − oldest dts in cache
-        int buf_ms = 0;
-        if (_cache.size() >= 2) {
-            buf_ms = (int)(_cache.rbegin()->first - _cache.begin()->first);
-        }
+        // 各轨道独立统计缓冲深度，取较深的决定共享速度
+        int video_buf = bufDepth(TrackVideo);
+        int audio_buf = bufDepth(TrackAudio);
+        int buf_ms = std::max<int>(video_buf, audio_buf);
 
         float speed = calcSpeed(buf_ms);
         _virtual_pos += (uint64_t)(wall_ms * speed);
 
-        // Consume frames whose dts ≤ virtual position
-        while (!_cache.empty()) {
-            auto front = _cache.begin();
-            if (front->first > _virtual_pos) break;
-            _cb(front->second);
-            _cache.erase(front);
+        // 两轨道共享同一 _virtual_pos 消费帧，保证 A/V 同步
+        for (int i = 0; i < 2; ++i) {
+            auto &st = _tracks[i];
+            while (!st.cache.empty()) {
+                auto front = st.cache.begin();
+                if (front->first > _virtual_pos)
+                    break;
+                output.emplace_back(std::move(front->second));
+                st.cache.erase(front);
+            }
+
+            int depth = (i == TrackVideo) ? video_buf : audio_buf;
+            if (depth > st.high_ms * 2) {
+                WarnL << "Force flush paced sender cache[" << _stream_id << "][" << (i == TrackVideo ? "video" : "audio") << "]: buf=" << depth << "ms";
+                flushCache((TrackType)i, output);
+            }
         }
 
-        // Safety flush when buffer grows too deep
-        if (buf_ms > kHighMS * 2) {
-            WarnL << "Force flush paced sender cache: buf=" << buf_ms << "ms";
-            flushCache(_cache.empty() ? _virtual_pos : _cache.rbegin()->first);
+        for (auto &f : output) {
+            _cb(f);
         }
     }
 
-    void flushCache(uint64_t dts) {
-        while (!_cache.empty()) {
-            auto front = _cache.begin();
-            _cb(front->second);
-            _cache.erase(front);
+    /**
+     * 刷新指定轨道缓存
+     */
+    void flushCache(TrackType type, std::vector<Frame::Ptr> &output) {
+        auto &st = _tracks[type];
+        uint64_t last_dts = 0;
+        while (!st.cache.empty()) {
+            auto front = st.cache.begin();
+            last_dts = front->first;
+            output.emplace_back(std::move(front->second));
+            st.cache.erase(front);
         }
-        setCurrentStamp(dts);
-    }
-
-    void setCurrentStamp(uint64_t stamp) {
-        _virtual_pos = stamp;
-        _ticker.resetTime();
+        if (last_dts > _virtual_pos) {
+            _virtual_pos = last_dts;
+        }
     }
 
 private:
     uint32_t _paced_sender_ms;
+    std::string _stream_id;
+    EventPoller::Ptr _poller;
+    TrackState _tracks[2]; // [TrackVideo=0], [TrackAudio=1]
+    // 共享 pacing 时钟：音视频统一推进，避免独立变速导致 A/V drift
     uint64_t _virtual_pos = 0;
-    uint64_t _last_dts[2] = {0, 0};
+    bool _initialized = false;
+    int _low_ms = 100;
+    int _target_ms = 200;
+    int _high_ms = 500;
     OnFrame _cb;
     Ticker _ticker;
     Timer::Ptr _timer;
-    std::recursive_mutex _mtx;
-    std::multimap<uint64_t, Frame::Ptr> _cache;
 };
 
 std::shared_ptr<MediaSinkInterface> MultiMediaSourceMuxer::makeRecorder(Recorder::type type) {
@@ -681,7 +740,7 @@ EventPoller::Ptr MultiMediaSourceMuxer::getOwnerPoller(MediaSource &sender) {
             WarnL << "OwnerPoller changed " << _poller->getThreadName() << " -> " << ret->getThreadName() << " : " << shortUrl();
             _poller = ret;
             if (_paced_sender) {
-                _paced_sender->resetTimer(_poller);
+                _paced_sender->resetTimer();
             }
         }
         return ret;
@@ -751,12 +810,30 @@ void MultiMediaSourceMuxer::onAllTrackReady() {
     CHECK(!_create_in_poller || getOwnerPoller(MediaSource::NullMediaSource())->isCurrentThread());
 
     if (_option.paced_sender_ms) {
-        std::weak_ptr<MultiMediaSourceMuxer> weak_self = shared_from_this();
-        _paced_sender = std::make_shared<FramePacedSender>(_option.paced_sender_ms, [weak_self](const Frame::Ptr &frame) {
-            if (auto strong_self = weak_self.lock()) {
-                strong_self->onTrackFrame_l(frame);
+        bool has_video = false;
+        for (auto &track : getTracks(true)) {
+            if (track && track->getTrackType() == TrackVideo) {
+                has_video = true;
+                break;
             }
-        });
+        }
+        if (has_video) {
+            std::weak_ptr<MultiMediaSourceMuxer> weak_self = shared_from_this();
+            auto paced = std::make_shared<FramePacedSender>(
+                _option.paced_sender_ms, _tuple.stream, getOwnerPoller(MediaSource::NullMediaSource()), [weak_self](const Frame::Ptr &frame) {
+                    if (auto strong_self = weak_self.lock()) {
+                        strong_self->onTrackFrame_l(frame);
+                    }
+                });
+            // 音频帧密集(20ms/帧)，使用更宽松的 flush 阈值
+            paced->setTrackConfig(TrackAudio, /*high_ms*/ 800, /*max_cache*/ 200);
+            paced->resetTimer();
+            _paced_sender = std::move(paced);
+            InfoL << "paced sender enabled, stream=" << _tuple.stream << ", interval=" << _option.paced_sender_ms << "ms";
+        } else {
+            // 检测是否有视频轨道：纯音频流（对讲）无需 pacing，避免引入不必要延迟
+            InfoL << "paced sender skipped: audio-only stream (intercom), stream=" << _tuple.stream;
+        }
     }
 
     setMediaListener(getDelegate());
