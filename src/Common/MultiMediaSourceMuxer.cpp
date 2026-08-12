@@ -62,9 +62,20 @@ public:
         if (poller == _poller) {
             return;
         }
-        _timer = nullptr;
-        _poller = poller;
-        resetTimer();
+        // 迁移动作投递到旧 poller 串行执行：旧 tick 若正在/即将执行，本任务必排在它之后，
+        // 避免跨线程直接改 _timer/_poller 与旧 tick 竞态
+        std::weak_ptr<FramePacedSender> weak_self = shared_from_this();
+        _poller->async(
+            [weak_self, poller]() {
+                auto strong_self = weak_self.lock();
+                if (!strong_self || strong_self->_poller == poller) {
+                    return;
+                }
+                strong_self->_timer = nullptr;
+                strong_self->_poller = poller;
+                strong_self->resetTimer();
+            },
+            false);
     }
 
     bool inputFrame(const Frame::Ptr &frame) override {
