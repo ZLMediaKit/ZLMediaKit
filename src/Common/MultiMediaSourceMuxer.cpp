@@ -58,6 +58,15 @@ public:
         }, _poller);
     }
 
+    void switchPoller(const EventPoller::Ptr &poller) {
+        if (poller == _poller) {
+            return;
+        }
+        _timer = nullptr;
+        _poller = poller;
+        resetTimer();
+    }
+
     bool inputFrame(const Frame::Ptr &frame) override {
         if (!_poller->isCurrentThread()) {
             std::weak_ptr<FramePacedSender> weak_self = shared_from_this();
@@ -739,8 +748,9 @@ EventPoller::Ptr MultiMediaSourceMuxer::getOwnerPoller(MediaSource &sender) {
         if (ret != _poller) {
             WarnL << "OwnerPoller changed " << _poller->getThreadName() << " -> " << ret->getThreadName() << " : " << shortUrl();
             _poller = ret;
-            if (_paced_sender) {
-                _paced_sender->resetTimer();
+            // paced sender 跟随迁移，避免定时器与帧分发滞留在旧 poller 上
+            if (auto paced = std::dynamic_pointer_cast<FramePacedSender>(_paced_sender)) {
+                paced->switchPoller(ret);
             }
         }
         return ret;
