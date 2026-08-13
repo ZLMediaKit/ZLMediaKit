@@ -8,7 +8,6 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "Network/TcpClient.h"
 #include "Common/config.h"
 #include "Common/Parser.h"
 #include "WebRtcClient.h"
@@ -152,12 +151,13 @@ void WebRtcClient::doNegotiateWhepOrWhip() {
     auto offer_sdp = _transport->createOfferSdp();
     DebugL << "send offer:\n" << offer_sdp;
 
-    _negotiate = make_shared<HttpRequester>();
-    _negotiate->setMethod("POST");
-    _negotiate->addHeader("Content-Type", "application/sdp");
-    _negotiate->setRequestKeepAlive(false);
-    _negotiate->setBody(std::move(offer_sdp));
-    _negotiate->startRequester(_url._negotiate_url, [weak_self](const toolkit::SockException &ex, const Parser &response) {
+    auto requester = make_shared<HttpRequester>();
+    requester->setMethod("POST");
+    requester->addHeader("Content-Type", "application/sdp");
+    requester->setRequestKeepAlive(false);
+    requester->setBody(std::move(offer_sdp));
+    requester->startRequester(_url._negotiate_url, [weak_self, requester](const toolkit::SockException &ex, const Parser &response) {
+        (void)requester;
         auto strong_self = weak_self.lock();
         if (!strong_self) {
             return;
@@ -283,6 +283,7 @@ void WebRtcClient::doByeWhepOrWhip() {
     requester->setMethod("DELETE");
     requester->setRequestKeepAlive(false);
     requester->startRequester(_url._delete_url, [requester](const toolkit::SockException &ex, const Parser &response) {
+        (void)requester;
         if (ex) {
             WarnL << "network err:" << ex;
             return;
