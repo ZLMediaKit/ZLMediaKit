@@ -155,6 +155,7 @@ void WebRtcClient::doNegotiateWhepOrWhip() {
     _negotiate = make_shared<HttpRequester>();
     _negotiate->setMethod("POST");
     _negotiate->addHeader("Content-Type", "application/sdp");
+    _negotiate->setRequestKeepAlive(false);
     _negotiate->setBody(std::move(offer_sdp));
     _negotiate->startRequester(_url._negotiate_url, [weak_self](const toolkit::SockException &ex, const Parser &response) {
         auto strong_self = weak_self.lock();
@@ -267,23 +268,21 @@ void WebRtcClient::doBye() {
     if (!_is_negotiate_finished) {
         return;
     }
+    _is_negotiate_finished = false;
 
     switch (_url._signaling_protocols) {
         case WebRtcTransport::SignalingProtocols::WHEP_WHIP: return doByeWhepOrWhip();
         case WebRtcTransport::SignalingProtocols::WEBSOCKET: return checkOut();
         default: throw std::invalid_argument(StrPrinter << "not support signaling_protocols: " << (int)_url._signaling_protocols);
     }
-    _is_negotiate_finished = false;
 }
 
 void WebRtcClient::doByeWhepOrWhip() {
     DebugL;
-    if (!_negotiate) {
-        return;
-    }
-    _negotiate->setMethod("DELETE");
-    _negotiate->setBody("");
-    _negotiate->startRequester(_url._delete_url, [](const toolkit::SockException &ex, const Parser &response) {
+    auto requester = make_shared<HttpRequester>();
+    requester->setMethod("DELETE");
+    requester->setRequestKeepAlive(false);
+    requester->startRequester(_url._delete_url, [requester](const toolkit::SockException &ex, const Parser &response) {
         if (ex) {
             WarnL << "network err:" << ex;
             return;
