@@ -11,6 +11,7 @@
 #include <utility>
 #include <random>
 #include <algorithm>
+#include <mutex>
 #include "json/json.h"
 #include "Util/onceToken.h"
 #include "Network/UdpClient.h"
@@ -28,6 +29,9 @@ namespace RTC {
 #define RTC_FIELD "rtc."
 const string kPortRange = RTC_FIELD "port_range";
 const string kMaxStunRetry = RTC_FIELD "max_stun_retry";
+static constexpr uint32_t kTurnAllocationLifetimeSec = 600;
+static constexpr uint64_t kTurnAllocationLifetimeMs = kTurnAllocationLifetimeSec * 1000ULL;
+static constexpr float kTurnAllocationCheckIntervalSec = 10.0f;
 static onceToken token([]() {
     mINI::Instance()[kPortRange] = "49152-65535";
     mINI::Instance()[kMaxStunRetry] = 7;
@@ -664,6 +668,7 @@ onceToken PortManager_token([](){
     PortManager<1>::Instance().addListenConfigReload();
 });
 
+static std::mutex s_relayed_session_mutex;
 std::unordered_map<sockaddr_storage /*peer ip:port*/, IceServer::WeakPtr, toolkit::SockUtil::SockAddrHash, toolkit::SockUtil::SockAddrEqual> _relayed_session;
 
 IceServer::IceServer(Listener* listener, std::string ufrag, std::string password, toolkit::EventPoller::Ptr poller)
@@ -686,11 +691,82 @@ IceServer::IceServer(Listener* listener, std::string ufrag, std::string password
 
 }
 
+void IceServer::initialize() {
+    IceTransport::initialize();
+
+    GET_CONFIG(bool, enable_turn, Rtc::kEnableTurn);
+    if (!enable_turn) {
+        return;
+    }
+
+    weak_ptr<IceServer> weak_self = static_pointer_cast<IceServer>(shared_from_this());
+    _allocation_timer = std::make_shared<Timer>(kTurnAllocationCheckIntervalSec, [weak_self]() {
+        auto strong_self = weak_self.lock();
+        if (!strong_self) {
+            return false;
+        }
+        strong_self->checkAllocationTimeout();
+        return true;
+    }, getPoller());
+}
+
 bool IceServer::processSocketData(const uint8_t* data, size_t len, const Pair::Ptr& pair) {
-    if (!_session_pair) {
+    if (_session_pair.expired()) {
         _session_pair = pair;
     }
     return IceTransport::processSocketData(data, len, pair);
+}
+
+void IceServer::releaseSessionResources() {
+    _session_pair.reset();
+    releaseAllocation();
+}
+
+bool IceServer::hasAllocation() const {
+    return !_relayed_pairs.empty();
+}
+
+void IceServer::removeRelayedSessions() {
+    for (const auto& relayed_pair : _relayed_pairs) {
+        IceServer::Ptr strong_session;
+        {
+            std::lock_guard<std::mutex> lck(s_relayed_session_mutex);
+            auto it = _relayed_session.find(relayed_pair.first);
+            if (it == _relayed_session.end()) {
+                continue;
+            }
+
+            strong_session = it->second.lock();
+            if (!strong_session || strong_session.get() == this) {
+                _relayed_session.erase(it);
+            }
+        }
+    }
+}
+
+void IceServer::releaseAllocation() {
+    removeRelayedSessions();
+    _relayed_pairs.clear();
+    _permissions.clear();
+    _channel_bindings.clear();
+    _channel_binding_times.clear();
+    _allocation_update_time = 0;
+    _allocation_transaction_id.clear();
+}
+
+void IceServer::checkAllocationTimeout() {
+    if (_relayed_pairs.empty() || !_allocation_update_time) {
+        return;
+    }
+
+    uint64_t now = toolkit::getCurrentMillisecond();
+    if (now - _allocation_update_time <= kTurnAllocationLifetimeMs) {
+        return;
+    }
+
+    InfoL << "TURN allocation timeout: " << getIdentifier();
+    // Only relay resources are released here. The idle ICE session fd is closed by IceSession::onManager().
+    releaseAllocation();
 }
 
 void IceServer::processRelayPacket(const Buffer::Ptr &buffer, const Pair::Ptr& pair) {
@@ -704,7 +780,13 @@ void IceServer::processRelayPacket(const Buffer::Ptr &buffer, const Pair::Ptr& p
         return;
     }
 
-    auto forward_pair = std::make_shared<Pair>(_session_pair->_socket, pair->_socket->get_peer_ip(), pair->_socket->get_peer_port());
+    auto session_pair = _session_pair.lock();
+    if (!session_pair || !session_pair->_socket) {
+        WarnL << "No active ICE session pair for relayed packet";
+        return;
+    }
+
+    auto forward_pair = std::make_shared<Pair>(session_pair->_socket, pair->_socket->get_peer_ip(), pair->_socket->get_peer_port());
     uint16_t channel_number;
     if (hasChannelBind(peer_addr, channel_number)) {
         sendChannelData(channel_number, buffer, forward_pair);
@@ -713,8 +795,29 @@ void IceServer::processRelayPacket(const Buffer::Ptr &buffer, const Pair::Ptr& p
     }
 }
 
+bool IceServer::hasRelayedAllocation(const Pair::Ptr &pair) const {
+    auto peer_addr = SockUtil::make_sockaddr(pair->get_peer_ip().data(), pair->get_peer_port());
+    return _relayed_pairs.find(peer_addr) != _relayed_pairs.end();
+}
+
+IceServer::AllocateRequestState IceServer::classifyAllocateRequest(const StunPacket::Ptr &packet,
+                                                                   const Pair::Ptr &pair) const {
+    if (!hasRelayedAllocation(pair)) {
+        return AllocateRequestState::NewAllocation;
+    }
+    return packet->getTransactionId() == _allocation_transaction_id
+               ? AllocateRequestState::Retransmission
+               : AllocateRequestState::AllocationMismatch;
+}
+
 void IceServer::handleAllocateRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair) {
     // TraceL;
+    auto request_state = classifyAllocateRequest(packet, pair);
+    if (request_state == AllocateRequestState::AllocationMismatch) {
+        sendErrorResponse(packet, pair, StunAttrErrorCode::Code::AllocationMismatch);
+        return;
+    }
+
     auto response = packet->createSuccessResponse();
     response->setUfrag(_ufrag);
     response->setPassword(_password);
@@ -729,20 +832,51 @@ void IceServer::handleAllocateRequest(const StunPacket::Ptr& packet, const Pair:
 
     // Add XOR-RELAYED-ADDRESS.
     auto socket = allocateRelayed(pair);
+    if (!socket) {
+        sendErrorResponse(packet, pair, StunAttrErrorCode::Code::InsuficientCapacity);
+        return;
+    }
+    if (request_state == AllocateRequestState::NewAllocation) {
+        _allocation_transaction_id = packet->getTransactionId();
+    }
+
     sockaddr_storage relayed_addr = SockUtil::make_sockaddr(socket->get_local_ip().data(), socket->get_local_port());
     auto attr_xor_relayed_address = std::make_shared<StunAttrXorRelayedAddress>(response->getTransactionId());
     attr_xor_relayed_address->setAddr(relayed_addr);
     response->addAttribute(std::move(attr_xor_relayed_address));
 
     auto attr_lifetime = std::make_shared<StunAttrLifeTime>();
-    attr_lifetime->setLifetime(600);
+    attr_lifetime->setLifetime(kTurnAllocationLifetimeSec);
     response->addAttribute(std::move(attr_lifetime));
  
     sendPacket(response, pair);
 }
 
 void IceServer::handleRefreshRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair) {
-    // TraceL
+    // TraceL;
+    auto attr_lifetime_request = packet->getAttribute<StunAttrLifeTime>();
+    if (!hasRelayedAllocation(pair)) {
+        sendErrorResponse(packet, pair, StunAttrErrorCode::Code::AllocationMismatch);
+        return;
+    }
+
+    uint32_t lifetime = kTurnAllocationLifetimeSec;
+    if (attr_lifetime_request && attr_lifetime_request->getLifetime() == 0) {
+        lifetime = 0;
+        releaseAllocation();
+    } else {
+        _allocation_update_time = toolkit::getCurrentMillisecond();
+    }
+
+    auto response = packet->createSuccessResponse();
+    response->setUfrag(_ufrag);
+    response->setPassword(_password);
+
+    auto attr_lifetime_response = std::make_shared<StunAttrLifeTime>();
+    attr_lifetime_response->setLifetime(lifetime);
+    response->addAttribute(std::move(attr_lifetime_response));
+
+    sendPacket(response, pair);
 }
 
 void IceServer::handleCreatePermissionRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair) {
@@ -902,7 +1036,18 @@ SocketHelper::Ptr IceServer::allocateRelayed(const Pair::Ptr& pair) {
     // DebugL;
 
     // only support udp
+    auto peer_addr = SockUtil::make_sockaddr(pair->get_peer_ip().data(), pair->get_peer_port());
+    auto relayed_it = _relayed_pairs.find(peer_addr);
+    if (relayed_it != _relayed_pairs.end()) {
+        return relayed_it->second.second->_socket;
+    }
+
     auto port = PortManager<0>::Instance().getSinglePort();
+    if (!port) {
+        WarnL << "No available TURN relay port";
+        return nullptr;
+    }
+
     std::string local_ip;
 
     GET_CONFIG_FUNC(std::vector<std::string>, interfaces, Rtc::kInterfaces, [](string str) {
@@ -950,10 +1095,14 @@ SocketHelper::Ptr IceServer::allocateRelayed(const Pair::Ptr& pair) {
 
     auto socket = createRelayedUdpSocket(pair->get_peer_ip(), pair->get_peer_port(), local_ip, *port);
     auto relayed_pair = std::make_shared<Pair>(socket);
-    auto peer_addr = SockUtil::make_sockaddr(pair->get_peer_ip().data(), pair->get_peer_port());
     weak_ptr<IceServer> weak_self = static_pointer_cast<IceServer>(shared_from_this());
-    _relayed_pairs.emplace(peer_addr, std::make_pair(port, relayed_pair));
-    _relayed_session.emplace(peer_addr, weak_self);
+    _relayed_pairs.emplace(peer_addr, std::make_pair(std::move(port), relayed_pair));
+    {
+        std::lock_guard<std::mutex> lck(s_relayed_session_mutex);
+        _relayed_session.erase(peer_addr);
+        _relayed_session.emplace(peer_addr, weak_self);
+    }
+    _allocation_update_time = toolkit::getCurrentMillisecond();
 
     InfoL << "Alloc relayed pair: " << relayed_pair->get_local_ip() << ":" <<  relayed_pair->get_local_port()
           << " for peer pair: " << pair->get_peer_ip() << ":" << pair->get_peer_port();
@@ -962,9 +1111,15 @@ SocketHelper::Ptr IceServer::allocateRelayed(const Pair::Ptr& pair) {
 
 void IceServer::relayForwordingData(const toolkit::Buffer::Ptr& buffer, const sockaddr_storage& peer_addr) {
     TraceL;
-    getPoller()->async([=]() {
-        auto it = _relayed_pairs.find(peer_addr);
-        if (it == _relayed_pairs.end()) {
+    weak_ptr<IceServer> weak_self = static_pointer_cast<IceServer>(shared_from_this());
+    getPoller()->async([weak_self, buffer, peer_addr]() {
+        auto strong_self = weak_self.lock();
+        if (!strong_self) {
+            return;
+        }
+
+        auto it = strong_self->_relayed_pairs.find(peer_addr);
+        if (it == strong_self->_relayed_pairs.end()) {
 #if 0
             //不是当前对象的转发,交给其他对象转发
             auto forword_it = _relayed_session.find(peer_addr);
@@ -986,10 +1141,11 @@ void IceServer::relayForwordingData(const toolkit::Buffer::Ptr& buffer, const so
             return;
 #else 
             WarnL << "not relayed addr for peer addr: " << addrToStr(peer_addr);
+            return;
 #endif
         }
 
-        sendSocketData(buffer, it->second.second);
+        strong_self->sendSocketData(buffer, it->second.second);
 #if 0
         TraceL << "Forwarded ChannelData to peer: " << addrToStr(peer_addr);
 #endif

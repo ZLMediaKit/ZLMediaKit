@@ -413,14 +413,25 @@ public:
     using Ptr = std::shared_ptr<IceServer>;
     using WeakPtr = std::weak_ptr<IceServer>;
     IceServer(Listener* listener, std::string ufrag, std::string password, toolkit::EventPoller::Ptr poller);
-    virtual ~IceServer() {}
-    
+    ~IceServer() override { releaseSessionResources(); }
+
+    void initialize() override;
     bool processSocketData(const uint8_t* data, size_t len, const Pair::Ptr& pair) override;
+    void releaseSessionResources();
+    bool hasAllocation() const;
     void relayForwordingData(const toolkit::Buffer::Ptr& buffer, const sockaddr_storage& peer_addr);
     void relayBackingData(const toolkit::Buffer::Ptr& buffer, const Pair::Ptr& pair, const sockaddr_storage& peer_addr);
 
 protected:
+    enum class AllocateRequestState {
+        NewAllocation,
+        Retransmission,
+        AllocationMismatch,
+    };
+
     void processRelayPacket(const toolkit::Buffer::Ptr &buffer, const Pair::Ptr& pair);
+    bool hasRelayedAllocation(const Pair::Ptr &pair) const;
+    AllocateRequestState classifyAllocateRequest(const StunPacket::Ptr &packet, const Pair::Ptr &pair) const;
     void handleAllocateRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair);
     void handleRefreshRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair);
     void handleCreatePermissionRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair);
@@ -435,13 +446,19 @@ protected:
 
     toolkit::SocketHelper::Ptr allocateRelayed(const Pair::Ptr& pair);
     toolkit::SocketHelper::Ptr createRelayedUdpSocket(const std::string &peer_host, uint16_t peer_port, const std::string &local_ip, uint16_t local_port);
+    void releaseAllocation();
+    void removeRelayedSessions();
+    void checkAllocationTimeout();
 
 protected:
     std::vector<toolkit::BufferLikeString> _nonce_list;
 
     std::unordered_map<sockaddr_storage /*peer ip:port*/, std::pair<std::shared_ptr<uint16_t> /* port */, Pair::Ptr /*relayed_pairs*/>,
         toolkit::SockUtil::SockAddrHash, toolkit::SockUtil::SockAddrEqual> _relayed_pairs;
-    Pair::Ptr _session_pair;
+    std::weak_ptr<Pair> _session_pair;
+    uint64_t _allocation_update_time = 0;
+    std::string _allocation_transaction_id;
+    std::shared_ptr<toolkit::Timer> _allocation_timer;
 };
 
 class IceAgent : public IceTransport {
