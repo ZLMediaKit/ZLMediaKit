@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
@@ -8,17 +8,16 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "MP2V.h"
+#include "MP1V.h"
 #include "MP2VRtp.h"
 #include "Extension/Factory.h"
-#include "Rtsp/Rtsp.h"
 
 using namespace std;
 using namespace toolkit;
 
 namespace mediakit {
 
-bool MP2VTrack::inputFrame(const Frame::Ptr &frame) {
+bool MP1VTrack::inputFrame(const Frame::Ptr &frame) {
     if (!frame) {
         return false;
     }
@@ -37,49 +36,55 @@ bool MP2VTrack::inputFrame(const Frame::Ptr &frame) {
     return VideoTrackImp::inputFrame(frame);
 }
 
-Sdp::Ptr MP2VTrack::getSdp(uint8_t pt) const {
-    return std::make_shared<DefaultSdp>(pt, *this);
+Sdp::Ptr MP1VTrack::getSdp(uint8_t pt) const {
+    // 当前只接通 TS/PS；静态 RTP PT 32 仍由 CodecMP2V 表示，不能在此伪装成完整 RTSP 支持。
+    // Only TS/PS is wired for now; static RTP PT 32 still maps to CodecMP2V.
+    return nullptr;
 }
 
 namespace {
 
 CodecId getCodec() {
-    return CodecMP2V;
+    return CodecMP1V;
 }
 
 Track::Ptr getTrackByCodecId(int sample_rate, int channels, int sample_bit) {
-    return std::make_shared<MP2VTrack>();
+    return std::make_shared<MP1VTrack>();
 }
 
 Track::Ptr getTrackBySdp(const SdpTrack::Ptr &track) {
-    return std::make_shared<MP2VTrack>();
+    WarnL << "Unsupported MP1V sdp track";
+    return nullptr;
 }
 
 RtpCodec::Ptr getRtpEncoderByCodecId(uint8_t pt) {
+    // RFC 2250 的 MPEG Video packetizer 同时适用于 MPEG-1/2。
+    // The RFC 2250 MPEG Video packetizer is shared by MPEG-1 and MPEG-2.
     return std::make_shared<MP2VRtpEncoder>();
 }
 
 RtpCodec::Ptr getRtpDecoderByCodecId() {
-    return std::make_shared<MP2VRtpDecoder>();
+    WarnL << "Unsupported MP1V rtp decoder";
+    return nullptr;
 }
 
 RtmpCodec::Ptr getRtmpEncoderByTrack(const Track::Ptr &track) {
-    WarnL << "Unsupported MP2V rtmp encoder";
+    WarnL << "Unsupported MP1V rtmp encoder";
     return nullptr;
 }
 
 RtmpCodec::Ptr getRtmpDecoderByTrack(const Track::Ptr &track) {
-    WarnL << "Unsupported MP2V rtmp decoder";
+    WarnL << "Unsupported MP1V rtmp decoder";
     return nullptr;
 }
 
 Frame::Ptr getFrameFromPtr(const char *data, size_t bytes, uint64_t dts, uint64_t pts) {
-    return std::make_shared<MP2VFrameNoCacheAble>((char *)data, bytes, dts, pts, 0);
+    return std::make_shared<MP1VFrameNoCacheAble>((char *)data, bytes, dts, pts, 0);
 }
 
 } // namespace
 
-CodecPlugin mp2v_plugin = { getCodec,
+CodecPlugin mp1v_plugin = { getCodec,
                              getTrackByCodecId,
                              getTrackBySdp,
                              getRtpEncoderByCodecId,
