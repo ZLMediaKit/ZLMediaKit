@@ -312,6 +312,7 @@ public:
         virtual void onIceTransportGatheringCandidate(const Pair::Ptr&, const CandidateInfo&) = 0;
         virtual void onIceTransportDisconnected() = 0;
         virtual void onIceTransportCompleted() = 0;
+        virtual void onIceTransportSelectedTuple(const Pair::Ptr&) {}
     };
 
 public:

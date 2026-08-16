@@ -1853,6 +1853,7 @@ bool IceAgent::setSelectedPair(const Pair::Ptr &pair) {
         InfoL << "Initial selected_pair: " << pair->dumpString(2);
     }
     _selected_pair = pair;
+    _listener->onIceTransportSelectedTuple(_selected_pair);
     return true;
 }
 
@@ -1863,6 +1864,7 @@ void IceAgent::removePair(const toolkit::SocketHelper *socket) {
         if (_selected_pair) {
             // 从旧pair列表中读取最新的pair的作为selected_pair，同时从旧pair列表中删除它
             _old_pairs.pop_front();
+            _listener->onIceTransportSelectedTuple(_selected_pair);
         }
     } else {
         for (auto it = _old_pairs.begin(); it != _old_pairs.end();) {
