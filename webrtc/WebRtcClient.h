@@ -81,6 +81,7 @@ protected:
 
     // for _negotiate_sdp
     WebRTCUrl _url;
+    HttpRequester::Ptr _negotiate = nullptr;
     WebRtcSignalingPeer::Ptr _peer = nullptr;
     WebRtcTransport::Ptr _transport = nullptr;
     bool _is_negotiate_finished = false;
