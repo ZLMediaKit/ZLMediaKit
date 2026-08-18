@@ -110,6 +110,15 @@ public:
                 WarnL << "Dts decrease[" << _stream_id << "][" << (type == TrackVideo ? "video" : "audio") << "]: " << st.last_dts << "->" << frame->dts()
                       << ", flush paced sender cache: " << st.cache.size();
                 flushCache(type, output);
+            } else if (st.last_dts && frame->dts() - st.last_dts > 5000) {
+                // 前向跳变，旧帧已过时直接倒出，
+                WarnL << "Dts forward jump[" << _stream_id << "][" << (type == TrackVideo ? "video" : "audio") << "]: " << st.last_dts << "->" << frame->dts()
+                      << ", rebase pacing clock";
+                flushCache(type, output);
+                if (frame->dts() > _virtual_pos) {
+                    _virtual_pos = frame->dts();
+                }
+                _ticker.resetTime();
             }
 
             st.cache.emplace(frame->dts(), Frame::getCacheAbleFrame(frame));
