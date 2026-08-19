@@ -230,6 +230,10 @@ void H264RtpEncoder::insertConfigFrame(uint64_t pts){
     // The gop cache starts from sps, sps, pps and then there are key frames with the same timestamp, so the mark bit is false
     packRtp(_sps->data() + _sps->prefixSize(), _sps->size() - _sps->prefixSize(), pts, false, true);
     packRtp(_pps->data() + _pps->prefixSize(), _pps->size() - _pps->prefixSize(), pts, false, false);
+    if (_sei) {
+        packRtp(_sei->data() + _sei->prefixSize(), _sei->size() - _sei->prefixSize(), pts, false, false);
+        _sei = nullptr;
+    }
 }
 
 void H264RtpEncoder::packRtp(const char *ptr, size_t len, uint64_t pts, bool is_mark, bool gop_pos){
@@ -332,6 +336,11 @@ bool H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
             _pps = Frame::getCacheAbleFrame(frame);
             return true;
         }
+        case H264Frame::NAL_SEI: {
+            _sei = Frame::getCacheAbleFrame(frame);
+            return true;
+        }
+        case H264Frame::NAL_AUD: return false;
         default: break;
     }
 
