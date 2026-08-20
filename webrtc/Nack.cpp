@@ -9,6 +9,7 @@
  */
 
 #include "Nack.h"
+#include <algorithm>
 #include "Common/config.h"
 
 using namespace std;

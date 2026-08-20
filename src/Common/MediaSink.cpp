@@ -279,9 +279,59 @@ static uint8_t s_mute_adts[] = {0xff, 0xf1, 0x6c, 0x40, 0x2d, 0x3f, 0xfc, 0x00, 
                                 0x39, 0x1a, 0x77, 0x92, 0x9b, 0xff, 0xc6, 0xae, 0xf8, 0x36, 0xba, 0xa8, 0xaa, 0x6b, 0x1e, 0x8c,
                                 0xc5, 0x97, 0x39, 0x6a, 0xb8, 0xa2, 0x55, 0xa8, 0xf8};
 
-#define MUTE_ADTS_DATA s_mute_adts
-#define MUTE_ADTS_DATA_MS 128
+static uint8_t opus_silence[] = {
+  0xf8, 0xff, 0xfe, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
+static uint8_t g711_silence[160] = { 0 };
 static uint8_t ADTS_CONFIG[2] = { 0x15, 0x88 };
+
+MuteAudioMaker::MuteAudioMaker(CodecId codec /*= CodecAAC*/) : _codec(codec)
+{
+    switch (codec)
+    {
+    case CodecAAC:
+        _frame_ms = 128;
+        break;
+    case CodecOpus:
+        _frame_ms = 20;
+        break;
+    case CodecG711A:
+    case CodecG711U:
+        _frame_ms = 20;
+        break;
+    default:
+        _frame_ms = 0;
+        break;
+    }
+}
+
+Frame::Ptr MuteAudioMaker::makeSlienceFrame(int64_t dts) {
+    switch (_codec)
+    {
+    case CodecAAC:
+        return std::make_shared<FrameToCache<FrameFromPtr>>(_codec, (char*)s_mute_adts, sizeof(s_mute_adts),
+            dts, 0, 7);
+        break;
+    case CodecOpus:
+        return std::make_shared<FrameToCache<FrameFromPtr>>(_codec, (char*)opus_silence, sizeof(opus_silence),
+            dts, 0, 0);
+    case CodecG711A:
+    case CodecG711U:
+        return std::make_shared<FrameToCache<FrameFromPtr>>(_codec, (char*)g711_silence, sizeof(g711_silence),
+            dts, 0, 0);
+    default:
+        return nullptr;
+    }
+}
 
 bool MuteAudioMaker::inputFrame(const Frame::Ptr &frame) {
     if (_track_index == -1) {
@@ -294,12 +344,14 @@ bool MuteAudioMaker::inputFrame(const Frame::Ptr &frame) {
         // Not a locked track
         return false;
     }
-    auto audio_idx = frame->dts() / MUTE_ADTS_DATA_MS;
-    if (_audio_idx != audio_idx) {
-        _audio_idx = audio_idx;
-        auto aacFrame = std::make_shared<FrameToCache<FrameFromPtr>>(CodecAAC, (char *)MUTE_ADTS_DATA, sizeof(s_mute_adts), _audio_idx * MUTE_ADTS_DATA_MS, 0, 7);
-        aacFrame->setIndex(MUTE_AUDIO_INDEX);
-        return FrameDispatcher::inputFrame(aacFrame);
+    if (frame->getTrackType() == TrackVideo && _frame_ms > 0) {
+        auto audio_idx = frame->dts() / _frame_ms;
+        if (_audio_idx != audio_idx) {
+            _audio_idx = audio_idx;
+            auto frame = makeSlienceFrame(_audio_idx * _frame_ms);
+			frame->setIndex(MUTE_AUDIO_INDEX);
+            return FrameDispatcher::inputFrame(frame);
+        }
     }
     return false;
 }

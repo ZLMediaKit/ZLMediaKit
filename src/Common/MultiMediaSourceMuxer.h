@@ -15,6 +15,7 @@
 #include "Common/MediaSource.h"
 #include "Common/MediaSink.h"
 #include "Record/Recorder.h"
+#include "Util/RingBuffer.h"
 #include "Rtp/RtpSender.h"
 #include "Record/HlsRecorder.h"
 #include "Record/HlsMediaSource.h"
@@ -263,6 +264,7 @@ private:
     RtmpMediaSourceMuxer::Ptr _rtmp;
     RtspMediaSourceMuxer::Ptr _rtsp;
     TSMediaSourceMuxer::Ptr _ts;
+    RtspMediaSourceMuxer::Ptr _rtc;
     MediaSinkInterface::Ptr _mp4;
     HlsRecorder::Ptr _hls;
     HlsFMP4Recorder::Ptr _hls_fmp4;

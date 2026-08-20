@@ -11,21 +11,23 @@
 #ifndef ZLMEDIAKIT_RTSPMEDIASOURCEMUXER_H
 #define ZLMEDIAKIT_RTSPMEDIASOURCEMUXER_H
 
-#include "RtspMuxer.h"
 #include "Rtsp/RtspMediaSource.h"
+#include "RtspMuxer.h"
 
 namespace mediakit {
 
-class RtspMediaSourceMuxer final : public RtspMuxer, public MediaSourceEventInterceptor,
-                                   public std::enable_shared_from_this<RtspMediaSourceMuxer> {
+class RtspMediaSourceMuxer
+    : public RtspMuxer
+    , public MediaSourceEventInterceptor
+    , public std::enable_shared_from_this<RtspMediaSourceMuxer> {
 public:
     using Ptr = std::shared_ptr<RtspMediaSourceMuxer>;
 
-    RtspMediaSourceMuxer(const MediaTuple& tuple,
-                         const ProtocolOption &option,
-                         const TitleSdp::Ptr &title = nullptr) : RtspMuxer(title) {
+    RtspMediaSourceMuxer(const MediaTuple &tuple, const ProtocolOption &option, const TitleSdp::Ptr &title = nullptr, const std::string &schema = RTSP_SCHEMA)
+        : RtspMuxer(title) {
         _option = option;
-        _media_src = std::make_shared<RtspMediaSource>(tuple);
+        _on_demand = schema == RTSP_SCHEMA ? option.rtsp_demand : option.rtc_demand;
+        _media_src = std::make_shared<RtspMediaSource>(tuple, schema);
         getRtpRing()->setDelegate(_media_src);
     }
 
@@ -37,18 +39,14 @@ public:
         }
     }
 
-    void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
+    void setListener(const std::weak_ptr<MediaSourceEvent> &listener) {
         setDelegate(listener);
         _media_src->setListener(shared_from_this());
     }
 
-    int readerCount() const{
-        return _media_src->readerCount();
-    }
+    int readerCount() const { return _media_src->readerCount(); }
 
-    void setTimeStamp(uint32_t stamp){
-        _media_src->setTimeStamp(stamp);
-    }
+    void setTimeStamp(uint32_t stamp) { _media_src->setTimeStamp(stamp); }
 
     void addTrackCompleted() override {
         RtspMuxer::addTrackCompleted();
@@ -56,19 +54,19 @@ public:
     }
 
     void onReaderChanged(MediaSource &sender, int size) override {
-        _enabled = _option.rtsp_demand ? size : true;
-        if (!size && _option.rtsp_demand) {
+        _enabled = _on_demand ? size : true;
+        if (!size && _on_demand) {
             _clear_cache = true;
         }
         MediaSourceEventInterceptor::onReaderChanged(sender, size);
     }
 
     bool inputFrame(const Frame::Ptr &frame) override {
-        if (_clear_cache && _option.rtsp_demand) {
+        if (_clear_cache && _on_demand) {
             _clear_cache = false;
             _media_src->clearCache();
         }
-        if (_enabled || !_option.rtsp_demand) {
+        if (_enabled || !_on_demand) {
             return RtspMuxer::inputFrame(frame);
         }
         return false;
@@ -77,20 +75,16 @@ public:
     bool isEnabled() {
         // 缓存尚未清空时，还允许触发inputFrame函数，以便及时清空缓存  [AUTO-TRANSLATED:7cfd4d49]
         // The inputFrame function is still allowed to be triggered when the cache has not been cleared, so that the cache can be cleared in time.
-        return _option.rtsp_demand ? (_clear_cache ? true : _enabled) : true;
+        return _on_demand ? (_clear_cache ? true : _enabled) : true;
     }
 
-    MediaSource::Ptr getMediaSource() const {
-        return _media_src;
-    }
-
-private:
+protected:
     bool _enabled = true;
     bool _clear_cache = false;
+    bool _on_demand = false;
     ProtocolOption _option;
     RtspMediaSource::Ptr _media_src;
 };
 
-
-}//namespace mediakit
-#endif //ZLMEDIAKIT_RTSPMEDIASOURCEMUXER_H
+} // namespace mediakit
+#endif // ZLMEDIAKIT_RTSPMEDIASOURCEMUXER_H

@@ -55,7 +55,7 @@ public:
      
      * [AUTO-TRANSLATED:5dd23423]
      */
-    RtspMediaSource(const MediaTuple& tuple, int ring_size = RTP_GOP_SIZE): MediaSource(RTSP_SCHEMA, tuple), _ring_size(ring_size) {}
+    RtspMediaSource(const MediaTuple& tuple, const std::string &schema = RTSP_SCHEMA, int ring_size = RTP_GOP_SIZE): MediaSource(schema, tuple), _ring_size(ring_size) {}
 
     ~RtspMediaSource() override {
         try {

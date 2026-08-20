@@ -60,7 +60,7 @@ public:
      
      * [AUTO-TRANSLATED:f5d1b0a6]
      */
-    std::string getSdp() ;
+    std::string getSdp();
 
     /**
      * 获取rtp环形缓存
@@ -105,7 +105,7 @@ public:
      
      * [AUTO-TRANSLATED:f203fa3e]
      */
-    void resetTracks() override ;
+    void resetTracks() override;
 
 private:
     void onRtp(RtpPacket::Ptr in, bool is_key);
@@ -123,6 +123,7 @@ private:
         Stamp stamp;
         uint32_t rtp_stamp { 0 };
         uint64_t ntp_stamp { 0 };
+        uint16_t rtp_seq {0};
         RtpCodec::Ptr encoder;
     };
 

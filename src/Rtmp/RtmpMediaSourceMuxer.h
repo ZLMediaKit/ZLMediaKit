@@ -49,7 +49,11 @@ public:
     int readerCount() const{
         return _media_src->readerCount();
     }
-
+    bool isRegisted() const { return _is_registed; }
+    void onRegist(MediaSource& sender, bool regist) override {
+        MediaSourceEventInterceptor::onRegist(sender, regist);
+        _is_registed = regist;
+    }
     void addTrackCompleted() override {
         RtmpMuxer::addTrackCompleted();
         makeConfigPacket();
@@ -87,6 +91,7 @@ public:
 
 private:
     bool _enabled = true;
+    bool _is_registed = false;
     bool _clear_cache = false;
     ProtocolOption _option;
     RtmpMediaSource::Ptr _media_src;

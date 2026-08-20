@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
@@ -10,6 +10,7 @@
 
 #include "WebRtcPusher.h"
 #include "Common/config.h"
+#include "RtcMediaSource.h"
 #include "Rtsp/RtspMediaSourceImp.h"
 
 using namespace std;
@@ -17,13 +18,9 @@ using namespace toolkit;
 
 namespace mediakit {
 
-WebRtcPusher::Ptr WebRtcPusher::create(const EventPoller::Ptr &poller,
-                                       const RtspMediaSource::Ptr &src,
-                                       const std::shared_ptr<void> &ownership,
-                                       const MediaInfo &info,
-                                       const ProtocolOption &option,
-                                       WebRtcTransport::Role role,
-                                       WebRtcTransport::SignalingProtocols signaling_protocols) {
+WebRtcPusher::Ptr WebRtcPusher::create(
+    const EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src, const std::shared_ptr<void> &ownership, const MediaInfo &info,
+    const ProtocolOption &option, WebRtcTransport::Role role, WebRtcTransport::SignalingProtocols signaling_protocols) {
     WebRtcPusher::Ptr pusher(new WebRtcPusher(poller, src, ownership, info, option), [](WebRtcPusher *ptr) {
         ptr->onDestory();
         delete ptr;
@@ -35,11 +32,10 @@ WebRtcPusher::Ptr WebRtcPusher::create(const EventPoller::Ptr &poller,
     return pusher;
 }
 
-WebRtcPusher::WebRtcPusher(const EventPoller::Ptr &poller,
-                           const RtspMediaSource::Ptr &src,
-                           const std::shared_ptr<void> &ownership,
-                           const MediaInfo &info,
-                           const ProtocolOption &option) : WebRtcTransportImp(poller) {
+WebRtcPusher::WebRtcPusher(
+    const EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src, const std::shared_ptr<void> &ownership, const MediaInfo &info,
+    const ProtocolOption &option)
+    : WebRtcTransportImp(poller) {
     _media_info = info;
     _push_src = src;
     _push_src_ownership = ownership;
@@ -101,7 +97,7 @@ void WebRtcPusher::onRecvRtp(MediaTrack &track, const string &rid, RtpPacket::Pt
         std::lock_guard<std::recursive_mutex> lock(_mtx);
         auto &src = _push_src_sim[rid];
         if (!src) {
-            const auto& stream = _push_src->getMediaTuple().stream;
+            const auto &stream = _push_src->getMediaTuple().stream;
             auto src_imp = _push_src->clone(rid.empty() ? stream : stream + '_' + rid);
             _push_src_sim_ownership[rid] = src_imp->getOwnership();
             src_imp->setListener(static_pointer_cast<WebRtcPusher>(shared_from_this()));
@@ -152,30 +148,30 @@ void WebRtcPusher::onRtcConfigure(RtcConfigure &configure) const {
     configure.audio.direction = configure.video.direction = RtpDirection::recvonly;
 }
 
-float WebRtcPusher::getLossRate(MediaSource &sender,TrackType type) {
+float WebRtcPusher::getLossRate(MediaSource &sender, TrackType type) {
     return WebRtcTransportImp::getLossRate(type);
 }
 
 void WebRtcPusher::OnDtlsTransportClosed(const RTC::DtlsTransport *dtlsTransport) {
-   // 主动关闭推流，那么不等待重推  [AUTO-TRANSLATED:1ff514d7]
-   // Actively close the stream, then do not wait for re-pushing
+    // 主动关闭推流，那么不等待重推  [AUTO-TRANSLATED:1ff514d7]
+    // Actively close the stream, then do not wait for re-pushing
     _push_src = nullptr;
     WebRtcTransportImp::OnDtlsTransportClosed(dtlsTransport);
 }
 
 void WebRtcPusher::onRtcpBye() {
-     WebRtcTransportImp::onRtcpBye();
+    WebRtcTransportImp::onRtcpBye();
 }
 
 void WebRtcPusher::onShutdown(const SockException &ex) {
-     _push_src = nullptr;
-     WebRtcTransportImp::onShutdown(ex);
+    _push_src = nullptr;
+    WebRtcTransportImp::onShutdown(ex);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
-WebRtcPlayerClient::Ptr WebRtcPlayerClient::create(const EventPoller::Ptr &poller, WebRtcTransport::Role role,
-                                                   WebRtcTransport::SignalingProtocols signaling_protocols) {
+WebRtcPlayerClient::Ptr
+WebRtcPlayerClient::create(const EventPoller::Ptr &poller, WebRtcTransport::Role role, WebRtcTransport::SignalingProtocols signaling_protocols) {
     WebRtcPlayerClient::Ptr pusher(new WebRtcPlayerClient(poller), [](WebRtcPlayerClient *ptr) {
         ptr->onDestory();
         delete ptr;
@@ -229,4 +225,4 @@ void WebRtcPlayerClient::setMediaSource(RtspMediaSource::Ptr src) {
     }
 }
 
-}// namespace mediakit
+} // namespace mediakit

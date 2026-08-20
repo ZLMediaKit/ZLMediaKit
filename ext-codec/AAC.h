@@ -28,7 +28,7 @@ public:
     using Ptr = std::shared_ptr<AACTrack>;
 
     AACTrack() = default;
-
+    AACTrack(int samplerate, int channel, int profile=1);
     /**
      * 通过aac extra data 构造对象
      * Construct object through AAC extra data

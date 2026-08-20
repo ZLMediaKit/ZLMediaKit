@@ -34,6 +34,7 @@ void RtspMuxer::onRtp(RtpPacket::Ptr in, bool is_key) {
         // rtp拦截入口，此处统一赋值ntp  [AUTO-TRANSLATED:1412435a]
         // RTP interception entry, set NTP here uniformly
         in->ntp_stamp = ref.ntp_stamp;
+        ref.rtp_seq = in->getSeq() + 1;
     } else {
         // 点播情况下设置ntp时间戳为rtp时间戳加基准ntp时间戳  [AUTO-TRANSLATED:b9f77de4]
         // In on-demand scenarios, set the NTP timestamp to the RTP timestamp plus the base NTP timestamp
@@ -87,7 +88,7 @@ bool RtspMuxer::addTrack(const Track::Ptr &track) {
     if (!encoder) {
         return false;
     }
-
+    auto rtp = std::dynamic_pointer_cast<RtpInfo>(encoder);
     // 标记已经存在该类型track  [AUTO-TRANSLATED:ed79ebb5]
     // Mark that a track of this type already exists
     _track_existed[track->getTrackType()] = true;
@@ -113,6 +114,7 @@ bool RtspMuxer::addTrack(const Track::Ptr &track) {
         GET_CONFIG(uint32_t, video_mtu, Rtp::kVideoMtuSize);
         auto mtu = track->getTrackType() == TrackVideo ? video_mtu : audio_mtu;
         encoder->setRtpInfo(ssrc, mtu, sdp->getSampleRate(), sdp->getPayloadType(), 2 * track->getTrackType(), track->getIndex());
+        encoder->getRtpInfo().setSeq(ref.rtp_seq);
     }
 
     // 设置rtp输出环形缓存  [AUTO-TRANSLATED:5ac7e24a]
