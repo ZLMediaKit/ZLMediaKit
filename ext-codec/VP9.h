@@ -20,7 +20,7 @@ public:
 
     bool keyFrame() const override {
         auto ptr = (uint8_t *) this->data() + this->prefixSize();
-        return (*ptr & 0x80);
+        return (*ptr & 0xCC) == 0x80;
     }
     bool configFrame() const override { return false; }
     bool dropAble() const override { return false; }

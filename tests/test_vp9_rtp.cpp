@@ -13,6 +13,7 @@
 #include <string>
 #include <vector>
 
+#include "ext-codec/VP9.h"
 #include "ext-codec/VP9Rtp.h"
 
 using namespace mediakit;
@@ -111,6 +112,24 @@ void testParseFailureDropsGop() {
     require(frames[1] == std::string("\x00\x66", 2), "recovered P-frame payload does not match");
 }
 
+void testFrameKeyFrameDetection() {
+    VP9Frame key_frame;
+    key_frame._buffer.assign("\x80", 1);
+    require(key_frame.keyFrame(), "VP9 keyframe was not recognized");
+
+    VP9Frame inter_frame;
+    inter_frame._buffer.assign("\x84", 1);
+    require(!inter_frame.keyFrame(), "VP9 inter frame was incorrectly recognized as a keyframe");
+
+    VP9Frame shown_frame;
+    shown_frame._buffer.assign("\x88", 1);
+    require(!shown_frame.keyFrame(), "VP9 show-existing frame was incorrectly recognized as a keyframe");
+
+    VP9Frame invalid_frame;
+    invalid_frame._buffer.assign("\x00", 1);
+    require(!invalid_frame.keyFrame(), "VP9 frame with an invalid marker was incorrectly recognized as a keyframe");
+}
+
 } // namespace
 
 int main() {
@@ -149,5 +168,6 @@ int main() {
     testParseFailureDropsCurrentFrame("truncated P_DIFF", { 0x50, 0x03 });
     testParseFailureDropsCurrentFrame("descriptor-only middle packet", { 0x00 });
     testParseFailureDropsGop();
+    testFrameKeyFrameDetection();
     return 0;
 }
