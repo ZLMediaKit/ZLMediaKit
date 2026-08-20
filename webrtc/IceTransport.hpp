@@ -312,6 +312,7 @@ public:
         virtual void onIceTransportGatheringCandidate(const Pair::Ptr&, const CandidateInfo&) = 0;
         virtual void onIceTransportDisconnected() = 0;
         virtual void onIceTransportCompleted() = 0;
+        virtual void onIceTransportSelectedTuple(const Pair::Ptr&) {}
     };
 
 public:
@@ -542,14 +543,13 @@ public:
         _state = state;
     }
 
-    Pair::Ptr getSelectedPair(bool try_last = false) const {
-        return try_last ?  _last_selected_pair.lock() : _selected_pair;
-    }
+    Pair::Ptr getSelectedPair(bool try_last = false);
+
     bool setSelectedPair(const Pair::Ptr& pair);
 
     void removePair(const toolkit::SocketHelper *socket);
 
-    std::vector<Pair::Ptr> getPairs() const;
+    std::vector<Pair::Ptr> getPairs();
 
     // 获取checklist信息，用于API查询
     Json::Value getChecklistInfo() const;
@@ -613,7 +613,7 @@ protected:
     Pair::Ptr _selected_pair;
     Pair::Ptr _nominated_pair;
     StunPacket::Ptr _nominated_response;
-    std::weak_ptr<Pair>  _last_selected_pair;
+    std::list<std::weak_ptr<Pair> > _old_pairs;
 
     // 双向索引的候选地址管理结构
     struct SocketCandidateManager {

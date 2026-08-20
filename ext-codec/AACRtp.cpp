@@ -55,9 +55,9 @@ void AACRtpDecoder::obtainFrame() {
 
 bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
     auto payload_size = rtp->getPayloadSize();
-    if (payload_size <= 0) {
-        // 无实际负载  [AUTO-TRANSLATED:2267e6ac]
-        // No actual load
+    if (payload_size < 2) {
+        // AU-Header-Length至少占用两个字节  [AUTO-TRANSLATED:2267e6ac]
+        // AU-Header-Length occupies at least two bytes
         return false;
     }
 
@@ -77,16 +77,16 @@ bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
         WarnL << "invalid aac rtp au_header_count";
         return false;
     }
+    auto au_headers_size = static_cast<size_t>(au_header_count) * 2;
+    if (static_cast<size_t>(payload_size) - 2 < au_headers_size) {
+        // AU-Header数据不完整  [AUTO-TRANSLATED:830a2785]
+        // Incomplete AU-Header data
+        return false;
+    }
     // 记录au_header起始指针  [AUTO-TRANSLATED:b9083b72]
     // Record the starting pointer of au_header
     auto au_header_ptr = ptr + 2;
-    ptr = au_header_ptr + au_header_count * 2;
-
-    if (end < ptr) {
-        // 数据不够  [AUTO-TRANSLATED:830a2785]
-        // Not enough data
-        return false;
-    }
+    ptr = au_header_ptr + au_headers_size;
 
     if (!_last_dts) {
         // 记录第一个时间戳  [AUTO-TRANSLATED:2e85b398]
@@ -130,7 +130,7 @@ bool AACRtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
 
 void AACRtpDecoder::flushData() {
     auto ptr = reinterpret_cast<const uint8_t *>(_frame->data());
-    if ((ptr[0] == 0xFF && (ptr[1] & 0xF0) == 0xF0) && _frame->size() > ADTS_HEADER_LEN) {
+    if (_frame->size() > ADTS_HEADER_LEN && ptr[0] == 0xFF && (ptr[1] & 0xF0) == 0xF0) {
         // adts头打入了rtp包，不符合规范，兼容EasyPusher的bug  [AUTO-TRANSLATED:203a5ee9]
         // The adts header is inserted into the rtp packet, which is not compliant with the specification, compatible with the bug of EasyPusher
         _frame->_prefix_size = ADTS_HEADER_LEN;

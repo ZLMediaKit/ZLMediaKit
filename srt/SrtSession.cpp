@@ -66,11 +66,18 @@ void SrtSession::onError(const SockException &err) {
     // 防止互相引用导致不释放  [AUTO-TRANSLATED:82547e46]
     // Prevent mutual reference from causing non-release
     auto transport = std::move(_transport);
+
+    // Only shut down the transport if this session is still the selected one;
+    // otherwise a migrated session has already taken over and should not be affected.
+    if (transport->getSession().get() != static_cast<Session *>(this)) {
+        return;
+    }
+
     getPoller()->async(
-        [transport] {
+        [transport, err] {
             // 延时减引用，防止使用transport对象时，销毁对象  [AUTO-TRANSLATED:09dd6609]
             // Delayed dereference to prevent object destruction when using the transport object
-            //transport->onShutdown(err);
+            transport->onShutdown(err);
         },
         false);
 }

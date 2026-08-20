@@ -13,6 +13,8 @@
 
 #include <mutex>
 #include <memory>
+#include <atomic>
+#include <thread>
 #include <stdexcept>
 #include <unordered_set>
 
@@ -40,11 +42,12 @@ private:
     void onReqPCM(char *stream, int len);
 
 private:
-    SDL_AudioDeviceID _device;
+    std::atomic<SDL_AudioDeviceID> _device{ 0 };
     std::shared_ptr<char> _play_buf;
     SDL_AudioSpec _audio_config;
     std::recursive_mutex _channel_mtx;
     std::unordered_set<AudioSRC *> _channels;
+    std::thread _init_thread;
 };
 
 #endif /* SDLAUDIOMIXER_SDLAUDIODEVICE_H_ */

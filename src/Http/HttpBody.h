@@ -33,7 +33,15 @@ namespace mediakit {
 class HttpBody : public std::enable_shared_from_this<HttpBody>{
 public:
     using Ptr = std::shared_ptr<HttpBody>;
-    virtual ~HttpBody() = default;
+    virtual ~HttpBody() {
+        if (_on_completed) {
+            try {
+                _on_completed();
+            } catch (std::exception &ex) {
+                ErrorL << ex.what();
+            }
+        }
+    }
 
     /**
      * 剩余数据大小，如果返回-1, 那么就不设置content-length
@@ -88,6 +96,19 @@ public:
     virtual int sendFile(int fd) {
         return -1;
     }
+
+    /**
+     * 写入数据，默认抛出异常表示不支持写入
+     * Write data, default throws exception indicating write not supported
+     */
+    virtual void writeData(const char *data, size_t size, uint64_t content_size) {
+        throw std::runtime_error("HttpBody::writeData not supported");
+    }
+
+    void setOnCompleted(std::function<void()> on_completed) { _on_completed = std::move(on_completed); }
+
+private:
+    std::function<void()> _on_completed;
 };
 
 /**
@@ -127,13 +148,21 @@ private:
     toolkit::Buffer::Ptr _buffer;
 };
 
+class HttpFileBodyBase  : public HttpBody {
+public:
+    using Ptr = std::shared_ptr<HttpFileBodyBase>;
+
+    virtual void setRange(uint64_t offset, uint64_t max_size) = 0;
+    virtual ~HttpFileBodyBase() = default;
+};
+
 /**
  * 文件类型的content
  * File type content
  
  * [AUTO-TRANSLATED:baf9c0f3]
  */
-class HttpFileBody : public HttpBody {
+class HttpFileBody : public HttpFileBodyBase {
 public:
     using Ptr = std::shared_ptr<HttpFileBody>;
 
@@ -159,7 +188,7 @@ public:
      
      * [AUTO-TRANSLATED:30532a4e]
      */
-    void setRange(uint64_t offset, uint64_t max_size);
+    void setRange(uint64_t offset, uint64_t max_size) override;
 
     int64_t remainSize() override;
     toolkit::Buffer::Ptr readData(size_t size) override;
@@ -171,6 +200,37 @@ private:
     std::shared_ptr<FILE> _fp;
     std::shared_ptr<char> _map_addr;
     toolkit::ResourcePool<toolkit::BufferRaw> _pool;
+};
+
+/**
+ * 文件写入类型的content，支持通过writeData向文件追加写入
+ * File storage content, supports appending data to a file via writeData
+ */
+class HttpFileStorage : public HttpBody {
+public:
+    using Ptr = std::shared_ptr<HttpFileStorage>;
+
+    /**
+     * @param file_path 直接以二进制覆盖写入的路径；未完成的上传会删除该路径。需要保护正式文件时，调用方应
+     *                  传入临时路径，并在请求处理完成后自行发布到正式路径。
+     * @param file_path Path opened directly in binary truncate mode and removed after an incomplete upload. To protect
+     *                  a published file, pass a temporary path and publish it from the completed-request handler.
+     */
+    HttpFileStorage(std::string file_path);
+    ~HttpFileStorage() override;
+    HttpFileStorage(const HttpFileStorage &) = delete;
+    HttpFileStorage &operator=(const HttpFileStorage &) = delete;
+
+    void writeData(const char *data, size_t size, uint64_t content_size) override;
+    int64_t remainSize() override;
+    toolkit::Buffer::Ptr readData(size_t size) override;
+    const std::string& filePath() const;
+
+private:
+    FILE *_fp = nullptr;
+    uint64_t _written = 0;
+    uint64_t _content_size = 0;
+    std::string _path;
 };
 
 class HttpArgs;
@@ -212,7 +272,7 @@ private:
     int64_t _totalSize;
     std::string _bodyPrefix;
     std::string _bodySuffix;
-    HttpFileBody::Ptr _fileBody;
+    HttpFileBodyBase::Ptr _fileBody;
 };
 
 }//namespace mediakit

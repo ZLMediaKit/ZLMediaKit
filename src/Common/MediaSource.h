@@ -96,7 +96,7 @@ public:
 
     // 获取MultiMediaSourceMuxer对象  [AUTO-TRANSLATED:2de96d44]
     // Get MultiMediaSourceMuxer object
-    virtual std::shared_ptr<MultiMediaSourceMuxer> getMuxer(MediaSource &sender) const { return nullptr; }
+    virtual std::shared_ptr<MultiMediaSourceMuxer> getMuxer(MediaSource &sender) const { throw NotImplemented(toolkit::demangle(typeid(*this).name()) + "::getMuxer not implemented"); }
     // 获取RtpProcess对象  [AUTO-TRANSLATED:c6b7da43]
     // Get RtpProcess object
     virtual std::shared_ptr<RtpProcess> getRtpProcess(MediaSource &sender) const { return nullptr; }

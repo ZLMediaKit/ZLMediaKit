@@ -4,6 +4,11 @@
 using namespace std;
 using namespace mediakit;
 
+namespace {
+// Prevent unbounded memory growth from malformed/hostile RTP/JPEG streams.
+constexpr size_t kMaxRtpJpegFrameSize = 16 * 1024 * 1024;
+}
+
 #define AV_WB24(p, d)                                                                                                  \
     do {                                                                                                               \
         ((uint8_t *)(p))[2] = (d);                                                                                     \
@@ -539,6 +544,13 @@ static int jpeg_parse_packet(void *ctx, PayloadContext *jpeg, uint32_t *timestam
                                             height, qtables,
                                             qtable_len / 64, dri);
 
+        if ((size_t)jpeg->hdr_size > kMaxRtpJpegFrameSize) {
+            jpeg->frame.clear();
+            av_log(ctx, AV_LOG_ERROR,
+                   "RTP/JPEG header is too large; dropping frame.\n");
+            return AVERROR_INVALIDDATA;
+        }
+
         /* Copy JPEG header to frame buffer. */
         avio_write(jpeg->frame, hdr, jpeg->hdr_size);
     }
@@ -561,6 +573,13 @@ static int jpeg_parse_packet(void *ctx, PayloadContext *jpeg, uint32_t *timestam
         av_log(ctx, AV_LOG_ERROR,
                "Missing packets; dropping frame.\n");
         return AVERROR_EAGAIN;
+    }
+
+    if (jpeg->frame.size() + len + 2 > kMaxRtpJpegFrameSize) {
+        jpeg->frame.clear();
+        av_log(ctx, AV_LOG_ERROR,
+               "RTP/JPEG frame is too large; dropping frame.\n");
+        return AVERROR_INVALIDDATA;
     }
 
     /* Copy data to frame buffer. */

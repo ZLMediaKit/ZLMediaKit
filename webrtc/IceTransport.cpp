@@ -1812,33 +1812,93 @@ void IceAgent::refreshChannelBindings() {
     }
 }
 
-bool IceAgent::setSelectedPair(const Pair::Ptr& pair) {
-    if (_selected_pair && Pair::is_same(pair.get(), _selected_pair.get())){
+IceAgent::Pair::Ptr IceAgent::getSelectedPair(bool try_last) {
+    if (!try_last) {
+        return _selected_pair;
+    }
+    for (auto it = _old_pairs.begin(); it != _old_pairs.end();) {
+        auto pair = it->lock();
+        if (!pair) {
+            it = _old_pairs.erase(it);
+            continue;
+        }
+        return pair;
+    }
+    return nullptr;
+}
+
+bool IceAgent::setSelectedPair(const Pair::Ptr &pair) {
+    if (_selected_pair && Pair::is_same(pair.get(), _selected_pair.get())) {
         return false;
     }
-    
+
     if (_selected_pair) {
         InfoL << "Previous selected_pair: " << _selected_pair->dumpString(2);
         InfoL << "New selected_pair: " << pair->dumpString(2);
+        for (auto it = _old_pairs.begin(); it != _old_pairs.end();) {
+            auto pair = it->lock();
+            if (!pair) {
+                it = _old_pairs.erase(it);
+                continue;
+            }
+            if (Pair::is_same(pair.get(), _selected_pair.get())) {
+                // 移除和_selected_pair相同的pair，防止出现重复的pair
+                it = _old_pairs.erase(it);
+                continue;
+            }
+            ++it;
+        }
+        _old_pairs.push_front(_selected_pair);
     } else {
         InfoL << "Initial selected_pair: " << pair->dumpString(2);
     }
-    
-    _last_selected_pair = std::static_pointer_cast<Pair>(_selected_pair);
     _selected_pair = pair;
+    _listener->onIceTransportSelectedTuple(_selected_pair);
     return true;
 }
 
 void IceAgent::removePair(const toolkit::SocketHelper *socket) {
-    // TODO
+    if (_selected_pair && _selected_pair->_socket.get() == socket) {
+        _selected_pair = nullptr;
+        _selected_pair = getSelectedPair(true);
+        if (_selected_pair) {
+            // 从旧pair列表中读取最新的pair的作为selected_pair，同时从旧pair列表中删除它
+            _old_pairs.pop_front();
+            _listener->onIceTransportSelectedTuple(_selected_pair);
+        }
+    } else {
+        for (auto it = _old_pairs.begin(); it != _old_pairs.end();) {
+            auto pair = it->lock();
+            if (!pair) {
+                it = _old_pairs.erase(it);
+                continue;
+            }
+            // 从旧pair列表中删除socket
+            if (pair->_socket.get() == socket) {
+                it = _old_pairs.erase(it);
+                continue;
+            }
+            ++it;
+        }
+    }
 }
 
-std::vector<IceAgent::Pair::Ptr> IceAgent::getPairs() const {
-    // TODO
+std::vector<IceAgent::Pair::Ptr> IceAgent::getPairs() {
+    std::vector<Pair::Ptr> ret;
     if (_selected_pair) {
-        return { _selected_pair };
+        ret.emplace_back(_selected_pair);
     }
-    return {};
+
+    for (auto it = _old_pairs.begin(); it != _old_pairs.end();) {
+        auto pair = it->lock();
+        if (!pair) {
+            it = _old_pairs.erase(it);
+            continue;
+        }
+        ret.emplace_back(pair);
+        ++it;
+    }
+    return ret;
 }
 
 void IceAgent::sendSocketData(const Buffer::Ptr& buf, const Pair::Ptr& pair, bool flush) {

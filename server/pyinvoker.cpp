@@ -623,10 +623,11 @@ PythonInvoker::PythonInvoker() {
             }
         }
     });
+    _notice_center = NoticeCenter::Instance().shared_from_this();
 }
 
 PythonInvoker::~PythonInvoker() {
-    NoticeCenter::Instance().delListener(this, Broadcast::kBroadcastReloadConfig);
+    _notice_center->delListener(this, Broadcast::kBroadcastReloadConfig);
     {
         py::gil_scoped_acquire gil; // 加锁
         if (_on_exit) {

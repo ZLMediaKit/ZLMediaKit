@@ -130,12 +130,17 @@ const string &Parser::content() const {
     return _content;
 }
 
+const HttpBody::Ptr &Parser::body() const {
+    return _body;
+}
+
 void Parser::clear() {
     _method.clear();
     _url.clear();
     _params.clear();
     _protocol.clear();
     _content.clear();
+    _body = nullptr;
     _headers.clear();
     _url_args.clear();
 }
@@ -150,6 +155,10 @@ void Parser::setUrl(string url) {
 
 void Parser::setContent(string content) {
     _content = std::move(content);
+}
+
+void Parser::setBody(HttpBody::Ptr body) {
+    _body = std::move(body);
 }
 
 StrCaseMap &Parser::getHeader() const {

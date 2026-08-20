@@ -153,6 +153,7 @@ void HlsPlayer::fetchSegment() {
             return;
         }
         if (err) {
+            strong_self->onSegmentDownloadFailed(err);
             WarnL << "Download ts segment " << url << " failed:" << err;
             if (err.getErrCode() == Err_timeout) {
                 strong_self->_timeout_multiple = MAX(strong_self->_timeout_multiple + 1, MAX_TIMEOUT_MULTIPLE);
@@ -395,6 +396,7 @@ void HlsDemuxer::pushTask(std::function<void()> task) {
 }
 
 bool HlsDemuxer::inputFrame(const Frame::Ptr &frame) {
+    ++_input_frame_count;
     // 为了避免track准备时间过长, 因此在没准备好之前, 直接消费掉所有的帧  [AUTO-TRANSLATED:72b35430]
     // To avoid the track preparation time being too long, all frames are directly consumed before it is ready
     // In order to avoid the track preparation time is too long, so before it is ready, all frames are consumed directly
@@ -490,6 +492,14 @@ void HlsPlayerImp::onPacket(const char *data, size_t len) {
         _decoder->input((uint8_t *) data, len);
     }
     _recvtotalbytes += HlsPlayer::getRecvTotalBytes();
+}
+
+void HlsPlayerImp::onSegmentDownloadFailed(const toolkit::SockException &ex) {
+    if (_decoder && ex) {
+        // 失败切片的输入残片不能与下一切片拼接；这里只清输入缓存，不 flush 解码帧。
+        // Input left by a failed segment must not join the next one; clear it without flushing decoded frames.
+        _decoder->clearInputCache();
+    }
 }
 
 void HlsPlayerImp::addTrackCompleted() {
