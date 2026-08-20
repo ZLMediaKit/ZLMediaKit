@@ -112,52 +112,6 @@ public:
     }
 
     /**
-     * 获取相应轨道的ssrc
-     * Get the ssrc of the corresponding track
-     
-     * [AUTO-TRANSLATED:d26d7f76]
-     */
-    virtual uint32_t getSsrc(TrackType trackType) {
-        assert(trackType >= 0 && trackType < TrackMax);
-        auto &track = _tracks[trackType];
-        if (!track) {
-            return 0;
-        }
-        return track->_ssrc;
-    }
-
-    /**
-     * 获取相应轨道的seqence
-     * Get the sequence of the corresponding track
-     
-     * [AUTO-TRANSLATED:24b0ee74]
-     */
-    virtual uint16_t getSequence(TrackType trackType) {
-        assert(trackType >= 0 && trackType < TrackMax);
-        auto &track = _tracks[trackType];
-        if (!track) {
-            return 0;
-        }
-        return track->_seq;
-    }
-
-    /**
-     * 获取相应轨道的时间戳，单位毫秒
-     * Get the timestamp of the corresponding track, in milliseconds
-     
-     * [AUTO-TRANSLATED:564a0794]
-     */
-    uint32_t getTimeStamp(TrackType trackType) override;
-
-    /**
-     * 更新时间戳
-     * Update timestamp
-     
-     * [AUTO-TRANSLATED:8defe253]
-     */
-    void setTimeStamp(uint32_t stamp) override;
-
-    /**
      * 设置sdp
      * Set sdp
      
@@ -204,7 +158,6 @@ private:
     int _ring_size;
     std::string _sdp;
     RingType::Ptr _ring;
-    SdpTrack::Ptr _tracks[TrackMax];
 };
 
 } /* namespace mediakit */

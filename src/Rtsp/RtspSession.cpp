@@ -257,6 +257,7 @@ void RtspSession::handleReq_ANNOUNCE(const Parser &parser) {
         SdpParser sdpParser(parser.content());
         _sessionid = makeRandStr(12);
         _sdp_track = sdpParser.getAvailableTrack();
+        _duration = sdpParser.getTrack(TrackTitle)->_duration;
         if (_sdp_track.empty()) {
             // sdp无效
             static constexpr auto err = "sdp中无有效track";
@@ -405,6 +406,25 @@ void RtspSession::handleReq_Describe(const Parser &parser) {
     }
 }
 
+void RtspSession::getRtpTrackInfo(bool use_gop) {
+    auto rtsp_src = _play_src.lock();
+    if (!rtsp_src) {
+        return;
+    }
+    auto reader = rtsp_src->getRing()->attach(getPoller(), use_gop);
+    reader->setReadCB([&](const RtspMediaSource::RingDataType &pkt) {
+        pkt->for_each([&](const RtpPacket::Ptr &rtp) {
+            auto &rtp_info = _rtp_info[getTrackIndexByTrackType(rtp->type)];
+            if (!rtp_info) {
+                rtp_info.ssrc = rtp->getSSRC();
+                rtp_info.seq = rtp->getSeq();
+                rtp_info.time_stamp = rtp->getStamp();
+                rtp_info.time_stamp_ms = rtp->getStampMS(false);
+            }
+        });
+    });
+}
+
 void RtspSession::onAuthSuccess() {
     weak_ptr<RtspSession> weak_self = static_pointer_cast<RtspSession>(shared_from_this());
     MediaSource::findAsync(_media_info, weak_self.lock(), [weak_self](const MediaSource::Ptr &src){
@@ -420,8 +440,11 @@ void RtspSession::onAuthSuccess() {
             strong_self->shutdown(SockException(Err_shutdown,err));
             return;
         }
-        //找到了相应的rtsp流
-        strong_self->_sdp_track = SdpParser(rtsp_src->getSdp()).getAvailableTrack();
+        // 找到了相应的rtsp流
+        SdpParser parser(rtsp_src->getSdp());
+        strong_self->_sdp_track = parser.getAvailableTrack();
+        strong_self->_duration = parser.getTrack(TrackTitle)->_duration;
+
         if (strong_self->_sdp_track.empty()) {
             //该流无效
             WarnL << "sdp中无有效track，该流无效:" << rtsp_src->getSdp();
@@ -435,12 +458,7 @@ void RtspSession::onAuthSuccess() {
         }
         strong_self->_sessionid = makeRandStr(12);
         strong_self->_play_src = rtsp_src;
-        for(auto &track : strong_self->_sdp_track){
-            track->_ssrc = rtsp_src->getSsrc(track->_type);
-            track->_seq = rtsp_src->getSequence(track->_type);
-            track->_time_stamp = rtsp_src->getTimeStamp(track->_type);
-        }
-
+        strong_self->getRtpTrackInfo(true);
         strong_self->sendRtspResponse("200 OK",
                                      {"Content-Base", strong_self->_content_base + "/",
                                       "x-Accept-Retransmit","our-retransmit",
@@ -698,7 +716,7 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
                          {"Transport", StrPrinter << "RTP/AVP/TCP;unicast;"
                                                   << "interleaved=" << (int) trackRef->_interleaved << "-"
                                                   << (int) trackRef->_interleaved + 1 << ";"
-                                                  << "ssrc=" << printSSRC(trackRef->_ssrc),
+                                                  << "ssrc=" << printSSRC(_rtp_info[trackIdx].ssrc),
                           "x-Transport-Options", "late-tolerance=1.400000",
                           "x-Dynamic-Rate", "1"
                          });
@@ -740,7 +758,7 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
                                                   << "client_port=" << strClientPort << ";"
                                                   << "server_port=" << pr.first->get_local_port() << "-"
                                                   << pr.second->get_local_port() << ";"
-                                                  << "ssrc=" << printSSRC(trackRef->_ssrc)
+                                                  << "ssrc=" << printSSRC(_rtp_info[trackIdx].ssrc)
                          });
     }
         break;
@@ -778,7 +796,7 @@ void RtspSession::handleReq_Setup(const Parser &parser) {
                                                   << "source=" << get_local_ip() << ";"
                                                   << "port=" << iSrvPort << "-" << pSockRtcp->get_local_port() << ";"
                                                   << "ttl=" << udpTTL << ";"
-                                                  << "ssrc=" << printSSRC(trackRef->_ssrc)
+                                                  << "ssrc=" << printSSRC(_rtp_info[trackIdx].ssrc)
                          });
     }
         break;
@@ -800,60 +818,120 @@ void RtspSession::handleReq_Play(const Parser &parser) {
     }
 
     bool use_gop = true;
-    auto &strScale = parser["Scale"];
-    auto &strRange = parser["Range"];
     StrCaseMap res_header;
-    if (!strScale.empty()) {
-        //这是设置播放速度
-        res_header.emplace("Scale", strScale);
-        auto speed = atof(strScale.data());
-        play_src->speed(speed);
-        InfoP(this) << "rtsp set play speed:" << speed;
-    }
 
-    if (!strRange.empty()) {
-        //这是seek操作
-        res_header.emplace("Range", strRange);
-        auto strStart = findSubString(strRange.data(), "npt=", "-");
-        if (strStart == "now") {
-            strStart = "0";
+    if (_duration > 0.1) {
+        // 点播才支持seek和speed
+        auto &strScale = parser["Scale"];
+        auto &strRange = parser["Range"];
+        if (!strScale.empty()) {
+            // 这是设置播放速度
+            res_header.emplace("Scale", strScale);
+            auto speed = atof(strScale.data());
+            if (play_src->speed(speed)) {
+                InfoP(this) << "rtsp set play speed:" << speed;
+            }
         }
-        auto iStartTime = 1000 * (float) atof(strStart.data());
-        use_gop = !play_src->seekTo((uint32_t) iStartTime);
-        InfoP(this) << "rtsp seekTo(ms):" << iStartTime;
+
+        if (!strRange.empty()) {
+            // 这是seek操作
+            auto strStart = findSubString(strRange.data(), "npt=", "-");
+            if (strStart == "now") {
+                strStart = "0";
+            }
+            auto iStartTime = 1000 * (float)atof(strStart.data());
+            if (play_src->seekTo((uint32_t)iStartTime)) {
+                InfoP(this) << "rtsp seekTo(ms):" << iStartTime;
+                use_gop = false;
+            }
+        }
     }
 
-    vector<TrackType> inited_tracks;
-    _StrPrinter rtp_info;
+    std::set<TrackType> inited_tracks;
     for (auto &track : _sdp_track) {
-        if (track->_inited == false) {
-            //为支持播放器播放单一track, 不校验没有发setup的track
-            continue;
+        if (track->_inited) {
+            inited_tracks.emplace(track->_type);
         }
-        inited_tracks.emplace_back(track->_type);
-        track->_ssrc = play_src->getSsrc(track->_type);
-        track->_seq = play_src->getSequence(track->_type);
-        track->_time_stamp = play_src->getTimeStamp(track->_type);
-
-        rtp_info << "url=" << track->getControlUrl(_content_base) << ";"
-                 << "seq=" << track->_seq << ";"
-                 << "rtptime=" << (int64_t)(track->_time_stamp) * (int64_t)(track->_samplerate/ 1000) << ",";
     }
 
-    rtp_info.pop_back();
-
-    res_header.emplace("RTP-Info", rtp_info);
-    //已存在Range时不覆盖
-    res_header.emplace("Range", StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << play_src->getTimeStamp(TrackInvalid) / 1000.0);
-    sendRtspResponse("200 OK", res_header);
-
-    //设置播放track
-    if (inited_tracks.size() == 1) {
-        _target_play_track = inited_tracks[0];
-        InfoP(this) << "指定播放track:" << _target_play_track;
+    if (inited_tracks.empty()) {
+        // 所有track都没有setup
+        shutdown(SockException(Err_shutdown, "none track is setuped"));
+        return;
     }
 
-    //在回复rtsp信令后再恢复播放
+    // 设置播放track
+    if (_sdp_track.size() > inited_tracks.size()) {
+        _target_play_track = *inited_tracks.begin();
+        InfoP(this) << "only play selected track: " << getTrackString(_target_play_track);
+    }
+    size_t rtp_cout = 0;
+    std::vector<RtspMediaSource::RingDataType> send_rtp_cache;
+    _on_send_rtp = [=](const RtspMediaSource::RingDataType &pack, bool is_key) mutable {
+        if (!use_gop) {
+            // seek后关闭gop缓存，需要等待下一个关键帧才能开始发送seek后的数据
+            if (!is_key) {
+                return true;
+            }
+            use_gop = true;
+        }
+
+        rtp_cout += pack->size();
+        send_rtp_cache.emplace_back(pack);
+        pack->for_each([&](const RtpPacket::Ptr &rtp) mutable {
+            if (inited_tracks.count(rtp->type)) {
+                auto &rtp_info = _rtp_info[getTrackIndexByTrackType(rtp->type)];
+                rtp_info.ssrc = rtp->getSSRC();
+                rtp_info.seq = rtp->getSeq();
+                rtp_info.time_stamp = rtp->getStamp();
+                rtp_info.time_stamp_ms = rtp->getStampMS(false);
+                inited_tracks.erase(rtp->type);
+            }
+        });
+        if (!inited_tracks.empty() && rtp_cout < 512) {
+            // 限制rtp缓存个数，防止内存溢出
+            return true;
+        }
+        if (!inited_tracks.empty()) {
+            WarnL << "get rtp track info failed: " << getTrackString(*inited_tracks.begin());
+        }
+
+        _StrPrinter rtp_info;
+        int index = 0;
+        for (auto &track : _sdp_track) {
+            auto &rtp_track = _rtp_info[index++];
+            if (track->_inited) {
+                rtp_info << "url=" << track->getControlUrl(_content_base) << ";"
+                         << "seq=" << rtp_track.seq << ";"
+                         << "rtptime=" << rtp_track.time_stamp << ",";
+            }
+        }
+
+        rtp_info.pop_back();
+        res_header.emplace("RTP-Info", rtp_info);
+
+        if (_duration > 0.1) {
+            // vlc在播放rtsp点播时，range设置异常(还是直播样式)，我们返回正确的时长
+            auto time_stamp_ms = UINT64_MAX;
+            for (auto &info : _rtp_info) {
+                if (info && info.time_stamp_ms < time_stamp_ms) {
+                    time_stamp_ms = info.time_stamp_ms;
+                }
+            }
+            // 点播
+            res_header.emplace("Range", StrPrinter << "npt=" << setiosflags(ios::fixed) << setprecision(2) << time_stamp_ms / 1000.0f << '-' << _duration);
+        } else {
+            // 直播
+            res_header.emplace("Range", "npt=0.00-");
+        }
+        sendRtspResponse("200 OK", res_header);
+        for (auto &cache : send_rtp_cache) {
+            sendRtpPacket(cache);
+        }
+        return false;
+    };
+
+    // 在回复rtsp信令后再恢复播放
     play_src->pause(false);
 
     setSocketFlags();
@@ -873,9 +951,16 @@ void RtspSession::handleReq_Play(const Parser &parser) {
             }
             strong_self->shutdown(SockException(Err_shutdown, "rtsp ring buffer detached"));
         });
-        _play_reader->setReadCB([weak_self](const RtspMediaSource::RingDataType &pack) {
+        _play_reader->setReadCB2([weak_self](const RtspMediaSource::RingDataType &pack, bool is_key) {
             auto strong_self = weak_self.lock();
             if (!strong_self) {
+                return;
+            }
+            if (strong_self->_on_send_rtp) {
+                auto again = strong_self->_on_send_rtp(pack, is_key);
+                if (!again) {
+                    strong_self->_on_send_rtp = nullptr;
+                }
                 return;
             }
             strong_self->sendRtpPacket(pack);
@@ -1100,7 +1185,6 @@ bool RtspSession::sendRtspResponse(const string &res_code, const StrCaseMap &hea
     if(!sdp.empty()){
         printer << sdp;
     }
-//	DebugP(this) << printer;
     return send(std::make_shared<BufferString>(std::move(printer))) > 0 ;
 }
 

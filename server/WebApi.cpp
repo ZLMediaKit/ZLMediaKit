@@ -476,7 +476,6 @@ Value makeMediaSourceJson(MediaSource &media) {
     item["schema"] = media.getSchema();
     dumpMediaTuple(media.getMediaTuple(), item);
     item["createStamp"] = (Json::UInt64) media.getCreateStamp();
-    item["currentStamp"] = (Json::UInt64) media.getTimeStamp(TrackInvalid);
     item["aliveSecond"] = (Json::UInt64) media.getAliveSecond();
     item["bytesSpeed"] = (Json::UInt64) media.getBytesSpeed();
     item["totalBytes"] = (Json::UInt64) media.getTotalBytes();

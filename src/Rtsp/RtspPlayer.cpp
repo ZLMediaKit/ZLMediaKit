@@ -324,9 +324,9 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int track_idx) {
     RtspSplitter::enableRecvRtp(_rtp_type == Rtsp::RTP_TCP);
     string ssrc = transport_map["ssrc"];
     if (!ssrc.empty()) {
-        sscanf(ssrc.data(), "%x", &_sdp_track[track_idx]->_ssrc);
+        sscanf(ssrc.data(), "%x", &_ssrc[track_idx]);
     } else {
-        _sdp_track[track_idx]->_ssrc = 0;
+        _ssrc[track_idx] = 0;
     }
 
     if (_rtp_type == Rtsp::RTP_TCP) {
@@ -626,6 +626,10 @@ void RtspPlayer::onRtpPacket(const char *data, size_t len) {
         trackIdx = getTrackIndexByPT(header->pt);
         if (trackIdx == -1) {
             return;
+        }
+        auto ssrc = _ssrc[trackIdx];
+        if (ssrc && ssrc != ntohl(header->ssrc)) {
+            WarnL << "ssrc not expected: " << ntohl(header->ssrc) << " != " << ssrc << ", track index: " << trackIdx;
         }
         handleOneRtp(
             trackIdx, _sdp_track[trackIdx]->_type, _sdp_track[trackIdx]->_samplerate, (uint8_t *)data + RtpPacket::kRtpTcpHeaderSize,

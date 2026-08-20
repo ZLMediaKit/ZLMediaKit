@@ -4,63 +4,17 @@
 namespace mediakit {
 void RtspMediaSource::setSdp(const std::string &sdp) {
     SdpParser sdp_parser(sdp);
-    _tracks[TrackVideo] = sdp_parser.getTrack(TrackVideo);
-    _tracks[TrackAudio] = sdp_parser.getTrack(TrackAudio);
-    _have_video = (bool)_tracks[TrackVideo];
+    _have_video = static_cast<bool>(sdp_parser.getTrack(TrackVideo));
     _sdp = sdp_parser.toString();
     if (_ring) {
         regist();
     }
 }
 
-uint32_t RtspMediaSource::getTimeStamp(TrackType trackType) {
-    assert(trackType >= TrackInvalid && trackType < TrackMax);
-    if (trackType != TrackInvalid) {
-        // 获取某track的时间戳  [AUTO-TRANSLATED:e3fecb81]
-        // Get the timestamp of a track
-        auto &track = _tracks[trackType];
-        if (track) {
-            return track->_time_stamp;
-        }
-    }
-
-    // 获取所有track的最小时间戳  [AUTO-TRANSLATED:8cf9218b]
-    // Get the minimum timestamp of all tracks
-    uint32_t ret = UINT32_MAX;
-    for (auto &track : _tracks) {
-        if (track && track->_time_stamp < ret) {
-            ret = track->_time_stamp;
-        }
-    }
-    return ret;
-}
-
-/**
-    * 更新时间戳
- * Update timestamp
- 
- * [AUTO-TRANSLATED:fa02a89e]
-    */
-void RtspMediaSource::setTimeStamp(uint32_t stamp) {
-    for (auto &track : _tracks) {
-        if (track) {
-            track->_time_stamp = stamp;
-        }
-    }
-}
-
 void RtspMediaSource::onWrite(RtpPacket::Ptr rtp, bool keyPos) {
     _speed[rtp->type] += rtp->size();
     assert(rtp->type >= 0 && rtp->type < TrackMax);
-    auto &track = _tracks[rtp->type];
     auto stamp = rtp->getStampMS();
-    bool is_video = rtp->type == TrackVideo;
-    // 音频总是更新，视频在关键包时更新
-    if (track && ((keyPos && _have_video && is_video) || (!is_video))) {
-        track->_seq = rtp->getSeq();
-        track->_time_stamp = rtp->getStamp() * uint64_t(1000) / rtp->sample_rate;
-        track->_ssrc = rtp->getSSRC();
-    }
     if (!_ring) {
         std::weak_ptr<RtspMediaSource> weakSelf = std::static_pointer_cast<RtspMediaSource>(shared_from_this());
         auto lam = [weakSelf](int size) {
@@ -80,7 +34,7 @@ void RtspMediaSource::onWrite(RtpPacket::Ptr rtp, bool keyPos) {
         }
     }
    
-    PacketCache<RtpPacket>::inputPacket(stamp, is_video, std::move(rtp), keyPos);
+    PacketCache<RtpPacket>::inputPacket(stamp, rtp->type == TrackVideo, std::move(rtp), keyPos);
 }
 
 RtspMediaSourceImp::RtspMediaSourceImp(const MediaTuple& tuple, int ringSize): RtspMediaSource(tuple, ringSize)

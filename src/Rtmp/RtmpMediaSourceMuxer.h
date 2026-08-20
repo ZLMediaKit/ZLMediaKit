@@ -42,10 +42,6 @@ public:
         _media_src->setListener(shared_from_this());
     }
 
-    void setTimeStamp(uint32_t stamp){
-        _media_src->setTimeStamp(stamp);
-    }
-
     int readerCount() const{
         return _media_src->readerCount();
     }
