@@ -350,6 +350,7 @@ static onceToken token([]() {
 namespace Hls {
 #define HLS_FIELD "hls."
 const string kSegmentDuration = HLS_FIELD "segDur";
+const string kSegmentMaxDuration = HLS_FIELD "segMaxDur";
 const string kSegmentNum = HLS_FIELD "segNum";
 const string kSegmentKeep = HLS_FIELD "segKeep";
 const string kSegmentDelay = HLS_FIELD "segDelay";
@@ -362,6 +363,7 @@ const string kFmp4SegExt = HLS_FIELD "fmp4SegExt";
 
 static onceToken token([]() {
     mINI::Instance()[kSegmentDuration] = 2;
+    mINI::Instance()[kSegmentMaxDuration] = 0;
     mINI::Instance()[kSegmentNum] = 3;
     mINI::Instance()[kSegmentKeep] = false;
     mINI::Instance()[kSegmentDelay] = 0;
