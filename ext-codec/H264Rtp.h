@@ -105,6 +105,7 @@ private:
 private:
     Frame::Ptr _sps;
     Frame::Ptr _pps;
+    Frame::Ptr _sei;
     Frame::Ptr _last_frame;
 };
 
