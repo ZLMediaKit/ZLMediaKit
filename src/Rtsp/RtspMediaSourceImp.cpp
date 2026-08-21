@@ -33,8 +33,8 @@ void RtspMediaSource::onWrite(RtpPacket::Ptr rtp, bool keyPos) {
             regist();
         }
     }
-   
-    PacketCache<RtpPacket>::inputPacket(stamp, rtp->type == TrackVideo, std::move(rtp), keyPos);
+    auto is_video = rtp->type == TrackVideo;
+    PacketCache<RtpPacket>::inputPacket(stamp, is_video, std::move(rtp), keyPos);
 }
 
 RtspMediaSourceImp::RtspMediaSourceImp(const MediaTuple& tuple, int ringSize): RtspMediaSource(tuple, ringSize)
