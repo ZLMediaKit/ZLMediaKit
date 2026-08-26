@@ -614,6 +614,7 @@ void WebRtcTransport::setOnShutdown(function<void(const SockException &ex)> cb) 
 
 void WebRtcTransport::onShutdown(const SockException &ex) {
     TraceL << ex;
+    _ex = ex;
     if (_on_shutdown) {
         _on_shutdown(ex);
     }
@@ -745,6 +746,9 @@ static bool isDtls(const char *buf) {
 }
 
 void WebRtcTransport::inputSockData(const char *buf, int len, const SocketHelper::Ptr& socket, struct sockaddr *addr, int addr_len) {
+    if (_ex) {
+        throw _ex;
+    }
     IceTransport::Pair::Ptr pair;
     if (addr != nullptr) {
         auto peer_host = SockUtil::inet_ntoa(addr);

@@ -257,6 +257,7 @@ private:
     std::shared_ptr<toolkit::Timer> _check_timer;
     std::function<void()> _on_start;
     std::function<void(const toolkit::SockException &ex)> _on_shutdown;
+    toolkit::SockException _ex;
 
 #ifdef ENABLE_SCTP
     RTC::SctpAssociationImp::Ptr _sctp;
