@@ -138,7 +138,7 @@ protected:
 private:
     WebRtcPlayer(const toolkit::EventPoller::Ptr &poller, const RtspMediaSource::Ptr &src, const MediaInfo &info);
 
-    void sendConfigFrames(uint32_t before_seq, uint32_t sample_rate, uint32_t timestamp, uint64_t ntp_timestamp);
+    void sendConfigFrames(const RtpPacket::Ptr &packet);
 
 private:
     // 媒体相关元数据  [AUTO-TRANSLATED:f4cf8045]
