@@ -16,7 +16,9 @@
 #include "Rtmp/RtmpPlayer.h"
 #include "Rtsp/RtspMediaSource.h"
 #include "Rtsp/RtspPlayer.h"
+#if defined(ENABLE_WEBRTC)
 #include "webrtc/WebRtcProxyPlayer.h"
+#endif
 #include "Util/MD5.h"
 #include "Util/logger.h"
 #include "Util/mini.h"
@@ -280,7 +282,11 @@ void PlayerProxy::play(const string &url) {
 
 void PlayerProxy::setDirectProxy() {
     MediaSource::Ptr mediaSource;
-    if (dynamic_pointer_cast<RtspPlayer>(_delegate) || dynamic_pointer_cast<WebRtcProxyPlayer>(_delegate)) {
+    if (dynamic_pointer_cast<RtspPlayer>(_delegate)
+#if defined(ENABLE_WEBRTC)
+        || dynamic_pointer_cast<WebRtcProxyPlayer>(_delegate)
+#endif
+    ) {
         // rtsp拉流  [AUTO-TRANSLATED:189cf691]
         // Rtsp stream
         GET_CONFIG(bool, directProxy, Rtsp::kDirectProxy);
