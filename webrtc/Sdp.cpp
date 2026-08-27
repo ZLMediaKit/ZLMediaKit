@@ -2085,6 +2085,10 @@ void RtcConfigure::onSelectPlan(RtcCodecPlan &plan, CodecId codec) const {
         GET_CONFIG(bool, h264_stap_a, Rtp::kH264StapA);
         plan.fmtp[kMode] = mode.empty() ? std::to_string(h264_stap_a) : mode;
     }
+    if (_rtsp_audio_plan && codec == CodecAAC && getCodecId(_rtsp_audio_plan->codec) == CodecAAC) {
+        // aac时，设置fmtp
+        plan.fmtp = _rtsp_audio_plan->fmtp;
+    }
 }
 
 } // namespace mediakit
