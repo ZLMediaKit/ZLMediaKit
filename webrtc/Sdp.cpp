@@ -1688,7 +1688,7 @@ void RtcConfigure::createMediaOfferEach(const std::shared_ptr<RtcSession> &ret, 
         audio_list_ref.emplace(CodecG711U, make_shared<AudioRtpMap>("PCMU", 0, 8000));
         audio_list_ref.emplace(CodecG711A, make_shared<AudioRtpMap>("PCMA", 8, 8000));
         audio_list_ref.emplace(CodecOpus, make_shared<AudioRtpMap>("opus", 111, 48000));
-        audio_list_ref.emplace(CodecAAC, make_shared<AudioRtpMap>("mpeg4-generic", 96, 48000));
+        audio_list_ref.emplace(CodecAAC, make_shared<AudioRtpMap>("mpeg4-generic", 112, 48000));
 
         video_list_ref.emplace(CodecH264, make_shared<H264RtpMap>(102, 90000, PROFILE_H264_BASELINE));
         video_list_ref.emplace(CodecH264, make_shared<H264RtpMap>(104, 90000, PROFILE_H264_MAIN));
