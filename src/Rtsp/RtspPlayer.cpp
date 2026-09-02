@@ -210,9 +210,12 @@ void RtspPlayer::handleResDESCRIBE(const Parser &parser) {
     if (_content_base.empty()) {
         _content_base = _play_url;
     }
-    if (_content_base.back() == '/') {
-        _content_base.pop_back();
-    }
+    // 保留 Content-Base 末尾斜杠:部分 rtsp 服务器(如 Alltech)对 PLAY 等请求 URL 做精确匹配,
+    // 需要发送与 Content-Base 完全一致的 URL(含末尾斜杠),否则返回 404 或断开连接
+    // SETUP 拼接 track 时由 SdpTrack::getControlUrl 去掉重复斜杠
+    // Keep trailing slash in Content-Base: some RTSP servers (e.g. Alltech) match request URLs exactly,
+    // the PLAY URL must match Content-Base verbatim (including trailing slash), otherwise 404 or disconnect.
+    // Duplicate slashes in SETUP are prevented by SdpTrack::getControlUrl
 
     // 解析sdp  [AUTO-TRANSLATED:ed3f07fe]
     // Parse SDP
@@ -488,6 +491,8 @@ void RtspPlayer::sendPause(int type, uint32_t seekMS) {
     // Start or pause RTSP
     switch (type) {
         case type_pause: sendRtspRequest("PAUSE", _control_url, {}); break;
+        // _content_base 已保留 Content-Base 末尾斜杠,PLAY 直接使用即可
+        // _content_base retains the trailing slash from Content-Base, use it directly for PLAY
         case type_play: sendRtspRequest("PLAY", _content_base); break;
         case type_seek: {
             std::string range_header;
