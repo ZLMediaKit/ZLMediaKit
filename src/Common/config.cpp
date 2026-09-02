@@ -424,6 +424,7 @@ const string kSchema = "schema";
 const string kLatency = "latency";
 const string kPassPhrase = "passPhrase";
 const string kCustomHeader = "custom_header";
+const string kNoRtcEncrypt = "no_rtc_encrypt";
 } // namespace Client
 
 } // namespace mediakit

@@ -1119,7 +1119,9 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const {
             attr->renomination = m.ice_renomination;
             sdp_media.addAttr(attr);
         }
-        sdp_media.addAttr(std::make_shared<SdpAttrFingerprint>(m.fingerprint));
+        if (m.type == TrackApplication || m.proto == "UDP/TLS/RTP/SAVPF") {
+            sdp_media.addAttr(std::make_shared<SdpAttrFingerprint>(m.fingerprint));
+        }
         sdp_media.addAttr(std::make_shared<SdpAttrSetup>(m.role));
         sdp_media.addAttr(std::make_shared<SdpAttrMid>(m.mid));
         if (m.ice_lite) {
@@ -1381,6 +1383,17 @@ const RtcMedia *RtcSession::getMedia(TrackType type) const {
         }
     }
     return nullptr;
+}
+
+bool RtcSession::isEncrypt() const {
+    if (isOnlyDatachannel())
+        return true;
+    for (auto &m : media) {
+        if (m.type == TrackVideo || m.type == TrackAudio) {
+            return (m.proto == "UDP/TLS/RTP/SAVPF");
+        }
+    }
+    return false;
 }
 
 bool RtcSession::supportRtcpFb(const string &name, TrackType type) const {
@@ -1735,7 +1748,7 @@ void RtcConfigure::createMediaOfferEach(const std::shared_ptr<RtcSession> &ret, 
     RtcMedia media;
     media.type = type;
     media.mid = to_string(index);
-    media.proto = "UDP/TLS/RTP/SAVPF";
+    media.proto = _srtp ? "UDP/TLS/RTP/SAVPF" : "RTP/AVPF";
     media.port = 9;//占位符，表示后续协商分配
     // media.addr = ;
     // media.bandwidth = ;
