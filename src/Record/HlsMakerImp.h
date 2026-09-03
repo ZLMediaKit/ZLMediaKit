@@ -11,9 +11,11 @@
 #ifndef HLSMAKERIMP_H
 #define HLSMAKERIMP_H
 
+#include <deque>
 #include <memory>
 #include <string>
 #include <stdlib.h>
+#include <utility>
 #include "HlsMaker.h"
 #include "HlsMediaSource.h"
 
@@ -23,7 +25,7 @@ class HlsMakerImp : public HlsMaker {
 public:
     HlsMakerImp(bool is_fmp4, const std::string &m3u8_file, const std::string &params, uint32_t bufSize = 64 * 1024,
                 float seg_duration = 5, uint32_t seg_number = 3, bool seg_keep = false,
-                const std::string &fmp4_seg_ext = ".mp4");
+                const std::string &fmp4_seg_ext = ".mp4", float seg_max_duration = 0);
     ~HlsMakerImp() override;
 
     /**
@@ -56,14 +58,37 @@ public:
 protected:
     std::string onOpenSegment(uint64_t index) override ;
     void onDelSegment(uint64_t index) override;
-    void onWriteInitSegment(const char *data, size_t len) override;
+    bool onWriteInitSegment(const std::string &candidate_uri, const char *data, size_t len) override;
     void onWriteSegment(const char *data, size_t len) override;
     void onWriteHls(const std::string &data, bool include_delay) override;
-    void onFlushLastSegment(uint64_t duration_ms) override;
+    void onFlushLastSegment(uint64_t duration_ms, bool discontinuity, const std::string &init_segment) override;
 
 private:
+    struct SegmentFileInfo {
+        SegmentFileInfo(uint64_t logical_index, std::string path, std::string init)
+            : index(logical_index), file_path(std::move(path)), init_segment(std::move(init)) {}
+
+        uint64_t index;
+        std::string file_path;
+        std::string init_segment;
+    };
+
+    struct DirSegmentInfo {
+        DirSegmentInfo(uint64_t duration, std::string file, bool discontinuous, std::string init)
+            : duration_ms(duration)
+            , file_name(std::move(file))
+            , discontinuity(discontinuous)
+            , init_segment(std::move(init)) {}
+
+        uint64_t duration_ms;
+        std::string file_name;
+        bool discontinuity;
+        std::string init_segment;
+    };
+
     std::shared_ptr<FILE> makeFile(const std::string &file,bool setbuf = false);
     void clearCache(bool immediately, bool eof);
+    void cleanupDelayPlaylistIfDisabled();
     void saveCurrentDir();
 
 private:
@@ -72,17 +97,20 @@ private:
     std::string _fmp4_seg_ext;
     std::string _path_hls;
     std::string _path_hls_delay;
-    std::string _path_init;
     std::string _path_prefix;
     std::string _current_dir;
-    std::string _current_dir_init_file;
     RecordInfo _info;
     std::shared_ptr<FILE> _file;
     std::shared_ptr<char> _file_buf;
     HlsMediaSource::Ptr _media_src;
     toolkit::EventPoller::Ptr _poller;
-    std::map<uint64_t/*index*/,std::string/*file_path*/> _segment_file_paths;
-    std::deque<std::tuple<int,std::string> > _current_dir_seg_list;
+    bool _delay_playlist_may_exist = true;
+    uint64_t _media_file_index = 0;
+    std::deque<SegmentFileInfo> _segment_files;
+    // VOD/keep 当前 init 是否已被媒体片引用；live/non-keep 从 FIFO 队尾直接判断。
+    // Whether VOD/keep media references the current init; live/non-keep derives this from the FIFO tail.
+    bool _current_init_segment_referenced = false;
+    std::deque<DirSegmentInfo> _current_dir_seg_list;
 };
 
 }//namespace mediakit
