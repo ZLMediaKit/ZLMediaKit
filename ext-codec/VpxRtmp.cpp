@@ -75,7 +75,8 @@ void VpxRtmpDecoder::outputFrame(const char *data, size_t size, uint32_t dts, ui
 
 ////////////////////////////////////////////////////////////////////////
 VpxRtmpEncoder::VpxRtmpEncoder(const Track::Ptr &track) : RtmpCodec(track) {
-    _enhanced = mINI::Instance()[Rtmp::kEnhanced];
+    GET_CONFIG(bool, enhanced, Rtmp::kEnhanced)
+    _enhanced = enhanced;
 }
 
 bool VpxRtmpEncoder::inputFrame(const Frame::Ptr &frame) {

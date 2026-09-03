@@ -53,7 +53,8 @@ void OpusRtmpDecoder::outputFrame(const char *data, size_t size, uint32_t dts, u
 
 ////////////////////////////////////////////////////////////////////////
 OpusRtmpEncoder::OpusRtmpEncoder(const Track::Ptr &track) : RtmpCodec(track) {
-    _enhanced = mINI::Instance()[Rtmp::kEnhanced];
+    GET_CONFIG(bool, enhanced, Rtmp::kEnhanced)
+    _enhanced = enhanced;
 }
 
 bool OpusRtmpEncoder::inputFrame(const Frame::Ptr &frame) {

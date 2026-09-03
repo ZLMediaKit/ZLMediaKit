@@ -27,8 +27,8 @@ MultiCastAddressMaker &MultiCastAddressMaker::Instance() {
 }
 
 bool MultiCastAddressMaker::isMultiCastAddress(uint32_t addr) {
-    static uint32_t addrMin = mINI::Instance()[MultiCast::kAddrMin].as<uint32_t>();
-    static uint32_t addrMax = mINI::Instance()[MultiCast::kAddrMax].as<uint32_t>();
+    GET_CONFIG(uint32_t, addrMin, MultiCast::kAddrMin);
+    GET_CONFIG(uint32_t, addrMax, MultiCast::kAddrMax);
     return addr >= addrMin && addr <= addrMax;
 }
 
