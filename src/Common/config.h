@@ -631,6 +631,9 @@ extern const std::string kBeatIntervalMS;
 // 是否为性能测试模式，性能测试模式开启后不会解析rtp或rtmp包  [AUTO-TRANSLATED:be9a797d]
 // Whether it is performance test mode, performance test mode will not parse RTP or RTMP packets after being turned on
 extern const std::string kBenchmarkMode;
+// 是否关闭webrtc加密
+// Whether disable webrtc encryption
+extern const std::string kNoRtcEncrypt;
 // 播放器在触发播放成功事件时，是否等待所有track ready时再回调  [AUTO-TRANSLATED:73523e6d]
 // Whether the player waits for all tracks to be ready before calling back when triggering the playback success event
 extern const std::string kWaitTrackReady;

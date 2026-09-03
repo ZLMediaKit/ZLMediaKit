@@ -175,6 +175,8 @@ public:
     void connectivityCheckForSFU();
 
     void setOnStartWebRTC(std::function<void()> on_start);
+    void setRtcEncrypt(bool on) { _rtc_encrypt = on; }
+    bool isRtcEncrypt() const { return _rtc_encrypt; }
 
 protected:
     // DtlsTransport::Listener; dtls相关的回调
@@ -262,6 +264,7 @@ private:
 #ifdef ENABLE_SCTP
     RTC::SctpAssociationImp::Ptr _sctp;
 #endif
+    bool _rtc_encrypt = true;
 };
 
 class RtpChannel;

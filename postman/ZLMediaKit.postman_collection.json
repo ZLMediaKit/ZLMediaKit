@@ -760,7 +760,13 @@
 							"value": null,
 							"description": "srt拉流的密码",
 							"disabled": true
-                        }
+						},
+						{
+							"key": "no_rtc_encrypt",
+							"value": null,
+							"description": "是否不加密webrtc",
+							"disabled": true
+						}
 					]
 				}
 			},
@@ -848,7 +854,7 @@
 				}
 			},
 			"response": []
-		},	
+		},
 		{
 			"name": "添加rtsp/rtmp/srt推流(addStreamPusherProxy)",
 			"request": {
@@ -993,7 +999,7 @@
 				}
 			},
 			"response": []
-		},		
+		},
 		{
 			"name": "添加FFmpeg拉流代理(addFFmpegSource)",
 			"request": {

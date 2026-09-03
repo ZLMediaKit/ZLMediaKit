@@ -81,6 +81,10 @@ void WebRtcProxyPlayerImp::startConnect() {
         }
         strong_self->onResult(ex);
     });
+    bool no_enc = (*this)[Client::kNoRtcEncrypt].as<bool>();
+    if (no_enc) {
+        _transport->setRtcEncrypt(false);
+    }
     WebRtcClient::startConnect();
 }
 

@@ -705,6 +705,7 @@ public:
     bool supportRtcpFb(const std::string &name, TrackType type = TrackType::TrackVideo) const;
     bool supportSimulcast() const;
     bool isOnlyDatachannel() const;
+    bool isEncrypt() const;
 
 private:
     RtcSessionSdp::Ptr toRtcSessionSdp() const;
@@ -754,6 +755,7 @@ public:
 
     void enableTWCC(bool enable = true, TrackType type = TrackInvalid);
     void enableREMB(bool enable = true, TrackType type = TrackInvalid);
+    void enableSrtp(bool enable) { _srtp = enable; }
 
 private:
     void createMediaOffer(const std::shared_ptr<RtcSession> &ret) const;
@@ -765,6 +767,7 @@ private:
 private:
     RtcCodecPlan::Ptr _rtsp_video_plan;
     RtcCodecPlan::Ptr _rtsp_audio_plan;
+    bool _srtp = true;
 };
 
 class SdpConst {
