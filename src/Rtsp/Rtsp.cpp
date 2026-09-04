@@ -135,6 +135,12 @@ string SdpTrack::getControlUrl(const string &base_url) const {
         // Starts with rtsp://
         return _control;
     }
+    // base_url 已以 '/' 结尾时不再追加分隔符，避免拼接出双斜杠，同时保留多个末尾斜杠的路径语义
+    // When base_url ends with '/', avoid appending an extra separator to prevent double slash,
+    // while preserving the path semantics of multiple trailing slashes
+    if (!base_url.empty() && base_url.back() == '/') {
+        return base_url + _control;
+    }
     return base_url + "/" + _control;
 }
 
