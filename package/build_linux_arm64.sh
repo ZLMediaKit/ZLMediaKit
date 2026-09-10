@@ -5,7 +5,10 @@ set -euxo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
 if command -v apt-get >/dev/null 2>&1; then
-  apt-get update
+  if ! apt-get update; then
+    # Debian bullseye security metadata may expire on mirrors in CI environments.
+    apt-get -o Acquire::Check-Valid-Until=false -o Acquire::Check-Date=false update
+  fi
   apt-get install -y --no-install-recommends \
     git wget ca-certificates gcc g++ make perl python3 \
     tar gzip xz-utils pkg-config zlib1g-dev
