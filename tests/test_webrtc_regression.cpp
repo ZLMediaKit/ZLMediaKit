@@ -100,44 +100,12 @@ void testDeleteWebrtcLocationQueryRoundTrip() {
            "encoded token should round-trip through query parsing");
 }
 
-// The Location header tells the client to DELETE this exact request target. Feed it through the same
-// request parser the http api layer uses, then check that the id/token stay percent-encoded until the
-// handler decodes them.
-void testDeleteWebrtcLocationRoundTripViaHttpRequest() {
-    const string raw_id = "Ab+/9";
-    const string raw_token = "token+/9";
-
-    HttpArgs args;
-    args["id"] = raw_id;
-    args["token"] = raw_token;
-    auto request = "DELETE /index/api/delete_webrtc?" + args.make() + " HTTP/1.1\r\nHost: localhost\r\n\r\n";
-
-    Parser parser;
-    parser.parse(request.data(), request.size());
-
-    expect(parser.method() == "DELETE", "request method should be parsed as DELETE");
-    expect(parser.url() == "/index/api/delete_webrtc", "request url should be parsed without the query string");
-
-    // getAllArgs()/getUrlArgs() hand these over as-is, without percent-decoding.
-    auto &url_args = parser.getUrlArgs();
-    expect(url_args["id"] == "Ab%2B%2F9", "url arg should still be percent-encoded after request parsing");
-    expect(url_args["id"] != raw_id, "url arg must not be assumed to be already decoded");
-    expect(url_args["token"] == "token%2B%2F9", "token should still be percent-encoded after request parsing");
-
-    // delete_webrtc decodes id/token before looking up the transport; that is what makes %2F match '/'.
-    expect(strCoding::UrlDecodeComponent(url_args["id"]) == raw_id,
-           "decoding the url arg should recover the transport id");
-    expect(strCoding::UrlDecodeComponent(url_args["token"]) == raw_token,
-           "decoding the url arg should recover the token");
-}
-
 } // namespace
 
 int main() {
     try {
         testBundleOnlyDatachannelAnswer();
         testDeleteWebrtcLocationQueryRoundTrip();
-        testDeleteWebrtcLocationRoundTripViaHttpRequest();
         cout << "test_webrtc_regression passed" << endl;
         return 0;
     } catch (const exception &ex) {

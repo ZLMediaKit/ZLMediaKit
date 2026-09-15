@@ -2239,16 +2239,12 @@ void installWebApi() {
     api_regist(delete_webrtc_url, [](API_ARGS_MAP_ASYNC) {
         CHECK_ARGS("id", "token");
         CHECK(allArgs.parser.method() == "DELETE", "http method is not DELETE: " + allArgs.parser.method());
-        // The Location header percent-encodes id/token (the transport id contains the ICE-safe '/'
-        // separator), so decode them before matching against the transport manager.
-        auto id = strCoding::UrlDecodeComponent(allArgs["id"]);
-        auto token = strCoding::UrlDecodeComponent(allArgs["token"]);
-        auto obj = WebRtcTransportManager::Instance().getItem(id);
+        auto obj = WebRtcTransportManager::Instance().getItem(allArgs["id"]);
         if (!obj) {
             invoker(404, headerOut, "id not found");
             return;
         }
-        if (obj->deleteRandStr() != token) {
+        if (obj->deleteRandStr() != allArgs["token"]) {
             invoker(401, headerOut, "token incorrect");
             return;
         }
