@@ -44,21 +44,30 @@ if command -v apt-get >/dev/null 2>&1; then
     # architecture with no separator, concatenating them into an invalid version string
     installed_list="$(dpkg-query -W -f='${db:Status-Abbrev}|${binary:Package}|${Version}\n' \
       | awk -F'|' '$1 ~ /^ii/ {print $2"|"$3}')"
-    downgrades=""
+    realign=""
     while IFS='|' read -r pkg installed; do
       [ -n "${pkg}" ] || continue
-      # apt-cache 的输出会随 locale 变化，固定为 C 以便匹配 Candidate 字段
-      # apt-cache output is localized, so pin the locale to C to match the Candidate field
-      candidate="$(LC_ALL=C apt-cache policy "${pkg}" 2>/dev/null | awk '/Candidate:/{print $2}' || true)"
-      if [ -n "${candidate}" ] && [ "${candidate}" != "(none)" ] && [ "${candidate}" != "${installed}" ]; then
-        downgrades="${downgrades} ${pkg}=${candidate}"
+      # 不能用 apt-cache policy 的 Candidate：它表示"apt 会选用的版本"，而 apt 默认不降级，
+      # 对已装版本高于源的包它恒等于已装版本，比对将永远相等。
+      # madison 只列出源中实际提供的版本(按版本降序)，取其首行才是源里的可用版本。
+      # apt-cache 的输出随 locale 变化，固定为 C 以稳定解析。
+      # The Candidate from apt-cache policy cannot be used: it denotes the version apt would
+      # select, and since apt never downgrades on its own it equals the installed version
+      # whenever that outranks the archive, making every comparison match.
+      # madison lists only what the configured sources actually offer (newest first), so its
+      # first row is the version available from the archive.
+      # apt-cache output is localized, so pin the locale to C for stable parsing.
+      available="$(LC_ALL=C apt-cache madison "${pkg}" 2>/dev/null \
+        | awk -F'|' 'NR==1{gsub(/ /,"",$2); print $2}' || true)"
+      if [ -n "${available}" ] && [ "${available}" != "${installed}" ]; then
+        realign="${realign} ${pkg}=${available}"
       fi
     done <<INSTALLED_LIST
 ${installed_list}
 INSTALLED_LIST
     set -x
-    if [ -n "${downgrades}" ]; then
-      apt-get install -y --allow-downgrades ${downgrades}
+    if [ -n "${realign}" ]; then
+      apt-get install -y --allow-downgrades ${realign}
     fi
   else
     apt-get update
