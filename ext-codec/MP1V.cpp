@@ -11,6 +11,7 @@
 #include "MP1V.h"
 #include "MP2VRtp.h"
 #include "Extension/Factory.h"
+#include "Rtsp/Rtsp.h"
 
 using namespace std;
 using namespace toolkit;
@@ -37,9 +38,9 @@ bool MP1VTrack::inputFrame(const Frame::Ptr &frame) {
 }
 
 Sdp::Ptr MP1VTrack::getSdp(uint8_t pt) const {
-    // 当前只接通 TS/PS；静态 RTP PT 32 仍由 CodecMP2V 表示，不能在此伪装成完整 RTSP 支持。
-    // Only TS/PS is wired for now; static RTP PT 32 still maps to CodecMP2V.
-    return nullptr;
+    // RFC 3551 分配静态 MPV PT 32；RFC 2250 规定 MPEG-1/2 共用该负载并由 ES sequence header 区分。
+    // RFC 3551 assigns static MPV PT 32; RFC 2250 shares it between MPEG-1/2 and distinguishes them by ES sequence header.
+    return std::make_shared<DefaultSdp>(Rtsp::PT_MPV, *this);
 }
 
 namespace {
