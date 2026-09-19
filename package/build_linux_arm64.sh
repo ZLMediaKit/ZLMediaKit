@@ -5,6 +5,25 @@ set -euxo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
 if command -v apt-get >/dev/null 2>&1; then
+  # Debian 11(bullseye)已结束支持，deb.debian.org 不再保留其软件包，apt-get 会因 404 整体失败。
+  # 归档站仅保留主仓库：bullseye-updates 为空、bullseye-security 尚未归档，故只配置 main 一条。
+  # 仅在 debian:11 容器内改写，避免影响其它发行版或原生 arm64 主机。
+  # Debian 11 (bullseye) is end-of-life and deb.debian.org no longer serves its packages, so
+  # apt-get fails outright with 404. The archive keeps the main suite only: bullseye-updates is
+  # empty and bullseye-security is not archived, hence the single entry below.
+  # Rewrite it only inside a debian:11 container, never on other releases or a native arm64 host.
+  OS_TAG=""
+  if [ -r /etc/os-release ]; then
+    OS_TAG="$(. /etc/os-release && echo "${ID:-}-${VERSION_ID:-}")"
+  fi
+  if [ "${OS_TAG}" = "debian-11" ]; then
+    echo "deb http://archive.debian.org/debian bullseye main" > /etc/apt/sources.list
+    rm -f /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
+    # 归档快照的 Release 早已超出有效期，需要放行该校验，否则 apt-get update 仍会拒绝
+    # The archived Release is long past its Valid-Until, so that check must be relaxed
+    # or apt-get update still refuses the repository
+    echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99archive-no-check-valid-until
+  fi
   apt-get update
   apt-get install -y --no-install-recommends \
     git wget ca-certificates gcc g++ make perl python3 \
