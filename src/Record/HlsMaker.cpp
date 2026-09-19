@@ -8,13 +8,50 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
+#include <cstdio>
+#include <ctime>
 #include <iomanip>
 #include "HlsMaker.h"
 #include "Common/config.h"
+#include "Util/util.h"
 
 using namespace std;
+using namespace toolkit;
 
 namespace mediakit {
+
+namespace {
+
+// 将毫秒级系统时间格式化为EXT-X-PROGRAM-DATE-TIME所需的ISO 8601字符串(UTC)
+// 形如 2010-02-19T14:54:23.031Z，格式要求见RFC 8216第4.3.2.6节
+// Format wall-clock milliseconds as the ISO 8601 string required by EXT-X-PROGRAM-DATE-TIME (UTC)
+// e.g. 2010-02-19T14:54:23.031Z, as specified in RFC 8216 section 4.3.2.6
+string toProgramDateTimeStr(uint64_t wall_clock_ms) {
+    // 统一以UTC输出(尾缀Z)，避免依赖进程启动时刻的时区快照：
+    // ZLToolKit的getGMTOff()不含夏令时修正，且在夏令时切换后不会刷新，会导致标注的偏移与实际时刻错位
+    // Always emit UTC (with the trailing Z) instead of relying on the timezone snapshot taken at startup:
+    // ZLToolKit's getGMTOff() excludes the DST correction and is never refreshed across DST transitions,
+    // which would make the declared offset disagree with the actual instant
+    auto sec = (time_t)(wall_clock_ms / 1000);
+    struct tm tm_utc;
+#if defined(_WIN32)
+    gmtime_s(&tm_utc, &sec);
+#else
+    gmtime_r(&sec, &tm_utc);
+#endif
+    char buf[32];
+    auto len = strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S", &tm_utc);
+    if (!len) {
+        // 理论上不会发生，缓冲区足以容纳固定长度的日期时间
+        // Should never happen; the buffer is large enough for the fixed-length date-time
+        return "";
+    }
+    char msec[8];
+    snprintf(msec, sizeof(msec), ".%03dZ", (int)(wall_clock_ms % 1000));
+    return string(buf, len) + msec;
+}
+
+} // namespace
 
 HlsMaker::HlsMaker(bool is_fmp4, float seg_duration, uint32_t seg_number, bool seg_keep) {
     _is_fmp4 = is_fmp4;
@@ -28,17 +65,16 @@ HlsMaker::HlsMaker(bool is_fmp4, float seg_duration, uint32_t seg_number, bool s
 void HlsMaker::makeIndexFile(bool include_delay, bool eof) {
     GET_CONFIG(uint32_t, segDelay, Hls::kSegmentDelay);
     GET_CONFIG(uint32_t, segRetain, Hls::kSegmentRetain);
-    std::deque<std::tuple<int, std::string>> temp(_seg_dur_list);
+    std::deque<HlsSegmentInfo> temp(_seg_dur_list);
     if (!include_delay && _seg_number) {
         while (temp.size() > _seg_number) {
             temp.pop_front();
         }
     }
     int maxSegmentDuration = 0;
-    for (auto &tp : temp) {
-        int dur = std::get<0>(tp);
-        if (dur > maxSegmentDuration) {
-            maxSegmentDuration = dur;
+    for (auto &info : temp) {
+        if (info.duration_ms > maxSegmentDuration) {
+            maxSegmentDuration = info.duration_ms;
         }
     }
     uint64_t index_seq;
@@ -76,8 +112,13 @@ void HlsMaker::makeIndexFile(bool include_delay, bool eof) {
     }
 
     stringstream ss;
-    for (auto &tp : temp) {
-        ss << "#EXTINF:" << std::setprecision(3) << std::get<0>(tp) / 1000.0 << ",\n" << std::get<1>(tp) << "\n";
+    for (auto &info : temp) {
+        // EXT-X-PROGRAM-DATE-TIME只作用于其后的第一个切片，故每个切片前都写入
+        // EXT-X-PROGRAM-DATE-TIME applies only to the next segment, so write it before each one
+        if (!info.program_date_time.empty()) {
+            ss << "#EXT-X-PROGRAM-DATE-TIME:" << info.program_date_time << "\n";
+        }
+        ss << "#EXTINF:" << std::setprecision(3) << info.duration_ms / 1000.0 << ",\n" << info.name << "\n";
     }
     index_str += ss.str();
 
@@ -156,6 +197,9 @@ void HlsMaker::addNewSegment(uint64_t stamp) {
     // 记录本次切片的起始时间戳  [AUTO-TRANSLATED:8eb776e9]
     // Record the starting timestamp of this slice
     _last_seg_timestamp = _last_timestamp ? _last_timestamp : stamp;
+    // 同时记录起始的服务器系统时间，用于生成EXT-X-PROGRAM-DATE-TIME
+    // Also record the starting wall-clock time, used to generate EXT-X-PROGRAM-DATE-TIME
+    _last_seg_wall_clock = getCurrentMillisecond(true);
 }
 
 void HlsMaker::flushLastSegment(bool eof){
@@ -171,7 +215,9 @@ void HlsMaker::flushLastSegment(bool eof){
     if (seg_dur <= 0) {
         seg_dur = 100;
     }
-    _seg_dur_list.emplace_back(seg_dur, std::move(_last_file_name));
+    GET_CONFIG(bool, program_date_time, Hls::kProgramDateTime);
+    _last_seg_date_time = program_date_time ? toProgramDateTimeStr(_last_seg_wall_clock) : string();
+    _seg_dur_list.push_back(HlsSegmentInfo { (int)seg_dur, std::move(_last_file_name), _last_seg_date_time });
     delOldSegment();
     // 先flush ts切片，否则可能存在ts文件未写入完毕就被访问的情况  [AUTO-TRANSLATED:f8d6dc87]
     // Flush the ts slice first, otherwise there may be a situation where the ts file is not written completely before it is accessed
@@ -184,6 +230,10 @@ void HlsMaker::flushLastSegment(bool eof){
     if (segDelay) {
         makeIndexFile(true, eof);
     }
+}
+
+const string &HlsMaker::getLastSegmentDateTime() const {
+    return _last_seg_date_time;
 }
 
 bool HlsMaker::isLive() const {
@@ -202,6 +252,8 @@ void HlsMaker::clear() {
     _file_index = 0;
     _last_timestamp = 0;
     _last_seg_timestamp = 0;
+    _last_seg_wall_clock = 0;
+    _last_seg_date_time.clear();
     _seg_dur_list.clear();
     _last_file_name.clear();
 }

@@ -118,10 +118,9 @@ void HlsMakerImp::saveCurrentDir() {
     }
 
     int maxSegmentDuration = 0;
-    for (auto &tp : _current_dir_seg_list) {
-        int dur = std::get<0>(tp);
-        if (dur > maxSegmentDuration) {
-            maxSegmentDuration = dur;
+    for (auto &info : _current_dir_seg_list) {
+        if (info.duration_ms > maxSegmentDuration) {
+            maxSegmentDuration = info.duration_ms;
         }
     }
 
@@ -136,8 +135,13 @@ void HlsMakerImp::saveCurrentDir() {
         index_str += "#EXT-X-MAP:URI=\"init.mp4\"\n";
     }
     stringstream ss;
-    for (auto &t : _current_dir_seg_list) {
-        ss << "#EXTINF:" << std::setprecision(3) << std::get<0>(t) / 1000.0 << ",\n" << std::get<1>(t) << "\n";
+    for (auto &info : _current_dir_seg_list) {
+        // EXT-X-PROGRAM-DATE-TIME只作用于其后的第一个切片，故每个切片前都写入
+        // EXT-X-PROGRAM-DATE-TIME applies only to the next segment, so write it before each one
+        if (!info.program_date_time.empty()) {
+            ss << "#EXT-X-PROGRAM-DATE-TIME:" << info.program_date_time << "\n";
+        }
+        ss << "#EXTINF:" << std::setprecision(3) << info.duration_ms / 1000.0 << ",\n" << info.name << "\n";
     }
     _current_dir_seg_list.clear();
     index_str += ss.str();
@@ -237,7 +241,8 @@ void HlsMakerImp::onFlushLastSegment(uint64_t duration_ms) {
     // Close and flush file to disk
     _file = nullptr;
     if (!isLive() || isKeep()) {
-        _current_dir_seg_list.emplace_back(duration_ms, _info.file_name.erase(0, _current_dir.size()));
+        _current_dir_seg_list.push_back(
+            HlsSegmentInfo { (int)duration_ms, _info.file_name.erase(0, _current_dir.size()), getLastSegmentDateTime() });
     }
     GET_CONFIG(bool, broadcastRecordTs, Hls::kBroadcastRecordTs);
     if (broadcastRecordTs) {

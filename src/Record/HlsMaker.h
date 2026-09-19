@@ -13,10 +13,25 @@
 
 #include <string>
 #include <deque>
-#include <tuple>
 #include <cstdint>
 
 namespace mediakit {
+
+// m3u8索引中单个切片的元信息
+// Metadata of a single segment in the m3u8 index
+struct HlsSegmentInfo {
+    // 切片时长，单位毫秒
+    // Segment duration in milliseconds
+    int duration_ms;
+    // 切片文件名(相对m3u8的路径)
+    // Segment file name (path relative to the m3u8)
+    std::string name;
+    // 切片首帧对应的服务器系统时间，已格式化为EXT-X-PROGRAM-DATE-TIME的取值
+    // 未开启该标签时为空串。索引文件会被反复生成，故在切片入列时只格式化一次
+    // The segment's first-sample wall-clock time, pre-formatted as the EXT-X-PROGRAM-DATE-TIME value.
+    // Empty when the tag is disabled. The index is rebuilt repeatedly, so it is formatted once on insert
+    std::string program_date_time;
+};
 
 class HlsMaker {
 public:
@@ -170,6 +185,14 @@ protected:
      */
     void flushLastSegment(bool eof);
 
+    /**
+     * 获取刚结束切片已格式化的EXT-X-PROGRAM-DATE-TIME取值，未开启该标签时为空串
+     * 仅在onFlushLastSegment()回调期间有效
+     * Get the pre-formatted EXT-X-PROGRAM-DATE-TIME value of the segment that just ended;
+     * empty when the tag is disabled. Only valid during the onFlushLastSegment() callback
+     */
+    const std::string &getLastSegmentDateTime() const;
+
 private:
     /**
      * 生成m3u8文件
@@ -206,9 +229,16 @@ private:
     bool _seg_keep = false;
     uint64_t _last_timestamp = 0;
     uint64_t _last_seg_timestamp = 0;
+    // 当前切片首帧对应的服务器系统时间，单位毫秒
+    // Wall-clock time of the current segment's first sample, in milliseconds
+    uint64_t _last_seg_wall_clock = 0;
+    // 刚结束切片已格式化的EXT-X-PROGRAM-DATE-TIME取值，供onFlushLastSegment()期间取用
+    // Pre-formatted EXT-X-PROGRAM-DATE-TIME value of the segment that just ended,
+    // consumed during the onFlushLastSegment() callback
+    std::string _last_seg_date_time;
     uint64_t _file_index = 0;
     std::string _last_file_name;
-    std::deque<std::tuple<int,std::string> > _seg_dur_list;
+    std::deque<HlsSegmentInfo> _seg_dur_list;
 };
 
 }//namespace mediakit

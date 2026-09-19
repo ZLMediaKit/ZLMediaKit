@@ -82,7 +82,7 @@ private:
     HlsMediaSource::Ptr _media_src;
     toolkit::EventPoller::Ptr _poller;
     std::map<uint64_t/*index*/,std::string/*file_path*/> _segment_file_paths;
-    std::deque<std::tuple<int,std::string> > _current_dir_seg_list;
+    std::deque<HlsSegmentInfo> _current_dir_seg_list;
 };
 
 }//namespace mediakit
