@@ -23,9 +23,20 @@ if command -v apt-get >/dev/null 2>&1; then
     # The archived Release is long past its Valid-Until, so that check must be relaxed
     # or apt-get update still refuses the repository
     echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99archive-no-check-valid-until
+    apt-get update
+    # 镜像内预装的包来自 bullseye-security，版本高于归档主仓库(如 libc6 u14 对 u11)。
+    # 该仓库的索引虽在、软件包却已下线，无法再取到这些版本；而 libc6-dev、perl 均要求
+    # 与 libc6、perl-base 精确同版本，故必须先把已装包降级对齐到归档主仓库再安装。
+    # The image ships packages from bullseye-security whose versions outrank the archived main
+    # suite (e.g. libc6 u14 vs u11). That suite still serves indexes but no longer serves the
+    # packages themselves, so those versions are unobtainable; since libc6-dev and perl demand
+    # an exact version match against libc6 and perl-base, the installed set must be downgraded
+    # onto the archive before anything can be installed.
+    apt-get -y --allow-downgrades dist-upgrade
+  else
+    apt-get update
   fi
-  apt-get update
-  apt-get install -y --no-install-recommends \
+  apt-get install -y --no-install-recommends --allow-downgrades \
     git wget ca-certificates gcc g++ make perl python3 \
     tar gzip xz-utils pkg-config zlib1g-dev
 elif command -v yum >/dev/null 2>&1; then
