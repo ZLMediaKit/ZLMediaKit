@@ -29,6 +29,13 @@ jobs:
           cmakeAppendedArgs: ''
           cmakeBuildType: 'Release'
 
+      - name: 执行门禁用例
+        working-directory: '${{github.workspace}}/build'
+        # 门禁用例见 tests/CMakeLists.txt 的 GATING_TESTS。多配置生成器需以 -C 指定配置
+        # Gating cases are listed in GATING_TESTS in tests/CMakeLists.txt.
+        # Multi-config generators require the configuration to be given with -C
+        run: ctest -C Release --output-on-failure
+
       - name: 设置环境变量
         run: |
           $dateString = Get-Date -Format "yyyy-MM-dd"
