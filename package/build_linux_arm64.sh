@@ -25,14 +25,41 @@ if command -v apt-get >/dev/null 2>&1; then
     echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99archive-no-check-valid-until
     apt-get update
     # 镜像内预装的包来自 bullseye-security，版本高于归档主仓库(如 libc6 u14 对 u11)。
-    # 该仓库的索引虽在、软件包却已下线，无法再取到这些版本；而 libc6-dev、perl 均要求
-    # 与 libc6、perl-base 精确同版本，故必须先把已装包降级对齐到归档主仓库再安装。
+    # 该仓库的索引虽在、软件包却已下线(其 pool 下的 deb 均返回 404)，这些版本已无处可取；
+    # 而 libc6-dev、perl 都要求与 libc6、perl-base 精确同版本，故须先把已装包对齐到归档主仓库。
+    # dist-upgrade 只做升级、不会主动降级(--allow-downgrades 仅是放行降级动作)，
+    # 因此逐个比对已装版本与候选版本，显式降级存在差异者。
     # The image ships packages from bullseye-security whose versions outrank the archived main
     # suite (e.g. libc6 u14 vs u11). That suite still serves indexes but no longer serves the
-    # packages themselves, so those versions are unobtainable; since libc6-dev and perl demand
-    # an exact version match against libc6 and perl-base, the installed set must be downgraded
-    # onto the archive before anything can be installed.
-    apt-get -y --allow-downgrades dist-upgrade
+    # packages themselves (its pool returns 404), so those versions are unobtainable; since
+    # libc6-dev and perl demand an exact version match against libc6 and perl-base, the installed
+    # set must first be aligned onto the archive. dist-upgrade only upgrades and never downgrades
+    # on its own (--allow-downgrades merely permits the action), so compare the installed version
+    # against the candidate for each package and downgrade the ones that differ.
+    set +x
+    # 包名取 ${binary:Package} 以带上架构后缀，并与版本一次查出：
+    # 若按包名二次查询，multi-arch 包会返回多条记录且无分隔，版本串会被拼接成非法值
+    # Take ${binary:Package} so the architecture suffix is kept, and read the version in the
+    # same query: looking the version up by bare name afterwards returns one record per
+    # architecture with no separator, concatenating them into an invalid version string
+    installed_list="$(dpkg-query -W -f='${db:Status-Abbrev}|${binary:Package}|${Version}\n' \
+      | awk -F'|' '$1 ~ /^ii/ {print $2"|"$3}')"
+    downgrades=""
+    while IFS='|' read -r pkg installed; do
+      [ -n "${pkg}" ] || continue
+      # apt-cache 的输出会随 locale 变化，固定为 C 以便匹配 Candidate 字段
+      # apt-cache output is localized, so pin the locale to C to match the Candidate field
+      candidate="$(LC_ALL=C apt-cache policy "${pkg}" 2>/dev/null | awk '/Candidate:/{print $2}' || true)"
+      if [ -n "${candidate}" ] && [ "${candidate}" != "(none)" ] && [ "${candidate}" != "${installed}" ]; then
+        downgrades="${downgrades} ${pkg}=${candidate}"
+      fi
+    done <<INSTALLED_LIST
+${installed_list}
+INSTALLED_LIST
+    set -x
+    if [ -n "${downgrades}" ]; then
+      apt-get install -y --allow-downgrades ${downgrades}
+    fi
   else
     apt-get update
   fi
