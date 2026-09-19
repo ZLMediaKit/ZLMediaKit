@@ -25,6 +25,20 @@ aux_source_directory(. TEST_SRC_LIST)
 
 find_package(PCAP QUIET)
 
+# 门禁用例白名单：仅收录不依赖网络、命令行参数与外部文件，且执行完即以退出码
+# 表明结果的测试程序。本目录其余程序多为服务型或压测工具(运行后不会自行退出)，
+# 全量注册会使 ctest 永远挂起，故采用白名单而非自动收录。
+# Gating test whitelist: only programs that need no network, no command-line arguments and no
+# external files, and that finish on their own and report the outcome through the exit code.
+# Most of the other programs here are long-running services or benchmarks that never exit by
+# themselves, so registering everything would hang ctest; hence a whitelist rather than
+# automatic discovery.
+set(GATING_TESTS
+  test_amf
+  test_sortor
+  test_ts_splitter
+  test_mp4_muxer_video_dimension)
+
 foreach(TEST_SRC ${TEST_SRC_LIST})
   get_filename_component(TEST_EXE_NAME ${TEST_SRC} NAME_WE)
 
@@ -59,6 +73,13 @@ foreach(TEST_SRC ${TEST_SRC_LIST})
     target_link_libraries(${TEST_EXE_NAME} -Wl,--start-group ${MK_LINK_LIBRARIES} -Wl,--end-group)
   else()
     target_link_libraries(${TEST_EXE_NAME} ${MK_LINK_LIBRARIES})
+  endif()
+
+  if(${TEST_EXE_NAME} IN_LIST GATING_TESTS)
+    add_test(NAME ${TEST_EXE_NAME} COMMAND ${TEST_EXE_NAME})
+    # 单个用例正常在秒级内结束，超时即判失败，避免卡住整条流水线
+    # A single case finishes within seconds; time out instead of stalling the pipeline
+    set_tests_properties(${TEST_EXE_NAME} PROPERTIES TIMEOUT 120)
   endif()
 endforeach()
 
