@@ -10,6 +10,7 @@
 
 #include "Common/config.h"
 #include "Common/Parser.h"
+#include "Util/onceToken.h"
 #include "WebRtcClient.h"
 
 using namespace std;
@@ -156,7 +157,9 @@ void WebRtcClient::doNegotiateWhepOrWhip() {
     requester->addHeader("Content-Type", "application/sdp");
     requester->setRequestKeepAlive(false);
     requester->setBody(std::move(offer_sdp));
-    requester->startRequester(_url._negotiate_url, [weak_self, requester](const toolkit::SockException &ex, const Parser &response) {
+    requester->startRequester(_url._negotiate_url, [weak_self, requester](const toolkit::SockException &ex, const Parser &response) mutable {
+        // 回调结束即释放自持有的requester，显式打断循环引用
+        onceToken token(nullptr, [&]() mutable { requester.reset(); });
         auto strong_self = weak_self.lock();
         if (!strong_self) {
             return;
@@ -281,13 +284,20 @@ void WebRtcClient::doByeWhepOrWhip() {
     auto requester = make_shared<HttpRequester>();
     requester->setMethod("DELETE");
     requester->setRequestKeepAlive(false);
-    requester->startRequester(_url._delete_url, [requester](const toolkit::SockException &ex, const Parser &response) {
-        if (ex) {
-            WarnL << "network err:" << ex;
-            return;
-        }
-        DebugL << "status:" << response.status();
-    }, getTimeOutSec());
+    try {
+        requester->startRequester(_url._delete_url, [requester](const toolkit::SockException &ex, const Parser &response) mutable {
+            // 回调结束即释放自持有的requester，显式打断循环引用
+            onceToken token(nullptr, [&]() mutable { requester.reset(); });
+            if (ex) {
+                WarnL << "network err:" << ex;
+                return;
+            }
+            DebugL << "status:" << response.status();
+        }, getTimeOutSec());
+    } catch (std::exception &ex) {
+        // doBye()可能在~WebRtcClient()(noexcept)中被调用，吞掉异常防止std::terminate
+        WarnL << "send delete_webrtc request failed:" << ex.what();
+    }
 }
 
 float WebRtcClient::getTimeOutSec() {
