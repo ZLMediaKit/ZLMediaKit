@@ -728,23 +728,23 @@ bool IceServer::hasAllocation() const {
 
 void IceServer::removeRelayedSessions() {
     for (const auto& relayed_pair : _relayed_pairs) {
-        IceServer::Ptr strong_session;
-        {
-            std::lock_guard<std::mutex> lck(s_relayed_session_mutex);
-            auto it = _relayed_session.find(relayed_pair.first);
-            if (it == _relayed_session.end()) {
-                continue;
-            }
-
-            strong_session = it->second.lock();
-            if (!strong_session || strong_session.get() == this) {
-                _relayed_session.erase(it);
-            }
+        std::lock_guard<std::mutex> lck(s_relayed_session_mutex);
+        auto it = _relayed_session.find(relayed_pair.first);
+        if (it == _relayed_session.end()) {
+            continue;
+        }
+        // 仅当注册表条目已失效或仍指向本会话时才删除，避免误删其他实例的新分配
+        auto strong_session = it->second.lock();
+        if (!strong_session || strong_session.get() == this) {
+            _relayed_session.erase(it);
         }
     }
 }
 
 void IceServer::releaseAllocation() {
+    if (_relayed_pairs.empty() && !_allocation_update_time) {
+        return;
+    }
     removeRelayedSessions();
     _relayed_pairs.clear();
     _permissions.clear();
@@ -752,6 +752,13 @@ void IceServer::releaseAllocation() {
     _channel_binding_times.clear();
     _allocation_update_time = 0;
     _allocation_transaction_id.clear();
+}
+
+void IceServer::touchAllocation() {
+    // relay 数据面有流量即视为活跃，刷新存活时间，避免正在使用的转发被超时中断
+    if (!_relayed_pairs.empty()) {
+        _allocation_update_time = toolkit::getCurrentMillisecond();
+    }
 }
 
 void IceServer::checkAllocationTimeout() {
@@ -785,6 +792,9 @@ void IceServer::processRelayPacket(const Buffer::Ptr &buffer, const Pair::Ptr& p
         WarnL << "No active ICE session pair for relayed packet";
         return;
     }
+
+    // peer -> relay 方向的数据活动，同样作为 allocation 保活信号
+    touchAllocation();
 
     auto forward_pair = std::make_shared<Pair>(session_pair->_socket, pair->_socket->get_peer_ip(), pair->_socket->get_peer_port());
     uint16_t channel_number;
@@ -1163,6 +1173,9 @@ void IceServer::relayBackingData(const toolkit::Buffer::Ptr& buffer, const Pair:
         WarnL << "not relayed addr for peer addr: " << addrToStr(addr);
         return;
     }
+
+    // client -> relay 方向的数据活动，作为 allocation 保活信号
+    touchAllocation();
 
     auto forward_pair = std::make_shared<Pair>(it->second.second->_socket,
         SockUtil::inet_ntoa((const struct sockaddr *)&peer_addr), SockUtil::inet_port((const struct sockaddr *)&peer_addr));

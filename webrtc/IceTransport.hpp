@@ -449,6 +449,8 @@ protected:
     void releaseAllocation();
     void removeRelayedSessions();
     void checkAllocationTimeout();
+    // 数据面活动保活:刷新 allocation 存活时间，避免活跃转发被超时中断
+    void touchAllocation();
 
 protected:
     std::vector<toolkit::BufferLikeString> _nonce_list;
