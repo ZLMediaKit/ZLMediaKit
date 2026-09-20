@@ -912,7 +912,8 @@ void installWebApi() {
                 continue;
 #endif
             }
-            if (pr.first == FFmpeg::kBin || pr.first == FFmpeg::kSnap) {
+            if (pr.first == FFmpeg::kBin || pr.first == FFmpeg::kSnap || pr.first == API::kDownloadRoot) {
+                // downloadRoot 决定 downloadFile 接口的可下载边界，禁止通过 setServerConfig 动态放宽，防止越权读取任意文件
                 WarnL << "Configuration named " << pr.first << " is not allowed to be set by setServerConfig api.";
                 continue;
             }
@@ -2430,6 +2431,10 @@ void installWebApi() {
         auto vec = toolkit::split(str, ";");
         for (auto &item : vec) {
             auto root = File::absolutePath("", item, true);
+            // 统一规范为以 '/' 结尾的目录边界，避免 www_secret 之类同级目录被 www 前缀误匹配（路径边界混淆）
+            if (root.empty() || root.back() != '/') {
+                root.push_back('/');
+            }
             ret.emplace(std::move(root));
         }
         return ret;
@@ -2445,6 +2450,7 @@ void installWebApi() {
         }
         bool safe = false;
         for (auto &root : download_roots) {
+            // download_roots 中的 root 均以 '/' 结尾，此处按目录边界匹配，杜绝前缀混淆
             if (start_with(file_path, root)) {
                 safe = true;
                 break;
