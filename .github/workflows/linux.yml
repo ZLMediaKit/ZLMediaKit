@@ -97,6 +97,9 @@ jobs:
           cd ../../
         
           mkdir -p linux_build && cd linux_build && cmake .. -DOPENSSL_ROOT_DIR=/root/install -DCMAKE_BUILD_TYPE=Release && make -j $(nproc)
+          # 执行门禁用例(见 tests/CMakeLists.txt 的 GATING_TESTS)，失败则中断流水线
+          # Run the gating cases (see GATING_TESTS in tests/CMakeLists.txt); a failure breaks the pipeline
+          ctest --output-on-failure
         "
 
     - name: 设置环境变量
@@ -115,7 +118,7 @@ jobs:
         retention-days: 90
 
     - name: issue评论
-      if: github.event_name != 'pull_request' && github.ref != 'refs/heads/feature/test'
+      if: github.event_name != 'pull_request' && github.ref != 'refs/heads/feature/test' && vars.VERSION_ISSUE_NO != ''
       uses: actions/github-script@v7
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
