@@ -217,6 +217,11 @@ bool H265RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtp) {
 
         case 49:
             // fragmentation unit (FU)
+            if (payload_size < 4) {
+                WarnL << "FU payload too small: " << payload_size << ", rtp:\r\n" << rtp->dumpString();
+                _gop_dropped = true;
+                return false;
+            }
             return mergeFu(rtp, frame, payload_size, stamp, seq);
 
         default: {

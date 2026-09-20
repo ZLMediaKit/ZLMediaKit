@@ -122,6 +122,11 @@ bool H264RtpDecoder::unpackStapA(const RtpPacket::Ptr &rtp, const uint8_t *ptr, 
 }
 
 bool H264RtpDecoder::mergeFu(const RtpPacket::Ptr &rtp, const uint8_t *ptr, ssize_t size, uint64_t stamp, uint16_t seq){
+    if (size < 2) {
+        WarnL << "FU-A payload too small: " << size << ", rtp:\r\n" << rtp->dumpString();
+        _gop_dropped = true;
+        return false;
+    }
     auto nal_suffix = *ptr & (~0x1F);
     FuFlags *fu = (FuFlags *) (ptr + 1);
     if (fu->start_bit) {
@@ -185,6 +190,11 @@ bool H264RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtp) {
 
         case 28:
             // 28 FU-A Fragmentation unit
+            if (payload_size < 2) {
+                WarnL << "FU-A payload too small: " << payload_size << ", rtp:\r\n" << rtp->dumpString();
+                _gop_dropped = true;
+                return false;
+            }
             return mergeFu(rtp, frame, payload_size, stamp, seq);
 
         default: {
