@@ -340,13 +340,27 @@ bool HandshakePacket::loadFromData(uint8_t *buf, size_t len) {
 
 bool HandshakePacket::loadExtMessage(uint8_t *buf, size_t len) {
     uint8_t *ptr = buf;
+    uint8_t *end = buf + len;
     ext_list.clear();
     uint16_t type;
     uint16_t length;
     HSExt::Ptr ext;
-    while (ptr < buf + len) {
+    while (ptr < end) {
+        // Ensure the 4-byte extension block header is fully present
+        if (static_cast<size_t>(end - ptr) < 4) {
+            WarnL << "truncated HS EXT header, remaining=" << (end - ptr);
+            break;
+        }
         type = loadUint16(ptr);
         length = loadUint16(ptr + 2);
+        // Attacker-controlled length: verify the declared block size fits in the datagram
+        // before handing it to any loader (which may memcpy the declared length).
+        const size_t block_size = static_cast<size_t>(length) * 4 + 4;
+        if (block_size > static_cast<size_t>(end - ptr)) {
+            WarnL << "HS EXT block exceeds datagram, type=" << type
+                  << " declared=" << block_size << " remaining=" << (end - ptr);
+            break;
+        }
         switch (type) {
             case HSExt::SRT_CMD_HSREQ:
             case HSExt::SRT_CMD_HSRSP: ext = std::make_shared<HSExtMessage>(); break;
@@ -357,7 +371,7 @@ bool HandshakePacket::loadExtMessage(uint8_t *buf, size_t len) {
             default: WarnL << "not support ext " << type; break;
         }
         if (ext) {
-            if (ext->loadFromData(ptr, length * 4 + 4)) {
+            if (ext->loadFromData(ptr, block_size)) {
                 ext_list.push_back(std::move(ext));
             } else {
                 WarnL << "parse HS EXT failed type=" << type << " len=" << length;
@@ -365,7 +379,7 @@ bool HandshakePacket::loadExtMessage(uint8_t *buf, size_t len) {
             ext = nullptr;
         }
 
-        ptr += length * 4 + 4;
+        ptr += block_size;
     }
     return true;
 }

@@ -63,15 +63,19 @@ bool HSExtStreamID::loadFromData(uint8_t *buf, size_t len) {
     if (buf == NULL || len < 4) {
         return false;
     }
-    _data = BufferRaw::create();
-    _data->assign((char *)buf, len);
+    // Read the header without copying the (potentially attacker-inflated) declared length.
+    // The caller must guarantee that `len` bytes are actually readable from `buf`.
+    extension_type = loadUint16(buf);
+    extension_length = loadUint16(buf + 2);
 
-    HSExt::loadHeader();
-
-    size_t content_size = extension_length * 4;
+    const size_t content_size = static_cast<size_t>(extension_length) * 4;
     if (len < content_size + 4) {
         return false;
     }
+
+    _data = BufferRaw::create();
+    _data->assign((char *)buf, content_size + 4);
+
     streamid.clear();
     char *ptr = _data->data() + 4;
 
