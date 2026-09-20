@@ -294,7 +294,7 @@ bool VP8RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtp) {
         outputFrame(rtp);
     }
 
-    return (info.isFirstPacket() && (payload[offset] & 0x01) == 0);
+    return (info.isFirstPacket() && (size_t)offset < payload_size && (payload[offset] & 0x01) == 0);
 }
 
 void VP8RtpDecoder::outputFrame(const RtpPacket::Ptr &rtp) {
