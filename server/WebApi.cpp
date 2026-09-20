@@ -859,6 +859,9 @@ void installWebApi() {
         CHECK_SECRET();
         Value obj;
         for (auto &pr : mINI::Instance()) {
+            if (pr.first == API::kSecret) {
+                continue;
+            }
             obj[pr.first] = (string &) pr.second;
         }
         val["data"].append(obj);
