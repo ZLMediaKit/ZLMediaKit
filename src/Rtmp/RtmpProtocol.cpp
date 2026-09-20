@@ -878,6 +878,9 @@ void RtmpProtocol::handle_chunk(RtmpPacket::Ptr packet) {
         }
 
         case MSG_WIN_SIZE: {
+            if (chunk_data.buffer.size() < 4) {
+                throw std::runtime_error("MSG_WIN_SIZE: Not enough data");
+            }
             // 如果窗口太小，会导致发送sendAcknowledgement时无限递归：https://github.com/ZLMediaKit/ZLMediaKit/issues/1839  [AUTO-TRANSLATED:05267962]
             // If the window is too small, it will cause infinite recursion when sending sendAcknowledgement: https://github.com/ZLMediaKit/ZLMediaKit/issues/1839
             // 窗口太大，也可能导致fms服务器认为播放器心跳超时  [AUTO-TRANSLATED:30147e88]
@@ -888,6 +891,9 @@ void RtmpProtocol::handle_chunk(RtmpPacket::Ptr packet) {
         }
 
         case MSG_SET_PEER_BW: {
+            if (chunk_data.buffer.size() < 5) {
+                throw std::runtime_error("MSG_SET_PEER_BW: Not enough data");
+            }
             _bandwidth = load_be32(&chunk_data.buffer[0]);
             _band_limit_type =  chunk_data.buffer[4];
             TraceL << "MSG_SET_PEER_BW:" << _bandwidth << " " << (int)_band_limit_type;
