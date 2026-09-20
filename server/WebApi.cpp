@@ -117,6 +117,26 @@ static void responseApi(int code, const string &msg, const HttpSession::HttpResp
     invoker(200, headerOut, res.toStyledString());
 }
 
+// 消毒用于 HTTP 响应头 quoted-string 的用户输入：去除 CR/LF 及其它控制字符以防止响应头注入(CWE-113)，
+// 并转义双引号以防止跳出引号范围。
+// Sanitize user input intended for an HTTP response header quoted-string value: strip CR/LF and other
+// control characters to prevent response header injection (CWE-113), and escape double-quotes so the
+// value cannot break out of the quoted-string.
+static string sanitizeHeaderQuotedValue(const string &value) {
+    string ret;
+    ret.reserve(value.size());
+    for (unsigned char c : value) {
+        if (c >= 0x20 && c != 0x7f) {
+            if (c == '"') {
+                ret += '\\';
+            }
+            ret += static_cast<char>(c);
+        }
+        // CR(0x0d), LF(0x0a) and other control chars are silently dropped
+    }
+    return ret;
+}
+
 static HttpApi toApi(const function<void(API_ARGS_MAP_ASYNC)> &cb) {
     return [cb](const Parser &parser, const HttpSession::HttpResponseInvoker &invoker, SockInfo &sender) {
         GET_CONFIG(string, charSet, Http::kCharSet);
@@ -2444,7 +2464,12 @@ void installWebApi() {
                 StrCaseMap res_header;
                 auto save_name = allArgs["save_name"];
                 if (!save_name.empty()) {
-                    res_header.emplace("Content-Disposition", "attachment;filename=\"" + save_name + "\"");
+                    // 消毒后再拼入 Content-Disposition，防止响应头注入(CWE-113)
+                    // Sanitize before embedding into Content-Disposition to prevent header injection (CWE-113)
+                    auto safe_name = sanitizeHeaderQuotedValue(save_name);
+                    if (!safe_name.empty()) {
+                        res_header.emplace("Content-Disposition", "attachment;filename=\"" + safe_name + "\"");
+                    }
                 }
                 invoker.responseFile(allArgs.parser.getHeader(), res_header, allArgs["file_path"]);
             }

@@ -814,7 +814,13 @@ void HttpSession::sendResponse(int code,
     for (auto &pr : header) {
         str += pr.first;
         str += ": ";
-        str += pr.second;
+        // Strip CR and LF from header values to prevent HTTP response splitting (CWE-113).
+        // Any injected \r or \n is silently removed; other characters pass through unchanged.
+        for (char c : pr.second) {
+            if (c != '\r' && c != '\n') {
+                str += c;
+            }
+        }
         str += "\r\n";
     }
     str += "\r\n";
