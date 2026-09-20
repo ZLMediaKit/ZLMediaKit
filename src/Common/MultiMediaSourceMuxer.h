@@ -233,6 +233,7 @@ protected:
 private:
     void createGopCacheIfNeed();
     std::shared_ptr<MediaSinkInterface> makeRecorder(Recorder::type type);
+    void initializeRecorder(const MediaSinkInterface::Ptr &recorder);
 
 private:
     bool _is_enable = false;

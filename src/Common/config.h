@@ -517,6 +517,9 @@ namespace Hls {
 // HLS切片时长,单位秒  [AUTO-TRANSLATED:ed6a4219]
 // HLS slice duration, in seconds
 extern const std::string kSegmentDuration;
+// HLS异常流强制开片或切片的绝对最大时长，单位秒；0表示关闭
+// Absolute hard limit for force-opening or rotating abnormal HLS streams, in seconds; 0 disables it
+extern const std::string kSegmentMaxDuration;
 // m3u8文件中HLS切片个数，如果设置为0，则不删除切片，而是保存为点播  [AUTO-TRANSLATED:92388a5d]
 // Number of HLS slices in the m3u8 file. If set to 0, the slices will not be deleted and will be saved as on-demand
 extern const std::string kSegmentNum;

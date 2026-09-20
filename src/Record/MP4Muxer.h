@@ -162,6 +162,12 @@ public:
     void resetTracks() override;
 
     /**
+     * 排空帧合并缓存并输出尚未交付的 fMP4 分片。
+     * Drain frame-merger caches and emit the pending fMP4 fragment.
+     */
+    void flush() override;
+
+    /**
      * 输入帧
      * Input frame
      
@@ -196,6 +202,9 @@ protected:
     MP4FileIO::Writer createWriter() override;
 
 private:
+    void flushPendingSegment();
+
+private:
     bool _key_frame = false;
     uint64_t _last_dst = 0;
     std::string _init_segment;
@@ -214,6 +223,8 @@ class MP4MuxerMemory : public MediaSinkInterface {
 public:
     bool addTrack(const Track::Ptr & track) override { return false; }
     bool inputFrame(const Frame::Ptr &frame) override { return false; }
+    void resetTracks() override {}
+    void flush() override {}
     const std::string &getInitSegment() { static std::string kNull; return kNull; };
 
 protected:
