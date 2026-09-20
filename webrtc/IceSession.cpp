@@ -59,6 +59,7 @@ void IceSession::onRecv(const Buffer::Ptr &buffer) {
 }
 
 void IceSession::onRecv_l(const char* buffer, size_t size) {
+    _alive_ticker.resetTime();
     if (!_session_pair) {
         _session_pair = std::make_shared<IceTransport::Pair>(shared_from_this());
     }
@@ -67,11 +68,39 @@ void IceSession::onRecv_l(const char* buffer, size_t size) {
 
 void IceSession::onError(const SockException &err) {
     InfoL;
+    if (_ice_transport) {
+        _ice_transport->releaseSessionResources();
+    }
     // 消除循环引用
     _session_pair = nullptr;
 }
 
 void IceSession::onManager() {
+    if (_over_tcp) {
+        return;
+    }
+
+    GET_CONFIG(uint32_t, ice_session_timeout_sec, Rtc::kIceSessionTimeoutSec);
+    if (!ice_session_timeout_sec) {
+        return;
+    }
+
+    if (_alive_ticker.elapsedTime() <= static_cast<uint64_t>(ice_session_timeout_sec) * 1000) {
+        return;
+    }
+
+    if (_ice_transport && _ice_transport->hasAllocation()) {
+        // Keep the UDP ICE session alive while TURN allocation exists. After the allocation timer releases
+        // relay resources, the next manager tick closes this idle session.
+        return;
+    }
+
+    InfoL << "ICE UDP session timeout: " << getIdentifier();
+    if (_ice_transport) {
+        _ice_transport->releaseSessionResources();
+    }
+    _session_pair = nullptr;
+    shutdown(SockException(Err_timeout, "ice udp session timeout"));
 }
 
 ssize_t IceSession::onRecvHeader(const char *data, size_t len) {

@@ -182,7 +182,7 @@ public:
         Forbidden                   = 403, //禁止
         RequestTimedOut             = 408, //请求超时(客户端认为此事务已经失败)
         UnknownAttribute            = 420,
-        AllocationMismatch          = 438,
+        AllocationMismatch          = 437,
         StaleNonce                  = 438, //NONCE 不再有效,客户端应使用响应中的NONCE重试
         AddressFamilyNotSupported   = 440, //不支持的协议簇
         WrongCredentials            = 441, //凭据错误

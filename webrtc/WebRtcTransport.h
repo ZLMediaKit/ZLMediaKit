@@ -51,6 +51,7 @@ extern const std::string kIcePort;
 extern const std::string kIceTcpPort;
 extern const std::string kEnableTurn;
 extern const std::string kIceTransportPolicy;
+extern const std::string kIceSessionTimeoutSec;
 extern const std::string kIceUfrag;
 extern const std::string kIcePwd;
 extern const std::string kExternIP;
