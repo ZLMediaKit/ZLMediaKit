@@ -1397,7 +1397,7 @@ void WrappedRtpTrack::inputRtp(const char *buf, size_t len, uint64_t stamp_ms, R
     // 修改ext id至统一  [AUTO-TRANSLATED:0769b0ec]
     // Modify the ext id to be unified
     string rid;
-    auto twcc_ext = track->rtp_ext_ctx->changeRtpExtId(rtp, true, &rid, RtpExtType::transport_cc);
+    auto twcc_ext = track->rtp_ext_ctx->changeRtpExtId(rtp, len, true, &rid, RtpExtType::transport_cc);
 
     if (twcc_ext) {
         _twcc_ctx.onRtp(ssrc, twcc_ext.getTransportCCSeq(), stamp_ms);
@@ -1417,7 +1417,7 @@ void WrappedRtxTrack::inputRtp(const char *buf, size_t len, uint64_t stamp_ms, R
     // 修改ext id至统一  [AUTO-TRANSLATED:0769b0ec]
     // Modify the ext id to be unified
     string rid;
-    track->rtp_ext_ctx->changeRtpExtId(rtp, true, &rid, RtpExtType::transport_cc);
+    track->rtp_ext_ctx->changeRtpExtId(rtp, len, true, &rid, RtpExtType::transport_cc);
 
     auto &ref = track->rtp_channel[rid];
     if (!ref) {
@@ -1536,13 +1536,13 @@ void WebRtcTransportImp::onBeforeEncryptRtp(const char *buf, int &len, void *ctx
     if (!pr->first || !pr->second->plan_rtx) {
         // 普通的rtp,或者不支持rtx, 修改目标pt和ssrc  [AUTO-TRANSLATED:e1264971]
         // Ordinary RTP, or does not support RTX, modify the target PT and SSRC
-        pr->second->rtp_ext_ctx->changeRtpExtId(header, false);
+        pr->second->rtp_ext_ctx->changeRtpExtId(header, len, false);
         header->pt = pr->second->plan_rtp->pt;
         header->ssrc = htonl(pr->second->answer_ssrc_rtp);
     } else {
         // 重传的rtp, rtx  [AUTO-TRANSLATED:e863a518]
         // Retransmitted RTP, RTX
-        pr->second->rtp_ext_ctx->changeRtpExtId(header, false);
+        pr->second->rtp_ext_ctx->changeRtpExtId(header, len, false);
         header->pt = pr->second->plan_rtx->pt;
         if (pr->second->answer_ssrc_rtx) {
             // 有rtx单独的ssrc,有些情况下，浏览器支持rtx，但是未指定rtx单独的ssrc  [AUTO-TRANSLATED:181cee9a]

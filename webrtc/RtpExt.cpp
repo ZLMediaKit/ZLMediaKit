@@ -172,11 +172,22 @@ RtpExt::operator std::string() const{
     return string(_data, _size);
 }
 
-map<uint8_t/*id*/, RtpExt/*data*/> RtpExt::getExtValue(const RtpHeader *header) {
+map<uint8_t/*id*/, RtpExt/*data*/> RtpExt::getExtValue(const RtpHeader *header, size_t len) {
     map<uint8_t, RtpExt> ret;
     assert(header);
+    // 固定头(12字节) + csrc; 读取扩展头前必须先保证其4字节(reserved + length)落在实际数据报内,
+    // 否则包内声明的扩展长度不可信, 会导致 getExtSize() 自身及后续遍历发生堆越界读写
+    size_t offset = RtpPacket::kRtpHeaderSize + header->getCsrcSize();
+    if (!header->ext || offset + 4 > len) {
+        return ret;
+    }
     auto ext_size = header->getExtSize();
     if (!ext_size) {
+        return ret;
+    }
+    // 声明的扩展数据长度必须落在实际数据报内, 防止 appendExt 朝攻击者声明的越界末尾遍历
+    if (offset + 4 + ext_size > len) {
+        WarnL << "drop rtp with invalid ext, declared ext_size:" << ext_size << ", available:" << len - offset - 4;
         return ret;
     }
     auto reserved = header->getExtReserved();
@@ -580,10 +591,10 @@ void RtpExtContext::setRid(uint32_t ssrc, const string &rid) {
     _ssrc_to_rid[ssrc] = rid;
 }
 
-RtpExt RtpExtContext::changeRtpExtId(const RtpHeader *header, bool is_recv, string *rid_ptr, RtpExtType type) {
+RtpExt RtpExtContext::changeRtpExtId(const RtpHeader *header, size_t len, bool is_recv, string *rid_ptr, RtpExtType type) {
     string rid, repaired_rid;
     RtpExt ret;
-    auto ext_map = RtpExt::getExtValue(header);
+    auto ext_map = RtpExt::getExtValue(header, len);
     for (auto &pr : ext_map) {
         if (is_recv) {
             auto it = _rtp_ext_id_to_type.find(pr.first);

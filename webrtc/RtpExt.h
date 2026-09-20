@@ -55,7 +55,8 @@ public:
     friend void appendExt(std::map<uint8_t, RtpExt> &ret, uint8_t *ptr, const uint8_t *end);
     friend class RtpExtContext;
 
-    static std::map<uint8_t/*id*/, RtpExt/*data*/> getExtValue(const RtpHeader *header);
+    // len为rtp数据报实际长度, 用于校验包内声明的扩展长度, 防止堆越界读写
+    static std::map<uint8_t/*id*/, RtpExt/*data*/> getExtValue(const RtpHeader *header, size_t len);
     static RtpExtType getExtType(const std::string &url);
     static const std::string& getExtUrl(RtpExtType type);
     static const char *getExtName(RtpExtType type);
@@ -123,7 +124,8 @@ public:
     void setOnGetRtp(OnGetRtp cb);
     std::string getRid(uint32_t ssrc) const;
     void setRid(uint32_t ssrc, const std::string &rid);
-    RtpExt changeRtpExtId(const RtpHeader *header, bool is_recv, std::string *rid_ptr = nullptr, RtpExtType type = RtpExtType::padding);
+    // len为rtp数据报实际长度, 用于校验包内声明的扩展长度, 防止堆越界读写
+    RtpExt changeRtpExtId(const RtpHeader *header, size_t len, bool is_recv, std::string *rid_ptr = nullptr, RtpExtType type = RtpExtType::padding);
 
 private:
     void onGetRtp(uint8_t pt, uint32_t ssrc, const std::string &rid);
