@@ -143,14 +143,6 @@ public:
      */
     void onWrite(RtmpPacket::Ptr pkt, bool = true) override;
 
-    /**
-     * 获取当前时间戳
-     * Get the current timestamp
-     
-     * [AUTO-TRANSLATED:42e38069]
-     */
-    uint32_t getTimeStamp(TrackType trackType) override;
-
     void clearCache() override{
         PacketCache<RtmpPacket>::clearCache();
         _ring->clearCache();

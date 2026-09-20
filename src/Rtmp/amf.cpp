@@ -452,6 +452,21 @@ const std::string& AMFEncoder::data() const {
 
 //////////////////Decoder//////////////////
 
+AMFDecoder::DepthGuard::DepthGuard(AMFDecoder &decoder) : _decoder(decoder) {
+    if (_decoder.depth >= AMFDecoder::kMaxDepth) {
+        throw std::runtime_error("Maximum AMF nesting depth exceeded");
+    }
+    ++_decoder.depth;
+}
+
+AMFDecoder::DepthGuard::~DepthGuard() {
+    --_decoder.depth;
+}
+
+size_t AMFDecoder::remain() const {
+    return pos < buf.size() ? buf.size() - pos : 0;
+}
+
 uint8_t AMFDecoder::front() {
     if (pos >= buf.size()) {
         throw std::runtime_error("Not enough data");
@@ -625,6 +640,7 @@ std::string AMFDecoder::load_key() {
 }
 
 AMFValue AMFDecoder::load_object() {
+    DepthGuard depth_guard(*this);
     AMFValue object(AMF_OBJECT);
     if (pop_front() != AMF0_OBJECT) {
         throw std::runtime_error("Expected an object");
@@ -643,6 +659,7 @@ AMFValue AMFDecoder::load_object() {
 }
 
 AMFValue AMFDecoder::load_ecma() {
+    DepthGuard depth_guard(*this);
     /* ECMA array is the same as object, with 4 extra zero bytes */
     AMFValue object(AMF_ECMA_ARRAY);
     if (pop_front() != AMF0_ECMA_ARRAY) {
@@ -665,7 +682,8 @@ AMFValue AMFDecoder::load_ecma() {
     return object;
 }
 AMFValue AMFDecoder::load_arr() {
-    /* ECMA array is the same as object, with 4 extra zero bytes */
+    DepthGuard depth_guard(*this);
+    /* Strict array is a count-prefixed list of AMF values. */
     AMFValue object(AMF_STRICT_ARRAY);
     if (pop_front() != AMF0_STRICT_ARRAY) {
         throw std::runtime_error("Expected an STRICT array");
@@ -690,3 +708,12 @@ AMFDecoder::AMFDecoder(const BufferLikeString &buf_in, size_t pos_in, int versio
         buf(buf_in), pos(pos_in), version(version_in) {
 }
 
+std::string amfLoadLeadingString(AMFDecoder &dec) {
+    while (dec.remain()) {
+        auto val = dec.load<AMFValue>();
+        if (val.type() == AMF_STRING) {
+            return val.as_string();
+        }
+    }
+    return "";
+}

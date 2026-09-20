@@ -25,6 +25,9 @@ public:
     using onStream = std::function<void(int stream, int codecid, const void *extra, size_t bytes, int finish)>;
 
     virtual ssize_t input(const uint8_t *data, size_t bytes) = 0;
+    // 清理未完成的输入缓存，但不 flush 已解析的帧。
+    // Clear incomplete input cache without flushing parsed frames.
+    virtual void clearInputCache() {}
     void setOnDecode(onDecode cb);
     void setOnStream(onStream cb);
 
@@ -45,6 +48,7 @@ public:
 
     static Ptr createDecoder(Type type, MediaSinkInterface *sink);
     ssize_t input(const uint8_t *data, size_t bytes);
+    void clearInputCache();
     void flush();
 
 protected:

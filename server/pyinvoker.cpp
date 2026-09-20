@@ -426,8 +426,6 @@ PYBIND11_EMBEDDED_MODULE(mk_loader, m) {
         .def("getSchema", &MediaSource::getSchema)
         .def("getUrl", &MediaSource::getUrl)
         .def("getMediaTuple", &MediaSource::getMediaTuple)
-        .def("getTimeStamp", &MediaSource::getTimeStamp)
-        .def("setTimeStamp", &MediaSource::setTimeStamp)
         .def("getBytesSpeed", &MediaSource::getBytesSpeed)
         .def("getTotalBytes", &MediaSource::getTotalBytes)
         .def("getCreateStamp", &MediaSource::getCreateStamp)

@@ -3,25 +3,6 @@
 
 namespace mediakit {
 
-uint32_t RtmpMediaSource::getTimeStamp(TrackType trackType) {
-    assert(trackType >= TrackInvalid && trackType < TrackMax);
-    if (trackType != TrackInvalid) {
-        // 获取某track的时间戳  [AUTO-TRANSLATED:2735ed10]
-        // Get the timestamp of a track
-        return _track_stamps[trackType];
-    }
-
-    // 获取所有track的最小时间戳  [AUTO-TRANSLATED:179a75cd]
-    // Get the minimum timestamp of all tracks
-    uint32_t ret = UINT32_MAX;
-    for (auto &stamp : _track_stamps) {
-        if (stamp > 0 && stamp < ret) {
-            ret = stamp;
-        }
-    }
-    return ret;
-}
-
 void RtmpMediaSource::setMetaData(const AMFValue &metadata) {
     {
         std::lock_guard<std::recursive_mutex> lock(_mtx);

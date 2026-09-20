@@ -263,6 +263,10 @@ protected:
     virtual bool onRedirectUrl(const std::string &url, bool temporary) { return true; };
 
 protected:
+    // complete timeout 生效时，HTTP body timeout 按约定失效。
+    // HTTP body timeout is disabled while complete timeout is in effect.
+    size_t getEffectiveBodyTimeout() const { return _wait_complete_ms > 0 ? 0 : _wait_body_ms; }
+
     //// HttpRequestSplitter override ////
     ssize_t onRecvHeader(const char *data, size_t len) override;
     void onRecvContent(const char *data, size_t len) override;

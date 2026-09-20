@@ -88,16 +88,6 @@ public:
     bool isEnabled();
 
     /**
-     * 设置MediaSource时间戳
-     * @param stamp 时间戳
-     * Set MediaSource timestamp
-     * @param stamp Timestamp
-     
-     * [AUTO-TRANSLATED:a75cc2fa]
-     */
-    void setTimeStamp(uint32_t stamp);
-
-    /**
      * 重置track
      * Reset track
      

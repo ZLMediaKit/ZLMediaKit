@@ -149,6 +149,7 @@ void HttpRequestSplitter::reset() {
     _content_len = 0;
     _remain_data_size = 0;
     _remain_data.clear();
+    onReset();
 }
 
 const char *HttpRequestSplitter::onSearchPacketTail(const char *data,size_t len) {
@@ -179,4 +180,3 @@ HttpRequestSplitter::HttpRequestSplitter() {
 }
 
 } /* namespace mediakit */
-

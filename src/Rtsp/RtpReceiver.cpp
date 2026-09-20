@@ -45,7 +45,8 @@ RtpPacket::Ptr RtpTrack::inputRtp(TrackType type, int sample_rate, uint8_t *ptr,
     }
     RtpHeader *header = (RtpHeader *) ptr;
     if (header->version != RtpPacket::kRtpVersion) {
-        throw BadRtpException("invalid rtp version");
+        WarnL << "invalid rtp version:" << (int) header->version;
+        return nullptr;
     }
     if (header->getPayloadSize(len) < 0) {
         // rtp有效负载小于0，非法  [AUTO-TRANSLATED:07eb3ec3]

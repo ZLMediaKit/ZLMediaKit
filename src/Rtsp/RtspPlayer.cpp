@@ -210,9 +210,12 @@ void RtspPlayer::handleResDESCRIBE(const Parser &parser) {
     if (_content_base.empty()) {
         _content_base = _play_url;
     }
-    if (_content_base.back() == '/') {
-        _content_base.pop_back();
-    }
+    // 保留 Content-Base 末尾斜杠:部分 rtsp 服务器(如 Alltech)对 PLAY 等请求 URL 做精确匹配,
+    // 需要发送与 Content-Base 完全一致的 URL(含末尾斜杠),否则返回 404 或断开连接
+    // SETUP 拼接 track 时由 SdpTrack::getControlUrl 去掉重复斜杠
+    // Keep trailing slash in Content-Base: some RTSP servers (e.g. Alltech) match request URLs exactly,
+    // the PLAY URL must match Content-Base verbatim (including trailing slash), otherwise 404 or disconnect.
+    // Duplicate slashes in SETUP are prevented by SdpTrack::getControlUrl
 
     // 解析sdp  [AUTO-TRANSLATED:ed3f07fe]
     // Parse SDP
@@ -285,18 +288,17 @@ void RtspPlayer::sendSetup(unsigned int track_idx) {
         case Rtsp::RTP_TCP: {
             sendRtspRequest(
                 "SETUP", control_url,
-                { "Transport", StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track_idx * 2 << "-" << track_idx * 2 + 1 << ";mode=play" });
+                { "Transport", StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track_idx * 2 << "-" << track_idx * 2 + 1 << ";mode=\"PLAY\"" });
         } break;
         case Rtsp::RTP_MULTICAST: {
-            sendRtspRequest("SETUP", control_url, { "Transport", "RTP/AVP;multicast;mode=play" });
+            sendRtspRequest("SETUP", control_url, { "Transport", "RTP/AVP;multicast;mode=\"PLAY\"" });
         } break;
         case Rtsp::RTP_UDP: {
             createUdpSockIfNecessary(track_idx);
             sendRtspRequest(
                 "SETUP", control_url,
                 { "Transport",
-                  StrPrinter << "RTP/AVP;unicast;client_port=" << _rtp_sock[track_idx]->get_local_port() << "-" << _rtcp_sock[track_idx]->get_local_port()
-                             << ";mode=play" });
+                  StrPrinter << "RTP/AVP;unicast;client_port=" << _rtp_sock[track_idx]->get_local_port() << "-" << _rtcp_sock[track_idx]->get_local_port() << ";mode=\"PLAY\"" });
         } break;
         default: break;
     }
@@ -324,9 +326,9 @@ void RtspPlayer::handleResSETUP(const Parser &parser, unsigned int track_idx) {
     RtspSplitter::enableRecvRtp(_rtp_type == Rtsp::RTP_TCP);
     string ssrc = transport_map["ssrc"];
     if (!ssrc.empty()) {
-        sscanf(ssrc.data(), "%x", &_sdp_track[track_idx]->_ssrc);
+        sscanf(ssrc.data(), "%x", &_ssrc[track_idx]);
     } else {
-        _sdp_track[track_idx]->_ssrc = 0;
+        _ssrc[track_idx] = 0;
     }
 
     if (_rtp_type == Rtsp::RTP_TCP) {
@@ -488,6 +490,8 @@ void RtspPlayer::sendPause(int type, uint32_t seekMS) {
     // Start or pause RTSP
     switch (type) {
         case type_pause: sendRtspRequest("PAUSE", _control_url, {}); break;
+        // _content_base 已保留 Content-Base 末尾斜杠,PLAY 直接使用即可
+        // _content_base retains the trailing slash from Content-Base, use it directly for PLAY
         case type_play: sendRtspRequest("PLAY", _content_base); break;
         case type_seek: {
             std::string range_header;
@@ -626,6 +630,10 @@ void RtspPlayer::onRtpPacket(const char *data, size_t len) {
         trackIdx = getTrackIndexByPT(header->pt);
         if (trackIdx == -1) {
             return;
+        }
+        auto ssrc = _ssrc[trackIdx];
+        if (ssrc && ssrc != ntohl(header->ssrc)) {
+            WarnL << "ssrc not expected: " << ntohl(header->ssrc) << " != " << ssrc << ", track index: " << trackIdx;
         }
         handleOneRtp(
             trackIdx, _sdp_track[trackIdx]->_type, _sdp_track[trackIdx]->_samplerate, (uint8_t *)data + RtpPacket::kRtpTcpHeaderSize,

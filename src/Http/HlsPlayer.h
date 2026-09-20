@@ -33,6 +33,9 @@ public:
     void addTrackCompleted() override { _delegate.addTrackCompleted(); }
     void resetTracks() override { ((MediaSink &)_delegate).resetTracks(); }
     std::vector<Track::Ptr> getTracks(bool ready = true) const override { return _delegate.getTracks(ready); }
+    // 返回已进入媒体消费链的 frame 数，用于 HTTP-TS 输入健康检查。
+    // Return the number of frames entering the media pipeline for HTTP-TS health checks.
+    uint64_t getInputFrameCount() const { return _input_frame_count; }
     void pushTask(std::function<void()> task);
 
 private:
@@ -47,6 +50,7 @@ private:
     toolkit::Timer::Ptr _timer;
     MediaSinkDelegate _delegate;
     std::deque<std::pair<int64_t, std::function<void()> > > _frame_cache;
+    uint64_t _input_frame_count = 0;
 };
 
 class HlsPlayer: public  HttpClientImp, public PlayerBase, public HlsParser {
@@ -90,6 +94,9 @@ protected:
      * [AUTO-TRANSLATED:159a6559]
      */
     virtual void onPacket(const char *data, size_t len) = 0;
+    // TS 切片下载失败通知；派生类可清理该切片遗留的输入状态。
+    // Notify derived classes to clear input state left by a failed TS segment.
+    virtual void onSegmentDownloadFailed(const toolkit::SockException &ex) {}
 
 private:
     bool onParsed(bool is_m3u8_inner, int64_t sequence, const map<int, ts_segment> &ts_map) override;
@@ -149,6 +156,7 @@ public:
 private:
     //// HlsPlayer override////
     void onPacket(const char *data, size_t len) override;
+    void onSegmentDownloadFailed(const toolkit::SockException &ex) override;
 
 private:
     //// PlayerBase override////

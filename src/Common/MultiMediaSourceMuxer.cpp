@@ -315,15 +315,6 @@ int MultiMediaSourceMuxer::totalReaderCount() const {
            (_ring ? _ring->readerCount() : 0);
 }
 
-void MultiMediaSourceMuxer::setTimeStamp(uint32_t stamp) {
-    if (_rtmp) {
-        _rtmp->setTimeStamp(stamp);
-    }
-    if (_rtsp) {
-        _rtsp->setTimeStamp(stamp);
-    }
-}
-
 int MultiMediaSourceMuxer::totalReaderCount(MediaSource &sender) {
     auto listener = getDelegate();
     if (!listener) {

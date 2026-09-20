@@ -224,7 +224,7 @@ void WebRtcPlayer::onStartWebRTC() {
 
             if (strong_self->_send_config_frames_once && !pkt->empty()) {
                 const auto &first_rtp = pkt->front();
-                strong_self->sendConfigFrames(first_rtp->getSeq(), first_rtp->sample_rate, first_rtp->getStamp(), first_rtp->ntp_stamp);
+                strong_self->sendConfigFrames(first_rtp);
                 strong_self->_send_config_frames_once = false;
             }
 
@@ -297,7 +297,7 @@ void WebRtcPlayer::onRtcConfigure(RtcConfigure &configure) const {
     configure.setPlayRtspInfo(playSrc->getSdp());
 }
 
-void WebRtcPlayer::sendConfigFrames(uint32_t before_seq, uint32_t sample_rate, uint32_t timestamp, uint64_t ntp_timestamp) {
+void WebRtcPlayer::sendConfigFrames(const RtpPacket::Ptr &packet) {
     auto play_src = _play_src.lock();
     if (!play_src) {
         return;
@@ -322,15 +322,15 @@ void WebRtcPlayer::sendConfigFrames(uint32_t before_seq, uint32_t sample_rate, u
     }
 
     GET_CONFIG(uint32_t, video_mtu, Rtp::kVideoMtuSize);
-    encoder->setRtpInfo(0, video_mtu, sample_rate, 0, 0, 0);
+    encoder->setRtpInfo(packet->getSSRC(), video_mtu, packet->sample_rate, packet->getHeader()->pt, packet->data()[1], packet->track_index);
 
-    auto seq = before_seq - frames.size();
+    auto seq = packet->getSeq() - frames.size();
     for (const auto &frame : frames) {
         auto rtp = encoder->getRtpInfo().makeRtp(TrackVideo, frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize(), false, 0);
         auto header = rtp->getHeader();
         header->seq = htons(seq++);
-        header->stamp = htonl(timestamp);
-        rtp->ntp_stamp = ntp_timestamp;
+        header->stamp = htonl(packet->getStamp());
+        rtp->ntp_stamp = packet->getStampMS(true);
         onSendRtp(rtp, false);
     }
 }

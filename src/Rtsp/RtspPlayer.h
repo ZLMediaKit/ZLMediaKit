@@ -215,6 +215,8 @@ private:
     std::vector<RtcpContext::Ptr> _rtcp_context;
     // 用户自定义rtsp头
     StrCaseMap _custom_header;
+    // ssrc
+    uint32_t _ssrc[TrackMax] { };
 };
 
 } /* namespace mediakit */

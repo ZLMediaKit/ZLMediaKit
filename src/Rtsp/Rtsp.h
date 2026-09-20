@@ -260,11 +260,6 @@ public:
 public:
     bool _inited = false;
     uint8_t _interleaved = 0;
-    uint16_t _seq = 0;
-    uint32_t _ssrc = 0;
-    // 时间戳，单位毫秒  [AUTO-TRANSLATED:9513087f]
-    // Timestamp, unit: milliseconds
-    uint32_t _time_stamp = 0;
 };
 
 class SdpParser {

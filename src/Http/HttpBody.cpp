@@ -147,7 +147,7 @@ static std::shared_ptr<char> getSharedMmap(const string &file_path, int64_t &fil
         return nullptr;
     }
 
-     LARGE_INTEGER FileSize; 
+     LARGE_INTEGER FileSize;
      GetFileSizeEx(hfile, &FileSize); //GetFileSize函数的拓展，可用于获取大于4G的文件大小
      file_size = FileSize.QuadPart;
 
@@ -202,7 +202,7 @@ HttpFileBody::HttpFileBody(const string &file_path, bool use_mmap) {
     }
 
     if (use_mmap ) {
-        _map_addr = getSharedMmap(file_path, _read_to);       
+        _map_addr = getSharedMmap(file_path, _read_to);
     }
 
     if (!_map_addr && _read_to != -1) {
@@ -405,7 +405,7 @@ Buffer::Ptr HttpBufferBody::readData(size_t size) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 HttpFileStorage::HttpFileStorage(std::string file_path) {
-    _fp = fopen(file_path.data(), "ab");
+    _fp = fopen(file_path.data(), "wb");
     if (!_fp) {
         throw std::runtime_error("HttpFileStorage: failed to open file: " + file_path + ", err: " + toolkit::get_uv_errmsg());
     }
@@ -418,9 +418,14 @@ HttpFileStorage::~HttpFileStorage() {
         fclose(_fp);
         _fp = nullptr;
     }
+    if (_written != _content_size || !_written) {
+        // 删除不完整的文件
+        File::delete_file(_path);
+    }
 }
 
-void HttpFileStorage::writeData(const char *data, size_t size) {
+void HttpFileStorage::writeData(const char *data, size_t size, uint64_t content_size) {
+    _content_size = content_size;
     if (!_fp) {
         throw std::runtime_error("HttpFileStorage: file not open");
     }

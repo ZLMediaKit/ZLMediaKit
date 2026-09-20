@@ -198,6 +198,7 @@ protected:
     void onIceTransportGatheringCandidate(const IceTransport::Pair::Ptr& pair, const CandidateInfo& candidate) override;
     void onIceTransportCompleted() override;
     void onIceTransportDisconnected() override;
+    void onIceTransportSelectedTuple(const IceTransport::Pair::Ptr& pair) override;
 
     // SctpAssociation::Listener
 #ifdef ENABLE_SCTP
@@ -257,6 +258,7 @@ private:
     std::shared_ptr<toolkit::Timer> _check_timer;
     std::function<void()> _on_start;
     std::function<void(const toolkit::SockException &ex)> _on_shutdown;
+    toolkit::SockException _ex;
 
 #ifdef ENABLE_SCTP
     RTC::SctpAssociationImp::Ptr _sctp;

@@ -107,7 +107,6 @@ private:
     toolkit::Ticker _ticker;
     std::weak_ptr<HlsMediaSource> _src;
     std::shared_ptr<toolkit::SockInfo> _sock_info;
-    std::weak_ptr<toolkit::Session> _session;
     HlsMediaSource::RingType::RingReader::Ptr _ring_reader;
 };
 

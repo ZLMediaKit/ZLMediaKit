@@ -515,7 +515,7 @@ void RtmpSession::onRtmpChunk(RtmpPacket::Ptr packet) {
     case MSG_DATA:
     case MSG_DATA3: {
         AMFDecoder dec(chunk_data.buffer, chunk_data.type_id == MSG_DATA3 ? 3 : 0);
-        std::string type = dec.load<std::string>();
+        std::string type = amfLoadLeadingString(dec);
         if (type == "@setDataFrame") {
             setMetaData(dec);
         } else if (type == "onMetaData") {

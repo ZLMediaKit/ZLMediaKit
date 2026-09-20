@@ -23,6 +23,8 @@
 
 #include <vector>
 #include <stdexcept>
+#include <climits>
+#include <limits>
 
 using namespace std;
 using namespace toolkit;
@@ -31,6 +33,10 @@ namespace mediakit {
 
 // ---- 内部比特流工具 ----
 namespace {
+
+// SPS 的标准语法规模远小于 1 MiB；在复制并去除防竞争字节前设置宽松硬上限，避免单个恶意 NALU 触发同等规模的第二次分配。
+// Standard SPS syntax is far smaller than 1 MiB; a generous pre-copy cap prevents one hostile NALU from forcing a second allocation of the same scale.
+static constexpr size_t kMaxParameterSetSize = 1024 * 1024;
 
 // 去除 RBSP 防竞争字节 (0x00 0x00 0x03 -> 0x00 0x00)
 static std::vector<uint8_t> rbsp_from_nalu(const uint8_t *data, size_t size) {
@@ -80,9 +86,22 @@ struct BitStream {
 
     uint32_t read_ue() { // Exp-Golomb unsigned
         int zeros = 0;
-        while (!eof() && read_bits(1) == 0) zeros++;
+        // Exp-Golomb 编码必须包含值为 1 的停止位；此前在停止位前遇到 EOF 会被误判为数值 0，并可能驱动后续循环空转。
+        // Exp-Golomb codes require a one-bit terminator; treating EOF before it as zero could feed bogus counts into later loops.
+        while (true) {
+            if (eof()) {
+                throw std::runtime_error("eof before exp-golomb stop bit");
+            }
+            if (read_bits(1) != 0) {
+                break;
+            }
+            // 本读取器返回 uint32_t，最多只能接受 31 个前导零；32 个前导零需要 33 位编码，且会让后续 se(v) 映射越界。
+            // This uint32_t reader accepts at most 31 leading zeroes; 32 require a 33-bit code and would overflow later se(v) mapping.
+            if (++zeros >= 32) {
+                throw std::runtime_error("exp-golomb overflow");
+            }
+        }
         if (zeros == 0) return 0;
-        if (zeros >= 32) throw std::runtime_error("exp-golomb overflow");
         return (1u << zeros) - 1 + read_bits(zeros);
     }
 
@@ -90,24 +109,35 @@ struct BitStream {
         uint32_t v = read_ue();
         return (v & 1) ? (int32_t)((v + 1) >> 1) : -(int32_t)(v >> 1);
     }
+
 };
 
 } // anonymous namespace
 
 // ---- H264 SPS 解析 ----
 static bool getAVCInfo(const char *sps_raw, size_t sps_len, int &iVideoWidth, int &iVideoHeight, float &iVideoFps) {
-    if (sps_len < 4) return false;
-    // sps_raw[0] 是 NAL header，从第 1 字节开始是 RBSP
-    auto rbsp = rbsp_from_nalu((const uint8_t *)sps_raw + 1, sps_len - 1);
-    if (rbsp.size() < 3) return false;
-
+    if (sps_len < 4 || sps_len > kMaxParameterSetSize) return false;
     try {
+        // RBSP 分配也可能因恶意超大 NALU 抛出异常；将其纳入保护范围，才能维持本接口只返回 false 的失败语义。
+        // RBSP allocation can throw for a maliciously large NALU; keep it inside the guard so this boolean API fails with false.
+        // sps_raw[0] 是 NAL header，从第 1 字节开始是 RBSP
+        auto rbsp = rbsp_from_nalu((const uint8_t *)sps_raw + 1, sps_len - 1);
+        if (rbsp.size() < 3) return false;
+
         BitStream bs(rbsp.data(), rbsp.size());
+        int parsed_width = 0;
+        int parsed_height = 0;
+        float parsed_fps = 0.0f;
 
         uint8_t profile_idc = (uint8_t)bs.read_bits(8); // profile_idc
         bs.skip_bits(8); // constraint flags + reserved
         bs.skip_bits(8); // level_idc
-        bs.read_ue();    // seq_parameter_set_id
+        uint32_t seq_parameter_set_id = bs.read_ue();
+        // H.264 只定义 0..31 的 SPS id；拒绝相邻越界值，避免接受无法由标准参数集表表示的配置。
+        // H.264 defines SPS ids only in 0..31; reject the adjacent out-of-range value instead of accepting an unrepresentable parameter set.
+        if (seq_parameter_set_id > 31) {
+            return false;
+        }
 
         uint32_t chroma_format_idc = 1;
         if (profile_idc == 100 || profile_idc == 110 || profile_idc == 122 ||
@@ -118,8 +148,13 @@ static bool getAVCInfo(const char *sps_raw, size_t sps_len, int &iVideoWidth, in
                 return false;
             }
             if (chroma_format_idc == 3) bs.skip_bits(1); // separate_colour_plane_flag
-            bs.read_ue(); // bit_depth_luma_minus8
-            bs.read_ue(); // bit_depth_chroma_minus8
+            uint32_t bit_depth_luma_minus8 = bs.read_ue();
+            uint32_t bit_depth_chroma_minus8 = bs.read_ue();
+            // 两个位深字段分别受 0..6 限制，但语法允许它们取不同值；强制相等会拒绝可以安全提取尺寸的合法 SPS。
+            // Each bit-depth offset is independently limited to 0..6, while the syntax permits different values; requiring equality rejects valid SPS whose dimensions are still safe to extract.
+            if (bit_depth_luma_minus8 > 6 || bit_depth_chroma_minus8 > 6) {
+                return false;
+            }
             bs.skip_bits(1); // qpprime_y_zero_transform_bypass_flag
             if (bs.read_bits(1)) { // seq_scaling_matrix_present_flag
                 int cnt = (chroma_format_idc != 3) ? 8 : 12;
@@ -128,7 +163,15 @@ static bool getAVCInfo(const char *sps_raw, size_t sps_len, int &iVideoWidth, in
                         int sz = (i < 6) ? 16 : 64;
                         int last = 8, next = 8;
                         for (int j = 0; j < sz; j++) {
-                            if (next != 0) next = (last + bs.read_se() + 256) % 256;
+                            if (next != 0) {
+                                // delta_scale 来自不可信位流，直接用 int 相加可能触发有符号溢出；宽类型和规范化取模可保持标准语义。
+                                // delta_scale is untrusted and may overflow int addition; wide arithmetic plus normalized modulo preserves the SPS rule.
+                                int64_t value = (int64_t)last + bs.read_se() + 256;
+                                next = (int)(value % 256);
+                                if (next < 0) {
+                                    next += 256;
+                                }
+                            }
                             last = (next == 0) ? last : next;
                         }
                     }
@@ -136,18 +179,42 @@ static bool getAVCInfo(const char *sps_raw, size_t sps_len, int &iVideoWidth, in
             }
         }
 
-        bs.read_ue(); // log2_max_frame_num_minus4
+        uint32_t log2_max_frame_num_minus4 = bs.read_ue();
+        // 规范范围为 0..12；即使当前只提取宽高，也不能把越界 SPS 当作有效配置发布。
+        // The specified range is 0..12; even a dimensions-only parser must not publish an out-of-range SPS as valid configuration.
+        if (log2_max_frame_num_minus4 > 12) {
+            return false;
+        }
         uint32_t pic_order_cnt_type = bs.read_ue();
         if (pic_order_cnt_type == 0) {
-            bs.read_ue(); // log2_max_pic_order_cnt_lsb_minus4
+            uint32_t log2_max_pic_order_cnt_lsb_minus4 = bs.read_ue();
+            // POC LSB 位数增量同样仅允许 0..12，越界值会描述标准外的帧序号空间。
+            // The POC-LSB bit-count offset is likewise limited to 0..12; larger values describe a non-standard picture-order space.
+            if (log2_max_pic_order_cnt_lsb_minus4 > 12) {
+                return false;
+            }
         } else if (pic_order_cnt_type == 1) {
             bs.skip_bits(1); // delta_pic_order_always_zero_flag
             bs.read_se();    // offset_for_non_ref_pic
             bs.read_se();    // offset_for_top_to_bottom_field
             uint32_t n = bs.read_ue();
+            // 标准只允许最多 255 个 offset；先校验再循环，避免恶意计数长时间占用媒体输入线程。
+            // The standard allows at most 255 offsets; validate before looping so a hostile count cannot monopolize the media input thread.
+            if (n > 255) {
+                return false;
+            }
             for (uint32_t i = 0; i < n; i++) bs.read_se();
+        } else if (pic_order_cnt_type != 2) {
+            // 仅 0、1、2 是有效 POC 类型；继续解析未知类型会使后续字段错位并可能接受伪造尺寸。
+            // Only POC types 0, 1, and 2 are valid; continuing with another value misaligns later fields and may accept forged dimensions.
+            return false;
         }
-        bs.read_ue(); // max_num_ref_frames
+        uint32_t max_num_ref_frames = bs.read_ue();
+        // H.264 解码图像缓冲区最多表示 16 个参考帧；提前拒绝 17 可保持与原解析器的标准边界一致。
+        // The H.264 decoded-picture buffer represents at most 16 reference frames; rejecting 17 preserves the prior parser's standard boundary.
+        if (max_num_ref_frames > 16) {
+            return false;
+        }
         bs.skip_bits(1); // gaps_in_frame_num_value_allowed_flag
 
         uint32_t pic_width_in_mbs_minus1       = bs.read_ue();
@@ -174,15 +241,23 @@ static bool getAVCInfo(const char *sps_raw, size_t sps_len, int &iVideoWidth, in
             crop_unit_y = 2 - frame_mbs_only_flag;
         }
 
-        uint64_t raw_width  = (uint64_t)(pic_width_in_mbs_minus1 + 1) * 16;
-        uint64_t raw_height = (uint64_t)(pic_height_in_map_units_minus1 + 1) * 16 * (2 - frame_mbs_only_flag);
+        // 宏块计数来自不可信 ue(v)，必须在加一前提升到 64 位；否则未来若放宽读取上限，uint32_t 加法可能先回绕为零。
+        // Macroblock counts are untrusted ue(v) values and must be widened before adding one; otherwise a future reader extension could wrap uint32_t to zero first.
+        uint64_t raw_width  = ((uint64_t)pic_width_in_mbs_minus1 + 1) * 16;
+        uint64_t raw_height = ((uint64_t)pic_height_in_map_units_minus1 + 1) * 16 * (2 - frame_mbs_only_flag);
         uint64_t crop_w = ((uint64_t)crop_left + crop_right) * crop_unit_x;
         uint64_t crop_h = ((uint64_t)crop_top  + crop_bottom) * crop_unit_y;
         if (crop_w >= raw_width || crop_h >= raw_height) return false;
-        iVideoWidth  = (int)(raw_width  - crop_w);
-        iVideoHeight = (int)(raw_height - crop_h);
+        uint64_t display_width = raw_width - crop_w;
+        uint64_t display_height = raw_height - crop_h;
+        // 输出接口使用 int；转换前限制范围，避免恶意尺寸触发实现定义的窄化并污染下游元数据。
+        // The output API uses int; range-check before narrowing so hostile dimensions cannot produce implementation-defined metadata.
+        if (display_width > INT_MAX || display_height > INT_MAX) {
+            return false;
+        }
+        parsed_width = (int)display_width;
+        parsed_height = (int)display_height;
 
-        iVideoFps = 0.0f;
         if (bs.read_bits(1)) { // vui_parameters_present_flag
             if (bs.read_bits(1)) { // aspect_ratio_info_present_flag
                 uint32_t ar = bs.read_bits(8);
@@ -201,13 +276,23 @@ static bool getAVCInfo(const char *sps_raw, size_t sps_len, int &iVideoWidth, in
                 uint32_t time_scale        = bs.read_bits(32);
                 bs.skip_bits(1); // fixed_frame_rate_flag
                 if (num_units_in_tick > 0) {
-                    iVideoFps = (float)time_scale / (2.0f * (float)num_units_in_tick);
+                    parsed_fps = (float)time_scale / (2.0f * (float)num_units_in_tick);
                 }
             }
         }
-        return iVideoWidth > 0 && iVideoHeight > 0;
+        if (parsed_width <= 0 || parsed_height <= 0) {
+            return false;
+        }
+        // 本接口只提取宽高和 VUI 时序；HRD 及其后的尾部语法不影响这些结果，也不应把元数据提取器扩展成完整合规验证器。
+        // This API only extracts dimensions and VUI timing; HRD and later tail syntax do not affect them and must not turn this metadata reader into a full conformance validator.
+        // 已消费字段全部成功后再写回，既保留项目原有的宽松尾部兼容性，也避免异常发布部分结果。
+        // Commit only after every consumed field succeeds, preserving the project's permissive tail compatibility without publishing partial results on failure.
+        iVideoWidth = parsed_width;
+        iVideoHeight = parsed_height;
+        iVideoFps = parsed_fps;
+        return true;
     } catch (...) {
-        return iVideoWidth > 0 && iVideoHeight > 0;
+        return false;
     }
 }
 
@@ -340,19 +425,47 @@ toolkit::Buffer::Ptr H264Track::getExtraData() const {
 #ifdef ENABLE_MP4
     struct mpeg4_avc_t avc;
     memset(&avc, 0, sizeof(avc));
-    string sps_pps = string("\x00\x00\x00\x01", 4) + _sps + string("\x00\x00\x00\x01", 4) + _pps;
-    h264_annexbtomp4(&avc, sps_pps.data(), (int)sps_pps.size(), NULL, 0, NULL, NULL);
-
-    std::string extra_data;
-    extra_data.resize(1024);
-    auto extra_data_size = mpeg4_avc_decoder_configuration_record_save(&avc, (uint8_t *)extra_data.data(), extra_data.size());
-    if (extra_data_size == -1) {
-        WarnL << "生成H264 extra_data 失败";
+    // mpeg4_avc_t 使用固定数组保存 SPS/PPS，第三方转换器在总长度超限时会触发断言；这里用减法检查避免加法溢出，并在进入转换器前正常失败。
+    // mpeg4_avc_t stores SPS/PPS in a fixed array and its converter asserts when their total size exceeds it; subtraction-based checks avoid addition overflow and fail cleanly first.
+    if (_sps.size() > sizeof(avc.data) || _pps.size() > sizeof(avc.data) - _sps.size()) {
+        WarnL << "H264参数集过大，无法生成extra_data: sps=" << _sps.size() << ", pps=" << _pps.size()
+              << ", capacity=" << sizeof(avc.data);
         return nullptr;
     }
-    extra_data.resize(extra_data_size);
-    return std::make_shared<BufferString>(std::move(extra_data));
+    // 第三方转换器用项目 assert 宏报告参数集语法错误，该宏会抛出 AssertFailedException；仅检查长度无法覆盖内容截断的 Exp-Golomb 编码，因此只在 Track 边界收口第三方调用并维持返回 nullptr 的失败语义，其他异常仍正常传播。
+    // The third-party converter reports parameter-set syntax errors through the project assert macro, which throws AssertFailedException; length checks cannot cover truncated Exp-Golomb content, so only third-party calls are contained at the Track boundary to preserve the nullptr failure contract while other exceptions still propagate.
+    try {
+        string sps_pps = string("\x00\x00\x00\x01", 4) + _sps + string("\x00\x00\x00\x01", 4) + _pps;
+        // annexbtomp4 在仅填充配置、没有媒体输出缓冲区时固定返回 0；from_nalu 是库为该场景提供的封装，并会确认 SPS/PPS 已写入 avc。
+        // annexbtomp4 always returns zero when only populating configuration without a media output buffer; from_nalu wraps that use case and verifies SPS/PPS were stored in avc.
+        if (mpeg4_avc_from_nalu((const uint8_t *)sps_pps.data(), sps_pps.size(), &avc) <= 0) {
+            WarnL << "生成H264 extra_data时转换参数集失败";
+            return nullptr;
+        }
+
+        // 固定的 1024 字节缓冲区小于 mpeg4_avc_t 可保存的参数集；按输入大小分配，并为 AVC 配置记录字段保留充足空间。
+        // A fixed 1024-byte buffer is smaller than the parameter sets held by mpeg4_avc_t; size it from the input and leave ample room for AVC record fields.
+        std::string extra_data;
+        extra_data.resize(sps_pps.size() + 64);
+        auto extra_data_size = mpeg4_avc_decoder_configuration_record_save(&avc, (uint8_t *)&extra_data[0], extra_data.size());
+        if (extra_data_size <= 0) {
+            WarnL << "生成H264 extra_data 失败";
+            return nullptr;
+        }
+        extra_data.resize(extra_data_size);
+        return std::make_shared<BufferString>(std::move(extra_data));
+    } catch (const AssertFailedException &ex) {
+        WarnL << "生成H264 extra_data时参数集无效: " << ex.what();
+        return nullptr;
+    }
 #else
+    // AVCDecoderConfigurationRecord 使用 16 位字段保存单个 SPS/PPS 长度；拒绝截断转换，同时保证下方读取 profile/level 字节安全。
+    // AVCDecoderConfigurationRecord uses 16-bit SPS/PPS lengths; reject narrowing conversions and ensure the profile/level bytes read below are present.
+    if (_sps.size() < 4 || _sps.size() > std::numeric_limits<uint16_t>::max() ||
+        _pps.size() > std::numeric_limits<uint16_t>::max()) {
+        WarnL << "H264参数集长度无效，无法生成extra_data: sps=" << _sps.size() << ", pps=" << _pps.size();
+        return nullptr;
+    }
     std::string extra_data;
     // AVCDecoderConfigurationRecord start
     extra_data.push_back(1); // version
@@ -431,6 +544,7 @@ bool H264Track::inputFrame_l(const Frame::Ptr &frame) {
         // AUD帧丢弃
         return false;
     }
+    bool was_ready = ready();
     bool ret = true;
     switch (type) {
         case H264Frame::NAL_SPS: {
@@ -466,7 +580,10 @@ bool H264Track::inputFrame_l(const Frame::Ptr &frame) {
             break;
     }
 
-    if (_width == 0 && ready()) {
+    // 仅当 SPS 改变或本帧首次补齐配置时重试：PPS 不包含宽高，配置已齐全后重复 PPS 只会反复解析同一份失败 SPS。
+    // Retry only when the SPS changes or this frame first completes configuration: PPS carries no dimensions, so repeated PPS after readiness would only reparse the same failed SPS.
+    bool configuration_became_ready = !was_ready && ready();
+    if (_width == 0 && ready() && (type == H264Frame::NAL_SPS || configuration_became_ready)) {
         update();
     }
     return ret;

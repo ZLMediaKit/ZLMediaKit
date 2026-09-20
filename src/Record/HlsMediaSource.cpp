@@ -15,9 +15,10 @@ using namespace toolkit;
 
 namespace mediakit {
 
-class SockInfoImp : public SockInfo {
+class SockInfoImp : public Session {
 public:
     using Ptr = std::shared_ptr<SockInfoImp>;
+    SockInfoImp(const Socket::Ptr &sock) : Session(sock) {}
 
     std::string get_local_ip() override { return _local_ip; }
 
@@ -29,6 +30,10 @@ public:
 
     std::string getIdentifier() const override { return _identifier; }
 
+    void onRecv(const Buffer::Ptr &buf) override {}
+    void onError(const SockException &err) override {}
+    void onManager() override {}
+
     std::string _local_ip;
     std::string _peer_ip;
     std::string _identifier;
@@ -38,14 +43,13 @@ public:
 
 HlsCookieData::HlsCookieData(const MediaInfo &info, const std::shared_ptr<Session> &session) {
     _info = info;
-    auto sock_info = std::make_shared<SockInfoImp>();
+    auto sock_info = std::make_shared<SockInfoImp>(session->getSock());
     sock_info->_identifier = session->getIdentifier();
     sock_info->_peer_ip = session->get_peer_ip();
     sock_info->_peer_port = session->get_peer_port();
     sock_info->_local_ip = session->get_local_ip();
     sock_info->_local_port = session->get_local_port();
     _sock_info = sock_info;
-    _session = session;
     _added = std::make_shared<bool>(false);
     addReaderCount();
 }
@@ -62,10 +66,10 @@ void HlsCookieData::addReaderCount() {
                 // HlsMediaSource has been destroyed
                 *added = false;
             });
-            std::weak_ptr<Session> weak_session = _session;
-            _ring_reader->setGetInfoCB([weak_session]() {
+            auto sock_info = _sock_info;
+            _ring_reader->setGetInfoCB([sock_info]() {
                 Any ret;
-                ret.set(std::static_pointer_cast<Session>(weak_session.lock()));
+                ret.set(std::static_pointer_cast<Session>(sock_info));
                 return ret;
             });
         }

@@ -196,6 +196,8 @@ private:
     // 设置socket标志  [AUTO-TRANSLATED:4086e686]
     // Set socket flag
     void setSocketFlags();
+    // 获取rtp ssrc/seq/时间戳等信息
+    void getRtpTrackInfo(bool use_gop);
 
 private:
     // 是否已经触发on_play事件  [AUTO-TRANSLATED:49c937ce]
@@ -211,6 +213,8 @@ private:
     // 收到的seq，回复时一致  [AUTO-TRANSLATED:64544fb4]
     // Received seq, consistent when replying
     int _cseq = 0;
+    // rtsp src duration
+    float _duration { 0 };
     // 消耗的总流量  [AUTO-TRANSLATED:45ad2785]
     // Total traffic consumed
     uint64_t _bytes_usage = 0;
@@ -269,6 +273,18 @@ private:
     // 统计rtp并发送rtcp  [AUTO-TRANSLATED:0ac2b665]
     // Count RTP and send RTCP
     std::vector<RtcpContext::Ptr> _rtcp_context;
+
+    struct RtpTrackInfo {
+        uint32_t ssrc { 0 };
+        uint16_t seq { 0 };
+        // rtp原始时间戳
+        uint32_t time_stamp { 0 };
+        uint64_t time_stamp_ms { 0 };
+        operator bool() const { return ssrc != 0 || seq != 0 || time_stamp != 0 || time_stamp_ms != 0; }
+    };
+
+    RtpTrackInfo _rtp_info[2];
+    std::function<bool(const RtspMediaSource::RingDataType &pack, bool is_key)> _on_send_rtp;
 };
 
 /**

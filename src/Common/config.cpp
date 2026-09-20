@@ -191,6 +191,7 @@ namespace Http {
 #define HTTP_FIELD "http."
 const string kSendBufSize = HTTP_FIELD "sendBufSize";
 const string kMaxReqSize = HTTP_FIELD "maxReqSize";
+const string kMaxUploadSize = HTTP_FIELD "maxUploadSize";
 const string kKeepAliveSecond = HTTP_FIELD "keepAliveSecond";
 const string kCharSet = HTTP_FIELD "charSet";
 const string kRootPath = HTTP_FIELD "rootPath";
@@ -205,6 +206,7 @@ const string kAllowIPRange = HTTP_FIELD "allow_ip_range";
 static onceToken token([]() {
     mINI::Instance()[kSendBufSize] = 64 * 1024;
     mINI::Instance()[kMaxReqSize] = 4 * 10240;
+    mINI::Instance()[kMaxUploadSize] = 1024ULL * 1024 * 1024;
     mINI::Instance()[kKeepAliveSecond] = 15;
     mINI::Instance()[kDirMenu] = true;
     mINI::Instance()[kVirtualPath] = "";

@@ -72,6 +72,10 @@ ssize_t DecoderImp::input(const uint8_t *data, size_t bytes){
     return _decoder->input(data, bytes);
 }
 
+void DecoderImp::clearInputCache() {
+    _decoder->clearInputCache();
+}
+
 DecoderImp::DecoderImp(const Decoder::Ptr &decoder, MediaSinkInterface *sink){
     _decoder = decoder;
     _sink = sink;

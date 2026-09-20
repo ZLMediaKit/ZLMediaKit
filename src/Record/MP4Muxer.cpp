@@ -10,6 +10,8 @@
 
 #if defined(ENABLE_MP4)
 
+#include <limits>
+
 #include "MP4Muxer.h"
 #include "Common/config.h"
 
@@ -17,6 +19,15 @@ using namespace std;
 using namespace toolkit;
 
 namespace mediakit {
+
+static constexpr int kMaxMovVideoDimension = (std::numeric_limits<int>::max)() >> 16;
+
+static bool isMovVideoDimensionSafe(int width, int height) {
+    // libmov 将有符号 int 类型的视频宽高左移 16 位写入 16.16 定点数字段，超出此范围会触发未定义行为。
+    // libmov shifts signed int video dimensions left by 16 for a 16.16 fixed-point field; values outside this range cause undefined behavior.
+    return width >= 0 && height >= 0 &&
+           width <= kMaxMovVideoDimension && height <= kMaxMovVideoDimension;
+}
 
 MP4Muxer::~MP4Muxer() {
     try {
@@ -182,7 +193,14 @@ bool MP4MuxerInterface::addTrack(const Track::Ptr &track) {
     if (track->getTrackType() == TrackVideo) {
         auto video_track = dynamic_pointer_cast<VideoTrack>(track);
         CHECK(video_track);
-        auto track_id = mp4_writer_add_video(_mov_writter.get(), mp4_object, video_track->getVideoWidth(), video_track->getVideoHeight(), extra_data, extra_size);
+        auto width = video_track->getVideoWidth();
+        auto height = video_track->getVideoHeight();
+        if (!isMovVideoDimensionSafe(width, height)) {
+            WarnL << "Unsafe MP4 video dimensions: " << width << "x" << height
+                  << ", safe range for each dimension: [0, " << kMaxMovVideoDimension << "]";
+            return false;
+        }
+        auto track_id = mp4_writer_add_video(_mov_writter.get(), mp4_object, width, height, extra_data, extra_size);
         if (track_id < 0) {
             WarnL << "mp4_writer_add_video failed: " << video_track->getCodecName();
             return false;

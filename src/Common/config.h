@@ -194,19 +194,21 @@ extern const std::string kBroadcastCreateMuxer;
     } while (0)
 
 #define GET_CONFIG(type, arg, key)                                                                                     \
-    static type arg = ::toolkit::mINI::Instance()[key];                                                                \
-    LISTEN_RELOAD_KEY(arg, key, { RELOAD_KEY(arg, key); });
+    static type arg##_storage_ = ::toolkit::mINI::Instance()[key];                                                     \
+    static const type &arg = arg##_storage_;                                                                           \
+    LISTEN_RELOAD_KEY(arg##_storage_, key, { RELOAD_KEY(arg##_storage_, key); });
 
 #define GET_CONFIG_FUNC(type, arg, key, ...)                                                                           \
-    static type arg;                                                                                                   \
+    static type arg##_storage_;                                                                                        \
+    static const type &arg = arg##_storage_;                                                                           \
     do {                                                                                                               \
         static ::toolkit::onceToken s_token_set([]() {                                                                 \
             static auto lam = __VA_ARGS__;                                                                             \
             static auto arg##_str = ::toolkit::mINI::Instance()[key];                                                  \
-            arg = lam(arg##_str);                                                                                      \
-            LISTEN_RELOAD_KEY(arg, key, {                                                                              \
+            arg##_storage_ = lam(arg##_str);                                                                           \
+            LISTEN_RELOAD_KEY(arg##_str, key, {                                                                        \
                 RELOAD_KEY(arg##_str, key);                                                                            \
-                arg = lam(arg##_str);                                                                                  \
+                arg##_storage_ = lam(arg##_str);                                                                       \
             });                                                                                                        \
         });                                                                                                            \
     } while (0)
@@ -356,6 +358,9 @@ extern const std::string kSendBufSize;
 // http 最大请求字节数  [AUTO-TRANSLATED:8239eb9c]
 // HTTP maximum request byte size
 extern const std::string kMaxReqSize;
+// 自定义HttpBody流式接收请求体的最大字节数
+// Maximum request body size streamed into a custom HttpBody
+extern const std::string kMaxUploadSize;
 // http keep-alive秒数  [AUTO-TRANSLATED:d4930c66]
 // HTTP keep-alive seconds
 extern const std::string kKeepAliveSecond;

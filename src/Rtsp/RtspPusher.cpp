@@ -278,14 +278,14 @@ void RtspPusher::sendSetup(unsigned int track_idx) {
         case Rtsp::RTP_TCP: {
             sendRtspRequest("SETUP", control_url, {"Transport",
                                                    StrPrinter << "RTP/AVP/TCP;unicast;interleaved=" << track_idx * 2
-                                                           << "-" << track_idx * 2 + 1 << ";mode=record"});
+                                                           << "-" << track_idx * 2 + 1 << ";mode=\"RECORD\""});
         }
             break;
         case Rtsp::RTP_UDP: {
             createUdpSockIfNecessary(track_idx);
             int port = _rtp_sock[track_idx]->get_local_port();
             sendRtspRequest("SETUP", control_url,
-                            {"Transport", StrPrinter << "RTP/AVP;unicast;client_port=" << port << "-" << port + 1 << ";mode=record"});
+                            {"Transport", StrPrinter << "RTP/AVP;unicast;client_port=" << port << "-" << port + 1 << ";mode=\"RECORD\""});
         }
             break;
         default:

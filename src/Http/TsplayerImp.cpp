@@ -30,6 +30,26 @@ void TsPlayerImp::onResponseBody(const char *data, size_t len) {
     }
 }
 
+void TsPlayerImp::onManager() {
+    HttpClientImp::onManager();
+    if (!waitResponse() || !_demuxer) {
+        return;
+    }
+
+    auto frame_count = _demuxer->getInputFrameCount();
+    if (frame_count != _last_input_frame_count) {
+        _last_input_frame_count = frame_count;
+        _media_frame_ticker.resetTime();
+        return;
+    }
+
+    auto timeout_ms = getEffectiveBodyTimeout();
+    if (timeout_ms > 0 && _media_frame_ticker.elapsedTime() > timeout_ms) {
+        _media_frame_timeout = true;
+        shutdown(SockException(Err_timeout, "http-ts media frame timeout"));
+    }
+}
+
 void TsPlayerImp::addTrackCompleted() {
     PlayerImp<TsPlayer, PlayerBase>::onPlayResult(SockException(Err_success, "play http-ts success"));
 }
@@ -42,14 +62,11 @@ void TsPlayerImp::onPlayResult(const SockException &ex) {
         auto demuxer = std::make_shared<HlsDemuxer>();
         demuxer->start(getPoller(), this);
         _demuxer = std::move(demuxer);
+        resetMediaFrameCheck();
     }
 }
 
 void TsPlayerImp::onShutdown(const SockException &ex) {
-    if (!ex) {
-        // http-ts拉流，如果为eof正常断开，那么强制为异常状态
-        const_cast<SockException &>(ex).reset(Err_other, ex.what());
-    }
     while (_demuxer) {
         try {
             // shared_from_this()可能抛异常  [AUTO-TRANSLATED:6af9bd3c]
@@ -60,7 +77,7 @@ void TsPlayerImp::onShutdown(const SockException &ex) {
             }
             // 等待所有frame flush输出后，再触发onShutdown事件  [AUTO-TRANSLATED:93982eb3]
             // Wait for all frame flush output before triggering the onShutdown event
-            static_pointer_cast<HlsDemuxer>(_demuxer)->pushTask([weak_self, ex]() {
+            _demuxer->pushTask([weak_self, ex]() {
                 if (auto strong_self = weak_self.lock()) {
                     strong_self->_demuxer = nullptr;
                     strong_self->onShutdown(ex);
@@ -74,11 +91,32 @@ void TsPlayerImp::onShutdown(const SockException &ex) {
     PlayerImp<TsPlayer, PlayerBase>::onShutdown(ex);
 }
 
+SockException TsPlayerImp::translateShutdownException(const SockException &ex) {
+    auto shutdown_ex = ex;
+    if (_media_frame_timeout) {
+        // 无 Content-Length 的 HTTP body 在已收到数据后会把断开归一化为成功，
+        // 因此需要在 player 层恢复本次主动触发的媒体超时语义。
+        // An HTTP body without Content-Length normalizes a close after data to success,
+        // so restore the media timeout explicitly triggered by this player.
+        _media_frame_timeout = false;
+        shutdown_ex.reset(Err_timeout, "http-ts media frame timeout");
+    } else if (!shutdown_ex) {
+        // http-ts拉流，如果为eof正常断开，那么强制为异常状态
+        shutdown_ex.reset(Err_other, ex.what());
+    }
+    return shutdown_ex;
+}
+
+void TsPlayerImp::resetMediaFrameCheck() {
+    _last_input_frame_count = _demuxer ? _demuxer->getInputFrameCount() : 0;
+    _media_frame_ticker.resetTime();
+}
+
 vector<Track::Ptr> TsPlayerImp::getTracks(bool ready) const {
     if (!_demuxer) {
         return vector<Track::Ptr>();
     }
-    return static_pointer_cast<HlsDemuxer>(_demuxer)->getTracks(ready);
+    return _demuxer->getTracks(ready);
 }
 
 size_t TsPlayerImp::getRecvSpeed() {

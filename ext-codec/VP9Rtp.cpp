@@ -46,11 +46,12 @@ struct RTPPayloadVP9 {
     bool hasGof = false;
     int numberOfFramesInGof = -1;
     std::vector<VP9ResolutionLayer> resolutions;
-    int parse(unsigned char* data, int dataLength);
+
+    int parse(const unsigned char *data, int dataLength);
     bool keyFrame() const { return beginningOfLayerFrame && !interPicturePrediction; }
-    std::string dump() const { 
+    std::string dump() const {
         char line[64] = {0};
-        snprintf(line, sizeof(line), "%c%c%c%c%c%c%c- %d %d, %d %d", 
+        snprintf(line, sizeof(line), "%c%c%c%c%c%c%c- %d %d, %d %d",
             hasPictureID ? 'I' : ' ', 
             interPicturePrediction ? 'P' : ' ', 
             hasLayerIndices ? 'L' : ' ', 
@@ -107,102 +108,109 @@ struct RTPPayloadVP9 {
 #define kBBit 0x08
 #define kEBit 0x04
 #define kVBit 0x02
-int RTPPayloadVP9::parse(unsigned char *data, int dataLength) {
-  const unsigned char* dataPtr = data;
-  const unsigned char* dataEnd = data + dataLength;
-
-#define VP9_CHECK_BOUNDS(n) do { if (dataPtr + (n) > dataEnd) return -1; } while (0)
+int RTPPayloadVP9::parse(const unsigned char *data, int dataLength) {
+  if (!data || dataLength <= 0) {
+    return -1;
+  }
+  const unsigned char *dataPtr = data;
+  size_t remaining = static_cast<size_t>(dataLength);
+  auto readByte = [&]() -> int {
+    if (remaining < 1) {
+      return -1;
+    }
+    --remaining;
+    return *dataPtr++;
+  };
+  auto skipBytes = [&](size_t count) -> bool {
+    if (remaining < count) {
+      return false;
+    }
+    remaining -= count;
+    dataPtr += count;
+    return true;
+  };
 
   // Parse mandatory first byte of payload descriptor
-  VP9_CHECK_BOUNDS(1);
-  this->hasPictureID = (*dataPtr & kIBit); // I bit
-  this->interPicturePrediction = (*dataPtr & kPBit); // P bit
-  this->hasLayerIndices = (*dataPtr & kLBit); // L bit
-  this->flexibleMode = (*dataPtr & kFBit); // F bit
-  this->beginningOfLayerFrame = (*dataPtr & kBBit); // B bit
-  this->endingOfLayerFrame = (*dataPtr & kEBit); // E bit
-  this->hasScalabilityStructure = (*dataPtr & kVBit); // V bit
-  dataPtr++;
+  int byte = readByte();
+  if (byte < 0) return -1;
+  this->hasPictureID = (byte & kIBit); // I bit
+  this->interPicturePrediction = (byte & kPBit); // P bit
+  this->hasLayerIndices = (byte & kLBit); // L bit
+  this->flexibleMode = (byte & kFBit); // F bit
+  this->beginningOfLayerFrame = (byte & kBBit); // B bit
+  this->endingOfLayerFrame = (byte & kEBit); // E bit
+  this->hasScalabilityStructure = (byte & kVBit); // V bit
 
   if (this->hasPictureID) {
-    VP9_CHECK_BOUNDS(1);
-    this->largePictureID = (*dataPtr & 0x80);  // M bit
-    this->pictureID = (*dataPtr & 0x7F);
+    byte = readByte();
+    if (byte < 0) return -1;
+    this->largePictureID = (byte & 0x80);  // M bit
+    this->pictureID = (byte & 0x7F);
     if (this->largePictureID) {
-      dataPtr++;
-      VP9_CHECK_BOUNDS(1);
-      this->pictureID = ntohs((this->pictureID << 16) + (*dataPtr & 0xFF));
+      byte = readByte();
+      if (byte < 0) return -1;
+      this->pictureID = (this->pictureID << 8) | byte;
     }
-    dataPtr++;
   }
 
   if (this->hasLayerIndices) {
-    VP9_CHECK_BOUNDS(1);
-    this->temporalID = (*dataPtr & 0xE0) >> 5;  // T bits
-    this->isSwitchingUp = (*dataPtr & 0x10);  // U bit
-    this->spatialID = (*dataPtr & 0x0E) >> 1;  // S bits
-    this->isInterLayeredDepUsed = (*dataPtr & 0x01);  // D bit
-    if (this->flexibleMode) { // marked in webrtc code
-      do {
-        dataPtr++;
-        VP9_CHECK_BOUNDS(1);
-        this->referenceIdx = (*dataPtr & 0xFE) >> 1;
-        this->additionalReferenceIdx = (*dataPtr & 0x01);  // D bit
-      } while (this->additionalReferenceIdx);
-    } else {
-      dataPtr++;
-      VP9_CHECK_BOUNDS(1);
-      this->tl0PicIdx = (*dataPtr & 0xFF);
+    byte = readByte();
+    if (byte < 0) return -1;
+    this->temporalID = (byte & 0xE0) >> 5;  // T bits
+    this->isSwitchingUp = (byte & 0x10);  // U bit
+    this->spatialID = (byte & 0x0E) >> 1;  // S bits
+    this->isInterLayeredDepUsed = (byte & 0x01);  // D bit
+    if (!this->flexibleMode) {
+      byte = readByte();
+      if (byte < 0) return -1;
+      this->tl0PicIdx = byte;
     }
-    dataPtr++;
   }
 
   if (this->flexibleMode && this->interPicturePrediction) {
-      /* Skip reference indices */
-      uint8_t nbit;
+      // The VP9 payload descriptor permits at most three reference indices.
+      bool nbit;
+      int referenceCount = 0;
       do {
-          VP9_CHECK_BOUNDS(1);
-          uint8_t p_diff = (*dataPtr & 0xFE) >> 1;
-          nbit = (*dataPtr & 0x01);
-          dataPtr++;
+          if (++referenceCount > 3) return -1;
+          byte = readByte();
+          if (byte < 0) return -1;
+          this->referenceIdx = (byte & 0xFE) >> 1;
+          nbit = (byte & 0x01);
+          this->additionalReferenceIdx = nbit;
       } while (nbit);
   }
   if (this->hasScalabilityStructure) {
-    VP9_CHECK_BOUNDS(1);
-    this->spatialLayers = (*dataPtr & 0xE0) >> 5;  // N_S bits
-    this->hasResolution = (*dataPtr & 0x10);  // Y bit
-    this->hasGof = (*dataPtr & 0x08);  // G bit
-    dataPtr++;
+    byte = readByte();
+    if (byte < 0) return -1;
+    this->spatialLayers = (byte & 0xE0) >> 5;  // N_S bits
+    this->hasResolution = (byte & 0x10);  // Y bit
+    this->hasGof = (byte & 0x08);  // G bit
     if (this->hasResolution) {
       for (int i = 0; i <= this->spatialLayers; i++) {
-        VP9_CHECK_BOUNDS(4);
+        if (remaining < 4) return -1;
         int width = (dataPtr[0] << 8) + dataPtr[1];
-        dataPtr += 2;
-        int height = (dataPtr[0] << 8) + dataPtr[1];
-        dataPtr += 2;
-        // InfoL << "got vp9 " << width << "x" << height;
+        int height = (dataPtr[2] << 8) + dataPtr[3];
         this->resolutions.push_back({ width, height });
+        skipBytes(4);
       }
     }
     if (this->hasGof) {
-      VP9_CHECK_BOUNDS(1);
-      this->numberOfFramesInGof = *dataPtr & 0xFF;  // N_G bits
-      dataPtr++;
+      byte = readByte();
+      if (byte < 0) return -1;
+      this->numberOfFramesInGof = byte;  // N_G bits
       for (int frame_index = 0; frame_index < this->numberOfFramesInGof; frame_index++) {
         // TODO(javierc): Read these values if needed
-        VP9_CHECK_BOUNDS(1);
-        int reference_indices = (*dataPtr & 0x0C) >> 2;  // R bits
-        dataPtr++;
-        VP9_CHECK_BOUNDS(reference_indices);
-        for (int reference_index = 0; reference_index < reference_indices; reference_index++) {
-          dataPtr++;
-        }
+        byte = readByte();
+        if (byte < 0) return -1;
+        int reference_indices = (byte & 0x0C) >> 2;  // R bits
+        if (!skipBytes(reference_indices)) return -1;
       }
     }
   }
-
-#undef VP9_CHECK_BOUNDS
-
+  // Downstream VP9 frame inspection reads the first frame-data byte, so a
+  // payload descriptor without any frame data must not enter the frame path.
+  if (remaining == 0) return -1;
   return dataPtr - data;
 }
 
@@ -239,8 +247,13 @@ bool VP9RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtp) {
 
     RTPPayloadVP9 info;
     int offset = info.parse(payload, payload_size);
-    if (offset < 0) {
+    // Keep this independent of the parser's internal checks: a successful
+    // descriptor must still leave at least one byte of VP9 frame payload.
+    if (offset < 0 || static_cast<size_t>(offset) >= payload_size) {
         WarnL << "VP9 RTP payload parse failed, seq:" << seq;
+        _gop_dropped = true;
+        _frame_drop = true;
+        _frame->_buffer.clear();
         return false;
     }
     // InfoL << rtp->dumpString() << "\n" << info.dump();
