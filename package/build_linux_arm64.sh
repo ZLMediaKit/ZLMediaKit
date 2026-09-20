@@ -155,6 +155,10 @@ cmake .. \
   -DCMAKE_BUILD_TYPE=Release
 make -j"$(nproc)"
 
+# 执行门禁用例(见 tests/CMakeLists.txt 的 GATING_TESTS)，失败即中断构建
+# Run the gating cases (see GATING_TESTS in tests/CMakeLists.txt); a failure aborts the build
+ctest --output-on-failure
+
 echo "Build finished. Artifacts under: ${ROOT_DIR}/release"
 ls -la "${ROOT_DIR}/release" || true
 find "${ROOT_DIR}/release" -type f | head -50

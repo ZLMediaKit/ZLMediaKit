@@ -596,6 +596,7 @@ endif()
 #cpp测试demo程序
 #cpp test demo program
 if (ENABLE_TESTS)
+  enable_testing()
   add_subdirectory(tests)
 endif ()
 
