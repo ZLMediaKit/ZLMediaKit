@@ -100,10 +100,10 @@ static onceToken token([]() {
 
     mINI::Instance()[kDataChannelEcho] = true;
 
-    mINI::Instance()[kSignalingPort] = 3000;
-    mINI::Instance()[kSignalingSslPort] = 3001;
-    mINI::Instance()[kIcePort] = 3478;
-    mINI::Instance()[kIceTcpPort] = 3478;
+    mINI::Instance()[kSignalingPort] = 0;
+    mINI::Instance()[kSignalingSslPort] = 0;
+    mINI::Instance()[kIcePort] = 0;
+    mINI::Instance()[kIceTcpPort] = 0;
     mINI::Instance()[kEnableTurn] = 1;
     mINI::Instance()[kIceTransportPolicy] = 0;  // 默认值：不限制(kAll)
     mINI::Instance()[kIceSessionTimeoutSec] = 60;
