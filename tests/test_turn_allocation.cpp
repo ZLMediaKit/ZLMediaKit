@@ -8,10 +8,12 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
+#include <chrono>
 #include <cstdlib>
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "Common/config.h"
@@ -30,6 +32,14 @@ void expect(bool cond, const string &message) {
     if (!cond) {
         throw runtime_error(message);
     }
+}
+
+// allocation 存活计时改用 Ticker 后，无法回写绝对时间戳；
+// 通过“先休眠一段足够长的时间，再看 elapsedTime() 是否被 reset”来判定保活行为。
+constexpr uint64_t kIdleSleepMs = 40;
+constexpr uint64_t kRefreshThresholdMs = 20;
+void sleepMs(uint64_t ms) {
+    this_thread::sleep_for(chrono::milliseconds(ms));
 }
 
 class TestSocketHelper : public SocketHelper {
@@ -55,7 +65,7 @@ public:
         _responses.emplace_back(std::move(packet));
     }
 
-    void seedAllocation(const Pair::Ptr &pair, const string &transaction_id, uint64_t update_time) {
+    void seedAllocation(const Pair::Ptr &pair, const string &transaction_id) {
         sockaddr_storage peer_addr;
         pair->get_peer_addr(peer_addr);
         auto socket = Socket::createSocket(getPoller());
@@ -64,7 +74,8 @@ public:
         auto relay_pair = make_shared<Pair>(relay_socket);
         _relayed_pairs.emplace(peer_addr, make_pair(shared_ptr<uint16_t>(), relay_pair));
         _allocation_transaction_id = transaction_id;
-        _allocation_update_time = update_time;
+        // 标记为“刚刚活动”，后续若未被 reset 则 elapsedTime() 会持续增长
+        _allocation_ticker.resetTime();
     }
 
     const StunPacket::Ptr &response() const {
@@ -72,7 +83,7 @@ public:
         return _responses.front();
     }
     const string &allocationTransactionId() const { return _allocation_transaction_id; }
-    uint64_t allocationUpdateTime() const { return _allocation_update_time; }
+    uint64_t allocationElapsedTime() const { return _allocation_ticker.elapsedTime(); }
     size_t allocationCount() const { return _relayed_pairs.size(); }
     SocketHelper::Ptr relaySocket(const Pair::Ptr &pair) const {
         auto peer_addr = SockUtil::make_sockaddr(pair->get_peer_ip().data(), pair->get_peer_port());
@@ -118,26 +129,27 @@ void testAllocateHandlers() {
     expect(server->allocationTransactionId() == original_id,
            "successful first Allocate should record its transaction ID");
     auto original_socket = server->relaySocket(owner);
-    auto original_time = server->allocationUpdateTime();
 
     auto retransmission = make_shared<TestIceServer>(poller);
-    retransmission->seedAllocation(owner, original_id, original_time);
+    retransmission->seedAllocation(owner, original_id);
     auto seeded_socket = retransmission->relaySocket(owner);
+    sleepMs(kIdleSleepMs);
     retransmission->handleAllocateRequest(makeRequest(StunPacket::Method::ALLOCATE, original_id.c_str()), owner);
     expectResponse(retransmission->response(), StunPacket::Class::SUCCESS_RESPONSE, StunPacket::Method::ALLOCATE);
     expect(retransmission->relaySocket(owner) == seeded_socket,
            "Allocate retransmission should reuse the existing relay socket");
-    expect(retransmission->allocationUpdateTime() == original_time,
+    expect(retransmission->allocationElapsedTime() > kRefreshThresholdMs,
            "Allocate retransmission must not refresh allocation lifetime");
 
     auto mismatch = make_shared<TestIceServer>(poller);
-    mismatch->seedAllocation(owner, original_id, original_time);
+    mismatch->seedAllocation(owner, original_id);
+    sleepMs(kIdleSleepMs);
     mismatch->handleAllocateRequest(makeRequest(StunPacket::Method::ALLOCATE, "allocate0002"), owner);
     expectResponse(mismatch->response(), StunPacket::Class::ERROR_RESPONSE, StunPacket::Method::ALLOCATE,
                    StunAttrErrorCode::Code::AllocationMismatch);
     expect(mismatch->allocationCount() == 1 && mismatch->relaySocket(owner) != nullptr,
            "mismatched Allocate must preserve the allocation");
-    expect(mismatch->allocationUpdateTime() == original_time && mismatch->allocationTransactionId() == original_id,
+    expect(mismatch->allocationElapsedTime() > kRefreshThresholdMs && mismatch->allocationTransactionId() == original_id,
            "mismatched Allocate must preserve lifetime and transaction ID");
     expect(original_socket != nullptr, "first Allocate should expose a live relay socket");
 }
@@ -147,29 +159,30 @@ void testRefreshHandlers() {
     auto owner = makePair(poller, "127.0.0.1", 40001);
     auto other = makePair(poller, "127.0.0.1", 40002);
     const string allocation_id = "allocate0003";
-    const uint64_t original_time = UINT64_MAX;
 
     for (int lifetime : {600, 0}) {
         auto server = make_shared<TestIceServer>(poller);
-        server->seedAllocation(owner, allocation_id, original_time);
+        server->seedAllocation(owner, allocation_id);
+        sleepMs(kIdleSleepMs);
         server->handleRefreshRequest(makeRequest(StunPacket::Method::REFRESH,
                                                  lifetime ? "refresh00001" : "refresh00002", lifetime), other);
         expectResponse(server->response(), StunPacket::Class::ERROR_RESPONSE, StunPacket::Method::REFRESH,
                        StunAttrErrorCode::Code::AllocationMismatch);
         expect(server->allocationCount() == 1, "non-owner Refresh must not release the allocation");
-        expect(server->allocationUpdateTime() == original_time,
+        expect(server->allocationElapsedTime() > kRefreshThresholdMs,
                "non-owner Refresh must not refresh allocation lifetime");
     }
 
     auto refresh = make_shared<TestIceServer>(poller);
-    refresh->seedAllocation(owner, allocation_id, original_time);
+    refresh->seedAllocation(owner, allocation_id);
+    sleepMs(kIdleSleepMs);
     refresh->handleRefreshRequest(makeRequest(StunPacket::Method::REFRESH, "refresh00003", 600), owner);
     expectResponse(refresh->response(), StunPacket::Class::SUCCESS_RESPONSE, StunPacket::Method::REFRESH);
-    expect(refresh->allocationUpdateTime() != original_time, "owner Refresh should update allocation lifetime");
+    expect(refresh->allocationElapsedTime() <= kRefreshThresholdMs, "owner Refresh should update allocation lifetime");
     expect(refresh->allocationCount() == 1, "owner Refresh should preserve the allocation");
 
     auto remove = make_shared<TestIceServer>(poller);
-    remove->seedAllocation(owner, allocation_id, original_time);
+    remove->seedAllocation(owner, allocation_id);
     remove->handleRefreshRequest(makeRequest(StunPacket::Method::REFRESH, "refresh00004", 0), owner);
     expectResponse(remove->response(), StunPacket::Class::SUCCESS_RESPONSE, StunPacket::Method::REFRESH);
     expect(remove->allocationCount() == 0, "owner zero-lifetime Refresh should release the allocation");

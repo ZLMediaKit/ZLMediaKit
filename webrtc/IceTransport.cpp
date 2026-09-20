@@ -742,7 +742,7 @@ void IceServer::removeRelayedSessions() {
 }
 
 void IceServer::releaseAllocation() {
-    if (_relayed_pairs.empty() && !_allocation_update_time) {
+    if (_relayed_pairs.empty()) {
         return;
     }
     removeRelayedSessions();
@@ -750,24 +750,22 @@ void IceServer::releaseAllocation() {
     _permissions.clear();
     _channel_bindings.clear();
     _channel_binding_times.clear();
-    _allocation_update_time = 0;
     _allocation_transaction_id.clear();
 }
 
 void IceServer::touchAllocation() {
     // relay 数据面有流量即视为活跃，刷新存活时间，避免正在使用的转发被超时中断
     if (!_relayed_pairs.empty()) {
-        _allocation_update_time = toolkit::getCurrentMillisecond();
+        _allocation_ticker.resetTime();
     }
 }
 
 void IceServer::checkAllocationTimeout() {
-    if (_relayed_pairs.empty() || !_allocation_update_time) {
+    if (_relayed_pairs.empty()) {
         return;
     }
 
-    uint64_t now = toolkit::getCurrentMillisecond();
-    if (now - _allocation_update_time <= kTurnAllocationLifetimeMs) {
+    if (_allocation_ticker.elapsedTime() <= kTurnAllocationLifetimeMs) {
         return;
     }
 
@@ -875,7 +873,7 @@ void IceServer::handleRefreshRequest(const StunPacket::Ptr& packet, const Pair::
         lifetime = 0;
         releaseAllocation();
     } else {
-        _allocation_update_time = toolkit::getCurrentMillisecond();
+        _allocation_ticker.resetTime();
     }
 
     auto response = packet->createSuccessResponse();
@@ -1112,7 +1110,7 @@ SocketHelper::Ptr IceServer::allocateRelayed(const Pair::Ptr& pair) {
         _relayed_session.erase(peer_addr);
         _relayed_session.emplace(peer_addr, weak_self);
     }
-    _allocation_update_time = toolkit::getCurrentMillisecond();
+    _allocation_ticker.resetTime();
 
     InfoL << "Alloc relayed pair: " << relayed_pair->get_local_ip() << ":" <<  relayed_pair->get_local_port()
           << " for peer pair: " << pair->get_peer_ip() << ":" << pair->get_peer_port();

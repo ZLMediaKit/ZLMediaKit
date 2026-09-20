@@ -20,6 +20,7 @@
 #include <unordered_map>
 #include "json/json.h"
 #include "Util/Byte.hpp"
+#include "Util/TimeTicker.h"
 #include "Poller/Timer.h"
 #include "Poller/EventPoller.h"
 #include "Network/Socket.h"
@@ -458,7 +459,8 @@ protected:
     std::unordered_map<sockaddr_storage /*peer ip:port*/, std::pair<std::shared_ptr<uint16_t> /* port */, Pair::Ptr /*relayed_pairs*/>,
         toolkit::SockUtil::SockAddrHash, toolkit::SockUtil::SockAddrEqual> _relayed_pairs;
     std::weak_ptr<Pair> _session_pair;
-    uint64_t _allocation_update_time = 0;
+    // allocation 存活计时:每次数据面活动或 Refresh 时 resetTime()，超时由 elapsedTime() 判定
+    toolkit::Ticker _allocation_ticker;
     std::string _allocation_transaction_id;
     std::shared_ptr<toolkit::Timer> _allocation_timer;
 };
