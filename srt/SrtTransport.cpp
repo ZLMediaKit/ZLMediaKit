@@ -438,7 +438,10 @@ void SrtTransport::tryAnnounceKeyMaterial() {
 void SrtTransport::handleNAK(uint8_t *buf, int len, struct sockaddr_storage *addr) {
     // TraceL;
     NAKPacket pkt;
-    pkt.loadFromData(buf, len);
+    if (!pkt.loadFromData(buf, len)) {
+        WarnL << "malformed NAK packet, drop it";
+        return;
+    }
     bool empty = false;
     bool flush = false;
 

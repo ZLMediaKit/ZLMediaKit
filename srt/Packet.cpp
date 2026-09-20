@@ -565,11 +565,25 @@ bool NAKPacket::loadFromData(uint8_t *buf, size_t len) {
     LostPair lost;
     while (ptr < end) {
         if ((*ptr) & 0x80) {
+            // 区间模式需要读取8字节，剩余不足则为畸形包  [AUTO-TRANSLATED:e33c05c1]
+            // Range mode reads 8 bytes; insufficient remainder means malformed packet
+            if ((size_t)(end - ptr) < 8) {
+                WarnL << "malformed NAK packet: truncated range CIF, remaining " << (size_t)(end - ptr) << " bytes";
+                lost_list.clear();
+                return false;
+            }
             lost.first = loadUint32(ptr) & 0x7fffffff;
             lost.second = loadUint32(ptr + 4) & 0x7fffffff;
             lost.second += 1;
             ptr += 8;
         } else {
+            // 单点模式需要读取4字节，剩余不足则为畸形包  [AUTO-TRANSLATED:e33c05c1]
+            // Single mode reads 4 bytes; insufficient remainder means malformed packet
+            if ((size_t)(end - ptr) < 4) {
+                WarnL << "malformed NAK packet: truncated single CIF, remaining " << (size_t)(end - ptr) << " bytes";
+                lost_list.clear();
+                return false;
+            }
             lost.first = loadUint32(ptr);
             lost.second = lost.first + 1;
             ptr += 4;
