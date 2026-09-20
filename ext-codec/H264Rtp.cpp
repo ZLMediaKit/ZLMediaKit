@@ -107,7 +107,8 @@ bool H264RtpDecoder::unpackStapA(const RtpPacket::Ptr &rtp, const uint8_t *ptr, 
     auto end = ptr + size;
     while (ptr + 2 < end) {
         uint16_t len = (ptr[0] << 8) | ptr[1];
-        if (!len || ptr + len > end) {
+        // 需将随后的 2 字节 NALU size 字段计入边界，否则 ptr += 2 后读取 len 字节可越界最多 2 字节
+        if (!len || ptr + 2 + len > end) {
             WarnL << "invalid rtp data size:" << len << ",rtp:\r\n" << rtp->dumpString();
             _gop_dropped = true;
             break;
