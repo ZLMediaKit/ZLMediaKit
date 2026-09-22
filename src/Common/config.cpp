@@ -359,6 +359,7 @@ const string kBroadcastRecordTs = HLS_FIELD "broadcastRecordTs";
 const string kDeleteDelaySec = HLS_FIELD "deleteDelaySec";
 const string kFastRegister = HLS_FIELD "fastRegister";
 const string kFmp4SegExt = HLS_FIELD "fmp4SegExt";
+const string kProgramDateTime = HLS_FIELD "programDateTime";
 
 static onceToken token([]() {
     mINI::Instance()[kSegmentDuration] = 2;
@@ -371,6 +372,7 @@ static onceToken token([]() {
     mINI::Instance()[kDeleteDelaySec] = 10;
     mINI::Instance()[kFastRegister] = false;
     mINI::Instance()[kFmp4SegExt] = ".mp4";
+    mINI::Instance()[kProgramDateTime] = false;
 });
 } // namespace Hls
 
