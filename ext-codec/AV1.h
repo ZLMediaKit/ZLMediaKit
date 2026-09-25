@@ -49,7 +49,7 @@ class AV1Track : public VideoTrackImp {
 public:
     using Ptr = std::shared_ptr<AV1Track>;
 
-    AV1Track() : VideoTrackImp(CodecAV1) {}
+    AV1Track() : VideoTrackImp(CodecAV1, 0, 0, 0) {}
 
     Track::Ptr clone() const override;
 

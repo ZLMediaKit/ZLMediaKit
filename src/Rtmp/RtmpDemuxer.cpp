@@ -7,6 +7,7 @@
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
+#include <cmath>
 #include "RtmpCodec.h"
 #include "RtmpDemuxer.h"
 #include "Extension/Factory.h"
@@ -47,6 +48,13 @@ bool RtmpDemuxer::loadMetaData(const AMFValue &val) {
         val.object_for_each([&](const string &key, const AMFValue &val) {
             if (key == "duration") {
                 _duration = (float)val.as_number();
+                return;
+            }
+            if (key == "framerate" && val.type() == AMF_NUMBER) {
+                float fps = val.as_number();
+                if (std::isfinite(fps) && fps > 0) {
+                    _video_fps = fps;
+                }
                 return;
             }
             if (key == "audiosamplerate") {
@@ -114,7 +122,7 @@ void RtmpDemuxer::inputRtmp(const RtmpPacket::Ptr &pkt) {
     switch (pkt->type_id) {
         case MSG_VIDEO: {
             if (!_try_get_video_track) {
-                _try_get_video_track = true;
+                // Retry until makeVideoTrack has created a usable decoder.
                 auto codec_id = parseVideoRtmpPacket((uint8_t *)pkt->data(), pkt->size());
                 makeVideoTrack(Factory::getTrackByCodecId(codec_id), 0);
             }
@@ -161,6 +169,12 @@ void RtmpDemuxer::makeVideoTrack(const Track::Ptr &track, int bit_rate) {
         // Cannot find the corresponding rtmp decoder, the track is invalid
         _video_track.reset();
         return;
+    }
+    // AV1/VPx do not derive FPS from their bitstream. Preserve the publisher's
+    // nominal rate before addTrack() clones the track into the media sink.
+    auto video = dynamic_pointer_cast<VideoTrackImp>(_video_track);
+    if (video && _video_fps > 0) {
+        video->setVideoFps(_video_fps);
     }
     _video_track->setBitRate(bit_rate);
     addTrack(_video_track);
