@@ -1,0 +1,71 @@
+--- a/ext-codec/AV1.h
++++ b/ext-codec/AV1.h
+@@ -60,0 +61,2 @@
++    size_t _diagnostic_frames = 0;
++    size_t _diagnostic_configs = 0;
+--- a/ext-codec/AV1.cpp
++++ b/ext-codec/AV1.cpp
+@@ -11,0 +12 @@
++#include "Util/util.h"
+@@ -26,2 +27,11 @@
+-    if (0 == aom_av1_codec_configuration_record_init(&context, dataPtr, frame->size() - frame->prefixSize())
+-        && context.width && context.height) {
++    auto result = aom_av1_codec_configuration_record_init(&context, dataPtr, frame->size() - frame->prefixSize());
++    if (_diagnostic_frames < 12) {
++        ++_diagnostic_frames;
++        InfoL << "AV1_DIAG track=" << this << " frame=" << _diagnostic_frames
++              << " bytes=" << frame->size() << " dts=" << frame->dts() << " pts=" << frame->pts()
++              << " init=" << result << " parsed=" << context.width << "x" << context.height
++              << " previous=" << _width << "x" << _height << " fps=" << getVideoFps()
++              << " gop_size=" << getVideoGopSize() << " gop_ms=" << getVideoGopInterval()
++              << " prefix=" << hexmem(dataPtr, std::min<size_t>(32, frame->size() - frame->prefixSize()));
++    }
++    if (0 == result && context.width && context.height) {
+@@ -49,2 +59,9 @@
+-    if (size < 4 || data[0] != 0x81
+-        || aom_av1_codec_configuration_record_load(data, size, &context) <= 0) {
++    auto result = aom_av1_codec_configuration_record_load(data, size, &context);
++    bool diagnostic = _diagnostic_configs < 3;
++    if (diagnostic) {
++        ++_diagnostic_configs;
++        InfoL << "AV1_DIAG track=" << this << " av1C_size=" << size << " load=" << result
++              << " loaded=" << context.width << "x" << context.height
++              << " prefix=" << hexmem(data, std::min<size_t>(32, size));
++    }
++    if (size < 4 || data[0] != 0x81 || result <= 0) {
+@@ -57 +74,6 @@
+-    if (context.bytes && aom_av1_codec_configuration_record_init(&parsed, context.data, context.bytes) != 0) {
++    auto parsed_result = context.bytes ? aom_av1_codec_configuration_record_init(&parsed, context.data, context.bytes) : 0;
++    if (diagnostic) {
++        InfoL << "AV1_DIAG track=" << this << " config_init=" << parsed_result
++              << " parsed=" << parsed.width << "x" << parsed.height << " fps=" << getVideoFps();
++    }
++    if (parsed_result != 0) {
+--- a/ext-codec/VpxRtmp.h
++++ b/ext-codec/VpxRtmp.h
+@@ -34,0 +35 @@
++    size_t _diagnostic_packets = 0;
+--- a/ext-codec/VpxRtmp.cpp
++++ b/ext-codec/VpxRtmp.cpp
+@@ -34,0 +35,6 @@
++        if (getTrack()->getCodecId() == CodecAV1 && _diagnostic_packets < 16) {
++            ++_diagnostic_packets;
++            InfoL << "AV1_DIAG decoder=" << this << " packet=" << _diagnostic_packets
++                  << " type=" << (int)_info.video.pkt_type << " fourcc=" << std::string(pkt->data() + 1, 4)
++                  << " packet_size=" << pkt->size() << " payload_size=" << size << " dts=" << pkt->time_stamp;
++        }
+--- a/src/Rtmp/RtmpDemuxer.h
++++ b/src/Rtmp/RtmpDemuxer.h
+@@ -61,0 +62 @@
++    size_t _diagnostic_packets = 0;
+--- a/src/Rtmp/RtmpDemuxer.cpp
++++ b/src/Rtmp/RtmpDemuxer.cpp
+@@ -123,0 +124,8 @@
++            if (_diagnostic_packets < 16) {
++                ++_diagnostic_packets;
++                InfoL << "AV1_DIAG demuxer=" << this << " video_packet=" << _diagnostic_packets
++                      << " size=" << pkt->size() << " header="
++                      << toolkit::hexmem(pkt->data(), std::min<size_t>(16, pkt->size()))
++                      << " discovered=" << _try_get_video_track << " decoder=" << (bool)_video_rtmp_decoder
++                      << " metadata_fps=" << _video_fps;
++            }

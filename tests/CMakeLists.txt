@@ -40,6 +40,7 @@ find_package(PCAP QUIET)
 # candidates: test_vp9_rtp currently fails and will be added once fixed; test_rtcp_nack and
 # test_webrtc_regression are built only with WebRTC enabled and are not verified yet.
 set(GATING_TESTS
+  test_av1_rtmp
   test_amf
   test_sortor)
 

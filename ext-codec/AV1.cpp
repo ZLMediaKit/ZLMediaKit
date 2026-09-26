@@ -20,10 +20,14 @@ namespace mediakit {
 
 bool AV1Track::inputFrame(const Frame::Ptr &frame) {
     char *dataPtr = frame->data() + frame->prefixSize();
-    if (0 == aom_av1_codec_configuration_record_init(&_context, dataPtr, frame->size() - frame->prefixSize())) {
-        _width = _context.width;
-        _height = _context.height;
-        //InfoL << _width << "x" << _height;
+    // init() appends configuration OBUs and may partially modify its context on
+    // failure. Parse into a fresh context; ordinary inter frames have no dimensions.
+    aom_av1_t context {};
+    if (0 == aom_av1_codec_configuration_record_init(&context, dataPtr, frame->size() - frame->prefixSize())
+        && context.width && context.height) {
+        _context = context;
+        _width = context.width;
+        _height = context.height;
     }
     return VideoTrackImp::inputFrame(frame);
 }
@@ -41,10 +45,27 @@ Buffer::Ptr AV1Track::getExtraData() const {
 }
 
 void AV1Track::setExtraData(const uint8_t *data, size_t size) {
-    if (aom_av1_codec_configuration_record_load(data, size, &_context) > 0) {
-        _width = _context.width;
-        _height = _context.height;
+    aom_av1_t context {};
+    if (size < 4 || data[0] != 0x81
+        || aom_av1_codec_configuration_record_load(data, size, &context) <= 0) {
+        return;
     }
+    // load() only copies av1C fields/configOBUs; dimensions come from the
+    // sequence header inside configOBUs. Use a separate context to avoid
+    // appending into the same buffer that init() is reading.
+    aom_av1_t parsed {};
+    if (context.bytes && aom_av1_codec_configuration_record_init(&parsed, context.data, context.bytes) != 0) {
+        return;
+    }
+    _context = context;
+    // A valid av1C may omit the sequence header. Keep dimensions already
+    // learned from frames until a new sequence header supplies replacements.
+    if (parsed.width && parsed.height) {
+        _width = parsed.width;
+        _height = parsed.height;
+    }
+    _context.width = _width;
+    _context.height = _height;
 }
 
 namespace {
