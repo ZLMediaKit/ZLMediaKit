@@ -7,9 +7,11 @@ This supplements, but does not replace, OBS AMD AV1 + mpegts.js acceptance testi
 """
 import argparse
 import configparser
+from contextlib import contextmanager
 import json
 from pathlib import Path
 import socket
+import secrets
 import subprocess
 import tempfile
 import time
@@ -18,10 +20,48 @@ import urllib.request
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def free_port():
-    with socket.socket() as sock:
-        sock.bind(('127.0.0.1', 0))
-        return sock.getsockname()[1]
+@contextmanager
+def reserve_ports():
+    # Hold both sockets at once so the kernel cannot allocate the same port twice.
+    with socket.socket() as rtmp, socket.socket() as http:
+        rtmp.bind(('127.0.0.1', 0))
+        http.bind(('127.0.0.1', 0))
+        yield rtmp.getsockname()[1], http.getsockname()[1]
+
+
+def start_server(server, cfg, work, start):
+    for attempt in range(3):
+        # Allocate after fixture generation and release immediately before spawn.
+        # MediaServer cannot inherit these sockets, so retry the unavoidable bind race.
+        with reserve_ports() as (rtmp_port, http_port):
+            cfg['rtmp']['port'] = str(rtmp_port)
+            cfg['http']['port'] = str(http_port)
+            config_path = work / 'config.ini'
+            with config_path.open('w') as out:
+                cfg.write(out)
+        srv = start([str(server), '-c', str(config_path), '-t', '2', '--affinity', '0',
+                     '--log-dir', str(work / 'logs')], 'server-%d' % (attempt + 1))
+        api = 'http://127.0.0.1:%d/index/api/getMediaList?secret=%s' % (http_port, cfg['api']['secret'])
+        for _ in range(100):
+            if srv.poll() is not None:
+                break
+            try:
+                with urllib.request.urlopen(api, timeout=1) as response:
+                    # A per-run secret prevents accepting another concurrent test's API.
+                    if json.load(response).get('code') == 0 and srv.poll() is None:
+                        return rtmp_port, http_port, api
+            except (OSError, ValueError):
+                pass
+            time.sleep(0.1)
+        if srv.poll() is None:
+            srv.terminate()
+        try:
+            srv.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            srv.kill()
+            srv.wait()
+        print('MediaServer startup attempt %d failed; log: server-%d.log' % (attempt + 1, attempt + 1), flush=True)
+    raise RuntimeError('local MediaServer did not start after 3 attempts; see server logs')
 
 
 def run(args, **kwargs):
@@ -40,15 +80,14 @@ def main():
     logs = []
     with tempfile.TemporaryDirectory(prefix='zlm-av1-') as tmp:
         work = Path(tmp)
-        rtmp_port, http_port = free_port(), free_port()
         cfg = configparser.ConfigParser(interpolation=None)
         cfg.optionxform = str
         cfg.read(ROOT / 'conf/config.ini')
         overrides = {
             'general': {'listen_ip': '127.0.0.1'},
-            'api': {'secret': 'local-av1-regression'},
-            'http': {'port': str(http_port), 'sslport': '0', 'rootPath': str(work)},
-            'rtmp': {'port': str(rtmp_port), 'sslport': '0', 'directProxy': '1', 'enhanced': '1'},
+            'api': {'secret': secrets.token_hex(16)},
+            'http': {'port': '0', 'sslport': '0', 'rootPath': str(work)},
+            'rtmp': {'port': '0', 'sslport': '0', 'directProxy': '1', 'enhanced': '1'},
             'rtsp': {'port': '0', 'sslport': '0'},
             'rtp_proxy': {'port': '0'},
             'rtc': {'port': '0', 'tcpPort': '0'},
@@ -62,9 +101,6 @@ def main():
             if section not in cfg:
                 cfg.add_section(section)
             cfg[section].update(values)
-        config_path = work / 'config.ini'
-        with config_path.open('w') as out:
-            cfg.write(out)
 
         def start(command, name):
             logfile = (work / (name + '.log')).open('w+')
@@ -100,19 +136,7 @@ def main():
                 offset += size + 15
             results['av1_packets'] = packets
             print('AV1 packet prefixes:', packets, flush=True)
-            srv = start([str(server), '-c', str(config_path), '-t', '2', '--affinity', '0',
-                         '--log-dir', str(work / 'logs')], 'server')
-            api = 'http://127.0.0.1:%d/index/api/getMediaList?secret=local-av1-regression' % http_port
-            for _ in range(100):
-                if srv.poll() is not None:
-                    raise RuntimeError('MediaServer exited during startup')
-                try:
-                    with urllib.request.urlopen(api, timeout=1):
-                        break
-                except OSError:
-                    time.sleep(0.1)
-            else:
-                raise RuntimeError('local API did not start')
+            rtmp_port, http_port, api = start_server(server, cfg, work, start)
             streams = {'av1-a': 'av1', 'av1-b': 'av1', 'h264': 'h264', 'hevc': 'hevc'}
             for name, codec in streams.items():
                 start(base_ffmpeg + ['-re', '-stream_loop', '-1', '-i', str(work / (codec + '.mp4')),
@@ -173,10 +197,10 @@ def main():
                     proc.kill()
                     proc.wait()
             for name, logfile in logs:
-                if args.report and name == 'server':
+                if args.report and name.startswith('server-'):
                     logfile.flush()
                     logfile.seek(0)
-                    args.report.resolve().with_suffix('.server.log').write_text(logfile.read())
+                    args.report.resolve().with_suffix('.' + name + '.log').write_text(logfile.read())
                 logfile.close()
 
 

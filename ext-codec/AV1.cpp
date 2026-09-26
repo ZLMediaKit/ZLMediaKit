@@ -58,8 +58,14 @@ void AV1Track::setExtraData(const uint8_t *data, size_t size) {
         return;
     }
     _context = context;
-    _context.width = _width = parsed.width;
-    _context.height = _height = parsed.height;
+    // A valid av1C may omit the sequence header. Keep dimensions already
+    // learned from frames until a new sequence header supplies replacements.
+    if (parsed.width && parsed.height) {
+        _width = parsed.width;
+        _height = parsed.height;
+    }
+    _context.width = _width;
+    _context.height = _height;
 }
 
 namespace {

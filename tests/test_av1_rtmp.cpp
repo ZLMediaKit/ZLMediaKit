@@ -136,6 +136,32 @@ void testConfiguration() {
     require(clone->ready() && clone->getVideoWidth() == 2560, "track clones retain configuration");
 }
 
+void testConfigurationWithoutSequenceHeader() {
+    // AV1 ISOBMFF section 2.3.4 permits zero configOBUs, or metadata without
+    // a sequence header. Neither contains replacement dimensions.
+    const auto header_only = av1c.substr(0, 4);
+    const auto metadata_only = header_only + unhex("2a060103e8019080"); // HDR_CLL metadata
+    for (const auto &config : {header_only, metadata_only}) {
+        auto track = std::make_shared<AV1Track>();
+        VpxRtmpDecoder decoder(track);
+        decoder.inputRtmp(enhanced(0, config));
+        require(!track->ready() && track->getVideoWidth() == 0 && track->getVideoHeight() == 0,
+                "configuration without a sequence header cannot invent dimensions");
+        decoder.inputRtmp(enhanced(1, keyframe, 100));
+        require(track->ready(), "a sequence header in a frame makes the track ready");
+        decoder.inputRtmp(enhanced(0, config, 117));
+        require(track->ready() && track->getVideoWidth() == 2560 && track->getVideoHeight() == 1440,
+                "later SequenceStart without sequence header preserves known dimensions");
+        auto extra = track->getExtraData();
+        require(config == header_only ? !extra : extra && std::string(extra->data(), extra->size()) == config,
+                "dimension preservation still commits the replacement configuration");
+        decoder.inputRtmp(enhanced(1, interframe, 134));
+        auto clone = std::dynamic_pointer_cast<VideoTrack>(track->clone());
+        require(clone->ready() && clone->getVideoWidth() == 2560 && clone->getVideoHeight() == 1440,
+                "preserved dimensions survive inter frames and track cloning");
+    }
+}
+
 void testDiscovery() {
     RtmpDemuxer demuxer;
     // Unknown FourCC followed by a usable AV1 SequenceStart. No onMetaData rescue.
@@ -258,6 +284,7 @@ void testMetadataFps() {
 int main() {
     testDiscovery();
     testConfiguration();
+    testConfigurationWithoutSequenceHeader();
     testWithoutTemporalDelimiter();
     testCodedFrames();
     testMetadataFps();
