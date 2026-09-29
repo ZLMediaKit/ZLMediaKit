@@ -11,17 +11,42 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <algorithm>
+#include <set>
 #include "Common/config.h"
 #include "Common/strCoding.h"
 #include "HttpSession.h"
 #include "HttpConst.h"
+#include "Common/Parser.h"
 #include "Util/base64.h"
 #include "Util/SHA1.h"
+#include "Util/util.h"
 
 using namespace std;
 using namespace toolkit;
 
 namespace mediakit {
+
+// 判断该跨域域名是否在白名单内
+// Check whether the cross-origin domain is in the whitelist
+static bool isOriginAllowed(const string &origin) {
+    using OriginSet = std::set<std::string, StrCaseCompare>;
+    GET_CONFIG_FUNC(OriginSet, allow_origins, Http::kAllowOrigins, [](const string &str) {
+        OriginSet ret;
+        for (auto &item : split(str, ",")) {
+            trim(item);
+            if (!item.empty()) {
+                ret.emplace(item);
+            }
+        }
+        return ret;
+    });
+    // 包含*则允许所有域名跨域
+    // Allow all origins when * is configured
+    if (allow_origins.find("*") != allow_origins.end()) {
+        return true;
+    }
+    return allow_origins.find(origin) != allow_origins.end();
+}
 
 HttpSession::HttpSession(const Socket::Ptr &pSock) : Session(pSock) {
     // 设置默认参数  [AUTO-TRANSLATED:ae5b72e6]
@@ -43,15 +68,23 @@ void HttpSession::onHttpRequest_HEAD() {
 void HttpSession::onHttpRequest_OPTIONS() {
     KeyValue header;
     header.emplace("Allow", "GET, POST, PUT, HEAD, OPTIONS, DELETE");
-    GET_CONFIG(bool, allow_cross_domains, Http::kAllowCrossDomains);
-    if (allow_cross_domains) {
-        header.emplace("Access-Control-Allow-Origin", "*");
-        header.emplace("Access-Control-Allow-Headers", "*");
+    if (!_origin.empty() && isOriginAllowed(_origin)) {
+        // 回显origin而不是返回*，避免与Access-Control-Allow-Credentials冲突
+        // Echo the origin instead of returning *, to avoid conflicting with Access-Control-Allow-Credentials
+        header.emplace("Access-Control-Allow-Origin", _origin);
+        header.emplace("Access-Control-Allow-Credentials", "true");
+        // 带凭证的请求不支持通配符，此处回显客户端声明的请求头
+        // Credentialed requests do not support wildcards, so echo the headers declared by the client here
+        auto &req_headers = _parser["Access-Control-Request-Headers"];
+        header.emplace("Access-Control-Allow-Headers", req_headers.empty() ? "*" : req_headers);
         header.emplace("Access-Control-Allow-Methods", "GET, POST, PUT, HEAD, OPTIONS, DELETE");
+        // 预检结果缓存1天，减少预检请求次数
+        // Cache the preflight result for 1 day to reduce preflight requests
+        header.emplace("Access-Control-Max-Age", "86400");
+        // 跨域响应内容随origin变化，提示缓存服务器按Origin区分缓存
+        // The cross-origin response varies with origin, tell caches to vary on Origin
+        header.emplace("Vary", "Origin");
     }
-    header.emplace("Access-Control-Allow-Credentials", "true");
-    header.emplace("Access-Control-Request-Methods", "GET, POST, PUT, OPTIONS, DELETE");
-    header.emplace("Access-Control-Request-Headers", "Accept,Accept-Language,Content-Language,Content-Type");
     sendResponse(200, true, nullptr, header);
 }
 
@@ -768,10 +801,12 @@ void HttpSession::sendResponse(int code,
     headerOut.emplace("Server", kServerName);
     headerOut.emplace("Connection", bClose ? "close" : "keep-alive");
 
-    GET_CONFIG(bool, allow_cross_domains, Http::kAllowCrossDomains);
-    if (allow_cross_domains && !_origin.empty()) {
+    if (!_origin.empty() && isOriginAllowed(_origin)) {
         headerOut.emplace("Access-Control-Allow-Origin", _origin);
         headerOut.emplace("Access-Control-Allow-Credentials", "true");
+        // 跨域响应内容随origin变化，提示缓存服务器按Origin区分缓存
+        // The cross-origin response varies with origin, tell caches to vary on Origin
+        headerOut.emplace("Vary", "Origin");
     }
 
     if (!bClose) {

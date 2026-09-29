@@ -385,9 +385,12 @@ extern const std::string kForbidCacheSuffix;
 // 可以把http代理前真实客户端ip放在http头中：https://github.com/ZLMediaKit/ZLMediaKit/issues/1388  [AUTO-TRANSLATED:afcd9556]
 // You can put the real client IP address before the HTTP proxy in the HTTP header: https://github.com/ZLMediaKit/ZLMediaKit/issues/1388
 extern const std::string kForwardedIpHeader;
-// 是否允许所有跨域请求  [AUTO-TRANSLATED:2551c096]
-// Whether to allow all cross-domain requests
-extern const std::string kAllowCrossDomains;
+// 允许跨域的域名列表，多个用","隔开，设置为*则允许所有域名跨域，置空情况下不允许任何域名跨域
+// 示例: http://example.com,https://app.example.com
+// Allowed cross-origin domain list, separated by ",". Set to * to allow all origins,
+// leave empty to deny any cross-origin request.
+// Example: http://example.com,https://app.example.com
+extern const std::string kAllowOrigins;
 // 允许访问http api和http文件索引的ip地址范围白名单，置空情况下不做限制  [AUTO-TRANSLATED:ab939863]
 // Whitelist of IP address ranges allowed to access HTTP API and HTTP file index. No restrictions are imposed when empty
 extern const std::string kAllowIPRange;

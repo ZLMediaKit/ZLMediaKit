@@ -200,7 +200,7 @@ const string kNotFound = HTTP_FIELD "notFound";
 const string kDirMenu = HTTP_FIELD "dirMenu";
 const string kForbidCacheSuffix = HTTP_FIELD "forbidCacheSuffix";
 const string kForwardedIpHeader = HTTP_FIELD "forwarded_ip_header";
-const string kAllowCrossDomains = HTTP_FIELD "allow_cross_domains";
+const string kAllowOrigins = HTTP_FIELD "allow_origins";
 const string kAllowIPRange = HTTP_FIELD "allow_ip_range";
 
 static onceToken token([]() {
@@ -225,7 +225,9 @@ static onceToken token([]() {
                                              << endl;
     mINI::Instance()[kForbidCacheSuffix] = "";
     mINI::Instance()[kForwardedIpHeader] = "";
-    mINI::Instance()[kAllowCrossDomains] = 1;
+    // 默认允许所有域名跨域
+    // Allow all origins by default
+    mINI::Instance()[kAllowOrigins] = "*";
     mINI::Instance()[kAllowIPRange] = "::1,127.0.0.1,172.16.0.0-172.31.255.255,192.168.0.0-192.168.255.255,10.0.0.0-10.255.255.255";
 });
 
