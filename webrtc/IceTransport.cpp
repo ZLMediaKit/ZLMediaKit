@@ -518,26 +518,8 @@ public:
 
     static PortManager &Instance() {
         static auto instance = std::make_shared<PortManager>();
+        static onceToken token([]() { instance->addListenConfigReload(); });
         return *instance;
-    }
-
-    void addListenConfigReload(){
-        weak_ptr<PortManager> weak_self = this->shared_from_this();
-        static auto func = [weak_self](const string &str, int index) {
-            uint16_t port[] = { 49152, 65535 };
-            auto strong_self = weak_self.lock();
-            if (!strong_self) {
-                return port[index];
-            }
-            sscanf(str.data(), "%" SCNu16 "-%" SCNu16, port, port + 1);
-            strong_self->setRange(port[0], port[1]);
-            return port[index];
-        };
-
-        GET_CONFIG_FUNC(uint16_t, dummy_min_port, kPortRange, [](const string &str) { return func(str, 0); });
-        GET_CONFIG_FUNC(uint16_t, dummy_max_port, kPortRange, [](const string &str) { return func(str, 1); });
-        UNUSED(dummy_min_port);
-        UNUSED(dummy_max_port);
     }
 
     std::shared_ptr<uint16_t> getSinglePort() {
@@ -573,6 +555,25 @@ public:
     }
 
 private:
+    void addListenConfigReload(){
+        weak_ptr<PortManager> weak_self = this->shared_from_this();
+        static auto func = [weak_self](const string &str, int index) {
+            uint16_t port[] = { 49152, 65535 };
+            auto strong_self = weak_self.lock();
+            if (!strong_self) {
+                return port[index];
+            }
+            sscanf(str.data(), "%" SCNu16 "-%" SCNu16, port, port + 1);
+            strong_self->setRange(port[0], port[1]);
+            return port[index];
+        };
+
+        GET_CONFIG_FUNC(uint16_t, dummy_min_port, kPortRange, [](const string &str) { return func(str, 0); });
+        GET_CONFIG_FUNC(uint16_t, dummy_max_port, kPortRange, [](const string &str) { return func(str, 1); });
+        UNUSED(dummy_min_port);
+        UNUSED(dummy_max_port);
+    }
+
     void setRange(uint16_t min_port, uint16_t max_port) {
         assert(max_port >= min_port + 36 - 1);
         lock_guard<recursive_mutex> lck(_pool_mtx);
@@ -661,12 +662,6 @@ private:
     recursive_mutex _pool_mtx;
     deque<uint16_t> _port_pool;
 };
-
-//注册端口管理监听配置重载
-onceToken PortManager_token([](){
-    PortManager<0>::Instance().addListenConfigReload();
-    PortManager<1>::Instance().addListenConfigReload();
-});
 
 static std::mutex s_relayed_session_mutex;
 std::unordered_map<sockaddr_storage /*peer ip:port*/, IceServer::WeakPtr, toolkit::SockUtil::SockAddrHash, toolkit::SockUtil::SockAddrEqual> _relayed_session;
