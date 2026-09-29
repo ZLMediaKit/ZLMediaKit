@@ -17,6 +17,15 @@ The patch preserves the coded bytes, fixes the matching encoder format and
 packet length, and continues accepting the old ZLM `CodedFramesX` layout.
 Classic domestic-extension packets retain their composition offsets.
 
+Compatibility decision: older ZLM enhanced `CodedFrames` packets that insert an
+SI24 offset before AV1/VP8/VP9 data are intentionally unsupported. The decoder
+treats all bytes after FourCC as coded payload and sets PTS equal to the RTMP
+timestamp; it does not guess whether the first three bytes are a legacy offset.
+This breaks that nonconforming old-publisher layout, not classic non-enhanced
+CTS or the older zero-offset `CodedFramesX` layout. Upgrade publishers that emit
+enhanced CTS packets. `directProxy=1` forwards their original wire format and
+does not convert them into conforming packets.
+
 The pinned `aom_av1_codec_configuration_record_load()` copies av1C/configOBUs;
 it does not populate dimensions. AV1Track now explicitly parses configOBUs.
 Frame parsing uses a fresh context and only commits a successful sequence header,
@@ -30,6 +39,10 @@ rate. AV1 now starts with unknown FPS, and RtmpDemuxer carries the publisher's
 finite positive `onMetaData.framerate` into AV1/VPx tracks before cloning. Missing
 or invalid metadata stays unknown for AV1; this is not a general AV1 timing-info
 parser or a new timestamp-based estimator. H.264/HEVC retain their bitstream FPS.
+The frame rate must arrive before video-track creation (including creation by a
+SequenceStart packet). Late metadata does not update existing tracks or their
+clones, so AV1 FPS can remain unknown even if a later metadata message supplies
+a valid rate. Back-filling those tracks is outside this change.
 
 The premature video discovery flag is also removed. A separate regression proves
 that an unsupported first packet no longer prevents a later valid AV1 packet
@@ -59,7 +72,11 @@ It checks discovery recovery, av1C parsing and round trips, 200 repeated sequenc
 headers, failed-frame recovery, header-only/metadata-only SequenceStart updates,
 packet bytes/timestamps, 60 and 59.94 FPS and
 cloning, invalid FPS, short AV1/VP8/VP9 packets, encoder bytes, classic CTS, and
-older ZLM `CodedFramesX` compatibility. It requires no network or external files.
+older ZLM `CodedFramesX` compatibility. Explicit legacy enhanced CTS vectors pin
+the decision to preserve those bytes as payload without interpreting an offset;
+they do not establish that the resulting codec data is decodable. Truncated
+enhanced headers are rejected both before and after decoder initialization.
+It requires no network or external files.
 
 The startup regressions use only Python 3 and local sockets, without FFmpeg or a
 server process. They cover simultaneous reservations, startup retry, timeout

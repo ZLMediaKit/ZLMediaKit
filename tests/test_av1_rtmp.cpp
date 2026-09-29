@@ -238,6 +238,79 @@ void testVpxPacketLayouts() {
     }
 }
 
+void testClassicEncoderOffsets() {
+    const auto previous = toolkit::mINI::Instance()[Rtmp::kEnhanced];
+    toolkit::mINI::Instance()[Rtmp::kEnhanced] = false;
+    toolkit::NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastReloadConfig);
+    for (auto codec : {CodecAV1, CodecVP8, CodecVP9}) {
+        const auto payload = codec == CodecAV1 ? unhex("1a0180") : unhex("010203040506");
+        auto track = std::make_shared<VideoTrackImp>(codec, 2560, 1440, 60);
+        CapturingVpxEncoder encoder(track);
+        for (uint64_t pts : {83, 100, 117}) {
+            encoder.inputFrame(Factory::getFrameFromPtr(codec, payload.data(), payload.size(), 100, pts));
+            require(encoder.output != nullptr, "classic VPx encoder emits a packet");
+            if (encoder.output) {
+                const auto offset = pts == 83 ? unhex("ffffef") : pts == 100 ? unhex("000000") : unhex("000011");
+                const auto expected = std::string(1, static_cast<char>(0x20 | getCodecFlags(codec)))
+                    + unhex("01") + offset + payload;
+                require(std::string(encoder.output->data(), encoder.output->size()) == expected,
+                        "classic VPx encoder preserves negative, zero and positive SI24 offsets");
+                require(encoder.output->time_stamp == 100, "classic VPx encoder keeps decode time");
+            }
+        }
+    }
+    toolkit::mINI::Instance()[Rtmp::kEnhanced] = previous;
+    toolkit::NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastReloadConfig);
+}
+
+void testLegacyEnhancedCtsIsNotInterpreted() {
+    for (auto codec : {CodecAV1, CodecVP8, CodecVP9}) {
+        const std::string fourcc = codec == CodecAV1 ? "av01" : codec == CodecVP8 ? "vp08" : "vp09";
+        const auto payload = codec == CodecAV1 ? keyframe : unhex("010203040506");
+        // Observe the RTMP framing boundary without asking a codec parser to
+        // accept the nonconforming payload. This is not a decodability test.
+        for (const auto &offset : {unhex("000011"), unhex("ffffef")}) {
+            auto track = std::make_shared<VideoTrackImp>(codec, 2560, 1440, 60);
+            VpxRtmpDecoder decoder(track);
+            const auto legacy_payload = offset + payload;
+            size_t frames = 0;
+            track->addDelegate([&](const Frame::Ptr &frame) {
+                ++frames;
+                require(std::string(frame->data(), frame->size()) == legacy_payload,
+                        "legacy enhanced CTS bytes remain payload; no offset heuristic");
+                require(frame->dts() == 100 && frame->pts() == 100,
+                        "legacy enhanced CTS does not change presentation time");
+                return true;
+            });
+            decoder.inputRtmp(enhanced(1, legacy_payload, 100, fourcc));
+            require(frames == 1, "legacy enhanced layout is passed through at the framing boundary");
+        }
+    }
+}
+
+void testTruncatedEnhancedHeaders() {
+    for (bool initialized : {false, true}) {
+        for (uint8_t type : {0, 1, 3}) {
+            const auto header = std::string(1, static_cast<char>(0x90 | type)) + "av01";
+            for (size_t size = 0; size <= header.size(); ++size) {
+                auto track = std::make_shared<AV1Track>();
+                VpxRtmpDecoder decoder(track);
+                if (initialized) {
+                    decoder.inputRtmp(enhanced(0, av1c));
+                }
+                bool rejected = false;
+                try {
+                    decoder.inputRtmp(packet(header.substr(0, size)));
+                } catch (const std::exception &) {
+                    rejected = true;
+                }
+                require(rejected, "enhanced parser rejects missing/truncated headers and empty payloads");
+                require(track->ready() == initialized, "rejected packet preserves track readiness");
+            }
+        }
+    }
+}
+
 void testMissingOrInvalidFps() {
     const std::vector<AMFValue> invalid_rates = {
         AMFValue(), AMFValue("60"), AMFValue(0.0), AMFValue(-1.0),
@@ -290,6 +363,9 @@ int main() {
     testMetadataFps();
     testMissingOrInvalidFps();
     testVpxPacketLayouts();
+    testClassicEncoderOffsets();
+    testLegacyEnhancedCtsIsNotInterpreted();
+    testTruncatedEnhancedHeaders();
     std::cout << failures << " failed checks\n";
     return failures ? 1 : 0;
 }

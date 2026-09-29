@@ -42,6 +42,8 @@ void VpxRtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt) {
             case RtmpPacketType::PacketTypeCodedFrames: {
                 // Enhanced AV1/VP8/VP9 carry coded data immediately after FourCC.
                 // Only AVC/HEVC/VVC CodedFrames have an SI24 composition offset.
+                // Older ZLM CodedFrames with an SI24 prefix are intentionally
+                // unsupported: the wire format cannot identify that legacy layout.
                 outputFrame((char*)data, size, pkt->time_stamp, pkt->time_stamp);
                 break;
             }
@@ -76,7 +78,6 @@ bool VpxRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     auto packet = RtmpPacket::create();
     packet->buffer.resize(8 + frame->size());
     char *buff = packet->data();
-    int32_t cts = frame->pts() - frame->dts();
     if (_enhanced) {
         auto header = (RtmpVideoHeaderEnhanced *)buff;
         header->enhanced = 1;
@@ -91,7 +92,9 @@ bool VpxRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
 
         buff[0] = flags;
         buff[1] = (uint8_t)RtmpH264PacketType::h264_nalu;
-        // cts
+        // Preserve the low 24 bits of the signed composition offset, including
+        // negative offsets, without narrowing an unsigned difference to int32_t.
+        auto cts = static_cast<uint32_t>(frame->pts() - frame->dts());
         set_be24(&buff[2], cts);
         buff += 5;
     }
