@@ -709,11 +709,11 @@ AMFDecoder::AMFDecoder(const BufferLikeString &buf_in, size_t pos_in, int versio
 }
 
 std::string amfLoadLeadingString(AMFDecoder &dec) {
-    while (dec.remain()) {
-        auto val = dec.load<AMFValue>();
-        if (val.type() == AMF_STRING) {
-            return val.as_string();
-        }
+    // Some non-standard publishers prepend two numbers to metadata. Only skip
+    // that known, fixed-size anomaly: decoding arbitrary values here can turn a
+    // compact strict array into a large AMFValue allocation before it is ignored.
+    for (size_t i = 0; i < 2 && dec.remain() && dec.version == 0 && dec.front() == AMF0_NUMBER; ++i) {
+        dec.load<double>();
     }
-    return "";
+    return dec.remain() ? dec.load<std::string>() : "";
 }
