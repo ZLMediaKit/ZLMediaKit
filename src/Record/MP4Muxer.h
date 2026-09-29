@@ -214,6 +214,7 @@ class MP4MuxerMemory : public MediaSinkInterface {
 public:
     bool addTrack(const Track::Ptr & track) override { return false; }
     bool inputFrame(const Frame::Ptr &frame) override { return false; }
+    bool haveVideo() const { return false; }
     const std::string &getInitSegment() { static std::string kNull; return kNull; };
 
 protected:

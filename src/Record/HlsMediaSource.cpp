@@ -108,20 +108,26 @@ HlsMediaSource::Ptr HlsCookieData::getMediaSource() const {
     return _src.lock();
 }
 
+void HlsMediaSource::registRing()
+{
+    if (_ring) {
+        return;
+    }
+    std::weak_ptr<HlsMediaSource> weakSelf = std::static_pointer_cast<HlsMediaSource>(shared_from_this());
+    auto lam = [weakSelf](int size) {
+        auto strongSelf = weakSelf.lock();
+        if (!strongSelf) {
+            return;
+        }
+        strongSelf->onReaderChanged(size);
+    };
+    _ring = std::make_shared<RingType>(0, std::move(lam));
+    regist();
+}
+
 void HlsMediaSource::setIndexFile(std::string index_file)
 {
-    if (!_ring) {
-        std::weak_ptr<HlsMediaSource> weakSelf = std::static_pointer_cast<HlsMediaSource>(shared_from_this());
-        auto lam = [weakSelf](int size) {
-            auto strongSelf = weakSelf.lock();
-            if (!strongSelf) {
-                return;
-            }
-            strongSelf->onReaderChanged(size);
-        };
-        _ring = std::make_shared<RingType>(0, std::move(lam));
-        regist();
-    }
+    registRing();
 
     // 赋值m3u8索引文件内容  [AUTO-TRANSLATED:c11882b5]
     // Assign m3u8 index file content
@@ -144,6 +150,33 @@ void HlsMediaSource::getIndexFile(std::function<void(const std::string& str)> cb
     // 等待生成m3u8文件  [AUTO-TRANSLATED:c3ae3286]
     // Waiting for m3u8 file generation
     _list_cb.emplace_back(std::move(cb));
+}
+
+void HlsMediaSource::setMpdFile(std::string mpd_file)
+{
+    registRing();
+
+    // 赋值dash mpd文件内容
+    // Assign dash mpd file content
+    std::lock_guard<std::mutex> lck(_mtx_mpd);
+    _mpd_file = std::move(mpd_file);
+
+    if (!_mpd_file.empty()) {
+        _list_mpd_cb.for_each([&](const std::function<void(const std::string& str)>& cb) { cb(_mpd_file); });
+        _list_mpd_cb.clear();
+    }
+}
+
+void HlsMediaSource::getMpdFile(std::function<void(const std::string& str)> cb)
+{
+    std::lock_guard<std::mutex> lck(_mtx_mpd);
+    if (!_mpd_file.empty()) {
+        cb(_mpd_file);
+        return;
+    }
+    // 等待生成dash mpd文件
+    // Waiting for mpd file generation
+    _list_mpd_cb.emplace_back(std::move(cb));
 }
 
 } // namespace mediakit

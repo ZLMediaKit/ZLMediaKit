@@ -35,6 +35,9 @@ static size_t kFindSrcIntervalSecond = 3;
 static const string kCookieName = "ZLM_HTTP_COOKIE";
 static const string kHlsSuffix = "/hls.m3u8";
 static const string kHlsFMP4Suffix = "/hls.fmp4.m3u8";
+// dash mpd请求后缀, 它与hls.fmp4共用同一个MediaSource与fmp4分片
+// Dash mpd request suffix, it shares the hls.fmp4 media source and fmp4 segments
+static const string kDashSuffix = "/dash.mpd";
 
 struct HttpCookieAttachment {
     // 是否已经查找到过MediaSource  [AUTO-TRANSLATED:b5b9922a]
@@ -494,23 +497,30 @@ static string getFilePath(const Parser &parser,const MediaInfo &media_info, Sess
  * [AUTO-TRANSLATED:2d840fe6]
  */
 static void accessFile(Session &sender, const Parser &parser, const MediaInfo &media_info, const string &file_path, const HttpFileManager::invoker &cb) {
-    bool is_hls = end_with(file_path, kHlsSuffix) || end_with(file_path, kHlsFMP4Suffix);
+    bool is_dash = end_with(file_path, kDashSuffix);
+    bool is_hls = is_dash || end_with(file_path, kHlsSuffix) || end_with(file_path, kHlsFMP4Suffix);
     if (is_hls) {
-        // hls，那么移除掉后缀获取真实的stream_id并且修改协议为HLS  [AUTO-TRANSLATED:94b5818a]
-        // hls, then remove the suffix to get the real stream_id and change the protocol to HLS
+        // hls或dash，那么移除掉后缀获取真实的stream_id并且修改协议为HLS  [AUTO-TRANSLATED:94b5818a]
+        // hls or dash, then remove the suffix to get the real stream_id and change the protocol to HLS
         if (end_with(file_path, kHlsSuffix)) {
             const_cast<string &>(media_info.schema) = HLS_SCHEMA;
             replace(const_cast<string &>(media_info.stream), kHlsSuffix, "");
         } else {
+            // dash共用hls.fmp4的MediaSource
+            // Dash shares the hls.fmp4 media source
             const_cast<string &>(media_info.schema) = HLS_FMP4_SCHEMA;
-            replace(const_cast<string &>(media_info.stream), kHlsFMP4Suffix, "");
+            if (is_dash) {
+                replace(const_cast<string &>(media_info.stream), kDashSuffix, "");
+            } else {
+                replace(const_cast<string &>(media_info.stream), kHlsFMP4Suffix, "");
+            }
         }
     }
 
     weak_ptr<Session> weakSession = static_pointer_cast<Session>(sender.shared_from_this());
     // 判断是否有权限访问该文件  [AUTO-TRANSLATED:b7f595f5]
     // Determine whether you have permission to access this file
-    canAccessPath(sender, parser, media_info, file_path, false, [cb, file_path, parser, is_hls, media_info, weakSession](const string &err_msg, const HttpServerCookie::Ptr &cookie) {
+    canAccessPath(sender, parser, media_info, file_path, false, [cb, file_path, parser, is_hls, is_dash, media_info, weakSession](const string &err_msg, const HttpServerCookie::Ptr &cookie) {
         auto strongSession = weakSession.lock();
         if (!strongSession) {
             // http客户端已经断开，不需要回复  [AUTO-TRANSLATED:9a252e21]
@@ -563,11 +573,11 @@ static void accessFile(Session &sender, const Parser &parser, const MediaInfo &m
             }
         }
         if (!is_hls || !cookie) {
-            // 不是hls或访问m3u8文件不带cookie, 直接回复文件或404  [AUTO-TRANSLATED:64e5d19b]
-            // Not hls or accessing m3u8 files without cookies, directly reply to the file or 404
+            // 不是hls/dash或访问m3u8/mpd文件不带cookie, 直接回复文件或404  [AUTO-TRANSLATED:64e5d19b]
+            // Not hls/dash or accessing m3u8/mpd files without cookies, directly reply to the file or 404
             response_file(cookie, cb, file_path, parser);
             if (is_hls) {
-                WarnL << "access m3u8 file without cookie:" << file_path;
+                WarnL << "access m3u8/mpd file without cookie:" << file_path;
             }
             return;
         }
@@ -575,9 +585,9 @@ static void accessFile(Session &sender, const Parser &parser, const MediaInfo &m
         auto &attach = cookie->getAttach<HttpCookieAttachment>();
         auto src = attach._hls_data->getMediaSource();
         if (src) {
-            // 直接从内存获取m3u8索引文件(而不是从文件系统)  [AUTO-TRANSLATED:c772e342]
-            // Get the m3u8 index file directly from memory (instead of from the file system)
-            response_file(cookie, cb, file_path, parser, src->getIndexFile());
+            // 直接从内存获取m3u8/mpd索引文件(而不是从文件系统)  [AUTO-TRANSLATED:c772e342]
+            // Get the m3u8/mpd index file directly from memory (instead of from the file system)
+            response_file(cookie, cb, file_path, parser, is_dash ? src->getMpdFile() : src->getIndexFile());
             return;
         }
         if (attach._find_src && attach._find_src_ticker.elapsedTime() < kFindSrcIntervalSecond * 1000) {
@@ -589,7 +599,7 @@ static void accessFile(Session &sender, const Parser &parser, const MediaInfo &m
 
         // hls流可能未注册，MediaSource::findAsync可以触发not_found事件，然后再按需推拉流  [AUTO-TRANSLATED:f4acd717]
         // The hls stream may not be registered, MediaSource::findAsync can trigger the not_found event, and then push and pull the stream on demand
-        MediaSource::findAsync(media_info, strongSession, [response_file, cookie, cb, file_path, parser](const MediaSource::Ptr &src) {
+        MediaSource::findAsync(media_info, strongSession, [response_file, cookie, cb, file_path, parser, is_dash](const MediaSource::Ptr &src) {
             auto hls = dynamic_pointer_cast<HlsMediaSource>(src);
             if (!hls) {
                 // 流不在线  [AUTO-TRANSLATED:5a6a5695]
@@ -615,11 +625,18 @@ static void accessFile(Session &sender, const Parser &parser, const MediaInfo &m
             if (muxer) {
                 attach._hls_root_path = muxer->getOption().hls_save_path;
             }
-            // m3u8文件可能不存在, 等待m3u8索引文件按需生成  [AUTO-TRANSLATED:0dbd4df2]
-            // The m3u8 file may not exist, wait for the m3u8 index file to be generated on demand
-            hls->getIndexFile([response_file, file_path, cookie, cb, parser](const string &file) {
+            auto on_index_file = [response_file, file_path, cookie, cb, parser](const string &file) {
                 response_file(cookie, cb, file_path, parser, file);
-            });
+            };
+            if (is_dash) {
+                // mpd文件可能不存在, 等待dash mpd文件按需生成
+                // The mpd file may not exist, wait for the dash mpd file to be generated on demand
+                hls->getMpdFile(on_index_file);
+            } else {
+                // m3u8文件可能不存在, 等待m3u8索引文件按需生成  [AUTO-TRANSLATED:0dbd4df2]
+                // The m3u8 file may not exist, wait for the m3u8 index file to be generated on demand
+                hls->getIndexFile(on_index_file);
+            }
         });
     });
 }

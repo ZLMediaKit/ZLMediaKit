@@ -72,6 +72,27 @@ public:
         return _index_file;
     }
 
+    /**
+     * 设置或清空dash mpd文件内容, 仅fmp4模式
+     * Set or clear the dash mpd file content, fmp4 mode only
+     */
+    void setMpdFile(std::string mpd_file);
+
+    /**
+     * 异步获取dash mpd文件
+     * Asynchronously get the dash mpd file
+     */
+    void getMpdFile(std::function<void(const std::string &str)> cb);
+
+    /**
+     * 同步获取dash mpd文件
+     * Synchronously get the dash mpd file
+     */
+    std::string getMpdFile() const {
+        std::lock_guard<std::mutex> lck(_mtx_mpd);
+        return _mpd_file;
+    }
+
     void onSegmentSize(size_t bytes) { _speed[TrackVideo] += bytes; }
 
     void getPlayerList(const std::function<void(const std::list<toolkit::Any> &info_list)> &cb,
@@ -80,10 +101,18 @@ public:
     }
 
 private:
+    // 创建环形缓冲并注册MediaSource(幂等)
+    // Create the ring buffer and register the MediaSource (idempotent)
+    void registRing();
+
+private:
     RingType::Ptr _ring;
     std::string _index_file;
     mutable std::mutex _mtx_index;
     toolkit::List<std::function<void(const std::string &)>> _list_cb;
+    std::string _mpd_file;
+    mutable std::mutex _mtx_mpd;
+    toolkit::List<std::function<void(const std::string &)>> _list_mpd_cb;
 };
 
 class HlsCookieData {

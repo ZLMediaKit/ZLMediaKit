@@ -31,6 +31,13 @@ struct HlsSegmentInfo {
     // The segment's first-sample wall-clock time, pre-formatted as the EXT-X-PROGRAM-DATE-TIME value.
     // Empty when the tag is disabled. The index is rebuilt repeatedly, so it is formatted once on insert
     std::string program_date_time;
+    // 切片累计字节数，用于计算dash mpd的bandwidth
+    // 注意: 本结构体使用聚合初始化(C++11下不能带默认成员初始化器)，
+    // 初始化列表未覆盖的成员会被值初始化为0
+    // Bytes accumulated for this segment, used to compute the dash mpd bandwidth
+    // Note: this struct uses aggregate initialization (no default member
+    // initializers under C++11), members left out of the init list are value initialized to 0
+    size_t bytes;
 };
 
 class HlsMaker {
@@ -103,12 +110,35 @@ public:
     bool isFmp4() const;
 
     /**
+     * 设置是否包含视频，决定dash mpd中的mimeType
+     * Set whether the stream contains video, it decides the mimeType in the dash mpd file
+     */
+    void setHaveVideo(bool have_video) { _have_video = have_video; }
+
+    /**
+     * 设置RFC 6381 codec字符串(例如 "avc1.640029,mp4a.40.2"), 用于dash mpd文件
+     * Set the RFC 6381 codec string (e.g. "avc1.640029,mp4a.40.2") used in the dash mpd file
+     */
+    void setDashCodec(std::string codecs) { _dash_codecs = std::move(codecs); }
+
+    /**
      * 清空记录
      * Clear records
      
      * [AUTO-TRANSLATED:34a4b6cd]
      */
     void clear();
+
+    /**
+     * 若上一份mpd已足够陈旧，则重新发布一份(仅内存)
+     * 由切片数据流驱动(HlsMakerImp::onWriteSegment)，使得availabilityStartTime的修正
+     * 摊平到整个切片周期，而不是每次flush时阶跃一次
+     * Publish a fresh mpd (memory only) if the last one is old enough.
+     * Driven by the segment data flow (HlsMakerImp::onWriteSegment) so that the
+     * availabilityStartTime correction is spread over the whole segment period
+     * instead of stepping at every flush.
+     */
+    void refreshDashFile();
 
 protected:
     /**
@@ -166,6 +196,16 @@ protected:
     virtual void onWriteHls(const std::string &data, bool include_delay) = 0;
 
     /**
+     * 写dash mpd文件回调, 仅fmp4模式触发
+     * @param data mpd文件内容
+     * @param memory_only 只刷新内存中的副本, 不落盘
+     * Write dash mpd file callback, only triggered in fmp4 mode
+     * @param data mpd file content
+     * @param memory_only Only refresh the copy kept in memory, do not touch the disk
+     */
+    virtual void onWriteDash(const std::string &data, bool memory_only = false) {}
+
+    /**
      * 上一个 ts 切片写入完成, 可在这里进行通知处理
      * @param duration_ms 上一个 ts 切片的时长, 单位为毫秒
      * The previous ts segment is written, you can notify here
@@ -205,6 +245,16 @@ private:
     void makeIndexFile(bool include_delay, bool eof = false);
 
     /**
+     * 生成dash mpd文件, 仅fmp4模式
+     * @param eof true代表直播已结束
+     * @param memory_only 只刷新内存中的副本, 不落盘
+     * Generate dash mpd file, fmp4 mode only
+     * @param eof true represents the live stream has ended
+     * @param memory_only Only refresh the copy kept in memory, do not touch the disk
+     */
+    void makeDashFile(bool eof = false, bool memory_only = false);
+
+    /**
      * 删除旧的ts切片
      * Delete old ts segments
      
@@ -224,6 +274,7 @@ private:
 
 private:
     bool _is_fmp4 = false;
+    bool _have_video = true;
     float _seg_duration = 0;
     uint32_t _seg_number = 0;
     bool _seg_keep = false;
@@ -239,6 +290,28 @@ private:
     uint64_t _file_index = 0;
     std::string _last_file_name;
     std::deque<HlsSegmentInfo> _seg_dur_list;
+    // 已从_seg_dur_list中移除的切片时长累计(ms)，作为首个在窗切片在dash媒体时间轴上的起始时间
+    // Total duration(ms) of the segments already removed from _seg_dur_list,
+    // used as the start time on the dash media timeline of the first listed segment
+    uint64_t _dash_timeline_offset_ms = 0;
+    // dash媒体时间轴原点对应的墙钟时间(ms)，即dash availabilityStartTime；
+    // 每次发布mpd时修正一次，使live edge正好落在最后一个可用分片的末尾。
+    // 修正限速(见makeDashFile)以避免live edge阶跃
+    // Wall clock time(ms) mapping to the origin of the dash media timeline, used
+    // as dash availabilityStartTime; it is corrected on every mpd publish so that
+    // the live edge ends at the last available segment. The correction is rate
+    // limited (see makeDashFile) to keep the live edge from stepping.
+    uint64_t _ast_wall_ms = 0;
+    // 上次发布mpd的墙钟时间(ms)，用于给availabilityStartTime修正限速
+    // Wall clock time(ms) of the last mpd publish, used to rate limit the
+    // availabilityStartTime correction
+    uint64_t _dash_last_emit_ms = 0;
+    // 当前正在写入的切片累计字节数
+    // Bytes accumulated for the segment currently being written
+    size_t _current_seg_bytes = 0;
+    // dash mpd文件使用的RFC 6381 codec字符串
+    // RFC 6381 codec string for the dash mpd file
+    std::string _dash_codecs;
 };
 
 }//namespace mediakit

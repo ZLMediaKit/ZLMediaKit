@@ -130,6 +130,7 @@ static const char *s_mime_src[][2] = {
         {"ai", "application/postscript"},
         {"rtf", "application/rtf"},
         {"m3u8", "application/vnd.apple.mpegurl"},
+        {"mpd", "application/dash+xml"},
         {"xls", "application/vnd.ms-excel"},
         {"eot", "application/vnd.ms-fontobject"},
         {"ppt", "application/vnd.ms-powerpoint"},

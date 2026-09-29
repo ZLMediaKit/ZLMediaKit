@@ -19,6 +19,11 @@
 
 namespace mediakit {
 
+// availabilityStartTime的修正由onWriteSegment(数据流)驱动而非定时器驱动：
+// 这样它总是在生产分片的那个线程上执行，流停了也就自动停了
+// The availabilityStartTime correction is driven from onWriteSegment (data flow),
+// not from a timer: it is then always executed on the thread that produces the
+// segments and stops by itself when the stream stalls.
 class HlsMakerImp : public HlsMaker {
 public:
     HlsMakerImp(bool is_fmp4, const std::string &m3u8_file, const std::string &params, uint32_t bufSize = 64 * 1024,
@@ -59,6 +64,7 @@ protected:
     void onWriteInitSegment(const char *data, size_t len) override;
     void onWriteSegment(const char *data, size_t len) override;
     void onWriteHls(const std::string &data, bool include_delay) override;
+    void onWriteDash(const std::string &data, bool memory_only) override;
     void onFlushLastSegment(uint64_t duration_ms) override;
 
 private:
@@ -72,6 +78,7 @@ private:
     std::string _fmp4_seg_ext;
     std::string _path_hls;
     std::string _path_hls_delay;
+    std::string _path_dash;
     std::string _path_init;
     std::string _path_prefix;
     std::string _current_dir;

@@ -12,6 +12,7 @@
 #define HLSRECORDER_H
 
 #include "HlsMakerImp.h"
+#include "DashCodec.h"
 #include "MPEG.h"
 #include "MP4Muxer.h"
 #include "Common/config.h"
@@ -61,10 +62,11 @@ public:
     bool inputFrame(const Frame::Ptr &frame) override {
         if (_clear_cache && _option.hls_demand) {
             _clear_cache = false;
-            // 清空旧的m3u8索引文件于ts切片  [AUTO-TRANSLATED:a4ce0664]
-            // Clear the old m3u8 index file and ts slices
+            // 清空旧的m3u8/mpd索引文件于ts切片  [AUTO-TRANSLATED:a4ce0664]
+            // Clear the old m3u8/mpd index file and ts slices
             _hls->clearCache();
             _hls->getMediaSource()->setIndexFile("");
+            _hls->getMediaSource()->setMpdFile("");
         }
         if (_enabled || !_option.hls_demand) {
             return Muxer::inputFrame(frame);
@@ -113,6 +115,12 @@ private:
     }
 };
 
+/**
+ * 基于fmp4的录制器, 同时生成hls-fmp4(m3u8)与dash(mpd)直播流,
+ * 两个协议共用同一套init.mp4与fmp4分片
+ * Fmp4 based recorder, it generates hls-fmp4 (m3u8) and dash (mpd) live streams
+ * at the same time, both protocols share the same init.mp4 and fmp4 segments
+ */
 class HlsFMP4Recorder final : public HlsRecorderBase<MP4MuxerMemory> {
 public:
     using Ptr = std::shared_ptr<HlsFMP4Recorder>;
@@ -126,11 +134,40 @@ public:
         }
     }
 
+    bool addTrack(const Track::Ptr &track) override {
+        // 累加dash codecs属性, 在addTrackCompleted()中定稿
+        // 未ready的track没有extra data(AAC/H265的getExtraData会抛异常), 跳过
+        // Accumulate the dash codecs attribute, finalized in addTrackCompleted().
+        // A track that is not ready has no extra data (AAC/H265 getExtraData throws), skip it
+        if (track->ready()) {
+            auto cs = getDashCodecString(track);
+            if (!cs.empty()) {
+                if (!_dash_codecs.empty()) {
+                    _dash_codecs += ",";
+                }
+                _dash_codecs += cs;
+            }
+        }
+        return HlsRecorderBase<MP4MuxerMemory>::addTrack(track);
+    }
+
+    void resetTracks() override {
+        HlsRecorderBase<MP4MuxerMemory>::resetTracks();
+        _dash_codecs.clear();
+    }
+
     void addTrackCompleted() override {
         HlsRecorderBase<MP4MuxerMemory>::addTrackCompleted();
+        // 让dash mpd文件带上正确的mimeType与codecs
+        // Let the dash mpd file carry the right mimeType and codecs
+        _hls->setHaveVideo(haveVideo());
+        _hls->setDashCodec(_dash_codecs);
         auto data = getInitSegment();
         _hls->inputInitSegment(data.data(), data.size());
     }
+
+private:
+    std::string _dash_codecs;
 
 private:
     void onSegmentData(std::string buffer, uint64_t timestamp, bool key_pos) override {

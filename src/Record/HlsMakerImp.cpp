@@ -36,6 +36,7 @@ HlsMakerImp::HlsMakerImp(bool is_fmp4, const string &m3u8_file, const string &pa
     _path_prefix = m3u8_file.substr(0, m3u8_file.rfind('/'));
     _path_hls = m3u8_file;
     _path_hls_delay = getDelayPath(m3u8_file);
+    _path_dash = _path_prefix + "/dash.mpd";
     _params = params;
     _buf_size = bufSize;
     // 兼容用户配置不带前导点的扩展名(例如 m4s)，统一补上"."  [AUTO-TRANSLATED]
@@ -82,6 +83,7 @@ void HlsMakerImp::clearCache(bool immediately, bool eof) {
         std::list<std::string> lst;
         lst.emplace_back(_path_hls);
         lst.emplace_back(_path_hls_delay);
+        lst.emplace_back(_path_dash);
         if (!_path_init.empty() && eof) {
             lst.emplace_back(_path_init);
         }
@@ -220,6 +222,12 @@ void HlsMakerImp::onWriteSegment(const char *data, size_t len) {
     if (_media_src) {
         _media_src->onSegmentSize(len);
     }
+    // 由数据流驱动: 在两次分片flush之间用新的availabilityStartTime/publishTime
+    // 重新发布mpd(仅内存), 使播放器的live edge随媒体速率前进而不是阶跃
+    // Driven by the data flow: republish the mpd (memory only) with a fresh
+    // availabilityStartTime/publishTime between two segment flushes, so the
+    // player's live edge keeps advancing at the media rate instead of stepping
+    refreshDashFile();
 }
 
 void HlsMakerImp::onWriteHls(const std::string &data, bool include_delay) {
@@ -233,6 +241,21 @@ void HlsMakerImp::onWriteHls(const std::string &data, bool include_delay) {
         }
     } else {
         WarnL << "Create hls file failed," << path << " " << get_uv_errmsg();
+    }
+}
+
+void HlsMakerImp::onWriteDash(const std::string &data, bool memory_only) {
+    if (!memory_only) {
+        auto mpd = makeFile(_path_dash);
+        if (mpd) {
+            fwrite(data.data(), data.size(), 1, mpd.get());
+            mpd.reset();
+        } else {
+            WarnL << "Create dash mpd file failed," << _path_dash << " " << get_uv_errmsg();
+        }
+    }
+    if (_media_src) {
+        _media_src->setMpdFile(data);
     }
 }
 
