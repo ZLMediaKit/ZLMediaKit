@@ -1,4 +1,4 @@
-﻿#if defined(ENABLE_PYTHON)
+#if defined(ENABLE_PYTHON)
 
 #include "pyinvoker.h"
 
@@ -477,6 +477,7 @@ PYBIND11_EMBEDDED_MODULE(mk_loader, m) {
         .value("hls_fmp4", Recorder::type_hls_fmp4)
         .value("fmp4", Recorder::type_fmp4)
         .value("ts", Recorder::type_ts)
+        .value("ll_cmaf", Recorder::type_ll_cmaf)
         .export_values();
 
 #define OPT(key) .def_readwrite(#key, &ProtocolOption::key)

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
@@ -15,6 +15,7 @@
 #include "Common/config.h"
 #include "Common/strCoding.h"
 #include "HttpSession.h"
+#include "HttpCookieManager.h"
 #include "HttpConst.h"
 #include "Common/Parser.h"
 #include "Util/base64.h"
@@ -264,7 +265,10 @@ void HttpSession::onRecv(const Buffer::Ptr &pBuf) {
 }
 
 void HttpSession::onError(const SockException &err) {
-    if (_is_live_stream) {
+    // LL-CMAF由跨请求复用的LlCmafPlayer在会话过期时统一上报流量，不能按单个HTTP请求重复上报。
+    // LL-CMAF flow is reported once by the cross-request LlCmafPlayer when its session expires;
+    // individual HTTP requests must not report it again.
+    if (_is_live_stream && _media_info.schema != LLCMAF_SCHEMA) {
         // flv/ts播放器  [AUTO-TRANSLATED:5b444fd9]
         // flv/ts player
         uint64_t duration = _ticker.createdTime() / 1000;
@@ -518,6 +522,428 @@ bool HttpSession::checkLiveStreamFMP4(const function<void()> &cb) {
     });
 }
 
+// /////////////////////////// LL-HLS / LL-DASH ///////////////////////////
+
+// LL请求的url后缀
+// URL suffixes of the LL requests
+static const string kLlHlsSuffix = "/hls.ll.m3u8";
+static const string kLlDashSuffix = "/dash.ll.mpd";
+static const string kLlDirName = "/ll/";
+static const string kLlPlayerCookieName = "ZL_LL_CMAF_PLAYER";
+static const string kLlPlayerIdArg = "player_id";
+// 30秒内未访问任何LL-CMAF资源时，视为播放已断开。
+// Consider playback disconnected when no LL-CMAF resource is accessed for 30 seconds.
+static constexpr uint32_t kLlPlayerCookieLife = 30;
+
+static bool urlSuffixEqual(const string &url, const string &suffix) {
+    return url.size() >= suffix.size() && strcasecmp(url.data() + (url.size() - suffix.size()), suffix.data()) == 0;
+}
+
+static void replaceAll(string &str, const string &from, const string &to) {
+    size_t pos = 0;
+    while ((pos = str.find(from, pos)) != string::npos) {
+        str.replace(pos, from.size(), to);
+        pos += to.size();
+    }
+}
+
+/**
+ * http chunked分块的长度头, 例如 "1000\r\n"
+ * The size header of an HTTP chunked block, e.g. "1000\r\n"
+ */
+static Buffer::Ptr makeHttpChunkHead(size_t len) {
+    char buf[32];
+    auto head = snprintf(buf, sizeof(buf), "%zx\r\n", len);
+    return std::make_shared<BufferString>(std::string(buf, (size_t)head));
+}
+
+/**
+ * http chunked分块数据后的结束符 "\r\n"
+ * 与长度头、数据分3次下发, socket层会合并成一次sendmsg的多个iovec, 从而避免拼接时的内存拷贝
+ * The trailing CRLF of an HTTP chunked block
+ * It is sent separately from the size header and the data; the socket layer merges them into a
+ * single sendmsg with several iovecs, which avoids the copy needed when concatenating them
+ */
+static const BufferString::Ptr &getHttpChunkTail() {
+    static const auto tail = std::make_shared<BufferString>("\r\n");
+    return tail;
+}
+
+/**
+ * http chunked编码的结束标记
+ * The terminating block of the HTTP chunked encoding
+ */
+static Buffer::Ptr makeHttpChunkEnd() {
+    return std::make_shared<BufferString>("0\r\n\r\n");
+}
+
+/**
+ * 解析分片文件名
+ *   "12.m4s"   -> 完整分片, part = -1
+ *   "12.3.m4s" -> 部分分片, part = 3
+ * Parse the segment file name
+ *   "12.m4s"   -> full segment, part = -1
+ *   "12.3.m4s" -> partial segment, part = 3
+ */
+static bool parseLlSegmentName(const string &name, uint64_t &msn, int &part) {
+    if (!end_with(name, ".m4s")) {
+        return false;
+    }
+    auto body = name.substr(0, name.size() - 4);
+    auto dot = body.find('.');
+    if (dot == string::npos) {
+        msn = strtoull(body.data(), nullptr, 10);
+        part = -1;
+        return true;
+    }
+    msn = strtoull(body.substr(0, dot).data(), nullptr, 10);
+    part = atoi(body.substr(dot + 1).data());
+    return true;
+}
+
+bool HttpSession::checkLiveStreamLL() {
+    auto url = _parser.url();
+    bool is_dash = urlSuffixEqual(url, kLlDashSuffix);
+    bool is_playlist = is_dash || urlSuffixEqual(url, kLlHlsSuffix);
+
+    string suffix;
+    if (is_playlist) {
+        suffix = is_dash ? kLlDashSuffix : kLlHlsSuffix;
+    } else {
+        // 分片请求: /app/stream/ll/{msn}[.{part}].m4s,
+        // 把"/ll/..."整体作为后缀, checkLiveStream会据此推导出app/stream
+        // Segment request: /app/stream/ll/{msn}[.{part}].m4s
+        // Use "/ll/..." as the suffix; checkLiveStream derives app/stream from it
+        auto pos = url.rfind(kLlDirName);
+        if (pos == string::npos) {
+            return false;
+        }
+        suffix = url.substr(pos);
+    }
+
+    // 保存查询参数: checkLiveStream异步查找期间onRecvHeader会清空_parser
+    // Save query parameters before the asynchronous checkLiveStream lookup; onRecvHeader clears _parser on return
+    auto url_args = _parser.params();
+    // 复用checkLiveStream完成鉴权与异步查找媒体源
+    // Reuse checkLiveStream for the authentication and asynchronous media source lookup
+    return checkLiveStream(LLCMAF_SCHEMA, suffix, [this, is_playlist, is_dash, suffix, url, url_args](const MediaSource::Ptr &src) {
+        auto ll_src = dynamic_pointer_cast<LlMediaSource>(src);
+        if (!ll_src) {
+            sendNotFound(false);
+            return;
+        }
+        auto args = Parser::parseArgs(url_args);
+        auto it = args.find(kLlPlayerIdArg);
+        if (is_playlist && it == args.end()) {
+            auto player = std::make_shared<LlCmafPlayer>(ll_src);
+            player->setSession(static_pointer_cast<Session>(shared_from_this()));
+            player->setMediaInfo(_media_info);
+            auto cookie = HttpCookieManager::Instance().addCookie(kLlPlayerCookieName, "", kLlPlayerCookieLife, Any(player));
+            player->setId(cookie->getCookie());
+            KeyValue header;
+            header["Location"] = url + "?" + url_args + (url_args.empty() ? "" : "&") + kLlPlayerIdArg + "=" + cookie->getCookie();
+            sendResponse(302, false, nullptr, header);
+            return;
+        }
+        if (it == args.end()) {
+            sendNotFound(false);
+            return;
+        }
+        auto cookie = HttpCookieManager::Instance().getCookie(kLlPlayerCookieName, it->second);
+        if (!cookie) {
+            sendNotFound(false);
+            return;
+        }
+        LlCmafPlayer::Ptr player;
+        try {
+            player = cookie->getAttach<LlCmafPlayer>().shared_from_this();
+        } catch (std::exception &) {
+            sendNotFound(false);
+            return;
+        }
+        if (!player || player->getSource() != ll_src) {
+            sendNotFound(false);
+            return;
+        }
+        cookie->updateTime();
+        player->attach(getPoller());
+        if (is_playlist) {
+            onLlPlaylist(player, is_dash, url_args);
+            return;
+        }
+        // suffix形如 "/ll/init.mp4" 或 "/ll/12.3.m4s"
+        // suffix looks like "/ll/init.mp4" or "/ll/12.3.m4s"
+        auto name = suffix.substr(kLlDirName.size());
+        if (name == "init.mp4") {
+            onLlInitSegment(player);
+            return;
+        }
+        uint64_t msn;
+        int part;
+        if (!parseLlSegmentName(name, msn, part)) {
+            sendNotFound(false);
+            return;
+        }
+        if (part < 0) {
+            onLlSegment(player, msn);
+        } else {
+            onLlPart(player, msn, part);
+        }
+    });
+}
+
+void HttpSession::onLlPlaylist(const LlCmafPlayer::Ptr &player, bool is_dash, const std::string &url_args) {
+    auto source = player->getSource();
+    auto store = source ? source->getStore() : nullptr;
+    if (!store) {
+        sendNotFound(false);
+        return;
+    }
+    int64_t msn = -1;
+    int part = -1;
+    bool blocking = LlSegmentStore::parseBlockingParams(url_args, msn, part);
+
+    auto weak_self = std::weak_ptr<HttpSession>(static_pointer_cast<HttpSession>(shared_from_this()));
+    // 生成并下发播放列表(或mpd)
+    // Generate and send the playlist (or mpd)
+    auto send = [weak_self, player, store, is_dash]() {
+        auto strong_self = weak_self.lock();
+        if (!strong_self) {
+            return;
+        }
+        auto content = is_dash ? store->makeDashMpd() : store->makeHlsPlaylist();
+        if (content.empty()) {
+            strong_self->sendResponse(404, false, nullptr, KeyValue(), std::make_shared<HttpStringBody>("not ready"));
+            return;
+        }
+        // 清单中的 init/segment/part 与 rendition-report 都必须携带同一个 player_id，
+        // 才能汇聚一次播放所创建的全部 HTTP 链接。
+        auto player_id = player->getId();
+        if (is_dash) {
+            replaceAll(content, "?session=", "?player_id=" + player_id + "&amp;session=");
+        } else {
+            replaceAll(content, "?session=", "?player_id=" + player_id + "&session=");
+            replaceAll(content, "URI=\"hls.ll.m3u8\"", "URI=\"hls.ll.m3u8?player_id=" + player_id + "\"");
+        }
+        KeyValue header;
+        // 播放列表必须禁止缓存, 否则播放器会一直拿到旧的live edge
+        // The playlist must not be cached, otherwise the player keeps a stale live edge
+        header["Cache-Control"] = "no-store";
+        strong_self->sendResponse(200, false, is_dash ? "application/dash+xml" : "application/vnd.apple.mpegurl", header,
+                                  std::make_shared<HttpStringBody>(std::move(content)));
+    };
+
+    // 先记录版本，再查询状态；等待注册期间若有新资源产生，会检测到版本变化并立即重新执行。
+    auto event = part < 0 ? LlSegmentStore::EventType::Segment : LlSegmentStore::EventType::Part;
+    auto event_version = store->getEventVersion(event);
+    if (!blocking || store->checkBlockingCondition(msn, part)) {
+        send();
+        return;
+    }
+
+    // 阻塞重载只在清单可能变化时唤醒：请求Part等新Part，请求完整分片等新Segment。
+    player->waitForEvent(event, event_version, getPoller(), store->getConfig().blocking_timeout_ms, send);
+}
+
+void HttpSession::onLlInitSegment(const LlCmafPlayer::Ptr &player) {
+    auto source = player->getSource();
+    auto store = source ? source->getStore() : nullptr;
+    if (!store) {
+        sendNotFound(false);
+        return;
+    }
+    auto init = store->getInitSegment();
+    if (init.empty()) {
+        sendResponse(404, false, nullptr, KeyValue(), std::make_shared<HttpStringBody>("not ready"));
+        return;
+    }
+    player->addByteUsage(init.size());
+    KeyValue header;
+    // 流重连后同一URL可能对应新的编码参数, 不可跨会话长期缓存
+    // A stream restart can change codec parameters at the same URL; do not cache across sessions
+    header["Cache-Control"] = "no-store";
+    sendResponse(200, false, HttpFileManager::getContentType(".mp4").data(), header,
+                 std::make_shared<HttpStringBody>(std::move(init)));
+}
+
+void HttpSession::onLlPart(const LlCmafPlayer::Ptr &player, uint64_t msn, int index) {
+    auto source = player->getSource();
+    auto store = source ? source->getStore() : nullptr;
+    if (!store) {
+        sendNotFound(false);
+        return;
+    }
+    auto weak_self = std::weak_ptr<HttpSession>(static_pointer_cast<HttpSession>(shared_from_this()));
+    auto ticker = std::make_shared<Ticker>();
+    auto task = std::make_shared<function<void()>>();
+    weak_ptr<function<void()>> weak_task = task;
+    // 部分分片可能尚未产出(如PRELOAD-HINT指向的part), 挂起等待最多2个partDur
+    // The partial segment may not exist yet (e.g. the one pointed to by PRELOAD-HINT),
+    // hold the request for at most 2 partDur
+    auto timeout = store->getConfig().part_dur_ms * 2;
+    *task = [weak_self, player, store, msn, index, ticker, weak_task, timeout]() {
+        auto strong_self = weak_self.lock();
+        if (!strong_self) {
+            return;
+        }
+        auto event_version = store->getEventVersion(LlSegmentStore::EventType::Part);
+        auto part = store->getPart(msn, index);
+        if (part) {
+            player->addByteUsage(part->getSize());
+            KeyValue header;
+            // MSN在流重连后会复用, 避免客户端缓存到上一会话的part
+            // MSN values are reused after a stream restart; avoid serving a part from the previous session
+            header["Cache-Control"] = "no-store";
+            strong_self->sendResponse(200, false, HttpFileManager::getContentType(".m4s").data(), header,
+                                      std::make_shared<HttpMultiBufferBody>(part->getBuffers()));
+            return;
+        }
+        if (ticker->elapsedTime() >= (uint64_t)timeout) {
+            strong_self->sendResponse(404, false, nullptr, KeyValue(), std::make_shared<HttpStringBody>("part not found"));
+            return;
+        }
+        if (auto task = weak_task.lock()) {
+            player->waitForEvent(LlSegmentStore::EventType::Part, event_version, strong_self->getPoller(),
+                                 timeout - ticker->elapsedTime(), [task]() { (*task)(); });
+        }
+    };
+    (*task)();
+}
+
+void HttpSession::onLlSegment(const LlCmafPlayer::Ptr &player, uint64_t msn) {
+    auto source = player->getSource();
+    auto store = source ? source->getStore() : nullptr;
+    if (!store) {
+        sendNotFound(false);
+        return;
+    }
+    auto weak_self = std::weak_ptr<HttpSession>(static_pointer_cast<HttpSession>(shared_from_this()));
+    auto ticker = std::make_shared<Ticker>();
+    auto task = std::make_shared<function<void()>>();
+    weak_ptr<function<void()>> weak_task = task;
+    auto timeout = store->getConfig().blocking_timeout_ms;
+    *task = [weak_self, player, store, msn, ticker, weak_task, timeout]() {
+        auto strong_self = weak_self.lock();
+        if (!strong_self) {
+            return;
+        }
+        auto event_version = store->getEventVersion(LlSegmentStore::EventType::Part);
+        auto seg = store->getSegment(msn);
+        if (seg) {
+            std::list<Buffer::Ptr> buffers;
+            if (store->getCompletedSegmentBuffers(msn, buffers)) {
+                // 分片已经完成, 一次返回全部数据
+                // The segment is complete, return all its data at once
+                size_t size = 0;
+                for (auto &buffer : buffers) {
+                    size += buffer->size();
+                }
+                player->addByteUsage(size);
+                KeyValue header;
+                // MSN在流重连后会复用, 避免客户端缓存到上一会话的segment
+                // MSN values are reused after a stream restart; avoid serving a segment from the previous session
+                header["Cache-Control"] = "no-store";
+                strong_self->sendResponse(200, false, HttpFileManager::getContentType(".m4s").data(), header,
+                                          std::make_shared<HttpMultiBufferBody>(std::move(buffers)));
+            } else {
+                // 分片正在生成: 以chunked编码流式下发, 客户端可边收边播
+                // The segment is being produced: stream it with the chunked encoding so the
+                // client can start playing while it is still being downloaded
+                KeyValue header;
+                header["Cache-Control"] = "no-store";
+                // 用chunked编码分块下发直至分片完成, 故不回Content-Length
+                // No Content-Length; the chunked encoding delimits the response, which ends
+                // once the segment is complete
+                header["Transfer-Encoding"] = "chunked";
+                strong_self->sendResponse(200, false, HttpFileManager::getContentType(".m4s").data(), header, nullptr, true);
+                strong_self->streamLlSegment(player, seg);
+            }
+            return;
+        }
+        // 分片尚未到达: 挂起等待, 超时则404 (客户端外推的分片号可能超前)
+        // The segment has not arrived yet: hold the request; on timeout return 404
+        // (the segment number extrapolated by the client may run ahead)
+        if (ticker->elapsedTime() >= timeout) {
+            strong_self->sendResponse(404, false, nullptr, KeyValue(), std::make_shared<HttpStringBody>("segment not found"));
+            return;
+        }
+        if (auto task = weak_task.lock()) {
+            player->waitForEvent(LlSegmentStore::EventType::Part, event_version, strong_self->getPoller(),
+                                 timeout - ticker->elapsedTime(), [task]() { (*task)(); });
+        }
+    };
+    (*task)();
+}
+
+void HttpSession::streamLlSegment(const LlCmafPlayer::Ptr &player, const std::shared_ptr<LlSegment> &seg) {
+    auto source = player->getSource();
+    auto store = source ? source->getStore() : nullptr;
+    if (!store) {
+        shutdown(SockException(Err_shutdown, "ll media source expired"));
+        return;
+    }
+    auto weak_self = std::weak_ptr<HttpSession>(static_pointer_cast<HttpSession>(shared_from_this()));
+    auto offset = std::make_shared<size_t>(0);
+    auto ticker = std::make_shared<Ticker>();
+    auto task = std::make_shared<function<void()>>();
+    weak_ptr<function<void()>> weak_task = task;
+    // 即使长时间无新数据也不无限挂起, 避免socket长期空闲
+    // Do not hold forever when no new data arrives, to avoid a long idle socket
+    auto idle_timeout = store->getConfig().blocking_timeout_ms;
+    *task = [weak_self, player, store, seg, offset, ticker, weak_task, idle_timeout]() {
+        auto strong_self = weak_self.lock();
+        if (!strong_self) {
+            return;
+        }
+        auto event_versions = store->getEventVersions();
+        std::list<Buffer::Ptr> buffers;
+        size_t total_size = 0;
+        bool completed = false;
+        if (!store->readSegmentBuffers(seg, *offset, 1024 * 1024, buffers, total_size, completed)) {
+            strong_self->shutdown(SockException(Err_shutdown, "ll segment invalid"));
+            return;
+        }
+        size_t size = 0;
+        for (auto &buf : buffers) {
+            size += buf->size();
+        }
+        if (size) {
+            *offset += size;
+            player->addByteUsage(size);
+            ticker->resetTime();
+            // chunked编码下发本段增量数据
+            // Send this incremental block with the chunked encoding
+            // 长度头/数据/结束符分3次下发, 期间关闭flush, 最后统一flush,
+            // socket层会把它们合并成一次sendmsg的多个iovec, 既没有拼接拷贝也没有多余的系统调用
+            // The size header, data and trailing CRLF are sent separately with flushing disabled,
+            // then flushed together; the socket layer merges them into one sendmsg with several
+            // iovecs, so there is neither a concatenation copy nor an extra syscall
+            strong_self->onWrite(makeHttpChunkHead(size), false);
+            for (auto &buf : buffers) {
+                strong_self->onWrite(buf, false);
+            }
+            strong_self->onWrite(getHttpChunkTail(), true);
+        }
+        if (completed && *offset >= total_size) {
+            // 分片发送完毕, 下发chunked结束标记并flush
+            // The segment has been fully sent, send the terminating block and flush
+            strong_self->onWrite(makeHttpChunkEnd(), true);
+            return;
+        }
+        if (ticker->elapsedTime() >= idle_timeout) {
+            // 长时间没有新数据, 主动结束chunked响应, 避免连接泄漏
+            // No new data for a long time, end the chunked response to avoid leaking the connection
+            strong_self->onWrite(makeHttpChunkEnd(), true);
+            return;
+        }
+        if (auto task = weak_task.lock()) {
+            player->waitForEvents(event_versions, { LlSegmentStore::EventType::Part, LlSegmentStore::EventType::Segment },
+                                  strong_self->getPoller(), idle_timeout - ticker->elapsedTime(), [task]() { (*task)(); });
+        }
+    };
+    (*task)();
+}
+
 // http-ts 链接格式:http://vhost-url:port/app/streamid.live.ts?key1=value1&key2=value2  [AUTO-TRANSLATED:aa1a9151]
 // http-ts link format: http://vhost-url:port/app/streamid.live.ts?key1=value1&key2=value2
 bool HttpSession::checkLiveStreamTS(const function<void()> &cb) {
@@ -626,6 +1052,12 @@ void HttpSession::onHttpRequest_GET() {
     if (emitHttpEvent(false)) {
         // 拦截http api事件  [AUTO-TRANSLATED:2f5e319d]
         // Intercept http api events
+        return;
+    }
+
+    if (checkLiveStreamLL()) {
+        // 拦截LL-HLS/LL-DASH请求
+        // Intercept LL-HLS / LL-DASH requests
         return;
     }
 
@@ -888,6 +1320,7 @@ void HttpSession::sendResponse(int code,
         setSocketFlags();
     }
 
+    setSendFlushFlag(true);
     // 发送http body  [AUTO-TRANSLATED:e9fc35d6]
     // Send http body
     AsyncSenderData::Ptr data = std::make_shared<AsyncSenderData>(static_pointer_cast<HttpSession>(shared_from_this()), body, bClose);

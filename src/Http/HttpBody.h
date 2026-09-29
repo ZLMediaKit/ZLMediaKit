@@ -148,6 +148,22 @@ private:
     toolkit::Buffer::Ptr _buffer;
 };
 
+/**
+ * 多个 Buffer 组成的 HTTP body，不合并、不复制各 Buffer 的负载。
+ */
+class HttpMultiBufferBody : public HttpBody {
+public:
+    using Ptr = std::shared_ptr<HttpMultiBufferBody>;
+    explicit HttpMultiBufferBody(std::list<toolkit::Buffer::Ptr> buffers);
+
+    int64_t remainSize() override;
+    toolkit::Buffer::Ptr readData(size_t size) override;
+
+private:
+    std::list<toolkit::Buffer::Ptr> _buffers;
+    int64_t _remain_size = 0;
+};
+
 class HttpFileBodyBase  : public HttpBody {
 public:
     using Ptr = std::shared_ptr<HttpFileBodyBase>;

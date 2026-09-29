@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
@@ -69,6 +69,9 @@
 #define FMP4_SCHEMA "fmp4"
 #define HLS_SCHEMA "hls"
 #define HLS_FMP4_SCHEMA "hls.fmp4"
+// 低延时HLS/低延时DASH共用的内存分片媒体源
+// Media source of the in-memory segments shared by LL-HLS and LL-DASH
+#define LLCMAF_SCHEMA "llcmaf"
 
 #define VHOST_KEY "vhost"
 #define DEFAULT_VHOST "__defaultVhost__"

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
@@ -63,6 +63,12 @@ public:
         // ts直播  [AUTO-TRANSLATED:b062b43a]
         // ts live
         type_ts = 4,
+        // LL-HLS/LL-DASH共用的低延时CMAF分片(全内存, 不写磁盘)
+        // 两者共用同一套分片, 故以底层产物CMAF命名而非以消费方命名
+        // Low latency CMAF segments shared by LL-HLS and LL-DASH (memory only, no disk I/O)
+        // Both protocols share the same segments, so it is named after the shared artifact
+        // (CMAF) rather than after one of its consumers
+        type_ll_cmaf = 5,
     } type;
 
     /**

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
@@ -325,6 +325,11 @@ extern const std::string kEnableTS;
 // 是否开启转换为http-fmp4/ws-fmp4  [AUTO-TRANSLATED:8c96e1e4]
 // Whether to enable conversion to HTTP-FMP4/WS-FMP4
 extern const std::string kEnableFMP4;
+// 是否开启转换为LL-HLS/LL-DASH(低延时), 全内存实现, 不写磁盘
+// LL-HLS与LL-DASH共用同一套低延时CMAF分片, 因此共用一个开关
+// Whether to enable conversion to LL-HLS / LL-DASH (low latency), memory only, no disk I/O
+// LL-HLS and LL-DASH share the same low latency CMAF segments, so they share one switch
+extern const std::string kEnableLLCmaf;
 
 // 是否将mp4录制当做观看者  [AUTO-TRANSLATED:ba351230]
 // Whether to treat MP4 recording as a viewer
@@ -551,6 +556,26 @@ extern const std::string kFmp4SegExt;
 // Whether to write the EXT-X-PROGRAM-DATE-TIME tag in m3u8, marking each segment's start wall-clock time in UTC
 extern const std::string kProgramDateTime;
 } // namespace Hls
+
+// //////////LL-HLS / LL-DASH相关配置///////////
+// //////////LL-HLS / LL-DASH related configuration///////////
+namespace LlCmaf {
+// 部分分片(partial segment / CMAF chunk)时长, 单位秒, 建议0.2~0.5
+// Duration of a partial segment (CMAF chunk) in seconds, 0.2~0.5 recommended
+extern const std::string kPartDuration;
+// PART-HOLD-BACK相对于PART-TARGET的倍数，建议不小于3
+// PART-HOLD-BACK as a multiple of PART-TARGET; 3 or greater is recommended
+extern const std::string kPartHoldBack;
+// 完整分片时长, 单位秒, 建议为partDur的整数倍
+// Duration of a full segment in seconds, recommended to be a multiple of partDur
+extern const std::string kSegmentDuration;
+// 内存中保留的完整分片个数
+// Number of full segments retained in memory
+extern const std::string kSegmentNum;
+// 阻塞播放列表(blocking reload)与分片请求的最长挂起时长, 单位毫秒
+// Maximum hold time(ms) for the blocking playlist reload and segment requests
+extern const std::string kBlockingTimeoutMs;
+} // namespace LlCmaf
 
 // //////////Rtp代理相关配置///////////  [AUTO-TRANSLATED:7b285587]
 // //////////Rtp proxy related configuration///////////

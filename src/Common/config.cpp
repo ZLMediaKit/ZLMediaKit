@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
@@ -142,6 +142,7 @@ const string kEnableRtsp = string(kFieldName) + "enable_rtsp";
 const string kEnableRtmp = string(kFieldName) + "enable_rtmp";
 const string kEnableTS = string(kFieldName) + "enable_ts";
 const string kEnableFMP4 = string(kFieldName) + "enable_fmp4";
+const string kEnableLLCmaf = string(kFieldName) + "enable_ll_cmaf";
 
 const string kMP4AsPlayer = string(kFieldName) + "mp4_as_player";
 const string kMP4MaxSecond = string(kFieldName) + "mp4_max_second";
@@ -170,6 +171,7 @@ static onceToken token([]() {
     mINI::Instance()[kEnableRtmp] = 1;
     mINI::Instance()[kEnableTS] = 1;
     mINI::Instance()[kEnableFMP4] = 1;
+    mINI::Instance()[kEnableLLCmaf] = 0;
 
     mINI::Instance()[kMP4AsPlayer] = 0;
     mINI::Instance()[kMP4MaxSecond] = 3600;
@@ -377,6 +379,25 @@ static onceToken token([]() {
     mINI::Instance()[kProgramDateTime] = false;
 });
 } // namespace Hls
+
+// //////////LL-HLS / LL-DASH相关配置///////////
+// //////////LL-HLS / LL-DASH Related Configuration///////////
+namespace LlCmaf {
+#define LLCMAF_FIELD "llcamf."
+const string kPartDuration = LLCMAF_FIELD "partDur";
+const string kPartHoldBack = LLCMAF_FIELD "partHoldBack";
+const string kSegmentDuration = LLCMAF_FIELD "segDur";
+const string kSegmentNum = LLCMAF_FIELD "segNum";
+const string kBlockingTimeoutMs = LLCMAF_FIELD "blockingTimeoutMs";
+
+static onceToken token([]() {
+    mINI::Instance()[kPartDuration] = 0.3f;
+    mINI::Instance()[kPartHoldBack] = 3.0f;
+    mINI::Instance()[kSegmentDuration] = 1.0f;
+    mINI::Instance()[kSegmentNum] = 6;
+    mINI::Instance()[kBlockingTimeoutMs] = 15000;
+});
+} // namespace LlCmaf
 
 // //////////Rtp代理相关配置///////////  [AUTO-TRANSLATED:7b285587]
 // //////////Rtp Proxy Related Configuration///////////

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
@@ -20,6 +20,7 @@
 #include "HttpFileManager.h"
 #include "TS/TSMediaSource.h"
 #include "FMP4/FMP4MediaSource.h"
+#include "Record/LlSegmentStore.h"
 
 namespace mediakit {
 
@@ -139,6 +140,35 @@ private:
     bool checkLiveStreamFlv(const std::function<void()> &cb = nullptr);
     bool checkLiveStreamTS(const std::function<void()> &cb = nullptr);
     bool checkLiveStreamFMP4(const std::function<void()> &fmp4_list = nullptr);
+
+    /**
+     * 拦截LL-HLS/LL-DASH请求
+     * 支持以下URL:
+     *   /app/stream/hls.ll.m3u8        播放列表(支持阻塞重载)
+     *   /app/stream/dash.ll.mpd        MPD
+     *   /app/stream/ll/init.mp4        初始化段
+     *   /app/stream/ll/{msn}.m4s       完整分片(边生成边流式下发)
+     *   /app/stream/ll/{msn}.{i}.m4s   部分分片
+     * Intercept LL-HLS / LL-DASH requests
+     * Supported URLs:
+     *   /app/stream/hls.ll.m3u8        Playlist (supports blocking reload)
+     *   /app/stream/dash.ll.mpd        MPD
+     *   /app/stream/ll/init.mp4        Initialization segment
+     *   /app/stream/ll/{msn}.m4s       Full segment (streamed while being produced)
+     *   /app/stream/ll/{msn}.{i}.m4s   Partial segment
+     */
+    bool checkLiveStreamLL();
+
+    // LL-HLS/LL-DASH 相关请求的处理
+    // Handlers for the LL-HLS / LL-DASH requests
+    void onLlPlaylist(const LlCmafPlayer::Ptr &player, bool is_dash, const std::string &url_args);
+    void onLlInitSegment(const LlCmafPlayer::Ptr &player);
+    void onLlSegment(const LlCmafPlayer::Ptr &player, uint64_t msn);
+    void onLlPart(const LlCmafPlayer::Ptr &player, uint64_t msn, int index);
+
+    // 持续把正在生成的分片增量推送给客户端, 直到该分片完成
+    // Keep pushing the growing segment to the client until it is completed
+    void streamLlSegment(const LlCmafPlayer::Ptr &player, const std::shared_ptr<LlSegment> &seg);
 
     bool checkWebSocket();
     bool emitHttpEvent(bool doInvoke);

@@ -1,4 +1,4 @@
-﻿/*
+/*
 * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
 *
 * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
@@ -256,6 +256,11 @@ MultiMediaSourceMuxer::MultiMediaSourceMuxer(const MediaTuple& tuple, float dur_
     if (option.enable_hls_fmp4) {
         _hls_fmp4 = dynamic_pointer_cast<HlsFMP4Recorder>(Recorder::createRecorder(Recorder::type_hls_fmp4, _tuple, option));
     }
+    if (option.enable_ll_cmaf) {
+        // LL-HLS与LL-DASH共用同一套CMAF内存分片, 因此只创建一个录制器
+        // LL-HLS and LL-DASH share the same in-memory CMAF segments, so only one recorder is created
+        _ll_cmaf = dynamic_pointer_cast<LlFMP4Recorder>(Recorder::createRecorder(Recorder::type_ll_cmaf, _tuple, option));
+    }
     if (option.enable_mp4) {
         _mp4 = Recorder::createRecorder(Recorder::type_mp4, _tuple, option);
     }
@@ -295,6 +300,9 @@ void MultiMediaSourceMuxer::setMediaListener(const std::weak_ptr<MediaSourceEven
     if (_hls_fmp4) {
         _hls_fmp4->setListener(self);
     }
+    if (_ll_cmaf) {
+        _ll_cmaf->setListener(self);
+    }
     if (_hls) {
         _hls->setListener(self);
     }
@@ -312,6 +320,7 @@ int MultiMediaSourceMuxer::totalReaderCount() const {
            (_mp4 ? _option.mp4_as_player : 0) +
            (_hls ? _hls->readerCount() : 0) +
            (_hls_fmp4 ? _hls_fmp4->readerCount() : 0) +
+           (_ll_cmaf ? _ll_cmaf->readerCount() : 0) +
            (_ring ? _ring->readerCount() : 0);
 }
 
@@ -574,6 +583,7 @@ bool MultiMediaSourceMuxer::isRecording(Recorder::type type) {
         case Recorder::type_hls: return !!_hls;
         case Recorder::type_mp4: return !!_mp4;
         case Recorder::type_hls_fmp4: return !!_hls_fmp4;
+        case Recorder::type_ll_cmaf: return !!_ll_cmaf;
         case Recorder::type_fmp4: return !!_fmp4;
         case Recorder::type_ts: return !!_ts;
         default: return false;
@@ -692,6 +702,7 @@ bool MultiMediaSourceMuxer::close(MediaSource &sender) {
     _mp4 = nullptr;
     _hls = nullptr;
     _hls_fmp4 = nullptr;
+    _ll_cmaf = nullptr;
 #if defined(ENABLE_RTPPROXY)
     _rtp_sender.clear();
 #endif // ENABLE_RTPPROXY
@@ -728,6 +739,9 @@ bool MultiMediaSourceMuxer::onTrackReady(const Track::Ptr &track) {
     }
     if (_hls_fmp4) {
         ret = _hls_fmp4->addTrack(track) ? true : ret;
+    }
+    if (_ll_cmaf) {
+        ret = _ll_cmaf->addTrack(track) ? true : ret;
     }
     if (_mp4) {
         ret = _mp4->addTrack(track) ? true : ret;
@@ -772,6 +786,9 @@ void MultiMediaSourceMuxer::onAllTrackReady() {
     }
     if (_hls_fmp4) {
         _hls_fmp4->addTrackCompleted();
+    }
+    if (_ll_cmaf) {
+        _ll_cmaf->addTrackCompleted();
     }
 
     auto listener = _track_listener.lock();
@@ -829,6 +846,9 @@ void MultiMediaSourceMuxer::resetTracks() {
     }
     if (_hls_fmp4) {
         _hls_fmp4->resetTracks();
+    }
+    if (_ll_cmaf) {
+        _ll_cmaf->resetTracks();
     }
     if (_hls) {
         _hls->resetTracks();
@@ -898,6 +918,10 @@ bool MultiMediaSourceMuxer::onTrackFrame_l(const Frame::Ptr &frame_in) {
         ret = _hls_fmp4->inputFrame(frame) ? true : ret;
     }
 
+    if (_ll_cmaf) {
+        ret = _ll_cmaf->inputFrame(frame) ? true : ret;
+    }
+
     if (_mp4) {
         ret = _mp4->inputFrame(frame) ? true : ret;
     }
@@ -942,6 +966,7 @@ bool MultiMediaSourceMuxer::isEnabled(){
                      (_ring ? (bool)_ring->readerCount() : false)  ||
                      (_hls ? _hls->isEnabled() : false) ||
                      (_hls_fmp4 ? _hls_fmp4->isEnabled() : false) ||
+                     (_ll_cmaf ? _ll_cmaf->isEnabled() : false) ||
                      _mp4;
 
         if (_is_enable) {

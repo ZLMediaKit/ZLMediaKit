@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
@@ -17,6 +17,7 @@
 #include "Record/Recorder.h"
 #include "Rtp/RtpSender.h"
 #include "Record/HlsRecorder.h"
+#include "Record/LlRecorder.h"
 #include "Record/HlsMediaSource.h"
 #include "Rtsp/RtspMediaSourceMuxer.h"
 #include "Rtmp/RtmpMediaSourceMuxer.h"
@@ -256,6 +257,9 @@ private:
     MediaSinkInterface::Ptr _mp4;
     HlsRecorder::Ptr _hls;
     HlsFMP4Recorder::Ptr _hls_fmp4;
+    // LL-HLS/LL-DASH共用的CMAF分片录制器
+    // Recorder of the CMAF segments shared by LL-HLS and LL-DASH
+    LlFMP4Recorder::Ptr _ll_cmaf;
     toolkit::EventPoller::Ptr _poller;
     RingType::Ptr _ring;
     MediaSinkInterface::Ptr _delegate;

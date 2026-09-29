@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LL-DASH 诊断播放器 · ZLMediaKit</title>
+  <script src="https://cdn.jsdelivr.net/npm/dashjs@5/dist/modern/umd/dash.all.min.js"></script>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #08111f; color: #e6edf7; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: radial-gradient(circle at 10% 5%, #183760 0, transparent 34rem), #08111f; }
+    main { width: min(1360px, calc(100% - 32px)); margin: 0 auto; padding: 28px 0 36px; }
+    h1 { margin: 0; font-size: clamp(1.35rem, 2vw, 2rem); letter-spacing: -.03em; }
+    .subtitle { color: #9aacbf; margin: 8px 0 24px; }
+    .panel { border: 1px solid #21334b; border-radius: 14px; background: rgba(13, 27, 45, .88); box-shadow: 0 18px 55px rgba(0, 0, 0, .22); }
+    .controls { padding: 18px; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; }
+    input, button { border-radius: 9px; font: inherit; }
+    input { width: 100%; padding: 11px 13px; border: 1px solid #37506d; color: #eef5ff; background: #091827; outline: none; }
+    input:focus { border-color: #4ca3ff; box-shadow: 0 0 0 3px #2584e633; }
+    button { padding: 10px 17px; border: 1px solid #3b79b8; background: #1678d3; color: white; cursor: pointer; font-weight: 650; }
+    button:hover { background: #2589e5; }
+    button.secondary { border-color: #3b526b; background: #15283c; }
+    button.secondary:hover { background: #1d3854; }
+    .options { padding: 0 18px 17px; display: flex; flex-wrap: wrap; gap: 16px; color: #bbcadb; font-size: .9rem; }
+    label { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; }
+    input[type="checkbox"] { width: auto; accent-color: #3f9cff; }
+    .grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(320px, .8fr); gap: 18px; margin-top: 18px; }
+    .video-wrap { overflow: hidden; }
+    video { display: block; width: 100%; aspect-ratio: 16 / 9; background: #02070d; }
+    .status { padding: 14px 17px; color: #b8c7d9; border-top: 1px solid #21334b; font-size: .9rem; }
+    .status strong { color: #6fc3ff; }
+    .metrics { padding: 18px; }
+    h2 { font-size: .9rem; margin: 0 0 13px; color: #a9bdd4; letter-spacing: .06em; text-transform: uppercase; }
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .metric { padding: 12px; border: 1px solid #263c57; border-radius: 10px; background: #0a1a2b; }
+    .metric span { display: block; color: #8fa5bf; font-size: .72rem; text-transform: uppercase; letter-spacing: .055em; }
+    .metric b { display: block; margin-top: 5px; font-size: 1.12rem; font-variant-numeric: tabular-nums; }
+    .logs { margin-top: 18px; padding: 18px; }
+    #log { height: 300px; overflow: auto; margin: 0; padding: 12px; border: 1px solid #243954; border-radius: 9px; background: #050d17; color: #b8cbe0; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; white-space: pre-wrap; }
+    .ok { color: #67d89d; } .warn { color: #f5c15d; } .error { color: #ff8290; }
+    .hint { margin: 13px 0 0; color: #8fa5bd; font-size: .84rem; line-height: 1.55; }
+    @media (max-width: 820px) { main { width: min(100% - 20px, 1360px); padding-top: 16px; } .grid { grid-template-columns: 1fr; } .controls { grid-template-columns: 1fr 1fr; } .controls input { grid-column: 1 / -1; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>LL-DASH 诊断播放器</h1>
+    <p class="subtitle">用于验证 MPD 刷新、低延迟追赶、媒体分片与浏览器请求时序。</p>
+
+    <section class="panel">
+      <div class="controls">
+        <input id="url" aria-label="MPD 地址" spellcheck="false">
+        <button id="load">加载播放</button>
+        <button id="stop" class="secondary">停止</button>
+      </div>
+      <div class="options">
+        <label><input id="low-latency" type="checkbox" checked> 启用 dash.js 低延迟模式</label>
+        <label><input id="catchup" type="checkbox" checked> 启用平滑追赶</label>
+        <label><input id="autoplay" type="checkbox" checked> 自动播放</label>
+        <label><input id="muted" type="checkbox" checked> 静音</label>
+      </div>
+    </section>
+
+    <section class="grid">
+      <section class="panel video-wrap">
+        <video id="video" controls playsinline muted></video>
+        <div class="status">状态：<strong id="status">未加载</strong></div>
+      </section>
+      <aside class="panel metrics">
+        <h2>实时指标</h2>
+        <div class="metric-grid">
+          <div class="metric"><span>播放时间</span><b id="play-time">--</b></div>
+          <div class="metric"><span>Live 延迟</span><b id="latency">--</b></div>
+          <div class="metric"><span>缓冲时长</span><b id="buffer">--</b></div>
+          <div class="metric"><span>播放速率</span><b id="rate">1.00×</b></div>
+          <div class="metric"><span>MPD 刷新次数</span><b id="manifest-count">0</b></div>
+          <div class="metric"><span>媒体完成次数</span><b id="fragment-count">0</b></div>
+        </div>
+        <p class="hint">若出现卡顿，请保留本页日志，并在浏览器 Network 中查看红色 MPD 请求的 Timing：重点区分 <em>Stalled</em> 与 <em>Waiting (TTFB)</em>。</p>
+      </aside>
+    </section>
+
+    <section class="panel logs">
+      <h2>事件日志</h2>
+      <pre id="log"></pre>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const $ = id => document.getElementById(id);
+      const video = $('video');
+      const logNode = $('log');
+      let player = null;
+      let metricsTimer = null;
+      let manifestCount = 0;
+      let fragmentCount = 0;
+
+      const defaultUrl = `${location.protocol}//${location.host}/live/test2/dash.ll.mpd`;
+      $('url').value = new URLSearchParams(location.search).get('url') || defaultUrl;
+
+      function log(message, level = '') {
+        const line = document.createElement('span');
+        line.className = level;
+        line.textContent = `[${new Date().toLocaleTimeString()}] ${message}\n`;
+        logNode.append(line);
+        logNode.scrollTop = logNode.scrollHeight;
+      }
+
+      function setStatus(text) { $('status').textContent = text; }
+      function number(value, digits = 2) { return Number.isFinite(value) ? value.toFixed(digits) : '--'; }
+
+      function updateMetrics() {
+        $('play-time').textContent = `${number(video.currentTime)} s`;
+        $('rate').textContent = `${number(video.playbackRate)}×`;
+        let buffer = 0;
+        for (let i = 0; i < video.buffered.length; ++i) {
+          if (video.buffered.start(i) <= video.currentTime && video.currentTime <= video.buffered.end(i)) {
+            buffer = video.buffered.end(i) - video.currentTime;
+            break;
+          }
+        }
+        $('buffer').textContent = `${number(buffer)} s`;
+        if (player) {
+          const latency = player.getCurrentLiveLatency();
+          $('latency').textContent = `${number(latency)} s`;
+        }
+      }
+
+      function stop() {
+        if (metricsTimer) {
+          clearInterval(metricsTimer);
+          metricsTimer = null;
+        }
+        if (player) {
+          player.reset();
+          player = null;
+        }
+        video.removeAttribute('src');
+        video.load();
+        setStatus('已停止');
+        log('播放器已停止', 'warn');
+      }
+
+      function load() {
+        stop();
+        if (!window.dashjs) {
+          log('无法加载 dash.js CDN，请检查网络或改用本地 dash.all.min.js。', 'error');
+          setStatus('dash.js 加载失败');
+          return;
+        }
+        const url = $('url').value.trim();
+        if (!url) return;
+
+        manifestCount = 0;
+        fragmentCount = 0;
+        $('manifest-count').textContent = '0';
+        $('fragment-count').textContent = '0';
+        logNode.textContent = '';
+        video.muted = $('muted').checked;
+        player = dashjs.MediaPlayer().create();
+        const lowLatency = $('low-latency').checked;
+        const catchup = $('catchup').checked;
+        player.updateSettings({
+          streaming: {
+            lowLatencyEnabled: lowLatency,
+            liveCatchup: {
+              enabled: catchup,
+              maxDrift: 10,
+              // dash.js 5要求相对1.0的min/max对象；最大0.05即最高1.05倍。
+              // 传入标量会被忽略并回退到默认追赶速率（可能达到1.5倍）。
+              playbackRate: { min: -0.04, max: 0.05 }
+            },
+            buffer: {
+              stallThreshold: 0.3,
+              lowLatencyStallThreshold: 0.3
+            }
+          }
+        });
+
+        player.on(dashjs.MediaPlayer.events.MANIFEST_LOADED, () => {
+          manifestCount++;
+          $('manifest-count').textContent = String(manifestCount);
+          setStatus('MPD 已加载');
+          log(`MPD 已加载（第 ${manifestCount} 次）`, 'ok');
+        });
+        player.on(dashjs.MediaPlayer.events.FRAGMENT_LOADING_STARTED, event => {
+          if (event.request && event.request.mediaType) {
+            log(`开始请求分片：${event.request.url}`);
+          }
+        });
+        player.on(dashjs.MediaPlayer.events.FRAGMENT_LOADING_COMPLETED, event => {
+          if (event.request && event.request.mediaType) {
+            fragmentCount++;
+            $('fragment-count').textContent = String(fragmentCount);
+            log(`分片完成：${event.request.url}`, 'ok');
+          }
+        });
+        player.on(dashjs.MediaPlayer.events.FRAGMENT_LOADING_ABANDONED, event => {
+          if (event.request && event.request.mediaType) {
+            log(`分片请求已放弃：${event.request.url}`, 'warn');
+          }
+        });
+        player.on(dashjs.MediaPlayer.events.PLAYBACK_STALLED, () => {
+          setStatus('缓冲耗尽，等待媒体数据');
+          log('播放卡顿：缓冲耗尽', 'warn');
+        });
+        player.on(dashjs.MediaPlayer.events.PLAYBACK_PLAYING, () => setStatus('正在播放'));
+        player.on(dashjs.MediaPlayer.events.PLAYBACK_WAITING, () => setStatus('等待媒体数据'));
+        player.on(dashjs.MediaPlayer.events.ERROR, event => {
+          const text = event.error && (event.error.message || event.error.code) || JSON.stringify(event);
+          setStatus('发生错误');
+          log(`dash.js 错误：${text}`, 'error');
+        });
+        // 每次重新加载播放器都会调用load()；使用属性回调替换旧监听，避免日志重复。
+        video.onratechange = () => log(`播放速率变为 ${video.playbackRate.toFixed(3)}×`);
+
+        player.initialize(video, url, $('autoplay').checked);
+        metricsTimer = setInterval(updateMetrics, 250);
+        setStatus('正在初始化');
+        log(`加载：${url}`);
+        log(`低延迟=${lowLatency}，平滑追赶=${catchup}，最大跳转阈值=10 秒`);
+      }
+
+      $('load').addEventListener('click', load);
+      $('stop').addEventListener('click', stop);
+      $('url').addEventListener('keydown', event => { if (event.key === 'Enter') load(); });
+    })();
+  </script>
+</body>
+</html>

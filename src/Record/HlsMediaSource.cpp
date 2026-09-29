@@ -15,41 +15,6 @@ using namespace toolkit;
 
 namespace mediakit {
 
-class SockInfoImp : public Session {
-public:
-    using Ptr = std::shared_ptr<SockInfoImp>;
-    SockInfoImp(const std::shared_ptr<Session> &session) : Session(session->getSock()) {
-        _identifier = session->getIdentifier();
-        _peer_ip = session->get_peer_ip();
-        _peer_port = session->get_peer_port();
-        _local_ip = session->get_local_ip();
-        _local_port = session->get_local_port();
-        // Keep the Session interface without retaining the HTTP connection.
-        setSock(nullptr);
-    }
-
-    std::string get_local_ip() override { return _local_ip; }
-
-    uint16_t get_local_port() override { return _local_port; }
-
-    std::string get_peer_ip() override { return _peer_ip; }
-
-    uint16_t get_peer_port() override { return _peer_port; }
-
-    std::string getIdentifier() const override { return _identifier; }
-
-private:
-    void onRecv(const Buffer::Ptr &buf) override {}
-    void onError(const SockException &err) override {}
-    void onManager() override {}
-
-    std::string _local_ip;
-    std::string _peer_ip;
-    std::string _identifier;
-    uint16_t _local_port = 0;
-    uint16_t _peer_port = 0;
-};
-
 HlsCookieData::HlsCookieData(const MediaInfo &info, const std::shared_ptr<Session> &session) {
     _info = info;
     _sock_info = std::make_shared<SockInfoImp>(session);

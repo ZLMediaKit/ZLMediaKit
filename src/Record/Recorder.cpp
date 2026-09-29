@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
@@ -14,6 +14,7 @@
 #include "Common/MediaSource.h"
 #include "MP4Recorder.h"
 #include "HlsRecorder.h"
+#include "LlRecorder.h"
 #include "FMP4/FMP4MediaSourceMuxer.h"
 #include "TS/TSMediaSourceMuxer.h"
 
@@ -108,6 +109,16 @@ std::shared_ptr<MediaSinkInterface> Recorder::createRecorder(type type, const Me
             return std::make_shared<TSMediaSourceMuxer>(tuple, option);
 #else
             throw std::invalid_argument("mpegts相关功能未打开，请开启ENABLE_HLS或ENABLE_RTPPROXY宏后编译再测试");
+#endif
+        }
+
+        case Recorder::type_ll_cmaf: {
+#if defined(ENABLE_MP4)
+            // LL-HLS/LL-DASH共用的CMAF分片, 全内存实现, 不产生任何磁盘文件
+            // CMAF segments shared by LL-HLS and LL-DASH, fully in-memory, never touches the disk
+            return std::make_shared<LlFMP4Recorder>(tuple, option);
+#else
+            throw std::invalid_argument("ll-hls/ll-dash相关功能未打开，请开启ENABLE_MP4宏后编译再测试");
 #endif
         }
 

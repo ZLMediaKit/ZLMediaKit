@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
@@ -249,6 +249,12 @@ public:
     // Whether to enable conversion to http-fmp4/ws-fmp4
     bool enable_fmp4;
 
+    // 是否开启转换为LL-HLS/LL-DASH(低延时), 全内存实现
+    // 两者共用同一套低延时CMAF分片, 因此共用一个开关
+    // Whether to enable conversion to LL-HLS / LL-DASH (low latency), memory only
+    // Both share the same low latency CMAF segments, so they share one switch
+    bool enable_ll_cmaf;
+
     // hls协议是否按需生成，如果hls.segNum配置为0(意味着hls录制)，那么hls将一直生成(不管此开关)  [AUTO-TRANSLATED:4653b411]
     // Whether to generate hls protocol on demand, if hls.segNum is configured to 0 (meaning hls recording), then hls will always be generated (regardless of this switch)
     bool hls_demand;
@@ -302,6 +308,7 @@ public:
         XX(enable_rtmp)         \
         XX(enable_ts)           \
         XX(enable_fmp4)         \
+        XX(enable_ll_cmaf)      \
                                 \
         XX(hls_demand)          \
         XX(rtsp_demand)         \

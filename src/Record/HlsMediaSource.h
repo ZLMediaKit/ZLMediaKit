@@ -19,6 +19,41 @@
 
 namespace mediakit {
 
+/**
+ * 复制 Session 的连接元信息而不保留 socket，供长生命周期播放器统计使用。
+ */
+class SockInfoImp : public toolkit::Session {
+public:
+    using Ptr = std::shared_ptr<SockInfoImp>;
+
+    explicit SockInfoImp(const std::shared_ptr<toolkit::Session> &session) : toolkit::Session(session->getSock()) {
+        _identifier = session->getIdentifier();
+        _peer_ip = session->get_peer_ip();
+        _peer_port = session->get_peer_port();
+        _local_ip = session->get_local_ip();
+        _local_port = session->get_local_port();
+        setSock(nullptr);
+    }
+
+    std::string get_local_ip() override { return _local_ip; }
+    uint16_t get_local_port() override { return _local_port; }
+    std::string get_peer_ip() override { return _peer_ip; }
+    uint16_t get_peer_port() override { return _peer_port; }
+    std::string getIdentifier() const override { return _identifier; }
+
+private:
+    void onRecv(const toolkit::Buffer::Ptr &) override {}
+    void onError(const toolkit::SockException &) override {}
+    void onManager() override {}
+
+private:
+    std::string _local_ip;
+    std::string _peer_ip;
+    std::string _identifier;
+    uint16_t _local_port = 0;
+    uint16_t _peer_port = 0;
+};
+
 class HlsMediaSource : public MediaSource {
 public:
     friend class HlsCookieData;

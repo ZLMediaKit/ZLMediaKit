@@ -400,6 +400,31 @@ Buffer::Ptr HttpBufferBody::readData(size_t size) {
     return Buffer::Ptr(std::move(_buffer));
 }
 
+HttpMultiBufferBody::HttpMultiBufferBody(list<Buffer::Ptr> buffers) : _buffers(std::move(buffers)) {
+    for (auto &buffer : _buffers) {
+        if (buffer) {
+            _remain_size += buffer->size();
+        }
+    }
+}
+
+int64_t HttpMultiBufferBody::remainSize() {
+    return _remain_size;
+}
+
+Buffer::Ptr HttpMultiBufferBody::readData(size_t) {
+    while (!_buffers.empty()) {
+        auto buffer = std::move(_buffers.front());
+        _buffers.pop_front();
+        if (!buffer) {
+            continue;
+        }
+        _remain_size -= buffer->size();
+        return buffer;
+    }
+    return nullptr;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // HttpFileStorage — write-only body backed by a file on disk
 // ─────────────────────────────────────────────────────────────────────────────
