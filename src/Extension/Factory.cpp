@@ -35,6 +35,7 @@ REGISTER_CODEC(l16_plugin);
 REGISTER_CODEC(mp3_plugin);
 REGISTER_CODEC(mp2v_plugin);
 REGISTER_CODEC(mp2a_plugin);
+REGISTER_CODEC(mp1v_plugin);
 
 void Factory::registerPlugin(const CodecPlugin &plugin) {
     InfoL << "Load codec: " << getCodecName(plugin.getCodec());
