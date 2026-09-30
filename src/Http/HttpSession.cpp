@@ -573,8 +573,9 @@ static const BufferString::Ptr &getHttpChunkTail() {
  * http chunked编码的结束标记
  * The terminating block of the HTTP chunked encoding
  */
-static Buffer::Ptr makeHttpChunkEnd() {
-    return std::make_shared<BufferString>("0\r\n\r\n");
+static const BufferString::Ptr& makeHttpChunkEnd() {
+    static const auto end = std::make_shared<BufferString>("0\r\n\r\n");
+    return end;
 }
 
 /**
