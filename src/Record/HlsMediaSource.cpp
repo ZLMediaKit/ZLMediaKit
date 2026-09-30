@@ -18,7 +18,15 @@ namespace mediakit {
 class SockInfoImp : public Session {
 public:
     using Ptr = std::shared_ptr<SockInfoImp>;
-    SockInfoImp(const Socket::Ptr &sock) : Session(sock) {}
+    SockInfoImp(const std::shared_ptr<Session> &session) : Session(session->getSock()) {
+        _identifier = session->getIdentifier();
+        _peer_ip = session->get_peer_ip();
+        _peer_port = session->get_peer_port();
+        _local_ip = session->get_local_ip();
+        _local_port = session->get_local_port();
+        // Keep the Session interface without retaining the HTTP connection.
+        setSock(nullptr);
+    }
 
     std::string get_local_ip() override { return _local_ip; }
 
@@ -30,6 +38,7 @@ public:
 
     std::string getIdentifier() const override { return _identifier; }
 
+private:
     void onRecv(const Buffer::Ptr &buf) override {}
     void onError(const SockException &err) override {}
     void onManager() override {}
@@ -37,19 +46,13 @@ public:
     std::string _local_ip;
     std::string _peer_ip;
     std::string _identifier;
-    uint16_t _local_port;
-    uint16_t _peer_port;
+    uint16_t _local_port = 0;
+    uint16_t _peer_port = 0;
 };
 
 HlsCookieData::HlsCookieData(const MediaInfo &info, const std::shared_ptr<Session> &session) {
     _info = info;
-    auto sock_info = std::make_shared<SockInfoImp>(session->getSock());
-    sock_info->_identifier = session->getIdentifier();
-    sock_info->_peer_ip = session->get_peer_ip();
-    sock_info->_peer_port = session->get_peer_port();
-    sock_info->_local_ip = session->get_local_ip();
-    sock_info->_local_port = session->get_local_port();
-    _sock_info = sock_info;
+    _sock_info = std::make_shared<SockInfoImp>(session);
     _added = std::make_shared<bool>(false);
     addReaderCount();
 }

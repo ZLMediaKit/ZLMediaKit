@@ -41,6 +41,7 @@ find_package(PCAP QUIET)
 # test_webrtc_regression are built only with WebRTC enabled and are not verified yet.
 set(GATING_TESTS
   test_amf
+  test_hls_cookie_data
   test_sortor)
 
 foreach(TEST_SRC ${TEST_SRC_LIST})
