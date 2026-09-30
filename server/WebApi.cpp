@@ -1101,9 +1101,9 @@ void installWebApi() {
             },
             [](toolkit::Any &&info) -> toolkit::Any {
                 auto obj = std::make_shared<Value>();
-                auto &sock_info = info.is<Session>() ? static_cast<SockInfo &>(info.get<Session>()) : info.get<SockInfo>();
-                fillSockInfo(*obj, &sock_info);
-                (*obj)["typeid"] = toolkit::demangle(typeid(sock_info).name());
+                auto &session = info.get<Session>();
+                fillSockInfo(*obj, &session);
+                (*obj)["typeid"] = toolkit::demangle(typeid(session).name());
                 toolkit::Any ret;
                 ret.set(obj);
                 return ret;
