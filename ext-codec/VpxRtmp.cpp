@@ -40,16 +40,11 @@ void VpxRtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt) {
 
             case RtmpPacketType::PacketTypeCodedFramesX:
             case RtmpPacketType::PacketTypeCodedFrames: {
-                auto pts = pkt->time_stamp;
-                if (RtmpPacketType::PacketTypeCodedFrames == _info.video.pkt_type) {
-                    CHECK_RET(size > 3);
-                    // SI24 = [CompositionTime Offset]
-                    int32_t cts = (load_be24(data) + 0xff800000) ^ 0xff800000;
-                    pts += cts;
-                    data += 3;
-                    size -= 3;
-                }
-                outputFrame((char*)data, size, pkt->time_stamp, pts);
+                // Enhanced AV1/VP8/VP9 carry coded data immediately after FourCC.
+                // Only AVC/HEVC/VVC CodedFrames have an SI24 composition offset.
+                // Older ZLM CodedFrames with an SI24 prefix are intentionally
+                // unsupported: the wire format cannot identify that legacy layout.
+                outputFrame((char*)data, size, pkt->time_stamp, pkt->time_stamp);
                 break;
             }
             default: 
@@ -83,20 +78,13 @@ bool VpxRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     auto packet = RtmpPacket::create();
     packet->buffer.resize(8 + frame->size());
     char *buff = packet->data();
-    int32_t cts = frame->pts() - frame->dts();
     if (_enhanced) {
         auto header = (RtmpVideoHeaderEnhanced *)buff;
         header->enhanced = 1;
         header->frame_type = frame->keyFrame() ? (int)RtmpFrameType::key_frame : (int)RtmpFrameType::inter_frame;
         header->fourcc = htonl(getCodecFourCC(frame->getCodecId()));
         buff += RtmpPacketInfo::kEnhancedRtmpHeaderSize;
-        if (cts) {
-            header->pkt_type = (uint8_t)RtmpPacketType::PacketTypeCodedFrames;
-            set_be24(buff, cts);
-            buff += 3;
-        } else {
-            header->pkt_type = (uint8_t)RtmpPacketType::PacketTypeCodedFramesX;
-        }
+        header->pkt_type = (uint8_t)RtmpPacketType::PacketTypeCodedFrames;
     } else {
         // flags
         uint8_t flags = getCodecFlags(frame->getCodecId());
@@ -104,15 +92,18 @@ bool VpxRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
 
         buff[0] = flags;
         buff[1] = (uint8_t)RtmpH264PacketType::h264_nalu;
-        // cts
+        // Preserve the low 24 bits of the signed composition offset, including
+        // negative offsets, without narrowing an unsigned difference to int32_t.
+        auto cts = static_cast<uint32_t>(frame->pts() - frame->dts());
         set_be24(&buff[2], cts);
         buff += 5;
     }
 
-    packet->time_stamp = frame->dts();
+    packet->time_stamp = _enhanced ? frame->pts() : frame->dts();
     memcpy(buff, frame->data(), frame->size());
     buff += frame->size();
     packet->body_size = buff - packet->data();
+    packet->buffer.resize(packet->body_size);
     packet->chunk_id = CHUNK_VIDEO;
     packet->stream_index = STREAM_MEDIA;
     packet->type_id = MSG_VIDEO;
