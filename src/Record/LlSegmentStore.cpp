@@ -685,14 +685,43 @@ std::string LlSegmentStore::makeDashMpd() const {
     // in the URL so browsers cannot reuse same-numbered segments cached from a prior server run.
     // xmlEscape is required in an XML attribute context, particularly for query-string '&'.
     auto cache_buster = "?session=" + xmlEscape(_cache_buster);
+    // 在建分片必须公布一个"在生成期间保持不变"的预计时长, 不能公布已产出时长:
+    // dash.js按"上一个分片起始时间 + 时长 + 偏移"推算下一个分片的媒体时间, 若该时长随每次
+    // MPD刷新不断增长, 推算出的时间会再次落回同一个在建分片, 于是同一个segment在传输尚未
+    // 完成时就被重复请求。取最近一个已完成分片的时长作为预计时长(分片按关键帧对齐切分,
+    // 相邻分片时长基本一致), 该值在建片期间恒定, 分片完成后再改用其真实时长。
+    // The in-progress segment must be advertised with an expected duration that stays constant
+    // while it is produced; advertising the produced-so-far duration is wrong: dash.js derives the
+    // next segment from "previous segment start + duration + offset", so a duration that keeps
+    // growing on every MPD refresh makes the derived media time fall back into the same
+    // in-progress segment, which then gets requested again while its transfer is still running.
+    // Use the duration of the latest completed segment as the estimate (segments are cut on key
+    // frames, so neighbouring durations are nearly equal); it stays constant while the segment is
+    // built and is replaced by the real duration once the segment completes.
+    uint64_t building_expected_ms = (uint64_t)_config.seg_dur_ms;
+    if (!_segments.empty()) {
+        building_expected_ms = std::max(building_expected_ms, (uint64_t)_segments.back()->duration_ms);
+    }
+    // 再留一个Part的余量: 关键帧对齐使相邻分片时长存在帧级抖动, 若公布时长小于真实时长,
+    // 分片完成时dash.js推算的媒体时间仍会落回该分片, 又触发一次重复请求。余量远小于分片时长,
+    // 只会让推算时间越过本分片落到下一个分片(本分片已完整下载, 不会漏数据)。
+    // Add one Part of margin: key-frame alignment makes neighbouring durations jitter by a frame;
+    // if the advertised duration is smaller than the real one, dash.js's derived media time still
+    // falls back into this segment when it completes, triggering another duplicate request. The
+    // margin is far smaller than a segment, so it only pushes the derived time past this segment
+    // into the next one (this segment is already downloaded in full, nothing is skipped).
+    building_expected_ms += (uint64_t)_config.part_dur_ms;
     ss << "        <SegmentTemplate timescale=\"1000\"";
     auto start_number = _segments.empty() ? _building->msn : _segments.front()->msn;
     ss << " startNumber=\"" << start_number << "\"";
     ss << " presentationTimeOffset=\"0\"";
     ss << " media=\"ll/$Number$.m4s" << cache_buster << "\" initialization=\"ll/init.mp4" << cache_buster << "\"";
-    // 以一个目标Segment时长提前公开当前Segment，使它从起始时刻即可被渐进请求。
-    // Make the current segment available from its start time for progressive download.
-    ss << " availabilityTimeOffset=\"" << setprecision(3) << _config.seg_dur_ms / 1000.0 << "\"";
+    // availabilityTimeOffset等于公布的分片时长, 则分片的可用时刻 = 结束时刻 - ATO = 其起始时刻,
+    // 使在建分片从起始时刻起即可被渐进请求(与在建分片公布的是预计时长而非真实时长无关)。
+    // availabilityTimeOffset equals the advertised duration, so the availability time of a segment
+    // is its end time minus the offset, i.e. its start time: the in-progress segment can be
+    // progressively requested right from its start, independent of the expected duration used.
+    ss << " availabilityTimeOffset=\"" << setprecision(3) << building_expected_ms / 1000.0 << "\"";
     ss << " availabilityTimeComplete=\"false\">\n";
     ss << "          <SegmentTimeline>\n";
     uint64_t timeline_ms = _evicted_duration_ms;
@@ -702,7 +731,10 @@ std::string LlSegmentStore::makeDashMpd() const {
         timeline_ms += duration_ms;
     }
     if (building_duration_ms) {
-        ss << "            <S t=\"" << timeline_ms << "\" d=\"" << building_duration_ms << "\"/>\n";
+        // d用预计时长(在建期间恒定), 分片完成后该S条目才换成真实时长
+        // d uses the expected duration (constant while being built); the real duration is used
+        // once the segment completes
+        ss << "            <S t=\"" << timeline_ms << "\" d=\"" << building_expected_ms << "\"/>\n";
     }
     ss << "          </SegmentTimeline>\n";
     ss << "        </SegmentTemplate>\n";
