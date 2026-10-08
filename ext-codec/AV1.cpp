@@ -46,8 +46,8 @@ Buffer::Ptr AV1Track::getExtraData() const {
 
 void AV1Track::setExtraData(const uint8_t *data, size_t size) {
     aom_av1_t context {};
-    if (size < 4 || data[0] != 0x81
-        || aom_av1_codec_configuration_record_load(data, size, &context) <= 0) {
+    if (size < 4 || data[0] != 0x81 || aom_av1_codec_configuration_record_load(data, size, &context) <= 0) {
+        WarnL << "Invalid AV1 codec configuration record, size: " << size << ", first byte: " << (size ? (int)data[0] : -1);
         return;
     }
     // load() only copies av1C fields/configOBUs; dimensions come from the

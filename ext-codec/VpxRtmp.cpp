@@ -76,14 +76,18 @@ VpxRtmpEncoder::VpxRtmpEncoder(const Track::Ptr &track) : RtmpCodec(track) {
 
 bool VpxRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     auto packet = RtmpPacket::create();
-    packet->buffer.resize(8 + frame->size());
-    char *buff = packet->data();
+    auto payload = frame->data() + frame->prefixSize();
+    auto payload_size = frame->size() - frame->prefixSize();
+    // 一次性按"头部 + 载荷"的实际长度分配，全程一次分配、一次 memcpy。
+    auto header_size = _enhanced ? (size_t)RtmpPacketInfo::kEnhancedRtmpHeaderSize : (size_t)5;
+    packet->buffer.resize(header_size + payload_size);
+    auto buff = packet->data();
     if (_enhanced) {
         auto header = (RtmpVideoHeaderEnhanced *)buff;
         header->enhanced = 1;
         header->frame_type = frame->keyFrame() ? (int)RtmpFrameType::key_frame : (int)RtmpFrameType::inter_frame;
         header->fourcc = htonl(getCodecFourCC(frame->getCodecId()));
-        buff += RtmpPacketInfo::kEnhancedRtmpHeaderSize;
+        // Enhanced AV1/VP8/VP9 have no composition offset, so always use CodedFrames.
         header->pkt_type = (uint8_t)RtmpPacketType::PacketTypeCodedFrames;
     } else {
         // flags
@@ -96,14 +100,11 @@ bool VpxRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         // negative offsets, without narrowing an unsigned difference to int32_t.
         auto cts = static_cast<uint32_t>(frame->pts() - frame->dts());
         set_be24(&buff[2], cts);
-        buff += 5;
     }
+    memcpy(buff + header_size, payload, payload_size);
 
     packet->time_stamp = _enhanced ? frame->pts() : frame->dts();
-    memcpy(buff, frame->data(), frame->size());
-    buff += frame->size();
-    packet->body_size = buff - packet->data();
-    packet->buffer.resize(packet->body_size);
+    packet->body_size = packet->buffer.size();
     packet->chunk_id = CHUNK_VIDEO;
     packet->stream_index = STREAM_MEDIA;
     packet->type_id = MSG_VIDEO;
