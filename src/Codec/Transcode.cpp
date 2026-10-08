@@ -399,6 +399,13 @@ FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num, const std:
             }
             codec = getCodec({AV_CODEC_ID_VP9});
             break;
+
+        case CodecAV1:
+            if (codec && codec->id == AV_CODEC_ID_AV1) {
+                break;
+            }
+            codec = getCodec({AV_CODEC_ID_AV1});
+            break;
         default: codec = nullptr; break;
     }
 
