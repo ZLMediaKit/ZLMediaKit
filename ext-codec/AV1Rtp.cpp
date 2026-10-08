@@ -197,7 +197,7 @@ uint8_t AV1RtpEncoder::makeAggregationHeader(bool first_obu_is_fragment,
 }
 
 void AV1RtpEncoder::outputRtp(const uint8_t* data, size_t len, bool mark,
-                              uint64_t stamp, uint8_t aggregation_header) {
+                              uint64_t stamp, uint8_t aggregation_header, bool key_pos) {
     auto rtp = getRtpInfo().makeRtp(TrackVideo, nullptr, len + kAggregationHeaderSize, mark, stamp);
     auto payload = rtp->data() + RtpPacket::kRtpTcpHeaderSize + RtpPacket::kRtpHeaderSize;
 
@@ -209,98 +209,85 @@ void AV1RtpEncoder::outputRtp(const uint8_t* data, size_t len, bool mark,
         memcpy(payload + kAggregationHeaderSize, data, len);
     }
 
-    RtpCodec::inputRtp(std::move(rtp), false);
+    RtpCodec::inputRtp(std::move(rtp), key_pos);
 }
 
 bool AV1RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     auto ptr = frame->data() + frame->prefixSize();
     auto size = frame->size() - frame->prefixSize();
-
-    if (size == 0) {
+    if (!size) {
         return false;
     }
-
-    // 解析OBU
-    auto obus = parseObus((const uint8_t*)ptr, size);
+    auto obus = parseObus((const uint8_t *)ptr, size);
     if (obus.empty()) {
         return false;
     }
 
-    // 检查是否包含序列头(关键帧标志)
-    bool has_sequence_header = false;
-    for (const auto& obu : obus) {
-        int type = obuType(obu.header);
-        if (type == kObuTypeSequenceHeader) {
-            has_sequence_header = true;
-            _got_key_frame = true;
+    bool has_seq = false;
+    for (auto &obu : obus) {
+        if (obuType(obu.header) == kObuTypeSequenceHeader) {
+            has_seq = true;
             break;
         }
     }
-
-    // 如果还没有收到过关键帧，且当前帧不是关键帧，则丢弃
-    if (!_got_key_frame && !has_sequence_header) {
-        DebugL << "Dropping AV1 frame before first keyframe";
+    if (!_got_key_frame && !has_seq) {
         return false;
     }
+    _got_key_frame = _got_key_frame || has_seq;
 
-    size_t max_payload_size = getRtpInfo().getMaxSize() - kAggregationHeaderSize;
-    if (max_payload_size == 0) {
-        WarnL << "Invalid RTP max payload size for AV1";
+    auto max_size = getRtpInfo().getMaxSize() - kAggregationHeaderSize;
+    if (!max_size) {
         return false;
     }
+    auto stamp = frame->pts();
 
-    for (size_t i = 0; i < obus.size(); ++i) {
-        const auto& obu = obus[i];
-        bool is_first_obu = (i == 0);
-        bool is_last_obu = (i == obus.size() - 1);
-        if (!sendObu(obu, is_first_obu, is_last_obu,
-                     has_sequence_header && is_first_obu, frame->pts(), max_payload_size)) {
-            return false;
+    std::vector<std::string> elements;
+    for (auto &obu : obus) {
+        std::string buf;
+        buf.push_back(obu.header & ~kObuSizePresentBit);
+        if (obu.has_extension) {
+            buf.push_back(obu.extension_header);
         }
+        buf.append((char *)obu.payload_data, obu.payload_size);
+        elements.emplace_back(std::move(buf));
     }
 
+    if (elements.size() == 1) {
+        auto &buf = elements[0];
+        for (size_t off = 0, first = true; off < buf.size(); first = false) {
+            auto len = std::min(max_size, buf.size() - off);
+            bool last = (off + len == buf.size());
+            outputRtp((uint8_t *)buf.data() + off, len, last, stamp,
+                      makeAggregationHeader(!first, !last, 1, first && has_seq), first && has_seq);
+            off += len;
+        }
+        return true;
+    }
+
+    // 同一帧的多个 OBU 必须共用一个包序列，避免序列头包被当成完整帧
+    std::string head;
+    for (size_t i = 0; i + 1 < elements.size(); ++i) {
+        uint8_t leb[8];
+        auto bytes = writeLeb128(elements[i].size(), leb);
+        head.append((char *)leb, bytes);
+        head.append(elements[i]);
+    }
+    auto &last = elements.back();
+    auto len = std::min(max_size - head.size(), last.size());
+    head.append(last.data(), len);
+    outputRtp((uint8_t *)head.data(), head.size(), len == last.size(), stamp,
+              makeAggregationHeader(false, len < last.size(), (int)elements.size(), has_seq), has_seq);
+    for (size_t off = len; off < last.size();) {
+        auto n = std::min(max_size, last.size() - off);
+        bool done = (off + n == last.size());
+        outputRtp((uint8_t *)last.data() + off, n, done, stamp,
+                  makeAggregationHeader(true, !done, 1, false), false);
+        off += n;
+    }
     return true;
 }
 
-bool AV1RtpEncoder::sendObu(const ObuInfo& obu,
-                            bool is_first_obu,
-                            bool is_last_obu,
-                            bool starts_new_sequence,
-                            uint64_t stamp,
-                            size_t max_payload_size) {
-    std::vector<uint8_t> obu_bytes;
-    obu_bytes.reserve(1 + (obu.has_extension ? 1 : 0) + obu.payload_size);
-    obu_bytes.push_back(obu.header & ~kObuSizePresentBit);
-    if (obu.has_extension) {
-        obu_bytes.push_back(obu.extension_header);
-    }
-    if (obu.payload_size > 0) {
-        obu_bytes.insert(obu_bytes.end(), obu.payload_data, obu.payload_data + obu.payload_size);
-    }
-
-    size_t offset = 0;
-    bool first_fragment = true;
-    while (offset < obu_bytes.size()) {
-        size_t fragment_size = std::min<size_t>(max_payload_size, obu_bytes.size() - offset);
-        bool last_fragment = (offset + fragment_size) == obu_bytes.size();
-        uint8_t agg_header = makeAggregationHeader(
-            !first_fragment,
-            !last_fragment,
-            1,
-            first_fragment && starts_new_sequence
-        );
-
-        bool mark = last_fragment && is_last_obu;
-        outputRtp(obu_bytes.data() + offset, fragment_size, mark, stamp, agg_header);
-
-        offset += fragment_size;
-        first_fragment = false;
-    }
-
-    return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
 // AV1RtpDecoder 实现
 //////////////////////////////////////////////////////////////////////////
 

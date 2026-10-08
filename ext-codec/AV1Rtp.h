@@ -41,11 +41,9 @@ private:
     };
 
     std::vector<ObuInfo> parseObus(const uint8_t* data, size_t size);
-    void outputRtp(const uint8_t* data, size_t len, bool mark, uint64_t stamp, uint8_t aggregation_header);
+    void outputRtp(const uint8_t* data, size_t len, bool mark, uint64_t stamp, uint8_t aggregation_header, bool key_pos);
     uint8_t makeAggregationHeader(bool first_obu_is_fragment, bool last_obu_is_fragment,
                                   int num_obu_elements, bool starts_new_coded_video_sequence);
-    bool sendObu(const ObuInfo& obu, bool is_first_obu, bool is_last_obu,
-                 bool starts_new_sequence, uint64_t stamp, size_t max_payload_size);
 
 private:
     bool _got_key_frame = false;
