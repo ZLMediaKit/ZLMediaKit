@@ -8,6 +8,8 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
+#include "aom-av1.h"
+
 #include <cmath>
 #include <iostream>
 #include <limits>

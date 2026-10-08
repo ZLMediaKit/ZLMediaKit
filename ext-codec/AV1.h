@@ -13,14 +13,47 @@
 
 #include "Extension/Frame.h"
 #include "Extension/Track.h"
-#include "aom-av1.h"
+
 namespace mediakit {
+
+class AV1Track : public VideoTrack {
+public:
+    using Ptr = std::shared_ptr<AV1Track>;
+
+    AV1Track();
+
+    static uint64_t leb128(const uint8_t *ptr, size_t len, size_t &consumed);
+    static size_t write_leb128(uint64_t value, uint8_t *ptr, size_t len);
+    static bool isConfigFrame(const char *data);
+
+    CodecId getCodecId() const override { return CodecAV1; }
+    int getVideoHeight() const override { return _width; }
+    int getVideoWidth() const override { return _height; }
+    float getVideoFps() const override { return _fps; }
+    bool ready() const override { return _width; }
+    bool update() override;
+    bool inputFrame(const Frame::Ptr &frame) override;
+    toolkit::Buffer::Ptr getExtraData() const override;
+    void setExtraData(const uint8_t *data, size_t size) override;
+    Track::Ptr clone() const override { return std::make_shared<AV1Track>(*this); }
+    Sdp::Ptr getSdp(uint8_t payload_type) const override;
+
+private:
+    bool inputFrame_l(const Frame::Ptr &frame);
+
+private:
+    int _width = 0;
+    int _height = 0;
+    float _fps = 0;
+    toolkit::Buffer::Ptr _config;
+    std::shared_ptr<struct AV1FrameOBUContext> _context;
+};
 
 template <typename Parent>
 class AV1FrameHelper : public Parent {
 public:
     friend class FrameImp;
-    //friend class toolkit::ResourcePool_l<Av1FrameHelper>;
+    friend class toolkit::ResourcePool_l<AV1FrameHelper>;
     using Ptr = std::shared_ptr<AV1FrameHelper>;
 
     template <typename... ARGS>
@@ -29,36 +62,17 @@ public:
         this->_codec_id = CodecAV1;
     }
 
-    bool keyFrame() const override {
-        auto ptr = (uint8_t *) this->data() + this->prefixSize();
-        return (*ptr & 0x78) >> 3 == 1;
+    bool configFrame() const override {
+        return AV1Track::isConfigFrame(this->data() + this->prefixSize());
     }
-    bool configFrame() const override { return false; }
-    bool dropAble() const override { return false; }
-    bool decodeAble() const override { return true; }
+
+    bool keyFrame() const override {
+        return configFrame();
+    }
 };
 
-/// Av1 帧类
 using AV1Frame = AV1FrameHelper<FrameImp>;
 using AV1FrameNoCacheAble = AV1FrameHelper<FrameFromPtr>;
-
-/**
- * AV1视频通道
- */
-class AV1Track : public VideoTrackImp {
-public:
-    using Ptr = std::shared_ptr<AV1Track>;
-
-    AV1Track() : VideoTrackImp(CodecAV1, 0, 0, 0) {}
-
-    Track::Ptr clone() const override;
-
-    bool inputFrame(const Frame::Ptr &frame) override;
-    toolkit::Buffer::Ptr getExtraData() const override;
-    void setExtraData(const uint8_t *data, size_t size) override;
-protected:
-    aom_av1_t _context {};
-};
 
 } // namespace mediakit
 
