@@ -409,13 +409,11 @@ bool AV1RtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
         _current_frame_starts_new_sequence = true;
     }
 
-    // 出现序号空洞时判断丢的是哪个时间单元：
-    // 1) 同一时间单元内丢包，当前帧必然不完整；
-    // 2) 上一个时间单元已以 marker 收尾，则丢失的报文属于当前时间单元；
-    // 3) 当前报文是分片续片，说明当前帧的起始报文也丢了。
-    bool same_temporal_unit = _has_last_stamp && rtp_stamp == _last_rtp_stamp;
-    if (seq_gap && !_drop_frame &&
-        (same_temporal_unit || prev_unit_completed || agg_header.first_obu_is_fragment)) {
+    // 出现序号空洞时，无法判断丢失的报文落在上一个时间单元的尾部还是当前时间单元的头部，
+    // 因此保守地把当前时间单元也丢掉，避免输出残缺帧。
+    // 但 N=1 的报文本就是新编码视频序列的起始，空洞只可能属于它之前的序列，
+    // 丢掉它会把用于恢复的 sequence header / 关键帧一起丢掉，必须保留。
+    if (seq_gap && !_drop_frame && !agg_header.starts_new_coded_video_sequence) {
         WarnL << "RTP seq gap in AV1 temporal unit, expected=" << (uint16_t)(_last_seq + 1)
               << " got=" << seq << ", dropping incomplete frame";
         _fragment_buffer.clear();
