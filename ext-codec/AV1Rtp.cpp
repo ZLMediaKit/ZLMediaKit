@@ -271,7 +271,7 @@ bool AV1RtpEncoder::inputFrame(const Frame::Ptr &frame) {
 
             auto &obu = elements[obu_index];
             auto remaining = obu.size() - obu_offset;
-            auto fragment_size = std::min(max_size - prefix_size, remaining);
+            auto fragment_size = (std::min)(max_size - prefix_size, remaining);
             if (!fragment_size) {
                 break;
             }
