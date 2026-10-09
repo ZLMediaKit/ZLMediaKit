@@ -41,11 +41,9 @@ private:
     };
 
     std::vector<ObuInfo> parseObus(const uint8_t* data, size_t size);
-    void outputRtp(const uint8_t* data, size_t len, bool mark, uint64_t stamp, uint8_t aggregation_header);
+    void outputRtp(const uint8_t* data, size_t len, bool mark, uint64_t stamp, uint8_t aggregation_header, bool key_pos);
     uint8_t makeAggregationHeader(bool first_obu_is_fragment, bool last_obu_is_fragment,
                                   int num_obu_elements, bool starts_new_coded_video_sequence);
-    bool sendObu(const ObuInfo& obu, bool is_first_obu, bool is_last_obu,
-                 bool starts_new_sequence, uint64_t stamp, size_t max_payload_size);
 
 private:
     bool _got_key_frame = false;
@@ -84,7 +82,13 @@ private:
     FrameImp::Ptr _frame;
     std::vector<uint8_t> _fragment_buffer;
     bool _assembling_fragment = false;
+    bool _drop_frame = false;
+    bool _current_frame_starts_new_sequence = false;
     bool _received_keyframe = false;
+    bool _has_last_stamp = false;
+    uint32_t _last_rtp_stamp = 0;
+    // 上一个时间单元是否已经收到 marker 正常收尾，用于判断丢失的报文属于哪个时间单元
+    bool _unit_completed = false;
     bool _has_last_seq = false;
     uint16_t _last_seq = 0;
     bool _has_last_ssrc = false;
