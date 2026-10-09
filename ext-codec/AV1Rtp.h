@@ -87,6 +87,8 @@ private:
     bool _received_keyframe = false;
     bool _has_last_stamp = false;
     uint32_t _last_rtp_stamp = 0;
+    // 上一个时间单元是否已经收到 marker 正常收尾，用于判断丢失的报文属于哪个时间单元
+    bool _unit_completed = false;
     bool _has_last_seq = false;
     uint16_t _last_seq = 0;
     bool _has_last_ssrc = false;

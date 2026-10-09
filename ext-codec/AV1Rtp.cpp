@@ -375,9 +375,16 @@ bool AV1RtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
     const uint8_t* data = payload + kAggregationHeaderSize;
     size_t remaining = payload_size - kAggregationHeaderSize;
 
+    // 序号空洞必须在更新 _last_seq 之前判断；marker 只是 SHOULD，不能作为唯一判据。
+    bool seq_gap = _has_last_seq && seq != (uint16_t)(_last_seq + 1);
+    // 记录进入当前时间单元之前，上一个时间单元是否已正常收尾
+    bool prev_unit_completed = _unit_completed;
+
     // Marker 可能缺失；RTP 时间戳变化时结束或丢弃上一时间单元。
     if (_has_last_stamp && rtp_stamp != _last_rtp_stamp) {
-        if (_assembling_fragment || _drop_frame) {
+        // 上一个时间单元没有以 marker 收尾，且序号出现空洞，说明它尾部有丢包，
+        // 此时只能丢弃，否则会把半帧当成完整帧输出。
+        if (_assembling_fragment || _drop_frame || (seq_gap && !prev_unit_completed)) {
             if (_current_frame_starts_new_sequence) {
                 _received_keyframe = false;
             }
@@ -391,6 +398,7 @@ bool AV1RtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
         } else if (!_frame->_buffer.empty()) {
             obtainFrame();
         }
+        _unit_completed = false;
     }
 
     // 如果开始新的编码视频序列，清理之前的状态
@@ -401,18 +409,21 @@ bool AV1RtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
         _current_frame_starts_new_sequence = true;
     }
 
-    if (_has_last_seq) {
-        uint16_t expected = _last_seq + 1;
-        if (seq != expected && _has_last_stamp && rtp_stamp == _last_rtp_stamp) {
-            WarnL << "RTP seq gap in AV1 temporal unit, expected=" << expected
-                  << " got=" << seq << ", dropping incomplete frame";
-            _fragment_buffer.clear();
-            _assembling_fragment = false;
-            _frame->_buffer.clear();
-            _drop_frame = true;
-            if (_current_frame_starts_new_sequence) {
-                _received_keyframe = false;
-            }
+    // 出现序号空洞时判断丢的是哪个时间单元：
+    // 1) 同一时间单元内丢包，当前帧必然不完整；
+    // 2) 上一个时间单元已以 marker 收尾，则丢失的报文属于当前时间单元；
+    // 3) 当前报文是分片续片，说明当前帧的起始报文也丢了。
+    bool same_temporal_unit = _has_last_stamp && rtp_stamp == _last_rtp_stamp;
+    if (seq_gap && !_drop_frame &&
+        (same_temporal_unit || prev_unit_completed || agg_header.first_obu_is_fragment)) {
+        WarnL << "RTP seq gap in AV1 temporal unit, expected=" << (uint16_t)(_last_seq + 1)
+              << " got=" << seq << ", dropping incomplete frame";
+        _fragment_buffer.clear();
+        _assembling_fragment = false;
+        _frame->_buffer.clear();
+        _drop_frame = true;
+        if (_current_frame_starts_new_sequence) {
+            _received_keyframe = false;
         }
     }
     _last_seq = seq;
@@ -447,6 +458,8 @@ bool AV1RtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
 
     bool marker = rtp->getHeader()->mark;
     if (marker) {
+        // marker 到达说明当前时间单元已收尾，之后的丢包都属于下一个时间单元
+        _unit_completed = true;
         if (_assembling_fragment || _drop_frame) {
             WarnL << "Dropping incomplete AV1 frame at marker";
             if (_current_frame_starts_new_sequence) {
@@ -648,6 +661,7 @@ void AV1RtpDecoder::resetState() {
     _current_frame_starts_new_sequence = false;
     _has_last_seq = false;
     _has_last_stamp = false;
+    _unit_completed = false;
     _received_keyframe = false;
 }
 
