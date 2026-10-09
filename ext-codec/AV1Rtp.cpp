@@ -395,7 +395,7 @@ bool AV1RtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
 
     // 如果开始新的编码视频序列，清理之前的状态
     if (agg_header.starts_new_coded_video_sequence) {
-        DebugL << "Starting new coded video sequence";
+        // DebugL << "Starting new coded video sequence";
         resetState();
         obtainFrame();
         _current_frame_starts_new_sequence = true;
