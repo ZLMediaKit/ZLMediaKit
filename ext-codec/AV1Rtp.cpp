@@ -12,8 +12,6 @@
 #include <algorithm>
 #include <cstring>
 #include <vector>
-#include <sstream>
-#include <iomanip>
 
 using namespace std;
 using namespace toolkit;
@@ -70,13 +68,6 @@ static bool readLeb128(const uint8_t*& data, size_t& remaining, uint64_t& value)
         }
     }
 
-    // 兼容性处理：如果到达数据末尾但最后一个字节的MSB仍为1，
-    // 假设这是leb128编码的结尾
-    if (remaining == 0 && shift > 0) {
-        WarnL << "Tolerating non-standard LEB128 encoding (missing termination bit)";
-        return true;
-    }
-
     return false;
 }
 
@@ -93,15 +84,18 @@ static int obuType(uint8_t obu_header) {
     return (obu_header & 0b01111000) >> 3;
 }
 
-static int maxFragmentSize(int remaining_bytes) {
-    if (remaining_bytes <= 1) {
-        return 0;
+struct RtpElement {
+    size_t obu_index;
+    size_t offset;
+    size_t size;
+};
+
+static size_t packetPrefixSize(const std::vector<RtpElement> &elements) {
+    size_t size = 0;
+    for (auto &element : elements) {
+        size += leb128Size(element.size) + element.size;
     }
-    for (int i = 1; ; ++i) {
-        if (remaining_bytes < (1 << (7 * i)) + i) {
-            return remaining_bytes - i;
-        }
-    }
+    return size;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -235,13 +229,15 @@ bool AV1RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     }
     _got_key_frame = _got_key_frame || has_seq;
 
-    auto max_size = getRtpInfo().getMaxSize() - kAggregationHeaderSize;
-    if (!max_size) {
+    auto rtp_payload_size = getRtpInfo().getMaxSize();
+    if (rtp_payload_size <= kAggregationHeaderSize) {
         return false;
     }
+    auto max_size = rtp_payload_size - kAggregationHeaderSize;
     auto stamp = frame->pts();
 
     std::vector<std::string> elements;
+    std::vector<int> layer_ids;
     for (auto &obu : obus) {
         std::string buf;
         buf.push_back(obu.header & ~kObuSizePresentBit);
@@ -250,39 +246,85 @@ bool AV1RtpEncoder::inputFrame(const Frame::Ptr &frame) {
         }
         buf.append((char *)obu.payload_data, obu.payload_size);
         elements.emplace_back(std::move(buf));
+        layer_ids.emplace_back(obu.has_extension ? (obu.extension_header & 0xF8) : -1);
     }
 
-    if (elements.size() == 1) {
-        auto &buf = elements[0];
-        for (size_t off = 0, first = true; off < buf.size(); first = false) {
-            auto len = std::min(max_size, buf.size() - off);
-            bool last = (off + len == buf.size());
-            outputRtp((uint8_t *)buf.data() + off, len, last, stamp,
-                      makeAggregationHeader(!first, !last, 1, first && has_seq), first && has_seq);
-            off += len;
+    // 同一帧的多个 OBU 共用一个 RTP 包序列，避免序列头被当成完整帧。
+    size_t obu_index = 0;
+    size_t obu_offset = 0;
+    bool first_packet = true;
+    while (obu_index < elements.size()) {
+        std::vector<RtpElement> packet_elements;
+        int packet_layer = -1;
+
+        while (obu_index < elements.size() && packet_elements.size() < kMaxNumObusToOmitSize) {
+            auto layer_id = layer_ids[obu_index];
+            if (!packet_elements.empty() && packet_layer >= 0 && layer_id >= 0 && packet_layer != layer_id) {
+                break;
+            }
+
+            // 加入新 OBU 后，前面的 OBU 需补长度字段。
+            auto prefix_size = packetPrefixSize(packet_elements);
+            if (prefix_size >= max_size) {
+                break;
+            }
+
+            auto &obu = elements[obu_index];
+            auto remaining = obu.size() - obu_offset;
+            auto fragment_size = std::min(max_size - prefix_size, remaining);
+            if (!fragment_size) {
+                break;
+            }
+
+            packet_elements.push_back({obu_index, obu_offset, fragment_size});
+            if (layer_id >= 0) {
+                packet_layer = layer_id;
+            }
+
+            if (fragment_size < remaining) {
+                obu_offset += fragment_size;
+                break;
+            }
+
+            ++obu_index;
+            obu_offset = 0;
+            if (obu_index == elements.size()) {
+                break;
+            }
+
+            auto next_layer = layer_ids[obu_index];
+            if (packet_layer >= 0 && next_layer >= 0 && packet_layer != next_layer) {
+                break;
+            }
         }
-        return true;
-    }
 
-    // 同一帧的多个 OBU 必须共用一个包序列，避免序列头包被当成完整帧
-    std::string head;
-    for (size_t i = 0; i + 1 < elements.size(); ++i) {
-        uint8_t leb[8];
-        auto bytes = writeLeb128(elements[i].size(), leb);
-        head.append((char *)leb, bytes);
-        head.append(elements[i]);
-    }
-    auto &last = elements.back();
-    auto len = std::min(max_size - head.size(), last.size());
-    head.append(last.data(), len);
-    outputRtp((uint8_t *)head.data(), head.size(), len == last.size(), stamp,
-              makeAggregationHeader(false, len < last.size(), (int)elements.size(), has_seq), has_seq);
-    for (size_t off = len; off < last.size();) {
-        auto n = std::min(max_size, last.size() - off);
-        bool done = (off + n == last.size());
-        outputRtp((uint8_t *)last.data() + off, n, done, stamp,
-                  makeAggregationHeader(true, !done, 1, false), false);
-        off += n;
+        if (packet_elements.empty()) {
+            WarnL << "Failed to packetize AV1 frame within RTP payload limit";
+            return false;
+        }
+
+        std::string payload;
+        payload.reserve(max_size);
+        for (size_t i = 0; i < packet_elements.size(); ++i) {
+            auto &element = packet_elements[i];
+            if (i + 1 < packet_elements.size()) {
+                uint8_t leb[8];
+                auto bytes = writeLeb128(element.size, leb);
+                payload.append((char *)leb, bytes);
+            }
+            payload.append(elements[element.obu_index].data() + element.offset, element.size);
+        }
+
+        auto &first = packet_elements.front();
+        auto &last = packet_elements.back();
+        bool first_is_fragment = first.offset != 0;
+        bool last_is_fragment = last.offset + last.size < elements[last.obu_index].size();
+        bool mark = obu_index == elements.size() && obu_offset == 0;
+        outputRtp((uint8_t *)payload.data(), payload.size(), mark, stamp,
+                  makeAggregationHeader(first_is_fragment, last_is_fragment,
+                                        (int)packet_elements.size(), first_packet && has_seq),
+                  first_packet && has_seq);
+        first_packet = false;
     }
     return true;
 }
@@ -297,6 +339,7 @@ AV1RtpDecoder::AV1RtpDecoder() {
 
 void AV1RtpDecoder::obtainFrame() {
     _frame = FrameImp::create<AV1Frame>();
+    _current_frame_starts_new_sequence = false;
 }
 
 AV1RtpDecoder::AggregationHeader AV1RtpDecoder::parseAggregationHeader(uint8_t header) {
@@ -322,6 +365,7 @@ bool AV1RtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
     }
 
     auto stamp = rtp->getStampMS();
+    auto rtp_stamp = rtp->getStamp();
     auto payload = rtp->getPayload();
     auto seq = rtp->getSeq();
 
@@ -331,53 +375,96 @@ bool AV1RtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
     const uint8_t* data = payload + kAggregationHeaderSize;
     size_t remaining = payload_size - kAggregationHeaderSize;
 
-    // InfoL << "RTP seq=" << seq << ", Z=" << agg_header.first_obu_is_fragment
-    //       << ", Y=" << agg_header.last_obu_is_fragment
-    //       << ", W=" << agg_header.num_obu_elements
-    //       << ", N=" << agg_header.starts_new_coded_video_sequence
-    //       << ", payload_size=" << remaining;
-
-    // if (remaining > 0) {
-    //     std::ostringstream hex_stream;
-    //     for (size_t i = 0; i < std::min(remaining, size_t(16)); ++i) {
-    //         hex_stream << std::hex << std::setw(2) << std::setfill('0') << (int)data[i] << " ";
-    //     }
-    //     InfoL << "RTP payload hex: " << hex_stream.str();
-    // }
+    // Marker 可能缺失；RTP 时间戳变化时结束或丢弃上一时间单元。
+    if (_has_last_stamp && rtp_stamp != _last_rtp_stamp) {
+        if (_assembling_fragment || _drop_frame) {
+            if (_current_frame_starts_new_sequence) {
+                _received_keyframe = false;
+            }
+            _fragment_buffer.clear();
+            _assembling_fragment = false;
+            _drop_frame = false;
+            _frame->_buffer.clear();
+            obtainFrame();
+        } else if (!_frame->_buffer.empty() && _received_keyframe) {
+            flushFrame(_last_dts);
+        } else if (!_frame->_buffer.empty()) {
+            obtainFrame();
+        }
+    }
 
     // 如果开始新的编码视频序列，清理之前的状态
     if (agg_header.starts_new_coded_video_sequence) {
-        InfoL << "Starting new coded video sequence";
+        DebugL << "Starting new coded video sequence";
         resetState();
         obtainFrame();
+        _current_frame_starts_new_sequence = true;
     }
 
     if (_has_last_seq) {
         uint16_t expected = _last_seq + 1;
-        if (seq != expected && _assembling_fragment) {
-            WarnL << "RTP seq gap while assembling fragment, expected=" << expected
-                  << " got=" << seq << ", dropping incomplete OBU";
+        if (seq != expected && _has_last_stamp && rtp_stamp == _last_rtp_stamp) {
+            WarnL << "RTP seq gap in AV1 temporal unit, expected=" << expected
+                  << " got=" << seq << ", dropping incomplete frame";
             _fragment_buffer.clear();
             _assembling_fragment = false;
+            _frame->_buffer.clear();
+            _drop_frame = true;
+            if (_current_frame_starts_new_sequence) {
+                _received_keyframe = false;
+            }
         }
     }
     _last_seq = seq;
     _has_last_seq = true;
 
-    if (!processPayload(agg_header, data, remaining)) {
-        resetState();
-        obtainFrame();
-        return false;
+    // 无首片的续片说明当前帧不完整；只丢当前帧，保留已有序列状态。
+    if (!_drop_frame && agg_header.first_obu_is_fragment && !_assembling_fragment) {
+        WarnL << "Orphan AV1 fragment, seq=" << seq << ", stamp=" << stamp
+              << ", rtp_stamp=" << rtp_stamp << ", W=" << agg_header.num_obu_elements
+              << ", Y=" << agg_header.last_obu_is_fragment << ", dropping current frame";
+        _fragment_buffer.clear();
+        _frame->_buffer.clear();
+        _drop_frame = true;
+        if (_current_frame_starts_new_sequence) {
+            _received_keyframe = false;
+        }
+    }
+
+    if (!_drop_frame && !processPayload(agg_header, data, remaining)) {
+        WarnL << "Invalid AV1 RTP payload, seq=" << seq << ", stamp=" << stamp
+              << ", rtp_stamp=" << rtp_stamp << ", Z=" << agg_header.first_obu_is_fragment
+              << ", Y=" << agg_header.last_obu_is_fragment << ", W=" << agg_header.num_obu_elements
+              << ", dropping current frame";
+        _fragment_buffer.clear();
+        _assembling_fragment = false;
+        _frame->_buffer.clear();
+        _drop_frame = true;
+        if (_current_frame_starts_new_sequence) {
+            _received_keyframe = false;
+        }
     }
 
     bool marker = rtp->getHeader()->mark;
     if (marker) {
-        if (_assembling_fragment) {
-            WarnL << "Marker bit set while awaiting fragment continuation";
+        if (_assembling_fragment || _drop_frame) {
+            WarnL << "Dropping incomplete AV1 frame at marker";
+            if (_current_frame_starts_new_sequence) {
+                _received_keyframe = false;
+            }
             _fragment_buffer.clear();
             _assembling_fragment = false;
+            _drop_frame = false;
+            _frame->_buffer.clear();
+            obtainFrame();
+            _last_dts = stamp;
+            _last_rtp_stamp = rtp_stamp;
+            _has_last_stamp = true;
+            return false;
         }
         _last_dts = stamp;
+        _last_rtp_stamp = rtp_stamp;
+        _has_last_stamp = true;
         if (!_received_keyframe) {
             WarnL << "AV1 RTP packet before keyframe, dropping";
             _frame->_buffer.clear();
@@ -389,6 +476,8 @@ bool AV1RtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
     }
 
     _last_dts = stamp;
+    _last_rtp_stamp = rtp_stamp;
+    _has_last_stamp = true;
     return false;
 }
 
@@ -403,13 +492,12 @@ bool AV1RtpDecoder::processPayload(const AggregationHeader& agg_header,
         bool has_size = (expected_elements == 0) || (static_cast<int>(element_index) < expected_elements - 1);
         if (has_size) {
             if (!readLeb128(data, remaining, element_size)) {
-                WarnL << "Failed to read OBU element size, trying fallback parsing";
-                // 兼容性回退：如果leb128解析失败，尝试直接使用剩余字节数
-                element_size = remaining;
+                WarnL << "Failed to read OBU element size";
+                return false;
             } else if (element_size > remaining) {
                 WarnL << "OBU element size (" << element_size << ") exceeds remaining payload ("
-                      << remaining << "), using remaining size";
-                element_size = remaining;
+                      << remaining << ")";
+                return false;
             }
         } else {
             element_size = remaining;
@@ -456,9 +544,8 @@ bool AV1RtpDecoder::processPayload(const AggregationHeader& agg_header,
 
     if (expected_elements > 0 && static_cast<int>(element_index) != expected_elements) {
         WarnL << "Mismatch between W field (" << expected_elements
-              << ") and parsed OBU elements (" << element_index
-              << "), tolerating for compatibility";
-        // 不返回false，继续处理以提高兼容性
+              << ") and parsed OBU elements (" << element_index << ")";
+        return false;
     }
 
     return true;
@@ -469,18 +556,12 @@ bool AV1RtpDecoder::emitObu(const uint8_t* data, size_t size) {
         return true;
     }
 
-    if (size < 1) {
-        WarnL << "Empty OBU fragment";
-        return false;
-    }
-
     uint8_t obu_header = data[0];
     size_t header_size = 1;
 
     // 检查OBU头部是否已经包含size bit
     bool already_has_size = obuHasSize(obu_header);
 
-    // 如果RTP包中的OBU已经包含size字段，需要特殊处理
     if (already_has_size) {
         //WarnL << "RTP OBU contains size field";
 
@@ -506,6 +587,7 @@ bool AV1RtpDecoder::emitObu(const uint8_t* data, size_t size) {
         if (original_size != remaining) {
             WarnL << "OBU size mismatch in RTP packet, original_size=" << original_size
                   << " remaining=" << remaining;
+            return false;
         }
 
         // 直接拷贝完整的OBU（包括已有的size字段）
@@ -562,7 +644,10 @@ void AV1RtpDecoder::flushFrame(uint64_t stamp) {
 void AV1RtpDecoder::resetState() {
     _fragment_buffer.clear();
     _assembling_fragment = false;
+    _drop_frame = false;
+    _current_frame_starts_new_sequence = false;
     _has_last_seq = false;
+    _has_last_stamp = false;
     _received_keyframe = false;
 }
 

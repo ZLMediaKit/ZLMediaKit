@@ -82,7 +82,11 @@ private:
     FrameImp::Ptr _frame;
     std::vector<uint8_t> _fragment_buffer;
     bool _assembling_fragment = false;
+    bool _drop_frame = false;
+    bool _current_frame_starts_new_sequence = false;
     bool _received_keyframe = false;
+    bool _has_last_stamp = false;
+    uint32_t _last_rtp_stamp = 0;
     bool _has_last_seq = false;
     uint16_t _last_seq = 0;
     bool _has_last_ssrc = false;
