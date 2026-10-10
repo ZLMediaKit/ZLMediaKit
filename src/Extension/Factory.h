@@ -19,15 +19,6 @@
 #include "Rtmp/RtmpCodec.h"
 #include "Util/onceToken.h"
 
-#define REGISTER_STATIC_VAR_INNER(var_name, line) var_name##_##line##__
-#define REGISTER_STATIC_VAR(var_name, line) REGISTER_STATIC_VAR_INNER(var_name, line)
-
-#define REGISTER_CODEC(plugin) \
-extern CodecPlugin plugin;     \
-static toolkit::onceToken REGISTER_STATIC_VAR(s_token, __LINE__) ([]() { \
-    Factory::registerPlugin(plugin); \
-});
-
 namespace mediakit {
 
 struct CodecPlugin {

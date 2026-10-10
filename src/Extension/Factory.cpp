@@ -17,6 +17,20 @@
 using namespace std;
 using namespace toolkit;
 
+#define REGISTER_STATIC_VAR_INNER(var_name, line) var_name##_##line##__
+#define REGISTER_STATIC_VAR(var_name, line) REGISTER_STATIC_VAR_INNER(var_name, line)
+
+// 静态初始化阶段只登记插件地址，真正的注册动作延后到首次使用时执行  [AUTO-TRANSLATED:c9c1a0d2]
+// Only record the plugin address at static-init time; the real registration is deferred to first use
+// 注意: 必须在静态初始化路径上对插件符号取地址(odr-use)，否则 ext-codec 静态库中的obj不会被链接(LNK2019)
+// Note: the plugin symbol must be odr-used from the static init path, otherwise the objects in the
+// ext-codec static library won't be linked (LNK2019)
+#define REGISTER_CODEC(plugin) \
+extern CodecPlugin plugin;     \
+static toolkit::onceToken REGISTER_STATIC_VAR(s_token, __LINE__) ([]() { \
+    getPendingCodecPlugins().push_back(&plugin); \
+});
+
 namespace mediakit {
 
 // 函数内静态对象，避免跨编译单元的静态初始化顺序问题  [AUTO-TRANSLATED:6f0a3e4b]
@@ -26,24 +40,40 @@ static std::unordered_map<int, const CodecPlugin *> &getCodecPlugins() {
     return plugins;
 }
 
+// 静态初始化阶段只登记插件地址，注册动作延后到首次使用时执行  [AUTO-TRANSLATED:c9c1a0d2]
+// Only record plugin addresses at static-init time; the real registration is deferred to first use
+static std::vector<const CodecPlugin *> &getPendingCodecPlugins() {
+    static std::vector<const CodecPlugin *> plugins;
+    return plugins;
+}
+
+// ext-codec 是独立静态库，插件符号的 odr-use 由 Factory.h 中的 REGISTER_CODEC 宏保证，
+// 详见该宏注释: 依赖静态初始化路径上的引用，否则链接器不会加载插件所在的obj(LNK2019)
+// ext-codec is a standalone static library; the odr-use of plugin symbols is guaranteed by the
+// REGISTER_CODEC macro in Factory.h (see its comment): without a reference from the static init
+// path, MSVC won't load the objects that define the plugins (LNK2019)
+REGISTER_CODEC(vp8_plugin);
+REGISTER_CODEC(vp9_plugin);
+REGISTER_CODEC(h264_plugin);
+REGISTER_CODEC(h265_plugin);
+REGISTER_CODEC(av1_plugin);
+REGISTER_CODEC(jpeg_plugin);
+REGISTER_CODEC(aac_plugin);
+REGISTER_CODEC(opus_plugin);
+REGISTER_CODEC(g711a_plugin)
+REGISTER_CODEC(g711u_plugin);
+REGISTER_CODEC(l16_plugin);
+REGISTER_CODEC(mp3_plugin);
+REGISTER_CODEC(mp2v_plugin);
+REGISTER_CODEC(mp2a_plugin);
+
 // 首次调用时懒加载并注册所有编解码插件，之后直接查表，无需在各处重复调用  [AUTO-TRANSLATED:2a1f9d17]
 // Lazily register all codec plugins on first call, then just look up the table
 static const CodecPlugin *getCodecPlugin(CodecId codec) {
     static const std::unordered_map<int, const CodecPlugin *> &plugins = []() -> const std::unordered_map<int, const CodecPlugin *> & {
-        REGISTER_CODEC(vp8_plugin);
-        REGISTER_CODEC(vp9_plugin);
-        REGISTER_CODEC(h264_plugin);
-        REGISTER_CODEC(h265_plugin);
-        REGISTER_CODEC(av1_plugin);
-        REGISTER_CODEC(jpeg_plugin);
-        REGISTER_CODEC(aac_plugin);
-        REGISTER_CODEC(opus_plugin);
-        REGISTER_CODEC(g711a_plugin)
-        REGISTER_CODEC(g711u_plugin);
-        REGISTER_CODEC(l16_plugin);
-        REGISTER_CODEC(mp3_plugin);
-        REGISTER_CODEC(mp2v_plugin);
-        REGISTER_CODEC(mp2a_plugin);
+        for (auto plugin : getPendingCodecPlugins()) {
+            Factory::registerPlugin(*plugin);
+        }
         return getCodecPlugins();
     }();
     auto it = plugins.find((int)codec);
