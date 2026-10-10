@@ -19,26 +19,40 @@ using namespace toolkit;
 
 namespace mediakit {
 
-static std::unordered_map<int, const CodecPlugin *> s_plugins;
+// 函数内静态对象，避免跨编译单元的静态初始化顺序问题  [AUTO-TRANSLATED:6f0a3e4b]
+// Function-local static object to avoid static initialization order issues across translation units
+static std::unordered_map<int, const CodecPlugin *> &getCodecPlugins() {
+    static std::unordered_map<int, const CodecPlugin *> plugins;
+    return plugins;
+}
 
-REGISTER_CODEC(vp8_plugin);
-REGISTER_CODEC(vp9_plugin);
-REGISTER_CODEC(h264_plugin);
-REGISTER_CODEC(h265_plugin);
-REGISTER_CODEC(av1_plugin);
-REGISTER_CODEC(jpeg_plugin);
-REGISTER_CODEC(aac_plugin);
-REGISTER_CODEC(opus_plugin);
-REGISTER_CODEC(g711a_plugin)
-REGISTER_CODEC(g711u_plugin);
-REGISTER_CODEC(l16_plugin);
-REGISTER_CODEC(mp3_plugin);
-REGISTER_CODEC(mp2v_plugin);
-REGISTER_CODEC(mp2a_plugin);
+// 首次调用时懒加载并注册所有编解码插件，之后直接查表，无需在各处重复调用  [AUTO-TRANSLATED:2a1f9d17]
+// Lazily register all codec plugins on first call, then just look up the table
+static const CodecPlugin *getCodecPlugin(CodecId codec) {
+    static const std::unordered_map<int, const CodecPlugin *> &plugins = []() -> const std::unordered_map<int, const CodecPlugin *> & {
+        REGISTER_CODEC(vp8_plugin);
+        REGISTER_CODEC(vp9_plugin);
+        REGISTER_CODEC(h264_plugin);
+        REGISTER_CODEC(h265_plugin);
+        REGISTER_CODEC(av1_plugin);
+        REGISTER_CODEC(jpeg_plugin);
+        REGISTER_CODEC(aac_plugin);
+        REGISTER_CODEC(opus_plugin);
+        REGISTER_CODEC(g711a_plugin)
+        REGISTER_CODEC(g711u_plugin);
+        REGISTER_CODEC(l16_plugin);
+        REGISTER_CODEC(mp3_plugin);
+        REGISTER_CODEC(mp2v_plugin);
+        REGISTER_CODEC(mp2a_plugin);
+        return getCodecPlugins();
+    }();
+    auto it = plugins.find((int)codec);
+    return it == plugins.end() ? nullptr : it->second;
+}
 
 void Factory::registerPlugin(const CodecPlugin &plugin) {
     InfoL << "Load codec: " << getCodecName(plugin.getCodec());
-    s_plugins[(int)(plugin.getCodec())] = &plugin;
+    getCodecPlugins()[(int)(plugin.getCodec())] = &plugin;
 }
 
 Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
@@ -48,11 +62,11 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
         // Get the encoding type, sampling rate, and other information based on the traditional payload type
         codec = RtpPayload::getCodecId(track->_pt);
     }
-    auto it = s_plugins.find(codec);
-    if (it == s_plugins.end()) {
+    auto plugin = getCodecPlugin(codec);
+    if (!plugin) {
         return getTrackByCodecId(codec, track->_samplerate, track->_channel);
     }
-    return it->second->getTrackBySdp(track);
+    return plugin->getTrackBySdp(track);
 }
 
 Track::Ptr Factory::getTrackByAbstractTrack(const Track::Ptr &track) {
@@ -65,21 +79,21 @@ Track::Ptr Factory::getTrackByAbstractTrack(const Track::Ptr &track) {
 }
 
 RtpCodec::Ptr Factory::getRtpEncoderByCodecId(CodecId codec, uint8_t pt) {
-    auto it = s_plugins.find(codec);
-    if (it == s_plugins.end()) {
+    auto plugin = getCodecPlugin(codec);
+    if (!plugin) {
         WarnL << "Unsupported codec: " << getCodecName(codec) << ", use CommonRtpEncoder";
         return std::make_shared<CommonRtpEncoder>();
     }
-    return it->second->getRtpEncoderByCodecId(pt);
+    return plugin->getRtpEncoderByCodecId(pt);
 }
 
 RtpCodec::Ptr Factory::getRtpDecoderByCodecId(CodecId codec) {
-    auto it = s_plugins.find(codec);
-    if (it == s_plugins.end()) {
+    auto plugin = getCodecPlugin(codec);
+    if (!plugin) {
         WarnL << "Unsupported codec: " << getCodecName(codec) << ", use CommonRtpDecoder";
         return std::make_shared<CommonRtpDecoder>(codec, 10 * 1024);
     }
-    return it->second->getRtpDecoderByCodecId();
+    return plugin->getRtpDecoderByCodecId();
 }
 
 // ///////////////////////////rtmp相关///////////////////////////////////////////  [AUTO-TRANSLATED:da9645df]
@@ -118,8 +132,8 @@ static CodecId getVideoCodecIdByAmf(const AMFValue &val) {
 }
 
 Track::Ptr Factory::getTrackByCodecId(CodecId codec, int sample_rate, int channels, int sample_bit) {
-    auto it = s_plugins.find(codec);
-    if (it == s_plugins.end()) {
+    auto plugin = getCodecPlugin(codec);
+    if (!plugin) {
         auto type = mediakit::getTrackType(codec);
         switch (type) {
             case TrackAudio: {
@@ -133,7 +147,7 @@ Track::Ptr Factory::getTrackByCodecId(CodecId codec, int sample_rate, int channe
             default: WarnL << "Unsupported codec: " << getCodecName(codec); return nullptr;
         }
     }
-    return it->second->getTrackByCodecId(sample_rate, channels, sample_bit);
+    return plugin->getTrackByCodecId(sample_rate, channels, sample_bit);
 }
 
 Track::Ptr Factory::getVideoTrackByAmf(const AMFValue &amf) {
@@ -179,22 +193,22 @@ Track::Ptr Factory::getAudioTrackByAmf(const AMFValue &amf, int sample_rate, int
 }
 
 RtmpCodec::Ptr Factory::getRtmpDecoderByTrack(const Track::Ptr &track) {
-    auto it = s_plugins.find(track->getCodecId());
-    if (it == s_plugins.end()) {
+    auto plugin = getCodecPlugin(track->getCodecId());
+    if (!plugin) {
         WarnL << "Unsupported codec: " << track->getCodecName() << ", use CommonRtmpDecoder";
         return std::make_shared<CommonRtmpDecoder>(track);
     }
-    return it->second->getRtmpDecoderByTrack(track);
+    return plugin->getRtmpDecoderByTrack(track);
 }
 
 RtmpCodec::Ptr Factory::getRtmpEncoderByTrack(const Track::Ptr &track) {
-    auto it = s_plugins.find(track->getCodecId());
-    if (it == s_plugins.end()) {
+    auto plugin = getCodecPlugin(track->getCodecId());
+    if (!plugin) {
         auto amf = Factory::getAmfByCodecId(track->getCodecId());
         WarnL << "Unsupported codec: " << track->getCodecName() << (amf ? ", use CommonRtmpEncoder" : "");
         return amf ? std::make_shared<CommonRtmpEncoder>(track) : nullptr;
     }
-    return it->second->getRtmpEncoderByTrack(track);
+    return plugin->getRtmpEncoderByTrack(track);
 }
 
 AMFValue Factory::getAmfByCodecId(CodecId codecId) {
@@ -216,13 +230,13 @@ AMFValue Factory::getAmfByCodecId(CodecId codecId) {
 }
 
 Frame::Ptr Factory::getFrameFromPtr(CodecId codec, const char *data, size_t bytes, uint64_t dts, uint64_t pts) {
-    auto it = s_plugins.find(codec);
-    if (it == s_plugins.end()) {
+    auto plugin = getCodecPlugin(codec);
+    if (!plugin) {
         // 创建不支持codec的frame  [AUTO-TRANSLATED:00936c6c]
         // Create a frame that does not support the codec
         return std::make_shared<FrameFromPtr>(codec, (char *)data, bytes, dts, pts);
     }
-    return it->second->getFrameFromPtr(data, bytes, dts, pts);
+    return plugin->getFrameFromPtr(data, bytes, dts, pts);
 }
 
 Frame::Ptr Factory::getFrameFromBuffer(CodecId codec, Buffer::Ptr data, uint64_t dts, uint64_t pts) {

@@ -1661,7 +1661,13 @@ void WebRtcPluginManager::setListener(Listener cb) {
     _listener = std::move(cb);
 }
 
+// 插件注册改为首次协商时懒加载，避免静态初始化顺序问题  [AUTO-TRANSLATED:1c7b6f2c]
+// Plugin registration is deferred to the first negotiation to avoid static initialization order issues
+static void registerWebrtcPluginOnce();
+
 void WebRtcPluginManager::negotiateSdp(SocketHelper& sender, const string &type, const WebRtcArgs &args, const onCreateWebRtc &cb_in) {
+    registerWebrtcPluginOnce();
+
     onCreateWebRtc cb;
     lock_guard<mutex> lck(_mtx_creator);
     if (_listener) {
@@ -1851,20 +1857,22 @@ float WebRtcTransport::getTimeOutSec() {
     return (float)timeout;
 }
 
-static onceToken s_rtc_auto_register([]() {
+static void registerWebrtcPluginOnce() {
+    static onceToken s_rtc_auto_register([]() {
 #if !defined (NDEBUG)
-    // debug模式才开启echo插件  [AUTO-TRANSLATED:48fcb116]
-    // Enable echo plugin only in debug mode
-    WebRtcPluginManager::Instance().registerPlugin("echo", echo_plugin);
+        // debug模式才开启echo插件  [AUTO-TRANSLATED:48fcb116]
+        // Enable echo plugin only in debug mode
+        WebRtcPluginManager::Instance().registerPlugin("echo", echo_plugin);
 #endif
-    WebRtcPluginManager::Instance().registerPlugin("push", push_plugin<WebRtcPusher>);
-    WebRtcPluginManager::Instance().registerPlugin("play", play_plugin<WebRtcPlayer>);
-    WebRtcPluginManager::Instance().registerPlugin("talk", play_plugin<WebRtcTalk>);
+        WebRtcPluginManager::Instance().registerPlugin("push", push_plugin<WebRtcPusher>);
+        WebRtcPluginManager::Instance().registerPlugin("play", play_plugin<WebRtcPlayer>);
+        WebRtcPluginManager::Instance().registerPlugin("talk", play_plugin<WebRtcTalk>);
 
-    WebRtcPluginManager::Instance().setListener([](SocketHelper& sender, const std::string &type, const WebRtcArgs &args, const WebRtcInterface &rtc) {
-        setWebRtcArgs(args, const_cast<WebRtcInterface&>(rtc));
+        WebRtcPluginManager::Instance().setListener([](SocketHelper& sender, const std::string &type, const WebRtcArgs &args, const WebRtcInterface &rtc) {
+            setWebRtcArgs(args, const_cast<WebRtcInterface&>(rtc));
+        });
     });
-});
+}
 
 void WebRtcTransport::onIceTransportRecvData(const toolkit::Buffer::Ptr& buffer, const IceTransport::Pair::Ptr& pair) {
     return inputSockData(buffer->data(), buffer->size(), pair);
