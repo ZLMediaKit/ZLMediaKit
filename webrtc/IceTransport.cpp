@@ -1214,6 +1214,8 @@ IceAgent::IceAgent(Listener* listener, Implementation implementation, Role role,
 : IceTransport(listener, std::move(ufrag), std::move(password), std::move(poller)), _implementation(implementation) ,_role(role) {
     DebugL;
     _tiebreaker = makeRandNum();
+    _request_handlers.emplace(std::make_pair(StunPacket::Class::INDICATION, StunPacket::Method::DATA),
+                              std::bind(&IceAgent::handleDataIndication, this, placeholders::_1, placeholders::_2));
     // 创建定时器，每分钟检查一次权限和通道绑定是否需要刷新
     _refresh_timer = std::make_shared<Timer>(60.0f, [this]() {
         refreshPermissions();
@@ -1455,13 +1457,6 @@ void IceAgent::sendChannelBindRequest(const Pair::Ptr& pair, uint16_t channel_nu
 
     auto handler = std::bind(&IceAgent::handleChannelBindResponse, this, placeholders::_1, placeholders::_2, channel_number, peer_addr);
     sendRequest(packet, pair, std::move(handler));
-}
-
-void IceAgent::processRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair) {
-    static toolkit::onceToken token([this]() {
-        _request_handlers.emplace(std::make_pair(StunPacket::Class::INDICATION, StunPacket::Method::DATA), std::bind(&IceAgent::handleDataIndication, this, placeholders::_1, placeholders::_2));
-    });
-    return IceTransport::processRequest(packet, pair);
 }
 
 void IceAgent::handleBindingRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair) {

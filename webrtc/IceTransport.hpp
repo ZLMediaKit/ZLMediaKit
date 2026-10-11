@@ -592,8 +592,6 @@ protected:
     void sendCreatePermissionRequest(const Pair::Ptr& pair, const sockaddr_storage& peer_addr);
     void sendChannelBindRequest(const Pair::Ptr& pair, uint16_t channel_number, const sockaddr_storage& peer_addr);
 
-    void processRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair) override;
-
     void handleBindingRequest(const StunPacket::Ptr& packet, const Pair::Ptr& pair) override;
     void handleGatheringCandidateResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair);
     void handleConnectivityCheckResponse(const StunPacket::Ptr& packet, const Pair::Ptr& pair, CandidateTuple& candidate);
