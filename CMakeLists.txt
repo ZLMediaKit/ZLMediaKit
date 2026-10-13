@@ -223,12 +223,6 @@ elseif(WIN32)
   endif()
 endif()
 
-if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
-  if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "arm64")
-    include_directories(SYSTEM "/opt/homebrew/include")
-  endif()
-endif()
-
 # mediakit 以及各个 runtime 依赖
 # mediakit and various runtime dependencies
 update_cached(MK_LINK_LIBRARIES "")
@@ -441,7 +435,9 @@ endif()
 find_package(OpenSSL QUIET)
 if(OPENSSL_FOUND AND ENABLE_OPENSSL)
   message(STATUS "found library: ${OPENSSL_LIBRARIES}, ENABLE_OPENSSL defined")
-  include_directories(${OPENSSL_INCLUDE_DIR})
+  # BEFORE: 保证 openssl 头文件与实际链接的 openssl 库来自同一套安装(优先于 homebrew 的 include),
+  # 否则会出现头文件一套、链接库另一套导致的编译错误/运行期不一致。
+  include_directories(BEFORE SYSTEM ${OPENSSL_INCLUDE_DIR})
   update_cached_list(MK_COMPILE_DEFINITIONS ENABLE_OPENSSL)
   update_cached_list(MK_LINK_LIBRARIES ${OPENSSL_LIBRARIES})
   if(CMAKE_SYSTEM_NAME MATCHES "Linux" AND OPENSSL_USE_STATIC_LIBS)
@@ -544,6 +540,15 @@ if(MSVC AND ENABLE_MSVC_MT)
 endif()
 
 ##############################################################################
+
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
+  if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "arm64")
+    # 此处仅作为兜底: 让 homebrew 安装的第三方库头文件也能被找到。
+    # 必须放在所有 find_package 之后, 否则 homebrew 的头文件会覆盖 vcpkg/pkg-config 找到的同名库头文件,
+    # 导致头文件与实际链接的库版本不一致(例如 homebrew 的 openssl 头文件 vs vcpkg 的 openssl 库)。
+    include_directories(SYSTEM "/opt/homebrew/include")
+  endif()
+endif()
 
 # for version.h
 include_directories(${CMAKE_CURRENT_BINARY_DIR})

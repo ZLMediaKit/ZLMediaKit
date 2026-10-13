@@ -244,7 +244,9 @@ namespace RTC
         }
 
         // Set certificate fields.
-        certName = X509_get_subject_name(certificate);
+        // OpenSSL 3.6+ 声明为 `const X509_NAME *X509_get_subject_name(const X509 *)`，
+        // 旧版本返回 `X509_NAME *`；用 const_cast 兼容两种签名（certificate 非 const，去 const 是安全的）。
+        certName = const_cast<X509_NAME*>(X509_get_subject_name(certificate));
 
         if (!certName)
         {
