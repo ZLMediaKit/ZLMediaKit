@@ -9,6 +9,7 @@
  */
 
 #include "WebRtcPlayer.h"
+#include <stdexcept>
 
 #include "Common/config.h"
 #include "Extension/Factory.h"
@@ -326,7 +327,14 @@ void WebRtcPlayer::sendConfigFrames(const RtpPacket::Ptr &packet) {
 
     auto seq = packet->getSeq() - frames.size();
     for (const auto &frame : frames) {
-        auto rtp = encoder->getRtpInfo().makeRtp(TrackVideo, frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize(), false, 0);
+        RtpPacket::Ptr rtp;
+        try {
+            rtp = encoder->getRtpInfo().makeRtp(TrackVideo, frame->data() + frame->prefixSize(), frame->size() - frame->prefixSize(), false, 0);
+        } catch (const std::length_error &ex) {
+            WarnL << "Skipping oversized WebRTC config frame: " << ex.what();
+            ++seq;
+            continue;
+        }
         auto header = rtp->getHeader();
         header->seq = htons(seq++);
         header->stamp = htonl(packet->getStamp());
