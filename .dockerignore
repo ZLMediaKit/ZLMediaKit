@@ -1,0 +1,7 @@
+**
+!Dockerfile
+!conf/
+!conf/config.ini
+!docker/
+!docker/guardia/
+!docker/guardia/entrypoint.sh
