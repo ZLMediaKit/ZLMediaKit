@@ -16,7 +16,7 @@ namespace mediakit{
 
 RtpPacket::Ptr RtpInfo::makeRtp(TrackType type, const void* data, size_t len, bool mark, uint64_t stamp) {
     // Validate before addition, allocation or header writes, including data == nullptr.
-    if (len > std::numeric_limits<uint16_t>::max() - RtpPacket::kRtpHeaderSize) {
+    if (len > (std::numeric_limits<uint16_t>::max)() - RtpPacket::kRtpHeaderSize) {
         throw std::length_error("RTP payload exceeds the RTSP interleaved length limit");
     }
     uint16_t payload_len = (uint16_t) (len + RtpPacket::kRtpHeaderSize);
