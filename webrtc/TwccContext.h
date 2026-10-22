@@ -30,6 +30,8 @@ public:
 
     void onRtp(uint32_t ssrc, uint16_t twcc_ext_seq, uint64_t stamp_ms);
     void setOnSendTwccCB(onSendTwccCB cb);
+    // Configure before receiving RTP. Zero/disabled retains the legacy packet-driven behavior.
+    void setPeriodicFeedback(bool enabled) { _periodic_feedback = enabled; }
     // Send pending arrivals without waiting for another RTP packet. Empty batches are ignored.
     void flushPending();
 
@@ -38,12 +40,20 @@ private:
     bool needSendTwcc() const;
     int checkSeqStatus(uint16_t twcc_ext_seq) const;
     void clearStatus();
+    void onPeriodicRtp(uint32_t ssrc, uint16_t seq, uint64_t stamp_ms);
+    void sendPeriodicTwcc(uint32_t ssrc);
+    void sendPeriodicRange(uint32_t ssrc, int64_t first, int64_t last);
 
 private:
     uint32_t _last_ssrc = 0;
     uint64_t _min_stamp = 0;
     uint64_t _max_stamp;
-    std::map<uint32_t /*twcc_ext_seq*/, uint64_t/*recv time in ms*/> _rtp_recv_status;
+    std::map<int64_t /*raw or unwrapped twcc_ext_seq*/, uint64_t/*recv time in ms*/> _rtp_recv_status;
+    bool _periodic_feedback = false;
+    bool _have_extended_seq = false;
+    bool _have_feedback_seq = false;
+    int64_t _max_extended_seq = 0;
+    int64_t _next_feedback_seq = 0;
     uint8_t _twcc_pkt_count = 0;
     onSendTwccCB _cb;
 };

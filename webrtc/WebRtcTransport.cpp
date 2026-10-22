@@ -854,6 +854,7 @@ void WebRtcTransportImp::onCreate() {
 
     _twcc_ctx.setOnSendTwccCB([this](uint32_t ssrc, string fci) { onSendTwcc(ssrc, fci); });
     const int interval_ms = mINI::Instance()[Rtc::kTwccIntervalMS];
+    _twcc_ctx.setPeriodicFeedback(interval_ms > 0);
     if (interval_ms > 0) {
         _twcc_flush_timer = std::make_shared<Timer>(interval_ms / 1000.0f, [weak_self]() {
             auto self = weak_self.lock();

@@ -10,6 +10,7 @@
 
 #include "TwccContext.h"
 #include "Rtcp/RtcpFCI.h"
+#include <algorithm>
 
 namespace mediakit {
 
@@ -26,6 +27,10 @@ void TwccContext::flushPending() {
 }
 
 void TwccContext::onRtp(uint32_t ssrc, uint16_t twcc_ext_seq, uint64_t stamp_ms) {
+    if (_periodic_feedback) {
+        onPeriodicRtp(ssrc, twcc_ext_seq, stamp_ms);
+        return;
+    }
     switch ((ExtSeqStatus) checkSeqStatus(twcc_ext_seq)) {
         case ExtSeqStatus::jumped: /*seq异常,过滤掉*/ return;
         case ExtSeqStatus::looped: /*回环，触发发送twcc rtcp*/ onSendTwcc(ssrc); break;
@@ -95,6 +100,10 @@ int TwccContext::checkSeqStatus(uint16_t twcc_ext_seq) const {
 }
 
 void TwccContext::onSendTwcc(uint32_t ssrc) {
+    if (_periodic_feedback) {
+        sendPeriodicTwcc(ssrc);
+        return;
+    }
     auto max = _rtp_recv_status.rbegin()->first;
     auto begin = _rtp_recv_status.begin();
     auto min = begin->first;
@@ -127,6 +136,88 @@ void TwccContext::onSendTwcc(uint32_t ssrc) {
         _cb(ssrc, std::move(fci));
     }
     clearStatus();
+}
+
+void TwccContext::onPeriodicRtp(uint32_t ssrc, uint16_t seq, uint64_t stamp_ms) {
+    int64_t extended_seq = seq;
+    if (_have_extended_seq) {
+        auto delta = int32_t(seq) - int32_t(uint16_t(_max_extended_seq));
+        if (delta > 0x7FFF) {
+            delta -= 0x10000;
+        } else if (delta < -0x8000) {
+            delta += 0x10000;
+        }
+        extended_seq = _max_extended_seq + delta;
+    } else {
+        _have_extended_seq = true;
+        _max_extended_seq = extended_seq;
+    }
+    _max_extended_seq = std::max(_max_extended_seq, extended_seq);
+    if (!_rtp_recv_status.emplace(extended_seq, stamp_ms).second) {
+        return;
+    }
+    _last_ssrc = ssrc;
+    _max_stamp = stamp_ms;
+    if (!_min_stamp) {
+        _min_stamp = stamp_ms;
+    }
+    if (needSendTwcc()) {
+        onSendTwcc(ssrc);
+    }
+}
+
+void TwccContext::sendPeriodicTwcc(uint32_t ssrc) {
+    if (!_have_feedback_seq) {
+        _next_feedback_seq = _rtp_recv_status.begin()->first;
+        _have_feedback_seq = true;
+    }
+    // Report late arrivals as corrections, without inventing losses for previously
+    // acknowledged packets between them or moving the forward feedback cursor back.
+    auto it = _rtp_recv_status.begin();
+    while (it != _rtp_recv_status.end() && it->first < _next_feedback_seq) {
+        const auto first = it->first;
+        auto last = first;
+        for (++it; it != _rtp_recv_status.end() && it->first < _next_feedback_seq && it->first == last + 1; ++it) {
+            last = it->first;
+        }
+        sendPeriodicRange(ssrc, first, last);
+    }
+    const auto last = _rtp_recv_status.rbegin()->first;
+    if (last >= _next_feedback_seq) {
+        sendPeriodicRange(ssrc, _next_feedback_seq, last);
+        _next_feedback_seq = last + 1;
+    }
+    clearStatus();
+}
+
+void TwccContext::sendPeriodicRange(uint32_t ssrc, int64_t first, int64_t last) {
+    while (first <= last) {
+        // FCI_TWCC::create uses a numerically ordered uint16_t map. Split at the
+        // wrap boundary so the wire base/status order and receive deltas stay valid.
+        const auto end = std::min(last, std::min(first + 0xFFFF - uint16_t(first), first + 0xFFFE));
+        auto begin = _rtp_recv_status.lower_bound(first);
+        const auto stamp = begin != _rtp_recv_status.end() && begin->first <= end
+            ? begin->second : _rtp_recv_status.begin()->second;
+        const auto ref_time = stamp >> 6;
+        auto last_time = ref_time << 6;
+        FCI_TWCC::TwccPacketStatus status;
+        for (auto seq = first; seq <= end; ++seq) {
+            int16_t delta = 0;
+            auto symbol = SymbolStatus::not_received;
+            auto arrival = _rtp_recv_status.find(seq);
+            if (arrival != _rtp_recv_status.end()) {
+                delta = int16_t(4 * (int64_t(arrival->second) - int64_t(last_time)));
+                symbol = delta < 0 || delta > 0xFF ? SymbolStatus::large_delta : SymbolStatus::small_delta;
+                last_time = arrival->second;
+            }
+            status.emplace(uint16_t(seq), std::make_pair(symbol, delta));
+        }
+        auto fci = FCI_TWCC::create(ref_time, _twcc_pkt_count++, status);
+        if (_cb) {
+            _cb(ssrc, std::move(fci));
+        }
+        first = end + 1;
+    }
 }
 
 void TwccContext::clearStatus() {
