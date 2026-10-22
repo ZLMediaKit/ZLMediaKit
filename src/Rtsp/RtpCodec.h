@@ -82,6 +82,7 @@ public:
         return _mtu_size - RtpPacket::kRtpHeaderSize;
     }
 
+    // Throws std::length_error if the RTP packet cannot fit the 16-bit RTSP length field.
     RtpPacket::Ptr makeRtp(TrackType type,const void *data, size_t len, bool mark, uint64_t stamp);
 
 private:
