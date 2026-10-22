@@ -85,8 +85,9 @@ const string kMinBitrate = RTC_FIELD "min_bitrate";
 // Data channel setting
 const string kDataChannelEcho = RTC_FIELD "datachannel_echo";
 const string kPreferredTcp = RTC_FIELD "preferred_tcp";
-// Optional periodic receive feedback; zero preserves the existing behavior.
+// Independent receive-side latency options; zero preserves the existing behavior.
 const string kTwccIntervalMS = RTC_FIELD "twccIntervalMS";
+const string kRtpMaxWaitMS = RTC_FIELD "rtpMaxWaitMS";
 
 static onceToken token([]() {
     mINI::Instance()[kTimeOutSec] = 15;
@@ -113,6 +114,7 @@ static onceToken token([]() {
     mINI::Instance()[kIcePwd] = "ZLMediaKit";
     mINI::Instance()[kPreferredTcp] = 0;
     mINI::Instance()[kTwccIntervalMS] = 0;
+    mINI::Instance()[kRtpMaxWaitMS] = 0;
 });
 
 } // namespace Rtc
@@ -1146,6 +1148,10 @@ public:
         GET_CONFIG(uint32_t, nack_maxms, Rtc::kNackMaxMS);
         GET_CONFIG(uint32_t, nack_max_rtp, Rtc::kNackMaxSize);
         RtpTrackImp::setParams(nack_max_rtp, nack_maxms, nack_max_rtp / 2);
+        const int max_wait_ms = mINI::Instance()[Rtc::kRtpMaxWaitMS];
+        if (max_wait_ms > 0) {
+            setMaxWaitMS(max_wait_ms);
+        }
         _nack_ctx.setOnNack([this](const FCI_NACK &nack) { onNack(nack); });
     }
 
@@ -1154,6 +1160,7 @@ public:
         if (!rtp) {
             return rtp;
         }
+        startSortTimer();
         auto seq = rtp->getSeq();
         _nack_ctx.received(seq, is_rtx);
         if (!is_rtx) {
@@ -1179,6 +1186,35 @@ public:
     }
 
 private:
+    void startSortTimer() {
+        if (_sort_timer) {
+            return;
+        }
+        const auto delay_ms = getPendingWaitMS();
+        if (!delay_ms) {
+            return;
+        }
+        weak_ptr<RtpChannel> weak_self = shared_from_this();
+        _sort_timer = _poller->doDelayTask(delay_ms, [weak_self]() -> uint64_t {
+            auto self = weak_self.lock();
+            if (!self) {
+                return 0;
+            }
+            try {
+                self->flushExpiredPackets();
+            } catch (...) {
+                // The poller removes a throwing task. Allow later input to rearm it.
+                self->_sort_timer = nullptr;
+                throw;
+            }
+            const auto next_ms = self->getPendingWaitMS();
+            if (!next_ms) {
+                self->_sort_timer = nullptr;
+            }
+            return next_ms;
+        });
+    }
+
     void starNackTimer() {
         if (_delay_task) {
             return;
@@ -1207,6 +1243,7 @@ private:
     RtcpContextForRecv _rtcp_context;
     EventPoller::Ptr _poller;
     EventPoller::DelayTask::Ptr _delay_task;
+    EventPoller::DelayTask::Ptr _sort_timer;
     function<void(const FCI_NACK &nack)> _on_nack;
 };
 
@@ -1350,7 +1387,13 @@ void WebRtcTransportImp::createRtpChannel(const string &rid, uint32_t ssrc, Medi
     auto &ref = track.rtp_channel[rid];
     weak_ptr<WebRtcTransportImp> weak_self = static_pointer_cast<WebRtcTransportImp>(shared_from_this());
     ref = std::make_shared<RtpChannel>(track.media->type,
-        getPoller(), [&track, this, rid](RtpPacket::Ptr rtp) mutable { onSortedRtp(track, rid, std::move(rtp)); },
+        getPoller(), [&track, weak_self, rid](RtpPacket::Ptr rtp) mutable {
+            // Sorting may now be triggered by the receive deadline timer.
+            auto strong_self = weak_self.lock();
+            if (strong_self) {
+                strong_self->onSortedRtp(track, rid, std::move(rtp));
+            }
+        },
         [&track, weak_self, ssrc](const FCI_NACK &nack) mutable {
             // nack发送可能由定时器异步触发  [AUTO-TRANSLATED:186d6723]
             // Nack sending may be triggered asynchronously by a timer

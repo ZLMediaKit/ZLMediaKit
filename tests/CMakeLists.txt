@@ -40,11 +40,13 @@ find_package(PCAP QUIET)
 # candidates: test_vp9_rtp currently fails and will be added once fixed; test_rtcp_nack and
 # test_webrtc_regression are built only with WebRTC enabled and are not verified yet.
 set(GATING_TESTS
+  test_rtp_reorder_deadline
+  test_twcc_feedback
+  test_webrtc_reorder_timer
   test_av1_rtmp
   test_amf
   test_hls_cookie_data
-  test_sortor
-  test_twcc_feedback)
+  test_sortor)
 
 foreach(TEST_SRC ${TEST_SRC_LIST})
   get_filename_component(TEST_EXE_NAME ${TEST_SRC} NAME_WE)
@@ -58,7 +60,10 @@ foreach(TEST_SRC ${TEST_SRC_LIST})
 
   if(NOT TARGET ZLMediaKit::WebRTC)
     # 暂时过滤掉依赖 WebRTC 的测试模块
-    if("${TEST_EXE_NAME}" MATCHES "test_rtcp_nack|test_webrtc_regression|test_turn_allocation|test_twcc_feedback")
+    if("${TEST_EXE_NAME}" MATCHES "test_rtcp_nack|test_webrtc_regression|test_turn_allocation")
+      continue()
+    endif()
+    if("${TEST_EXE_NAME}" MATCHES "test_twcc_feedback|test_webrtc_reorder_timer")
       continue()
     endif()
   endif()

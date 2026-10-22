@@ -57,6 +57,7 @@ extern const std::string kIcePwd;
 extern const std::string kExternIP;
 extern const std::string kInterfaces;
 extern const std::string kTwccIntervalMS;
+extern const std::string kRtpMaxWaitMS;
 }//namespace RTC
 
 class WebRtcInterface {
