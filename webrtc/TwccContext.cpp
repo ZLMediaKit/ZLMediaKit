@@ -19,6 +19,12 @@ enum class ExtSeqStatus : int {
     jumped,
 };
 
+void TwccContext::flushPending() {
+    if (!_rtp_recv_status.empty()) {
+        onSendTwcc(_last_ssrc);
+    }
+}
+
 void TwccContext::onRtp(uint32_t ssrc, uint16_t twcc_ext_seq, uint64_t stamp_ms) {
     switch ((ExtSeqStatus) checkSeqStatus(twcc_ext_seq)) {
         case ExtSeqStatus::jumped: /*seq异常,过滤掉*/ return;
@@ -33,6 +39,7 @@ void TwccContext::onRtp(uint32_t ssrc, uint16_t twcc_ext_seq, uint64_t stamp_ms)
         return;
     }
 
+    _last_ssrc = ssrc;
     _max_stamp = result.first->second;
     if (!_min_stamp) {
         _min_stamp = _max_stamp;

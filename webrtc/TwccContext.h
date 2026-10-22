@@ -30,6 +30,8 @@ public:
 
     void onRtp(uint32_t ssrc, uint16_t twcc_ext_seq, uint64_t stamp_ms);
     void setOnSendTwccCB(onSendTwccCB cb);
+    // Send pending arrivals without waiting for another RTP packet. Empty batches are ignored.
+    void flushPending();
 
 private:
     void onSendTwcc(uint32_t ssrc);
@@ -38,6 +40,7 @@ private:
     void clearStatus();
 
 private:
+    uint32_t _last_ssrc = 0;
     uint64_t _min_stamp = 0;
     uint64_t _max_stamp;
     std::map<uint32_t /*twcc_ext_seq*/, uint64_t/*recv time in ms*/> _rtp_recv_status;

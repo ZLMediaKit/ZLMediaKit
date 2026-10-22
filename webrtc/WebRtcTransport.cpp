@@ -85,6 +85,8 @@ const string kMinBitrate = RTC_FIELD "min_bitrate";
 // Data channel setting
 const string kDataChannelEcho = RTC_FIELD "datachannel_echo";
 const string kPreferredTcp = RTC_FIELD "preferred_tcp";
+// Optional periodic receive feedback; zero preserves the existing behavior.
+const string kTwccIntervalMS = RTC_FIELD "twccIntervalMS";
 
 static onceToken token([]() {
     mINI::Instance()[kTimeOutSec] = 15;
@@ -110,6 +112,7 @@ static onceToken token([]() {
     mINI::Instance()[kIceUfrag] = "ZLMediaKit";
     mINI::Instance()[kIcePwd] = "ZLMediaKit";
     mINI::Instance()[kPreferredTcp] = 0;
+    mINI::Instance()[kTwccIntervalMS] = 0;
 });
 
 } // namespace Rtc
@@ -848,6 +851,17 @@ void WebRtcTransportImp::onCreate() {
         getPoller());
 
     _twcc_ctx.setOnSendTwccCB([this](uint32_t ssrc, string fci) { onSendTwcc(ssrc, fci); });
+    const int interval_ms = mINI::Instance()[Rtc::kTwccIntervalMS];
+    if (interval_ms > 0) {
+        _twcc_flush_timer = std::make_shared<Timer>(interval_ms / 1000.0f, [weak_self]() {
+            auto self = weak_self.lock();
+            if (!self) {
+                return false;
+            }
+            self->_twcc_ctx.flushPending();
+            return true;
+        }, getPoller());
+    }
 }
 
 void WebRtcTransportImp::OnDtlsTransportApplicationDataReceived(const RTC::DtlsTransport *dtlsTransport, const uint8_t *data, size_t len) {
@@ -868,6 +882,7 @@ WebRtcTransportImp::~WebRtcTransportImp() {
 }
 
 void WebRtcTransportImp::onDestory() {
+    _twcc_flush_timer = nullptr;
     WebRtcTransport::onDestory();
     unregisterSelf();
 }

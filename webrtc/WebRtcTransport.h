@@ -56,6 +56,7 @@ extern const std::string kIceUfrag;
 extern const std::string kIcePwd;
 extern const std::string kExternIP;
 extern const std::string kInterfaces;
+extern const std::string kTwccIntervalMS;
 }//namespace RTC
 
 class WebRtcInterface {
@@ -391,6 +392,7 @@ private:
     // twcc rtcp发送上下文对象  [AUTO-TRANSLATED:aef6476a]
     // twcc rtcp send context object
     TwccContext _twcc_ctx;
+    toolkit::Timer::Ptr _twcc_flush_timer;
     // 根据发送rtp的track类型获取相关信息  [AUTO-TRANSLATED:ff31c272]
     // Get relevant information based on the track type of the sent rtp
     MediaTrack::Ptr _type_to_track[2];
