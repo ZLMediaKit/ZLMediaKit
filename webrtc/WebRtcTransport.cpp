@@ -945,7 +945,7 @@ void WebRtcTransportImp::onStartWebRTC() {
             track->plan_rtp->pt, std::unique_ptr<WrappedMediaTrack>(new WrappedRtpTrack(track, _twcc_ctx, *this)));
         if (track->plan_rtx) {
             // rtx pt --> MediaTrack
-            _pt_to_track.emplace(track->plan_rtx->pt, std::unique_ptr<WrappedMediaTrack>(new WrappedRtxTrack(track)));
+            _pt_to_track.emplace(track->plan_rtx->pt, std::unique_ptr<WrappedMediaTrack>(new WrappedRtxTrack(track, _twcc_ctx)));
         }
         // 记录rtp ext类型与id的关系，方便接收或发送rtp时修改rtp ext id  [AUTO-TRANSLATED:5736bd34]
         // Record the relationship between rtp ext type and id, which is convenient for modifying rtp ext id when receiving or sending rtp
@@ -1417,7 +1417,11 @@ void WrappedRtxTrack::inputRtp(const char *buf, size_t len, uint64_t stamp_ms, R
     // 修改ext id至统一  [AUTO-TRANSLATED:0769b0ec]
     // Modify the ext id to be unified
     string rid;
-    track->rtp_ext_ctx->changeRtpExtId(rtp, len, true, &rid, RtpExtType::transport_cc);
+    auto twcc_ext = track->rtp_ext_ctx->changeRtpExtId(rtp, len, true, &rid, RtpExtType::transport_cc);
+    if (twcc_ext) {
+        // Account for the RTX packet's transport sequence before restoring the original RTP header.
+        _twcc_ctx.onRtp(ntohl(rtp->ssrc), twcc_ext.getTransportCCSeq(), stamp_ms);
+    }
 
     auto &ref = track->rtp_channel[rid];
     if (!ref) {

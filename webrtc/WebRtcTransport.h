@@ -295,8 +295,9 @@ struct WrappedMediaTrack {
 };
 
 struct WrappedRtxTrack: public WrappedMediaTrack {
-    explicit WrappedRtxTrack(MediaTrack::Ptr ptr)
-        : WrappedMediaTrack(std::move(ptr)) {}
+    explicit WrappedRtxTrack(MediaTrack::Ptr ptr, TwccContext &twcc)
+        : WrappedMediaTrack(std::move(ptr)), _twcc_ctx(twcc) {}
+    TwccContext &_twcc_ctx;
     void inputRtp(const char *buf, size_t len, uint64_t stamp_ms, RtpHeader *rtp) override;
 };
 
