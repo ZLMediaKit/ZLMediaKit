@@ -9,6 +9,7 @@
  */
 
 #include "RtspMuxer.h"
+#include <stdexcept>
 #include "Common/config.h"
 #include "Extension/Factory.h"
 
@@ -151,13 +152,22 @@ void RtspMuxer::trySyncTrack() {
 
 bool RtspMuxer::inputFrame(const Frame::Ptr &frame) {
     auto &encoder = _tracks[frame->getIndex()].encoder;
-    return encoder ? encoder->inputFrame(frame) : false;
+    try {
+        return encoder ? encoder->inputFrame(frame) : false;
+    } catch (const std::length_error &ex) {
+        WarnL << "Skipping oversized RTP frame: " << ex.what();
+        return false;
+    }
 }
 
 void RtspMuxer::flush() {
     for (auto &pr : _tracks) {
         if (pr.second.encoder) {
-            pr.second.encoder->flush();
+            try {
+                pr.second.encoder->flush();
+            } catch (const std::length_error &ex) {
+                WarnL << "Skipping oversized buffered RTP frame: " << ex.what();
+            }
         }
     }
 }
