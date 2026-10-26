@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  * This file is part of ZLMediaKit (https://github.com/ZLMediaKit/ZLMediaKit).
  * Use of this source code is governed by the MIT-like license in the root directory.

@@ -152,7 +152,7 @@ void TwccContext::onPeriodicRtp(uint32_t ssrc, uint16_t seq, uint64_t stamp_ms) 
         _have_extended_seq = true;
         _max_extended_seq = extended_seq;
     }
-    _max_extended_seq = std::max(_max_extended_seq, extended_seq);
+    _max_extended_seq = (std::max)(_max_extended_seq, extended_seq);
     if (!_rtp_recv_status.emplace(extended_seq, stamp_ms).second) {
         return;
     }
@@ -194,7 +194,7 @@ void TwccContext::sendPeriodicRange(uint32_t ssrc, int64_t first, int64_t last) 
     while (first <= last) {
         // FCI_TWCC::create uses a numerically ordered uint16_t map. Split at the
         // wrap boundary so the wire base/status order and receive deltas stay valid.
-        const auto end = std::min(last, std::min(first + 0xFFFF - uint16_t(first), first + 0xFFFE));
+        const auto end = (std::min)(last, (std::min)(first + 0xFFFF - uint16_t(first), first + 0xFFFE));
         auto begin = _rtp_recv_status.lower_bound(first);
         const auto stamp = begin != _rtp_recv_status.end() && begin->first <= end
             ? begin->second : _rtp_recv_status.begin()->second;
