@@ -102,8 +102,8 @@ bool MP4Reader::readSample() {
     if (eof && (file_repeat || _file_repeat)) {
         // 需要从头开始看  [AUTO-TRANSLATED:5b563a35]
         // Need to start from the beginning
-        seekTo(0);
-        return true;
+        // seek failed means the source cannot be restarted; stop the timer.
+        return seekTo(0);
     }
 
     return !eof;

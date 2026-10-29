@@ -195,6 +195,7 @@ uint64_t MP4Demuxer::getDurationMS() const {
 /////////////////////////////////////////////////////////////////////////////////
 
 void MultiMP4Demuxer::openMP4(const string &files_string) {
+    closeMP4();
     std::vector<std::string> files;
     if (File::is_dir(files_string)) {
         File::scanDir(files_string, [&](const string &path, bool is_dir) {
@@ -236,14 +237,20 @@ void MultiMP4Demuxer::closeMP4() {
 }
 
 int64_t MultiMP4Demuxer::seekTo(int64_t stamp_ms) {
-    if (stamp_ms >= (int64_t)getDurationMS()) {
+    if (_demuxers.empty() || stamp_ms < 0 || static_cast<uint64_t>(stamp_ms) >= getDurationMS()) {
         return -1;
     }
     _it = std::prev(_demuxers.upper_bound(stamp_ms));
-    return _it->first + _it->second->seekTo(stamp_ms - _it->first);
+    auto ret = _it->second->seekTo(stamp_ms - static_cast<int64_t>(_it->first));
+    return ret < 0 ? -1 : static_cast<int64_t>(_it->first) + ret;
 }
 
 Frame::Ptr MultiMP4Demuxer::readFrame(bool &keyFrame, bool &eof) {
+    if (_it == _demuxers.end()) {
+        keyFrame = false;
+        eof = true;
+        return nullptr;
+    }
     for (;;) {
         auto ret = _it->second->readFrame(keyFrame, eof);
         if (ret) {
@@ -256,7 +263,7 @@ Frame::Ptr MultiMP4Demuxer::readFrame(bool &keyFrame, bool &eof) {
                 it->second->inputFrame(ret);
             }
         }
-        if (eof && _it != _demuxers.end()) {
+        if (eof) {
             // 切换到下一个文件
             if (++_it == _demuxers.end()) {
                 // 已经是最后一个文件了
