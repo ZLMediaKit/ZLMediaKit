@@ -93,17 +93,24 @@ bool MP4Reader::readSample() {
             continue;
         }
         _last_dts = frame->dts();
-        if (_muxer) {
-            _muxer->inputFrame(frame);
-        }
+        inputFrame(frame);
     }
 
     GET_CONFIG(bool, file_repeat, Record::kFileRepeat);
-    if (eof && (file_repeat || _file_repeat)) {
+    if (eof) {
+        DebugL << "MP4 EOF: " << _file_path << ", record.fileRepeat=" << file_repeat
+               << ", session file_repeat=" << _file_repeat;
+        if (file_repeat || _file_repeat) {
         // 需要从头开始看  [AUTO-TRANSLATED:5b563a35]
         // Need to start from the beginning
         // seek failed means the source cannot be restarted; stop the timer.
-        return seekTo(0);
+            _repeat_offset_ms += (std::max)(_demuxer->getDurationMS(), static_cast<uint64_t>(_last_dts) + 1);
+            if (!seekTo(0)) {
+                WarnL << "MP4 repeat seek failed, stopping reader: " << _file_path;
+                return false;
+            }
+            return true;
+        }
     }
 
     return !eof;
@@ -116,11 +123,21 @@ bool MP4Reader::readNextSample() {
     if (!frame) {
         return false;
     }
-    if (_muxer) {
-        _muxer->inputFrame(frame);
-    }
+    inputFrame(frame);
     setCurrentStamp(frame->dts());
     return true;
+}
+void MP4Reader::inputFrame(const Frame::Ptr &frame) {
+    if (!_muxer) {
+        return;
+    }
+    if (!_repeat_offset_ms) {
+        _muxer->inputFrame(frame);
+        return;
+    }
+    auto output = std::make_shared<FrameStamp>(frame);
+    output->setStamp(frame->dts() + _repeat_offset_ms, frame->pts() + _repeat_offset_ms);
+    _muxer->inputFrame(output);
 }
 
 void MP4Reader::stopReadMP4() {
@@ -129,7 +146,12 @@ void MP4Reader::stopReadMP4() {
 
 void MP4Reader::startReadMP4(uint64_t sample_ms, bool ref_self, bool file_repeat) {
     GET_CONFIG(uint32_t, sampleMS, Record::kSampleMS);
+    GET_CONFIG(bool, configured_repeat, Record::kFileRepeat);
     setCurrentStamp(0);
+    _repeat_offset_ms = 0;
+    _file_repeat = file_repeat;
+    DebugL << "Start MP4 reader: " << _file_path << ", record.fileRepeat=" << configured_repeat
+           << ", session file_repeat=" << _file_repeat;
     auto strong_self = shared_from_this();
     if (_muxer) {
         // 一直读到所有track就绪为止  [AUTO-TRANSLATED:410f9ecc]
@@ -161,7 +183,6 @@ void MP4Reader::startReadMP4(uint64_t sample_ms, bool ref_self, bool file_repeat
         }, _poller);
     }
 
-    _file_repeat = file_repeat;
 }
 
 const MultiMP4Demuxer::Ptr &MP4Reader::getDemuxer() const {
@@ -183,7 +204,14 @@ bool MP4Reader::seekTo(MediaSource &sender, uint32_t stamp) {
     // Playback should resume after dragging the progress bar
     pause(sender, false);
     TraceL << getOriginUrl(sender) << ",stamp:" << stamp;
-    return seekTo(stamp);
+    lock_guard<recursive_mutex> lck(_mtx);
+    const auto previous_offset = _repeat_offset_ms;
+    _repeat_offset_ms = 0;
+    if (!seekTo(stamp)) {
+        _repeat_offset_ms = previous_offset;
+        return false;
+    }
+    return true;
 }
 
 bool MP4Reader::pause(MediaSource &sender, bool pause) {
@@ -251,9 +279,7 @@ bool MP4Reader::seekTo(uint32_t stamp_seek) {
         if (keyFrame || frame->keyFrame() || frame->configFrame()) {
             // 定位到key帧  [AUTO-TRANSLATED:0300901d]
             // Locate to the keyframe
-            if (_muxer) {
-                _muxer->inputFrame(frame);
-            }
+            inputFrame(frame);
             // 设置当前时间戳  [AUTO-TRANSLATED:88949974]
             // Set the current timestamp
             setCurrentStamp(frame->dts());

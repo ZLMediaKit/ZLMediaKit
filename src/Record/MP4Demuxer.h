@@ -106,7 +106,7 @@ private:
     toolkit::ResourcePool<toolkit::BufferRaw> _buffer_pool;
 };
 
-class MultiMP4Demuxer : public TrackSource {
+class MultiMP4Demuxer final : public TrackSource {
 public:
     using Ptr = std::shared_ptr<MultiMP4Demuxer>;
 
@@ -152,9 +152,10 @@ public:
     uint64_t getDurationMS() const;
 
 private:
+    uint64_t _duration_ms = 0;
     std::map<int, Track::Ptr> _tracks;
-    std::map<uint64_t, MP4Demuxer::Ptr>::iterator _it;
     std::map<uint64_t, MP4Demuxer::Ptr> _demuxers;
+    std::map<uint64_t, MP4Demuxer::Ptr>::iterator _it = _demuxers.end();
 };
 
 }//namespace mediakit

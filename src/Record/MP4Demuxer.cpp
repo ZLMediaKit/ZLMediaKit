@@ -217,6 +217,7 @@ void MultiMP4Demuxer::openMP4(const string &files_string) {
         duration_ms += demuxer->getDurationMS();
     }
     CHECK(!_demuxers.empty());
+    _duration_ms = duration_ms;
     _it = _demuxers.begin();
     for (auto &track : _it->second->getTracks(false)) {
         auto clone_track(track->clone());
@@ -227,22 +228,28 @@ void MultiMP4Demuxer::openMP4(const string &files_string) {
 }
 
 uint64_t MultiMP4Demuxer::getDurationMS() const {
-    return _demuxers.empty() ? 0 : _demuxers.rbegin()->first + _demuxers.rbegin()->second->getDurationMS();
+    return _duration_ms;
 }
 
 void MultiMP4Demuxer::closeMP4() {
     _demuxers.clear();
     _it = _demuxers.end();
     _tracks.clear();
+    _duration_ms = 0;
 }
 
 int64_t MultiMP4Demuxer::seekTo(int64_t stamp_ms) {
     if (_demuxers.empty() || stamp_ms < 0 || static_cast<uint64_t>(stamp_ms) >= getDurationMS()) {
         return -1;
     }
-    _it = std::prev(_demuxers.upper_bound(stamp_ms));
-    auto ret = _it->second->seekTo(stamp_ms - static_cast<int64_t>(_it->first));
-    return ret < 0 ? -1 : static_cast<int64_t>(_it->first) + ret;
+    auto it = std::prev(_demuxers.upper_bound(stamp_ms));
+    auto ret = it->second->seekTo(stamp_ms - static_cast<int64_t>(it->first));
+    if (ret < 0) {
+        _it = _demuxers.end();
+        return -1;
+    }
+    _it = it;
+    return static_cast<int64_t>(_it->first) + ret;
 }
 
 Frame::Ptr MultiMP4Demuxer::readFrame(bool &keyFrame, bool &eof) {
@@ -271,7 +278,12 @@ Frame::Ptr MultiMP4Demuxer::readFrame(bool &keyFrame, bool &eof) {
                 return nullptr;
             }
             // 下一个文件从头开始播放
-            _it->second->seekTo(0);
+            if (_it->second->seekTo(0) < 0) {
+                WarnL << "Failed to seek to the beginning of the next MP4 at " << _it->first << " ms";
+                _it = _demuxers.end();
+                eof = true;
+                return nullptr;
+            }
             continue;
         }
         return ret;
