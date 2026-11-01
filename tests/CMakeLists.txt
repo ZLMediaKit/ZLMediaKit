@@ -35,16 +35,17 @@ find_package(PCAP QUIET)
 # automatic discovery.
 # 仅收录仓库中确实存在、且已实测可通过的用例。其余候选的现状：
 #   test_vp9_rtp                        当前为失败状态，待单独修复后并入
-#   test_rtcp_nack/test_webrtc_regression  仅在启用 WebRTC 时构建，尚未验证
+#   test_rtcp_nack                      仅在启用 WebRTC 时构建，尚未验证
 # Only cases that exist in the repository and are verified to pass are listed. The remaining
-# candidates: test_vp9_rtp currently fails and will be added once fixed; test_rtcp_nack and
-# test_webrtc_regression are built only with WebRTC enabled and are not verified yet.
+# candidates: test_vp9_rtp currently fails and will be added once fixed; test_rtcp_nack is built
+# only with WebRTC enabled and is not verified yet.
 set(GATING_TESTS
   test_av1_rtmp
   test_amf
   test_hls_cookie_data
   test_sortor
-  test_rtx_twcc)
+  test_rtx_twcc
+  test_webrtc_regression)
 
 foreach(TEST_SRC ${TEST_SRC_LIST})
   get_filename_component(TEST_EXE_NAME ${TEST_SRC} NAME_WE)
