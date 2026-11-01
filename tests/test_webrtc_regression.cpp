@@ -100,12 +100,56 @@ void testDeleteWebrtcLocationQueryRoundTrip() {
            "encoded token should round-trip through query parsing");
 }
 
+// 源流 SDP 中 a=fmtp:<pt> 不带参数(部分摄像机/NVR 的 SDP 如此)时，应视为没有 fmtp 参数，而不是解析失败
+// a=fmtp:<pt> without parameters (as some cameras/NVRs write it) means "no fmtp" rather than a parse error
+void testFmtpWithoutParameters() {
+    // issue #4863 中真实摄像机的 DESCRIBE SDP
+    // The real camera DESCRIBE SDP from issue #4863
+    const string camera_sdp =
+        "v=0\r\n"
+        "o=- 1109162014219182 1109162014219192 IN IP4 127.0.0.1\r\n"
+        "s=Media Presentation\r\n"
+        "c=IN IP4 0.0.0.0\r\n"
+        "t=0 0\r\n"
+        "a=range:npt=now-\r\n"
+        "m=video 0 RTP/AVP 96\r\n"
+        "a=rtpmap:96 H264/90000\r\n"
+        "a=fmtp:96\r\n"
+        "a=control:trackID=1\r\n";
+
+    RtcSession session;
+    session.loadFrom(camera_sdp);
+
+    auto media = session.getMedia(TrackType::TrackVideo);
+    expect(media != nullptr, "video m-line should be parsed");
+    expect(media->plan.size() == 1, "video m-line should have one codec plan");
+    expect(media->plan[0].pt == 96, "payload type should be 96");
+    expect(media->plan[0].codec == "H264", "codec should be H264");
+    expect(media->plan[0].fmtp.empty(), "a=fmtp without parameters should yield an empty fmtp map");
+
+    // 带参数的 fmtp 行为必须保持不变
+    // fmtp with parameters must keep working as before
+    RtcSession with_params;
+    with_params.loadFrom(
+        "v=0\r\no=- 1 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\n"
+        "m=video 0 RTP/AVP 96\r\na=rtpmap:96 H264/90000\r\n"
+        "a=fmtp:96 packetization-mode=1;profile-level-id=420029\r\n");
+
+    auto media2 = with_params.getMedia(TrackType::TrackVideo);
+    expect(media2 != nullptr, "video m-line should be parsed");
+    expect(media2->plan.size() == 1, "video m-line should have one codec plan");
+    expect(media2->plan[0].fmtp.size() == 2, "two fmtp parameters should be kept");
+    expect(media2->plan[0].getFmtp("packetization-mode") == "1", "packetization-mode should be kept");
+    expect(media2->plan[0].getFmtp("profile-level-id") == "420029", "profile-level-id should be kept");
+}
+
 } // namespace
 
 int main() {
     try {
         testBundleOnlyDatachannelAnswer();
         testDeleteWebrtcLocationQueryRoundTrip();
+        testFmtpWithoutParameters();
         cout << "test_webrtc_regression passed" << endl;
         return 0;
     } catch (const exception &ex) {

@@ -589,7 +589,15 @@ string SdpAttrRtcpFb::toString() const {
 
 void SdpAttrFmtp::parse(const string &str) {
     auto pos = str.find(' ');
-    CHECK_SDP(pos != string::npos);
+    // 兼容 a=fmtp:<pt> 不带参数的情况(部分摄像机/NVR 的 SDP 如此)，它等价于没有 fmtp 参数，
+    // 不能按解析失败处理，否则整段 SDP 解析失败，WebRTC 播放会直接返回 400
+    // Compatible with a=fmtp:<pt> without parameters (as some cameras/NVRs write it): it means no
+    // fmtp parameter, and must not fail the whole SDP parsing which breaks WebRTC playback with 400
+    if (pos == string::npos) {
+        CHECK_SDP(!str.empty());
+        pt = atoi(str.data());
+        return;
+    }
     pt = atoi(str.substr(0, pos).data());
     auto vec = split(str.substr(pos + 1), ";");
     for (auto &item : vec) {
