@@ -12,6 +12,7 @@
 #define ZLMEDIAKIT_RTPRECEIVER_H
 
 #include <map>
+#include <algorithm>
 #include <string>
 #include <memory>
 #include "Rtsp/Rtsp.h"
@@ -42,6 +43,10 @@ public:
         _started = false;
         _ticker.resetTime();
         _pkt_sort_cache_map.clear();
+        _packet_arrival_ms.clear();
+        if (_max_wait_ms) {
+            _pkt_drop_cache_map.clear();
+        }
     }
 
     /**
@@ -63,6 +68,7 @@ public:
      * [AUTO-TRANSLATED:0fbf096e]
      */
     void sortPacket(SEQ seq, T packet) {
+        flushExpiredPackets();
         _latest_seq = seq;
         if (!_started) {
             // 记录第一个seq  [AUTO-TRANSLATED:410c831f]
@@ -81,7 +87,12 @@ public:
             return;
         }
 
-        if (seq < _next_seq && !mayLooped(_next_seq, seq)) {
+        // In bounded-wait mode, late packets must not restart an expired sequence window.
+        // A new source must reset the sorter; serial arithmetic also handles sequence wrap.
+        if (_max_wait_ms && static_cast<SEQ>(seq - _next_seq) > (SEQ_MAX >> 1)) {
+            return;
+        }
+        if (!_max_wait_ms && seq < _next_seq && !mayLooped(_next_seq, seq)) {
             // 无回环风险, 缓存seq回退包  [AUTO-TRANSLATED:4200dd1b]
             // No loop risk, cache seq rollback packets
             _pkt_drop_cache_map.emplace(seq, std::move(packet));
@@ -96,7 +107,10 @@ public:
             }
             return;
         }
-        _pkt_sort_cache_map.emplace(seq, std::move(packet));
+        auto inserted = _pkt_sort_cache_map.emplace(seq, std::move(packet));
+        if (_max_wait_ms && inserted.second) {
+            _packet_arrival_ms.emplace(seq, getSortTimeMS());
+        }
 
         if (needForceFlush(seq)) {
             forceFlush(_next_seq);
@@ -107,6 +121,43 @@ public:
         if (!_pkt_sort_cache_map.empty()) {
             forceFlush(_next_seq);
             _pkt_sort_cache_map.clear();
+            _packet_arrival_ms.clear();
+        }
+    }
+
+    // Optional bound on the age of buffered packets. Zero keeps the legacy sorter.
+    // Call from the same thread as sortPacket(), including when scheduling a timeout.
+    void setMaxWaitMS(size_t max_wait_ms) {
+        _max_wait_ms = max_wait_ms;
+        _packet_arrival_ms.clear();
+        if (_max_wait_ms) {
+            _pkt_drop_cache_map.clear();
+            const auto now = getSortTimeMS();
+            for (const auto &entry : _pkt_sort_cache_map) {
+                _packet_arrival_ms.emplace(entry.first, now);
+            }
+        }
+    }
+
+    bool packetDeadlineEnabled() const { return _max_wait_ms != 0; }
+
+    // Zero means there is no deadline. Expired entries return 1 to schedule promptly.
+    uint64_t getPendingWaitMS() const {
+        if (!_max_wait_ms || _packet_arrival_ms.empty()) {
+            return 0;
+        }
+        const auto elapsed = getSortTimeMS() - oldestArrivalMS();
+        return elapsed >= _max_wait_ms ? 1 : _max_wait_ms - elapsed;
+    }
+
+    void flushExpiredPackets() {
+        if (!_max_wait_ms) {
+            return;
+        }
+        const auto now = getSortTimeMS();
+        while (!_packet_arrival_ms.empty() && now - oldestArrivalMS() >= _max_wait_ms) {
+            // Skip only missing sequences, then deliver available packets in order.
+            forceFlush(_next_seq);
         }
     }
 
@@ -116,7 +167,18 @@ public:
         _max_distance = max_distance;
     }
 
+protected:
+    virtual uint64_t getSortTimeMS() const { return toolkit::getCurrentMillisecond(); }
+
 private:
+    uint64_t oldestArrivalMS() const {
+        auto oldest = std::min_element(_packet_arrival_ms.begin(), _packet_arrival_ms.end(),
+            [](const std::pair<const SEQ, uint64_t> &a, const std::pair<const SEQ, uint64_t> &b) {
+                return a.second < b.second;
+            });
+        return oldest->second;
+    }
+
     SEQ distance(SEQ seq) {
         SEQ ret;
         if (seq > _next_seq) {
@@ -156,6 +218,7 @@ private:
         // Delete packets that are too far away from next_seq
         for (auto it = _pkt_sort_cache_map.begin(); it != _pkt_sort_cache_map.end();) {
             if (distance(it->first) > _max_distance) {
+                _packet_arrival_ms.erase(it->first);
                 it = _pkt_sort_cache_map.erase(it);
             } else {
                 ++it;
@@ -173,6 +236,9 @@ private:
         if (!mayLooped(_next_seq, _next_seq)) {
             // 无回环风险, 清空 < next_seq的值  [AUTO-TRANSLATED:10c77bf9]
             // No loop risk, clear values less than next_seq
+            for (auto stale = _pkt_sort_cache_map.begin(); stale != it; ++stale) {
+                _packet_arrival_ms.erase(stale->first);
+            }
             it = _pkt_sort_cache_map.erase(_pkt_sort_cache_map.begin(), it);
         }
 
@@ -188,6 +254,7 @@ private:
     }
 
     iterator popIterator(iterator it) {
+        _packet_arrival_ms.erase(it->first);
         try {
             output(it->first, std::move(it->second));
             return _pkt_sort_cache_map.erase(it);
@@ -212,6 +279,8 @@ private:
 
 private:
     bool _started = false;
+    size_t _max_wait_ms = 0;
+    std::map<SEQ, uint64_t> _packet_arrival_ms;
     // 排序缓存最大保存数据长度，单位毫秒  [AUTO-TRANSLATED:ed217b1c]
     // Maximum data length of sorting cache, unit: milliseconds
     size_t _max_buffer_ms = 1000;
