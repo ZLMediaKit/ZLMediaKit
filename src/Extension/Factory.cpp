@@ -66,6 +66,7 @@ REGISTER_CODEC(l16_plugin);
 REGISTER_CODEC(mp3_plugin);
 REGISTER_CODEC(mp2v_plugin);
 REGISTER_CODEC(mp2a_plugin);
+REGISTER_CODEC(mp1v_plugin);
 
 // 首次调用时懒加载并注册所有编解码插件，之后直接查表，无需在各处重复调用  [AUTO-TRANSLATED:2a1f9d17]
 // Lazily register all codec plugins on first call, then just look up the table
