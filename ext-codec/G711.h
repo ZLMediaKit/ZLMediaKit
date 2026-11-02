@@ -22,7 +22,12 @@ namespace mediakit{
 class G711Track : public AudioTrackImp{
 public:
     using Ptr = std::shared_ptr<G711Track>;
-    G711Track(CodecId codecId, int sample_rate, int channels, int sample_bit) : AudioTrackImp(codecId, 8000, 1, 16) {}
+    // 透传入参（与 L16/MP3 一致）；未给出时回落 RFC 默认 8000/1/16。
+    G711Track(CodecId codecId, int sample_rate, int channels, int sample_bit)
+        : AudioTrackImp(codecId,
+                        sample_rate > 0 ? sample_rate : 8000,
+                        channels > 0 ? channels : 1,
+                        sample_bit > 0 ? sample_bit : 16) {}
 
     toolkit::Buffer::Ptr getExtraData() const override;
     void setExtraData(const uint8_t *data, size_t size) override;

@@ -24,7 +24,7 @@ Buffer::Ptr G711Track::getExtraData() const {
     wav.wFormatTag = getCodecId() == CodecG711A ? WAVE_FORMAT_ALAW : WAVE_FORMAT_MULAW;
     wav.nChannels = getAudioChannel();
     wav.nSamplesPerSec = getAudioSampleRate();
-    wav.nAvgBytesPerSec = 8000;
+    wav.nAvgBytesPerSec = getAudioSampleRate() * getAudioChannel();
     wav.nBlockAlign = 1;
     wav.wBitsPerSample = 8;
     auto buff = BufferRaw::create(18 + wav.cbSize);
@@ -55,7 +55,7 @@ CodecId getCodecU() {
 }
 
 Track::Ptr getTrackByCodecId_l(CodecId codec, int sample_rate, int channels, int sample_bit) {
-    return std::make_shared<G711Track>(codec, sample_rate, 1, 16);
+    return std::make_shared<G711Track>(codec, sample_rate, channels, sample_bit);
 }
 
 Track::Ptr getTrackByCodecIdA(int sample_rate, int channels, int sample_bit) {
