@@ -10,6 +10,10 @@
 
 #include "macros.h"
 
+#include <cstring>
+#include <mutex>
+#include <string>
+
 using namespace toolkit;
 
 #if defined(ENABLE_VERSION)
@@ -30,9 +34,30 @@ namespace mediakit {
  * [AUTO-TRANSLATED:f214f734]
  */
 #if !defined(ENABLE_VERSION)
-const char kServerName[] =  "ZLMediaKit-9.0(build in " __DATE__ " " __TIME__ ")";
+static const char kServerNameDefault[] = "ZLMediaKit-9.0(build in " __DATE__ " " __TIME__ ")";
 #else
-const char kServerName[] = "ZLMediaKit(git hash:" COMMIT_HASH "/" COMMIT_TIME ",branch:" BRANCH_NAME ",build time:" BUILD_TIME ")";
+static const char kServerNameDefault[] =
+    "ZLMediaKit(git hash:" COMMIT_HASH "/" COMMIT_TIME ",branch:" BRANCH_NAME ",build time:" BUILD_TIME ")";
 #endif
 
-}//namespace mediakit
+static std::mutex s_server_name_mtx;
+static std::string s_server_name_storage(kServerNameDefault);
+const char *kServerName = kServerNameDefault;
+
+void setServerName(const char *name)
+{
+    if (!name || !name[0]) {
+        return;
+    }
+    std::lock_guard<std::mutex> lock(s_server_name_mtx);
+    s_server_name_storage = name;
+    kServerName           = s_server_name_storage.c_str();
+}
+
+const char *getServerName()
+{
+    std::lock_guard<std::mutex> lock(s_server_name_mtx);
+    return kServerName;
+}
+
+} // namespace mediakit

@@ -71,7 +71,7 @@ void HttpRequester::setOnResult(const HttpRequesterResult &onResult) {
 
 #if !defined(DISABLE_REPORT)
 static constexpr auto s_report_url = "http://report.zlmediakit.com:8888/index/api/report";
-extern const char kServerName[];
+extern const char *kServerName;
 
 static std::string httpBody() {
     HttpArgs args;

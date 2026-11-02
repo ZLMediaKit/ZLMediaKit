@@ -75,7 +75,10 @@
 
 namespace mediakit {
 
-extern const char kServerName[];
+// 默认编译期字符串；可通过 setServerName / mk_set_server_name 在 env_init 后覆盖（SDP s=、Server 头等）
+extern const char *kServerName;
+void setServerName(const char *name);
+const char *getServerName();
 
 template <typename... ARGS>
 void Assert_ThrowCpp(int failed, const char *exp, const char *func, const char *file, int line, ARGS &&...args) {

@@ -192,6 +192,17 @@ API_EXPORT void API_CALL mk_set_option(const char *key, const char *val);
  */
 API_EXPORT const char * API_CALL mk_get_option(const char *key);
 
+/**
+ * 设置服务端展示名（RTSP SDP s=、HTTP/RTSP Server 头、User-Agent 等）
+ * 建议在 mk_env_init 之后、创建 media / 启听端口之前调用。
+ * @param name 非空字符串；空指针或空串忽略
+ */
+API_EXPORT void API_CALL mk_set_server_name(const char *name);
+
+/**
+ * 获取当前服务端展示名
+ */
+API_EXPORT const char *API_CALL mk_get_server_name();
 
 /**
  * 创建http[s]服务器

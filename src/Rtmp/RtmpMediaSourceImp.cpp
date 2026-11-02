@@ -7,7 +7,7 @@ void RtmpMediaSource::setMetaData(const AMFValue &metadata) {
     {
         std::lock_guard<std::recursive_mutex> lock(_mtx);
         _metadata = metadata;
-        _metadata.set("title", std::string("Streamed by ") + kServerName);
+        _metadata.set("title", std::string(kServerName));
     }
 
     _have_video = _metadata["videocodecid"];

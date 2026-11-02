@@ -17,7 +17,7 @@ namespace mediakit {
 TitleMeta::TitleMeta(float dur_sec, size_t fileSize, const std::map<std::string, std::string> &header) {
     _metadata.set("duration", dur_sec);
     _metadata.set("fileSize", (int)fileSize);
-    _metadata.set("title", std::string("Streamed by ") + kServerName);
+    _metadata.set("title", std::string(kServerName));
     for (auto &pr : header) {
         _metadata.set(pr.first, pr.second);
     }
