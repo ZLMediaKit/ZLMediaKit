@@ -22,7 +22,6 @@ namespace mediakit{
 class G711Track : public AudioTrackImp{
 public:
     using Ptr = std::shared_ptr<G711Track>;
-    // 透传入参（与 L16/MP3 一致）；未给出时回落 RFC 默认 8000/1/16。
     G711Track(CodecId codecId, int sample_rate, int channels, int sample_bit)
         : AudioTrackImp(codecId,
                         sample_rate > 0 ? sample_rate : 8000,
