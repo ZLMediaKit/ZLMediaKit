@@ -11,6 +11,7 @@
 #include "mk_common.h"
 #include <stdarg.h>
 #include <unordered_map>
+#include "Common/macros.h"
 #include "Util/logger.h"
 #include "Util/SSLBox.h"
 #include "Util/File.h"
@@ -189,6 +190,15 @@ API_EXPORT const char * API_CALL mk_get_option(const char *key)
     return mINI::Instance()[key].data();
 }
 
+API_EXPORT void API_CALL mk_set_server_name(const char *name)
+{
+    setServerName(name);
+}
+
+API_EXPORT const char *API_CALL mk_get_server_name()
+{
+    return getServerName();
+}
 
 API_EXPORT uint16_t API_CALL mk_http_server_start(uint16_t port, int ssl) {
     ssl = MAX(0,MIN(ssl,1));

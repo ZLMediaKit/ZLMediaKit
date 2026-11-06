@@ -15,12 +15,39 @@
 #include "Util/onceToken.h"
 #include "Util/util.h"
 #include <assert.h>
+#include <cstring>
 #include <stdio.h>
 
 using namespace std;
 using namespace toolkit;
 
 namespace mediakit {
+
+static std::string defaultHttpNotFoundHtml(const char *server_name) {
+    return StrPrinter << "<html>"
+                         "<head><title>404 Not Found</title></head>"
+                         "<body bgcolor=\"white\">"
+                         "<center><h1>您访问的资源不存在！</h1></center>"
+                         "<hr><center>"
+                      << (server_name ? server_name : "")
+                      << "</center>"
+                         "</body>"
+                         "</html>"
+                      << endl;
+}
+
+void refreshDefaultHttpNotFound(const char *old_server_name, const char *new_server_name) {
+    if (!old_server_name || !new_server_name || !old_server_name[0] || !new_server_name[0]) {
+        return;
+    }
+    if (strcmp(old_server_name, new_server_name) == 0) {
+        return;
+    }
+    auto &not_found = mINI::Instance()[Http::kNotFound];
+    if (not_found == defaultHttpNotFoundHtml(old_server_name)) {
+        not_found = defaultHttpNotFoundHtml(new_server_name);
+    }
+}
 
 bool loadIniConfig(const char *ini_path) {
     string ini;
@@ -213,16 +240,7 @@ static onceToken token([]() {
     mINI::Instance()[kCharSet] = "utf-8";
 
     mINI::Instance()[kRootPath] = "./www";
-    mINI::Instance()[kNotFound] = StrPrinter << "<html>"
-                                                "<head><title>404 Not Found</title></head>"
-                                                "<body bgcolor=\"white\">"
-                                                "<center><h1>您访问的资源不存在！</h1></center>"
-                                                "<hr><center>"
-                                             << kServerName
-                                             << "</center>"
-                                                "</body>"
-                                                "</html>"
-                                             << endl;
+    mINI::Instance()[kNotFound] = defaultHttpNotFoundHtml(getServerName());
     mINI::Instance()[kForbidCacheSuffix] = "";
     mINI::Instance()[kForwardedIpHeader] = "";
     // 默认允许所有域名跨域
