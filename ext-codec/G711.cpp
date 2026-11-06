@@ -25,7 +25,7 @@ Buffer::Ptr G711Track::getExtraData() const {
     wav.nChannels = getAudioChannel();
     wav.nSamplesPerSec = getAudioSampleRate();
     wav.nAvgBytesPerSec = getAudioSampleRate() * getAudioChannel();
-    wav.nBlockAlign = 1;
+    wav.nBlockAlign = getAudioChannel(); // 8bit/channel → 每帧对齐字节数为声道数
     wav.wBitsPerSample = 8;
     auto buff = BufferRaw::create(18 + wav.cbSize);
     wave_format_save(&wav, (uint8_t*)buff->data(), buff->size());

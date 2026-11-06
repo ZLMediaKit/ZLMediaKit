@@ -23,8 +23,9 @@ class G711Track : public AudioTrackImp{
 public:
     using Ptr = std::shared_ptr<G711Track>;
     G711Track(CodecId codecId, int sample_rate, int channels, int sample_bit)
+        // FLV SoundRate=0 解码为 5512，但 G.711 RTMP 实际为 8 kHz；保留其它显式采样率
         : AudioTrackImp(codecId,
-                        sample_rate > 0 ? sample_rate : 8000,
+                        (sample_rate > 0 && sample_rate != 5512) ? sample_rate : 8000,
                         channels > 0 ? channels : 1,
                         sample_bit > 0 ? sample_bit : 16) {}
 
