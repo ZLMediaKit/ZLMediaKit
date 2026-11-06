@@ -9,10 +9,13 @@
  */
 
 #include "macros.h"
+#include "config.h"
 
+#include <atomic>
 #include <cstring>
+#include <memory>
 #include <mutex>
-#include <string>
+#include <vector>
 
 using namespace toolkit;
 
@@ -40,24 +43,34 @@ static const char kServerNameDefault[] =
     "ZLMediaKit(git hash:" COMMIT_HASH "/" COMMIT_TIME ",branch:" BRANCH_NAME ",build time:" BUILD_TIME ")";
 #endif
 
+// 历史快照永不释放，避免并发读到已释放/已改写的 buffer
 static std::mutex s_server_name_mtx;
-static std::string s_server_name_storage(kServerNameDefault);
-const char *kServerName = kServerNameDefault;
+static std::vector<std::unique_ptr<std::string>> s_server_name_keep;
+static std::atomic<const char *> s_server_name { kServerNameDefault };
 
-void setServerName(const char *name)
-{
+void setServerName(const char *name) {
     if (!name || !name[0]) {
         return;
     }
-    std::lock_guard<std::mutex> lock(s_server_name_mtx);
-    s_server_name_storage = name;
-    kServerName           = s_server_name_storage.c_str();
+    // 禁止 CR/LF，避免注入到 HTTP/RTSP 头与 SDP
+    if (std::strpbrk(name, "\r\n")) {
+        WarnL << "reject server name containing CR/LF";
+        return;
+    }
+
+    auto old_name = s_server_name.load(std::memory_order_acquire);
+    auto holder = std::make_unique<std::string>(name);
+    const char *published = holder->c_str();
+    {
+        std::lock_guard<std::mutex> lock(s_server_name_mtx);
+        s_server_name_keep.emplace_back(std::move(holder));
+    }
+    s_server_name.store(published, std::memory_order_release);
+    refreshDefaultHttpNotFound(old_name, published);
 }
 
-const char *getServerName()
-{
-    std::lock_guard<std::mutex> lock(s_server_name_mtx);
-    return kServerName;
+const char *getServerName() {
+    return s_server_name.load(std::memory_order_acquire);
 }
 
 } // namespace mediakit

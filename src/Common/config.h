@@ -33,6 +33,9 @@ class ProtocolOption;
 // Returns true if the configuration file is loaded successfully, otherwise returns false.
 bool loadIniConfig(const char *ini_path = nullptr);
 
+// 若 http.notFound 仍是带旧服务名的默认页，则随 setServerName 刷新品牌名
+void refreshDefaultHttpNotFound(const char *old_server_name, const char *new_server_name);
+
 // //////////广播名称///////////  [AUTO-TRANSLATED:439b2d74]
 // //////////Broadcast Name///////////
 namespace Broadcast {

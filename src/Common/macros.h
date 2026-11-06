@@ -75,8 +75,8 @@
 
 namespace mediakit {
 
-// 默认编译期字符串；可通过 setServerName / mk_set_server_name 在 env_init 后覆盖（SDP s=、Server 头等）
-extern const char *kServerName;
+// 可通过 setServerName / mk_set_server_name 在 env_init 后覆盖（SDP s=、Server 头等）
+// getServerName 返回指向永不释放快照的指针，可安全用于头字段拷贝
 void setServerName(const char *name);
 const char *getServerName();
 
@@ -90,4 +90,10 @@ void Assert_ThrowCpp(int failed, const char *exp, const char *func, const char *
 }
 
 } // namespace mediakit
+
+// 兼容历史 kServerName 直接读法；统一走原子指针，避免与 setServerName 并发 UAF
+#ifndef kServerName
+#define kServerName (::mediakit::getServerName())
+#endif
+
 #endif // ZLMEDIAKIT_MACROS_H
