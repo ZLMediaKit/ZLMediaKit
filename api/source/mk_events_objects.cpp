@@ -219,7 +219,7 @@ API_EXPORT mk_track API_CALL mk_media_source_get_track(const mk_media_source ctx
     assert(ctx);
     MediaSource *src = (MediaSource *)ctx;
     auto tracks = src->getTracks(false);
-    if (index < 0 && index >= tracks.size()) {
+    if (index < 0 || static_cast<size_t>(index) >= tracks.size()) {
         return nullptr;
     }
     return (mk_track) new Track::Ptr(std::move(tracks[index]));
