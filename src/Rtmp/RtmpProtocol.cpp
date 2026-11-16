@@ -787,7 +787,7 @@ const char* RtmpProtocol::handle_rtmp(const char *data, size_t len) {
     return ptr;
 }
 
-void RtmpProtocol::handle_chunk(RtmpPacket::Ptr packet) {
+void RtmpProtocol::handle_chunk(RtmpPacket::Ptr packet, int depth) {
     auto &chunk_data = *packet;
     switch (chunk_data.type_id) {
         case MSG_ACK: {
@@ -901,6 +901,10 @@ void RtmpProtocol::handle_chunk(RtmpPacket::Ptr packet) {
         }
 
         case MSG_AGGREGATE: {
+            if (depth > 0) {
+                // 聚合消息不允许嵌套，否则会导致递归处理，内存占用以O(N^2)增长
+                throw std::runtime_error("Nested aggregate message");
+            }
             auto ptr = (uint8_t *) chunk_data.buffer.data();
             auto ptr_tail = ptr + chunk_data.buffer.size();
             uint32_t latest_ts, timestamp;
@@ -932,7 +936,7 @@ void RtmpProtocol::handle_chunk(RtmpPacket::Ptr packet) {
                 sub_packet.time_stamp = timestamp;
                 sub_packet.stream_index = chunk_data.stream_index;
                 sub_packet.chunk_id = chunk_data.chunk_id;
-                handle_chunk(std::move(sub_packet_ptr));
+                handle_chunk(std::move(sub_packet_ptr), depth + 1);
                 ptr += size + 4;
             }
             break;
