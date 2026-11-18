@@ -43,6 +43,7 @@ set(GATING_TESTS
   test_av1_rtmp
   test_amf
   test_hls_cookie_data
+  test_media_source_tracks
   test_sortor
   test_rtx_twcc
   test_webrtc_regression)
