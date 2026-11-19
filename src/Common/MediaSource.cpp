@@ -135,7 +135,13 @@ vector<Track::Ptr> MediaSource::getTracks(bool ready) const {
     if (!listener) {
         return vector<Track::Ptr>();
     }
-    return listener->getMuxer(const_cast<MediaSource &>(*this))->getTracks(ready);
+    try {
+        auto muxer = listener->getMuxer(const_cast<MediaSource &>(*this));
+        return muxer->getTracks(ready);
+    } catch (std::exception &ex) {
+        WarnL << "getTracks failed: " << ex.what();
+        return vector<Track::Ptr>();
+    }
 }
 
 void MediaSource::setListener(const std::weak_ptr<MediaSourceEvent> &listener){
