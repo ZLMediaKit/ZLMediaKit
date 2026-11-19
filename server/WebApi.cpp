@@ -20,6 +20,7 @@
 #endif // _WIN32
 
 #include <functional>
+#include <initializer_list>
 #include <unordered_map>
 #include <regex>
 #include "Util/MD5.h"
@@ -100,6 +101,115 @@ using HttpApi = function<void(const Parser &parser, const HttpSession::HttpRespo
 // http api列表  [AUTO-TRANSLATED:a05e9d9d]
 // http api list
 static map<string, HttpApi, StrCaseCompare> s_map_api;
+
+// 按平台处理路径分隔符
+static bool isPathSeparator(char ch) {
+#ifdef _WIN32
+    return ch == '/' || ch == '\\';
+#else
+    return ch == '/';
+#endif
+}
+
+static std::string unifySeparators(std::string path) {
+#ifdef _WIN32
+    std::replace(path.begin(), path.end(), '\\', '/');
+#endif
+    return path;
+}
+
+// 校验请求参数是否为安全的相对路径
+static bool isSafeRelativePath(const std::string &path, bool multi_level) {
+    auto check_segment = [](const std::string &seg) {
+        if (seg.empty() || seg == "." || seg == "..") {
+            return false;
+        }
+#ifdef _WIN32
+        if (seg.back() == '.' || seg.back() == ' ') {
+            return false;
+        }
+#endif
+        return true;
+    };
+    std::string seg;
+    for (unsigned char ch : path) {
+        if (ch < 0x20 || ch == 0x7f) {
+            return false;
+        }
+        if (isPathSeparator(static_cast<char>(ch))) {
+            if (!multi_level || !check_segment(seg)) {
+                return false;
+            }
+            seg.clear();
+            continue;
+        }
+#ifdef _WIN32
+        if (ch == ':' || ch == '*' || ch == '?' || ch == '"' || ch == '<' || ch == '>' || ch == '|') {
+            return false;
+        }
+#endif
+        seg.push_back(static_cast<char>(ch));
+    }
+    return check_segment(seg);
+}
+
+// 批量校验路径参数，空的可选参数跳过
+static void checkPathArgs(const ArgsMap &allArgs, std::initializer_list<const char *> keys, bool multi_level) {
+    for (auto key : keys) {
+        std::string value = allArgs[key];
+        if (!value.empty() && !isSafeRelativePath(value, multi_level)) {
+            auto message = std::string("Invalid path argument: ") + key;
+            throw InvalidArgsException(message.c_str());
+        }
+    }
+}
+
+// 解析配置根目录，统一为以 '/' 结尾的绝对路径
+static std::string resolveRootDir(const std::string &dir) {
+    auto root = unifySeparators(File::absolutePath("", dir));
+    if (root.empty() || root.back() != '/') {
+        root.push_back('/');
+    }
+    return root;
+}
+
+// 最终操作路径必须严格位于 root 内（不能等于 root）
+static void checkWithinRoot(const std::string &root, const std::string &path) {
+    auto unified = unifySeparators(path);
+    // absolutePath 不会规范化绝对 current_path 中的 ..，这里必须在比较前拒绝
+    if (unified.find('\0') != std::string::npos) {
+        throw ApiRetException("Invalid path component", API::OtherFailed);
+    }
+    size_t pos = 0;
+    while (pos <= unified.size()) {
+        auto next = unified.find('/', pos);
+        auto end = next == std::string::npos ? unified.size() : next;
+        auto seg = unified.substr(pos, end - pos);
+        if (seg == "..") {
+            throw ApiRetException("Cannot access parent directory", API::OtherFailed);
+        }
+#ifdef _WIN32
+        if (!seg.empty() && (seg.back() == '.' || seg.back() == ' ')) {
+            throw ApiRetException("Invalid path component", API::OtherFailed);
+        }
+#endif
+        if (next == std::string::npos) {
+            break;
+        }
+        pos = next + 1;
+    }
+#ifdef _WIN32
+    // Win32 路径比较不区分大小写
+    if (root == "/" || unified.size() <= root.size()
+        || strncasecmp(unified.data(), root.data(), root.size()) != 0) {
+        throw ApiRetException("Path is outside of the allowed root directory", API::OtherFailed);
+    }
+#else
+    if (root == "/" || unified.size() <= root.size() || unified.compare(0, root.size(), root) != 0) {
+        throw ApiRetException("Path is outside of the allowed root directory", API::OtherFailed);
+    }
+#endif
+}
 
 static void responseApi(int code, const string &msg, const HttpSession::HttpResponseInvoker &invoker, ApiRetException *ex = nullptr){
     Json::Value res;
@@ -912,8 +1022,9 @@ void installWebApi() {
                 continue;
 #endif
             }
-            if (pr.first == FFmpeg::kBin || pr.first == FFmpeg::kSnap || pr.first == API::kDownloadRoot) {
-                // downloadRoot 决定 downloadFile 接口的可下载边界，禁止通过 setServerConfig 动态放宽，防止越权读取任意文件
+            if (pr.first == FFmpeg::kBin || pr.first == FFmpeg::kSnap || pr.first == API::kDownloadRoot
+                || pr.first == Protocol::kMP4SavePath || pr.first == API::kSnapRoot || pr.first == Record::kAppName) {
+                // 这些配置决定文件接口的可操作边界，禁止通过 setServerConfig 动态放宽
                 WarnL << "Configuration named " << pr.first << " is not allowed to be set by setServerConfig api.";
                 continue;
             }
@@ -1999,6 +2110,10 @@ void installWebApi() {
     api_regist("/index/api/deleteRecordDirectory", [](API_ARGS_MAP) {
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream");
+        // vhost/app/stream 允许多级，period/name 只能是单个名称
+        checkPathArgs(allArgs, { "vhost", "app", "stream" }, true);
+        checkPathArgs(allArgs, { "period", "name" }, false);
+        // customized_path 只能指定录像根内的目录
         auto tuple = MediaTuple{allArgs["vhost"], allArgs["app"], allArgs["stream"], ""};
         auto record_path = Recorder::getRecordPath(Recorder::type_mp4, tuple, allArgs["customized_path"]);
         auto period = allArgs["period"];
@@ -2020,6 +2135,9 @@ void installWebApi() {
                 recording = true;
             }
         }
+        // 出口边界：最终路径必须位于录像根内
+        GET_CONFIG(std::string, mp4_save_path, Protocol::kMP4SavePath);
+        checkWithinRoot(resolveRootDir(mp4_save_path), record_path);
         val["path"] = record_path;
         if (!recording) {
             val["code"] = File::delete_file(record_path, true);
@@ -2042,8 +2160,11 @@ void installWebApi() {
     api_regist("/index/api/deleteSnapDirectory", [](API_ARGS_MAP) {
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream");
+        checkPathArgs(allArgs, { "vhost", "app", "stream" }, true);
+        checkPathArgs(allArgs, { "file" }, false);
         GET_CONFIG(std::string, root, API::kSnapRoot);
         auto path = File::absolutePath(allArgs["vhost"] + "/" + allArgs["app"] + "/" + allArgs["stream"] + "/" + allArgs["file"], root);
+        checkWithinRoot(resolveRootDir(root), path);
         InfoL << "delete " << path;
         File::delete_file(path, true);
     });
@@ -2054,6 +2175,9 @@ void installWebApi() {
     api_regist("/index/api/getMP4RecordFile", [](API_ARGS_MAP){
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream");
+        // 与删除接口共用校验，避免枚举根目录之外的内容
+        checkPathArgs(allArgs, { "vhost", "app", "stream" }, true);
+        checkPathArgs(allArgs, { "period" }, false);
         auto tuple = MediaTuple{allArgs["vhost"], allArgs["app"], allArgs["stream"], ""};
         auto record_path = Recorder::getRecordPath(Recorder::type_mp4, tuple, allArgs["customized_path"]);
         auto period = allArgs["period"];
@@ -2064,6 +2188,8 @@ void installWebApi() {
         if (search_mp4) {
             record_path = record_path + period + "/";
         }
+        GET_CONFIG(std::string, mp4_save_path, Protocol::kMP4SavePath);
+        checkWithinRoot(resolveRootDir(mp4_save_path), record_path);
 
         Json::Value paths(arrayValue);
         // 这是筛选日期，获取文件夹列表  [AUTO-TRANSLATED:786fa49d]
@@ -2595,7 +2721,7 @@ void installWebApi() {
         val["cookie"] = unlogin_cookie->getCookie();
     });
 
-#if defined(ENABLE_VIDEOSTACK) && defined(ENABLE_X264) && defined(ENABLE_FFMPEG)
+#if defined(ENABLE_VIDEOSTACK) && defined(ENABLE_FFMPEG) && defined(ENABLE_X264)
     VideoStackManager::Instance().loadBgImg("novideo.yuv");
     NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastStreamNoneReader, [](BroadcastStreamNoneReaderArgs) {
         auto id = sender.getMediaTuple().stream;
