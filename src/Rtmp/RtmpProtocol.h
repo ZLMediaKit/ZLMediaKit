@@ -80,7 +80,7 @@ private:
     const char* handle_C0C1(const char *data, size_t len);
     const char* handle_C2(const char *data, size_t len);
     const char* handle_rtmp(const char *data, size_t len);
-    void handle_chunk(RtmpPacket::Ptr chunk_data);
+    void handle_chunk(RtmpPacket::Ptr chunk_data, int depth = 0);
 
 protected:
     int _send_req_id = 0;
