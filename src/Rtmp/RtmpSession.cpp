@@ -469,7 +469,8 @@ void RtmpSession::onCmd_playCtrl(AMFDecoder &dec) {
 
 void RtmpSession::setMetaData(AMFDecoder &dec) {
     std::string type = dec.load<std::string>();
-    if (type != "onMetaData") {
+    // Some Dahua cameras send "@onMetaData" inside "@setDataFrame".
+    if (type != "onMetaData" && type != "@onMetaData") {
         throw std::runtime_error("can only set metadata");
     }
     _push_metadata = dec.load<AMFValue>();
