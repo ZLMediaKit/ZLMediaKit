@@ -212,17 +212,27 @@ API_EXPORT int API_CALL mk_media_source_get_total_reader_count(const mk_media_so
 API_EXPORT int API_CALL mk_media_source_get_track_count(const mk_media_source ctx) {
     assert(ctx);
     MediaSource *src = (MediaSource *)ctx;
-    return src->getTracks(false).size();
+    try {
+        return src->getTracks(false).size();
+    } catch (std::exception &ex) {
+        WarnL << "getTracks failed: " << ex.what();
+        return 0;
+    }
 }
 
 API_EXPORT mk_track API_CALL mk_media_source_get_track(const mk_media_source ctx, int index) {
     assert(ctx);
     MediaSource *src = (MediaSource *)ctx;
-    auto tracks = src->getTracks(false);
-    if (index < 0 || static_cast<size_t>(index) >= tracks.size()) {
+    try {
+        auto tracks = src->getTracks(false);
+        if (index < 0 || static_cast<size_t>(index) >= tracks.size()) {
+            return nullptr;
+        }
+        return (mk_track) new Track::Ptr(std::move(tracks[index]));
+    } catch (std::exception &ex) {
+        WarnL << "getTracks failed: " << ex.what();
         return nullptr;
     }
-    return (mk_track) new Track::Ptr(std::move(tracks[index]));
 }
 
 API_EXPORT float API_CALL mk_media_source_get_track_loss(const mk_media_source ctx, const mk_track track) {
