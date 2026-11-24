@@ -40,6 +40,12 @@ protected:
     }
     virtual void onStreamEof(uint32_t stream_index){};
     virtual void onStreamDry(uint32_t stream_index){};
+    // 发送端截断了视频消息(声明长度大于实际发送长度)，已在下一个消息头处恢复解析
+    // The sender cut a video message short (declared length larger than what it sent); parsing resumed at the next header
+    virtual void onSenderTruncation(int chunk_id, size_t declared, size_t received);
+    // 截断后丢弃的视频消息已结束，从关键帧恢复
+    // Video messages dropped after a truncation ended; resumed at a key frame
+    virtual void onTruncationRecovered(size_t dropped);
 
 protected:
     //// HttpRequestSplitter override ////
@@ -81,6 +87,8 @@ private:
     const char* handle_C2(const char *data, size_t len);
     const char* handle_rtmp(const char *data, size_t len);
     void handle_chunk(RtmpPacket::Ptr chunk_data);
+    size_t findTruncatedBodyEnd(const uint8_t *body, size_t avail, uint8_t basic_header, uint32_t stream_index, uint32_t stamp);
+    bool dropUntilKeyframe(const RtmpPacket &packet);
 
 protected:
     int _send_req_id = 0;
@@ -106,6 +114,10 @@ private:
     std::function<const char * (const char *data, size_t len)> _next_step_func;
     ////////////Chunk////////////
     std::unordered_map<int, std::pair<RtmpPacket::Ptr/*now*/, RtmpPacket::Ptr/*last*/> > _map_chunk_data;
+    ////////////Truncated message recovery////////////
+    size_t _truncation_scan_offset = 0;
+    bool _drop_video_until_key = false;
+    size_t _dropped_after_truncation = 0;
     // 循环池  [AUTO-TRANSLATED:cf2e86c5]
     // Thread pool
     toolkit::ResourcePool<toolkit::BufferRaw> _packet_pool;

@@ -57,6 +57,8 @@ private:
         send(std::move(buffer));
     }
     void onRtmpChunk(RtmpPacket::Ptr chunk_data) override;
+    void onSenderTruncation(int chunk_id, size_t declared, size_t received) override;
+    void onTruncationRecovered(size_t dropped) override;
 
     template<typename first, typename second>
     inline void sendReply(const char *str, const first &reply, const second &status) {

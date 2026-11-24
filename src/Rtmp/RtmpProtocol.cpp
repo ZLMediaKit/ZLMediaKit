@@ -109,6 +109,10 @@ void RtmpProtocol::reset() {
     _map_chunk_data.clear();
     _now_stream_index = 0;
     _now_chunk_id = 0;
+    ////////////Truncated message recovery////////////
+    _truncation_scan_offset = 0;
+    _drop_video_until_key = false;
+    _dropped_after_truncation = 0;
     //////////Invoke Request//////////
     _send_req_id = 0;
     //////////Rtmp parser//////////
@@ -673,6 +677,138 @@ const char* RtmpProtocol::handle_C2(const char *data, size_t len) {
 
 static constexpr size_t HEADER_LENGTH[] = {12, 8, 4, 1};
 
+namespace {
+
+// 部分编码器(如宇视IPC，视频帧超过512KiB时)在消息头中声明完整长度，但只发送部分负载就开始发送下一条消息。
+// 按规范解析器会继续读取声明的长度，从而吞掉后续消息，chunk流从此错乱直到连接断开。
+// 当一个较大的单chunk视频消息尚未收全时，在其负载中查找同一chunk流的下一个消息头；
+// 以下校验足够严格，真实帧数据中误匹配的概率可以忽略。
+// Some encoders (seen on Uniview IP cameras, for video frames above 512 KiB) announce a message with its
+// full length but send only part of the payload before starting the next message. Per spec the parser
+// keeps reading the declared length, swallowing the following messages, and the chunk stream stays
+// corrupted until the connection dies. While a large single-chunk video message is incomplete we look
+// for the next message header of the same chunk stream inside its payload; the checks below are strict
+// enough that a false match inside real frame data is practically impossible.
+constexpr size_t kTruncationScanMinBody = 64 * 1024;
+constexpr uint32_t kTruncationMaxStampStepMs = 10 * 1000;
+
+enum class Probe { No, Yes, NeedMore };
+
+// 传统FLV封装的H264/H265视频tag
+// Legacy FLV AVC/HEVC video tag body
+bool isPlausibleVideoBody(const uint8_t *b, size_t size) {
+    if (size < 5) {
+        return false;
+    }
+    auto frame_type = b[0] >> 4;
+    auto codec = b[0] & 0x0F;
+    if ((frame_type != 1 && frame_type != 2) || (codec != 7 && codec != 12)) {
+        return false;
+    }
+    switch (b[1]) {
+        case 0: return size >= 6 && size <= 4096 && b[5] == 1; // decoder configuration record, version 1
+        case 2: return size == 5;
+        case 1: {
+            // 长度前缀的NALU必须正好填满负载
+            // Length-prefixed NAL units must fill the payload exactly
+            size_t pos = 5;
+            while (pos < size) {
+                if (size - pos < 5) {
+                    return false;
+                }
+                auto nalu_size = load_be32(b + pos);
+                if (nalu_size == 0 || nalu_size > size - pos - 4 || (b[pos + 4] & 0x80)) {
+                    return false;
+                }
+                pos += 4 + nalu_size;
+            }
+            return true;
+        }
+        default: return false;
+    }
+}
+
+Probe probeNextHeader(const uint8_t *p, size_t avail, uint8_t basic_header, uint32_t stream_index, uint32_t stamp) {
+    if (p[0] != basic_header) {
+        return Probe::No;
+    }
+    if (avail < 12) {
+        return Probe::NeedMore;
+    }
+    if (p[7] != MSG_VIDEO || load_le32(p + 8) != stream_index) {
+        return Probe::No;
+    }
+    size_t header_len = 12;
+    uint32_t next_stamp = load_be24(p + 1);
+    if (next_stamp == 0xFFFFFF) {
+        if (avail < 16) {
+            return Probe::NeedMore;
+        }
+        next_stamp = load_be32(p + 12);
+        header_len = 16;
+    }
+    if (next_stamp < stamp || next_stamp - stamp > kTruncationMaxStampStepMs) {
+        return Probe::No;
+    }
+    size_t body_size = load_be24(p + 4);
+    if (body_size == 0) {
+        return Probe::No;
+    }
+    if (avail < header_len + body_size) {
+        return Probe::NeedMore;
+    }
+    return isPlausibleVideoBody(p + header_len, body_size) ? Probe::Yes : Probe::No;
+}
+
+} // namespace
+
+size_t RtmpProtocol::findTruncatedBodyEnd(const uint8_t *body, size_t avail, uint8_t basic_header, uint32_t stream_index, uint32_t stamp) {
+    // [0, _truncation_scan_offset) 已在之前的调用中排除
+    // [0, _truncation_scan_offset) was ruled out by earlier calls for this message
+    auto pos = _truncation_scan_offset;
+    while (pos < avail) {
+        auto hit = (const uint8_t *)memchr(body + pos, basic_header, avail - pos);
+        if (!hit) {
+            pos = avail;
+            break;
+        }
+        pos = hit - body;
+        switch (probeNextHeader(hit, avail - pos, basic_header, stream_index, stamp)) {
+            case Probe::Yes: return pos;
+            case Probe::NeedMore: _truncation_scan_offset = pos; return std::string::npos;
+            default: ++pos; break;
+        }
+    }
+    _truncation_scan_offset = pos;
+    return std::string::npos;
+}
+
+bool RtmpProtocol::dropUntilKeyframe(const RtmpPacket &packet) {
+    if (!_drop_video_until_key || packet.type_id != MSG_VIDEO) {
+        return false;
+    }
+    // 截断帧之后的帧引用了丢失的帧，丢弃直到下一个关键帧
+    // Frames after the truncated one reference it; drop them until the next key frame
+    // (frame type sits in bits 4-6 for both legacy FLV and enhanced RTMP)
+    if ((((uint8_t)packet.buffer[0] >> 4) & 0x07) == 1) {
+        _drop_video_until_key = false;
+        onTruncationRecovered(_dropped_after_truncation);
+        _dropped_after_truncation = 0;
+        return false;
+    }
+    ++_dropped_after_truncation;
+    return true;
+}
+
+void RtmpProtocol::onSenderTruncation(int chunk_id, size_t declared, size_t received) {
+    WarnL << "rtmp sender truncated a video message on chunk stream " << chunk_id << ": declared " << declared << " bytes, sent "
+          << received << "; resynced at the next header, dropping video until the next key frame";
+}
+
+void RtmpProtocol::onTruncationRecovered(size_t dropped) {
+    InfoL << "rtmp video resumed at a key frame after a truncated message, dropped " << dropped << " video messages";
+}
+
 const char* RtmpProtocol::handle_rtmp(const char *data, size_t len) {
     auto ptr = data;
     while (len) {
@@ -762,9 +898,27 @@ const char* RtmpProtocol::handle_rtmp(const char *data, size_t len) {
 
         auto more = min(_chunk_size_in, (size_t) (chunk_data.body_size - chunk_data.buffer.size()));
         if (len < header_len + offset + more) {
-            //need more data
-            return ptr;
+            // 发送端可能截断了该消息，见findTruncatedBodyEnd
+            // The sender may have cut this message short, see findTruncatedBodyEnd
+            auto sent = std::string::npos;
+            if (header_len == 12 && _now_chunk_id >= 2 && _now_chunk_id < 64 && chunk_data.type_id == MSG_VIDEO
+                && chunk_data.buffer.empty() && more == chunk_data.body_size && more >= kTruncationScanMinBody) {
+                sent = findTruncatedBodyEnd((const uint8_t *)ptr + header_len + offset, len - header_len - offset, (uint8_t)ptr[0],
+                                            chunk_data.stream_index, time_stamp);
+            }
+            if (sent == std::string::npos) {
+                //need more data
+                return ptr;
+            }
+            onSenderTruncation(_now_chunk_id, chunk_data.body_size, sent);
+            now_packet = nullptr;
+            _drop_video_until_key = true;
+            _truncation_scan_offset = 0;
+            ptr += header_len + offset + sent;
+            len -= header_len + offset + sent;
+            continue;
         }
+        _truncation_scan_offset = 0;
         if (more) {
             chunk_data.buffer.append(ptr + header_len + offset, more);
         }
@@ -777,7 +931,7 @@ const char* RtmpProtocol::handle_rtmp(const char *data, size_t len) {
             // 保存chunk上下文  [AUTO-TRANSLATED:4ed4fbb0]
             // Save chunk context
             last_packet = now_packet;
-            if (chunk_data.body_size) {
+            if (chunk_data.body_size && !dropUntilKeyframe(chunk_data)) {
                 handle_chunk(std::move(now_packet));
             } else {
                 now_packet = nullptr;
