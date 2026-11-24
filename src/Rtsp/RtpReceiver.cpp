@@ -84,6 +84,9 @@ RtpPacket::Ptr RtpTrack::inputRtp(TrackType type, int sample_rate, uint8_t *ptr,
             return nullptr;
         }
         InfoL << "rtp ssrc changed:" << _ssrc << " -> " << ssrc;
+        if (packetDeadlineEnabled()) {
+            PacketSortor<RtpPacket::Ptr>::clear();
+        }
         _ssrc = ssrc;
         _ssrc_alive.resetTime();
     }
