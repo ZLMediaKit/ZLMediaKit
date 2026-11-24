@@ -690,13 +690,12 @@ namespace {
 // for the next message header of the same chunk stream inside its payload; the checks below are strict
 // enough that a false match inside real frame data is practically impossible.
 constexpr size_t kTruncationScanMinBody = 64 * 1024;
+constexpr size_t kTruncationMaxProbeBody = 2 * 1024 * 1024;
 constexpr uint32_t kTruncationMaxStampStepMs = 10 * 1000;
 
 enum class Probe { No, Yes, NeedMore };
 
-// 传统FLV封装的H264/H265视频tag
-// Legacy FLV AVC/HEVC video tag body
-bool isPlausibleVideoBody(const uint8_t *b, size_t size) {
+bool isPlausibleVideoHeader(const uint8_t *b, size_t size) {
     if (size < 5) {
         return false;
     }
@@ -706,7 +705,21 @@ bool isPlausibleVideoBody(const uint8_t *b, size_t size) {
         return false;
     }
     switch (b[1]) {
-        case 0: return size >= 6 && size <= 4096 && b[5] == 1; // decoder configuration record, version 1
+        case 0: return size >= 6 && size <= 4096;
+        case 1: return true;
+        case 2: return size == 5;
+        default: return false;
+    }
+}
+
+// 传统FLV封装的H264/H265视频tag
+// Legacy FLV AVC/HEVC video tag body
+bool isPlausibleVideoBody(const uint8_t *b, size_t size) {
+    if (!isPlausibleVideoHeader(b, size)) {
+        return false;
+    }
+    switch (b[1]) {
+        case 0: return b[5] == 1; // decoder configuration record, version 1
         case 2: return size == 5;
         case 1: {
             // 长度前缀的NALU必须正好填满负载
@@ -728,12 +741,12 @@ bool isPlausibleVideoBody(const uint8_t *b, size_t size) {
     }
 }
 
-Probe probeNextHeader(const uint8_t *p, size_t avail, uint8_t basic_header, uint32_t stream_index, uint32_t stamp) {
+Probe probeNextHeader(const uint8_t *p, size_t avail, uint8_t basic_header, uint32_t stream_index, uint32_t stamp, bool allow_partial_header) {
     if (p[0] != basic_header) {
         return Probe::No;
     }
     if (avail < 12) {
-        return Probe::NeedMore;
+        return allow_partial_header ? Probe::NeedMore : Probe::No;
     }
     if (p[7] != MSG_VIDEO || load_le32(p + 8) != stream_index) {
         return Probe::No;
@@ -742,7 +755,7 @@ Probe probeNextHeader(const uint8_t *p, size_t avail, uint8_t basic_header, uint
     uint32_t next_stamp = load_be24(p + 1);
     if (next_stamp == 0xFFFFFF) {
         if (avail < 16) {
-            return Probe::NeedMore;
+            return allow_partial_header ? Probe::NeedMore : Probe::No;
         }
         next_stamp = load_be32(p + 12);
         header_len = 16;
@@ -751,7 +764,13 @@ Probe probeNextHeader(const uint8_t *p, size_t avail, uint8_t basic_header, uint
         return Probe::No;
     }
     size_t body_size = load_be24(p + 4);
-    if (body_size == 0) {
+    if (body_size == 0 || body_size > kTruncationMaxProbeBody) {
+        return Probe::No;
+    }
+    if (avail < header_len + 5) {
+        return allow_partial_header ? Probe::NeedMore : Probe::No;
+    }
+    if (!isPlausibleVideoHeader(p + header_len, body_size)) {
         return Probe::No;
     }
     if (avail < header_len + body_size) {
@@ -762,20 +781,26 @@ Probe probeNextHeader(const uint8_t *p, size_t avail, uint8_t basic_header, uint
 
 } // namespace
 
-size_t RtmpProtocol::findTruncatedBodyEnd(const uint8_t *body, size_t avail, uint8_t basic_header, uint32_t stream_index, uint32_t stamp) {
+size_t RtmpProtocol::findTruncatedBodyEnd(const uint8_t *body, size_t avail, size_t scan_limit, uint8_t basic_header, uint32_t stream_index, uint32_t stamp, bool &need_more) {
     // [0, _truncation_scan_offset) 已在之前的调用中排除
     // [0, _truncation_scan_offset) was ruled out by earlier calls for this message
+    need_more = false;
+    auto limit = min(avail, scan_limit);
+    auto allow_partial_header = avail < scan_limit;
     auto pos = _truncation_scan_offset;
-    while (pos < avail) {
-        auto hit = (const uint8_t *)memchr(body + pos, basic_header, avail - pos);
+    while (pos < limit) {
+        auto hit = (const uint8_t *)memchr(body + pos, basic_header, limit - pos);
         if (!hit) {
-            pos = avail;
+            pos = limit;
             break;
         }
         pos = hit - body;
-        switch (probeNextHeader(hit, avail - pos, basic_header, stream_index, stamp)) {
+        switch (probeNextHeader(hit, avail - pos, basic_header, stream_index, stamp, allow_partial_header)) {
             case Probe::Yes: return pos;
-            case Probe::NeedMore: _truncation_scan_offset = pos; return std::string::npos;
+            case Probe::NeedMore:
+                _truncation_scan_offset = pos;
+                need_more = true;
+                return std::string::npos;
             default: ++pos; break;
         }
     }
@@ -897,26 +922,32 @@ const char* RtmpProtocol::handle_rtmp(const char *data, size_t len) {
         }
 
         auto more = min(_chunk_size_in, (size_t) (chunk_data.body_size - chunk_data.buffer.size()));
-        if (len < header_len + offset + more) {
+        if (header_len == 12 && _now_chunk_id >= 2 && _now_chunk_id < 64 && chunk_data.type_id == MSG_VIDEO
+            && chunk_data.buffer.empty() && more == chunk_data.body_size && more >= kTruncationScanMinBody
+            && len > header_len + offset) {
             // 发送端可能截断了该消息，见findTruncatedBodyEnd
             // The sender may have cut this message short, see findTruncatedBodyEnd
-            auto sent = std::string::npos;
-            if (header_len == 12 && _now_chunk_id >= 2 && _now_chunk_id < 64 && chunk_data.type_id == MSG_VIDEO
-                && chunk_data.buffer.empty() && more == chunk_data.body_size && more >= kTruncationScanMinBody) {
-                sent = findTruncatedBodyEnd((const uint8_t *)ptr + header_len + offset, len - header_len - offset, (uint8_t)ptr[0],
-                                            chunk_data.stream_index, time_stamp);
+            bool need_more = false;
+            auto sent = findTruncatedBodyEnd((const uint8_t *)ptr + header_len + offset, len - header_len - offset, more,
+                                             (uint8_t)ptr[0], chunk_data.stream_index, time_stamp, need_more);
+            if (sent != std::string::npos) {
+                onSenderTruncation(_now_chunk_id, chunk_data.body_size, sent);
+                now_packet = nullptr;
+                _drop_video_until_key = true;
+                _truncation_scan_offset = 0;
+                ptr += header_len + offset + sent;
+                len -= header_len + offset + sent;
+                continue;
             }
-            if (sent == std::string::npos) {
-                //need more data
+            if (need_more) {
+                // 等待候选消息剩余字节，即使已越过当前帧声明的长度边界
+                // Wait for remaining bytes of a plausible candidate even past the declared boundary
                 return ptr;
             }
-            onSenderTruncation(_now_chunk_id, chunk_data.body_size, sent);
-            now_packet = nullptr;
-            _drop_video_until_key = true;
-            _truncation_scan_offset = 0;
-            ptr += header_len + offset + sent;
-            len -= header_len + offset + sent;
-            continue;
+        }
+        if (len < header_len + offset + more) {
+            //need more data
+            return ptr;
         }
         _truncation_scan_offset = 0;
         if (more) {
