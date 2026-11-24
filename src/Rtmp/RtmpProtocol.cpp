@@ -706,7 +706,7 @@ bool isPlausibleVideoHeader(const uint8_t *b, size_t size) {
     }
     switch (b[1]) {
         case 0: return size >= 6 && size <= 4096;
-        case 1: return true;
+        case 1: return size > 5;
         case 2: return size == 5;
         default: return false;
     }
@@ -760,7 +760,7 @@ Probe probeNextHeader(const uint8_t *p, size_t avail, uint8_t basic_header, uint
         next_stamp = load_be32(p + 12);
         header_len = 16;
     }
-    if (next_stamp < stamp || next_stamp - stamp > kTruncationMaxStampStepMs) {
+    if ((uint32_t)(next_stamp - stamp) > kTruncationMaxStampStepMs) {
         return Probe::No;
     }
     size_t body_size = load_be24(p + 4);
