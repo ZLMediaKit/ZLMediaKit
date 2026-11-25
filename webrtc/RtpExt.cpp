@@ -90,7 +90,7 @@ uint8_t RtpExtOneByte::getId() const {
 }
 
 void RtpExtOneByte::setId(uint8_t in) {
-    CHECK(in < (int)RtpExtType::reserved);
+    CHECK(in < 15);
     id = in & 0x0F;
 }
 
@@ -535,7 +535,7 @@ uint8_t RtpExt::getFramemarkingTID() const {
 void RtpExt::setExtId(uint8_t ext_id) {
     assert(ext_id > (int) RtpExtType::padding && _ext);
     if (_one_byte_ext) {
-        if (ext_id >= (int)RtpExtType::reserved) {
+        if (ext_id >= 15) {
             WarnL << "One byte rtp ext can not store id " << (int)ext_id << "(" << getExtName((RtpExtType)ext_id) << ") big than 14";
             clearExt();
             return;
@@ -557,6 +557,8 @@ void RtpExt::clearExt(){
         auto ptr = reinterpret_cast<RtpExtTwoByte *>(_ext);
         memset(ptr, (int) RtpExtType::padding, RtpExtTwoByte::kMinSize + ptr->getSize());
     }
+    _type = RtpExtType::padding;
+    _ext = nullptr;
 }
 
 void RtpExt::setType(RtpExtType type) {
@@ -571,69 +573,86 @@ RtpExt::operator bool() const {
     return _ext != nullptr;
 }
 
-RtpExtContext::RtpExtContext(const RtcMedia &m){
+void RtpExtContext::addExtMap(const RtcMedia &m) {
     for (auto &ext : m.extmap) {
         auto ext_type = RtpExt::getExtType(ext.ext);
         _rtp_ext_id_to_type.emplace(ext.id, ext_type);
         _rtp_ext_type_to_id.emplace(ext_type, ext.id);
+        if (ext.id > 15) {
+            _need_two_bytes_ext = true;
+        }
     }
 }
 
-string RtpExtContext::getRid(uint32_t ssrc) const{
-    auto it = _ssrc_to_rid.find(ssrc);
-    if (it == _ssrc_to_rid.end()) {
-        return "";
-    }
-    return it->second;
+bool RtpExtContext::RtpExtContext::needTwoBytesExt() const {
+    return _need_two_bytes_ext;
+}
+
+const std::map<uint8_t/*id*/, RtpExt/*data*/> &RtpExtContext::getExtMap() const {
+    return _rtp_ext_map;
+}
+
+int RtpExtContext::getExtId(RtpExtType type) const {
+    auto it = _rtp_ext_type_to_id.find(type);
+    return it == _rtp_ext_type_to_id.end() ? -1 : it->second;
 }
 
 void RtpExtContext::setRid(uint32_t ssrc, const string &rid) {
     _ssrc_to_rid[ssrc] = rid;
 }
 
-RtpExt RtpExtContext::changeRtpExtId(const RtpHeader *header, size_t len, bool is_recv, string *rid_ptr, RtpExtType type) {
-    string rid, repaired_rid;
-    RtpExt ret;
-    auto ext_map = RtpExt::getExtValue(header, len);
-    for (auto &pr : ext_map) {
-        if (is_recv) {
-            auto it = _rtp_ext_id_to_type.find(pr.first);
-            if (it == _rtp_ext_id_to_type.end()) {
-                // TraceL << "接收rtp时,忽略不识别的rtp ext, id=" << (int) pr.first;  [AUTO-TRANSLATED:284d8a38]
-                // TraceL << "Receiving rtp, ignoring unrecognized rtp ext, id=" << (int) pr.first;
-                pr.second.clearExt();
-                continue;
-            }
-            pr.second.setType(it->second);
-            // 重新赋值ext id为 ext type，作为后面处理ext的统一中间类型  [AUTO-TRANSLATED:ab825878]
-            // Reassign ext id to ext type, as a unified intermediate type for processing ext later
-            pr.second.setExtId((uint8_t) it->second);
-            switch (it->second) {
-                case RtpExtType::sdes_rtp_stream_id : rid = pr.second.getRtpStreamId(); break;
-                case RtpExtType::sdes_repaired_rtp_stream_id : repaired_rid = pr.second.getRepairedRtpStreamId(); break;
-                default : break;
-            }
-        } else {
-            pr.second.setType((RtpExtType) pr.first);
-            auto it = _rtp_ext_type_to_id.find((RtpExtType) pr.first);
-            if (it == _rtp_ext_type_to_id.end()) {
-                // TraceL << "发送rtp时, 忽略不被客户端支持rtp ext:" << pr.second.dumpString();  [AUTO-TRANSLATED:5d9fd8cc]
-                // TraceL << "Sending rtp, ignoring rtp ext not supported by client:" << pr.second.dumpString();
-                pr.second.clearExt();
-                continue;
-            }
-            // 重新赋值ext id为客户端sdp声明的类型  [AUTO-TRANSLATED:06d60796]
-            // Reassign ext id to the type declared in client sdp
-            pr.second.setExtId(it->second);
+const std::string &RtpExtContext::getRid() const {
+    return _rid;
+}
+
+const RtpExt &RtpExtContext::getRtpExt(RtpExtType type) const {
+    auto it = _rtp_ext_type_to_id.find(type);
+    if (it == _rtp_ext_type_to_id.end()) {
+        return _empty_ext;
+    }
+    auto it2 = _rtp_ext_map.find(it->second);
+    if (it2 == _rtp_ext_map.end()) {
+        return _empty_ext;
+    }
+    return it2->second;
+}
+
+void RtpExtContext::changeRtpExt(const RtpExtContext &to) {
+    for (auto &pr : _rtp_ext_map) {
+        if (!pr.second) {
+            continue;
         }
-        if (pr.second.getType() == type) {
-            ret = pr.second;
+        auto type = pr.second.getType();
+        auto it = to._rtp_ext_type_to_id.find(type);
+        if (it == to._rtp_ext_type_to_id.end()) {
+            // 接收方不支持该rtp ext
+            pr.second.clearExt();
+            continue;
+        }
+        pr.second.setExtId(it->second);
+    }
+}
+
+void RtpExtContext::parseRtpExt(const RtpHeader *header, size_t len) {
+    string rid, repaired_rid;
+    _rtp_ext_map.clear();
+    _rtp_ext_map = RtpExt::getExtValue(header, len);
+    for (auto &pr : _rtp_ext_map) {
+        auto it = _rtp_ext_id_to_type.find(pr.first);
+        if (it == _rtp_ext_id_to_type.end()) {
+            // TraceL << "接收rtp时,忽略不识别的rtp ext, id=" << (int) pr.first;  [AUTO-TRANSLATED:284d8a38]
+            // TraceL << "Receiving rtp, ignoring unrecognized rtp ext, id=" << (int) pr.first;
+            pr.second.clearExt();
+            continue;
+        }
+        pr.second.setType(it->second);
+        switch (it->second) {
+            case RtpExtType::sdes_rtp_stream_id: rid = pr.second.getRtpStreamId(); break;
+            case RtpExtType::sdes_repaired_rtp_stream_id: repaired_rid = pr.second.getRepairedRtpStreamId(); break;
+            default: break;
         }
     }
 
-    if (!is_recv) {
-        return ret;
-    }
     if (rid.empty()) {
         rid = repaired_rid;
     }
@@ -648,23 +667,57 @@ RtpExt RtpExtContext::changeRtpExtId(const RtpHeader *header, size_t len, bool i
         auto it = _ssrc_to_rid.find(ssrc);
         if (it == _ssrc_to_rid.end() || it->second != rid) {
             _ssrc_to_rid[ssrc] = rid;
-            onGetRtp(header->pt, ssrc, rid);
         }
     }
-    if (rid_ptr) {
-        *rid_ptr = rid;
-    }
-    return ret;
+    _rid = std::move(rid);
 }
 
-void RtpExtContext::setOnGetRtp(OnGetRtp cb) {
-    _cb = std::move(cb);
+RtpExtBuilder::RtpExtBuilder(bool two_byte_ext)
+    : _two_byte_ext(two_byte_ext) {
+    // RTP扩展头保留字：0xBEDE(one-byte) 或 0x1000(two-byte)
+    // RTP extension header reserved word: 0xBEDE (one-byte) or 0x1000 (two-byte)
+    if (_two_byte_ext) {
+        _buffer.append("\x10\x00", 2);
+    } else {
+        _buffer.append("\xBE\xDE", 2);
+    }
+    // 预留ext length字段（2字节），build()时回填
+    // Reserve ext length field (2 bytes), filled in build()
+    _buffer.append(2, 0);
 }
 
-void RtpExtContext::onGetRtp(uint8_t pt, uint32_t ssrc, const string &rid){
-    if (_cb) {
-        _cb(pt, ssrc, rid);
+void RtpExtBuilder::appendExt(uint8_t id, const char *data, uint8_t size) {
+    if (!id) {
+        return;
     }
+    if (_two_byte_ext) {
+        _buffer.push_back(id);
+        _buffer.push_back(size);
+    } else if (size) {
+        // one-byte: ID(4bit) | L-1(4bit)
+        _buffer.push_back(static_cast<char>(id << 4 | (size - 1)));
+    }
+    if (size) {
+        _buffer.append(data, size);
+    }
+}
+
+void RtpExtBuilder::build() {
+    // ext长度必须为4的整数倍，不足部分补0
+    // Ext length must be a multiple of 4 bytes, pad with zeros
+    auto padding = _buffer.size() % 4;
+    if (padding) {
+        _buffer.append(4 - padding, 0);
+    }
+    // 回填ext length（单位为32-bit word，即4字节）
+    // Fill in ext length (unit: 32-bit words, i.e. 4 bytes)
+    auto word_count = (_buffer.size() - 4) >> 2;
+    _buffer[2] = static_cast<char>((word_count >> 8) & 0xFF);
+    _buffer[3] = static_cast<char>(word_count & 0xFF);
+}
+
+const std::string &RtpExtBuilder::buffer() const {
+    return _buffer;
 }
 
 }// namespace mediakit

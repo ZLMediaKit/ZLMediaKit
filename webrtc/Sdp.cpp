@@ -618,7 +618,10 @@ string SdpAttrFmtp::toString() const {
         int i = 0;
         for (auto &pr : fmtp) {
             value += (i++ ? ';' : ' ');
-            value += pr.first + "=" + pr.second;
+            value += pr.first;
+            if (!pr.second.empty()) {
+                value += "=" + pr.second;
+            }
         }
     }
     return SdpItem::toString();
@@ -1009,7 +1012,7 @@ void RtcSdpBase::toRtsp() {
             case 'a': {
                 auto attr = dynamic_pointer_cast<SdpAttr>(*it);
                 CHECK(attr);
-                if (!strcasecmp(attr->detail->getKey(), "rtpmap") || !strcasecmp(attr->detail->getKey(), "fmtp")) {
+                if (!strcasecmp(attr->detail->getKey(), "rtpmap") || !strcasecmp(attr->detail->getKey(), "fmtp") || !strcasecmp(attr->detail->getKey(), "extmap")) {
                     ++it;
                     break;
                 }
@@ -1040,6 +1043,14 @@ string RtcSession::toRtspSdp() const {
     }
 
     CHECK(!copy.media.empty());
+    for (auto &m : copy.media) {
+        for (auto &ext : m.extmap) {
+            if (ext.direction == RtpDirection::recvonly || ext.direction == RtpDirection::sendonly) {
+                // 去除extmap中recvonly或sendonly属性
+                ext.direction = RtpDirection::sendrecv;
+            }
+        }
+    }
     auto sdp = copy.toRtcSessionSdp();
     sdp->toRtsp();
     int i = 0;
@@ -1391,6 +1402,15 @@ const RtcMedia *RtcSession::getMedia(TrackType type) const {
     return nullptr;
 }
 
+const RtcMedia *RtcSession::getMediaByMid(const string &mid) const {
+    for (auto &m : media) {
+        if (m.mid == mid) {
+            return &m;
+        }
+    }
+    return nullptr;
+}
+
 bool RtcSession::supportRtcpFb(const string &name, TrackType type) const {
     auto media = getMedia(type);
     if (!media) {
@@ -1453,7 +1473,7 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type) {
     rtcp_rsize = false;
     group_bundle = true;
     support_rtx = true;
-    support_red = false;
+    support_red = (type == TrackAudio);
     support_ulpfec = false;
     ice_lite = true;
     ice_trickle = true;
@@ -1473,7 +1493,7 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type) {
                        { RtpExtType::transport_cc, RtpDirection::sendrecv },
                        // rtx重传rtp时，忽略sdes_mid类型的rtp ext,实测发现Firefox在接收rtx时，如果存在sdes_mid的ext,将导致无法播放  [AUTO-TRANSLATED:221df025]
                        // When rtx retransmits rtp, ignore the rtp ext of sdes_mid type. It is found that Firefox cannot play when receiving rtx if there is an ext of sdes_mid
-                       //{RtpExtType::sdes_mid,RtpDirection::sendrecv},
+                       { RtpExtType::sdes_mid,RtpDirection::sendrecv},
                        { RtpExtType::sdes_rtp_stream_id, RtpDirection::sendrecv },
                        { RtpExtType::sdes_repaired_rtp_stream_id, RtpDirection::sendrecv } };
             break;
@@ -1490,7 +1510,7 @@ void RtcConfigure::RtcTrackConfigure::setDefaultSetting(TrackType type) {
                        { RtpExtType::transport_cc, RtpDirection::sendrecv },
                        // rtx重传rtp时，忽略sdes_mid类型的rtp ext,实测发现Firefox在接收rtx时，如果存在sdes_mid的ext,将导致无法播放  [AUTO-TRANSLATED:221df025]
                        // When rtx retransmits rtp, ignore the rtp ext of sdes_mid type. It is found that Firefox cannot play when receiving rtx if there is an ext of sdes_mid
-                       //{RtpExtType::sdes_mid,RtpDirection::sendrecv},
+                       { RtpExtType::sdes_mid,RtpDirection::sendrecv},
                        { RtpExtType::sdes_rtp_stream_id, RtpDirection::sendrecv },
                        { RtpExtType::sdes_repaired_rtp_stream_id, RtpDirection::sendrecv },
                        { RtpExtType::video_timing, RtpDirection::sendrecv },
@@ -1680,11 +1700,16 @@ static uint16_t getAnswerMediaPort(const RtcMedia &offer_media) {
 void RtcConfigure::createMediaOffer(const std::shared_ptr<RtcSession> &ret) const {
     int index = 0;
     if (video.direction != RtpDirection::sendonly || _rtsp_video_plan)  {
-        createMediaOfferEach(ret, TrackVideo, index++);
+        // 支持单PeerConnection多条同类型mline(如视频会议预留接收mline)
+        for (int i = 0; i < (std::max)(1, video_mline_count); ++i) {
+            createMediaOfferEach(ret, TrackVideo, index++);
+        }
     }
 
     if (audio.direction != RtpDirection::sendonly || _rtsp_audio_plan)  {
-        createMediaOfferEach(ret, TrackAudio, index++);
+        for (int i = 0; i < (std::max)(1, audio_mline_count); ++i) {
+            createMediaOfferEach(ret, TrackAudio, index++);
+        }
     }
     // createMediaOfferEach(ret, TrackApplication, index++);
 }
@@ -2097,6 +2122,14 @@ void RtcConfigure::onSelectPlan(RtcCodecPlan &plan, CodecId codec) const {
         // aac时，设置fmtp
         plan.fmtp = _rtsp_audio_plan->fmtp;
     }
+#if 0 // answer sdp是否开启fec由answer决定
+    if (codec == CodecOpus) {
+        // 开启Opus内带FEC（in-band FEC），提升音频抗丢包能力
+        plan.fmtp["useinbandfec"] = "1";
+        // 开启DTX（不连续传输），静音时降低带宽消耗
+        plan.fmtp["usedtx"] = "1";
+    }
+#endif
 }
 
 } // namespace mediakit

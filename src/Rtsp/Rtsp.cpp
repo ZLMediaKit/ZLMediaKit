@@ -705,6 +705,14 @@ size_t RtpPacket::getPayloadSize() const {
     return getHeader()->getPayloadSize(size() - kRtpTcpHeaderSize);
 }
 
+void RtpPacket::clone(const RtpPacket &that) {
+    type = that.type;
+    sample_rate = that.sample_rate;
+    ntp_stamp = that.ntp_stamp;
+    track_index = that.track_index;
+    assign(that.data(), that.size());
+}
+
 RtpPacket::Ptr RtpPacket::create() {
 #if 0
     static ResourcePool<RtpPacket> packet_pool;

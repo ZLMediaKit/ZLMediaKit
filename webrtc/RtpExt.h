@@ -42,7 +42,6 @@ enum class RtpExtType : uint8_t {
 #define XX(type, uri) type,
     RTP_EXT_MAP(XX)
 #undef XX
-    reserved = 15,
 };
 
 class RtcMedia;
@@ -97,11 +96,12 @@ public:
     void clearExt();
     operator bool () const;
 
+    const char *data() const;
+    size_t size() const;
+
 private:
     RtpExt() = default;
     RtpExt(void *ptr, bool one_byte_ext, const char *str, size_t size);
-    const char *data() const;
-    size_t size() const;
     const uint8_t& operator[](size_t pos) const;
     operator std::string() const;
 
@@ -113,33 +113,62 @@ private:
     RtpExtType _type = RtpExtType::padding;
 };
 
-class RtcMedia;
 class RtpExtContext {
 public:
     using Ptr = std::shared_ptr<RtpExtContext>;
-    using OnGetRtp = std::function<void(uint8_t pt, uint32_t ssrc, const std::string &rid)>;
 
-    RtpExtContext(const RtcMedia &media);
+    RtpExtContext() = default;
+    void addExtMap(const RtcMedia &media);
 
-    void setOnGetRtp(OnGetRtp cb);
-    std::string getRid(uint32_t ssrc) const;
     void setRid(uint32_t ssrc, const std::string &rid);
-    // len为rtp数据报实际长度, 用于校验包内声明的扩展长度, 防止堆越界读写
-    RtpExt changeRtpExtId(const RtpHeader *header, size_t len, bool is_recv, std::string *rid_ptr = nullptr, RtpExtType type = RtpExtType::padding);
+    const std::string &getRid() const;
+
+    void parseRtpExt(const RtpHeader *header, size_t len);
+    void changeRtpExt(const RtpExtContext &to);
+    const RtpExt& getRtpExt(RtpExtType type) const;
+    bool needTwoBytesExt() const;
+    const std::map<uint8_t/*id*/, RtpExt/*data*/> &getExtMap() const;
+    int getExtId(RtpExtType type) const;
 
 private:
-    void onGetRtp(uint8_t pt, uint32_t ssrc, const std::string &rid);
-
-private:
-    OnGetRtp _cb;
     // 发送rtp时需要修改rtp ext id  [AUTO-TRANSLATED:b92a494b]
     // Modify the rtp ext id when sending rtp
     std::map<RtpExtType, uint8_t> _rtp_ext_type_to_id;
     // 接收rtp时需要修改rtp ext id  [AUTO-TRANSLATED:685e7a01]
     // Modify the rtp ext id when receiving rtp
-    std::unordered_map<uint8_t, RtpExtType> _rtp_ext_id_to_type;
+    std::map<uint8_t, RtpExtType> _rtp_ext_id_to_type;
+    bool _need_two_bytes_ext = false;
     //ssrc --> rid
-    std::unordered_map<uint32_t/*simulcast ssrc*/, std::string/*rid*/> _ssrc_to_rid;
+    std::map<uint32_t/*simulcast ssrc*/, std::string/*rid*/> _ssrc_to_rid;
+
+    // 当前解析的rtp的rid
+    std::string _rid;
+    // 当前解析的rtp的扩展列表
+    RtpExt _empty_ext;
+    std::map<uint8_t/*id*/, RtpExt/*data*/> _rtp_ext_map;
+};
+
+// RTP扩展头构建器，用于组装one-byte或two-byte格式的RTP header extension
+// RTP extension header builder for assembling one-byte or two-byte format extensions
+class RtpExtBuilder {
+public:
+    explicit RtpExtBuilder(bool two_byte_ext);
+
+    // 追加一个扩展项，id为0或data为空时跳过
+    // Append an extension item, skipped when id is 0 or data is null
+    void appendExt(uint8_t id, const char *data, uint8_t size);
+
+    // 完成构建：填充padding并对齐到4字节边界，回填ext length字段
+    // Finalize: pad to 4-byte boundary and fill in the ext length field
+    void build();
+
+    // 获取构建后的ext buffer（需在build()之后调用）
+    // Get the built ext buffer (call after build())
+    const std::string &buffer() const;
+
+private:
+    bool _two_byte_ext;
+    std::string _buffer;
 };
 
 } //namespace mediakit

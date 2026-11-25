@@ -120,6 +120,30 @@ public:
      */
     virtual size_t getLostInterval();
 
+    /**
+     * 获取收到或发送的rtp的字节数
+     * Get the number of bytes of rtp received or sent
+     */
+    size_t getBytes() const { return _bytes; }
+
+    /**
+     * 获取收到或发送的rtp的个数
+     * Get the number of rtp received or sent
+     */
+    size_t getPackets() const { return _packets; }
+
+    /**
+     * 获取上次的rtp时间戳,毫秒(采样数)
+     * Get the last rtp timestamp, milliseconds (sample count)
+     */
+    uint32_t getLastRtpStamp() const { return _last_rtp_stamp; }
+
+    /**
+     * 获取上次的ntp时间戳,毫秒
+     * Get the last ntp timestamp, milliseconds
+     */
+    uint64_t getLastNtpStampMs() const { return _last_ntp_stamp_ms; }
+
 protected:
     // 收到或发送的rtp的字节数  [AUTO-TRANSLATED:a38d88a9]
     // Number of bytes of rtp received or sent

@@ -702,6 +702,8 @@ public:
     std::string toString() const;
     std::string toRtspSdp() const;
     const RtcMedia *getMedia(TrackType type) const;
+    // 根据mid查找mline，支持单PeerConnection多条同类型mline
+    const RtcMedia *getMediaByMid(const std::string &mid) const;
     bool supportRtcpFb(const std::string &name, TrackType type = TrackType::TrackVideo) const;
     bool supportSimulcast() const;
     bool isOnlyDatachannel() const;
@@ -743,6 +745,10 @@ public:
     RtcTrackConfigure video;
     RtcTrackConfigure audio;
     RtcTrackConfigure application;
+
+    // 生成offer时各类型mline数量，用于单PeerConnection多mline场景(如视频会议预留mline)
+    int video_mline_count = 1;
+    int audio_mline_count = 1;
 
     void setDefaultSetting(std::string ice_ufrag, std::string ice_pwd, RtpDirection direction, const SdpAttrFingerprint &fingerprint);
     void addCandidate(const SdpAttrCandidate &candidate, TrackType type = TrackInvalid);

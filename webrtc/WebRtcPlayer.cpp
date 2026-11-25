@@ -207,6 +207,8 @@ void WebRtcPlayer::onStartWebRTC() {
         return;
     }
     WebRtcTransportImp::onStartWebRTC();
+    setOriginRtpSdp(playSrc->getSdp());
+
     if (canSendRtp()) {
         playSrc->pause(false);
         _reader = playSrc->getRing()->attach(getPoller(), true);

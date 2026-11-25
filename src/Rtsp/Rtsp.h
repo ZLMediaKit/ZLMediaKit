@@ -201,6 +201,7 @@ public:
     int track_index;
 
     static Ptr create();
+    void clone(const RtpPacket &that);
 
 private:
     friend class toolkit::ResourcePool_l<RtpPacket>;
