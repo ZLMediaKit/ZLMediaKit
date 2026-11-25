@@ -503,6 +503,15 @@ void RtmpSession::onProcessCmd(AMFDecoder &dec) {
     (this->*fun)(dec);
 }
 
+void RtmpSession::onSenderTruncation(int chunk_id, size_t declared, size_t received) {
+    WarnP(this) << "RTMP推流器 truncated a video message on chunk stream " << chunk_id << ": declared " << declared << " bytes, sent "
+                << received << "; resynced at the next header, dropping video until the next key frame";
+}
+
+void RtmpSession::onTruncationRecovered(size_t dropped) {
+    InfoP(this) << "RTMP推流器 video resumed at a key frame after a truncated message, dropped " << dropped << " video messages";
+}
+
 void RtmpSession::onRtmpChunk(RtmpPacket::Ptr packet) {
     auto &chunk_data = *packet;
     switch (chunk_data.type_id) {
