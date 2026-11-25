@@ -28,7 +28,7 @@ MP4Recorder::MP4Recorder(const MediaTuple &tuple, const string &path, size_t max
     static_cast<MediaTuple &>(_info) = tuple;
     _info.folder = path;
     GET_CONFIG(uint32_t, s_max_second, Protocol::kMP4MaxSecond);
-    _max_second = max_second ? max_second : s_max_second;
+    _max_second = max_second > 0 ? max_second : s_max_second;
 }
 
 MP4Recorder::~MP4Recorder() {
