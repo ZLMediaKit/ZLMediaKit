@@ -118,7 +118,10 @@ void MP4Recorder::flush() {
 
 bool MP4Recorder::inputFrame(const Frame::Ptr &frame) {
     auto stamp_inc = _delta_stamp[frame->getTrackType()].relativeStamp(frame->pts(), false);
-    if (!_muxer || (stamp_inc > int64_t(_max_second) * 1000 && (!_have_video || frame->keyFrame()))) {
+    //首个文件也必须等关键帧:MP4Muxer 会丢弃关键帧之前的帧，若在第一个（可能不是关键帧的）帧上就 createFile，会提前写入 start_time/文件名，
+    //导致入库的开始时间早于 MP4 实际可播放起点（时长从关键帧算起）
+    bool need_new_file = !_muxer || stamp_inc > int64_t(_max_second) * 1000;
+    if (need_new_file && (!_have_video || frame->keyFrame())) {
         // 成立条件  [AUTO-TRANSLATED:8c9c6083]
         // Conditions for establishment
         // 1、_muxer为空  [AUTO-TRANSLATED:fa236097]
